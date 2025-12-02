@@ -4,6 +4,7 @@
  */
 
 plugins {
+    id 'java'
     id 'jacoco'
     id "org.gradle.test-retry"
 }
@@ -44,24 +45,42 @@ ext {
 repositories {
     mavenLocal()
     mavenCentral()
-    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
 
-configurations.all {
-    resolutionStrategy {
-        force 'org.apache.httpcomponents:httpclient:4.5.14'
-        force 'org.apache.httpcomponents:httpcore:4.4.16'
-        force 'commons-codec:commons-codec:1.19.0'
-        force 'org.hamcrest:hamcrest:2.2'
-        force 'org.mockito:mockito-core:5.19.0'
-        force 'org.slf4j:slf4j-api:1.7.36'
+sourceSets {
+    integrationTest {
+        java {
+            srcDir file('src/integrationTest/java')
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+        }
+        resources {
+            srcDir file('src/integrationTest/resources')
+        }
+    }
+}
 
-        // Duplicate dependencies with conflicting versions from org.opensearch.plugin:transport-grpc
-        // Force versions present in security plugin
-        force "com.google.errorprone:error_prone_annotations:2.41.0"
-        force "com.google.protobuf:protobuf-java:${versions.protobuf}"
-        force "com.google.guava:guava:${guava_version}"
-        force "com.google.guava:failureaccess:1.0.3"
+configurations {
+    integrationTestImplementation.extendsFrom implementation
+    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+
+    all {
+        resolutionStrategy {
+            force 'org.apache.httpcomponents:httpclient:4.5.14'
+            force 'org.apache.httpcomponents:httpcore:4.4.16'
+            force 'commons-codec:commons-codec:1.20.0'
+            force 'org.hamcrest:hamcrest:2.2'
+            force 'org.mockito:mockito-core:5.20.0'
+            force 'org.slf4j:slf4j-api:1.7.36'
+
+            // Duplicate dependencies with conflicting versions from org.opensearch.plugin:transport-grpc
+            // Force versions present in security plugin
+            force "com.google.errorprone:error_prone_annotations:2.44.0"
+            force "com.google.protobuf:protobuf-java:${versions.protobuf}"
+            force "com.google.guava:guava:${guava_version}"
+            force "com.google.guava:failureaccess:1.0.3"
+        }
     }
 }
 
@@ -83,19 +102,6 @@ dependencies {
 
     // To be removed once integration test framework supports extended plugins
     integrationTestImplementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
-}
-
-sourceSets {
-    integrationTest {
-        java {
-            srcDir file('src/integrationTest/java')
-            compileClasspath += sourceSets.main.output
-            runtimeClasspath += sourceSets.main.output
-        }
-        resources {
-            srcDir file('src/integrationTest/resources')
-        }
-    }
 }
 
 tasks.register("integrationTest", Test) {

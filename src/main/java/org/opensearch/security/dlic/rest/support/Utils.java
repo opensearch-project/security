@@ -13,9 +13,6 @@ package org.opensearch.security.dlic.rest.support;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +20,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +27,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchParseException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.CheckedSupplier;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentHelper;
@@ -46,6 +41,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestHandler.DeprecatedRoute;
 import org.opensearch.rest.RestHandler.Route;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -127,6 +123,11 @@ public class Utils {
         return DefaultObjectMapper.readTree(content);
     }
 
+    public static Map<String, String> toMapOfStrings(final JsonNode jsonNode) {
+        return internalMapper.convertValue(jsonNode, new TypeReference<Map<String, String>>() {
+        });
+    }
+
     public static Object toConfigObject(final JsonNode content, final Class<?> clazz) throws IOException {
         return DefaultObjectMapper.readTree(content, clazz);
     }
@@ -146,54 +147,13 @@ public class Utils {
 
     }
 
-    @SuppressWarnings("removal")
     public static byte[] jsonMapToByteArray(Map<String, Object> jsonAsMap) throws IOException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) () -> internalMapper.writeValueAsBytes(jsonAsMap));
-        } catch (final PrivilegedActionException e) {
-            if (e.getCause() instanceof JsonProcessingException) {
-                throw (JsonProcessingException) e.getCause();
-            } else if (e.getCause() instanceof RuntimeException) {
-                throw (RuntimeException) e.getCause();
-            } else {
-                throw new RuntimeException(e.getCause());
-            }
-        }
+        return AccessController.doPrivilegedChecked(() -> internalMapper.writeValueAsBytes(jsonAsMap));
     }
 
-    @SuppressWarnings("removal")
     public static Map<String, Object> byteArrayToMutableJsonMap(byte[] jsonBytes) throws IOException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        try {
-            return AccessController.doPrivileged(
-                (PrivilegedExceptionAction<Map<String, Object>>) () -> internalMapper.readValue(
-                    jsonBytes,
-                    new TypeReference<Map<String, Object>>() {
-                    }
-                )
-            );
-        } catch (final PrivilegedActionException e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            } else if (e.getCause() instanceof RuntimeException) {
-                throw (RuntimeException) e.getCause();
-            } else {
-                throw new RuntimeException(e.getCause());
-            }
-        }
+        return AccessController.doPrivilegedChecked(() -> internalMapper.readValue(jsonBytes, new TypeReference<Map<String, Object>>() {
+        }));
     }
 
     /**

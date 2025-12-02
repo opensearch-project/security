@@ -194,7 +194,6 @@ public abstract class AbstractDefaultConfigurationTests {
             final var expectedRoles = client.get("_plugins/_security/api/roles/");
             final var expectedRoleNames = extractFieldNames(expectedRoles.getBodyAs(JsonNode.class));
             // This test restores flow_framework_read_access, but leaves flow_framework_full_access removed
-            expectedRoleNames.remove("flow_framework_full_access");
             final var originalRoleConfig = client.get("_plugins/_security/api/roles/flow_framework_read_access").getBodyAs(JsonNode.class);
             prepareRolesTestCase();
 
@@ -211,10 +210,10 @@ public abstract class AbstractDefaultConfigurationTests {
 
             // Action: Perform the upgrade to the roles configuration
             final var performUpgrade = client.post(
-                "_plugins/_security/api/_upgrade_perform?configs=roles&entities=flow_framework_read_access"
+                "_plugins/_security/api/_upgrade_perform?configs=roles&entities=flow_framework_read_access,flow_framework_full_access"
             );
             performUpgrade.assertStatusCode(200);
-            assertThat(performUpgrade.getTextArrayFromJsonBody("/upgrades/roles/add"), is(empty()));
+            assertThat(performUpgrade.getTextArrayFromJsonBody("/upgrades/roles/add"), is(List.of("flow_framework_full_access")));
             assertThat(performUpgrade.getTextArrayFromJsonBody("/upgrades/roles/modify"), equalTo(List.of("flow_framework_read_access")));
 
             // Verify: Same roles as the original state - the deleted role has been restored

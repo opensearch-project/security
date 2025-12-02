@@ -13,9 +13,12 @@ package org.opensearch.security.auditlog.helper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.io.HttpRequestHandler;
@@ -26,11 +29,18 @@ public class TestHttpHandler implements HttpRequestHandler {
     public String method;
     public String uri;
     public String body;
+    public Map<String, String> headers;
 
     @Override
     public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
         this.method = request.getMethod();
         this.uri = request.getRequestUri();
+
+        // Capture headers
+        this.headers = new HashMap<>();
+        for (Header header : request.getHeaders()) {
+            this.headers.put(header.getName(), header.getValue());
+        }
 
         HttpEntity entity = request.getEntity();
         body = EntityUtils.toString(entity, StandardCharsets.UTF_8);
@@ -40,5 +50,6 @@ public class TestHttpHandler implements HttpRequestHandler {
         this.body = null;
         this.uri = null;
         this.method = null;
+        this.headers = null;
     }
 }

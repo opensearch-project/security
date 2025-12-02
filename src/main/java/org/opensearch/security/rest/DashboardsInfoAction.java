@@ -33,16 +33,20 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.privileges.DashboardsMultiTenancyConfiguration;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.DashboardSignInOption;
+import org.opensearch.security.securityconf.impl.v7.ConfigV7;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -79,8 +83,12 @@ public class DashboardsInfoAction extends BaseRestHandler {
         .build();
 
     private final Logger log = LogManager.getLogger(this.getClass());
-    private final PrivilegesEvaluator evaluator;
+    private final PrivilegesConfiguration privilegesConfiguration;
+    private final ConfigurationRepository configurationRepository;
+
     private final ThreadContext threadContext;
+
+    private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
 
     public static final String DEFAULT_PASSWORD_MESSAGE = "Password should be at least 8 characters long and contain at least one "
         + "uppercase letter, one lowercase letter, one digit, and one special character.";
@@ -88,14 +96,16 @@ public class DashboardsInfoAction extends BaseRestHandler {
     public static final String DEFAULT_PASSWORD_REGEX = "(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{8,}";
 
     public DashboardsInfoAction(
-        final Settings settings,
-        final RestController controller,
-        final PrivilegesEvaluator evaluator,
-        final ThreadPool threadPool
+        final PrivilegesConfiguration privilegesConfiguration,
+        final ConfigurationRepository configurationRepository,
+        final ThreadPool threadPool,
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
     ) {
         super();
+        this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
         this.threadContext = threadPool.getThreadContext();
-        this.evaluator = evaluator;
+        this.privilegesConfiguration = privilegesConfiguration;
+        this.configurationRepository = configurationRepository;
     }
 
     @Override
@@ -121,16 +131,22 @@ public class DashboardsInfoAction extends BaseRestHandler {
 
                     final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
+                    DashboardsMultiTenancyConfiguration multiTenancyConfiguration = privilegesConfiguration.multiTenancyConfiguration();
+
                     builder.startObject();
                     builder.field("user_name", user == null ? null : user.getName());
-                    builder.field("not_fail_on_forbidden_enabled", evaluator.notFailOnForbiddenEnabled());
-                    builder.field("opensearch_dashboards_mt_enabled", evaluator.multitenancyEnabled());
-                    builder.field("opensearch_dashboards_index", evaluator.dashboardsIndex());
-                    builder.field("opensearch_dashboards_server_user", evaluator.dashboardsServerUsername());
-                    builder.field("multitenancy_enabled", evaluator.multitenancyEnabled());
-                    builder.field("private_tenant_enabled", evaluator.privateTenantEnabled());
-                    builder.field("default_tenant", evaluator.dashboardsDefaultTenant());
-                    builder.field("sign_in_options", evaluator.getSignInOptions());
+                    builder.field(
+                        "not_fail_on_forbidden_enabled",
+                        privilegesConfiguration.privilegesEvaluator().notFailOnForbiddenEnabled()
+                    );
+                    builder.field("opensearch_dashboards_mt_enabled", multiTenancyConfiguration.multitenancyEnabled());
+                    builder.field("opensearch_dashboards_index", multiTenancyConfiguration.dashboardsIndex());
+                    builder.field("opensearch_dashboards_server_user", multiTenancyConfiguration.dashboardsServerUsername());
+                    builder.field("multitenancy_enabled", multiTenancyConfiguration.multitenancyEnabled());
+                    builder.field("private_tenant_enabled", multiTenancyConfiguration.privateTenantEnabled());
+                    builder.field("default_tenant", multiTenancyConfiguration.dashboardsDefaultTenant());
+                    builder.field("sign_in_options", getSignInOptions());
+
                     builder.field(
                         "password_validation_error_message",
                         client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, DEFAULT_PASSWORD_MESSAGE)
@@ -139,6 +155,7 @@ public class DashboardsInfoAction extends BaseRestHandler {
                         "password_validation_regex",
                         client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, DEFAULT_PASSWORD_REGEX)
                     );
+                    builder.field("resource_sharing_enabled", resourceSharingEnabledSetting.getDynamicSettingValue());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
@@ -163,6 +180,15 @@ public class DashboardsInfoAction extends BaseRestHandler {
     @Override
     public String getName() {
         return "Kibana Info Action";
+    }
+
+    private List<DashboardSignInOption> getSignInOptions() {
+        ConfigV7 generalConfig = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
+        if (generalConfig != null && generalConfig.dynamic != null && generalConfig.dynamic.kibana != null) {
+            return generalConfig.dynamic.kibana.sign_in_options;
+        } else {
+            return new ConfigV7.Kibana().sign_in_options;
+        }
     }
 
 }

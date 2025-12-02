@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import javax.net.ssl.SSLEngine;
 
+import org.opensearch.http.HttpChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 
@@ -46,7 +47,11 @@ public class OpenSearchRequest implements SecurityRequest {
             return null;
         }
 
-        return underlyingRequest.getHttpChannel().get("ssl_http", SslHandler.class).map(SslHandler::engine).orElse(null);
+        final HttpChannel httpChannel = underlyingRequest.getHttpChannel();
+        return httpChannel.get("ssl_http", SslHandler.class)
+            .map(SslHandler::engine)
+            .or(() -> httpChannel.get("ssl_engine", SSLEngine.class))
+            .orElse(null);
     }
 
     @Override

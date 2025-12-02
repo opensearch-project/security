@@ -26,15 +26,12 @@
 
 package org.opensearch.security.support;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.SpecialPermission;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.cluster.ClusterState;
@@ -44,6 +41,7 @@ import org.opensearch.common.util.IndexUtils;
 import org.opensearch.core.index.Index;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.repositories.Repository;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.snapshots.SnapshotId;
 import org.opensearch.snapshots.SnapshotInfo;
@@ -111,21 +109,8 @@ public class SnapshotRestoreHelper {
         return false;
     }
 
-    @SuppressWarnings("removal")
     private static void setCurrentThreadName(final String name) {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                Thread.currentThread().setName(name);
-                return null;
-            }
-        });
+        AccessController.doPrivileged(() -> Thread.currentThread().setName(name));
     }
 
 }

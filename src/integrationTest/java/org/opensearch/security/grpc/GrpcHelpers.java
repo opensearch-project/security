@@ -21,6 +21,7 @@ import org.opensearch.protobufs.BulkRequestBody;
 import org.opensearch.protobufs.BulkResponse;
 import org.opensearch.protobufs.IndexOperation;
 import org.opensearch.protobufs.MatchAllQuery;
+import org.opensearch.protobufs.OperationContainer;
 import org.opensearch.protobufs.QueryContainer;
 import org.opensearch.protobufs.Refresh;
 import org.opensearch.protobufs.SearchRequest;
@@ -134,19 +135,20 @@ public class GrpcHelpers {
     }
 
     public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
-        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE);
+        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE).setIndex(index);
         for (int i = 0; i < numDocs; i++) {
             String docBody = """
                 {
                     "field": "doc %d body"
                 }
                 """.formatted(i);
-            IndexOperation indexOp = IndexOperation.newBuilder().setIndex(index).setId(String.valueOf(i)).build();
+            IndexOperation.Builder indexOp = IndexOperation.newBuilder().setXId(String.valueOf(i));
+            OperationContainer.Builder opCont = OperationContainer.newBuilder().setIndex(indexOp);
             BulkRequestBody requestBody = BulkRequestBody.newBuilder()
-                .setIndex(indexOp)
-                .setDoc(com.google.protobuf.ByteString.copyFromUtf8(docBody))
+                .setOperationContainer(opCont)
+                .setObject(com.google.protobuf.ByteString.copyFromUtf8(docBody))
                 .build();
-            requestBuilder.addRequestBody(requestBody);
+            requestBuilder.addBulkRequestBody(requestBody);
         }
         DocumentServiceGrpc.DocumentServiceBlockingStub stub = DocumentServiceGrpc.newBlockingStub(channel);
         return stub.bulk(requestBuilder.build());
@@ -155,7 +157,7 @@ public class GrpcHelpers {
     public static SearchResponse doMatchAll(ManagedChannel channel, String index, int size) {
         QueryContainer query = QueryContainer.newBuilder().setMatchAll(MatchAllQuery.newBuilder().build()).build();
         SearchRequestBody requestBody = SearchRequestBody.newBuilder().setSize(size).setQuery(query).build();
-        SearchRequest searchRequest = SearchRequest.newBuilder().addIndex(index).setRequestBody(requestBody).build();
+        SearchRequest searchRequest = SearchRequest.newBuilder().addIndex(index).setSearchRequestBody(requestBody).build();
         SearchServiceGrpc.SearchServiceBlockingStub stub = SearchServiceGrpc.newBlockingStub(channel);
         return stub.search(searchRequest);
     }

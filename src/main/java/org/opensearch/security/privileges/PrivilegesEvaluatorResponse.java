@@ -26,13 +26,11 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
@@ -40,20 +38,50 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import com.selectivem.collections.CheckTable;
 
 public class PrivilegesEvaluatorResponse {
-    boolean allowed = false;
-    Set<String> missingSecurityRoles = new HashSet<>();
-    PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
-    CreateIndexRequestBuilder createIndexRequestBuilder;
-    private Set<String> onlyAllowedForIndices = ImmutableSet.of();
-    private CheckTable<String, String> indexToActionCheckTable;
+    private final boolean allowed;
+    private final CreateIndexRequestBuilder createIndexRequestBuilder;
+    private final ImmutableSet<String> onlyAllowedForIndices;
+    private final CheckTable<String, String> indexToActionCheckTable;
     private String privilegeMatrix;
-    private String reason;
+    private final String reason;
     boolean shouldSkipDlsValve = false;
 
     /**
      * Contains issues that were encountered during privilege evaluation. Can be used for logging.
      */
-    private List<PrivilegesEvaluationException> evaluationExceptions = new ArrayList<>();
+    private ImmutableList<PrivilegesEvaluationException> evaluationExceptions;
+
+    public PrivilegesEvaluatorResponse(
+        boolean allowed,
+        ImmutableSet<String> onlyAllowedForIndices,
+        CheckTable<String, String> indexToActionCheckTable,
+        String privilegeMatrix,
+        String reason,
+        ImmutableList<PrivilegesEvaluationException> evaluationExceptions,
+        CreateIndexRequestBuilder createIndexRequestBuilder
+    ) {
+        this.allowed = allowed;
+        this.createIndexRequestBuilder = createIndexRequestBuilder;
+        this.onlyAllowedForIndices = onlyAllowedForIndices;
+        this.indexToActionCheckTable = indexToActionCheckTable;
+        this.privilegeMatrix = privilegeMatrix;
+        this.reason = reason;
+        this.evaluationExceptions = evaluationExceptions;
+    }
+
+    public PrivilegesEvaluatorResponse(
+        boolean allowed,
+        ImmutableSet<String> onlyAllowedForIndices,
+        CheckTable<String, String> indexToActionCheckTable
+    ) {
+        this.allowed = allowed;
+        this.createIndexRequestBuilder = null;
+        this.onlyAllowedForIndices = onlyAllowedForIndices;
+        this.indexToActionCheckTable = indexToActionCheckTable;
+        this.privilegeMatrix = null;
+        this.reason = null;
+        this.evaluationExceptions = ImmutableList.of();
+    }
 
     /**
      * Returns true if the request can be fully allowed. See also isAllowedForSpecificIndices().
@@ -101,8 +129,15 @@ public class PrivilegesEvaluatorResponse {
     }
 
     public PrivilegesEvaluatorResponse reason(String reason) {
-        this.reason = reason;
-        return this;
+        return new PrivilegesEvaluatorResponse(
+            this.allowed,
+            this.onlyAllowedForIndices,
+            this.indexToActionCheckTable,
+            this.privilegeMatrix,
+            reason,
+            this.evaluationExceptions,
+            this.createIndexRequestBuilder
+        );
     }
 
     /**
@@ -123,8 +158,18 @@ public class PrivilegesEvaluatorResponse {
     }
 
     public PrivilegesEvaluatorResponse evaluationExceptions(Collection<PrivilegesEvaluationException> evaluationExceptions) {
-        this.evaluationExceptions.addAll(evaluationExceptions);
-        return this;
+        if (evaluationExceptions.isEmpty()) {
+            return this;
+        }
+        return new PrivilegesEvaluatorResponse(
+            this.allowed,
+            this.onlyAllowedForIndices,
+            this.indexToActionCheckTable,
+            this.privilegeMatrix,
+            this.reason,
+            ImmutableList.<PrivilegesEvaluationException>builder().addAll(this.evaluationExceptions).addAll(evaluationExceptions).build(),
+            this.createIndexRequestBuilder
+        );
     }
 
     /**
@@ -141,30 +186,24 @@ public class PrivilegesEvaluatorResponse {
         return result;
     }
 
-    public Set<String> getMissingSecurityRoles() {
-        return new HashSet<>(missingSecurityRoles);
-    }
-
     public CreateIndexRequestBuilder getCreateIndexRequestBuilder() {
         return createIndexRequestBuilder;
     }
 
-    public PrivilegesEvaluatorResponse markComplete() {
-        this.state = PrivilegesEvaluatorResponseState.COMPLETE;
-        return this;
-    }
+    public PrivilegesEvaluatorResponse with(CreateIndexRequestBuilder createIndexRequestBuilder) {
+        if (createIndexRequestBuilder == this.createIndexRequestBuilder) {
+            return this;
+        }
 
-    public PrivilegesEvaluatorResponse markPending() {
-        this.state = PrivilegesEvaluatorResponseState.PENDING;
-        return this;
-    }
-
-    public boolean isComplete() {
-        return this.state == PrivilegesEvaluatorResponseState.COMPLETE;
-    }
-
-    public boolean isPending() {
-        return this.state == PrivilegesEvaluatorResponseState.PENDING;
+        return new PrivilegesEvaluatorResponse(
+            this.allowed,
+            this.onlyAllowedForIndices,
+            this.indexToActionCheckTable,
+            this.privilegeMatrix,
+            this.reason,
+            this.evaluationExceptions,
+            createIndexRequestBuilder
+        );
     }
 
     @Override
@@ -179,36 +218,25 @@ public class PrivilegesEvaluatorResponse {
     }
 
     public static PrivilegesEvaluatorResponse ok() {
-        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
-        response.allowed = true;
-        return response;
+        return new PrivilegesEvaluatorResponse(true, ImmutableSet.of(), null);
     }
 
     public static PrivilegesEvaluatorResponse partiallyOk(
         Set<String> availableIndices,
         CheckTable<String, String> indexToActionCheckTable
     ) {
-        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
-        response.onlyAllowedForIndices = ImmutableSet.copyOf(availableIndices);
-        response.indexToActionCheckTable = indexToActionCheckTable;
-        return response;
+        return new PrivilegesEvaluatorResponse(false, ImmutableSet.copyOf(availableIndices), indexToActionCheckTable);
     }
 
     public static PrivilegesEvaluatorResponse insufficient(String missingPrivilege) {
-        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
-        response.indexToActionCheckTable = CheckTable.create(ImmutableSet.of("_"), ImmutableSet.of(missingPrivilege));
-        return response;
+        return new PrivilegesEvaluatorResponse(
+            false,
+            ImmutableSet.of(),
+            CheckTable.create(ImmutableSet.of("_"), ImmutableSet.of(missingPrivilege))
+        );
     }
 
     public static PrivilegesEvaluatorResponse insufficient(CheckTable<String, String> indexToActionCheckTable) {
-        PrivilegesEvaluatorResponse response = new PrivilegesEvaluatorResponse();
-        response.indexToActionCheckTable = indexToActionCheckTable;
-        return response;
+        return new PrivilegesEvaluatorResponse(false, ImmutableSet.of(), indexToActionCheckTable);
     }
-
-    public static enum PrivilegesEvaluatorResponseState {
-        PENDING,
-        COMPLETE;
-    }
-
 }

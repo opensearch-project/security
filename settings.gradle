@@ -4,6 +4,10 @@
  * This project uses @Incubating APIs which are subject to change.
  */
 
+plugins {
+    id("com.autonomousapps.build-health") version "3.5.1"
+}
+
 rootProject.name = 'opensearch-security'
 
 include "spi"

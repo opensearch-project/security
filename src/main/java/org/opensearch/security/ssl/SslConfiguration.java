@@ -12,9 +12,6 @@
 package org.opensearch.security.ssl;
 
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -22,6 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
@@ -29,6 +27,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.ssl.config.Certificate;
 import org.opensearch.security.ssl.config.KeyStoreConfiguration;
 import org.opensearch.security.ssl.config.SslParameters;
@@ -86,10 +85,9 @@ public class SslConfiguration {
         return sslParameters;
     }
 
-    @SuppressWarnings("removal")
     SslContext buildServerSslContext(final boolean validateCertificates) {
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<SslContext>) () -> {
+            return AccessController.doPrivilegedChecked(() -> {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
                 Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
                 return SslContextBuilder.forServer(kmFactory)
@@ -120,15 +118,14 @@ public class SslConfiguration {
                     .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
                     .build();
             });
-        } catch (PrivilegedActionException e) {
+        } catch (SSLException e) {
             throw new OpenSearchException("Failed to build server SSL context", e);
         }
     }
 
-    @SuppressWarnings("removal")
     SslContext buildClientSslContext(final boolean validateCertificates) {
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<SslContext>) () -> {
+            return AccessController.doPrivilegedChecked(() -> {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
                 Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
                 return SslContextBuilder.forClient()
@@ -141,9 +138,10 @@ public class SslConfiguration {
                     .sslProvider(sslParameters.provider())
                     .keyManager(kmFactory)
                     .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
+                    .endpointIdentificationAlgorithm(null)
                     .build();
             });
-        } catch (PrivilegedActionException e) {
+        } catch (Exception e) {
             throw new OpenSearchException("Failed to build client SSL context", e);
         }
     }

@@ -13,12 +13,10 @@ package org.opensearch.security.auth.http.saml;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 
 import net.shibboleth.shared.resolver.ResolverException;
 import org.opensaml.saml.metadata.resolver.impl.FilesystemMetadataResolver;
@@ -30,18 +28,8 @@ public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
     }
 
     @Override
-    @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
-        try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) SamlFilesystemMetadataResolver.super::fetchMetadata);
-        } catch (PrivilegedActionException e) {
-
-            if (e.getCause() instanceof ResolverException) {
-                throw (ResolverException) e.getCause();
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        return AccessController.doPrivilegedChecked(SamlFilesystemMetadataResolver.super::fetchMetadata);
     }
 
     private static File getMetadataFile(String filePath, Settings settings, Path configPath) {

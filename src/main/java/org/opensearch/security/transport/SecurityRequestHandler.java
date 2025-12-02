@@ -26,10 +26,8 @@
 
 package org.opensearch.security.transport;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -66,7 +64,6 @@ import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
-// CS-ENFORCE-SINGLE
 
 public class SecurityRequestHandler<T extends TransportRequest> extends SecuritySSLRequestHandler<T> {
 
@@ -74,7 +71,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
     private final UserFactory userFactory;
-    private static final Set<String> knownChannelTypes = Set.of("direct", "transport", "stream-transport");
 
     SecurityRequestHandler(
         String action,
@@ -131,11 +127,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             }
 
             String channelType = transportChannel.getChannelType();
-
-            if (!knownChannelTypes.contains(channelType)) {
-                TransportChannel innerChannel = getInnerChannel(transportChannel);
-                channelType = innerChannel.getChannelType();
-            }
 
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
@@ -276,13 +267,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             // if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless
             // of beeing a internal: or shard request)
             // also allow when issued from a remote cluster for cross cluster search
-            // CS-SUPPRESS-SINGLE: RegexpSingleline Used to allow/disallow TLS connections to extensions
             if (!HeaderHelper.isInterClusterRequest(getThreadContext())
                 && !HeaderHelper.isTrustedClusterRequest(getThreadContext())
                 && !HeaderHelper.isExtensionRequest(getThreadContext())
                 && !task.getAction().equals("internal:transport/handshake")
                 && (task.getAction().startsWith("internal:") || task.getAction().contains("["))) {
-                // CS-ENFORCE-SINGLE
 
                 auditLog.logMissingPrivileges(task.getAction(), request, task);
                 log.error(
@@ -322,11 +311,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 }
 
                 // network intercluster request or cross search cluster request
-                // CS-SUPPRESS-SINGLE: RegexpSingleline Used to allow/disallow TLS connections to extensions
                 if (!(HeaderHelper.isInterClusterRequest(getThreadContext())
                     || HeaderHelper.isTrustedClusterRequest(getThreadContext())
                     || HeaderHelper.isExtensionRequest(getThreadContext()))) {
-                    // CS-ENFORCE-SINGLE
                     final OpenSearchException exception = ExceptionUtils.clusterWrongNodeCertConfigException(principal);
                     log.error(exception.toString());
                     transportChannel.sendResponse(exception);
@@ -412,7 +399,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             }
         }
 
-        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         String extensionUniqueId = getThreadContext().getHeader("extension_unique_id");
         if (extensionUniqueId != null) {
             ExtensionsManager extManager = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager();
@@ -420,7 +406,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST, Boolean.TRUE);
             }
         }
-        // CS-ENFORCE-SINGLE
 
         super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);
     }

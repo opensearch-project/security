@@ -27,9 +27,6 @@
 package org.opensearch.security;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.Set;
 
@@ -52,7 +49,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
-import org.opensearch.SpecialPermission;
+import org.opensearch.secure_sm.AccessController;
 
 class ConfigMapSerializer extends StdSerializer<Map<String, Object>> {
     private static final Set<String> SENSITIVE_CONFIG_KEYS = Set.of("password");
@@ -139,82 +136,42 @@ public class DefaultObjectMapper {
         return value != null ? value : defaultValue;
     }
 
-    @SuppressWarnings("removal")
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> objectMapper.treeToValue(node, clazz));
-        } catch (final PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            return AccessController.doPrivilegedChecked(() -> objectMapper.treeToValue(node, clazz));
+        } catch (final Exception e) {
+            throw (IOException) e;
         }
     }
 
-    @SuppressWarnings("removal")
     public static <T> T readValue(String string, Class<T> clazz) throws IOException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> objectMapper.readValue(string, clazz));
-        } catch (final PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, clazz));
+        } catch (final Exception e) {
+            throw (IOException) e;
         }
     }
 
-    @SuppressWarnings("removal")
     public static JsonNode readTree(String string) throws IOException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<JsonNode>) () -> objectMapper.readTree(string));
-        } catch (final PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            return AccessController.doPrivilegedChecked(() -> objectMapper.readTree(string));
+        } catch (final Exception e) {
+            throw (IOException) e;
         }
     }
 
-    @SuppressWarnings("removal")
     public static String writeValueAsString(Object value, boolean omitDefaults) throws JsonProcessingException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged(
-                (PrivilegedExceptionAction<String>) () -> (omitDefaults ? defaulOmittingObjectMapper : objectMapper).writeValueAsString(
-                    value
-                )
+            return AccessController.doPrivilegedChecked(
+                () -> (omitDefaults ? defaulOmittingObjectMapper : objectMapper).writeValueAsString(value)
             );
-        } catch (final PrivilegedActionException e) {
-            throw (JsonProcessingException) e.getCause();
+        } catch (final Exception e) {
+            throw (JsonProcessingException) e;
         }
 
     }
 
-    @SuppressWarnings("removal")
     public static String writeValueAsStringAndRedactSensitive(Object value) throws JsonProcessingException {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
 
         SimpleModule module = new SimpleModule();
         module.addSerializer(new ConfigMapSerializer());
@@ -222,64 +179,36 @@ public class DefaultObjectMapper {
         mapper.registerModule(module);
 
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<String>) () -> mapper.writeValueAsString(value));
-        } catch (final PrivilegedActionException e) {
-            throw (JsonProcessingException) e.getCause();
+            return AccessController.doPrivilegedChecked(() -> mapper.writeValueAsString(value));
+        } catch (final Exception e) {
+            throw (JsonProcessingException) e;
         }
 
     }
 
-    @SuppressWarnings("removal")
     public static <T> T readValue(String string, TypeReference<T> tr) throws IOException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<T>() {
-                @Override
-                public T run() throws Exception {
-                    return objectMapper.readValue(string, tr);
-                }
-            });
-        } catch (final PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, tr));
+        } catch (final Exception e) {
+            throw (IOException) e;
         }
 
     }
 
-    @SuppressWarnings("removal")
     public static <T> T readValue(String string, JavaType jt) throws IOException {
 
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> objectMapper.readValue(string, jt));
-        } catch (final PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, jt));
+        } catch (final Exception e) {
+            throw (IOException) e;
         }
     }
 
-    @SuppressWarnings("removal")
     public static <T> T convertValue(JsonNode jsonNode, JavaType jt) throws IOException {
-
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
         try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<T>) () -> objectMapper.convertValue(jsonNode, jt));
-        } catch (final PrivilegedActionException e) {
-            throw (IOException) e.getCause();
+            return AccessController.doPrivilegedChecked(() -> objectMapper.convertValue(jsonNode, jt));
+        } catch (final Exception e) {
+            throw (IOException) e;
         }
     }
 

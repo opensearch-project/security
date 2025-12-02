@@ -19,6 +19,7 @@ import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Responsible for parsing the XContent into a SampleResource object.
@@ -27,7 +28,22 @@ public class SampleResourceExtension implements ResourceSharingExtension {
 
     @Override
     public Set<ResourceProvider> getResourceProviders() {
-        return Set.of(new ResourceProvider(SampleResource.class.getCanonicalName(), RESOURCE_INDEX_NAME));
+        return Set.of(new ResourceProvider() {
+            @Override
+            public String resourceType() {
+                return RESOURCE_TYPE;
+            }
+
+            @Override
+            public String resourceIndexName() {
+                return RESOURCE_INDEX_NAME;
+            }
+
+            @Override
+            public String typeField() {
+                return "resource_type";
+            }
+        });
     }
 
     @Override

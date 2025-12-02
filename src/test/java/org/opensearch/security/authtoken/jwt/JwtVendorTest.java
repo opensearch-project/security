@@ -144,9 +144,7 @@ public class JwtVendorTest {
         Settings settings = Settings.builder()
             .put("signing_key", signingKeyB64Encoded)
             .put("encryption_key", claimsEncryptionKey)
-            // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
-            // CS-ENFORCE-SINGLE
             .build();
         final JwtVendor OBOJwtVendor = new JwtVendor(settings);
         Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);

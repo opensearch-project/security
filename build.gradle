@@ -16,7 +16,7 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.3.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.4.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -26,15 +26,14 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.2.0.0-SNAPSHOT')
 
-        kafka_version  = '4.0.0'
-        open_saml_version = '5.1.5'
+        kafka_version  = '4.1.1'
+        open_saml_version = '5.1.6'
         open_saml_shib_version = "9.1.4"
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.13.0'
-        guava_version = '33.4.8-jre'
+        guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '6.2.10'
-        protobuf_plugin_version = '0.6.0'
+        spring_version = '6.2.14'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -48,7 +47,7 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
     }
@@ -66,9 +65,9 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.11.2"
-    id "org.gradle.test-retry" version "1.6.2"
+    id "org.gradle.test-retry" version "1.6.4"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.2.5"
+    id "com.github.spotbugs" version "6.4.4"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -262,6 +261,9 @@ task copyExtraTestResources(dependsOn: testClasses) {
 }
 
 def setCommonTestConfig(Test task) {
+    task.testClassesDirs = sourceSets.test.output.classesDirs
+    task.classpath = sourceSets.test.runtimeClasspath
+
     task.maxParallelForks = 8
     task.jvmArgs += "-Xmx3072m"
     // this is needed to reflect access system env map.
@@ -392,6 +394,7 @@ opensearchplugin {
     name 'opensearch-security'
     description 'Provide access control related features for OpenSearch'
     classname 'org.opensearch.security.OpenSearchSecurityPlugin'
+    extendedPlugins = ['workload-management;optional=true', 'rule-framework']
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -422,10 +425,11 @@ publishing {
     repositories {
         maven {
             name = "Snapshots" //  optional target repository name
-            url = "https://central.sonatype.com/repository/maven-snapshots/"
-            credentials {
-                username System.getenv("SONATYPE_USERNAME")
-                password System.getenv("SONATYPE_PASSWORD")
+            url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
+            credentials(AwsCredentials) {
+                accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                sessionToken = System.getenv("AWS_SESSION_TOKEN")
             }
         }
     }
@@ -448,12 +452,35 @@ bundlePlugin {
     }
 }
 
+//create source set 'integrationTest'
+//add classes from the main source set to the compilation and runtime classpaths of the integrationTest
+sourceSets {
+    integrationTest {
+        java {
+            srcDir file ('src/integrationTest/java')
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+        }
+        resources {
+            srcDir file('src/integrationTest/resources')
+        }
+        processIntegrationTestResources {
+            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+        }
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom implementation
+    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.19.0'
+            force 'commons-codec:commons-codec:1.20.0'
             force 'org.slf4j:slf4j-api:1.7.36'
-            force 'org.scala-lang:scala-library:2.13.16'
+            force 'org.scala-lang:scala-library:2.13.18'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
@@ -471,8 +498,8 @@ configurations {
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.33.100"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.100"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.34.0"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.200"
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
             force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
@@ -481,24 +508,39 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.41.0"
-            force "org.checkerframework:checker-qual:3.49.5"
-            force "ch.qos.logback:logback-classic:1.5.18"
-            force "commons-io:commons-io:2.20.0"
+            force "com.google.errorprone:error_prone_annotations:2.44.0"
+            force "org.checkerframework:checker-qual:3.52.0"
+            force "ch.qos.logback:logback-classic:1.5.20"
+            force "commons-io:commons-io:2.21.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
-            force "org.mockito:mockito-core:5.19.0"
-            force "net.bytebuddy:byte-buddy:1.17.7"
-            force "org.ow2.asm:asm:9.8"
+            force "org.mockito:mockito-core:5.20.0"
+            force "net.bytebuddy:byte-buddy:1.18.2"
+            force "org.ow2.asm:asm:9.9"
             force "com.google.j2objc:j2objc-annotations:3.1"
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
         }
     }
+}
 
-    integrationTestImplementation.extendsFrom implementation
-    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+subprojects {
+    plugins.withId('java') {
+        dependencies {
+            testImplementation 'org.hamcrest:hamcrest:2.2'
+            testImplementation 'junit:junit:4.13.2'
+            testImplementation "org.opensearch:opensearch:${opensearch_version}"
+            testImplementation "org.mockito:mockito-core:5.20.0"
+        }
+
+        afterEvaluate {
+            if (project.configurations.findByName('integrationTestImplementation')) {
+                configurations.integrationTestImplementation.extendsFrom configurations.implementation
+                configurations.integrationTestRuntimeOnly.extendsFrom configurations.runtimeOnly
+            }
+        }
+    }
 }
 
 allprojects {
@@ -506,90 +548,68 @@ allprojects {
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
         maven { url "build.shibboleth.net/maven/releases"}
     }
 
-    configurations {
-        integrationTestImplementation.extendsFrom implementation
-        compile.extendsFrom compileOnly
-        compile.extendsFrom testImplementation
-    }
-    dependencies {
-        // unit test framework
-        testImplementation 'org.hamcrest:hamcrest:2.2'
-        testImplementation 'junit:junit:4.13.2'
-        testImplementation "org.opensearch:opensearch:${opensearch_version}"
-        testImplementation "org.mockito:mockito-core:5.19.0"
+    afterEvaluate {
+        if (project.configurations.findByName('integrationTestImplementation')) {
+            dependencies {
+                //integration test framework:
+                integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
+                    exclude(group: 'junit', module: 'junit')
+                }
+                integrationTestImplementation 'junit:junit:4.13.2'
+                integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
+                    exclude(group: 'org.slf4j', module: 'slf4j-api')
+                }
+                integrationTestImplementation "org.opensearch:protobufs:${versions.opensearchprotobufs}"
+                integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
+                integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
+                integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
+                integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
+                integrationTestImplementation 'commons-io:commons-io:2.21.0'
+                integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+                integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
+                integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
+                integrationTestImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+                integrationTestImplementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+                integrationTestImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
+                integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
+                    exclude(group: 'org.hamcrest', module: 'hamcrest')
+                }
+                integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
+                integrationTestImplementation "org.opensearch.plugin:mapper-size:${opensearch_version}"
+                integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
+                integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
+                integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
+                integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
+                integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
+                integrationTestImplementation "org.mockito:mockito-core:5.20.0"
+                integrationTestImplementation "org.passay:passay:1.6.6"
+                integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
+                integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
+                integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
+                integrationTestImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
+                integrationTestImplementation "com.password4j:password4j:${versions.password4j}"
+                integrationTestImplementation "com.google.guava:guava:${guava_version}"
+                integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
+                integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+                integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
+                integrationTestImplementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
+                integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
+                    exclude(group:'com.fasterxml.jackson.core')
+                    exclude(group: 'org.apache.commons', module: 'commons-collections4')
+                }
+                integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
+                integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
 
-        //integration test framework:
-        integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
-            exclude(group: 'junit', module: 'junit')
-        }
-        integrationTestImplementation 'junit:junit:4.13.2'
-        integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
-            exclude(group: 'org.slf4j', module: 'slf4j-api')
-        }
-        integrationTestImplementation "org.opensearch:protobufs:${protobuf_plugin_version}"
-        integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
-        integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
-        integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
-        integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-        integrationTestImplementation 'commons-io:commons-io:2.20.0'
-        integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-        integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
-        integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-        integrationTestImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
-        integrationTestImplementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
-        integrationTestImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
-        integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
-            exclude(group: 'org.hamcrest', module: 'hamcrest')
-        }
-        integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
-        integrationTestImplementation "org.opensearch.plugin:mapper-size:${opensearch_version}"
-        integrationTestImplementation "org.apache.httpcomponents:httpclient-cache:4.5.14"
-        integrationTestImplementation "org.apache.httpcomponents:httpclient:4.5.14"
-        integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
-        integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
-        integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-        integrationTestImplementation "org.mockito:mockito-core:5.19.0"
-        integrationTestImplementation "org.passay:passay:1.6.6"
-        integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
-        integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
-        integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
-        integrationTestImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
-        integrationTestImplementation "com.password4j:password4j:${versions.password4j}"
-        integrationTestImplementation "com.google.guava:guava:${guava_version}"
-        integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
-        integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-        integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
-        integrationTestImplementation 'org.apache.commons:commons-collections4:4.5.0'
-        integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
-            exclude(group:'com.fasterxml.jackson.core')
-            exclude(group: 'org.apache.commons', module: 'commons-collections4')
-        }
-        integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
-        integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
-        integrationTestImplementation "org.opensearch.plugin:lang-painless:${opensearch_version}"
-    }
-}
-
-//create source set 'integrationTest'
-//add classes from the main source set to the compilation and runtime classpaths of the integrationTest
-sourceSets {
-    integrationTest {
-        java {
-            srcDir file ('src/integrationTest/java')
-            compileClasspath += sourceSets.main.output
-            runtimeClasspath += sourceSets.main.output
-        }
-        resources {
-            srcDir file('src/integrationTest/resources')
-        }
-        processIntegrationTestResources {
-            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+                integrationTestImplementation ('com.jayway.jsonpath:json-path:2.10.0') {
+                    exclude(group: 'net.minidev', module: 'json-smart')
+                }
+            }
         }
     }
 }
@@ -662,10 +682,12 @@ dependencies {
     implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
     implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:10.4.2'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.6'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.5.1"
+    compileOnly "org.opensearch.plugin:workload-management-wlm-spi:${opensearch_version}"
+    compileOnly "org.opensearch.plugin:autotagging-commons-spi:${opensearch_version}"
 
     // Action privileges: check tables and compact collections
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
@@ -676,7 +698,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
     // JSON patch
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.16'
-    implementation 'org.apache.commons:commons-collections4:4.5.0'
+    implementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
 
     //Password generation
     implementation 'org.passay:passay:1.6.6'
@@ -687,12 +709,12 @@ dependencies {
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'commons-codec:commons-codec:1.19.0'
+    runtimeOnly 'commons-codec:commons-codec:1.20.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.41.0'
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.44.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
-    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
-    runtimeOnly 'org.ow2.asm:asm:9.8'
+    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.4'
+    runtimeOnly 'org.ow2.asm:asm:9.9'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
@@ -700,7 +722,7 @@ dependencies {
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     //OpenSAML
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.34"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.37"
     implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
@@ -717,10 +739,10 @@ dependencies {
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
-    runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.1'
+    runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.49.5'
+    runtimeOnly 'org.checkerframework:checker-qual:3.52.0'
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
@@ -755,11 +777,12 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-share-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-test-common-runtime:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
-    testImplementation 'commons-validator:commons-validator:1.10.0'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-M4"
+    testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
+    testImplementation 'commons-validator:commons-validator:1.10.1'
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-RC1"
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.13.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.1'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -773,8 +796,8 @@ dependencies {
     testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
-    testRuntimeOnly 'org.scala-lang:scala-library:2.13.16'
-    testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.18'
+    testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.6'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.3') {
         exclude(group:'ch.qos.logback', module: 'logback-classic' )
         exclude(group:'ch.qos.logback', module: 'logback-core' )
@@ -789,28 +812,18 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.28.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.32.0') {
         exclude group: 'com.google.guava'
     }
 }
 
 jar {
-    libsDirName = '.'
-    into '', {
-        from 'NOTICE.txt', "THIRD-PARTY.txt", "LICENSE"
-    }
-    processResources {
-        exclude("KEYS")
-    }
+    from('NOTICE.txt', 'THIRD-PARTY.txt', 'LICENSE')
 }
 
 tasks.register('testsJar', Jar) {
     archiveClassifier = 'tests'
     from(sourceSets.test.output)
-}
-
-testsJar {
-    libsDirName = '.'
 }
 
 task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
@@ -895,7 +908,7 @@ afterEvaluate {
         version = "${project.version}" - "-SNAPSHOT"
 
         into '/usr/share/opensearch/plugins'
-        from(zipTree(bundlePlugin.archivePath)) {
+        from(zipTree(bundlePlugin.archiveFile)) {
             into opensearchplugin.name
         }
 

@@ -14,7 +14,6 @@ import java.util.Objects;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.KeyUsage;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to certificate extensions
 /**
 * The class is associated with certificate extensions related to key usages. These extensions are defined by
 * <a href="https://www.rfc-editor.org/rfc/rfc5280.html">RFC 5280</a> and describes allowed usage of public kay which is embedded in
@@ -26,7 +25,6 @@ import org.bouncycastle.asn1.x509.KeyUsage;
 *
 * @see <a href="https://www.rfc-editor.org/rfc/rfc5280.html">RFC 5280</a>
 */
-// CS-ENFORCE-SINGLE
 enum PublicKeyUsage {
     DIGITAL_SIGNATURE(KeyUsage.digitalSignature),
     KEY_CERT_SIGN(KeyUsage.keyCertSign),

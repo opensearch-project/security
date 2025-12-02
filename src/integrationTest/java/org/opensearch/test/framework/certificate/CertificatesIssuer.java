@@ -26,7 +26,6 @@
 
 package org.opensearch.test.framework.certificate;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to certificate extensions, keeping this rule disable for the whole file
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -238,4 +237,3 @@ class CertificatesIssuer {
         return BigInteger.valueOf(ID_COUNTER.incrementAndGet());
     }
 }
-// CS-ENFORCE-SINGLE
