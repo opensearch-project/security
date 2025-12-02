@@ -70,6 +70,7 @@ public class CrossClusterAuthorizationIntTests {
     // Each user comes with one or two additionally defined TestSecurityConfig.Role objects:
     // - If it is two, one is meant for the local cluster, the other is meant for the remote cluster
     // - If it is one, both local and remote cluster must get these roles.
+    // These roles must be passed to the test cluster builders via the roles() method
     // -------------------------------------------------------------------------------------------------------
 
     static final TestSecurityConfig.Role LIMITED_USER_ROLE_A_R = new TestSecurityConfig.Role("limited_user_A_R_role").clusterPermissions(
@@ -172,9 +173,9 @@ public class CrossClusterAuthorizationIntTests {
         .clusterManager(ClusterManager.SINGLENODE)
         .clusterName("remote_1")
         .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .privilegesEvaluationType("next_gen")
         .roles(LIMITED_USER_ROLE_A_R_REMOTE, LIMITED_USER_ROLE_R_REMOTE, LIMITED_USER_ROLE_R1_REMOTE, LIMITED_ROLE_NONE, UNLIMITED_ROLE)
         .indices(RemoteIndices.index_r1, RemoteIndices.index_r2, RemoteIndices.index_r3)
-        .doNotFailOnForbidden(true)
         .build();
 
     static LocalCluster.Builder clusterBuilder() {
@@ -328,6 +329,21 @@ public class CrossClusterAuthorizationIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(LocalIndices.index_a1, LocalIndices.index_a2).andFromRemote(
+                            "remote_1",
+                            RemoteIndices.index_r1,
+                            RemoteIndices.index_r2,
+                            RemoteIndices.index_r3
+                        ).at("hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                    );
+                } else {
+                    // No search permissions anywhere will result in a 403 error
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -367,36 +383,48 @@ public class CrossClusterAuthorizationIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_resolve/index/*,remote_1:*");
 
-            if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
-                if (user != SUPER_UNLIMITED_USER) {
-                    // The presence of the security index will always cause the SystemIndexAccessEvaluator to block this
-                    assertThat(httpResponse, isForbidden());
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
+                    if (user != SUPER_UNLIMITED_USER) {
+                        // The presence of the security index will always cause the SystemIndexAccessEvaluator to block this
+                        assertThat(httpResponse, isForbidden());
+                    } else {
+                        assertThat(
+                            httpResponse,
+                            containsExactly(LocalIndices.index_a1, LocalIndices.index_a2).andFromRemote(
+                                "remote_1",
+                                RemoteIndices.index_r1,
+                                RemoteIndices.index_r2,
+                                RemoteIndices.index_r3
+                            ).at("$.*[*].name")
+                        );
+                    }
                 } else {
-                    assertThat(
-                        httpResponse,
-                        containsExactly(LocalIndices.index_a1, LocalIndices.index_a2).andFromRemote(
-                            "remote_1",
-                            RemoteIndices.index_r1,
-                            RemoteIndices.index_r2,
-                            RemoteIndices.index_r3
-                        ).at("$.*[*].name")
-                    );
+                    if (!user.reference(READ).covers(LocalIndices.index_a1) && !user.reference(READ).covers(LocalIndices.index_a2)) {
+                        // If we do not have privileges for local indices, we are blocked completely
+                        assertThat(httpResponse, isForbidden());
+                    } else {
+                        assertThat(
+                            httpResponse,
+                            containsExactly(LocalIndices.index_a1, LocalIndices.index_a2).andFromRemote(
+                                "remote_1",
+                                RemoteIndices.index_r1,
+                                RemoteIndices.index_r2,
+                                RemoteIndices.index_r3
+                            ).at("$.*[*].name").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                        );
+                    }
                 }
             } else {
-                if (!user.reference(READ).covers(LocalIndices.index_a1) && !user.reference(READ).covers(LocalIndices.index_a2)) {
-                    // If we do not have privileges for local indices, we are blocked completely
-                    assertThat(httpResponse, isForbidden());
-                } else {
-                    assertThat(
-                        httpResponse,
-                        containsExactly(LocalIndices.index_a1, LocalIndices.index_a2).andFromRemote(
-                            "remote_1",
-                            RemoteIndices.index_r1,
-                            RemoteIndices.index_r2,
-                            RemoteIndices.index_r3
-                        ).at("$.*[*].name").reducedBy(user.reference(READ)).whenEmpty(isOk())
-                    );
-                }
+                assertThat(
+                    httpResponse,
+                    containsExactly(LocalIndices.index_a1, LocalIndices.index_a2).andFromRemote(
+                        "remote_1",
+                        RemoteIndices.index_r1,
+                        RemoteIndices.index_r2,
+                        RemoteIndices.index_r3
+                    ).at("$.*[*].name").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
             }
         }
     }
@@ -419,6 +447,14 @@ public class CrossClusterAuthorizationIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(LocalIndices.index_a1).andFromRemote("remote_1", RemoteIndices.index_r1)
+                        .at("$.*[*].name")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(isOk())
+                );
             }
         }
     }
@@ -456,6 +492,16 @@ public class CrossClusterAuthorizationIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(LocalIndices.index_a1, LocalIndices.index_a2).andFromRemote(
+                        "remote_1",
+                        RemoteIndices.index_r1,
+                        RemoteIndices.index_r2,
+                        RemoteIndices.index_r3
+                    ).at("indices").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
             }
         }
     }

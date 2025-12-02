@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.List;
 
@@ -20,8 +20,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.DNFOF_MATCHER;
-import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
+import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluatorImpl.DNFOF_MATCHER;
+import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluatorImpl.isClusterPerm;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

@@ -28,8 +28,8 @@ import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.IndicesRequestResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.user.User;
 
 /**
@@ -97,8 +97,8 @@ public class MockPrivilegeEvaluationContextBuilder {
             request,
             ActionRequestMetadata.empty(),
             null,
-            new IndexResolverReplacer(indexNameExpressionResolver, () -> clusterState, null),
             indexNameExpressionResolver,
+            new IndicesRequestResolver(indexNameExpressionResolver),
             () -> clusterState,
             this.actionPrivileges
         );

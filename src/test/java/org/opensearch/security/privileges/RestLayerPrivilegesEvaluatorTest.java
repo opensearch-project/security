@@ -12,6 +12,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -25,11 +26,9 @@ import org.junit.runner.RunWith;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionRequestMetadata;
-import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -183,7 +182,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             }
 
             @Override
-            public void updateClusterStateMetadata(ClusterService clusterService) {
+            public void updateClusterStateMetadata(Supplier<ClusterState> clusterStateSupplier) {
 
             }
 
@@ -199,7 +198,7 @@ public class RestLayerPrivilegesEvaluatorTest {
 
             @Override
             public PrivilegesEvaluatorType type() {
-                return PrivilegesEvaluatorType.STANDARD;
+                return PrivilegesEvaluatorType.LEGACY;
             }
         };
 

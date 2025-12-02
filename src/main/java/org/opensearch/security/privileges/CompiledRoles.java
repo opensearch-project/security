@@ -10,6 +10,7 @@
  */
 package org.opensearch.security.privileges;
 
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
@@ -25,6 +26,7 @@ import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
@@ -39,6 +41,14 @@ import org.opensearch.security.support.WildcardMatcher;
  * {@code DlsFlsProcessedConfig}) so that the compilation work is done only once per configuration update.
  */
 public class CompiledRoles {
+
+    public static final CompiledRoles EMPTY = new CompiledRoles(
+        SecurityDynamicConfiguration.empty(CType.ROLES),
+        FlattenedActionGroups.EMPTY,
+        new NamedXContentRegistry(List.of()),
+        FieldMasking.Config.DEFAULT,
+            false
+    );
 
     private static final Logger log = LogManager.getLogger(CompiledRoles.class);
 
@@ -57,7 +67,8 @@ public class CompiledRoles {
         SecurityDynamicConfiguration<RoleV7> rolesConfig,
         FlattenedActionGroups actionGroups,
         NamedXContentRegistry xContentRegistry,
-        FieldMasking.Config fieldMaskingConfig
+        FieldMasking.Config fieldMaskingConfig,
+        boolean memberIndexPrivilegesYieldAliasPrivileges
     ) {
         ImmutableMap.Builder<String, Role> rolesBuilder = ImmutableMap.builder();
 
@@ -65,7 +76,7 @@ public class CompiledRoles {
             try {
                 rolesBuilder.put(
                     entry.getKey(),
-                    new Role(entry.getKey(), entry.getValue(), actionGroups, xContentRegistry, fieldMaskingConfig)
+                    new Role(entry.getKey(), entry.getValue(), actionGroups, xContentRegistry, fieldMaskingConfig, memberIndexPrivilegesYieldAliasPrivileges)
                 );
             } catch (Exception e) {
                 log.error("Unexpected exception while compiling role: {}\nIgnoring role.", entry.getKey(), e);
@@ -108,7 +119,8 @@ public class CompiledRoles {
             RoleV7 base,
             FlattenedActionGroups actionGroups,
             NamedXContentRegistry xContentRegistry,
-            FieldMasking.Config fieldMaskingConfig
+            FieldMasking.Config fieldMaskingConfig,
+           boolean memberIndexPrivilegesYieldAliasPrivileges
         ) {
             this.base = base;
             this.clusterPermissions = actionGroups.resolve(base.getCluster_permissions());
@@ -118,7 +130,7 @@ public class CompiledRoles {
                 base.getIndex_permissions().size()
             );
             for (RoleV7.Index rawIndex : base.getIndex_permissions()) {
-                compiledIndexPermissions.add(new Index(roleName, rawIndex, actionGroups, xContentRegistry, fieldMaskingConfig));
+                compiledIndexPermissions.add(new Index(roleName, rawIndex, actionGroups, xContentRegistry, fieldMaskingConfig, memberIndexPrivilegesYieldAliasPrivileges));
             }
             this.indexPermissions = compiledIndexPermissions.build();
         }
@@ -180,10 +192,11 @@ public class CompiledRoles {
                 RoleV7.Index rawIndex,
                 FlattenedActionGroups actionGroups,
                 NamedXContentRegistry xContentRegistry,
-                FieldMasking.Config fieldMaskingConfig
+                FieldMasking.Config fieldMaskingConfig,
+                boolean memberIndexPrivilegesYieldAliasPrivileges
             ) {
                 this.rawIndex = rawIndex;
-                this.indexPattern = IndexPattern.from(rawIndex.getIndex_patterns());
+                this.indexPattern = IndexPattern.from(rawIndex.getIndex_patterns(), memberIndexPrivilegesYieldAliasPrivileges);
 
                 this.resolvedActions = actionGroups.resolve(rawIndex.getAllowed_actions());
                 this.allowedActionsMatcher = WildcardMatcher.from(this.resolvedActions);
