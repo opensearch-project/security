@@ -85,11 +85,14 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_DLS_WRITE_BLOCKED;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
@@ -109,6 +112,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final AdminDNs adminDNs;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
     private final ResourcePluginInfo resourcePluginInfo;
+    private volatile boolean dlsWriteBlockedEnabled;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -142,6 +146,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 config.updateClusterStateMetadataAsync(clusterService, threadPool);
             }
         });
+        this.dlsWriteBlockedEnabled = settings.getAsBoolean(SECURITY_DLS_WRITE_BLOCKED, SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT);
+        if (clusterService.getClusterSettings() != null) {
+            clusterService.getClusterSettings().addSettingsUpdateConsumer(SecuritySettings.DLS_WRITE_BLOCKED, newDlsWriteBlockedEnabled -> {
+                dlsWriteBlockedEnabled = newDlsWriteBlockedEnabled;
+            });
+        }
         this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
     }
 
@@ -333,12 +343,22 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             if (request instanceof BulkShardRequest) {
                 for (BulkItemRequest inner : ((BulkShardRequest) request).items()) {
-                    listener.onFailure(
-                        new OpenSearchSecurityException(
-                            inner.request().getClass().getSimpleName() + " is not supported when FLS or DLS or Fieldmasking is activated"
-                        )
-                    );
-                    return false;
+                    if (dlsWriteBlockedEnabled) {
+                        listener.onFailure(
+                            new OpenSearchSecurityException(
+                                inner.request().getClass().getSimpleName()
+                                    + " is not supported when FLS or DLS or Fieldmasking is activated"
+                            )
+                        );
+                        return false;
+                    } else {
+                        if (inner.request() instanceof UpdateRequest) {
+                            listener.onFailure(
+                                new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated")
+                            );
+                            return false;
+                        }
+                    }
                 }
             }
 
