@@ -25,6 +25,7 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -62,33 +63,15 @@ public class DlsWriteBlockedIntegrationTest {
     );
 
     @ClassRule
-    public static final LocalCluster clusterWithoutDlsWriteBlocked = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER, DLS_USER, FLS_USER)
-        .build();
-
-    @ClassRule
-    public static final LocalCluster clusterWithDlsWriteBlocked = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(false)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN_USER, DLS_USER, FLS_USER)
-        .nodeSettings(Map.of(ConfigConstants.SECURITY_DLS_WRITE_BLOCKED, true))
         .build();
 
     @BeforeClass
     public static void createTestData() {
-        try (Client client = clusterWithoutDlsWriteBlocked.getInternalNodeClient()) {
-            client.index(new IndexRequest(DLS_INDEX).id("1").setRefreshPolicy(IMMEDIATE).source(Map.of("dept", "sales", "amount", 100)))
-                .actionGet();
-            client.index(
-                new IndexRequest(FLS_INDEX).id("1").setRefreshPolicy(IMMEDIATE).source(Map.of("public", "data", "secret", "hidden"))
-            ).actionGet();
-            client.index(new IndexRequest(NO_RESTRICTION_INDEX).id("1").setRefreshPolicy(IMMEDIATE).source(Map.of("data", "value1")))
-                .actionGet();
-        }
-
-        try (Client client = clusterWithDlsWriteBlocked.getInternalNodeClient()) {
+        try (Client client = cluster.getInternalNodeClient()) {
             client.index(new IndexRequest(DLS_INDEX).id("1").setRefreshPolicy(IMMEDIATE).source(Map.of("dept", "sales", "amount", 100)))
                 .actionGet();
             client.index(
@@ -99,10 +82,20 @@ public class DlsWriteBlockedIntegrationTest {
         }
     }
 
+    private void setDlsWriteBlocked(boolean enabled) throws IOException {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            client.putJson(
+                "_cluster/settings",
+                String.format("{\"transient\":{\"%s\":%b}}", ConfigConstants.SECURITY_DLS_WRITE_BLOCKED, enabled)
+            );
+        }
+    }
+
     @Test
     public void testDlsUser_CanWrite_WhenSettingDisabled() throws IOException {
-        try (RestHighLevelClient client = clusterWithoutDlsWriteBlocked.getRestHighLevelClient(DLS_USER)) {
-            IndexRequest request = new IndexRequest(DLS_INDEX).id("new1")
+        setDlsWriteBlocked(false);
+        try (RestHighLevelClient client = cluster.getRestHighLevelClient(DLS_USER)) {
+            IndexRequest request = new IndexRequest(DLS_INDEX).id("test1")
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source(Map.of("dept", "sales", "amount", 400));
 
@@ -114,8 +107,9 @@ public class DlsWriteBlockedIntegrationTest {
 
     @Test
     public void testDlsUser_CannotWrite_WhenSettingEnabled() throws IOException {
-        try (RestHighLevelClient client = clusterWithDlsWriteBlocked.getRestHighLevelClient(DLS_USER)) {
-            IndexRequest request = new IndexRequest(DLS_INDEX).id("new1")
+        setDlsWriteBlocked(true);
+        try (RestHighLevelClient client = cluster.getRestHighLevelClient(DLS_USER)) {
+            IndexRequest request = new IndexRequest(DLS_INDEX).id("test2")
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source(Map.of("dept", "sales", "amount", 400));
 
@@ -131,8 +125,9 @@ public class DlsWriteBlockedIntegrationTest {
 
     @Test
     public void testFlsUser_CanWrite_WhenSettingDisabled() throws IOException {
-        try (RestHighLevelClient client = clusterWithoutDlsWriteBlocked.getRestHighLevelClient(FLS_USER)) {
-            IndexRequest request = new IndexRequest(FLS_INDEX).id("new1")
+        setDlsWriteBlocked(false);
+        try (RestHighLevelClient client = cluster.getRestHighLevelClient(FLS_USER)) {
+            IndexRequest request = new IndexRequest(FLS_INDEX).id("test3")
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source(Map.of("public", "new_data", "secret", "new_secret"));
 
@@ -144,8 +139,9 @@ public class DlsWriteBlockedIntegrationTest {
 
     @Test
     public void testFlsUser_CannotWrite_WhenSettingEnabled() throws IOException {
-        try (RestHighLevelClient client = clusterWithDlsWriteBlocked.getRestHighLevelClient(FLS_USER)) {
-            IndexRequest request = new IndexRequest(FLS_INDEX).id("new1")
+        setDlsWriteBlocked(true);
+        try (RestHighLevelClient client = cluster.getRestHighLevelClient(FLS_USER)) {
+            IndexRequest request = new IndexRequest(FLS_INDEX).id("test4")
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source(Map.of("public", "new_data", "secret", "new_secret"));
 
@@ -161,8 +157,9 @@ public class DlsWriteBlockedIntegrationTest {
 
     @Test
     public void testAdminUser_CanWrite_WhenSettingEnabled() throws IOException {
-        try (RestHighLevelClient client = clusterWithDlsWriteBlocked.getRestHighLevelClient(ADMIN_USER)) {
-            IndexRequest request = new IndexRequest(DLS_INDEX).id("admin_doc")
+        setDlsWriteBlocked(true);
+        try (RestHighLevelClient client = cluster.getRestHighLevelClient(ADMIN_USER)) {
+            IndexRequest request = new IndexRequest(DLS_INDEX).id("test6")
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source(Map.of("dept", "admin", "amount", 999));
 
@@ -174,7 +171,8 @@ public class DlsWriteBlockedIntegrationTest {
 
     @Test
     public void testDlsUser_CanRead_WhenSettingEnabled() throws IOException {
-        try (RestHighLevelClient client = clusterWithDlsWriteBlocked.getRestHighLevelClient(DLS_USER)) {
+        setDlsWriteBlocked(true);
+        try (RestHighLevelClient client = cluster.getRestHighLevelClient(DLS_USER)) {
             var response = client.search(new org.opensearch.action.search.SearchRequest(DLS_INDEX), DEFAULT);
 
             assertThat(response.status().getStatus(), is(200));
