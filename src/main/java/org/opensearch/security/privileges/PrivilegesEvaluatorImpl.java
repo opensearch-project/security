@@ -413,7 +413,6 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
 
                         if (!replaceResult.continueEvaluation) {
                             if (replaceResult.accessDenied) {
-                                presponse.shouldSkipDlsValve = true;
                                 auditLog.logMissingPrivileges(action0, request, task);
                             } else {
                                 return PrivilegesEvaluatorResponse.ok().with(replaceResult.createIndexRequestBuilder);

@@ -44,7 +44,6 @@ public class PrivilegesEvaluatorResponse {
     private final CheckTable<String, String> indexToActionCheckTable;
     private String privilegeMatrix;
     private final String reason;
-    boolean shouldSkipDlsValve = false;
 
     /**
      * Contains issues that were encountered during privilege evaluation. Can be used for logging.
@@ -88,13 +87,6 @@ public class PrivilegesEvaluatorResponse {
      */
     public boolean isAllowed() {
         return allowed;
-    }
-
-    /**
-     * Returns true if the request is only for dashboards indices
-     */
-    public boolean shouldSkipDlsValve() {
-        return shouldSkipDlsValve;
     }
 
     /**
