@@ -24,7 +24,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -42,14 +42,16 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
-import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
+import static org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluatorImpl.isClusterPerm;
 
 /**
  * This class performs authorization on requests targeting system indices
@@ -320,7 +322,11 @@ public class SystemIndexAccessEvaluator {
                 boolean isPluginIndexAction = !isClusterPerm(action) && containsOnlyPluginSystemIndices;
 
                 if (!isPluginIndexAction
-                    && !actionPrivileges.hasExplicitIndexPrivilege(context, SYSTEM_INDEX_PERMISSION_SET, requestedResolved).isAllowed()) {
+                    && !actionPrivileges.hasExplicitIndexPrivilege(
+                        context,
+                        SYSTEM_INDEX_PERMISSION_SET,
+                        requestedResolved.toResolvedIndices(context)
+                    ).isAllowed()) {
                     auditLog.logSecurityIndexAttempt(request, action, task);
                     if (log.isInfoEnabled()) {
                         log.info(

@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -35,7 +36,7 @@ public class IndexPattern {
     /**
      * An IndexPattern which does not match any index.
      */
-    public static final IndexPattern EMPTY = new IndexPattern(WildcardMatcher.NONE, ImmutableList.of(), ImmutableList.of());
+    public static final IndexPattern EMPTY = new IndexPattern(WildcardMatcher.NONE, ImmutableList.of(), ImmutableList.of(), false);
 
     /**
      * Plain index patterns without any dynamic expressions like user attributes and date math.
@@ -52,18 +53,78 @@ public class IndexPattern {
      * Index patterns which contain date math (like <index_{now}>)
      */
     private final ImmutableList<String> dateMathExpressions;
+
+    /**
+     * If this is true, this pattern will also match an alias or data stream if it actually matches ALL child indices of
+     * of the alias or data stream.
+     */
+    private final boolean memberIndexPrivilegesYieldAliasPrivileges;
+
     private final int hashCode;
 
-    private IndexPattern(WildcardMatcher staticPattern, ImmutableList<String> patternTemplates, ImmutableList<String> dateMathExpressions) {
+    private IndexPattern(
+        WildcardMatcher staticPattern,
+        ImmutableList<String> patternTemplates,
+        ImmutableList<String> dateMathExpressions,
+        boolean memberIndexPrivilegesYieldAliasPrivileges
+    ) {
         this.staticPattern = staticPattern;
         this.patternTemplates = patternTemplates;
         this.dateMathExpressions = dateMathExpressions;
         this.hashCode = staticPattern.hashCode() + patternTemplates.hashCode() + dateMathExpressions.hashCode();
+        this.memberIndexPrivilegesYieldAliasPrivileges = memberIndexPrivilegesYieldAliasPrivileges;
     }
 
-    public boolean matches(String index, PrivilegesEvaluationContext context, Map<String, IndexAbstraction> indexMetadata)
+    public boolean matches(
+        String indexOrAliasOrDatastream,
+        PrivilegesEvaluationContext context,
+        Map<String, IndexAbstraction> indexMetadata
+    ) throws PrivilegesEvaluationException {
+
+        if (matchesDirectly(indexOrAliasOrDatastream, context)) {
+            return true;
+        }
+
+        IndexAbstraction indexAbstraction = indexMetadata.get(indexOrAliasOrDatastream);
+
+        if (indexAbstraction instanceof IndexAbstraction.Index) {
+            // Check for the privilege for aliases or data streams containing this index
+
+            if (indexAbstraction.getParentDataStream() != null) {
+                if (matchesDirectly(indexAbstraction.getParentDataStream().getName(), context)) {
+                    return true;
+                }
+            }
+
+            // Retrieve aliases: The use of getWriteIndex() is a bit messy, but it is the only way to access
+            // alias metadata from here.
+            for (String alias : indexAbstraction.getWriteIndex().getAliases().keySet()) {
+                if (matchesDirectly(alias, context)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } else if (this.memberIndexPrivilegesYieldAliasPrivileges
+            && (indexAbstraction instanceof IndexAbstraction.Alias || indexAbstraction instanceof IndexAbstraction.DataStream)) {
+                // We have a data stream or alias: If we have no match so far, let's also check whether we have privileges for all members.
+
+                for (IndexMetadata memberIndex : indexAbstraction.getIndices()) {
+                    if (!matchesDirectly(memberIndex.getIndex().getName(), context)) {
+                        return false;
+                    }
+                }
+
+                // If we could match all members, we have a match
+                return true;
+            } else {
+                return false;
+            }
+    }
+
+    private boolean matchesDirectly(String indexOrAliasOrDatastream, PrivilegesEvaluationContext context)
         throws PrivilegesEvaluationException {
-        if (staticPattern != WildcardMatcher.NONE && staticPattern.test(index)) {
+        if (staticPattern != WildcardMatcher.NONE && staticPattern.test(indexOrAliasOrDatastream)) {
             return true;
         }
 
@@ -72,7 +133,7 @@ public class IndexPattern {
                 try {
                     WildcardMatcher matcher = context.getRenderedMatcher(patternTemplate);
 
-                    if (matcher.test(index)) {
+                    if (matcher.test(indexOrAliasOrDatastream)) {
                         return true;
                     }
                 } catch (ExpressionEvaluationException e) {
@@ -93,31 +154,11 @@ public class IndexPattern {
 
                     WildcardMatcher matcher = WildcardMatcher.from(resolvedExpression);
 
-                    if (matcher.test(index)) {
+                    if (matcher.test(indexOrAliasOrDatastream)) {
                         return true;
                     }
                 } catch (Exception e) {
                     throw new PrivilegesEvaluationException("Error while evaluating date math expression: " + dateMathExpression, e);
-                }
-            }
-        }
-
-        IndexAbstraction indexAbstraction = indexMetadata.get(index);
-
-        if (indexAbstraction instanceof IndexAbstraction.Index) {
-            // Check for the privilege for aliases or data streams containing this index
-
-            if (indexAbstraction.getParentDataStream() != null) {
-                if (matches(indexAbstraction.getParentDataStream().getName(), context, indexMetadata)) {
-                    return true;
-                }
-            }
-
-            // Retrieve aliases: The use of getWriteIndex() is a bit messy, but it is the only way to access
-            // alias metadata from here.
-            for (String alias : indexAbstraction.getWriteIndex().getAliases().keySet()) {
-                if (matches(alias, context, indexMetadata)) {
-                    return true;
                 }
             }
         }
@@ -183,7 +224,12 @@ public class IndexPattern {
         if (patternTemplates.isEmpty() && dateMathExpressions.isEmpty()) {
             return EMPTY;
         } else {
-            return new IndexPattern(WildcardMatcher.NONE, this.patternTemplates, this.dateMathExpressions);
+            return new IndexPattern(
+                WildcardMatcher.NONE,
+                this.patternTemplates,
+                this.dateMathExpressions,
+                this.memberIndexPrivilegesYieldAliasPrivileges
+            );
         }
     }
 
@@ -212,6 +258,11 @@ public class IndexPattern {
         private List<WildcardMatcher> constantPatterns = new ArrayList<>();
         private List<String> patternTemplates = new ArrayList<>();
         private List<String> dateMathExpressions = new ArrayList<>();
+        private boolean memberIndexPrivilegesYieldAliasPrivileges;
+
+        public Builder(boolean memberIndexPrivilegesYieldAliasPrivileges) {
+            this.memberIndexPrivilegesYieldAliasPrivileges = memberIndexPrivilegesYieldAliasPrivileges;
+        }
 
         public void add(List<String> source) {
             for (int i = 0; i < source.size(); i++) {
@@ -236,18 +287,22 @@ public class IndexPattern {
             return new IndexPattern(
                 constantPatterns.size() != 0 ? WildcardMatcher.from(constantPatterns) : WildcardMatcher.NONE,
                 ImmutableList.copyOf(patternTemplates),
-                ImmutableList.copyOf(dateMathExpressions)
+                ImmutableList.copyOf(dateMathExpressions),
+                this.memberIndexPrivilegesYieldAliasPrivileges
             );
         }
     }
 
-    public static IndexPattern from(List<String> source) {
-        Builder builder = new Builder();
+    public static IndexPattern from(List<String> source, boolean memberIndexPrivilegesYieldAliasPrivileges) {
+        Builder builder = new Builder(memberIndexPrivilegesYieldAliasPrivileges);
         builder.add(source);
         return builder.build();
     }
 
-    public static IndexPattern from(String... source) {
-        return from(Arrays.asList(source));
+    /**
+     * Only for testing.
+     */
+    static IndexPattern from(String... source) {
+        return from(Arrays.asList(source), true);
     }
 }

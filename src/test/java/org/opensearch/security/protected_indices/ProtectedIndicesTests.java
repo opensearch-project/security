@@ -67,10 +67,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     // This user is mapped to all_access, but is not mapped to any protectedIndexRoles
     private static final String indexAccessNoRoleUser = "indexAccessNoRoleUser";
     private static final Header indexAccessNoRoleUserHeader = encodeBasicHeader(indexAccessNoRoleUser, indexAccessNoRoleUser);
-    private static final String generalErrorMessage = String.format(
-        "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]",
-        indexAccessNoRoleUser
-    );
     // This user is mapped to all_access and protected_index_role1
     private static final String protectedIndexUser = "protectedIndexUser";
     private static final Header protectedIndexUserHeader = encodeBasicHeader(protectedIndexUser, protectedIndexUser);
@@ -363,7 +359,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             String doc = "{\"foo\": \"bar\"}";
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_doc", doc, indexAccessNoRoleUserHeader);
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
     }
 
@@ -387,7 +382,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             String index = pattern.replace("*", "1");
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_doc", doc, indexAccessNoRoleUserHeader);
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
     }
 
@@ -420,7 +414,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             // Try to delete documents
             RestHelper.HttpResponse response = rh.executeDeleteRequest(index + "/_doc/document1", indexAccessNoRoleUserHeader);
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
     }
 
@@ -452,7 +445,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             // Try to delete documents
             RestHelper.HttpResponse response = rh.executeDeleteRequest(index, indexAccessNoRoleUserHeader);
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
     }
 
@@ -486,7 +478,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             RestHelper.HttpResponse response = rh.executePutRequest(index + "/_mapping", newMappings, indexAccessNoRoleUserHeader);
 
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
     }
 
@@ -519,7 +510,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_close", "", indexAccessNoRoleUserHeader);
 
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
     }
 
@@ -542,7 +532,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
                 indexAccessNoRoleUserHeader
             );
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
 
         // Test remove alias
@@ -555,7 +544,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
                 indexAccessNoRoleUserHeader
             );
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
 
         // Test remove index
@@ -568,7 +556,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
                 indexAccessNoRoleUserHeader
             );
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
     }
 
@@ -593,7 +580,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             RestHelper.HttpResponse response = rh.executePutRequest(index + "/_settings", indexSettings, indexAccessNoRoleUserHeader);
 
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
-            assertTrue(response.getBody().contains(generalErrorMessage));
         }
     }
 

@@ -24,7 +24,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -78,7 +78,6 @@ import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
@@ -86,10 +85,17 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.DocumentAllowList;
+import org.opensearch.security.privileges.IndicesRequestResolver;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
@@ -107,6 +113,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
  * <p>
  * Moved from https://github.com/opensearch-project/security/blob/062ea716d10240cc50d01735f457523a61393a59/src/main/java/org/opensearch/security/privileges/PrivilegesEvaluator.java
  */
+@Deprecated
 public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
 
     static final WildcardMatcher DNFOF_MATCHER = WildcardMatcher.from(
@@ -148,63 +155,68 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
     private final ImmutableMap<String, ActionPrivileges> pluginIdToActionPrivileges;
     private final RoleMapper roleMapper;
+    private final IndicesRequestResolver indicesRequestResolver;
 
     private volatile boolean dnfofEnabled = false;
     private volatile boolean dnfofForEmptyResultsEnabled = false;
     private volatile String filteredAliasMode = null;
 
-    public PrivilegesEvaluatorImpl(
-        final ClusterService clusterService,
-        Supplier<ClusterState> clusterStateSupplier,
-        RoleMapper roleMapper,
-        ThreadPool threadPool,
-        final ThreadContext threadContext,
-        final IndexNameExpressionResolver resolver,
-        AuditLog auditLog,
-        final Settings settings,
-        final PrivilegesInterceptor privilegesInterceptor,
-        final IndexResolverReplacer irr,
-        FlattenedActionGroups actionGroups,
-        FlattenedActionGroups staticActionGroups,
-        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
-        ConfigV7 generalConfiguration,
-        Map<String, RoleV7> pluginIdToRolePrivileges
-    ) {
+    public PrivilegesEvaluatorImpl(CoreDependencies coreDependencies, DynamicDependencies dynamicDependencies) {
 
         super();
-        this.resolver = resolver;
-        this.auditLog = auditLog;
-        this.roleMapper = roleMapper;
-
-        this.threadContext = threadContext;
-        this.threadPool = threadPool;
-        this.privilegesInterceptor = privilegesInterceptor;
-        this.clusterStateSupplier = clusterStateSupplier;
-        this.settings = settings;
+        this.resolver = coreDependencies.indexNameExpressionResolver();
+        this.auditLog = coreDependencies.auditLog();
+        this.roleMapper = coreDependencies.roleMapper();
+        this.threadContext = coreDependencies.threadContext();
+        this.threadPool = coreDependencies.threadPool();
+        this.clusterStateSupplier = coreDependencies.clusterStateSupplier();
+        this.settings = coreDependencies.settings();
+        this.indicesRequestResolver = new IndicesRequestResolver(coreDependencies.indexNameExpressionResolver());
 
         this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
             ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
             ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
         );
 
-        Supplier<Boolean> isLocalNodeElectedClusterManager = clusterService != null
-            ? () -> clusterService.state().nodes().isLocalNodeElectedClusterManager()
-            : () -> false;
+        Supplier<Boolean> isLocalNodeElectedClusterManager = () -> coreDependencies.clusterStateSupplier()
+            .get()
+            .nodes()
+            .isLocalNodeElectedClusterManager();
 
-        this.irr = irr;
+        this.irr = new IndexResolverReplacer(
+            coreDependencies.indexNameExpressionResolver(),
+            coreDependencies.clusterStateSupplier(),
+            isLocalNodeElectedClusterManager
+        );
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog, isLocalNodeElectedClusterManager);
         systemIndexAccessEvaluator = new SystemIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
 
-        this.pluginIdToActionPrivileges = createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups);
-        this.updateConfiguration(actionGroups, rolesConfiguration, generalConfiguration);
+        this.pluginIdToActionPrivileges = createActionPrivileges(
+            dynamicDependencies.pluginIdToRolePrivileges(),
+            dynamicDependencies.staticActionGroups()
+        );
+        this.updateConfiguration(
+            dynamicDependencies.actionGroups(),
+            dynamicDependencies.rolesConfiguration(),
+            dynamicDependencies.generalConfiguration()
+        );
+
+        this.privilegesInterceptor = new PrivilegesInterceptor(
+            resolver,
+            coreDependencies.clusterStateSupplier(),
+            coreDependencies.client(),
+            threadPool,
+            dynamicDependencies.tenantPrivilegesSupplier(),
+            dynamicDependencies.multiTenancyConfigurationSupplier()
+        );
     }
 
     @Override
     public PrivilegesEvaluatorType type() {
-        return PrivilegesEvaluatorType.STANDARD;
+        return PrivilegesEvaluatorType.LEGACY;
     }
 
     @Override
@@ -216,9 +228,16 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         this.dnfofEnabled = isDnfofEnabled(generalConfiguration);
         this.dnfofForEmptyResultsEnabled = isDnfofEmptyEnabled(generalConfiguration);
         this.filteredAliasMode = getFilteredAliasMode(generalConfiguration);
+        this.irr.updateConfig(generalConfiguration);
 
         try {
-            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(rolesConfiguration, flattenedActionGroups, settings);
+            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(
+                rolesConfiguration,
+                flattenedActionGroups,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                settings,
+                true
+            );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
             RoleBasedActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
@@ -233,10 +252,10 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     }
 
     @Override
-    public void updateClusterStateMetadata(ClusterService clusterService) {
+    public void updateClusterStateMetadata(Supplier<ClusterState> clusterStateSupplier) {
         RoleBasedActionPrivileges actionPrivileges = this.actionPrivileges.get();
         if (actionPrivileges != null) {
-            actionPrivileges.clusterStateMetadataDependentPrivileges().updateClusterStateMetadataAsync(clusterService, threadPool);
+            actionPrivileges.clusterStateMetadataDependentPrivileges().updateClusterStateMetadataAsync(clusterStateSupplier, threadPool);
         }
     }
 
@@ -273,7 +292,6 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             mappedRoles = this.roleMapper.map(user, caller);
             actionPrivileges = this.actionPrivileges.get();
         }
-
         return new PrivilegesEvaluationContext(
             user,
             mappedRoles,
@@ -281,8 +299,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             request,
             actionRequestMetadata,
             task,
-            irr,
             resolver,
+            indicesRequestResolver,
             clusterStateSupplier,
             actionPrivileges
         );
@@ -341,7 +359,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             return presponse;
         }
 
-        final Resolved requestedResolved = context.getResolvedRequest();
+        final Resolved requestedResolved = this.irr.resolveRequest(request);
 
         log.debug("RequestedResolved : {}", requestedResolved);
 
@@ -400,27 +418,23 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
                     log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
 
                 } else {
-                    if (privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+                    final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
+                        request,
+                        action0,
+                        user,
+                        requestedResolved,
+                        context
+                    );
 
-                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
-                            request,
-                            action0,
-                            user,
-                            requestedResolved,
-                            context
-                        );
+                    log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
 
-                        log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
-
-                        if (!replaceResult.continueEvaluation) {
-                            if (replaceResult.accessDenied) {
-                                auditLog.logMissingPrivileges(action0, request, task);
-                            } else {
-                                return PrivilegesEvaluatorResponse.ok().with(replaceResult.createIndexRequestBuilder);
-                            }
+                    if (!replaceResult.continueEvaluation) {
+                        if (replaceResult.accessDenied) {
+                            auditLog.logMissingPrivileges(action0, request, task);
+                        } else {
+                            return PrivilegesEvaluatorResponse.ok().with(replaceResult.createIndexRequestBuilder);
                         }
                     }
-
                     log.debug("Allowed because we have cluster permissions for {}", action0);
 
                     return PrivilegesEvaluatorResponse.ok();
@@ -446,31 +460,28 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
 
         // TODO exclude Security index
 
-        if (privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
+            request,
+            action0,
+            user,
+            requestedResolved,
+            context
+        );
 
-            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
-                request,
-                action0,
-                user,
-                requestedResolved,
-                context
-            );
+        log.debug("Result from privileges interceptor: {}", replaceResult);
 
-            log.debug("Result from privileges interceptor: {}", replaceResult);
-
-            if (!replaceResult.continueEvaluation) {
-                if (replaceResult.accessDenied) {
-                    auditLog.logMissingPrivileges(action0, request, task);
-                    return PrivilegesEvaluatorResponse.insufficient(action0);
-                } else {
-                    return PrivilegesEvaluatorResponse.ok().with(replaceResult.createIndexRequestBuilder);
-                }
+        if (!replaceResult.continueEvaluation) {
+            if (replaceResult.accessDenied) {
+                auditLog.logMissingPrivileges(action0, request, task);
+                return PrivilegesEvaluatorResponse.insufficient(action0);
+            } else {
+                return PrivilegesEvaluatorResponse.ok().with(replaceResult.createIndexRequestBuilder);
             }
         }
 
         boolean dnfofPossible = dnfofEnabled && DNFOF_MATCHER.test(action0);
 
-        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, requestedResolved);
+        presponse = actionPrivileges.hasIndexPrivilege(context, allIndexPermsRequired, requestedResolved.toResolvedIndices(context));
 
         if (presponse.isPartiallyOk()) {
             if (dnfofPossible) {
@@ -734,7 +745,15 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         Map<String, SubjectBasedActionPrivileges> result = new HashMap<>(pluginIdToRolePrivileges.size());
 
         for (Map.Entry<String, RoleV7> entry : pluginIdToRolePrivileges.entrySet()) {
-            result.put(entry.getKey(), new SubjectBasedActionPrivileges(entry.getValue(), staticActionGroups));
+            result.put(
+                entry.getKey(),
+                new SubjectBasedActionPrivileges(
+                    entry.getValue(),
+                    staticActionGroups,
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    true
+                )
+            );
         }
 
         return ImmutableMap.copyOf(result);

@@ -39,7 +39,6 @@ import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
@@ -94,7 +93,6 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_DLS_WRITE_BLOCKED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT;
 
@@ -107,7 +105,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final ClusterService clusterService;
     private final ThreadContext threadContext;
     private final Mode mode;
-    private final IndexNameExpressionResolver resolver;
     private final NamedXContentRegistry namedXContentRegistry;
     private final DlsFlsBaseContext dlsFlsBaseContext;
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
@@ -122,7 +119,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         Settings settings,
         Client nodeClient,
         ClusterService clusterService,
-        IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
         DlsFlsBaseContext dlsFlsBaseContext,
@@ -133,7 +129,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         super();
         this.nodeClient = nodeClient;
         this.clusterService = clusterService;
-        this.resolver = resolver;
         this.threadContext = threadPool.getThreadContext();
         this.mode = Mode.get(settings);
         this.namedXContentRegistry = namedXContentRegistry;
@@ -147,7 +142,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
 
             if (config != null) {
-                config.updateClusterStateMetadataAsync(clusterService, threadPool);
+                config.updateClusterStateMetadataAsync(clusterService::state, threadPool);
             }
         });
         this.dlsWriteBlockedEnabled = settings.getAsBoolean(SECURITY_DLS_WRITE_BLOCKED, SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT);
@@ -207,7 +202,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         DocumentAllowList documentAllowList = DocumentAllowList.get(threadContext);
 
-        if (resolved instanceof ResolvedIndices resolvedIndices && resolvedIndices.local().namesOfIndices(context.clusterState()).stream().anyMatch(index -> documentAllowList.isAllowed(index, "*"))) {
+        if (resolved instanceof ResolvedIndices resolvedIndices
+            && resolvedIndices.local()
+                .namesOfIndices(context.clusterState())
+                .stream()
+                .anyMatch(index -> documentAllowList.isAllowed(index, "*"))) {
             // The documentAllowList is needed here for Dashboards multi tenancy which can redirect index accesses to indices for which no
             // normal index privileges are present
             // If we would not use the documentAllowList here, the index would appear to be protected

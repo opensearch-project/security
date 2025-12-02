@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.configuration;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.Map;
 import java.util.Set;
@@ -42,21 +42,36 @@ import org.opensearch.action.support.single.shard.SingleShardRequest;
 import org.opensearch.action.termvectors.MultiTermVectorsRequest;
 import org.opensearch.action.termvectors.TermVectorsRequest;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.security.privileges.DashboardsMultiTenancyConfiguration;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.TenantPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
+public class PrivilegesInterceptor {
+
+    public static final PrivilegesInterceptor.ReplaceResult CONTINUE_EVALUATION_REPLACE_RESULT = new PrivilegesInterceptor.ReplaceResult(
+        true,
+        false,
+        null
+    );
+    public static final PrivilegesInterceptor.ReplaceResult ACCESS_DENIED_REPLACE_RESULT = new PrivilegesInterceptor.ReplaceResult(
+        false,
+        true,
+        null
+    );
+    public static final PrivilegesInterceptor.ReplaceResult ACCESS_GRANTED_REPLACE_RESULT = new PrivilegesInterceptor.ReplaceResult(
+        false,
+        false,
+        null
+    );
 
     private static final String USER_TENANT = "__user__";
     private static final String EMPTY_STRING = "";
@@ -80,16 +95,23 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
     private final Supplier<TenantPrivileges> tenantPrivilegesSupplier;
     private final Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier;
+    private final IndexNameExpressionResolver resolver;
+    private final Supplier<ClusterState> clusterStateSupplier;
+    private final Client client;
+    private final ThreadPool threadPool;
 
-    public PrivilegesInterceptorImpl(
+    public PrivilegesInterceptor(
         IndexNameExpressionResolver resolver,
-        ClusterService clusterService,
+        Supplier<ClusterState> clusterStateSupplier,
         Client client,
         ThreadPool threadPool,
         Supplier<TenantPrivileges> tenantPrivilegesSupplier,
         Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier
     ) {
-        super(resolver, clusterService, client, threadPool);
+        this.resolver = resolver;
+        this.clusterStateSupplier = clusterStateSupplier;
+        this.client = client;
+        this.threadPool = threadPool;
         this.tenantPrivilegesSupplier = tenantPrivilegesSupplier;
         this.multiTenancyConfigurationSupplier = multiTenancyConfigurationSupplier;
     }
@@ -100,7 +122,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
      * return null to go through original eval flow
      *
      */
-    @Override
     public ReplaceResult replaceDashboardsIndex(
         final ActionRequest request,
         final String action,
@@ -221,7 +242,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     private void applyDocumentAllowList(String indexName) {
         DocumentAllowList documentAllowList = new DocumentAllowList();
         documentAllowList.add(indexName, "*");
-        IndexAbstraction indexAbstraction = clusterService.state().getMetadata().getIndicesLookup().get(indexName);
+        IndexAbstraction indexAbstraction = clusterStateSupplier.get().getMetadata().getIndicesLookup().get(indexName);
 
         if (indexAbstraction instanceof IndexAbstraction.Alias) {
             for (IndexMetadata index : ((IndexAbstraction.Alias) indexAbstraction).getIndices()) {
@@ -253,7 +274,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     private CreateIndexRequestBuilder newCreateIndexRequestBuilderIfAbsent(final String name) {
-        final Map<String, IndexAbstraction> indicesLookup = clusterService.state().getMetadata().getIndicesLookup();
+        final Map<String, IndexAbstraction> indicesLookup = clusterStateSupplier.get().getMetadata().getIndicesLookup();
         IndexAbstraction indexAbstraction = indicesLookup.get(name);
         if (indexAbstraction != null) {
             if (indexAbstraction.getType() == IndexAbstraction.Type.ALIAS) {
@@ -296,7 +317,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 
         // CreateIndexRequest
         if (request instanceof CreateIndexRequest) {
-            String concreteName = getConcreteIndexName(newIndexName, clusterService.state().getMetadata().getIndicesLookup());
+            String concreteName = getConcreteIndexName(newIndexName, clusterStateSupplier.get().getMetadata().getIndicesLookup());
             if (concreteName != null) {
                 // use new name for alias and suffixed index name
                 ((CreateIndexRequest) request).index(concreteName).alias(new Alias(newIndexName));
@@ -413,4 +434,33 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final Set<String> aliases = requestedResolved.getAliases();
         return (aliases.size() == 1 && aliases.iterator().next().equals(dashboardsIndexName));
     }
+
+    protected static ReplaceResult newAccessGrantedReplaceResult(CreateIndexRequestBuilder createIndexRequestBuilder) {
+        return new ReplaceResult(false, false, createIndexRequestBuilder);
+    }
+
+    public static class ReplaceResult {
+        public final boolean continueEvaluation;
+        public final boolean accessDenied;
+        public final CreateIndexRequestBuilder createIndexRequestBuilder;
+
+        private ReplaceResult(boolean continueEvaluation, boolean accessDenied, CreateIndexRequestBuilder createIndexRequestBuilder) {
+            this.continueEvaluation = continueEvaluation;
+            this.accessDenied = accessDenied;
+            this.createIndexRequestBuilder = createIndexRequestBuilder;
+        }
+
+        @Override
+        public String toString() {
+            return "ReplaceResult{"
+                + "continueEvaluation="
+                + continueEvaluation
+                + ", accessDenied="
+                + accessDenied
+                + ", createIndexRequestBuilder="
+                + createIndexRequestBuilder
+                + '}';
+        }
+    }
+
 }

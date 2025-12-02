@@ -33,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
 
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -44,7 +45,6 @@ import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RoleMapper;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.WildcardMatcher;
@@ -166,7 +166,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             String permission = ConfigConstants.SYSTEM_INDEX_PERMISSION;
             PrivilegesEvaluationContext context = this.privilegesConfiguration.privilegesEvaluator().createContext(user, permission);
             PrivilegesEvaluatorResponse result = context.getActionPrivileges()
-                .hasExplicitIndexPrivilege(context, Set.of(permission), IndexResolverReplacer.Resolved.ofIndex(index.getName()));
+                .hasExplicitIndexPrivilege(context, Set.of(permission), ResolvedIndices.of(index.getName()));
 
             return !result.isAllowed();
         }

@@ -686,7 +686,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
                             }
                         } else {
                             SingleRule singleRule = this.roleToRule(rolePermissions);
-                            IndexPattern indexPattern = IndexPattern.from(rolePermissions.getIndex_patterns());
+                            IndexPattern indexPattern = IndexPattern.from(rolePermissions.getIndex_patterns(), false);
 
                             if (indexPattern.hasStaticPattern()) {
                                 if (singleRule == null) {
@@ -850,7 +850,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
                             continue;
                         }
 
-                        WildcardMatcher indexMatcher = IndexPattern.from(indexPermissions.getIndex_patterns()).getStaticPattern();
+                        WildcardMatcher indexMatcher = IndexPattern.from(indexPermissions.getIndex_patterns(), false).getStaticPattern();
 
                         if (indexMatcher == WildcardMatcher.NONE) {
                             // The pattern is likely blank because there are only dynamic patterns.

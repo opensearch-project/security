@@ -13,6 +13,7 @@ package org.opensearch.security.privileges.actionlevel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,12 +28,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
+import org.opensearch.action.OriginalIndices;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -47,6 +49,7 @@ import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatch
 import static org.opensearch.security.util.MockIndexMetadataBuilder.dataStreams;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder.ctx;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -70,7 +73,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - cluster:monitor/nodes/stats*
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(subject.hasClusterPrivilege(ctx().get(), "cluster:monitor/nodes/stats"), isAllowed());
         }
 
@@ -81,7 +89,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - cluster:monitor/nodes/stats*
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(subject.hasClusterPrivilege(ctx().get(), "cluster:monitor/nodes/stats/somethingnotwellknown"), isAllowed());
         }
 
@@ -92,7 +105,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - cluster:monitor/nodes/stats*
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(subject.hasClusterPrivilege(ctx().get(), "cluster:monitor/nodes/foo"), isForbidden());
         }
 
@@ -103,7 +121,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - '*'
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(subject.hasClusterPrivilege(ctx().get(), "cluster:whatever"), isAllowed());
         }
 
@@ -114,7 +137,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - cluster:monitor/nodes/stats
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(subject.hasExplicitClusterPrivilege(ctx().get(), "cluster:monitor/nodes/stats"), isAllowed());
         }
 
@@ -125,7 +153,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - cluster:monitor/nodes/*
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(subject.hasExplicitClusterPrivilege(ctx().get(), "cluster:monitor/nodes/notwellknown"), isAllowed());
         }
 
@@ -136,7 +169,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - '*'
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(
                 subject.hasExplicitClusterPrivilege(ctx().get(), "cluster:monitor/nodes/stats"),
                 isForbidden(missingPrivileges("cluster:monitor/nodes/stats"))
@@ -150,7 +188,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - cluster:monitor/nodes/stats*
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(subject.hasAnyClusterPrivilege(ctx().get(), ImmutableSet.of("cluster:monitor/nodes/stats")), isAllowed());
         }
 
@@ -161,7 +204,12 @@ public class SubjectBasedActionPrivilegesTest {
                 - '*'
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
             assertThat(subject.hasAnyClusterPrivilege(ctx().get(), ImmutableSet.of("cluster:monitor/nodes/stats")), isAllowed());
         }
     }
@@ -224,13 +272,13 @@ public class SubjectBasedActionPrivilegesTest {
 
             @Test
             public void positive_noLocal() throws Exception {
-                IndexResolverReplacer.Resolved resolved = new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    ImmutableSet.of(),
-                    ImmutableSet.of("remote:a"),
-                    ImmutableSet.of("remote:a"),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
+                ResolvedIndices resolved = ResolvedIndices.of(Collections.emptySet())
+                    .withRemoteIndices(
+                        Map.of(
+                            "remote",
+                            new OriginalIndices(new String[] { "a" }, IndicesOptions.STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED)
+                        )
+                    );
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(
                     ctx().indexMetadata(INDEX_METADATA).get(),
                     requiredActions,
@@ -315,7 +363,12 @@ public class SubjectBasedActionPrivilegesTest {
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA.getIndicesLookup();
 
-                this.subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+                this.subject = new SubjectBasedActionPrivileges(
+                    config,
+                    FlattenedActionGroups.EMPTY,
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    false
+                );
             }
 
             final static Metadata INDEX_METADATA = //
@@ -330,14 +383,8 @@ public class SubjectBasedActionPrivilegesTest {
                     .of("index_b1", "index_b2")//
                     .build();
 
-            static IndexResolverReplacer.Resolved resolved(String... indices) {
-                return new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.of(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
+            static ResolvedIndices resolved(String... indices) {
+                return ResolvedIndices.of(indices);
             }
 
         }
@@ -358,11 +405,6 @@ public class SubjectBasedActionPrivilegesTest {
                 PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(ctx, requiredActions, resolved("data_stream_a11"));
                 if (covers(ctx, "data_stream_a11")) {
                     assertThat(result, isAllowed());
-                } else if (covers(ctx, ".ds-data_stream_a11-000001")) {
-                    assertThat(
-                        result,
-                        isPartiallyOk(".ds-data_stream_a11-000001", ".ds-data_stream_a11-000002", ".ds-data_stream_a11-000003")
-                    );
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
                 }
@@ -380,20 +422,7 @@ public class SubjectBasedActionPrivilegesTest {
                 if (covers(ctx, "data_stream_a11", "data_stream_a12")) {
                     assertThat(result, isAllowed());
                 } else if (covers(ctx, "data_stream_a11")) {
-                    assertThat(
-                        result,
-                        isPartiallyOk(
-                            "data_stream_a11",
-                            ".ds-data_stream_a11-000001",
-                            ".ds-data_stream_a11-000002",
-                            ".ds-data_stream_a11-000003"
-                        )
-                    );
-                } else if (covers(ctx, ".ds-data_stream_a11-000001")) {
-                    assertThat(
-                        result,
-                        isPartiallyOk(".ds-data_stream_a11-000001", ".ds-data_stream_a11-000002", ".ds-data_stream_a11-000003")
-                    );
+                    assertThat(result, isPartiallyOk("data_stream_a11"));
                 } else {
                     assertThat(result, isForbidden(missingPrivileges(requiredActions)));
                 }
@@ -466,35 +495,20 @@ public class SubjectBasedActionPrivilegesTest {
                     ? ImmutableSet.of("indices:data/write/update")
                     : ImmutableSet.of("indices:foobar/unknown");
                 this.indexSpec.indexMetadata = INDEX_METADATA.getIndicesLookup();
-                this.subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+                this.subject = new SubjectBasedActionPrivileges(
+                    config,
+                    FlattenedActionGroups.EMPTY,
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    false // breakDownAliases = true is already sufficiently checked in RoleBasedActionPrivilegesTest
+                );
             }
 
             final static Metadata INDEX_METADATA = //
                 dataStreams("data_stream_a11", "data_stream_a12", "data_stream_a21", "data_stream_a22", "data_stream_b1", "data_stream_b2")
                     .build();
 
-            static IndexResolverReplacer.Resolved resolved(String... indices) {
-                ImmutableSet.Builder<String> allIndices = ImmutableSet.builder();
-
-                for (String index : indices) {
-                    IndexAbstraction indexAbstraction = INDEX_METADATA.getIndicesLookup().get(index);
-
-                    if (indexAbstraction instanceof IndexAbstraction.DataStream) {
-                        allIndices.addAll(
-                            indexAbstraction.getIndices().stream().map(i -> i.getIndex().getName()).collect(Collectors.toList())
-                        );
-                    }
-
-                    allIndices.add(index);
-                }
-
-                return new IndexResolverReplacer.Resolved(
-                    ImmutableSet.of(),
-                    allIndices.build(),
-                    ImmutableSet.copyOf(indices),
-                    ImmutableSet.of(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN
-                );
+            static ResolvedIndices resolved(String... indices) {
+                return ResolvedIndices.of(indices);
             }
         }
 
@@ -625,12 +639,17 @@ public class SubjectBasedActionPrivilegesTest {
                   allowed_actions: ['system:admin/system_index']
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isAllowed());
         }
@@ -643,12 +662,17 @@ public class SubjectBasedActionPrivilegesTest {
                   allowed_actions: ['system:admin/system_index*']
                 """);
 
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isAllowed());
         }
@@ -660,12 +684,17 @@ public class SubjectBasedActionPrivilegesTest {
                 - index_patterns: ['test_index']
                   allowed_actions: ['*']
                 """);
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isForbidden());
         }
@@ -677,12 +706,17 @@ public class SubjectBasedActionPrivilegesTest {
                 - index_patterns: ['test_index']
                   allowed_actions: ['system:admin/system*']
                 """);
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_foo"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isForbidden());
         }
@@ -694,19 +728,156 @@ public class SubjectBasedActionPrivilegesTest {
                 - index_patterns: ['/invalid_regex${user.name}\\/']
                   allowed_actions: ['system:admin/system*']
                 """);
-            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(config, FlattenedActionGroups.EMPTY);
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
 
             PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
                 ctx().get(),
                 Set.of("system:admin/system_index"),
-                IndexResolverReplacer.Resolved.ofIndex("test_index")
+                ResolvedIndices.of("test_index")
             );
             assertThat(result, isForbidden());
             assertTrue(result.hasEvaluationExceptions());
             assertTrue(
                 "Result contains exception info: " + result.getEvaluationExceptionInfo(),
-                result.getEvaluationExceptionInfo().startsWith("Exceptions encountered during privilege evaluation:")
+                result.getEvaluationExceptionInfo().contains("Unescaped trailing backslash near index")
             );
+        }
+
+        @Test
+        public void staticIndexPrivileges_providesExplicitPrivilege_positive() throws Exception {
+            RoleV7 config = config("""
+                index_permissions:
+                - index_patterns: ['test_index']
+                  allowed_actions: ['system:admin/system_index']
+                """);
+
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
+
+            boolean result = subject.index.providesExplicitPrivilege(
+                ctx().get(),
+                "test_index",
+                "system:admin/system_index",
+                new ArrayList<>()
+            );
+            assertTrue(result);
+        }
+
+        @Test
+        public void staticIndexPrivileges_providesExplicitPrivilege_negative() throws Exception {
+            RoleV7 config = config("""
+                index_permissions:
+                - index_patterns: ['test_index']
+                  allowed_actions: ['*']
+                """);
+
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
+
+            boolean result = subject.index.providesExplicitPrivilege(
+                ctx().get(),
+                "test_index",
+                "system:admin/system_index",
+                new ArrayList<>()
+            );
+            assertFalse(result);
+        }
+
+        @Test
+        public void hasIndexPrivilegeForAnyIndex_positive() throws Exception {
+            RoleV7 config = config("""
+                index_permissions:
+                - index_patterns: ['test_index']
+                  allowed_actions: ['indices:data/write/index']""");
+
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
+
+            PrivilegesEvaluatorResponse result = subject.hasIndexPrivilegeForAnyIndex(
+                ctx().roles("test_role").get(),
+                Set.of("indices:data/write/index")
+            );
+            assertThat(result, isAllowed());
+        }
+
+        @Test
+        public void hasIndexPrivilegeForAnyIndex_positive_pattern() throws Exception {
+            RoleV7 config = config("""
+                index_permissions:
+                - index_patterns: ['test_index']
+                  allowed_actions: ['indices:data/write/*']""");
+
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
+
+            PrivilegesEvaluatorResponse result = subject.hasIndexPrivilegeForAnyIndex(
+                ctx().roles("test_role").get(),
+                Set.of("indices:data/write/some_other_action")
+            );
+            assertThat(result, isAllowed());
+        }
+
+        @Test
+        public void hasIndexPrivilegeForAnyIndex_negative() throws Exception {
+            RoleV7 config = config("""
+                index_permissions:
+                - index_patterns: ['test_index']
+                  allowed_actions: ['indices:data/write/index']""");
+
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
+
+            PrivilegesEvaluatorResponse result = subject.hasIndexPrivilegeForAnyIndex(
+                ctx().roles("test_role").get(),
+                Set.of("indices:data/read/index")
+            );
+            assertThat(result, isForbidden());
+        }
+
+        @Test
+        public void hasIndexPrivilegeForAnyIndex_negative_pattern() throws Exception {
+            RoleV7 config = config("""
+                index_permissions:
+                - index_patterns: ['test_index']
+                  allowed_actions: ['indices:data/write/*']""");
+
+            SubjectBasedActionPrivileges subject = new SubjectBasedActionPrivileges(
+                config,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                false
+            );
+
+            PrivilegesEvaluatorResponse result = subject.hasIndexPrivilegeForAnyIndex(
+                ctx().roles("test_role").get(),
+                Set.of("indices:data/read/some_other_action")
+            );
+            assertThat(result, isForbidden());
         }
 
     }

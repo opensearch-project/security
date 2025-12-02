@@ -41,7 +41,8 @@ public enum ClusterConfig {
         true,
         true,
         false
-    );
+    ),
+    NEXT_GEN_PRIVILEGES_EVALUATION("next_gen", c -> c.privilegesEvaluationType("next_gen"), false, true, true);
 
     final String name;
     final Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration;

@@ -831,8 +831,8 @@ public class DocumentPrivilegesTest {
                 null,
                 ActionRequestMetadata.empty(),
                 null,
-                null,
                 INDEX_NAME_EXPRESSION_RESOLVER,
+                null,
                 () -> CLUSTER_STATE,
                 ActionPrivileges.EMPTY
             );

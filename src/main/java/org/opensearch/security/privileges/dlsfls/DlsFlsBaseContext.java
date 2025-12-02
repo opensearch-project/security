@@ -46,7 +46,7 @@ public class DlsFlsBaseContext {
             return null;
         }
 
-        PrivilegesEvaluationContext ctx =  this.privilegesConfiguration.privilegesEvaluator().createContext(user, null);
+        PrivilegesEvaluationContext ctx = this.privilegesConfiguration.privilegesEvaluator().createContext(user, null);
         threadContext.putTransient("tmp_dls_fls_ctx", ctx);
         return ctx;
     }

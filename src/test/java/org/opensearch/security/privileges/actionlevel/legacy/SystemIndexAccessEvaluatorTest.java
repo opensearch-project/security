@@ -9,10 +9,11 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -38,9 +39,12 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.privileges.IndicesRequestResolver;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -137,7 +141,13 @@ public class SystemIndexAccessEvaluatorTest {
                 CType.ROLES
             );
 
-            this.actionPrivileges = new RoleBasedActionPrivileges(rolesConfig, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+            this.actionPrivileges = new RoleBasedActionPrivileges(
+                rolesConfig,
+                FlattenedActionGroups.EMPTY,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                true
+            );
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -172,8 +182,8 @@ public class SystemIndexAccessEvaluatorTest {
             request,
             ActionRequestMetadata.empty(),
             null,
-            null,
             indexNameExpressionResolver,
+            new IndicesRequestResolver(indexNameExpressionResolver),
             () -> clusterState,
             actionPrivileges
         );
@@ -741,6 +751,7 @@ public class SystemIndexAccessEvaluatorTest {
             ImmutableSet.copyOf(indexes),
             ImmutableSet.copyOf(indexes),
             ImmutableSet.of(),
+            Map.of(),
             IndicesOptions.STRICT_EXPAND_OPEN
         );
     }

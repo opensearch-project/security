@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 ### Features
+- Add support for a configurable audit log timezone using a dedicated configuration key ([#5867](https://github.com/opensearch-project/security/issues/5867))
+- New index privilege evaluation engine; provides a smoother experience for users with limited privileges and fixes many bugs related to index authorization. ([#5827](https://github.com/opensearch-project/security/pull/5827))
 
 ### Enhancements
 - Make security plugin aware of FIPS build param (-Pcrypto.standard=FIPS-140-3) ([#5952](https://github.com/opensearch-project/security/pull/5952))
