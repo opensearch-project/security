@@ -78,6 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `actions/checkout` from 5 to 6 ([#5810](https://github.com/opensearch-project/security/pull/5810))
 - Bump `org.bouncycastle:bcpkix-jdk18on` from 1.82 to 1.83 ([#5825](https://github.com/opensearch-project/security/pull/5825))
 - Bump `commons-codec:commons-codec` from 1.19.0 to 1.20.0 ([#5823](https://github.com/opensearch-project/security/pull/5823))
+- Upgrade springframework to 7.0.1 and zookeeper to 3.9.4 ([#5829](https://github.com/opensearch-project/security/pull/5829))
 
 ### Documentation
 
