@@ -31,8 +31,8 @@ public final class InputValidation {
     public static final int MAX_INDEX_NAME_LENGTH = 256;
     public static final int MAX_ARRAY_SIZE = 100_000;
 
-    // Alphanumeric + _ - :
-    private static final Pattern SAFE_VALUE = Pattern.compile("^[A-Za-z0-9_:-]+$");;
+    // Alphanumeric + _ - : OR : * - "*" is only allowed as standalone
+    private static final Pattern SAFE_VALUE = Pattern.compile("^(\\*|[A-Za-z0-9_:-]+)$");
 
     /* ---------------------- generic helpers ---------------------- */
 
