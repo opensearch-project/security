@@ -409,6 +409,182 @@ public class MigrateApiTests {
         }
     }
 
+    @Test
+    public void testMigrateAPI_inputValidation_invalidValues() {
+        // Ensure there is at least one resource so migration can proceed to validation
+        createSampleResource();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+
+            // ------------------------------
+            // 1) Invalid username_path (whitespace)
+            // ------------------------------
+            String invalidUserPathPayload = """
+                {
+                  "source_index": "%s",
+                  "username_path": " /user",
+                  "backend_roles_path": "/user/backend_roles",
+                  "default_owner": "some_user",
+                  "default_access_level": {
+                    "%s": "sample_read_only"
+                  }
+                }
+                """.formatted(RESOURCE_INDEX_NAME, RESOURCE_TYPE);
+
+            TestRestClient.HttpResponse response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidUserPathPayload);
+
+            assertThat(response, RestMatchers.isBadRequest("/error/reason", "username_path must not contain whitespace"));
+
+            // ------------------------------
+            // 2) Invalid backend_roles_path (whitespace)
+            // ------------------------------
+            String invalidBackendPathPayload = """
+                {
+                  "source_index": "%s",
+                  "username_path": "created_by.user",
+                  "backend_roles_path": "created_by. backend_roles",
+                  "default_owner": "some_user",
+                  "default_access_level": {
+                    "%s": "sample_read_only"
+                  }
+                }
+                """.formatted(RESOURCE_INDEX_NAME, RESOURCE_TYPE);
+
+            response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidBackendPathPayload);
+
+            assertThat(response, RestMatchers.isBadRequest("/error/reason", "backend_roles_path must not contain whitespace"));
+
+            // ------------------------------
+            // 3) Invalid default_owner (bad characters)
+            // ------------------------------
+            String invalidDefaultOwnerPayload = """
+                {
+                  "source_index": "%s",
+                  "username_path": "created_by.user",
+                  "backend_roles_path": "created_by.backend_roles",
+                  "default_owner": "owner name",
+                  "default_access_level": {
+                    "%s": "sample_read_only"
+                  }
+                }
+                """.formatted(RESOURCE_INDEX_NAME, RESOURCE_TYPE);
+
+            response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidDefaultOwnerPayload);
+
+            assertThat(
+                response,
+                RestMatchers.isBadRequest("/error/reason", "default_owner contains invalid characters; allowed: A-Z a-z 0-9 _ - :")
+            );
+
+            // ------------------------------
+            // 4) default_access_level is NOT an object
+            // ------------------------------
+            String defaultAccessNotObjectPayload = """
+                {
+                  "source_index": "%s",
+                  "username_path": "created_by.user",
+                  "backend_roles_path": "created_by.backend_roles",
+                  "default_owner": "some_user",
+                  "default_access_level": "sample_read_only"
+                }
+                """.formatted(RESOURCE_INDEX_NAME);
+
+            response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, defaultAccessNotObjectPayload);
+
+            assertThat(response, RestMatchers.isBadRequest("/reason", "Wrong datatype"));
+
+            // ------------------------------
+            // 5) default_access_level is an empty object {}
+            // ------------------------------
+            String defaultAccessEmptyObjectPayload = """
+                {
+                  "source_index": "%s",
+                  "username_path": "created_by.user",
+                  "backend_roles_path": "created_by.backend_roles",
+                  "default_owner": "some_user",
+                  "default_access_level": { }
+                }
+                """.formatted(RESOURCE_INDEX_NAME);
+
+            response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, defaultAccessEmptyObjectPayload);
+
+            assertThat(response, RestMatchers.isBadRequest("/message", "default_access_level cannot be empty"));
+
+            // ------------------------------
+            // 6) default_access_level has empty value for a type
+            // ------------------------------
+            String defaultAccessEmptyValuePayload = """
+                {
+                  "source_index": "%s",
+                  "username_path": "created_by.user",
+                  "backend_roles_path": "created_by.backend_roles",
+                  "default_owner": "some_user",
+                  "default_access_level": {
+                    "%s": ""
+                  }
+                }
+                """.formatted(RESOURCE_INDEX_NAME, RESOURCE_TYPE);
+
+            response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, defaultAccessEmptyValuePayload);
+
+            assertThat(
+                response,
+                RestMatchers.isBadRequest("/message", "default_access_level for type [" + RESOURCE_TYPE + "] must be a non-empty string")
+            );
+
+            // ------------------------------
+            // 7) Invalid source_index (not in protected types)
+            // ------------------------------
+            String invalidSourceIndexPayload = """
+                {
+                  "source_index": "some-other-index",
+                  "username_path": "created_by.user",
+                  "backend_roles_path": "created_by.backend_roles",
+                  "default_owner": "some_user",
+                  "default_access_level": {
+                    "%s": "sample_read_only"
+                  }
+                }
+                """.formatted(RESOURCE_TYPE);
+
+            response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidSourceIndexPayload);
+
+            assertThat(
+                response,
+                RestMatchers.isBadRequest(
+                    "/message",
+                    "Invalid resource index [some-other-index]. Allowed indices: [" + RESOURCE_INDEX_NAME + "]"
+                )
+            );
+
+            // ------------------------------
+            // 8) Invalid access level value for valid type
+            // (this exercises validateAccessLevel + last try/catch)
+            // ------------------------------
+            String invalidAccessLevelPayload = """
+                {
+                  "source_index": "%s",
+                  "username_path": "created_by.user",
+                  "backend_roles_path": "created_by.backend_roles",
+                  "default_owner": "some_user",
+                  "default_access_level": {
+                    "%s": "blah"
+                  }
+                }
+                """.formatted(RESOURCE_INDEX_NAME, RESOURCE_TYPE);
+
+            response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidAccessLevelPayload);
+
+            assertThat(
+                response,
+                RestMatchers.isBadRequest(
+                    "/message",
+                    "Invalid access level blah for resource type [sample-resource]. Allowed: sample_read_write, sample_read_only, sample_full_access"
+                )
+            );
+        }
+    }
+
     private String createSampleResource() {
         try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
             String sampleResource = """

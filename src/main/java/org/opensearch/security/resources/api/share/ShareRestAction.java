@@ -88,11 +88,7 @@ public class ShareRestAction extends BaseRestHandler {
         if (request.hasContent()) {
             try (XContentParser parser = request.contentParser()) {
                 builder.parseContent(parser, resourcePluginInfo);
-            } catch (IllegalArgumentException e) {
-                return channel -> {
-                    channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "Invalid request content. " + e.getMessage()));
-                };
-            } catch (IllegalStateException e) {
+            } catch (IllegalArgumentException | IllegalStateException e) {
                 return channel -> { channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, e.getMessage())); };
             }
 
