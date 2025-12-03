@@ -401,7 +401,9 @@ public class MigrateApiTests {
                 migrateResponse,
                 RestMatchers.isBadRequest(
                     "/message",
-                    "Invalid access level blah for resource sharing for resource type [" + RESOURCE_TYPE + "]"
+                    "Invalid access level blah for resource type ["
+                        + RESOURCE_TYPE
+                        + "]. Allowed: sample_read_write, sample_read_only, sample_full_access"
                 )
             );
         }

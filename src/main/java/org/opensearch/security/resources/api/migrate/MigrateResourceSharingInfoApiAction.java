@@ -10,6 +10,7 @@ package org.opensearch.security.resources.api.migrate;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,7 @@ import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
+import org.opensearch.security.resources.utils.InputValidation;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.threadpool.ThreadPool;
@@ -153,44 +155,73 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     private ValidationResult<ValidationResultArg> loadCurrentSharingInfo(RestRequest request, Client client) throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
-        String sourceIndex = body.get("source_index").asText();
-        String userNamePath = body.get("username_path").asText();
-        String backendRolesPath = body.get("backend_roles_path").asText();
-        String defaultOwner = body.get("default_owner").asText();
-        JsonNode node = body.get("default_access_level");
-        Map<String, String> typeToDefaultAccessLevel = Utils.toMapOfStrings(node);
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(sourceIndex)) {
-            String badRequestMessage = "Invalid resource index " + sourceIndex + ".";
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+        // Required fields
+        String sourceIndex = InputValidation.getRequiredText(body, "source_index", InputValidation.MAX_INDEX_NAME_LENGTH);
+        String userNamePath = InputValidation.getRequiredText(body, "username_path", InputValidation.MAX_PATH_LENGTH);
+        String backendRolesPath = InputValidation.getRequiredText(body, "backend_roles_path", InputValidation.MAX_PATH_LENGTH);
+
+        // Optional
+        String defaultOwner = InputValidation.getOptionalText(body, "default_owner", InputValidation.MAX_PRINCIPAL_LENGTH);
+
+        // Raw JSON for default_access_level
+        JsonNode defaultAccessNode = body.get("default_access_level");
+
+        // Validate JSON structure for default_access_level (object, non-empty, values non-empty)
+        try {
+            InputValidation.validateDefaultAccessLevelNode(defaultAccessNode);
+        } catch (IllegalArgumentException e) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(e.getMessage()));
         }
 
+        // Validate paths & owner early
+        InputValidation.validateJsonPath("username_path", userNamePath);
+        InputValidation.validateJsonPath("backend_roles_path", backendRolesPath);
+        InputValidation.validateDefaultOwner(defaultOwner);
+
+        // Validate source index
+        try {
+            InputValidation.validateSourceIndex(sourceIndex, resourcePluginInfo.getResourceIndicesForProtectedTypes());
+        } catch (Exception e) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(e.getMessage()));
+        }
+
+        // Convert after structural validation
+        Map<String, String> typeToDefaultAccessLevel = defaultAccessNode == null || defaultAccessNode.isNull()
+            ? Collections.emptyMap()
+            : Utils.toMapOfStrings(defaultAccessNode);
+
         String typePath = null;
-        for (String type : typeToDefaultAccessLevel.keySet()) {
+
+        // Validate each type + its accessLevel
+        for (Map.Entry<String, String> entry : typeToDefaultAccessLevel.entrySet()) {
+            String type = entry.getKey();
+            String defaultAccessLevelForType = entry.getValue();
+
+            // Validate resource type exists
             ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
-            String defaultAccessLevelForType = typeToDefaultAccessLevel.get(type);
-            LOGGER.info("Default access level for resource type [{}] is [{}]", type, typeToDefaultAccessLevel.get(type));
-            // check that access level exists for given resource-index
             if (provider == null) {
-                String badRequestMessage = "Invalid resource type " + type + ".";
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Invalid resource type " + type + "."));
             }
-            typePath = provider.typeField(); // All types in the same index must have same typeField
-            var accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
-            if (!accessLevels.contains(defaultAccessLevelForType)) {
-                LOGGER.error(
-                    "Invalid access level {} for resource sharing for resource type [{}]. Available access-levels are [{}]",
-                    defaultAccessLevelForType,
-                    type,
-                    accessLevels
+
+            typePath = provider.typeField();
+
+            // Allowed access-levels for this type
+            Set<String> accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
+
+            try {
+                InputValidation.validateAccessLevel(defaultAccessLevelForType, accessLevels);
+            } catch (Exception e) {
+                return ValidationResult.error(
+                    RestStatus.BAD_REQUEST,
+                    badRequestMessage(
+                        "Invalid access level "
+                            + defaultAccessLevelForType
+                            + " for resource type ["
+                            + type
+                            + "]. Allowed: "
+                            + String.join(", ", accessLevels)
+                    )
                 );
-                String badRequestMessage = "Invalid access level "
-                    + defaultAccessLevelForType
-                    + " for resource sharing for resource type ["
-                    + type
-                    + "]. Available access-levels are ["
-                    + accessLevels
-                    + "]";
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
             }
         }
 

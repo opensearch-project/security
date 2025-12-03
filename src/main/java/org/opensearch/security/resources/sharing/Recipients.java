@@ -22,6 +22,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.resources.utils.InputValidation;
 
 /**
  * This class represents the entities with which a resource is shared for a particular action-group.
@@ -103,12 +104,30 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
-                Recipient recipient = Recipient.valueOf(fieldName.toUpperCase(Locale.ROOT));
+
+                final Recipient recipient;
+                try {
+                    recipient = Recipient.valueOf(fieldName.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Unknown recipient type [" + fieldName + "]", e);
+                }
 
                 parser.nextToken();
+                if (parser.currentToken() != XContentParser.Token.START_ARRAY) {
+                    throw new IllegalArgumentException("Expected array for [" + fieldName + "], but found [" + parser.currentToken() + "]");
+                }
+
                 Set<String> values = new HashSet<>();
+                int count = 0;
+
                 while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                    values.add(parser.text());
+                    count++;
+                    InputValidation.validateArrayEntryCount(fieldName, count);
+
+                    String value = parser.text();
+                    InputValidation.validatePrincipalValue(fieldName, value);
+
+                    values.add(value);
                 }
                 recipients.put(recipient, values);
             }

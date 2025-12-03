@@ -579,7 +579,7 @@ public class ResourceSharingIndexHandler {
                             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
                     ) {
                         parser.nextToken();
-                        ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
+                        ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser, resourcePluginInfo.availableAccessLevels());
                         resourceSharing.setResourceId(getResponse.getId());
 
                         LOGGER.debug(
@@ -995,7 +995,7 @@ public class ResourceSharingIndexHandler {
                             )
                         ) {
                             p.nextToken();
-                            ResourceSharing rs = ResourceSharing.fromXContent(p);
+                            ResourceSharing rs = ResourceSharing.fromXContent(p, resourcePluginInfo.availableAccessLevels());
                             boolean canShare = canUserShare(user, /* isAdmin */ false, rs, resourceType);
                             out.add(new SharingRecord(rs, canShare));
                         } catch (Exception ex) {
@@ -1104,7 +1104,7 @@ public class ResourceSharingIndexHandler {
                 )
             ) {
                 parser.nextToken();
-                ResourceSharing rs = ResourceSharing.fromXContent(parser);
+                ResourceSharing rs = ResourceSharing.fromXContent(parser, resourcePluginInfo.availableAccessLevels());
                 boolean canShare = canUserShare(user, isAdmin, rs, resourceType);
                 resourceSharingRecords.add(new SharingRecord(rs, canShare));
             } catch (Exception e) {
