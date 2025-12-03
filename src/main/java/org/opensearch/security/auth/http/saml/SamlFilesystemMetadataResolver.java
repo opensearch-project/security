@@ -29,16 +29,7 @@ public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
 
     @Override
     protected byte[] fetchMetadata() throws ResolverException {
-        try {
-            return AccessController.doPrivilegedChecked(SamlFilesystemMetadataResolver.super::fetchMetadata);
-        } catch (Exception e) {
-
-            if (e instanceof ResolverException) {
-                throw (ResolverException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        return AccessController.doPrivilegedChecked(SamlFilesystemMetadataResolver.super::fetchMetadata);
     }
 
     private static File getMetadataFile(String filePath, Settings settings, Path configPath) {

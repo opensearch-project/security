@@ -17,11 +17,9 @@
 
 package org.opensearch.security.ssl.transport;
 
-import java.lang.reflect.Method;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Set;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.apache.logging.log4j.LogManager;
@@ -51,8 +49,6 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
     private final PrincipalExtractor principalExtractor;
     private final SslExceptionHandler errorHandler;
     private final SSLConfig SSLConfig;
-
-    private static final Set<String> DEFAULT_CHANNEL_TYPES = Set.of("direct", "transport", "stream-transport");
 
     public SecuritySSLRequestHandler(
         String action,
@@ -88,11 +84,6 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
     public final void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
 
         ThreadContext threadContext = getThreadContext();
-
-        String channelType = channel.getChannelType();
-        if (!DEFAULT_CHANNEL_TYPES.contains(channelType)) {
-            channel = getInnerChannel(channel);
-        }
 
         if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final Exception exception = ExceptionUtils.createBadHeaderException();
@@ -174,20 +165,6 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
             throw e;
         }
 
-    }
-
-    protected TransportChannel getInnerChannel(TransportChannel transportChannel) throws Exception {
-        try {
-            Class<?> wrappedChannelCls = transportChannel.getClass();
-            Method getInnerChannel = wrappedChannelCls.getMethod("getInnerChannel");
-            TransportChannel innerChannel = (TransportChannel) (getInnerChannel.invoke(transportChannel));
-            log.debug("Using inner transport channel " + innerChannel.getChannelType());
-            return innerChannel;
-        } catch (NoSuchMethodException ex) {
-            throw new RuntimeException(
-                "Unknown channel type " + transportChannel.getChannelType() + " does not implement getInnerChannel method."
-            );
-        }
     }
 
     protected void addAdditionalContextValues(
