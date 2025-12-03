@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -233,36 +232,30 @@ public class ResourceSharingIndexHandler {
      * This method handles the persistence of sharing metadata for resources, including
      * the creator information and sharing permissions.
      *
-     * @param resourceId    The unique identifier of the resource being shared
      * @param resourceIndex The source index where the original resource is stored
-     * @param createdBy     Object containing information about the user creating/updating the sharing
-     * @param shareWith     Object containing the sharing permissions' configuration. Can be null for initial creation.
+     * @param sharingInfo   Object containing information about the user creating the resource and referential information
+     *                      about the location of the resource and related docs
      *                      When provided, it should contain the access control settings for different groups:
      *                      {
-     *                      "action-group": {
-     *                      "users": ["user1", "user2"],
-     *                      "roles": ["role1", "role2"],
-     *                      "backend_roles": ["backend_role1"]
-     *                      }
+     *                        "action-group": {
+     *                          "users": ["user1", "user2"],
+     *                          "roles": ["role1", "role2"],
+     *                          "backend_roles": ["backend_role1"]
+     *                        }
      *                      }
      * @param listener Returns resourceSharing object if the operation was successful, exception otherwise
      * @throws IOException if there are issues with index operations or JSON processing
      */
-    public void indexResourceSharing(
-        String resourceId,
-        String resourceIndex,
-        CreatedBy createdBy,
-        ShareWith shareWith,
-        ActionListener<ResourceSharing> listener
-    ) throws IOException {
+    public void indexResourceSharing(String resourceIndex, ResourceSharing sharingInfo, ActionListener<ResourceSharing> listener)
+        throws IOException {
+        String resourceId = sharingInfo.getResourceId();
+        CreatedBy createdBy = sharingInfo.getCreatedBy();
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            ResourceSharing entry = new ResourceSharing(resourceId, createdBy, shareWith);
-
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .setSource(entry.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
                 .setId(resourceId)
                 .request();
@@ -280,17 +273,17 @@ public class ResourceSharingIndexHandler {
                             resourceId,
                             resourceIndex
                         );
-                        listener.onResponse(entry);
+                        listener.onResponse(sharingInfo);
                     }, (e) -> {
                         LOGGER.error("Failed to create principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                        listener.onResponse(entry);
+                        listener.onResponse(sharingInfo);
                     })
                 );
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
                     LOGGER.debug("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
-                    listener.onResponse(entry);
+                    listener.onResponse(null);
                 } else {
                     LOGGER.error("Failed to create entry in [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
                     listener.onFailure(e);
@@ -725,33 +718,19 @@ public class ResourceSharingIndexHandler {
 
         // Apply patch and update the document
         sharingInfoListener.whenComplete(sharingInfo -> {
-            ShareWith updatedShareWith = sharingInfo.getShareWith();
-            if (updatedShareWith == null) {
-                updatedShareWith = new ShareWith(new HashMap<>());
-            }
             if (add != null) {
-                updatedShareWith = updatedShareWith.add(add);
+                sharingInfo.getShareWith().add(add);
             }
             if (revoke != null) {
-                updatedShareWith = updatedShareWith.revoke(revoke);
+                sharingInfo.getShareWith().revoke(revoke);
             }
-
-            ShareWith cleaned = null;
-            if (updatedShareWith != null) {
-                ShareWith pruned = updatedShareWith.prune();
-                if (!pruned.isPrivate()) {
-                    cleaned = pruned; // store only if something non-empty remains
-                }
-            }
-
-            ResourceSharing updatedSharingInfo = new ResourceSharing(resourceId, sharingInfo.getCreatedBy(), cleaned);
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 // update the record
                 IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                     .setId(resourceId)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setSource(updatedSharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .setOpType(DocWriteRequest.OpType.INDEX)
                     .request();
 
@@ -767,13 +746,13 @@ public class ResourceSharingIndexHandler {
                     updateResourceVisibility(
                         resourceId,
                         resourceIndex,
-                        updatedSharingInfo.getAllPrincipals(),
+                        sharingInfo.getAllPrincipals(),
                         ActionListener.wrap((updateResponse) -> {
                             LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
-                            listener.onResponse(updatedSharingInfo);
+                            listener.onResponse(sharingInfo);
                         }, (e) -> {
                             LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                            listener.onResponse(updatedSharingInfo);
+                            listener.onResponse(sharingInfo);
                         })
                     );
 

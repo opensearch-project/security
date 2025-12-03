@@ -22,6 +22,7 @@ import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -73,7 +74,18 @@ public class ResourceIndexListener implements IndexingOperationListener {
 
         log.debug("postIndex called on {}", resourceIndex);
 
+        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
+
         String resourceId = index.id();
+        ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
+        if (provider == null) {
+            log.warn(
+                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.experimental.resource_sharing.protected_types.",
+                resourceId,
+                resourceType
+            );
+            return;
+        }
 
         // Only proceed if this was a create operation and for primary shard
         if (!index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
@@ -108,13 +120,13 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 );
             }, e -> { log.debug(e.getMessage()); });
             // User.getRequestedTenant() is null if multi-tenancy is disabled
-            this.resourceSharingIndexHandler.indexResourceSharing(
-                resourceId,
-                resourceIndex,
-                new CreatedBy(user.getName(), user.getRequestedTenant()),
-                null,
-                listener
-            );
+            ResourceSharing.Builder builder = ResourceSharing.builder()
+                .resourceId(resourceId)
+                .resourceType(resourceType)
+                .createdBy(new CreatedBy(user.getName(), user.getRequestedTenant()));
+            ResourceSharing sharingInfo = builder.build();
+            // User.getRequestedTenant() is null if multi-tenancy is disabled
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, listener);
 
         } catch (IOException e) {
             log.debug("Failed to create a resource sharing entry for resource: {}", resourceId, e);

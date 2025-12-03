@@ -43,6 +43,7 @@ import com.password4j.types.Hmac;
 public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
+    public static final String OPENSEARCH_SECURITY_CONFIG_PREFIX = "_opensearch_security_";
     public static final String SECURITY_SETTINGS_PREFIX = "plugins.security.";
 
     public static final String OPENSEARCH_SECURITY_DISABLED = SECURITY_SETTINGS_PREFIX + "disabled";
@@ -80,6 +81,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_MASKED_FIELD_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "masked_fields_ccs";
 
     public static final String OPENDISTRO_SECURITY_CONF_REQUEST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "conf_request";
+    public static final String OPENSEARCH_SECURITY_REQUEST_HEADERS = OPENSEARCH_SECURITY_CONFIG_PREFIX + "request_headers";
 
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address";
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address_header";
@@ -241,8 +243,8 @@ public class ConfigConstants {
 
     // External OpenSearch
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS = "http_endpoints";
-    public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME = "username";
-    public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD = "password";
+    public static final String SECURITY_AUDIT_CONFIG_USERNAME = "username";
+    public static final String SECURITY_AUDIT_CONFIG_PASSWORD = "password";
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL = "enable_ssl";
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_VERIFY_HOSTNAMES = "verify_hostnames";
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH = "enable_ssl_client_auth";

@@ -27,12 +27,7 @@ public class MakeJava9Happy {
         }
 
         if (classLoader == null) {
-
-            try {
-                return AccessController.doPrivilegedChecked(() -> new Java9CL());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            return AccessController.doPrivilegedChecked(() -> new Java9CL());
         }
 
         return classLoader;

@@ -236,37 +236,13 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         final DynamicConfigModel dcm;
         final InternalUsersModel ium;
-        final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
         final AllowlistingSettings allowlist = cr.getConfiguration(CType.ALLOWLIST).getCEntry("config");
         final AuditConfig audit = cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
-        if (roles.containsAny(staticRoles)) {
-            throw new StaticResourceException("Cannot override static roles");
-        }
-        if (!roles.add(staticRoles) && !staticRoles.getCEntries().isEmpty()) {
-            throw new StaticResourceException("Unable to load static roles");
-        }
-
-        log.debug("Static roles loaded ({})", staticRoles.getCEntries().size());
-
-        if (actionGroups.containsAny(staticActionGroups)) {
-            throw new StaticResourceException("Cannot override static action groups");
-        }
-        if (!actionGroups.add(staticActionGroups) && !staticActionGroups.getCEntries().isEmpty()) {
-            throw new StaticResourceException("Unable to load static action groups");
-        }
-
-        log.debug("Static action groups loaded ({})", staticActionGroups.getCEntries().size());
-
-        if (tenants.containsAny(staticTenants)) {
-            throw new StaticResourceException("Cannot override static tenants");
-        }
-        if (!tenants.add(staticTenants) && !staticTenants.getCEntries().isEmpty()) {
-            throw new StaticResourceException("Unable to load static tenants");
-        }
-
-        log.debug("Static tenants loaded ({})", staticTenants.getCEntries().size());
+        mergeStaticConfigWithWarning("roles", roles, staticRoles, log);
+        mergeStaticConfigWithWarning("action groups", actionGroups, staticActionGroups, log);
+        mergeStaticConfigWithWarning("tenants", tenants, staticTenants, log);
 
         log.debug(
             "Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
@@ -278,10 +254,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         // rebuild v7 Models
         dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih);
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
-        cm = new ConfigModelV7(roles, rolesmapping, dcm, opensearchSettings);
 
         // notify subscribers
-        eventBus.post(cm);
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
@@ -293,6 +267,44 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         log.debug("Dispatched config update notification to different subscribers");
 
         initialized.set(true);
+    }
+
+    private static <T> void mergeStaticConfigWithWarning(
+        String typeName,
+        SecurityDynamicConfiguration<T> dynamicConfig,
+        SecurityDynamicConfiguration<T> staticConfig,
+        Logger log
+    ) {
+        if (staticConfig == null || staticConfig.isEmpty()) {
+            return;
+        }
+
+        // Find overlapping keys between dynamic and static configs
+        final Map<String, T> dynamicEntries = dynamicConfig.getCEntries();
+        final Map<String, T> staticEntries = staticConfig.getCEntries();
+
+        final java.util.List<String> overlaps = dynamicEntries.keySet().stream().filter(staticEntries::containsKey).sorted().toList();
+
+        if (!overlaps.isEmpty()) {
+            // Remove overlaps from the dynamic config so static definitions win
+            dynamicConfig.remove(overlaps);
+
+            log.warn(
+                "Detected overlap between dynamic {} configuration and static resources for entries: {}. "
+                    + "Dynamic definitions have been removed in favor of static configuration.",
+                typeName,
+                overlaps
+            );
+        }
+
+        // Now add static entries; if this fails, it's a real structural problem (version/type)
+        if (!dynamicConfig.add(staticConfig) && !staticConfig.getCEntries().isEmpty()) {
+            throw new StaticResourceException("Unable to load static " + typeName);
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("Static {} loaded ({} entries)", typeName, staticConfig.getCEntries().size());
+        }
     }
 
     private static ConfigV7 getConfigV7(SecurityDynamicConfiguration<?> sdc) {
