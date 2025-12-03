@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Ensure all restHeaders from ActionPlugin.getRestHeaders are carried to threadContext for tracing ([#5396](https://github.com/opensearch-project/security/pull/5396))
 - Deprecate plugins.security.system_indices.indices ([#5775](https://github.com/opensearch-project/security/pull/5775))
 - Allow overlap of static and custom security configs, but prefer static ([#5805](https://github.com/opensearch-project/security/pull/5805))
-- Update read access to specific search-relevance indices ([#16167](https://github.com/opensearch-project/security/pull/5590))
+- Update read access to specific search-relevance indices ([#5590](https://github.com/opensearch-project/security/pull/5590))
 
 ### Features
 
