@@ -106,7 +106,7 @@ public class ShareWithTests {
 
         parser.nextToken();
 
-        ShareWith shareWith = ShareWith.fromXContent(parser, Set.of("read_only", "default"));
+        ShareWith shareWith = ShareWith.fromXContent(parser, Set.of("read-only", "default"));
 
         assertThat(shareWith, notNullValue());
 
