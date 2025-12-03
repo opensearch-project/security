@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add support for X509 v3 extensions (SAN) for authentication  ([#5701](https://github.com/opensearch-project/security/pull/5701))
 - [Resource Sharing] Requires default_owner for resource/migrate API ([#5789](https://github.com/opensearch-project/security/pull/5789))
 - Add --timeout (-to) as an option to securityadmin.sh ([#5787](https://github.com/opensearch-project/security/pull/5787))
+- Hardens input validation for resource sharing APIs ([#5831](https://github.com/opensearch-project/security/pull/5831)
 
 ### Bug Fixes
 - Create a WildcardMatcher.NONE when creating a WildcardMatcher with an empty string ([#5694](https://github.com/opensearch-project/security/pull/5694))
