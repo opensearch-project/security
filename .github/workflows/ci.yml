@@ -382,7 +382,7 @@ jobs:
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
-      - run: ./gradlew clean buildHealth
+      - run: ./gradlew clean buildHealth -Dorg.gradle.jvmargs="-Xms1g -Xmx4g -XX:+UseG1GC -XX:MaxMetaspaceSize=512m"
 
       - uses: actions/upload-artifact@v5
         if: always()
