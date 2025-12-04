@@ -550,6 +550,15 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return config.getFieldPrivileges().getRestriction(ctx, index).isAllowedRecursive(field);
     }
 
+    @Override
+    public boolean indexHasFlsRestrictions(String index, PrivilegesEvaluationContext ctx) throws PrivilegesEvaluationException {
+        if (ctx == null) {
+            return false;
+        }
+        DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+        return !config.getFieldPrivileges().getRestriction(ctx, index).isUnrestricted();
+    }
+
     private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {
         if (aggregation instanceof StringTerms) {
             StringTerms stringTerms = (StringTerms) aggregation;
