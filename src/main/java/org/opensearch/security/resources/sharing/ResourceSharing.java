@@ -195,7 +195,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         return builder.endObject();
     }
 
-    public static ResourceSharing fromXContent(XContentParser parser, Set<String> validAccessLevels) throws IOException {
+    public static ResourceSharing fromXContent(XContentParser parser) throws IOException {
         Builder b = ResourceSharing.builder();
 
         String currentFieldName = null;
@@ -220,7 +220,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
                         b.createdBy(CreatedBy.fromXContent(parser));
                         break;
                     case "share_with":
-                        b.shareWith(ShareWith.fromXContent(parser, validAccessLevels));
+                        b.shareWith(ShareWith.fromXContent(parser));
                         break;
                     default:
                         parser.skipChildren();

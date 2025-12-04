@@ -399,8 +399,8 @@ public class ShareApiTests {
 
                 response = client.putJson(SECURITY_SHARE_ENDPOINT, putInvalidAccessLevelPayload);
                 response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-                assertThat(response.getBody(), containsString("Invalid access_level"));
-                assertThat(response.getBody(), containsString("blah"));
+                assertThat(response.getBody(), containsString("access_level must be one of:"));
+                assertThat(response.getBody(), not(containsString("blah")));
 
                 // 4) PATCH with invalid principal value (same validation path as PUT, via Recipients)
                 String patchInvalidUserPayload = """
@@ -435,8 +435,8 @@ public class ShareApiTests {
 
                 response = client.patch(SECURITY_SHARE_ENDPOINT, patchInvalidAccessLevelPayload);
                 response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-                assertThat(response.getBody(), containsString("Invalid access_level"));
-                assertThat(response.getBody(), containsString("blah"));
+                assertThat(response.getBody(), containsString("access_level must be one of:"));
+                assertThat(response.getBody(), not(containsString("blah")));
             }
         }
     }

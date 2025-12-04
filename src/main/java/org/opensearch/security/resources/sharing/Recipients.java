@@ -22,7 +22,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.resources.utils.InputValidation;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 
 /**
  * This class represents the entities with which a resource is shared for a particular action-group.
@@ -97,7 +97,17 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
         return builder.endObject();
     }
 
-    public static Recipients fromXContent(XContentParser parser) throws IOException {
+    /**
+     * Parse Recipients from XContent with validators
+     * @param parser the XContent parser
+     * @param arraySizeValidator optional validator for array size (can be null)
+     * @param elementValidator optional validator for each array element value (can be null)
+     */
+    public static Recipients fromXContent(
+        XContentParser parser,
+        RequestContentValidator.FieldValidator arraySizeValidator,
+        RequestContentValidator.FieldValidator elementValidator
+    ) throws IOException {
         Map<Recipient, Set<String>> recipients = new HashMap<>();
 
         XContentParser.Token token;
@@ -122,10 +132,18 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
 
                 while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                     count++;
-                    InputValidation.validateArrayEntryCount(fieldName, count);
+
+                    // Validate array size if validator provided
+                    if (arraySizeValidator != null) {
+                        arraySizeValidator.validate(fieldName, count);
+                    }
 
                     String value = parser.text();
-                    InputValidation.validatePrincipalValue(fieldName, value);
+
+                    // Validate element value if validator provided
+                    if (elementValidator != null) {
+                        elementValidator.validate(fieldName, value);
+                    }
 
                     values.add(value);
                 }

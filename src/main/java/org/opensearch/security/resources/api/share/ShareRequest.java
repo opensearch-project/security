@@ -22,9 +22,9 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.sharing.ShareWith;
-import org.opensearch.security.resources.utils.InputValidation;
 
 /**
  * This class represents a request to share access to a resource.
@@ -194,6 +194,12 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             final List<String> allowedTypes = resourcePluginInfo.currentProtectedTypes();
             final Set<String> validAccessLevels = resourcePluginInfo.availableAccessLevels();
 
+            // Create access level validator using the pre-built helper
+            final RequestContentValidator.FieldValidator accessLevelValidator = RequestContentValidator.allowedValuesValidator(
+                validAccessLevels,
+                null
+            );
+
             try (XContentParser parser = xContentParser) {
                 XContentParser.Token token; // START_OBJECT
                 while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -203,14 +209,14 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                         switch (name) {
                             case "resource_id":
                                 String resourceId = parser.text();
-                                InputValidation.validateResourceId(resourceId);
+                                RequestContentValidator.validateResourceId(resourceId);
                                 this.resourceId(resourceId);
                                 break;
                             case "resource_type":
                                 String resourceType = parser.text();
 
                                 // Validate type syntax + membership in dynamic protected-types list
-                                InputValidation.validateResourceType(resourceType, allowedTypes);
+                                RequestContentValidator.validateResourceType(resourceType, allowedTypes);
 
                                 // Resolve to index, using pluginInfo
                                 String indexName = resourcePluginInfo.indexByType(resourceType);
@@ -224,13 +230,13 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                                 this.resourceIndex(resourcePluginInfo.indexByType(resourceType));
                                 break;
                             case "share_with":
-                                this.shareWith(ShareWith.fromXContent(parser, validAccessLevels));
+                                this.shareWith(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
                             case "add":
-                                this.add(ShareWith.fromXContent(parser, validAccessLevels));
+                                this.add(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
                             case "revoke":
-                                this.revoke(ShareWith.fromXContent(parser, validAccessLevels));
+                                this.revoke(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
                             default:
                                 parser.skipChildren();

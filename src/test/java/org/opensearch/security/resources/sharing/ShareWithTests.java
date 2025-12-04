@@ -58,7 +58,10 @@ public class ShareWithTests {
 
         parser.nextToken();
 
-        ShareWith shareWith = ShareWith.fromXContent(parser, Set.of("read_only"));
+        ShareWith shareWith = ShareWith.fromXContent(
+            parser,
+            org.opensearch.security.dlic.rest.validation.RequestContentValidator.allowedValuesValidator(Set.of("read_only"), null)
+        );
 
         assertThat(shareWith, notNullValue());
         Recipients readOnly = shareWith.atAccessLevel("read_only");
@@ -77,7 +80,7 @@ public class ShareWithTests {
         String emptyJson = "{}";
         XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, null, emptyJson);
 
-        ShareWith result = ShareWith.fromXContent(parser, Set.of());
+        ShareWith result = ShareWith.fromXContent(parser, null);
 
         assertThat(result, notNullValue());
         assertThat(result.isPrivate(), is(true));
@@ -106,7 +109,13 @@ public class ShareWithTests {
 
         parser.nextToken();
 
-        ShareWith shareWith = ShareWith.fromXContent(parser, Set.of("read-only", "default"));
+        ShareWith shareWith = ShareWith.fromXContent(
+            parser,
+            org.opensearch.security.dlic.rest.validation.RequestContentValidator.allowedValuesValidator(
+                Set.of("read-only", "default"),
+                null
+            )
+        );
 
         assertThat(shareWith, notNullValue());
 
@@ -132,7 +141,7 @@ public class ShareWithTests {
         when(mockParser.currentToken()).thenReturn(XContentParser.Token.START_OBJECT);
         when(mockParser.nextToken()).thenReturn(XContentParser.Token.END_OBJECT, (XContentParser.Token) null);
 
-        ShareWith result = ShareWith.fromXContent(mockParser, Set.of());
+        ShareWith result = ShareWith.fromXContent(mockParser, null);
 
         assertThat(result, notNullValue());
         assertThat(result.isPrivate(), is(true));
@@ -202,7 +211,7 @@ public class ShareWithTests {
             parser = XContentType.JSON.xContent().createParser(null, null, builder.toString());
         }
 
-        ShareWith shareWith = ShareWith.fromXContent(parser, Set.of());
+        ShareWith shareWith = ShareWith.fromXContent(parser, null);
 
         assertThat(shareWith.isPrivate(), is(true));
         assertThat(shareWith.isPublic(), is(false));

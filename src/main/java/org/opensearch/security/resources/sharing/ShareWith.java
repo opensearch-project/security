@@ -22,7 +22,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.security.resources.utils.InputValidation;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 
 /**
  * This class contains information about whom a resource is shared with and what is the action-group associated with it.
@@ -97,7 +97,20 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
         return b.endObject();
     }
 
-    public static ShareWith fromXContent(XContentParser parser, Set<String> validAccessLevels) throws IOException {
+    /**
+     * Parse ShareWith from XContent without validation
+     */
+    public static ShareWith fromXContent(XContentParser parser) throws IOException {
+        return fromXContent(parser, null);
+    }
+
+    /**
+     * Parse ShareWith from XContent with custom access level validator
+     * @param parser the XContent parser
+     * @param accessLevelValidator optional validator for access level field names (can be null)
+     */
+    public static ShareWith fromXContent(XContentParser parser, RequestContentValidator.FieldValidator accessLevelValidator)
+        throws IOException {
         Map<String, Recipients> sharingInfo = new HashMap<>();
 
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
@@ -110,12 +123,18 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
             if (token == XContentParser.Token.FIELD_NAME) {
                 String accessLevel = parser.currentName();
 
-                // We don't expect access-levels for a type to be null unless the type doesn't exist
-                InputValidation.validateAccessLevel(accessLevel, validAccessLevels);
+                // Validate access level if validator is provided
+                if (accessLevelValidator != null) {
+                    accessLevelValidator.validate("access_level", accessLevel);
+                }
 
                 parser.nextToken();
 
-                Recipients recipients = Recipients.fromXContent(parser);
+                Recipients recipients = Recipients.fromXContent(
+                    parser,
+                    RequestContentValidator.ARRAY_SIZE_VALIDATOR,
+                    RequestContentValidator.PRINCIPAL_VALIDATOR
+                );
                 sharingInfo.put(accessLevel, recipients);
             }
         }
