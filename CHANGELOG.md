@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Ensure all restHeaders from ActionPlugin.getRestHeaders are carried to threadContext for tracing ([#5396](https://github.com/opensearch-project/security/pull/5396))
 - Deprecate plugins.security.system_indices.indices ([#5775](https://github.com/opensearch-project/security/pull/5775))
 - Allow overlap of static and custom security configs, but prefer static ([#5805](https://github.com/opensearch-project/security/pull/5805))
+- Update read access to specific search-relevance indices ([#5590](https://github.com/opensearch-project/security/pull/5590))
 
 ### Features
 
@@ -79,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.bouncycastle:bcpkix-jdk18on` from 1.82 to 1.83 ([#5825](https://github.com/opensearch-project/security/pull/5825))
 - Bump `commons-codec:commons-codec` from 1.19.0 to 1.20.0 ([#5823](https://github.com/opensearch-project/security/pull/5823))
 - Upgrade springframework to 7.0.1 and zookeeper to 3.9.4 ([#5829](https://github.com/opensearch-project/security/pull/5829))
+- Bump `org.opensearch:common-utils` from 3.2.0.0-SNAPSHOT to 3.3.2.0 ([#5830](https://github.com/opensearch-project/security/pull/5830))
 
 ### Documentation
 
