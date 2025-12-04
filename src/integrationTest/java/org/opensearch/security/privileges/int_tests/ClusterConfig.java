@@ -38,7 +38,8 @@ public enum ClusterConfig {
         true,
         true,
         false
-    );
+    ),
+    NEXT_GEN_PRIVILEGES_EVALUATION("next_gen", c -> c.privilegesEvaluationType("next_gen"), false, true, true);
 
     final String name;
     final Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration;
@@ -47,6 +48,11 @@ public enum ClusterConfig {
     final boolean allowsEmptyResultSets;
 
     private LocalCluster cluster;
+
+    /**
+     * Optional: If we need to have a second remote cluster in our tests
+     */
+    private LocalCluster remoteCluster;
 
     ClusterConfig(
         String name,
@@ -70,12 +76,28 @@ public enum ClusterConfig {
         return cluster;
     }
 
+    LocalCluster remoteCluster(Supplier<LocalCluster.Builder> clusterBuilder) {
+        if (remoteCluster == null) {
+            remoteCluster = this.clusterConfiguration.apply(clusterBuilder.get()).build();
+            remoteCluster.before();
+        }
+        return remoteCluster;
+    }
+
     void shutdown() {
         if (cluster != null) {
             try {
                 cluster.close();
             } catch (Exception e) {}
             cluster = null;
+        }
+        if (remoteCluster != null) {
+            try {
+                remoteCluster.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            remoteCluster = null;
         }
     }
 
