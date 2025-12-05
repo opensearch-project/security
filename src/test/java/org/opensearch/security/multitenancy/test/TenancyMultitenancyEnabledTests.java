@@ -92,7 +92,7 @@ public class TenancyMultitenancyEnabledTests extends SingleClusterTest {
 
         final HttpResponse updateMutlitenancyToDisabled = nonSslRestHelper().executePutRequest(
             "/_plugins/_security/api/tenancy/config",
-            "{\"multitenancy_enabled\": \"false\"}",
+            "{\"multitenancy_enabled\": false}",
             AS_REST_API_USER
         );
         assertThat(updateMutlitenancyToDisabled.getStatusCode(), equalTo(HttpStatus.SC_OK));
