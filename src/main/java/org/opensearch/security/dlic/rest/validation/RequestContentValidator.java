@@ -86,7 +86,7 @@ public class RequestContentValidator implements ToXContent {
     }
 
     /**
-     * Validator interface for field-level validation, similar to OpenSearch Setting.Validator
+     * Validator interface for field-level validation
      */
     @FunctionalInterface
     public interface FieldValidator {
@@ -143,8 +143,7 @@ public class RequestContentValidator implements ToXContent {
 
         public void validate(String fieldName, Object value) {
             // Validate max length for strings
-            if (maxLength != null && value instanceof String) {
-                String strValue = (String) value;
+            if (maxLength != null && value instanceof String strValue) {
                 if (strValue.length() > maxLength) {
                     throw new IllegalArgumentException(fieldName + " length [" + strValue.length() + "] exceeds max [" + maxLength + "]");
                 }
@@ -285,13 +284,13 @@ public class RequestContentValidator implements ToXContent {
             JsonToken token;
             while ((token = parser.nextToken()) != null) {
                 if (token.equals(JsonToken.FIELD_NAME)) {
-                    String currentName = parser.getCurrentName();
+                    String currentName = parser.currentName();
 
                     // Get data type from either FieldConfiguration or simple DataType map
                     final DataType dataType;
                     final FieldConfiguration fieldConfig;
 
-                    if (useEnhancedValidation && fieldConfigs != null) {
+                    if (useEnhancedValidation) {
                         fieldConfig = fieldConfigs.get(currentName);
                         dataType = (fieldConfig != null) ? fieldConfig.getDataType() : null;
                     } else {
@@ -703,8 +702,7 @@ public class RequestContentValidator implements ToXContent {
      * and optionally allows standalone "*"
      */
     public static final FieldValidator SAFE_VALUE_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof String) {
-            String strValue = (String) value;
+        if (value instanceof String strValue) {
             requireNonEmpty(fieldName, strValue);
             if (!SAFE_VALUE.matcher(strValue).matches()) {
                 throw new IllegalArgumentException(fieldName + " contains invalid characters; allowed: A-Z a-z 0-9 _ - :");
@@ -716,8 +714,7 @@ public class RequestContentValidator implements ToXContent {
      * Validator for resource IDs
      */
     public static final FieldValidator RESOURCE_ID_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof String) {
-            String strValue = (String) value;
+        if (value instanceof String strValue) {
             requireNonEmpty(fieldName, strValue);
             validateMaxLength(fieldName, strValue, MAX_RESOURCE_ID_LENGTH);
             if (!SAFE_VALUE.matcher(strValue).matches()) {
@@ -730,8 +727,7 @@ public class RequestContentValidator implements ToXContent {
      * Validator for principal values (users, roles, backend_roles)
      */
     public static final FieldValidator PRINCIPAL_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof String) {
-            String strValue = (String) value;
+        if (value instanceof String strValue) {
             requireNonEmpty(fieldName, strValue);
             validateMaxLength(fieldName, strValue, MAX_PRINCIPAL_LENGTH);
             if (!SAFE_VALUE.matcher(strValue).matches()) {
@@ -744,8 +740,7 @@ public class RequestContentValidator implements ToXContent {
      * Validator for JSON paths (no whitespace allowed)
      */
     public static final FieldValidator JSON_PATH_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof String) {
-            String strValue = (String) value;
+        if (value instanceof String strValue) {
             requireNonEmpty(fieldName, strValue);
             validateMaxLength(fieldName, strValue, MAX_PATH_LENGTH);
             if (!strValue.equals(strValue.trim()) || strValue.chars().anyMatch(Character::isWhitespace)) {
@@ -758,8 +753,7 @@ public class RequestContentValidator implements ToXContent {
      * Validator for array entry counts (works with JsonNode arrays)
      */
     public static final FieldValidator ARRAY_SIZE_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof JsonNode) {
-            JsonNode node = (JsonNode) value;
+        if (value instanceof JsonNode node) {
             if (node.isArray() && node.size() > MAX_ARRAY_SIZE) {
                 throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + MAX_ARRAY_SIZE);
             }
@@ -775,8 +769,7 @@ public class RequestContentValidator implements ToXContent {
      * Validator that ensures array elements are non-null and non-blank
      */
     public static final FieldValidator NON_EMPTY_ARRAY_ELEMENTS_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof JsonNode) {
-            JsonNode node = (JsonNode) value;
+        if (value instanceof JsonNode node) {
             if (node.isArray()) {
                 for (JsonNode element : node) {
                     if (element.isNull() || (element.isTextual() && Strings.isNullOrEmpty(element.asText().trim()))) {
@@ -792,8 +785,7 @@ public class RequestContentValidator implements ToXContent {
      */
     public static FieldValidator allowedValuesValidator(Set<String> allowedValues, String errorMessage) {
         return (fieldName, value) -> {
-            if (value instanceof String) {
-                String strValue = (String) value;
+            if (value instanceof String strValue) {
                 if (!allowedValues.contains(strValue)) {
                     throw new IllegalArgumentException(
                         errorMessage != null ? errorMessage : fieldName + " must be one of: " + String.join(", ", allowedValues)

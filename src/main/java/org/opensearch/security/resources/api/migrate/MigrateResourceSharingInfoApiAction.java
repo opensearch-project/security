@@ -181,7 +181,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             // Validate resource type exists
             ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
             if (provider == null) {
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Invalid resource type " + type + "."));
+                // We do not expect this to be null, as validation check will already have been performed in request content validator
+                String message = String.format("resource_type be one of: %s", resourcePluginInfo.currentProtectedTypes());
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(message));
             }
 
             typePath = provider.typeField();
@@ -438,17 +440,14 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
                         // Validate source_index is in allowed set
                         RequestContentValidator.FieldValidator sourceIndexValidator = (fieldName, value) -> {
-                            if (value instanceof String) {
-                                String strValue = (String) value;
+                            if (value instanceof String strValue) {
                                 RequestContentValidator.requireNonEmpty(fieldName, strValue);
                                 Set<String> allowedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
                                 if (allowedIndices == null || allowedIndices.isEmpty()) {
-                                    throw new IllegalStateException("No protected resource indices configured");
+                                    throw new IllegalStateException("No protected resources configured");
                                 }
                                 if (!allowedIndices.contains(strValue)) {
-                                    throw new IllegalArgumentException(
-                                        "Invalid resource index [" + strValue + "]. Allowed indices: " + allowedIndices
-                                    );
+                                    throw new IllegalArgumentException("source_index must be one of: " + allowedIndices);
                                 }
                             }
                         };
