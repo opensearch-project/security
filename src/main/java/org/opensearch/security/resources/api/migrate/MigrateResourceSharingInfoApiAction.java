@@ -154,7 +154,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     private ValidationResult<ValidationResultArg> loadCurrentSharingInfo(RestRequest request, Client client) throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
-        // Extract fields - validation already done by RequestContentValidator framework
+        // Extract fields - basic validation done by RequestContentValidator framework
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
@@ -165,6 +165,17 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
         // Raw JSON for default_access_level
         JsonNode defaultAccessNode = body.get("default_access_level");
+
+        // Business logic validation (after framework validation)
+        try {
+            RequestContentValidator.validateJsonPath("username_path", userNamePath);
+            RequestContentValidator.validateJsonPath("backend_roles_path", backendRolesPath);
+            RequestContentValidator.validateDefaultOwner(defaultOwner);
+            RequestContentValidator.validateSourceIndex(sourceIndex, resourcePluginInfo.getResourceIndicesForProtectedTypes());
+            RequestContentValidator.validateDefaultAccessLevelNode(defaultAccessNode);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(e.getMessage()));
+        }
 
         // Convert after structural validation
         Map<String, String> typeToDefaultAccessLevel = defaultAccessNode == null || defaultAccessNode.isNull()

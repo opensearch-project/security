@@ -433,7 +433,7 @@ public class MigrateApiTests {
 
             TestRestClient.HttpResponse response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidUserPathPayload);
 
-            assertThat(response, RestMatchers.isBadRequest("/error/reason", "username_path must not contain whitespace"));
+            assertThat(response, RestMatchers.isBadRequest("/message", "username_path must not contain whitespace"));
 
             // ------------------------------
             // 2) Invalid backend_roles_path (whitespace)
@@ -452,7 +452,7 @@ public class MigrateApiTests {
 
             response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidBackendPathPayload);
 
-            assertThat(response, RestMatchers.isBadRequest("/error/reason", "backend_roles_path must not contain whitespace"));
+            assertThat(response, RestMatchers.isBadRequest("/message", "backend_roles_path must not contain whitespace"));
 
             // ------------------------------
             // 3) Invalid default_owner (bad characters)
@@ -473,7 +473,7 @@ public class MigrateApiTests {
 
             assertThat(
                 response,
-                RestMatchers.isBadRequest("/error/reason", "default_owner contains invalid characters; allowed: A-Z a-z 0-9 _ - :")
+                RestMatchers.isBadRequest("/message", "default_owner contains invalid characters; allowed: A-Z a-z 0-9 _ - :")
             );
 
             // ------------------------------

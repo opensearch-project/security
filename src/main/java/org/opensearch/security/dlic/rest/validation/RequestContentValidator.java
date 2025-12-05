@@ -32,6 +32,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.resources.sharing.Recipient;
 
 import com.flipkart.zjsonpatch.JsonDiff;
 
@@ -561,7 +562,12 @@ public class RequestContentValidator implements ToXContent {
         requireNonEmpty(fieldName, value);
         validateMaxLength(fieldName, value, maxLength);
         if (!SAFE_VALUE.matcher(value).matches()) {
-            throw new IllegalArgumentException(fieldName + " contains invalid characters; allowed: A-Z a-z 0-9 _ - :");
+            throw new IllegalArgumentException(
+                fieldName
+                    + " contains invalid characters; allowed: "
+                    + (fieldName.equals(Recipient.USERS.getName()) ? "* OR " : "")
+                    + "A-Z a-z 0-9 _ - :"
+            );
         }
     }
 
@@ -698,32 +704,6 @@ public class RequestContentValidator implements ToXContent {
      * ======================================================================== */
 
     /**
-     * Validator that ensures a string contains only safe characters (alphanumeric + _ - :)
-     * and optionally allows standalone "*"
-     */
-    public static final FieldValidator SAFE_VALUE_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof String strValue) {
-            requireNonEmpty(fieldName, strValue);
-            if (!SAFE_VALUE.matcher(strValue).matches()) {
-                throw new IllegalArgumentException(fieldName + " contains invalid characters; allowed: A-Z a-z 0-9 _ - :");
-            }
-        }
-    };
-
-    /**
-     * Validator for resource IDs
-     */
-    public static final FieldValidator RESOURCE_ID_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof String strValue) {
-            requireNonEmpty(fieldName, strValue);
-            validateMaxLength(fieldName, strValue, MAX_RESOURCE_ID_LENGTH);
-            if (!SAFE_VALUE.matcher(strValue).matches()) {
-                throw new IllegalArgumentException(fieldName + " contains invalid characters; allowed: A-Z a-z 0-9 _ - :");
-            }
-        }
-    };
-
-    /**
      * Validator for principal values (users, roles, backend_roles)
      */
     public static final FieldValidator PRINCIPAL_VALIDATOR = (fieldName, value) -> {
@@ -731,7 +711,12 @@ public class RequestContentValidator implements ToXContent {
             requireNonEmpty(fieldName, strValue);
             validateMaxLength(fieldName, strValue, MAX_PRINCIPAL_LENGTH);
             if (!SAFE_VALUE.matcher(strValue).matches()) {
-                throw new IllegalArgumentException(fieldName + " contains invalid characters; allowed: A-Z a-z 0-9 _ - :");
+                throw new IllegalArgumentException(
+                    fieldName
+                        + " contains invalid characters; allowed: "
+                        + (fieldName.equals(Recipient.USERS.getName()) ? "* OR " : "")
+                        + "A-Z a-z 0-9 _ - :"
+                );
             }
         }
     };
@@ -766,21 +751,6 @@ public class RequestContentValidator implements ToXContent {
     };
 
     /**
-     * Validator that ensures array elements are non-null and non-blank
-     */
-    public static final FieldValidator NON_EMPTY_ARRAY_ELEMENTS_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof JsonNode node) {
-            if (node.isArray()) {
-                for (JsonNode element : node) {
-                    if (element.isNull() || (element.isTextual() && Strings.isNullOrEmpty(element.asText().trim()))) {
-                        throw new IllegalArgumentException(fieldName + " contains null or blank array elements");
-                    }
-                }
-            }
-        }
-    };
-
-    /**
      * Creates a validator that checks if a string value is in an allowed set
      */
     public static FieldValidator allowedValuesValidator(Set<String> allowedValues, String errorMessage) {
@@ -791,24 +761,6 @@ public class RequestContentValidator implements ToXContent {
                         errorMessage != null ? errorMessage : fieldName + " must be one of: " + String.join(", ", allowedValues)
                     );
                 }
-            }
-        };
-    }
-
-    /**
-     * Creates a validator that checks if a string value is in an allowed list
-     */
-    public static FieldValidator allowedValuesValidator(java.util.List<String> allowedValues) {
-        return allowedValuesValidator(new HashSet<>(allowedValues), null);
-    }
-
-    /**
-     * Combines multiple validators into one
-     */
-    public static FieldValidator combineValidators(FieldValidator... validators) {
-        return (fieldName, value) -> {
-            for (FieldValidator validator : validators) {
-                validator.validate(fieldName, value);
             }
         };
     }
