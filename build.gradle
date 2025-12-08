@@ -678,7 +678,7 @@ dependencies {
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
-    implementation 'commons-cli:commons-cli:1.10.0'
+    implementation 'commons-cli:commons-cli:1.11.0'
     implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
     implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
     implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
@@ -780,7 +780,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.1'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0-RC1"
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0"
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.1'
@@ -813,7 +813,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.32.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.33.0') {
         exclude group: 'com.google.guava'
     }
 }
