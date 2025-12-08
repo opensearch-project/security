@@ -81,7 +81,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Upgrade springframework to 7.0.1 and zookeeper to 3.9.4 ([#5829](https://github.com/opensearch-project/security/pull/5829))
 - Bump `org.opensearch:common-utils` from 3.2.0.0-SNAPSHOT to 3.3.2.0 ([#5830](https://github.com/opensearch-project/security/pull/5830))
 - Bump `commons-cli:commons-cli` from 1.10.0 to 1.11.0 ([#5840](https://github.com/opensearch-project/security/pull/5840))
-- Use new group name for lz4-java and upgrade to 1.10.1 ([#5845](https://github.com/opensearch-project/security/pull/5845))
+- Bump `org.lz4:lz4-java` from 1.8.0 to 1.8.1 ([#5845](https://github.com/opensearch-project/security/pull/5845))
 
 ### Documentation
 
