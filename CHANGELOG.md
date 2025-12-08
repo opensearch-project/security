@@ -52,7 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Maintenance
 - Bump `org.junit.jupiter:junit-jupiter` from 5.13.4 to 5.14.1 ([#5678](https://github.com/opensearch-project/security/pull/5678), [#5764](https://github.com/opensearch-project/security/pull/5764))
-- Bump `ch.qos.logback:logback-classic` from 1.5.18 to 1.5.20 ([#5680](https://github.com/opensearch-project/security/pull/5680), [#5724](https://github.com/opensearch-project/security/pull/5724))
+- Bump `ch.qos.logback:logback-classic` from 1.5.18 to 1.5.21 ([#5680](https://github.com/opensearch-project/security/pull/5680), [#5724](https://github.com/opensearch-project/security/pull/5724), [#5839](https://github.com/opensearch-project/security/pull/5839))
 - Bump `org.scala-lang:scala-library` from 2.13.16 to 2.13.18 ([#5682](https://github.com/opensearch-project/security/pull/5682), [#5809](https://github.com/opensearch-project/security/pull/5809))
 - Bump `kafka_version` from 4.0.0 to 4.1.1 ([#5613](https://github.com/opensearch-project/security/pull/5613), [#5806](https://github.com/opensearch-project/security/pull/5806))
 - Bump `org.gradle.test-retry` from 1.6.2 to 1.6.4 ([#5706](https://github.com/opensearch-project/security/pull/5706))
