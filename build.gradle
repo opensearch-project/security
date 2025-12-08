@@ -678,7 +678,7 @@ dependencies {
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
-    implementation 'commons-cli:commons-cli:1.10.0'
+    implementation 'commons-cli:commons-cli:1.11.0'
     implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
     implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
     implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
