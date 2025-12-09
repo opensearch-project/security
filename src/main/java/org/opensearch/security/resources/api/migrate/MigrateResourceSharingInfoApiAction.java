@@ -195,7 +195,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 RequestContentValidator.validateValueInSet(
                     "access_level",
                     defaultAccessLevelForType,
-                    RequestContentValidator.MAX_LEVEL_LENGTH,
+                    RequestContentValidator.MAX_STRING_LENGTH,
                     accessLevels
                 );
             } catch (Exception e) {
@@ -449,7 +449,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 RequestContentValidator.validateFieldValueInSet(
                                     fieldName,
                                     strValue,
-                                    RequestContentValidator.MAX_NAME_LENGTH,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
                                     allowedIndices,
                                     "indices"
                                 );
@@ -461,7 +461,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 "source_index",
                                 RequestContentValidator.FieldConfiguration.of(
                                     RequestContentValidator.DataType.STRING,
-                                    RequestContentValidator.MAX_NAME_LENGTH,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
                                     sourceIndexValidator
                                 )
                             )
@@ -469,7 +469,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 "username_path",
                                 RequestContentValidator.FieldConfiguration.of(
                                     RequestContentValidator.DataType.STRING,
-                                    RequestContentValidator.MAX_PATH_LENGTH,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
                                     RequestContentValidator.PATH_VALIDATOR
                                 )
                             )
@@ -477,7 +477,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 "backend_roles_path",
                                 RequestContentValidator.FieldConfiguration.of(
                                     RequestContentValidator.DataType.STRING,
-                                    RequestContentValidator.MAX_PATH_LENGTH,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
                                     RequestContentValidator.PATH_VALIDATOR
                                 )
                             )
@@ -485,8 +485,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 "default_owner",
                                 RequestContentValidator.FieldConfiguration.of(
                                     RequestContentValidator.DataType.STRING,
-                                    RequestContentValidator.MAX_PRINCIPAL_LENGTH,
-                                    RequestContentValidator.PRINCIPAL_VALIDATOR
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    RequestContentValidator.principalValidator(false)
                                 )
                             )
                             .put(

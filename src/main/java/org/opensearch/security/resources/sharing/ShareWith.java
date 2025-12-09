@@ -133,7 +133,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
                 Recipients recipients = Recipients.fromXContent(
                     parser,
                     RequestContentValidator.ARRAY_SIZE_VALIDATOR,
-                    RequestContentValidator.PRINCIPAL_VALIDATOR
+                    RequestContentValidator.principalValidator(false)
                 );
                 sharingInfo.put(accessLevel, recipients);
             }

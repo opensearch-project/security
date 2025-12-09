@@ -209,7 +209,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                         switch (name) {
                             case "resource_id":
                                 String resourceId = parser.text();
-                                RequestContentValidator.validateSafeValue("resource_id", resourceId, RequestContentValidator.MAX_ID_LENGTH);
+                                RequestContentValidator.validateSafeValue(
+                                    "resource_id",
+                                    resourceId,
+                                    RequestContentValidator.MAX_STRING_LENGTH
+                                );
                                 this.resourceId(resourceId);
                                 break;
                             case "resource_type":
@@ -219,7 +223,7 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                                 RequestContentValidator.validateValueInSet(
                                     "resource_type",
                                     resourceType,
-                                    RequestContentValidator.MAX_TYPE_LENGTH,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
                                     allowedTypes
                                 );
 

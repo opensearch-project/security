@@ -548,12 +548,7 @@ public class RequestContentValidator implements ToXContent {
      * Input Validation Utilities (Generic)
      * ======================================================================== */
 
-    public static final int MAX_ID_LENGTH = 256;
-    public static final int MAX_TYPE_LENGTH = 256;
-    public static final int MAX_LEVEL_LENGTH = 256;
-    public static final int MAX_PRINCIPAL_LENGTH = 256;
-    public static final int MAX_PATH_LENGTH = 256;
-    public static final int MAX_NAME_LENGTH = 256;
+    public static final int MAX_STRING_LENGTH = 256;
     public static final int MAX_ARRAY_SIZE = 100_000;
 
     // Alphanumeric + _ - : OR : * - "*" is only allowed as standalone
@@ -727,27 +722,17 @@ public class RequestContentValidator implements ToXContent {
     public static FieldValidator principalValidator(boolean allowWildcard) {
         return (fieldName, value) -> {
             if (value instanceof String strValue) {
-                validateSafeValue(fieldName, strValue, MAX_PRINCIPAL_LENGTH, allowWildcard);
+                validateSafeValue(fieldName, strValue, MAX_STRING_LENGTH, allowWildcard);
             }
         };
     }
-
-    /**
-     * Validator for principal values (no wildcard support)
-     */
-    public static final FieldValidator PRINCIPAL_VALIDATOR = principalValidator(false);
-
-    /**
-     * Validator for principal values with wildcard support
-     */
-    public static final FieldValidator PRINCIPAL_VALIDATOR_WITH_WILDCARD = principalValidator(true);
 
     /**
      * Validator for path-like values (no whitespace allowed)
      */
     public static final FieldValidator PATH_VALIDATOR = (fieldName, value) -> {
         if (value instanceof String strValue) {
-            validatePath(fieldName, strValue, MAX_PATH_LENGTH);
+            validatePath(fieldName, strValue, MAX_STRING_LENGTH);
         }
     };
 

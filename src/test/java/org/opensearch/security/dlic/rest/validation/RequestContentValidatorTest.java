@@ -598,12 +598,12 @@ public class RequestContentValidatorTest {
 
     @Test
     public void testPrincipalValidator() {
-        RequestContentValidator.PRINCIPAL_VALIDATOR.validate("user", "valid_user-123:role");
+        RequestContentValidator.principalValidator(false).validate("user", "valid_user-123:role");
     }
 
     @Test
     public void testPrincipalValidatorWithWildcard() {
-        RequestContentValidator.PRINCIPAL_VALIDATOR_WITH_WILDCARD.validate("user", "*");
+        RequestContentValidator.principalValidator(true).validate("user", "*");
     }
 
     @Test
@@ -874,7 +874,7 @@ public class RequestContentValidatorTest {
     @Test
     public void testValidateSafeValueAcceptsValidId() {
         String id = "resource_123-ABC:xyz";
-        RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_ID_LENGTH);
+        RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_STRING_LENGTH);
     }
 
     @Test
@@ -882,16 +882,16 @@ public class RequestContentValidatorTest {
         String id = "invalid id!"; // space + !
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_ID_LENGTH)
+            () -> RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_STRING_LENGTH)
         );
     }
 
     @Test
     public void testValidateSafeValueRejectsTooLongId() {
-        String id = repeat('a', RequestContentValidator.MAX_ID_LENGTH + 1);
+        String id = repeat('a', RequestContentValidator.MAX_STRING_LENGTH + 1);
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_ID_LENGTH)
+            () -> RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_STRING_LENGTH)
         );
     }
 
@@ -903,7 +903,7 @@ public class RequestContentValidatorTest {
         RequestContentValidator.validateValueInSet(
             "resource_type",
             "anomaly-detector",
-            RequestContentValidator.MAX_TYPE_LENGTH,
+            RequestContentValidator.MAX_STRING_LENGTH,
             allowedTypes
         );
     }
@@ -917,7 +917,7 @@ public class RequestContentValidatorTest {
             () -> RequestContentValidator.validateValueInSet(
                 "resource_type",
                 resourceType,
-                RequestContentValidator.MAX_TYPE_LENGTH,
+                RequestContentValidator.MAX_STRING_LENGTH,
                 allowedTypes
             )
         );
@@ -930,7 +930,7 @@ public class RequestContentValidatorTest {
             () -> RequestContentValidator.validateValueInSet(
                 "resource_type",
                 "anomaly-detector",
-                RequestContentValidator.MAX_TYPE_LENGTH,
+                RequestContentValidator.MAX_STRING_LENGTH,
                 null
             )
         );
@@ -943,7 +943,7 @@ public class RequestContentValidatorTest {
             () -> RequestContentValidator.validateValueInSet(
                 "resource_type",
                 "anomaly-detector",
-                RequestContentValidator.MAX_TYPE_LENGTH,
+                RequestContentValidator.MAX_STRING_LENGTH,
                 Collections.emptyList()
             )
         );
@@ -957,7 +957,7 @@ public class RequestContentValidatorTest {
             () -> RequestContentValidator.validateValueInSet(
                 "resource_type",
                 "ml-model",
-                RequestContentValidator.MAX_TYPE_LENGTH,
+                RequestContentValidator.MAX_STRING_LENGTH,
                 allowedTypes
             )
         );
@@ -967,7 +967,7 @@ public class RequestContentValidatorTest {
 
     @Test
     public void testValidateSafeValueAcceptsValidPrincipal() {
-        RequestContentValidator.validateSafeValue("users", "user_123-role:1", RequestContentValidator.MAX_PRINCIPAL_LENGTH);
+        RequestContentValidator.validateSafeValue("users", "user_123-role:1", RequestContentValidator.MAX_STRING_LENGTH);
     }
 
     /* ---------------------- getRequiredText ---------------------- */
@@ -976,7 +976,7 @@ public class RequestContentValidatorTest {
     public void testGetRequiredTextReturnsValueWhenPresent() throws Exception {
         JsonNode body = DefaultObjectMapper.readTree("{\"source_index\":\"index-1\"}");
 
-        String result = RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_NAME_LENGTH);
+        String result = RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_STRING_LENGTH);
 
         assertThat(result, is("index-1"));
     }
@@ -987,7 +987,7 @@ public class RequestContentValidatorTest {
 
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_NAME_LENGTH)
+            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_STRING_LENGTH)
         );
     }
 
@@ -997,7 +997,7 @@ public class RequestContentValidatorTest {
 
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_NAME_LENGTH)
+            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_STRING_LENGTH)
         );
     }
 
@@ -1007,7 +1007,7 @@ public class RequestContentValidatorTest {
     public void testGetOptionalTextReturnsNullWhenMissing() throws Exception {
         JsonNode body = DefaultObjectMapper.readTree("{\"other\":\"value\"}");
 
-        String result = RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_PRINCIPAL_LENGTH);
+        String result = RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_STRING_LENGTH);
 
         assertNull(result);
     }
@@ -1016,7 +1016,7 @@ public class RequestContentValidatorTest {
     public void testGetOptionalTextReturnsValueWhenPresent() throws Exception {
         JsonNode body = DefaultObjectMapper.readTree("{\"default_owner\":\"owner_1\"}");
 
-        String result = RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_PRINCIPAL_LENGTH);
+        String result = RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_STRING_LENGTH);
 
         assertThat(result, is("owner_1"));
     }
@@ -1027,7 +1027,7 @@ public class RequestContentValidatorTest {
 
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_PRINCIPAL_LENGTH)
+            () -> RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_STRING_LENGTH)
         );
     }
 
@@ -1035,14 +1035,14 @@ public class RequestContentValidatorTest {
 
     @Test
     public void testValidatePathAcceptsValidPath() {
-        RequestContentValidator.validatePath("username_path", "user.details.name", RequestContentValidator.MAX_PATH_LENGTH);
+        RequestContentValidator.validatePath("username_path", "user.details.name", RequestContentValidator.MAX_STRING_LENGTH);
     }
 
     @Test
     public void testValidatePathRejectsEmpty() {
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.validatePath("username_path", "", RequestContentValidator.MAX_PATH_LENGTH)
+            () -> RequestContentValidator.validatePath("username_path", "", RequestContentValidator.MAX_STRING_LENGTH)
         );
     }
 
@@ -1050,7 +1050,7 @@ public class RequestContentValidatorTest {
     public void testValidatePathRejectsWhitespace() {
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.validatePath("username_path", " user . name ", RequestContentValidator.MAX_PATH_LENGTH)
+            () -> RequestContentValidator.validatePath("username_path", " user . name ", RequestContentValidator.MAX_STRING_LENGTH)
         );
     }
 
@@ -1065,7 +1065,7 @@ public class RequestContentValidatorTest {
         RequestContentValidator.validateFieldValueInSet(
             "source_index",
             "index-1",
-            RequestContentValidator.MAX_NAME_LENGTH,
+            RequestContentValidator.MAX_STRING_LENGTH,
             allowed,
             "indices"
         );
@@ -1081,7 +1081,7 @@ public class RequestContentValidatorTest {
             () -> RequestContentValidator.validateFieldValueInSet(
                 "source_index",
                 "index-2",
-                RequestContentValidator.MAX_NAME_LENGTH,
+                RequestContentValidator.MAX_STRING_LENGTH,
                 allowed,
                 "indices"
             )
@@ -1095,7 +1095,7 @@ public class RequestContentValidatorTest {
             () -> RequestContentValidator.validateFieldValueInSet(
                 "source_index",
                 "index-1",
-                RequestContentValidator.MAX_NAME_LENGTH,
+                RequestContentValidator.MAX_STRING_LENGTH,
                 null,
                 "indices"
             )
@@ -1109,7 +1109,7 @@ public class RequestContentValidatorTest {
             () -> RequestContentValidator.validateFieldValueInSet(
                 "source_index",
                 "index-1",
-                RequestContentValidator.MAX_NAME_LENGTH,
+                RequestContentValidator.MAX_STRING_LENGTH,
                 Collections.emptySet(),
                 "indices"
             )
