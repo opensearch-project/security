@@ -351,7 +351,15 @@ public class RequestContentValidator implements ToXContent {
                                 break;
                             case BOOLEAN:
                                 if (valueToken != JsonToken.VALUE_TRUE && valueToken != JsonToken.VALUE_FALSE) {
-                                    wrongDataTypes.put(currentName, "Boolean expected");
+                                    // Backwards compatibility: accept string "true" or "false"
+                                    if (valueToken == JsonToken.VALUE_STRING) {
+                                        String strValue = parser.getText();
+                                        if (!"true".equalsIgnoreCase(strValue) && !"false".equalsIgnoreCase(strValue)) {
+                                            wrongDataTypes.put(currentName, "Boolean expected");
+                                        }
+                                    } else {
+                                        wrongDataTypes.put(currentName, "Boolean expected");
+                                    }
                                 }
                                 break;
                         }

@@ -93,7 +93,7 @@ public class TenancyPrivateTenantEnabledTests extends SingleClusterTest {
 
         final HttpResponse disablePrivateTenantResponse = nonSslRestHelper().executePutRequest(
             "/_plugins/_security/api/tenancy/config",
-            "{\"private_tenant_enabled\": false}",
+            "{\"private_tenant_enabled\": \"false\"}",
             AS_REST_API_USER
         );
         assertThat(disablePrivateTenantResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));

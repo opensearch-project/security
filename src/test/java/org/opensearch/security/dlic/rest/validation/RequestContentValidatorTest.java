@@ -236,6 +236,459 @@ public class RequestContentValidatorTest {
     }
 
     @Test
+    public void testBlankValuesInArray() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.ARRAY);
+            }
+        });
+        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode();
+        payload.putArray("a").add("  ").add("b");
+        when(request.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT);
+    }
+
+    @Test
+    public void testMandatoryOrKeys() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Set<String> mandatoryOrKeys() {
+                return Set.of("a", "b");
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.STRING, "b", RequestContentValidator.DataType.STRING);
+            }
+        });
+        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value");
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertTrue(validationResult.isValid());
+    }
+
+    @Test
+    public void testMandatoryOrKeysMissing() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Set<String> mandatoryOrKeys() {
+                return Set.of("a", "b");
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of(
+                    "a",
+                    RequestContentValidator.DataType.STRING,
+                    "b",
+                    RequestContentValidator.DataType.STRING,
+                    "c",
+                    RequestContentValidator.DataType.STRING
+                );
+            }
+        });
+        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("c", "value");
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
+        assertThat(errorMessage.get("specify_one_of").get("keys").asText(), is("a,b"));
+    }
+
+    @Test
+    public void testFieldConfigurationWithMaxLength() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.STRING);
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
+                return Map.of("a", RequestContentValidator.FieldConfiguration.of(RequestContentValidator.DataType.STRING, 5));
+            }
+        });
+        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "toolong");
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
+        assertThat(errorMessage.get("a").asText(), is("a length [7] exceeds max [5]"));
+    }
+
+    @Test
+    public void testFieldConfigurationWithCustomValidator() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.STRING);
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
+                return Map.of(
+                    "a",
+                    RequestContentValidator.FieldConfiguration.of(RequestContentValidator.DataType.STRING, (fieldName, value) -> {
+                        if (value instanceof String && ((String) value).contains("bad")) {
+                            throw new IllegalArgumentException("Value contains 'bad'");
+                        }
+                    })
+                );
+            }
+        });
+        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "bad_value");
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
+        assertThat(errorMessage.get("a").asText(), is("Value contains 'bad'"));
+    }
+
+    @Test
+    public void testFieldConfigurationArrayValidator() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.ARRAY);
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
+                return Map.of(
+                    "a",
+                    RequestContentValidator.FieldConfiguration.of(RequestContentValidator.DataType.ARRAY, (fieldName, value) -> {
+                        if (value instanceof JsonNode && ((JsonNode) value).size() > 2) {
+                            throw new IllegalArgumentException("Array too large");
+                        }
+                    })
+                );
+            }
+        });
+        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode();
+        payload.putArray("a").add("1").add("2").add("3");
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
+        assertThat(errorMessage.get("a").asText(), is("Array too large"));
+    }
+
+    @Test
+    public void testFieldConfigurationObjectValidator() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.OBJECT);
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
+                return Map.of(
+                    "a",
+                    RequestContentValidator.FieldConfiguration.of(RequestContentValidator.DataType.OBJECT, (fieldName, value) -> {
+                        if (value instanceof JsonNode && !((JsonNode) value).has("required")) {
+                            throw new IllegalArgumentException("Missing required field");
+                        }
+                    })
+                );
+            }
+        });
+        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode();
+        payload.putObject("a").put("other", "value");
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
+        assertThat(errorMessage.get("a").asText(), is("Missing required field"));
+    }
+
+    @Test
+    public void testValidateWithPatchNoDiff() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.STRING);
+            }
+        });
+        final JsonNode original = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value");
+        final JsonNode patched = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value");
+        final ValidationResult<JsonNode> validationResult = validator.validate(request, patched, original);
+        assertFalse(validationResult.isValid());
+    }
+
+    @Test
+    public void testValidateWithPatchWithDiff() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.STRING);
+            }
+        });
+        final JsonNode original = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value1");
+        final JsonNode patched = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value2");
+        final ValidationResult<JsonNode> validationResult = validator.validate(request, patched, original);
+        assertTrue(validationResult.isValid());
+    }
+
+    @Test
+    public void testNoopValidator() throws Exception {
+        final ValidationResult<JsonNode> validationResult = RequestContentValidator.NOOP_VALIDATOR.validate(request);
+        assertTrue(validationResult.isValid());
+    }
+
+    @Test
+    public void testNoopValidatorWithJsonNode() throws Exception {
+        final JsonNode jsonNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ValidationResult<JsonNode> validationResult = RequestContentValidator.NOOP_VALIDATOR.validate(request, jsonNode);
+        assertTrue(validationResult.isValid());
+    }
+
+    @Test
+    public void testValidatePasswordEmptyPassword() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[] { "testuser" };
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("password", RequestContentValidator.DataType.STRING);
+            }
+        });
+        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("password", "");
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT);
+    }
+
+    @Test
+    public void testNestedNullInArray() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("a", RequestContentValidator.DataType.OBJECT);
+            }
+        });
+        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode nested = payload.putObject("a");
+        nested.putArray("inner").add(NullNode.getInstance());
+        when(request.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT);
+    }
+
+    @Test
+    public void testValidateSafeValueWithWildcard() {
+        RequestContentValidator.validateSafeValue("field", "*", 10, true);
+    }
+
+    @Test
+    public void testValidateSafeValueAcceptsWildcardInPattern() {
+        // "*" matches the pattern even when allowWildcard is false, because the pattern allows it
+        RequestContentValidator.validateSafeValue("field", "*", 10, false);
+    }
+
+    @Test
+    public void testPrincipalValidator() {
+        RequestContentValidator.PRINCIPAL_VALIDATOR.validate("user", "valid_user-123:role");
+    }
+
+    @Test
+    public void testPrincipalValidatorWithWildcard() {
+        RequestContentValidator.PRINCIPAL_VALIDATOR_WITH_WILDCARD.validate("user", "*");
+    }
+
+    @Test
+    public void testPathValidator() {
+        RequestContentValidator.PATH_VALIDATOR.validate("path", "valid.path.name");
+    }
+
+    @Test
+    public void testPathValidatorRejectsWhitespace() {
+        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.PATH_VALIDATOR.validate("path", "invalid path"));
+    }
+
+    @Test
+    public void testArraySizeValidatorWithJsonNode() {
+        final ObjectNode node = DefaultObjectMapper.objectMapper.createObjectNode();
+        node.putArray("arr").add("1").add("2");
+        RequestContentValidator.ARRAY_SIZE_VALIDATOR.validate("arr", node.get("arr"));
+    }
+
+    @Test
+    public void testArraySizeValidatorRejectsLargeArray() {
+        final ObjectNode node = DefaultObjectMapper.objectMapper.createObjectNode();
+        final var arr = node.putArray("arr");
+        for (int i = 0; i <= RequestContentValidator.MAX_ARRAY_SIZE; i++) {
+            arr.add(String.valueOf(i));
+        }
+        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.ARRAY_SIZE_VALIDATOR.validate("arr", node.get("arr")));
+    }
+
+    @Test
+    public void testArraySizeValidatorWithInteger() {
+        RequestContentValidator.ARRAY_SIZE_VALIDATOR.validate("count", 100);
+    }
+
+    @Test
+    public void testArraySizeValidatorRejectsLargeCount() {
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.ARRAY_SIZE_VALIDATOR.validate("count", RequestContentValidator.MAX_ARRAY_SIZE + 1)
+        );
+    }
+
+    @Test
+    public void testAllowedValuesValidator() {
+        final Set<String> allowed = Set.of("read", "write");
+        final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed, null);
+        validator.validate("action", "read");
+    }
+
+    @Test
+    public void testAllowedValuesValidatorRejectsInvalid() {
+        final Set<String> allowed = Set.of("read", "write");
+        final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed, null);
+        expectThrows(IllegalArgumentException.class, () -> validator.validate("action", "delete"));
+    }
+
+    @Test
+    public void testAllowedValuesValidatorWithCustomMessage() {
+        final Set<String> allowed = Set.of("read", "write");
+        final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed, "Custom error");
+        expectThrows(IllegalArgumentException.class, () -> validator.validate("action", "delete"));
+    }
+
+    @Test
+    public void testGetOptionalTextReturnsNullForEmptyString() throws Exception {
+        JsonNode body = DefaultObjectMapper.readTree("{\"field\":\"\"}");
+        String result = RequestContentValidator.getOptionalText(body, "field", 100);
+        assertNull(result);
+    }
+
+    @Test
+    public void testGetOptionalTextReturnsNullForNullNode() throws Exception {
+        JsonNode body = DefaultObjectMapper.readTree("{\"field\":null}");
+        String result = RequestContentValidator.getOptionalText(body, "field", 100);
+        assertNull(result);
+    }
+
+    @Test
+    public void testValidateObjectWithStringValuesAcceptsNullNode() throws Exception {
+        JsonNode body = DefaultObjectMapper.readTree("{\"field\":null}");
+        // Should not throw - null is allowed
+        RequestContentValidator.validateObjectWithStringValues("field", body.get("field"));
+    }
+
+    @Test
     public void testValidatePassword() throws Exception {
         final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
             @Override
