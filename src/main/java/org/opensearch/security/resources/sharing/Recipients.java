@@ -141,8 +141,17 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
                     String value = parser.text();
 
                     // Validate element value if validator provided
+                    // For "users" field, allow wildcard; for others, don't
                     if (elementValidator != null) {
-                        elementValidator.validate(fieldName, value);
+                        // Check if wildcard should be allowed based on recipient type
+                        boolean allowWildcard = (recipient == Recipient.USERS);
+                        if (allowWildcard) {
+                            // Use wildcard-enabled validator for users
+                            RequestContentValidator.PRINCIPAL_VALIDATOR_WITH_WILDCARD.validate(fieldName, value);
+                        } else {
+                            // Use standard validator for roles and backend_roles
+                            elementValidator.validate(fieldName, value);
+                        }
                     }
 
                     values.add(value);

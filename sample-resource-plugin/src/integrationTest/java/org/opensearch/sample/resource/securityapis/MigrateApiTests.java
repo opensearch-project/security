@@ -433,7 +433,7 @@ public class MigrateApiTests {
 
             TestRestClient.HttpResponse response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidUserPathPayload);
 
-            assertThat(response, RestMatchers.isBadRequest("/message", "username_path must not contain whitespace"));
+            assertThat(response, RestMatchers.isBadRequest("/username_path", "username_path must not contain whitespace"));
 
             // ------------------------------
             // 2) Invalid backend_roles_path (whitespace)
@@ -452,7 +452,7 @@ public class MigrateApiTests {
 
             response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, invalidBackendPathPayload);
 
-            assertThat(response, RestMatchers.isBadRequest("/message", "backend_roles_path must not contain whitespace"));
+            assertThat(response, RestMatchers.isBadRequest("/backend_roles_path", "backend_roles_path must not contain whitespace"));
 
             // ------------------------------
             // 3) Invalid default_owner (bad characters)
@@ -473,7 +473,7 @@ public class MigrateApiTests {
 
             assertThat(
                 response,
-                RestMatchers.isBadRequest("/message", "default_owner contains invalid characters; allowed: A-Z a-z 0-9 _ - :")
+                RestMatchers.isBadRequest("/default_owner", "default_owner contains invalid characters; allowed: A-Z a-z 0-9 _ - :")
             );
 
             // ------------------------------
@@ -492,6 +492,7 @@ public class MigrateApiTests {
             response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, defaultAccessNotObjectPayload);
 
             assertThat(response, RestMatchers.isBadRequest("/reason", "Wrong datatype"));
+            assertThat(response, RestMatchers.isBadRequest("/default_access_level", "Object expected"));
 
             // ------------------------------
             // 5) default_access_level is an empty object {}
@@ -508,7 +509,7 @@ public class MigrateApiTests {
 
             response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, defaultAccessEmptyObjectPayload);
 
-            assertThat(response, RestMatchers.isBadRequest("/message", "default_access_level cannot be empty"));
+            assertThat(response, RestMatchers.isBadRequest("/default_access_level", "default_access_level cannot be empty"));
 
             // ------------------------------
             // 6) default_access_level has empty value for a type
@@ -529,7 +530,10 @@ public class MigrateApiTests {
 
             assertThat(
                 response,
-                RestMatchers.isBadRequest("/message", "default_access_level for type [" + RESOURCE_TYPE + "] must be a non-empty string")
+                RestMatchers.isBadRequest(
+                    "/default_access_level",
+                    "default_access_level for key [" + RESOURCE_TYPE + "] must be a non-empty string"
+                )
             );
 
             // ------------------------------
@@ -552,8 +556,8 @@ public class MigrateApiTests {
             assertThat(
                 response,
                 RestMatchers.isBadRequest(
-                    "/message",
-                    "Invalid resource index [some-other-index]. Allowed indices: [" + RESOURCE_INDEX_NAME + "]"
+                    "/source_index",
+                    "Invalid source_index [some-other-index]. Allowed indices: [" + RESOURCE_INDEX_NAME + "]"
                 )
             );
 

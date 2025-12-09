@@ -12,12 +12,14 @@
 package org.opensearch.security.dlic.rest.validation;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -32,7 +34,6 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.resources.sharing.Recipient;
 
 import com.flipkart.zjsonpatch.JsonDiff;
 
@@ -291,7 +292,7 @@ public class RequestContentValidator implements ToXContent {
                     final DataType dataType;
                     final FieldConfiguration fieldConfig;
 
-                    if (useEnhancedValidation) {
+                    if (useEnhancedValidation && fieldConfigs != null) {
                         fieldConfig = fieldConfigs.get(currentName);
                         dataType = (fieldConfig != null) ? fieldConfig.getDataType() : null;
                     } else {
@@ -473,6 +474,7 @@ public class RequestContentValidator implements ToXContent {
             private final Set<String> mandatoryOrKeys = validationContext.mandatoryOrKeys();
 
             private final Map<String, DataType> allowedKeys = validationContext.allowedKeys();
+            private final Map<String, FieldConfiguration> allowedKeysWithConfig = validationContext.allowedKeysWithConfig();
 
             @Override
             public Settings settings() {
@@ -497,6 +499,11 @@ public class RequestContentValidator implements ToXContent {
             @Override
             public Map<String, DataType> allowedKeys() {
                 return allowedKeys;
+            }
+
+            @Override
+            public Map<String, FieldConfiguration> allowedKeysWithConfig() {
+                return allowedKeysWithConfig;
             }
         });
     }
@@ -530,19 +537,19 @@ public class RequestContentValidator implements ToXContent {
     }
 
     /* ========================================================================
-     * Input Validation Utilities (for resource-sharing REST APIs)
+     * Input Validation Utilities (Generic)
      * ======================================================================== */
 
-    public static final int MAX_RESOURCE_ID_LENGTH = 256;
-    public static final int MAX_RESOURCE_TYPE_LENGTH = 256;
-    public static final int MAX_ACCESS_LEVEL_LENGTH = 256;
+    public static final int MAX_ID_LENGTH = 256;
+    public static final int MAX_TYPE_LENGTH = 256;
+    public static final int MAX_LEVEL_LENGTH = 256;
     public static final int MAX_PRINCIPAL_LENGTH = 256;
     public static final int MAX_PATH_LENGTH = 256;
-    public static final int MAX_INDEX_NAME_LENGTH = 256;
+    public static final int MAX_NAME_LENGTH = 256;
     public static final int MAX_ARRAY_SIZE = 100_000;
 
     // Alphanumeric + _ - : OR : * - "*" is only allowed as standalone
-    private static final java.util.regex.Pattern SAFE_VALUE = java.util.regex.Pattern.compile("^(\\*|[A-Za-z0-9_:-]+)$");
+    private static final Pattern SAFE_VALUE = Pattern.compile("^(\\*|[A-Za-z0-9_:-]+)$");
 
     /* ---------------------- generic helpers ---------------------- */
 
@@ -558,17 +565,28 @@ public class RequestContentValidator implements ToXContent {
         }
     }
 
-    public static void validateSafeValue(String fieldName, String value, int maxLength) {
+    /**
+     * Validates a value against safe character pattern with optional wildcard support
+     * @param fieldName the name of the field being validated
+     * @param value the value to validate
+     * @param maxLength maximum allowed length
+     * @param allowWildcard whether to allow "*" as a standalone value
+     */
+    public static void validateSafeValue(String fieldName, String value, int maxLength, boolean allowWildcard) {
         requireNonEmpty(fieldName, value);
         validateMaxLength(fieldName, value, maxLength);
         if (!SAFE_VALUE.matcher(value).matches()) {
             throw new IllegalArgumentException(
-                fieldName
-                    + " contains invalid characters; allowed: "
-                    + (fieldName.equals(Recipient.USERS.getName()) ? "* OR " : "")
-                    + "A-Z a-z 0-9 _ - :"
+                fieldName + " contains invalid characters; allowed: " + (allowWildcard ? "* OR " : "") + "A-Z a-z 0-9 _ - :"
             );
         }
+    }
+
+    /**
+     * Validates a value against safe character pattern (no wildcard support)
+     */
+    public static void validateSafeValue(String fieldName, String value, int maxLength) {
+        validateSafeValue(fieldName, value, maxLength, false);
     }
 
     public static void validateArrayEntryCount(String fieldName, int count) {
@@ -577,50 +595,32 @@ public class RequestContentValidator implements ToXContent {
         }
     }
 
-    public static void validateResourceId(String resourceId) {
-        validateSafeValue("resource_id", resourceId, MAX_RESOURCE_ID_LENGTH);
-    }
+    /**
+     * Generic value validation against an allowed set (for types, levels, etc.)
+     * @param fieldName the name of the field being validated
+     * @param value the value to validate
+     * @param maxLength maximum allowed length
+     * @param allowedValues set or collection of allowed values
+     */
+    public static void validateValueInSet(String fieldName, String value, int maxLength, Collection<String> allowedValues) {
+        validateSafeValue(fieldName, value, maxLength);
 
-    public static void validateResourceType(String resourceType, java.util.List<String> allowedTypes) {
-        validateSafeValue("resource_type", resourceType, MAX_RESOURCE_TYPE_LENGTH);
-
-        if (allowedTypes == null || allowedTypes.isEmpty()) {
-            throw new IllegalStateException("No protected resource types configured");
+        if (allowedValues == null || allowedValues.isEmpty()) {
+            throw new IllegalStateException("No allowed values configured for " + fieldName);
         }
 
-        if (!allowedTypes.contains(resourceType)) {
-            throw new IllegalArgumentException("Unsupported resource_type [" + resourceType + "], allowed types: " + allowedTypes);
-        }
-    }
-
-    public static void validatePrincipalValue(String fieldName, String value) {
-        // users / roles / backend_roles entries
-        validateSafeValue(fieldName, value, MAX_PRINCIPAL_LENGTH);
-    }
-
-    public static void validateAccessLevel(String accessLevel, Set<String> validAccessLevels) {
-        requireNonEmpty("access_level", accessLevel);
-
-        validateMaxLength("access_level", accessLevel, MAX_ACCESS_LEVEL_LENGTH);
-
-        if (!SAFE_VALUE.matcher(accessLevel).matches()) {
-            throw new IllegalArgumentException("Invalid access_level [" + accessLevel + "]. Allowed characters: A-Z a-z 0-9 _ - :");
-        }
-
-        // Check against configured access-level set
-        if (validAccessLevels == null || validAccessLevels.isEmpty()) {
-            throw new IllegalStateException("No access levels configured.");
-        }
-
-        if (!validAccessLevels.contains(accessLevel)) {
+        if (!allowedValues.contains(value)) {
             throw new IllegalArgumentException(
-                "Invalid access_level [" + accessLevel + "]. Allowed values: " + String.join(", ", validAccessLevels)
+                "Invalid " + fieldName + " [" + value + "]. Allowed values: " + String.join(", ", allowedValues)
             );
         }
     }
 
-    /* -------- JSON helpers for migrate API -------- */
+    /* ---------------------- JSON extraction helpers ---------------------- */
 
+    /**
+     * Extracts a required text field from JSON with length validation
+     */
     public static String getRequiredText(JsonNode body, String fieldName, int maxLength) {
         JsonNode node = body.get(fieldName);
         if (node == null || node.isNull() || !node.isTextual()) {
@@ -632,6 +632,9 @@ public class RequestContentValidator implements ToXContent {
         return value;
     }
 
+    /**
+     * Extracts an optional text field from JSON with length validation
+     */
     public static String getOptionalText(JsonNode body, String fieldName, int maxLength) {
         JsonNode node = body.get(fieldName);
         if (node == null || node.isNull()) {
@@ -648,53 +651,59 @@ public class RequestContentValidator implements ToXContent {
         return value;
     }
 
-    /* --------- migrate-specific primitives --------- */
+    /* ---------------------- specialized validators ---------------------- */
 
-    public static void validateJsonPath(String fieldName, String path) {
+    /**
+     * Validates a path-like value (no whitespace allowed)
+     */
+    public static void validatePath(String fieldName, String path, int maxLength) {
         requireNonEmpty(fieldName, path);
-        validateMaxLength(fieldName, path, MAX_PATH_LENGTH);
-        // simple rule: no whitespace anywhere
+        validateMaxLength(fieldName, path, maxLength);
         if (!path.equals(path.trim()) || path.chars().anyMatch(Character::isWhitespace)) {
             throw new IllegalArgumentException(fieldName + " must not contain whitespace");
         }
     }
 
-    public static void validateSourceIndex(String sourceIndex, Set<String> allowedIndices) {
-        requireNonEmpty("source_index", sourceIndex);
-        validateMaxLength("source_index", sourceIndex, MAX_INDEX_NAME_LENGTH);
-        if (allowedIndices == null || allowedIndices.isEmpty()) {
-            throw new IllegalStateException("No protected resource indices configured");
+    /**
+     * Validates a value against an allowed set
+     */
+    public static void validateFieldValueInSet(
+        String fieldName,
+        String value,
+        int maxLength,
+        Set<String> allowedValues,
+        String errorContext
+    ) {
+        requireNonEmpty(fieldName, value);
+        validateMaxLength(fieldName, value, maxLength);
+        if (allowedValues == null || allowedValues.isEmpty()) {
+            throw new IllegalStateException("No allowed " + errorContext + " configured");
         }
-        if (!allowedIndices.contains(sourceIndex)) {
-            throw new IllegalArgumentException("Invalid resource index [" + sourceIndex + "]. Allowed indices: " + allowedIndices);
+        if (!allowedValues.contains(value)) {
+            throw new IllegalArgumentException("Invalid " + fieldName + " [" + value + "]. Allowed " + errorContext + ": " + allowedValues);
         }
     }
 
-    public static void validateDefaultOwner(String defaultOwner) {
-        if (defaultOwner == null) {
-            return; // optional
-        }
-        validatePrincipalValue("default_owner", defaultOwner);
-    }
-
-    public static void validateDefaultAccessLevelNode(JsonNode node) {
+    /**
+     * Validates a JSON object node with non-empty string values
+     */
+    public static void validateObjectWithStringValues(String fieldName, JsonNode node) {
         if (node == null || node.isNull()) {
-            return; // field is optional
+            return;
         }
 
         if (!node.isObject()) {
-            throw new IllegalArgumentException("default_access_level must be an object");
+            throw new IllegalArgumentException(fieldName + " must be an object");
         }
 
         if (!node.fieldNames().hasNext()) {
-            throw new IllegalArgumentException("default_access_level cannot be empty");
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
         }
 
-        // Validate values are non-empty strings
         node.fields().forEachRemaining(entry -> {
             JsonNode val = entry.getValue();
             if (!val.isTextual() || val.asText().isEmpty()) {
-                throw new IllegalArgumentException("default_access_level for type [" + entry.getKey() + "] must be a non-empty string");
+                throw new IllegalArgumentException(fieldName + " for key [" + entry.getKey() + "] must be a non-empty string");
             }
         });
     }
@@ -704,33 +713,33 @@ public class RequestContentValidator implements ToXContent {
      * ======================================================================== */
 
     /**
-     * Validator for principal values (users, roles, backend_roles)
+     * Creates a validator for principal values (users, roles, backend_roles, etc.)
+     * @param allowWildcard whether to allow "*" as a standalone value
      */
-    public static final FieldValidator PRINCIPAL_VALIDATOR = (fieldName, value) -> {
-        if (value instanceof String strValue) {
-            requireNonEmpty(fieldName, strValue);
-            validateMaxLength(fieldName, strValue, MAX_PRINCIPAL_LENGTH);
-            if (!SAFE_VALUE.matcher(strValue).matches()) {
-                throw new IllegalArgumentException(
-                    fieldName
-                        + " contains invalid characters; allowed: "
-                        + (fieldName.equals(Recipient.USERS.getName()) ? "* OR " : "")
-                        + "A-Z a-z 0-9 _ - :"
-                );
+    public static FieldValidator principalValidator(boolean allowWildcard) {
+        return (fieldName, value) -> {
+            if (value instanceof String strValue) {
+                validateSafeValue(fieldName, strValue, MAX_PRINCIPAL_LENGTH, allowWildcard);
             }
-        }
-    };
+        };
+    }
 
     /**
-     * Validator for JSON paths (no whitespace allowed)
+     * Validator for principal values (no wildcard support)
      */
-    public static final FieldValidator JSON_PATH_VALIDATOR = (fieldName, value) -> {
+    public static final FieldValidator PRINCIPAL_VALIDATOR = principalValidator(false);
+
+    /**
+     * Validator for principal values with wildcard support
+     */
+    public static final FieldValidator PRINCIPAL_VALIDATOR_WITH_WILDCARD = principalValidator(true);
+
+    /**
+     * Validator for path-like values (no whitespace allowed)
+     */
+    public static final FieldValidator PATH_VALIDATOR = (fieldName, value) -> {
         if (value instanceof String strValue) {
-            requireNonEmpty(fieldName, strValue);
-            validateMaxLength(fieldName, strValue, MAX_PATH_LENGTH);
-            if (!strValue.equals(strValue.trim()) || strValue.chars().anyMatch(Character::isWhitespace)) {
-                throw new IllegalArgumentException(fieldName + " must not contain whitespace");
-            }
+            validatePath(fieldName, strValue, MAX_PATH_LENGTH);
         }
     };
 

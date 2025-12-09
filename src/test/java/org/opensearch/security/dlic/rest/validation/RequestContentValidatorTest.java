@@ -416,134 +416,105 @@ public class RequestContentValidatorTest {
         expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateArrayEntryCount("field", overMax));
     }
 
-    /* ---------------------- validateResourceId ---------------------- */
+    /* ---------------------- validateSafeValue (for IDs) ---------------------- */
 
     @Test
-    public void testValidateResourceIdAcceptsValidId() {
+    public void testValidateSafeValueAcceptsValidId() {
         String id = "resource_123-ABC:xyz";
-        RequestContentValidator.validateResourceId(id);
+        RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_ID_LENGTH);
     }
 
     @Test
-    public void testValidateResourceIdRejectsInvalidCharacters() {
+    public void testValidateSafeValueRejectsInvalidCharactersInId() {
         String id = "invalid id!"; // space + !
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateResourceId(id));
-    }
-
-    @Test
-    public void testValidateResourceIdRejectsTooLong() {
-        String id = repeat('a', RequestContentValidator.MAX_RESOURCE_ID_LENGTH + 1);
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateResourceId(id));
-    }
-
-    /* ---------------------- validateResourceType ---------------------- */
-
-    @Test
-    public void testValidateResourceTypeAcceptsValidTypeInAllowedList() {
-        List<String> allowedTypes = Arrays.asList("anomaly-detector", "forecaster", "ml-model");
-        RequestContentValidator.validateResourceType("anomaly-detector", allowedTypes);
-    }
-
-    @Test
-    public void testValidateResourceTypeRejectsInvalidCharacters() {
-        List<String> allowedTypes = List.of("anomaly-detector");
-        String resourceType = "anomaly detector"; // contains space
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateResourceType(resourceType, allowedTypes));
-    }
-
-    @Test
-    public void testValidateResourceTypeRejectsWhenNoAllowedTypesConfiguredNull() {
-        expectThrows(IllegalStateException.class, () -> RequestContentValidator.validateResourceType("anomaly-detector", null));
-    }
-
-    @Test
-    public void testValidateResourceTypeRejectsWhenNoAllowedTypesConfiguredEmpty() {
-        expectThrows(
-            IllegalStateException.class,
-            () -> RequestContentValidator.validateResourceType("anomaly-detector", Collections.emptyList())
-        );
-    }
-
-    @Test
-    public void testValidateResourceTypeRejectsWhenTypeNotInAllowedList() {
-        List<String> allowedTypes = Arrays.asList("anomaly-detector", "forecaster");
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateResourceType("ml-model", allowedTypes));
-    }
-
-    /* ---------------------- validatePrincipalValue ---------------------- */
-
-    @Test
-    public void testValidatePrincipalValueAcceptsValidPrincipal() {
-        RequestContentValidator.validatePrincipalValue("users", "user_123-role:1");
-    }
-
-    @Test
-    public void testValidatePrincipalValueRejectsInvalidCharacters() {
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.validatePrincipalValue("users", "user name") // space
+            () -> RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_ID_LENGTH)
         );
     }
 
     @Test
-    public void testValidatePrincipalValueRejectsTooLong() {
-        String principal = repeat('u', RequestContentValidator.MAX_PRINCIPAL_LENGTH + 1);
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validatePrincipalValue("users", principal));
+    public void testValidateSafeValueRejectsTooLongId() {
+        String id = repeat('a', RequestContentValidator.MAX_ID_LENGTH + 1);
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validateSafeValue("resource_id", id, RequestContentValidator.MAX_ID_LENGTH)
+        );
     }
 
-    /* ---------------------- validateAccessLevel ---------------------- */
+    /* ---------------------- validateType (generic) ---------------------- */
 
     @Test
-    public void testValidateAccessLevelAcceptsValidValueInSet() {
-        Set<String> allowed = new HashSet<>(Arrays.asList("rd_read_only", "rd_write", "forecast:read", "forecast:write"));
-
-        RequestContentValidator.validateAccessLevel("rd_read_only", allowed);
-        RequestContentValidator.validateAccessLevel("forecast:write", allowed);
-    }
-
-    @Test
-    public void testValidateAccessLevelRejectsNullAccessLevel() {
-        Set<String> allowed = new HashSet<>(List.of("rd_read_only"));
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateAccessLevel(null, allowed));
-    }
-
-    @Test
-    public void testValidateAccessLevelRejectsEmptyAccessLevel() {
-        Set<String> allowed = new HashSet<>(List.of("rd_read_only"));
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateAccessLevel("", allowed));
+    public void testValidateValueInSetAcceptsValidTypeInAllowedList() {
+        List<String> allowedTypes = Arrays.asList("anomaly-detector", "forecaster", "ml-model");
+        RequestContentValidator.validateValueInSet(
+            "resource_type",
+            "anomaly-detector",
+            RequestContentValidator.MAX_TYPE_LENGTH,
+            allowedTypes
+        );
     }
 
     @Test
-    public void testValidateAccessLevelRejectsTooLongAccessLevel() {
-        Set<String> allowed = new HashSet<>(List.of("rd_read_only"));
-        String longAccess = repeat('a', RequestContentValidator.MAX_ACCESS_LEVEL_LENGTH + 1);
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateAccessLevel(longAccess, allowed));
+    public void testValidateValueInSetRejectsInvalidCharacters() {
+        List<String> allowedTypes = List.of("anomaly-detector");
+        String resourceType = "anomaly detector"; // contains space
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validateValueInSet(
+                "resource_type",
+                resourceType,
+                RequestContentValidator.MAX_TYPE_LENGTH,
+                allowedTypes
+            )
+        );
     }
 
     @Test
-    public void testValidateAccessLevelRejectsInvalidCharacters() {
-        Set<String> allowed = new HashSet<>(List.of("rd_read_only"));
-        String invalid = "rd read"; // space
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateAccessLevel(invalid, allowed));
-    }
-
-    @Test
-    public void testValidateAccessLevelRejectsWhenNoAccessLevelsConfiguredNull() {
-        expectThrows(IllegalStateException.class, () -> RequestContentValidator.validateAccessLevel("rd_read_only", null));
-    }
-
-    @Test
-    public void testValidateAccessLevelRejectsWhenNoAccessLevelsConfiguredEmpty() {
+    public void testValidateValueInSetRejectsWhenNoAllowedTypesConfiguredNull() {
         expectThrows(
             IllegalStateException.class,
-            () -> RequestContentValidator.validateAccessLevel("rd_read_only", Collections.emptySet())
+            () -> RequestContentValidator.validateValueInSet(
+                "resource_type",
+                "anomaly-detector",
+                RequestContentValidator.MAX_TYPE_LENGTH,
+                null
+            )
         );
     }
 
     @Test
-    public void testValidateAccessLevelRejectsWhenNotInAllowedSet() {
-        Set<String> allowed = new HashSet<>(Arrays.asList("rd_read_only", "rd_write"));
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateAccessLevel("forecast:read", allowed));
+    public void testValidateValueInSetRejectsWhenNoAllowedTypesConfiguredEmpty() {
+        expectThrows(
+            IllegalStateException.class,
+            () -> RequestContentValidator.validateValueInSet(
+                "resource_type",
+                "anomaly-detector",
+                RequestContentValidator.MAX_TYPE_LENGTH,
+                Collections.emptyList()
+            )
+        );
+    }
+
+    @Test
+    public void testValidateValueInSetRejectsWhenTypeNotInAllowedList() {
+        List<String> allowedTypes = Arrays.asList("anomaly-detector", "forecaster");
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validateValueInSet(
+                "resource_type",
+                "ml-model",
+                RequestContentValidator.MAX_TYPE_LENGTH,
+                allowedTypes
+            )
+        );
+    }
+
+    /* ---------------------- validateSafeValue (for principals) ---------------------- */
+
+    @Test
+    public void testValidateSafeValueAcceptsValidPrincipal() {
+        RequestContentValidator.validateSafeValue("users", "user_123-role:1", RequestContentValidator.MAX_PRINCIPAL_LENGTH);
     }
 
     /* ---------------------- getRequiredText ---------------------- */
@@ -552,7 +523,7 @@ public class RequestContentValidatorTest {
     public void testGetRequiredTextReturnsValueWhenPresent() throws Exception {
         JsonNode body = DefaultObjectMapper.readTree("{\"source_index\":\"index-1\"}");
 
-        String result = RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_INDEX_NAME_LENGTH);
+        String result = RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_NAME_LENGTH);
 
         assertThat(result, is("index-1"));
     }
@@ -563,7 +534,7 @@ public class RequestContentValidatorTest {
 
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_INDEX_NAME_LENGTH)
+            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_NAME_LENGTH)
         );
     }
 
@@ -573,7 +544,7 @@ public class RequestContentValidatorTest {
 
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_INDEX_NAME_LENGTH)
+            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_NAME_LENGTH)
         );
     }
 
@@ -607,108 +578,135 @@ public class RequestContentValidatorTest {
         );
     }
 
-    /* ---------------------- validateJsonPath ---------------------- */
+    /* ---------------------- validatePath (generic) ---------------------- */
 
     @Test
-    public void testValidateJsonPathAcceptsValidPath() {
-        RequestContentValidator.validateJsonPath("username_path", "user.details.name");
+    public void testValidatePathAcceptsValidPath() {
+        RequestContentValidator.validatePath("username_path", "user.details.name", RequestContentValidator.MAX_PATH_LENGTH);
     }
 
     @Test
-    public void testValidateJsonPathRejectsEmpty() {
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateJsonPath("username_path", ""));
+    public void testValidatePathRejectsEmpty() {
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validatePath("username_path", "", RequestContentValidator.MAX_PATH_LENGTH)
+        );
     }
 
     @Test
-    public void testValidateJsonPathRejectsWhitespace() {
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateJsonPath("username_path", " user . name "));
+    public void testValidatePathRejectsWhitespace() {
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validatePath("username_path", " user . name ", RequestContentValidator.MAX_PATH_LENGTH)
+        );
     }
 
-    /* ---------------------- validateSourceIndex ---------------------- */
+    /* ---------------------- validateNameInSet (generic) ---------------------- */
 
     @Test
-    public void testValidateSourceIndexAcceptsWhenInAllowedSet() {
+    public void testValidateFieldValueInSetAcceptsWhenInAllowedSet() {
         Set<String> allowed = new HashSet<>();
         allowed.add("index-1");
         allowed.add("index-2");
 
-        RequestContentValidator.validateSourceIndex("index-1", allowed);
-    }
-
-    @Test
-    public void testValidateSourceIndexRejectsWhenNotInAllowedSet() {
-        Set<String> allowed = new HashSet<>();
-        allowed.add("index-1");
-
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateSourceIndex("index-2", allowed));
-    }
-
-    @Test
-    public void testValidateSourceIndexRejectsWhenNoIndicesConfiguredNull() {
-        expectThrows(IllegalStateException.class, () -> RequestContentValidator.validateSourceIndex("index-1", null));
-    }
-
-    @Test
-    public void testValidateSourceIndexRejectsWhenNoIndicesConfiguredEmpty() {
-        expectThrows(IllegalStateException.class, () -> RequestContentValidator.validateSourceIndex("index-1", Collections.emptySet()));
-    }
-
-    /* ---------------------- validateDefaultOwner ---------------------- */
-
-    @Test
-    public void testValidateDefaultOwnerAllowsNull() {
-        // optional field
-        RequestContentValidator.validateDefaultOwner(null);
-    }
-
-    @Test
-    public void testValidateDefaultOwnerAcceptsValidPrincipal() {
-        RequestContentValidator.validateDefaultOwner("owner_123-role:1");
-    }
-
-    @Test
-    public void testValidateDefaultOwnerRejectsInvalidCharacters() {
-        expectThrows(
-            IllegalArgumentException.class,
-            () -> RequestContentValidator.validateDefaultOwner("owner name") // space
+        RequestContentValidator.validateFieldValueInSet(
+            "source_index",
+            "index-1",
+            RequestContentValidator.MAX_NAME_LENGTH,
+            allowed,
+            "indices"
         );
     }
 
-    /* ---------------------- validateDefaultAccessLevelNode ---------------------- */
-
     @Test
-    public void testValidateDefaultAccessLevelNodeAllowsNull() {
-        // field absent / null is allowed (optional)
-        RequestContentValidator.validateDefaultAccessLevelNode(null);
+    public void testValidateFieldValueInSetRejectsWhenNotInAllowedSet() {
+        Set<String> allowed = new HashSet<>();
+        allowed.add("index-1");
+
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validateFieldValueInSet(
+                "source_index",
+                "index-2",
+                RequestContentValidator.MAX_NAME_LENGTH,
+                allowed,
+                "indices"
+            )
+        );
     }
 
     @Test
-    public void testValidateDefaultAccessLevelNodeRejectsNonObject() throws Exception {
+    public void testValidateFieldValueInSetRejectsWhenNoNamesConfiguredNull() {
+        expectThrows(
+            IllegalStateException.class,
+            () -> RequestContentValidator.validateFieldValueInSet(
+                "source_index",
+                "index-1",
+                RequestContentValidator.MAX_NAME_LENGTH,
+                null,
+                "indices"
+            )
+        );
+    }
+
+    @Test
+    public void testValidateFieldValueInSetRejectsWhenNoNamesConfiguredEmpty() {
+        expectThrows(
+            IllegalStateException.class,
+            () -> RequestContentValidator.validateFieldValueInSet(
+                "source_index",
+                "index-1",
+                RequestContentValidator.MAX_NAME_LENGTH,
+                Collections.emptySet(),
+                "indices"
+            )
+        );
+    }
+
+    /* ---------------------- validateObjectWithStringValues (generic) ---------------------- */
+
+    @Test
+    public void testValidateObjectWithStringValuesAllowsNull() {
+        // field absent / null is allowed (optional)
+        RequestContentValidator.validateObjectWithStringValues("default_access_level", null);
+    }
+
+    @Test
+    public void testValidateObjectWithStringValuesRejectsNonObject() throws Exception {
         JsonNode node = DefaultObjectMapper.readTree("\"string-not-object\"");
 
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateDefaultAccessLevelNode(node));
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validateObjectWithStringValues("default_access_level", node)
+        );
     }
 
     @Test
-    public void testValidateDefaultAccessLevelNodeRejectsEmptyObject() throws Exception {
+    public void testValidateObjectWithStringValuesRejectsEmptyObject() throws Exception {
         JsonNode node = DefaultObjectMapper.readTree("{}");
 
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateDefaultAccessLevelNode(node));
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validateObjectWithStringValues("default_access_level", node)
+        );
     }
 
     @Test
-    public void testValidateDefaultAccessLevelNodeRejectsEmptyValue() throws Exception {
+    public void testValidateObjectWithStringValuesRejectsEmptyValue() throws Exception {
         JsonNode node = DefaultObjectMapper.readTree("{\"anomaly-detector\":\"\"}");
 
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.validateDefaultAccessLevelNode(node));
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validateObjectWithStringValues("default_access_level", node)
+        );
     }
 
     @Test
-    public void testValidateDefaultAccessLevelNodeAcceptsNonEmptyValues() throws Exception {
+    public void testValidateObjectWithStringValuesAcceptsNonEmptyValues() throws Exception {
         JsonNode node = DefaultObjectMapper.readTree("{ \"anomaly-detector\": \"rd_read_only\", \"forecaster\": \"rd_write\" }");
 
         // should not throw
-        RequestContentValidator.validateDefaultAccessLevelNode(node);
+        RequestContentValidator.validateObjectWithStringValues("default_access_level", node);
     }
 
 }

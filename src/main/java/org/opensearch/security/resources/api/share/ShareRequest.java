@@ -209,14 +209,19 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                         switch (name) {
                             case "resource_id":
                                 String resourceId = parser.text();
-                                RequestContentValidator.validateResourceId(resourceId);
+                                RequestContentValidator.validateSafeValue("resource_id", resourceId, RequestContentValidator.MAX_ID_LENGTH);
                                 this.resourceId(resourceId);
                                 break;
                             case "resource_type":
                                 String resourceType = parser.text();
 
                                 // Validate type syntax + membership in dynamic protected-types list
-                                RequestContentValidator.validateResourceType(resourceType, allowedTypes);
+                                RequestContentValidator.validateValueInSet(
+                                    "resource_type",
+                                    resourceType,
+                                    RequestContentValidator.MAX_TYPE_LENGTH,
+                                    allowedTypes
+                                );
 
                                 // Resolve to index, using pluginInfo
                                 String indexName = resourcePluginInfo.indexByType(resourceType);

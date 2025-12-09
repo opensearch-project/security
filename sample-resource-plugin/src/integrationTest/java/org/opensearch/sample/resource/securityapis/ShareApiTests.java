@@ -351,7 +351,7 @@ public class ShareApiTests {
                 // 1) PUT with invalid resource_id (invalid chars)
                 String putInvalidResourceIdPayload = """
                     {
-                      "resource_id": "invalid id",   // space not allowed
+                      "resource_id": "invalid id",
                       "resource_type": "%s",
                       "share_with": {
                         "%s": {

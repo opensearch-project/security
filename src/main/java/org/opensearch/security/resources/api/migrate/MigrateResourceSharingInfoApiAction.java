@@ -154,7 +154,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     private ValidationResult<ValidationResultArg> loadCurrentSharingInfo(RestRequest request, Client client) throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
-        // Extract fields - basic validation done by RequestContentValidator framework
+        // Extract fields - validation already done by RequestContentValidator framework via FieldConfiguration
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
@@ -165,17 +165,6 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
         // Raw JSON for default_access_level
         JsonNode defaultAccessNode = body.get("default_access_level");
-
-        // Business logic validation (after framework validation)
-        try {
-            RequestContentValidator.validateJsonPath("username_path", userNamePath);
-            RequestContentValidator.validateJsonPath("backend_roles_path", backendRolesPath);
-            RequestContentValidator.validateDefaultOwner(defaultOwner);
-            RequestContentValidator.validateSourceIndex(sourceIndex, resourcePluginInfo.getResourceIndicesForProtectedTypes());
-            RequestContentValidator.validateDefaultAccessLevelNode(defaultAccessNode);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(e.getMessage()));
-        }
 
         // Convert after structural validation
         Map<String, String> typeToDefaultAccessLevel = defaultAccessNode == null || defaultAccessNode.isNull()
@@ -203,7 +192,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             Set<String> accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
 
             try {
-                RequestContentValidator.validateAccessLevel(defaultAccessLevelForType, accessLevels);
+                RequestContentValidator.validateValueInSet(
+                    "access_level",
+                    defaultAccessLevelForType,
+                    RequestContentValidator.MAX_LEVEL_LENGTH,
+                    accessLevels
+                );
             } catch (Exception e) {
                 return ValidationResult.error(
                     RestStatus.BAD_REQUEST,
@@ -449,17 +443,16 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
-                        // Validate source_index is in allowed set
+                        Set<String> allowedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
                         RequestContentValidator.FieldValidator sourceIndexValidator = (fieldName, value) -> {
                             if (value instanceof String strValue) {
-                                RequestContentValidator.requireNonEmpty(fieldName, strValue);
-                                Set<String> allowedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
-                                if (allowedIndices == null || allowedIndices.isEmpty()) {
-                                    throw new IllegalStateException("No protected resources configured");
-                                }
-                                if (!allowedIndices.contains(strValue)) {
-                                    throw new IllegalArgumentException("source_index must be one of: " + allowedIndices);
-                                }
+                                RequestContentValidator.validateFieldValueInSet(
+                                    fieldName,
+                                    strValue,
+                                    RequestContentValidator.MAX_NAME_LENGTH,
+                                    allowedIndices,
+                                    "indices"
+                                );
                             }
                         };
 
@@ -468,7 +461,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 "source_index",
                                 RequestContentValidator.FieldConfiguration.of(
                                     RequestContentValidator.DataType.STRING,
-                                    RequestContentValidator.MAX_INDEX_NAME_LENGTH,
+                                    RequestContentValidator.MAX_NAME_LENGTH,
                                     sourceIndexValidator
                                 )
                             )
@@ -477,7 +470,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 RequestContentValidator.FieldConfiguration.of(
                                     RequestContentValidator.DataType.STRING,
                                     RequestContentValidator.MAX_PATH_LENGTH,
-                                    RequestContentValidator.JSON_PATH_VALIDATOR
+                                    RequestContentValidator.PATH_VALIDATOR
                                 )
                             )
                             .put(
@@ -485,7 +478,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 RequestContentValidator.FieldConfiguration.of(
                                     RequestContentValidator.DataType.STRING,
                                     RequestContentValidator.MAX_PATH_LENGTH,
-                                    RequestContentValidator.JSON_PATH_VALIDATOR
+                                    RequestContentValidator.PATH_VALIDATOR
                                 )
                             )
                             .put(
@@ -501,8 +494,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 RequestContentValidator.FieldConfiguration.of(
                                     RequestContentValidator.DataType.OBJECT,
                                     (fieldName, value) -> {
-                                        if (value instanceof JsonNode) {
-                                            RequestContentValidator.validateDefaultAccessLevelNode((JsonNode) value);
+                                        if (value instanceof JsonNode node) {
+                                            RequestContentValidator.validateObjectWithStringValues(fieldName, node);
                                         }
                                     }
                                 )
