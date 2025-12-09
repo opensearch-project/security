@@ -79,6 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.bouncycastle:bcpkix-jdk18on` from 1.82 to 1.83 ([#5825](https://github.com/opensearch-project/security/pull/5825))
 - Bump `commons-codec:commons-codec` from 1.19.0 to 1.20.0 ([#5823](https://github.com/opensearch-project/security/pull/5823))
 - Upgrade springframework to 7.0.1 and zookeeper to 3.9.4 ([#5829](https://github.com/opensearch-project/security/pull/5829))
+- Bump `org.lz4:lz4-java` from 1.8.0 to 1.10.1 ([#5845](https://github.com/opensearch-project/security/pull/5845))
 
 ### Documentation
 
