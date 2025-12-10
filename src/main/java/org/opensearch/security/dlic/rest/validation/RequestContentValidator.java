@@ -619,41 +619,6 @@ public class RequestContentValidator implements ToXContent {
         }
     }
 
-    /* ---------------------- JSON extraction helpers ---------------------- */
-
-    /**
-     * Extracts a required text field from JSON with length validation
-     */
-    public static String getRequiredText(JsonNode body, String fieldName, int maxLength) {
-        JsonNode node = body.get(fieldName);
-        if (node == null || node.isNull() || !node.isTextual()) {
-            throw new IllegalArgumentException("Field [" + fieldName + "] is required and must be a non-empty string");
-        }
-        String value = node.asText();
-        requireNonEmpty(fieldName, value);
-        validateMaxLength(fieldName, value, maxLength);
-        return value;
-    }
-
-    /**
-     * Extracts an optional text field from JSON with length validation
-     */
-    public static String getOptionalText(JsonNode body, String fieldName, int maxLength) {
-        JsonNode node = body.get(fieldName);
-        if (node == null || node.isNull()) {
-            return null;
-        }
-        if (!node.isTextual()) {
-            throw new IllegalArgumentException("Field [" + fieldName + "] must be a string when provided");
-        }
-        String value = node.asText();
-        if (value.isEmpty()) {
-            return null;
-        }
-        validateMaxLength(fieldName, value, maxLength);
-        return value;
-    }
-
     /* ---------------------- specialized validators ---------------------- */
 
     /**
@@ -765,5 +730,9 @@ public class RequestContentValidator implements ToXContent {
                 }
             }
         };
+    }
+
+    public static FieldValidator allowedValuesValidator(Set<String> allowedValues) {
+        return allowedValuesValidator(allowedValues, null);
     }
 }

@@ -649,14 +649,14 @@ public class RequestContentValidatorTest {
     @Test
     public void testAllowedValuesValidator() {
         final Set<String> allowed = Set.of("read", "write");
-        final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed, null);
+        final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed);
         validator.validate("action", "read");
     }
 
     @Test
     public void testAllowedValuesValidatorRejectsInvalid() {
         final Set<String> allowed = Set.of("read", "write");
-        final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed, null);
+        final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed);
         expectThrows(IllegalArgumentException.class, () -> validator.validate("action", "delete"));
     }
 
@@ -665,20 +665,6 @@ public class RequestContentValidatorTest {
         final Set<String> allowed = Set.of("read", "write");
         final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed, "Custom error");
         expectThrows(IllegalArgumentException.class, () -> validator.validate("action", "delete"));
-    }
-
-    @Test
-    public void testGetOptionalTextReturnsNullForEmptyString() throws Exception {
-        JsonNode body = DefaultObjectMapper.readTree("{\"field\":\"\"}");
-        String result = RequestContentValidator.getOptionalText(body, "field", 100);
-        assertNull(result);
-    }
-
-    @Test
-    public void testGetOptionalTextReturnsNullForNullNode() throws Exception {
-        JsonNode body = DefaultObjectMapper.readTree("{\"field\":null}");
-        String result = RequestContentValidator.getOptionalText(body, "field", 100);
-        assertNull(result);
     }
 
     @Test
@@ -968,67 +954,6 @@ public class RequestContentValidatorTest {
     @Test
     public void testValidateSafeValueAcceptsValidPrincipal() {
         RequestContentValidator.validateSafeValue("users", "user_123-role:1", RequestContentValidator.MAX_STRING_LENGTH);
-    }
-
-    /* ---------------------- getRequiredText ---------------------- */
-
-    @Test
-    public void testGetRequiredTextReturnsValueWhenPresent() throws Exception {
-        JsonNode body = DefaultObjectMapper.readTree("{\"source_index\":\"index-1\"}");
-
-        String result = RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_STRING_LENGTH);
-
-        assertThat(result, is("index-1"));
-    }
-
-    @Test
-    public void testGetRequiredTextThrowsWhenMissing() throws Exception {
-        JsonNode body = DefaultObjectMapper.readTree("{\"other\":\"value\"}");
-
-        expectThrows(
-            IllegalArgumentException.class,
-            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_STRING_LENGTH)
-        );
-    }
-
-    @Test
-    public void testGetRequiredTextThrowsWhenNonTextual() throws Exception {
-        JsonNode body = DefaultObjectMapper.readTree("{\"source_index\":123}");
-
-        expectThrows(
-            IllegalArgumentException.class,
-            () -> RequestContentValidator.getRequiredText(body, "source_index", RequestContentValidator.MAX_STRING_LENGTH)
-        );
-    }
-
-    /* ---------------------- getOptionalText ---------------------- */
-
-    @Test
-    public void testGetOptionalTextReturnsNullWhenMissing() throws Exception {
-        JsonNode body = DefaultObjectMapper.readTree("{\"other\":\"value\"}");
-
-        String result = RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_STRING_LENGTH);
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testGetOptionalTextReturnsValueWhenPresent() throws Exception {
-        JsonNode body = DefaultObjectMapper.readTree("{\"default_owner\":\"owner_1\"}");
-
-        String result = RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_STRING_LENGTH);
-
-        assertThat(result, is("owner_1"));
-    }
-
-    @Test
-    public void testGetOptionalTextThrowsWhenNonTextual() throws Exception {
-        JsonNode body = DefaultObjectMapper.readTree("{\"default_owner\":123}");
-
-        expectThrows(
-            IllegalArgumentException.class,
-            () -> RequestContentValidator.getOptionalText(body, "default_owner", RequestContentValidator.MAX_STRING_LENGTH)
-        );
     }
 
     /* ---------------------- validatePath (generic) ---------------------- */

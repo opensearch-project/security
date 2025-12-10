@@ -24,6 +24,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 
 import org.mockito.Mockito;
 
@@ -58,10 +59,7 @@ public class ShareWithTests {
 
         parser.nextToken();
 
-        ShareWith shareWith = ShareWith.fromXContent(
-            parser,
-            org.opensearch.security.dlic.rest.validation.RequestContentValidator.allowedValuesValidator(Set.of("read_only"), null)
-        );
+        ShareWith shareWith = ShareWith.fromXContent(parser, RequestContentValidator.allowedValuesValidator(Set.of("read_only"), null));
 
         assertThat(shareWith, notNullValue());
         Recipients readOnly = shareWith.atAccessLevel("read_only");
