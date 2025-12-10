@@ -86,6 +86,21 @@ public class ConfigV7 {
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
         public OnBehalfOfSettings on_behalf_of = new OnBehalfOfSettings();
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonProperty("privileges_evaluation_type")
+        public String privilegesEvaluationType = null;
+
+        /**
+         * This is a successor to the do_not_fail_on_forbidden property; it is only evaluated if
+         * privilegesEvaluationType is set to "next_gen"; we cannot reuse the old property as it we cannot change
+         * the default value of it based on privileges_evaluation_type.
+         * This should be only very rarely set to "false"; if it is false, users must make sure that they
+         * are not hitting any unauthorized indices in their patterns, including system indices, as otherwise these requests
+         * will just fail.
+         */
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonProperty("privileges_evaluation_ignore_unauthorized_indices")
+        public boolean privilegesEvaluationIgnoreUnauthorizedIndices = true;
 
         @Override
         public String toString() {

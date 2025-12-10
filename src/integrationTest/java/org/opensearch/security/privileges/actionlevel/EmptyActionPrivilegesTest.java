@@ -15,9 +15,9 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isForbidden;
@@ -50,7 +50,7 @@ public class EmptyActionPrivilegesTest {
         PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(
             ctx().get(),
             Set.of("indices:data/write/index"),
-            IndexResolverReplacer.Resolved.ofIndex("any_index")
+            ResolvedIndices.of("any_index")
         );
         assertThat(result, isForbidden());
     }
@@ -60,7 +60,7 @@ public class EmptyActionPrivilegesTest {
         PrivilegesEvaluatorResponse result = subject.hasExplicitIndexPrivilege(
             ctx().get(),
             Set.of("indices:data/write/index"),
-            IndexResolverReplacer.Resolved.ofIndex("any_index")
+            ResolvedIndices.of("any_index")
         );
         assertThat(result, isForbidden());
     }
