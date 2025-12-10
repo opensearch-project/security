@@ -495,7 +495,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                     RequestContentValidator.DataType.OBJECT,
                                     (fieldName, value) -> {
                                         if (value instanceof JsonNode node) {
-                                            RequestContentValidator.validateObjectWithStringValues(fieldName, node);
+                                            RequestContentValidator.validateNonEmptyValuesInAnObject(fieldName, node);
                                         }
                                     }
                                 )

@@ -655,7 +655,7 @@ public class RequestContentValidator implements ToXContent {
     /**
      * Validates a JSON object node with non-empty string values
      */
-    public static void validateObjectWithStringValues(String fieldName, JsonNode node) {
+    public static void validateNonEmptyValuesInAnObject(String fieldName, JsonNode node) {
         if (node == null || node.isNull()) {
             return;
         }
@@ -732,6 +732,9 @@ public class RequestContentValidator implements ToXContent {
         };
     }
 
+    /**
+     * overloaded implementation of #allowedValuesValidator() to pass null errorMessage
+     */
     public static FieldValidator allowedValuesValidator(Set<String> allowedValues) {
         return allowedValuesValidator(allowedValues, null);
     }

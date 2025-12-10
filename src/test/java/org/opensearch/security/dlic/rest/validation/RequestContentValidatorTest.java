@@ -668,10 +668,10 @@ public class RequestContentValidatorTest {
     }
 
     @Test
-    public void testValidateObjectWithStringValuesAcceptsNullNode() throws Exception {
+    public void testValidateNonEmptyValuesInAnObjectAcceptsNullNode() throws Exception {
         JsonNode body = DefaultObjectMapper.readTree("{\"field\":null}");
         // Should not throw - null is allowed
-        RequestContentValidator.validateObjectWithStringValues("field", body.get("field"));
+        RequestContentValidator.validateNonEmptyValuesInAnObject("field", body.get("field"));
     }
 
     @Test
@@ -1044,47 +1044,47 @@ public class RequestContentValidatorTest {
     /* ---------------------- validateObjectWithStringValues (generic) ---------------------- */
 
     @Test
-    public void testValidateObjectWithStringValuesAllowsNull() {
+    public void testValidateNonEmptyValuesInAnObjectAllowsNull() {
         // field absent / null is allowed (optional)
-        RequestContentValidator.validateObjectWithStringValues("default_access_level", null);
+        RequestContentValidator.validateNonEmptyValuesInAnObject("default_access_level", null);
     }
 
     @Test
-    public void testValidateObjectWithStringValuesRejectsNonObject() throws Exception {
+    public void testValidateObjectWithStringValuesRejectsNonObjectInAnObject() throws Exception {
         JsonNode node = DefaultObjectMapper.readTree("\"string-not-object\"");
 
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.validateObjectWithStringValues("default_access_level", node)
+            () -> RequestContentValidator.validateNonEmptyValuesInAnObject("default_access_level", node)
         );
     }
 
     @Test
-    public void testValidateObjectWithStringValuesRejectsEmptyObject() throws Exception {
+    public void testValidateObjectWithStringValuesRejectsEmptyObjectInAnObject() throws Exception {
         JsonNode node = DefaultObjectMapper.readTree("{}");
 
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.validateObjectWithStringValues("default_access_level", node)
+            () -> RequestContentValidator.validateNonEmptyValuesInAnObject("default_access_level", node)
         );
     }
 
     @Test
-    public void testValidateObjectWithStringValuesRejectsEmptyValue() throws Exception {
+    public void testValidateNonEmptyValuesInAnObjectRejectsEmptyValue() throws Exception {
         JsonNode node = DefaultObjectMapper.readTree("{\"anomaly-detector\":\"\"}");
 
         expectThrows(
             IllegalArgumentException.class,
-            () -> RequestContentValidator.validateObjectWithStringValues("default_access_level", node)
+            () -> RequestContentValidator.validateNonEmptyValuesInAnObject("default_access_level", node)
         );
     }
 
     @Test
-    public void testValidateObjectWithStringValuesAcceptsNonEmptyValues() throws Exception {
+    public void testValidateNonEmptyValuesAcceptsNonEmptyValuesInAnObject() throws Exception {
         JsonNode node = DefaultObjectMapper.readTree("{ \"anomaly-detector\": \"rd_read_only\", \"forecaster\": \"rd_write\" }");
 
         // should not throw
-        RequestContentValidator.validateObjectWithStringValues("default_access_level", node);
+        RequestContentValidator.validateNonEmptyValuesInAnObject("default_access_level", node);
     }
 
 }
