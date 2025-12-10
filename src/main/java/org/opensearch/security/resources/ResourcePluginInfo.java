@@ -295,4 +295,22 @@ public class ResourcePluginInfo {
         }
     }
 
+    public List<String> currentProtectedTypes() {
+        lock.readLock().lock();
+        try {
+            return protectedTypesSetting.getDynamicSettingValue();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public Set<String> availableAccessLevels() {
+        lock.readLock().lock();
+        try {
+            return typeToAccessLevels.values().stream().flatMap(Set::stream).collect(Collectors.toCollection(LinkedHashSet::new));
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
 }
