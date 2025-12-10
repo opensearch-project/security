@@ -109,10 +109,7 @@ public class ShareWithTests {
 
         ShareWith shareWith = ShareWith.fromXContent(
             parser,
-            org.opensearch.security.dlic.rest.validation.RequestContentValidator.allowedValuesValidator(
-                Set.of("read-only", "default"),
-                null
-            )
+            RequestContentValidator.allowedValuesValidator(Set.of("read-only", "default"), null)
         );
 
         assertThat(shareWith, notNullValue());
