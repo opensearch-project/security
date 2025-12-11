@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [Resource Sharing] Keep track of resource_type on resource sharing document ([#5772](https://github.com/opensearch-project/security/pull/5772))
 - Add support for X509 v3 extensions (SAN) for authentication  ([#5701](https://github.com/opensearch-project/security/pull/5701))
 - [Resource Sharing] Requires default_owner for resource/migrate API ([#5789](https://github.com/opensearch-project/security/pull/5789))
+- Optimize getFieldFilter to only return a predicate when index has FLS restrictions for user ([#5777](https://github.com/opensearch-project/security/pull/5777))
 - Add --timeout (-to) as an option to securityadmin.sh ([#5787](https://github.com/opensearch-project/security/pull/5787))
 
 ### Bug Fixes
