@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
@@ -347,7 +348,6 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
         OptionallyResolvedIndices optionallyResolvedIndices,
         ActionRequest request
     ) {
-
         ActionPrivileges actionPrivileges = context.getActionPrivileges();
 
         if (optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices && resolvedIndices.isEmpty()) {
@@ -393,7 +393,6 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
                 }
             }
         } else if (!presponse.isAllowed()) {
-
             if (isIndexReductionForIncompletePrivilegesPossible(request)
                 && optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices
                 && !resolvedIndices.remote().isEmpty()) {
@@ -545,6 +544,9 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
     }
 
     String getRequestInfo(ActionRequest request) {
+        if (request == null) {
+            return "null";
+        }
         StringBuilder result = new StringBuilder(request.getClass().getSimpleName());
         if (request instanceof IndicesRequest indicesRequest) {
             String[] indices = indicesRequest.indices();
@@ -774,6 +776,8 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             return false;
         }
 
+        // By precondition from isIndexReductionForIncompletePrivilegesPossible() this must be
+        // an IndicesRequest when we reach this point
         return ((IndicesRequest) request).indicesOptions().allowNoIndices();
     }
 
@@ -825,6 +829,14 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             indexMatcher,
             allowedRolesMatcher
         );
+    }
+
+    /**
+     * For testing only
+     */
+    @VisibleForTesting
+    ActionPrivileges getActionPrivileges() {
+        return this.actionPrivileges.get();
     }
 
     private static boolean isIndexReductionEnabled(ConfigV7 generalConfiguration) {

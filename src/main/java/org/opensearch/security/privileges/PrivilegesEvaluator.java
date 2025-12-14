@@ -215,6 +215,44 @@ public interface PrivilegesEvaluator {
         RoleV7> rolesConfiguration, ConfigV7 generalConfiguration, SpecialIndices specialIndices, Supplier<
             TenantPrivileges> tenantPrivilegesSupplier, Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier,
         Map<String, RoleV7> pluginIdToRolePrivileges) {
+
+        public static final DynamicDependencies EMPTY = new PrivilegesEvaluator.DynamicDependencies(
+            FlattenedActionGroups.EMPTY,
+            FlattenedActionGroups.EMPTY,
+            SecurityDynamicConfiguration.empty(CType.ROLES),
+            new ConfigV7(),
+            new SpecialIndices(Settings.EMPTY),
+            () -> TenantPrivileges.EMPTY,
+            () -> DashboardsMultiTenancyConfiguration.DEFAULT,
+            Map.of()
+        );
+
+        public DynamicDependencies with(SecurityDynamicConfiguration<RoleV7> roles) {
+            return new DynamicDependencies(
+                actionGroups,
+                staticActionGroups,
+                roles,
+                generalConfiguration,
+                specialIndices,
+                tenantPrivilegesSupplier,
+                multiTenancyConfigurationSupplier,
+                pluginIdToRolePrivileges
+            );
+        }
+
+        public DynamicDependencies with(Map<String, RoleV7> pluginIdToRolePrivileges) {
+            return new DynamicDependencies(
+                actionGroups,
+                staticActionGroups,
+                this.rolesConfiguration,
+                generalConfiguration,
+                specialIndices,
+                tenantPrivilegesSupplier,
+                multiTenancyConfigurationSupplier,
+                pluginIdToRolePrivileges
+            );
+        }
+
     }
 
     @FunctionalInterface
