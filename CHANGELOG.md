@@ -61,7 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `net.bytebuddy:byte-buddy` from 1.17.7 to 1.18.2 ([#5703](https://github.com/opensearch-project/security/pull/5703), [#5822](https://github.com/opensearch-project/security/pull/5822))
 - Bump `derek-ho/start-opensearch` from 7 to 9 ([#5630](https://github.com/opensearch-project/security/pull/5630), [#5679](https://github.com/opensearch-project/security/pull/5679))
 - Bump `github/codeql-action` from 3 to 4 ([#5702](https://github.com/opensearch-project/security/pull/5702))
-- Bump `com.github.spotbugs` from 6.4.2 to 6.4.4 ([#5727](https://github.com/opensearch-project/security/pull/5727))
+- Bump `com.github.spotbugs` from 6.4.2 to 6.4.8 ([#5727](https://github.com/opensearch-project/security/pull/5727), [#5854](https://github.com/opensearch-project/security/pull/5854))
 - Bump `com.autonomousapps.build-health` from 3.0.4 to 3.5.1 ([#5726](https://github.com/opensearch-project/security/pull/5726), [#5744](https://github.com/opensearch-project/security/pull/5744), [#5819](https://github.com/opensearch-project/security/pull/5819))
 - Bump `spring_version` from 6.2.11 to 7.0.2 ([#5725](https://github.com/opensearch-project/security/pull/5725), [#5808](https://github.com/opensearch-project/security/pull/5808), [#5852](https://github.com/opensearch-project/security/pull/5852))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M5 to 4.0.0 ([#5742](https://github.com/opensearch-project/security/pull/5742), [#5843](https://github.com/opensearch-project/security/pull/5843))
