@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `spring_version` from 6.2.11 to 7.0.2 ([#5725](https://github.com/opensearch-project/security/pull/5725), [#5808](https://github.com/opensearch-project/security/pull/5808), [#5852](https://github.com/opensearch-project/security/pull/5852))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M5 to 4.0.0 ([#5742](https://github.com/opensearch-project/security/pull/5742), [#5843](https://github.com/opensearch-project/security/pull/5843))
 - Bump `com.google.errorprone:error_prone_annotations` from 2.42.0 to 2.44.0 ([#5743](https://github.com/opensearch-project/security/pull/5743), [#5779](https://github.com/opensearch-project/security/pull/5779))
-- Bump `actions/upload-artifact` from 4 to 5 ([#5740](https://github.com/opensearch-project/security/pull/5740))
+- Bump `actions/upload-artifact` from 4 to 6 ([#5740](https://github.com/opensearch-project/security/pull/5740), [#5853](https://github.com/opensearch-project/security/pull/5853))
 - Bump `actions/download-artifact` from 5 to 7 ([#5739](https://github.com/opensearch-project/security/pull/5739), [#5851](https://github.com/opensearch-project/security/pull/5851))
 - Bump `com.google.googlejavaformat:google-java-format` from 1.28.0 to 1.33.0 ([#5741](https://github.com/opensearch-project/security/pull/5741), [#5765](https://github.com/opensearch-project/security/pull/5765), [#5811](https://github.com/opensearch-project/security/pull/5811), [#5841](https://github.com/opensearch-project/security/pull/5841))
 - Bump `com.jayway.jsonpath:json-path` from 2.9.0 to 2.10.0 ([#5767](https://github.com/opensearch-project/security/pull/5767))
