@@ -61,13 +61,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `net.bytebuddy:byte-buddy` from 1.17.7 to 1.18.2 ([#5703](https://github.com/opensearch-project/security/pull/5703), [#5822](https://github.com/opensearch-project/security/pull/5822))
 - Bump `derek-ho/start-opensearch` from 7 to 9 ([#5630](https://github.com/opensearch-project/security/pull/5630), [#5679](https://github.com/opensearch-project/security/pull/5679))
 - Bump `github/codeql-action` from 3 to 4 ([#5702](https://github.com/opensearch-project/security/pull/5702))
-- Bump `com.github.spotbugs` from 6.4.2 to 6.4.4 ([#5727](https://github.com/opensearch-project/security/pull/5727))
+- Bump `com.github.spotbugs` from 6.4.2 to 6.4.8 ([#5727](https://github.com/opensearch-project/security/pull/5727), [#5854](https://github.com/opensearch-project/security/pull/5854))
 - Bump `com.autonomousapps.build-health` from 3.0.4 to 3.5.1 ([#5726](https://github.com/opensearch-project/security/pull/5726), [#5744](https://github.com/opensearch-project/security/pull/5744), [#5819](https://github.com/opensearch-project/security/pull/5819))
-- Bump `spring_version` from 6.2.11 to 6.2.14 ([#5725](https://github.com/opensearch-project/security/pull/5725), [#5808](https://github.com/opensearch-project/security/pull/5808))
+- Bump `spring_version` from 6.2.11 to 7.0.2 ([#5725](https://github.com/opensearch-project/security/pull/5725), [#5808](https://github.com/opensearch-project/security/pull/5808), [#5852](https://github.com/opensearch-project/security/pull/5852))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0-M5 to 4.0.0 ([#5742](https://github.com/opensearch-project/security/pull/5742), [#5843](https://github.com/opensearch-project/security/pull/5843))
 - Bump `com.google.errorprone:error_prone_annotations` from 2.42.0 to 2.44.0 ([#5743](https://github.com/opensearch-project/security/pull/5743), [#5779](https://github.com/opensearch-project/security/pull/5779))
 - Bump `actions/upload-artifact` from 4 to 5 ([#5740](https://github.com/opensearch-project/security/pull/5740))
-- Bump `actions/download-artifact` from 5 to 6 ([#5739](https://github.com/opensearch-project/security/pull/5739))
+- Bump `actions/download-artifact` from 5 to 7 ([#5739](https://github.com/opensearch-project/security/pull/5739), [#5851](https://github.com/opensearch-project/security/pull/5851))
 - Bump `com.google.googlejavaformat:google-java-format` from 1.28.0 to 1.33.0 ([#5741](https://github.com/opensearch-project/security/pull/5741), [#5765](https://github.com/opensearch-project/security/pull/5765), [#5811](https://github.com/opensearch-project/security/pull/5811), [#5841](https://github.com/opensearch-project/security/pull/5841))
 - Bump `com.jayway.jsonpath:json-path` from 2.9.0 to 2.10.0 ([#5767](https://github.com/opensearch-project/security/pull/5767))
 - Bump `org.apache.ws.xmlschema:xmlschema-core` from 2.3.1 to 2.3.2 ([#5781](https://github.com/opensearch-project/security/pull/5781))
@@ -82,6 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.opensearch:common-utils` from 3.2.0.0-SNAPSHOT to 3.3.2.0 ([#5830](https://github.com/opensearch-project/security/pull/5830))
 - Bump `commons-cli:commons-cli` from 1.10.0 to 1.11.0 ([#5840](https://github.com/opensearch-project/security/pull/5840))
 - Bump `org.lz4:lz4-java` from 1.8.0 to 1.10.1 ([#5845](https://github.com/opensearch-project/security/pull/5845))
+- Bump `org.apache.commons:commons-text` from 1.14.0 to 1.15.0 ([#5857](https://github.com/opensearch-project/security/pull/5857))
 
 ### Documentation
 

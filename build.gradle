@@ -33,7 +33,7 @@ buildscript {
         jjwt_version = '0.13.0'
         guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '7.0.1'
+        spring_version = '7.0.2'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -67,7 +67,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.4"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.4.4"
+    id "com.github.spotbugs" version "6.4.8"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -731,7 +731,7 @@ dependencies {
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.3'
-    runtimeOnly 'org.apache.commons:commons-text:1.14.0'
+    runtimeOnly 'org.apache.commons:commons-text:1.15.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:3.1'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
