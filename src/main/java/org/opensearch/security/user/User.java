@@ -284,7 +284,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     public final Set<String> getSecurityRoles() {
         return this.securityRoles == null
             ? Collections.synchronizedSet(Collections.emptySet())
-            : Collections.unmodifiableSet(this.securityRoles);
+            : this.securityRoles;
     }
 
     /**
