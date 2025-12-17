@@ -708,7 +708,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     new ShareRestAction(resourcePluginInfo, resourceSharingEnabledSetting, resourceSharingProtectedResourceTypesSetting)
                 );
                 handlers.add(new ResourceTypesRestAction(resourcePluginInfo, resourceSharingEnabledSetting));
-                handlers.add(new AccessibleResourcesRestAction(resourceAccessHandler, resourcePluginInfo, resourceSharingEnabledSetting));
+                handlers.add(
+                    new AccessibleResourcesRestAction(
+                        resourceAccessHandler,
+                        resourcePluginInfo,
+                        resourceSharingEnabledSetting,
+                        resourceSharingProtectedResourceTypesSetting
+                    )
+                );
 
             }
             log.debug("Added {} rest handler(s)", handlers.size());

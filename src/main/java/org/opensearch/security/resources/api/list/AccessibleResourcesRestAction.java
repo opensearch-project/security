@@ -10,7 +10,6 @@ package org.opensearch.security.resources.api.list;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
@@ -46,16 +45,19 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
     private final ResourceAccessHandler resourceAccessHandler;
     private final ResourcePluginInfo resourcePluginInfo;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
+    private final OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting;
 
     public AccessibleResourcesRestAction(
         final ResourceAccessHandler resourceAccessHandler,
         ResourcePluginInfo resourcePluginInfo,
-        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
+        OpensearchDynamicSetting<List<String>> resourceSharingProtectedTypesSetting
     ) {
         super();
         this.resourceAccessHandler = resourceAccessHandler;
         this.resourcePluginInfo = resourcePluginInfo;
         this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
+        this.resourceSharingProtectedTypesSetting = resourceSharingProtectedTypesSetting;
     }
 
     @Override
@@ -73,19 +75,30 @@ public class AccessibleResourcesRestAction extends BaseRestHandler {
         if (!resourceSharingEnabledSetting.getDynamicSettingValue()) {
             return channel -> { channel.sendResponse(new BytesRestResponse(RestStatus.NOT_IMPLEMENTED, "Feature disabled.")); };
         }
-        final String resourceType = Objects.requireNonNull(request.param("resource_type"), "resource_type is required");
+        final String resourceType = request.param("resource_type");
+
+        if (resourceType == null) {
+            return channel -> { channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "resource_type is required")); };
+        }
 
         final String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
         if (resourceIndex == null) {
-            return channel -> { handleResponse(channel, Set.of()); };
+            return channel -> {
+                String message = String.format(
+                    "Invalid resource type: %s. Must be one of: %s",
+                    resourceType,
+                    resourceSharingProtectedTypesSetting.getDynamicSettingValue()
+                );
+                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, message));
+            };
         }
         return channel -> resourceAccessHandler.getResourceSharingInfoForCurrentUser(resourceType, ActionListener.wrap(rows -> {
             handleResponse(channel, rows);
         }, e -> handleError(channel, e)));
     }
 
-    private void handleResponse(RestChannel channel, Set<SharingRecord> records) throws IOException {
+    private void handleResponse(RestChannel channel, Set<SharingRecord> records) {
         try (XContentBuilder b = channel.newBuilder()) {
             b.startObject();
             b.startArray("resources");
