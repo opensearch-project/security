@@ -10,7 +10,9 @@
  */
 package org.opensearch.security.privileges.actionlevel.nextgen;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -26,6 +28,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RoleMapper;
@@ -34,6 +37,8 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.test.framework.log.LogsRule;
+
+import com.selectivem.collections.CheckTable;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.isAllowed;
@@ -120,6 +125,56 @@ public class PrivilegesEvaluatorImplTest {
             Loggers.setLevel(LogManager.getLogger(PrivilegesEvaluatorImpl.class), Level.DEBUG);
             subject.logPrivilegeEvaluationResult(ctx, PrivilegesEvaluatorResponse.ok(), "index");
             logsRule.assertThatContain("Allowing index action because all privileges are present.");
+        } finally {
+            Loggers.setLevel(LogManager.getLogger(PrivilegesEvaluatorImpl.class), initialLevel);
+        }
+    }
+
+    @Test
+    public void logPrivilegeEvaluationResult_allowedWithExceptions() throws Exception {
+        Level initialLevel = LogManager.getLogger(PrivilegesEvaluatorImpl.class).getLevel();
+        PrivilegesEvaluatorImpl subject = createSubject(Settings.EMPTY);
+        SearchRequest request = new SearchRequest("index_a");
+        PrivilegesEvaluationContext ctx = ctx().actionPrivileges(subject.getActionPrivileges())
+            .action("indices:test/test")
+            .request(request)
+            .get();
+        try {
+            Loggers.setLevel(LogManager.getLogger(PrivilegesEvaluatorImpl.class), Level.DEBUG);
+            subject.logPrivilegeEvaluationResult(
+                ctx,
+                PrivilegesEvaluatorResponse.ok()
+                    .evaluationExceptions(List.of(new PrivilegesEvaluationException("Test evaluation exception", new RuntimeException()))),
+                "index"
+            );
+            logsRule.assertThatContain("Allowing index action, but: There were errors during privilege evaluation");
+        } finally {
+            Loggers.setLevel(LogManager.getLogger(PrivilegesEvaluatorImpl.class), initialLevel);
+        }
+    }
+
+    @Test
+    public void logPrivilegeEvaluationResult_partiallyAllowed() throws Exception {
+        Level initialLevel = LogManager.getLogger(PrivilegesEvaluatorImpl.class).getLevel();
+        PrivilegesEvaluatorImpl subject = createSubject(Settings.EMPTY);
+        SearchRequest request = new SearchRequest("index_a");
+        PrivilegesEvaluationContext ctx = ctx().actionPrivileges(subject.getActionPrivileges())
+            .action("indices:test/test")
+            .request(request)
+            .get();
+        try {
+            Loggers.setLevel(LogManager.getLogger(PrivilegesEvaluatorImpl.class), Level.DEBUG);
+            CheckTable<String, String> checkTable = CheckTable.create(Set.of("index_a", "index_b"), "indices:test/test");
+            checkTable.check("index_b", "indices:test/test");
+            subject.logPrivilegeEvaluationResult(
+                ctx,
+                PrivilegesEvaluatorResponse.ok()
+                    .reason("Only allowed for a sub-set of indices")
+                    .originalResult(PrivilegesEvaluatorResponse.partiallyOk(checkTable.getCompleteRows(), checkTable)),
+                "index"
+            );
+            logsRule.assertThatContain("Allowing index action, but: Only allowed for a sub-set of indices");
+            logsRule.assertThatContain("index_a| MISSING");
         } finally {
             Loggers.setLevel(LogManager.getLogger(PrivilegesEvaluatorImpl.class), initialLevel);
         }

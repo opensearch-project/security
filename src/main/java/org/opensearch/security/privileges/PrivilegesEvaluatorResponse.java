@@ -153,6 +153,10 @@ public class PrivilegesEvaluatorResponse {
      * Returns a diagnostic string that contains issues that were encountered during privilege evaluation. Can be used for logging.
      */
     public String getEvaluationExceptionInfo() {
+        if (this.evaluationExceptions.isEmpty()) {
+            return "";
+        }
+
         StringBuilder result = new StringBuilder("Exceptions encountered during privilege evaluation:\n");
 
         for (PrivilegesEvaluationException evaluationException : this.evaluationExceptions) {
