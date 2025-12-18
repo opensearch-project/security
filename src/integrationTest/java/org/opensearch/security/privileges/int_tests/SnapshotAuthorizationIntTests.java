@@ -43,9 +43,6 @@ import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserInde
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
-/**
- * TODO requests on non cm node
- */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SnapshotAuthorizationIntTests {
