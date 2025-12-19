@@ -69,8 +69,8 @@ public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends 
     @Test
     public void canCreateUserWithPassword() throws Exception {
         withUser(ADMIN_USER_NAME, client -> {
-            created(() -> client.putJson(internalUsers("str1234567"), internalUserWithPassword("str123456")));
-            ok(() -> client.patch(internalUsers(), patch(addOp("str1234567", internalUserWithPassword("str123456")))));
+            created(() -> client.putJson(internalUsers("str1234567"), internalUserWithPassword("s5tRx2r4bwex")));
+            ok(() -> client.patch(internalUsers(), patch(addOp("str1234567", internalUserWithPassword("s5tRx2r4bwex")))));
         });
     }
 

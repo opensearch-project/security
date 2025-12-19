@@ -73,7 +73,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
 
             @Override
             public ToXContentObject entityPayload(Boolean hidden, Boolean reserved, Boolean _static) {
-                return internalUser(hidden, reserved, _static, "randomPassword", null, null, null);
+                return internalUser(hidden, reserved, _static, "rv2fR924a149ava32", null, null, null);
             }
 
             @Override
