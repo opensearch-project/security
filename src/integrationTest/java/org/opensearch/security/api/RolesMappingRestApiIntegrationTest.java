@@ -212,7 +212,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
 
     @Override
     void verifyCrudOperations(Boolean hidden, Boolean reserved, TestRestClient client) throws Exception {
-        final String roleName = "str1234567";
+        final String roleName = randomAlphanumericString();
         created(() -> client.putJson(rolesApiPath(roleName), roleJson()));
 
         for (ToXContentObject backendRoles : arrayOptions(false)) {

@@ -697,7 +697,7 @@ public class SearchOperationTest {
             assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S1));
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
         }
-        auditLogsRule.assertExactlyOne(userAuthenticated(ADMIN_USER).withRestRequest(POST, "/_search"));
+        auditLogsRule.assertExactlyOne(userAuthenticated(ADMIN_USER).withRestRequest(POST, "/_all/_search"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(ADMIN_USER, "SearchRequest"));
     }
 
@@ -708,7 +708,7 @@ public class SearchOperationTest {
 
             assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
         }
-        auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_search"));
+        auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_all/_search"));
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
     }
 
@@ -1916,6 +1916,7 @@ public class SearchOperationTest {
                 "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index/_restore"
             )
         );
+        auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertExactly(
             snapshotGetCount,
             userAuthenticated(LIMITED_WRITE_USER).withRestRequest(
