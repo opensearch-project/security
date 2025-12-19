@@ -47,6 +47,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.AliasesRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.IndicesRequest.Replaceable;
@@ -781,7 +782,15 @@ public class IndexResolverReplacer {
             }
             ((IndexRequest) request).index(newIndices.length != 1 ? null : newIndices[0]);
         } else if (request instanceof Replaceable) {
-            String[] newIndices = provider.provide(((Replaceable) request).indices(), request, true);
+            String[] indices = ((Replaceable) request).indices();
+            if (request instanceof AliasesRequest) {
+                String[] aliases = ((AliasesRequest) request).aliases();
+                Set<String> union = new HashSet<>();
+                if (indices != null) Collections.addAll(union, indices);
+                if (aliases != null) Collections.addAll(union, aliases);
+                indices = union.toArray(new String[0]);
+            }
+            String[] newIndices = provider.provide(indices, request, true);
             if (checkIndices(request, newIndices, false, allowEmptyIndices) == false) {
                 return false;
             }
