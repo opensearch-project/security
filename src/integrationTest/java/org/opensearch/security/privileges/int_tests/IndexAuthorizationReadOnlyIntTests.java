@@ -18,12 +18,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
 import com.google.common.collect.ImmutableList;
 import org.junit.AfterClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexDescriptor;
@@ -67,8 +68,7 @@ import static org.junit.Assert.assertTrue;
  * To cope with the huge space of tests, this class uses test oracles to verify the result of the operations.
  * These are defined with the "indexMatcher()" method of TestSecurityConfig.User. See there and the class IndexApiMatchers.
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class IndexAuthorizationReadOnlyIntTests {
 
     // -------------------------------------------------------------------------------------------------------
@@ -1864,7 +1864,7 @@ public class IndexAuthorizationReadOnlyIntTests {
         }
     }
 
-    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    @Parameters(name = "{0}, {1}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 

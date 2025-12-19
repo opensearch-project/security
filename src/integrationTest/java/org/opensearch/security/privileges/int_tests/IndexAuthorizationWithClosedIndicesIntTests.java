@@ -15,16 +15,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
 import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -47,8 +46,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
  * affecting some threads and losing access to the RandomizedContext. Therefore, we isolate
  * these tests to avoid interference with other tests.
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class IndexAuthorizationWithClosedIndicesIntTests {
 
     private static final Logger log = LogManager.getLogger(IndexAuthorizationWithClosedIndicesIntTests.class);
@@ -145,7 +143,7 @@ public class IndexAuthorizationWithClosedIndicesIntTests {
     private final LocalCluster cluster;
     private final ClusterConfig clusterConfig;
 
-    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    @Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 

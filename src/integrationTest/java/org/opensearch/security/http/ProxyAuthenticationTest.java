@@ -9,14 +9,8 @@
 */
 package org.opensearch.security.http;
 
-import java.io.IOException;
-import java.util.Map;
-
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AuthenticationBackend;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.HttpAuthenticator;
@@ -24,13 +18,14 @@ import org.opensearch.test.framework.XffConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
+import java.io.IOException;
+import java.util.Map;
+
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
 /**
 * Class used to run tests defined in the supper class against OpenSearch cluster with configured <code>proxy</code> authentication.
 */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ProxyAuthenticationTest extends CommonProxyAuthenticationTests {
 
     private static final Map<String, Object> PROXY_AUTHENTICATOR_CONFIG = Map.of(

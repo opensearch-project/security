@@ -11,13 +11,18 @@
 
 package org.opensearch.security.hash;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -29,19 +34,34 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
+@RunWith(Parameterized.class)
 public class BCryptCustomConfigHashingTests extends HashingTests {
 
-    private static LocalCluster cluster;
+    private LocalCluster cluster;
 
-    private static String minor;
+    private final String minor;
 
-    private static int rounds;
+    private final int rounds;
 
-    @BeforeClass
-    public static void startCluster() {
-        minor = randomFrom(List.of("A", "B", "Y"));
-        rounds = randomIntBetween(4, 10);
+    public BCryptCustomConfigHashingTests(String minor, int rounds) {
+        this.minor = minor;
+        this.rounds = rounds;
+    }
 
+    @Parameterized.Parameters(name = "minor={0}, rounds={1}")
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+            { "A", 4 },
+            { "B", 6 },
+            { "Y", 10 },
+            { "A", 10 },
+            { "B", 4 },
+            { "Y", 6 }
+        });
+    }
+
+    @Before
+    public void startCluster() {
         TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
             .hash(generateBCryptHash("secret", minor, rounds));
         cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -67,6 +87,13 @@ public class BCryptCustomConfigHashingTests extends HashingTests {
             Awaitility.await()
                 .alias("Load default configuration")
                 .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
+        }
+    }
+
+    @After
+    public void stopCluster() {
+        if (cluster != null) {
+            cluster.close();
         }
     }
 

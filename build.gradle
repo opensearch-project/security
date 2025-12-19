@@ -560,10 +560,6 @@ allprojects {
     afterEvaluate {
         if (project.configurations.findByName('integrationTestImplementation')) {
             dependencies {
-                //integration test framework:
-                integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3') {
-                    exclude(group: 'junit', module: 'junit')
-                }
                 integrationTestImplementation 'junit:junit:4.13.2'
                 integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
                     exclude(group: 'org.slf4j', module: 'slf4j-api')

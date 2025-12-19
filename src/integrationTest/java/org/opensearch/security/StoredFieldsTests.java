@@ -9,13 +9,11 @@
  */
 package org.opensearch.security;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -27,8 +25,6 @@ import org.opensearch.transport.client.Client;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class StoredFieldsTests {
     static final TestSecurityConfig.User TEST_USER_MASKED_FIELDS = new TestSecurityConfig.User("test_user_masked_fields").roles(
         new TestSecurityConfig.Role("role_masked_fields").clusterPermissions("cluster_composite_ops_ro")

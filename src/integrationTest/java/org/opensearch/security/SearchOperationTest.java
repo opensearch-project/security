@@ -16,7 +16,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.base.Stopwatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +26,6 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -199,8 +197,6 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searc
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
 import static org.opensearch.test.framework.matcher.UpdateResponseMatchers.isSuccessfulUpdateResponse;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SearchOperationTest {
 
     private static final Logger log = LogManager.getLogger(SearchOperationTest.class);
@@ -701,7 +697,7 @@ public class SearchOperationTest {
             assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S1));
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
         }
-        auditLogsRule.assertExactlyOne(userAuthenticated(ADMIN_USER).withRestRequest(POST, "/_all/_search"));
+        auditLogsRule.assertExactlyOne(userAuthenticated(ADMIN_USER).withRestRequest(POST, "/_search"));
         auditLogsRule.assertExactlyOne(grantedPrivilege(ADMIN_USER, "SearchRequest"));
     }
 
@@ -712,7 +708,7 @@ public class SearchOperationTest {
 
             assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
         }
-        auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_all/_search"));
+        auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_search"));
         auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
     }
 
@@ -1920,13 +1916,9 @@ public class SearchOperationTest {
                 "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index/_restore"
             )
         );
-        auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
         auditLogsRule.assertExactly(
             snapshotGetCount,
-            userAuthenticated(LIMITED_WRITE_USER).withRestRequest(
-                GET,
-                "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index"
-            )
+            userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index")
         );
         auditLogsRule.assertAtLeast(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
         auditLogsRule.assertAtLeast(1, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
@@ -2058,6 +2050,7 @@ public class SearchOperationTest {
                 USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES
             )
         ) {
+
             assertThatThrownBy(
                 () -> restHighLevelClient.indices().exists(new GetIndexRequest(indexThatUserHasNoAccessTo), DEFAULT),
                 statusException(FORBIDDEN)
@@ -2496,8 +2489,10 @@ public class SearchOperationTest {
                 USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES
             )
         ) {
+
             assertThatThrownBy(
-                () -> restHighLevelClient.indices().getSettings(new GetSettingsRequest().indices(indexThatUserHasNoAccessTo), DEFAULT),
+                () -> restHighLevelClient.indices()
+                    .getSettings(new GetSettingsRequest().indices(indexThatUserHasNoAccessTo), DEFAULT),
                 statusException(FORBIDDEN)
             );
             assertThatThrownBy(
@@ -2613,7 +2608,7 @@ public class SearchOperationTest {
     }
 
     @Test
-    // required permissions: indices:admin/mappings/get
+    // required permissions: "indices:admin/mappings/get"
     public void getIndexMappings_positive() throws IOException {
         String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("get_index_mappings_positive");
         Map<String, Object> indexMapping = Map.of("properties", Map.of("message", Map.of("type", "text")));

@@ -11,13 +11,18 @@
 
 package org.opensearch.security.hash;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -29,24 +34,43 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
+@RunWith(Parameterized.class)
 public class Argon2CustomConfigHashingTests extends HashingTests {
 
-    public static LocalCluster cluster;
+    public LocalCluster cluster;
 
     private static final String PASSWORD = "top$ecret1234!";
 
-    private static String type;
-    private static int memory, iterations, parallelism, length, version;
+    private final String type;
+    private final int memory;
+    private final int iterations;
+    private final int parallelism;
+    private final int length;
+    private final int version;
 
-    @BeforeClass
-    public static void startCluster() {
+    public Argon2CustomConfigHashingTests(String type, int memory, int iterations, int parallelism, int length, int version) {
+        this.type = type;
+        this.memory = memory;
+        this.iterations = iterations;
+        this.parallelism = parallelism;
+        this.length = length;
+        this.version = version;
+    }
 
-        type = randomFrom(List.of("argon2id", "argon2i", "argon2d"));
-        iterations = randomFrom(List.of(2, 3, 4));
-        memory = randomFrom(List.of(65536, 131072));
-        parallelism = randomFrom(List.of(1, 2));
-        length = randomFrom(List.of(16, 32, 64));
-        version = randomFrom(List.of(16, 19));
+    @Parameterized.Parameters(name = "type={0}, memory={1}, iterations={2}, parallelism={3}, length={4}, version={5}")
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+            { "argon2id", 65536, 2, 1, 16, 19 },
+            { "argon2id", 131072, 3, 2, 32, 16 },
+            { "argon2i", 65536, 2, 1, 16, 19 },
+            { "argon2i", 131072, 3, 2, 32, 16 },
+            { "argon2d", 65536, 2, 1, 16, 19 },
+            { "argon2d", 131072, 3, 2, 32, 16 }
+        });
+    }
+
+    @Before
+    public void startCluster() {
 
         TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
             .hash(generateArgon2Hash("secret", memory, iterations, parallelism, length, type, version));
@@ -81,6 +105,13 @@ public class Argon2CustomConfigHashingTests extends HashingTests {
             Awaitility.await()
                 .alias("Load default configuration")
                 .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
+        }
+    }
+
+    @After
+    public void stopCluster() {
+        if (cluster != null) {
+            cluster.close();
         }
     }
 
