@@ -50,14 +50,7 @@ public class BCryptCustomConfigHashingTests extends HashingTests {
 
     @Parameterized.Parameters(name = "minor={0}, rounds={1}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-            { "A", 4 },
-            { "B", 6 },
-            { "Y", 10 },
-            { "A", 10 },
-            { "B", 4 },
-            { "Y", 6 }
-        });
+        return Arrays.asList(new Object[][] { { "A", 4 }, { "B", 6 }, { "Y", 10 }, { "A", 10 }, { "B", 4 }, { "Y", 6 } });
     }
 
     @Before

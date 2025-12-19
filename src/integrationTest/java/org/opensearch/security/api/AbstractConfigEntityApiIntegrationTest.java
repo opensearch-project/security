@@ -165,7 +165,7 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
 
     void availableForSuperAdminUser(final TestRestClient client) throws Exception {
         creationOfReadOnlyEntityForbidden(
-            "str1234567",
+            randomAlphanumericString(),
             client,
             (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
         );
@@ -175,6 +175,10 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         verifyBadRequestOperations(client);
         forbiddenToCreateEntityWithRestAdminPermissions(client);
         forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(client);
+    }
+
+    protected String randomAlphanumericString() {
+        return "str_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
 
     void verifyNoHiddenEntities(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {

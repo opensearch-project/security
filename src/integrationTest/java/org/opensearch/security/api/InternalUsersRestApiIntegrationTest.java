@@ -14,7 +14,6 @@ package org.opensearch.security.api;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -265,9 +264,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         // patch
         badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(10), EMPTY_BODY))));
         for (String field : List.of("opendistro_security_roles", "backend_roles", "attributes")) {
-            badRequest(
-                () -> client.patch(apiPath(predefinedUserName), patch(replaceOp(field, EMPTY_BODY)))
-            );
+            badRequest(() -> client.patch(apiPath(predefinedUserName), patch(replaceOp(field, EMPTY_BODY))));
         }
         badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(5), (ToXContentObject) (builder, params) -> {
             builder.startObject();

@@ -219,16 +219,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
             for (ToXContentObject hosts : arrayOptions(false)) {
                 for (ToXContentObject users : arrayOptions(false)) {
                     for (ToXContentObject andBackendRoles : arrayOptions(false)) {
-                        verifyCrudOperationsForCombination(
-                            hidden,
-                            reserved,
-                            client,
-                            roleName,
-                            backendRoles,
-                            hosts,
-                            users,
-                            andBackendRoles
-                        );
+                        verifyCrudOperationsForCombination(hidden, reserved, client, roleName, backendRoles, hosts, users, andBackendRoles);
                     }
                 }
             }
@@ -273,14 +264,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         ToXContentObject andBackendRoles
     ) throws Exception {
         // put
-        final var newPutRoleMappingJson = roleMapping(
-            hidden,
-            reserved,
-            backendRoles,
-            hosts,
-            users,
-            andBackendRoles
-        );
+        final var newPutRoleMappingJson = roleMapping(hidden, reserved, backendRoles, hosts, users, andBackendRoles);
         created(() -> client.putJson(apiPath(roleName), newPutRoleMappingJson));
         assertRoleMapping(
             ok(() -> client.get(apiPath(roleName))).bodyAsJsonNode().get(roleName),
@@ -288,14 +272,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
             reserved,
             Strings.toString(XContentType.JSON, newPutRoleMappingJson)
         );
-        final var updatePutRoleMappingJson = roleMapping(
-            hidden,
-            reserved,
-            backendRoles,
-            hosts,
-            users,
-            andBackendRoles
-        );
+        final var updatePutRoleMappingJson = roleMapping(hidden, reserved, backendRoles, hosts, users, andBackendRoles);
         ok(() -> client.putJson(apiPath(roleName), updatePutRoleMappingJson));
         assertRoleMapping(
             ok(() -> client.get(apiPath(roleName))).bodyAsJsonNode().get(roleName),
@@ -346,10 +323,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         );
 
         // put
-        badRequestWithReason(
-            () -> client.putJson(apiPath("str12"), EMPTY_BODY),
-            "Request body required for this action."
-        );
+        badRequestWithReason(() -> client.putJson(apiPath("str12"), EMPTY_BODY), "Request body required for this action.");
         badRequestWithReason(
             () -> client.putJson(
                 apiPath("str92"),
@@ -357,10 +331,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
             ),
             "Could not parse content of request."
         );
-        assertInvalidKeys(
-            badRequest(() -> client.putJson(apiPath("str92"), unparseableJsonRequest)),
-            "unknown_json_property"
-        );
+        assertInvalidKeys(badRequest(() -> client.putJson(apiPath("str92"), unparseableJsonRequest)), "unknown_json_property");
         for (String randomPropertyForPut : jsonProperties()) {
             assertWrongDataType(
                 client.putJson(
@@ -476,12 +447,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
                         forbidden(
                             () -> client.patch(
                                 apiPath(),
-                                patch(
-                                    replaceOp(
-                                        REST_ADMIN_ROLE_WITH_MAPPING,
-                                        roleMapping(backendRoles, hosts, users, andBackendRoles)
-                                    )
-                                )
+                                patch(replaceOp(REST_ADMIN_ROLE_WITH_MAPPING, roleMapping(backendRoles, hosts, users, andBackendRoles)))
                             )
                         );
                     }

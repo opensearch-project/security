@@ -136,8 +136,8 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     @Override
     void verifyBadRequestOperations(TestRestClient client) throws Exception {
         // put
-        badRequest(() -> client.putJson(apiPath("str92"), EMPTY_BODY));
-        badRequest(() -> client.putJson(apiPath("str92"), (builder, params) -> {
+        badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), EMPTY_BODY));
+        badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
             builder.field("cluster_permissions");
             clusterPermissionsOptions(false).get(0).toXContent(builder, params);
@@ -145,7 +145,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
             clusterPermissionsOptions(false).get(0).toXContent(builder, params);
             return builder.endObject();
         }));
-        assertInvalidKeys(badRequest(() -> client.putJson(apiPath("str92"), (builder, params) -> {
+        assertInvalidKeys(badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
             builder.field("unknown_json_property");
             configJsonArray("a", "b").toXContent(builder, params);
@@ -153,7 +153,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
             clusterPermissionsOptions(false).get(0).toXContent(builder, params);
             return builder.endObject();
         })), "unknown_json_property");
-        assertWrongDataType(badRequest(() -> client.putJson(apiPath("str92"), (builder, params) -> {
+        assertWrongDataType(badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
             builder.field("cluster_permissions").value("a");
             builder.field("index_permissions").value("b");
@@ -161,28 +161,23 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         })), Map.of("cluster_permissions", "Array expected", "index_permissions", "Array expected"));
         assertNullValuesInArray(
             client.putJson(
-                apiPath("str92"),
+                apiPath(randomAlphanumericString()),
                 role(clusterPermissionsOptions(true).get(0), indexPermissionsOptions(true).get(0), tenantPermissionsOptions(true).get(0))
             )
         );
         // patch
-        final var predefinedRoleName = "str92";
+        final var predefinedRoleName = randomAlphanumericString();
         created(() -> client.putJson(apiPath(predefinedRoleName), role(configJsonArray("a", "b"), configJsonArray(), configJsonArray())));
 
         badRequest(() -> client.patch(apiPath(), patch(addOp("some_new_role", EMPTY_BODY))));
         for (String field : List.of("cluster_permissions", "index_permissions", "tenant_permissions")) {
-            badRequest(
-                () -> client.patch(
-                    apiPath(predefinedRoleName),
-                    patch(replaceOp(field, EMPTY_BODY))
-                )
-            );
+            badRequest(() -> client.patch(apiPath(predefinedRoleName), patch(replaceOp(field, EMPTY_BODY))));
         }
 
         badRequest(
             () -> client.patch(
-                apiPath("str92"),
-                patch(addOp("str92", (ToXContentObject) (builder, params) -> {
+                apiPath(randomAlphanumericString()),
+                patch(addOp(randomAlphanumericString(), (ToXContentObject) (builder, params) -> {
                     builder.startObject();
                     builder.field("cluster_permissions");
                     clusterPermissionsOptions(false).get(0).toXContent(builder, params);
@@ -192,7 +187,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
                 }))
             )
         );
-        badRequest(() -> client.patch(apiPath("str92"), (builder, params) -> {
+        badRequest(() -> client.patch(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
             builder.field("unknown_json_property");
             configJsonArray("a", "b").toXContent(builder, params);
@@ -201,7 +196,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
             return builder.endObject();
         }));
         assertWrongDataType(
-            badRequest(() -> client.patch(apiPath(), patch(addOp("str92", (ToXContentObject) (builder, params) -> {
+            badRequest(() -> client.patch(apiPath(), patch(addOp(randomAlphanumericString(), (ToXContentObject) (builder, params) -> {
                 builder.startObject();
                 builder.field("cluster_permissions").value("a");
                 builder.field("index_permissions").value("b");
@@ -218,7 +213,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
                 apiPath(),
                 patch(
                     addOp(
-                        "str92",
+                        randomAlphanumericString(),
                         role(
                             clusterPermissionsOptions(true).get(0),
                             indexPermissionsOptions(true).get(0),

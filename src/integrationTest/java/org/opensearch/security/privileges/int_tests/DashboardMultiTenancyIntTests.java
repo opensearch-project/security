@@ -18,10 +18,10 @@ import java.util.UUID;
 
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.AfterClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.Test;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;

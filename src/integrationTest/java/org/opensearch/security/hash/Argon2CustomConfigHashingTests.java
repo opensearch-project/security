@@ -59,14 +59,15 @@ public class Argon2CustomConfigHashingTests extends HashingTests {
 
     @Parameterized.Parameters(name = "type={0}, memory={1}, iterations={2}, parallelism={3}, length={4}, version={5}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-            { "argon2id", 65536, 2, 1, 16, 19 },
-            { "argon2id", 131072, 3, 2, 32, 16 },
-            { "argon2i", 65536, 2, 1, 16, 19 },
-            { "argon2i", 131072, 3, 2, 32, 16 },
-            { "argon2d", 65536, 2, 1, 16, 19 },
-            { "argon2d", 131072, 3, 2, 32, 16 }
-        });
+        return Arrays.asList(
+            new Object[][] {
+                { "argon2id", 65536, 2, 1, 16, 19 },
+                { "argon2id", 131072, 3, 2, 32, 16 },
+                { "argon2i", 65536, 2, 1, 16, 19 },
+                { "argon2i", 131072, 3, 2, 32, 16 },
+                { "argon2d", 65536, 2, 1, 16, 19 },
+                { "argon2d", 131072, 3, 2, 32, 16 } }
+        );
     }
 
     @Before

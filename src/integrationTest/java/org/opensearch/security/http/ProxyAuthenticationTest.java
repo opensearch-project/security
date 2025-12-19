@@ -9,17 +9,18 @@
 */
 package org.opensearch.security.http;
 
+import java.io.IOException;
+import java.util.Map;
+
 import org.junit.ClassRule;
 import org.junit.Test;
+
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AuthenticationBackend;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.HttpAuthenticator;
 import org.opensearch.test.framework.XffConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-
-import java.io.IOException;
-import java.util.Map;
 
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 

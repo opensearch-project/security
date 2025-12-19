@@ -9,18 +9,19 @@
 */
 package org.opensearch.security.http;
 
+import java.util.List;
+
 import org.apache.http.HttpHeaders;
 import org.hamcrest.Matchers;
 import org.junit.ClassRule;
 import org.junit.Test;
+
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
-
-import java.util.List;
 
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;

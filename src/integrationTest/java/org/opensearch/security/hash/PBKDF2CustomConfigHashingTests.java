@@ -53,13 +53,14 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
 
     @Parameterized.Parameters(name = "function={0}, iterations={1}, length={2}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-            { "SHA224", 32000, 128 },
-            { "SHA256", 64000, 256 },
-            { "SHA384", 128000, 512 },
-            { "SHA512", 256000, 256 },
-            { "SHA256", 32000, 512 }
-        });
+        return Arrays.asList(
+            new Object[][] {
+                { "SHA224", 32000, 128 },
+                { "SHA256", 64000, 256 },
+                { "SHA384", 128000, 512 },
+                { "SHA512", 256000, 256 },
+                { "SHA256", 32000, 512 } }
+        );
     }
 
     @Before

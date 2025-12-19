@@ -18,13 +18,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
-
 import com.google.common.collect.ImmutableList;
 import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexDescriptor;

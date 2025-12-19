@@ -74,7 +74,9 @@ public enum ClusterConfig {
         if (cluster != null) {
             try {
                 cluster.close();
-            } catch (Exception e) {e.printStackTrace();}
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             cluster = null;
         }
     }

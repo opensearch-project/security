@@ -1918,7 +1918,10 @@ public class SearchOperationTest {
         );
         auditLogsRule.assertExactly(
             snapshotGetCount,
-            userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index")
+            userAuthenticated(LIMITED_WRITE_USER).withRestRequest(
+                GET,
+                "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index"
+            )
         );
         auditLogsRule.assertAtLeast(1, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
         auditLogsRule.assertAtLeast(1, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
@@ -2491,8 +2494,7 @@ public class SearchOperationTest {
         ) {
 
             assertThatThrownBy(
-                () -> restHighLevelClient.indices()
-                    .getSettings(new GetSettingsRequest().indices(indexThatUserHasNoAccessTo), DEFAULT),
+                () -> restHighLevelClient.indices().getSettings(new GetSettingsRequest().indices(indexThatUserHasNoAccessTo), DEFAULT),
                 statusException(FORBIDDEN)
             );
             assertThatThrownBy(

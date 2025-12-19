@@ -9,6 +9,8 @@
 */
 package org.opensearch.security;
 
+import java.util.Map;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -17,8 +19,6 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
-
-import java.util.Map;
 
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 

@@ -9,7 +9,6 @@
 */
 package org.opensearch.security.http;
 
-import java.util.List;
 import java.util.Map;
 
 import org.junit.ClassRule;
