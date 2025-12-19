@@ -323,19 +323,25 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         );
 
         // put
-        badRequestWithReason(() -> client.putJson(apiPath("str12"), EMPTY_BODY), "Request body required for this action.");
+        badRequestWithReason(
+            () -> client.putJson(apiPath(randomAlphanumericString()), EMPTY_BODY),
+            "Request body required for this action."
+        );
         badRequestWithReason(
             () -> client.putJson(
-                apiPath("str92"),
+                apiPath(randomAlphanumericString()),
                 (builder, params) -> builder.startObject().field("users", configJsonArray()).field("users", configJsonArray()).endObject()
             ),
             "Could not parse content of request."
         );
-        assertInvalidKeys(badRequest(() -> client.putJson(apiPath("str92"), unparseableJsonRequest)), "unknown_json_property");
+        assertInvalidKeys(
+            badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), unparseableJsonRequest)),
+            "unknown_json_property"
+        );
         for (String randomPropertyForPut : jsonProperties()) {
             assertWrongDataType(
                 client.putJson(
-                    apiPath("str92"),
+                    apiPath(randomAlphanumericString()),
                     (builder, params) -> builder.startObject().field(randomPropertyForPut).value("something").endObject()
                 ),
                 Map.of(randomPropertyForPut, "Array expected")
@@ -343,7 +349,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         }
         assertNullValuesInArray(
             client.putJson(
-                apiPath("str92"),
+                apiPath(randomAlphanumericString()),
                 roleMapping(
                     configJsonArray(generateArrayValues(true)),
                     configJsonArray(generateArrayValues(true)),
@@ -353,7 +359,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
             )
         );
         // patch
-        final var predefinedRole = "str92";
+        final var predefinedRole = randomAlphanumericString();
         created(() -> client.putJson(rolesApiPath(predefinedRole), roleJson()));
         created(
             () -> client.putJson(
@@ -361,15 +367,15 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
                 roleMapping(configJsonArray("a", "b"), configJsonArray(), configJsonArray(), configJsonArray())
             )
         );
-        badRequest(() -> client.patch(apiPath("str92"), EMPTY_BODY));
+        badRequest(() -> client.patch(apiPath(randomAlphanumericString()), EMPTY_BODY));
         badRequest(
             () -> client.patch(
-                apiPath("str92"),
+                apiPath(randomAlphanumericString()),
                 (builder, params) -> builder.startObject().field("users", configJsonArray()).field("users", configJsonArray()).endObject()
             )
         );
         assertInvalidKeys(
-            badRequest(() -> client.patch(apiPath(), patch(addOp("str92", unparseableJsonRequest)))),
+            badRequest(() -> client.patch(apiPath(), patch(addOp(randomAlphanumericString(), unparseableJsonRequest)))),
             "unknown_json_property"
         );
         badRequest(() -> client.patch(apiPath(predefinedRole), patch(replaceOp("users", unparseableJsonRequest))));
@@ -379,7 +385,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
                     apiPath(),
                     patch(
                         addOp(
-                            "str92",
+                            randomAlphanumericString(),
                             (ToXContentObject) (builder, params) -> builder.startObject()
                                 .field(randomPropertyForPatch)
                                 .value("something")
@@ -406,7 +412,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
                 apiPath(),
                 patch(
                     addOp(
-                        "str92",
+                        randomAlphanumericString(),
                         roleMapping(
                             configJsonArray(generateArrayValues(true)),
                             configJsonArray(generateArrayValues(true)),
