@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
@@ -40,7 +41,6 @@ import org.opensearch.test.framework.data.TestIndexOrAliasOrDatastream;
 import org.opensearch.test.framework.matcher.RestIndexMatchers;
 
 import static java.util.stream.Collectors.joining;
-import static org.apache.commons.lang3.StringEscapeUtils.escapeJson;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.cluster.TestRestClient.json;
@@ -194,6 +194,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_a*")
         )//
         .reference(READ, limitedTo(index_a1, index_a2, index_a3, index_ax))//
+        .reference(READ_NEXT_GEN, limitedTo(index_a1, index_a2, index_a3, index_ax))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -208,6 +209,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_b*")
         )//
         .reference(READ, limitedTo(index_b1, index_b2, index_b3))//
+        .reference(READ_NEXT_GEN, limitedTo(index_b1, index_b2, index_b3))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -222,6 +224,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_b1")
         )//
         .reference(READ, limitedTo(index_b1))//
+        .reference(READ_NEXT_GEN, limitedTo(index_b1))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -236,6 +239,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_c*")
         )//
         .reference(READ, limitedTo(index_c1, alias_c1))//
+        .reference(READ_NEXT_GEN, limitedTo(index_c1))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -251,6 +255,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("alias_ab1*")
         )//
         .reference(READ, limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1))//
+        .reference(READ_NEXT_GEN, limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1))//
         .reference(GET_ALIAS, limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1));
 
     /**
@@ -266,6 +271,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("alias_c1")
         )//
         .reference(READ, limitedTo(index_c1, alias_c1))//
+        .reference(READ_NEXT_GEN, limitedTo(index_c1, alias_c1))//
         .reference(GET_ALIAS, limitedTo(index_c1, alias_c1));
     /**
      * Same as LIMITED_USER_A with the addition of read privileges for index_hidden* and .index_hidden*
@@ -279,6 +285,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_a*", "index_hidden*", ".index_hidden*")
         )//
         .reference(READ, limitedTo(index_a1, index_a2, index_a3, index_ax, index_hidden, index_hidden_dot))//
+        .reference(READ_NEXT_GEN, limitedTo(index_a1, index_a2, index_a3, index_ax, index_hidden, index_hidden_dot))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -304,8 +311,8 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on(".system_index_plugin")
         )//
         .reference(READ, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index))//
+        .reference(READ_NEXT_GEN, limitedTo(index_c1, alias_c1, system_index_plugin))//
         .reference(GET_ALIAS, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index));
-
     /**
      * This user has no privileges for indices that are used in this test. But they have privileges for other indices.
      * This allows them to use actions like _search and receive empty result sets.
@@ -321,6 +328,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_does_not_exist_*")
         )//
         .reference(READ, limitedToNone())//
+        .reference(READ_NEXT_GEN, limitedToNone())//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -333,8 +341,8 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
         )//
         .reference(READ, limitedToNone())//
+        .reference(READ_NEXT_GEN, limitedToNone())//
         .reference(GET_ALIAS, limitedToNone());
-
     /**
      * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
      * restrictions and similar things.
@@ -349,6 +357,7 @@ public class IndexAuthorizationReadOnlyIntTests {
 
         )//
         .reference(READ, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax))//
+        .reference(READ_NEXT_GEN, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax))//
         .reference(GET_ALIAS, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax));
 
     /**
@@ -359,6 +368,7 @@ public class IndexAuthorizationReadOnlyIntTests {
         .description("super unlimited (admin cert)")//
         .adminCertUser()//
         .reference(READ, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(READ_NEXT_GEN, unlimitedIncludingOpenSearchSecurityIndex())//
         .reference(GET_ALIAS, unlimitedIncludingOpenSearchSecurityIndex());
 
     static final List<TestSecurityConfig.User> USERS = ImmutableList.of(
@@ -412,21 +422,37 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000");
 
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // The dnfof implementation has the effect that hidden indices might be included even though not requested
+                    assertThat(
+                        httpResponse,
+                        containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
+                            "hits.hits[*]._index"
+                        ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
             } else {
-                // The dnfof implementation has the effect that hidden indices might be included even though not requested
-                assertThat(
-                    httpResponse,
-                    containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
-                        "hits.hits[*]._index"
-                    ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    // The main case: the requested indices are reduced according to privileges; depending on config even to an empty set of
+                    // indices
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // If a user has no search privileges at all, they will get a 403 error
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -435,12 +461,11 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_noPattern_noWildcards() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000&expand_wildcards=none");
-
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+            if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
                 // Users with full privileges get an empty result, like expected due to the expand_wildcards=none option
                 assertThat(httpResponse, isOk());
                 assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
-            } else {
+            } else if (clusterConfig.legacyPrivilegeEvaluation) {
                 // The dnfof implementation has the effect that the expand_wildcards=none option is disregarded
                 // Additionally, the dnfof implementation has the effect that hidden indices might be included even though not requested
                 assertThat(
@@ -449,6 +474,8 @@ public class IndexAuthorizationReadOnlyIntTests {
                         "hits.hits[*]._index"
                     ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
+            } else {
+                assertThat(httpResponse, isForbidden());
             }
         }
     }
@@ -456,22 +483,30 @@ public class IndexAuthorizationReadOnlyIntTests {
     @Test
     public void search_noPattern_allowNoIndicesFalse() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse httpResponse = restClient.get("_search?size=1000&allow_no_indices=false");
-
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+            TestRestClient.HttpResponse httpResponse = restClient.get("/_search?size=1000&allow_no_indices=false");
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(isForbidden())
+                    );
+                } else {
+                    // The dnfof implementation has the effect that hidden indices might be included even though not requested
+                    assertThat(
+                        httpResponse,
+                        containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
+                            "hits.hits[*]._index"
+                        ).reducedBy(user.reference(READ)).whenEmpty(isForbidden())
+                    );
+                }
+            } else {
                 assertThat(
                     httpResponse,
                     containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
                         .reducedBy(user.reference(READ))
                         .whenEmpty(isForbidden())
-                );
-            } else {
-                // The dnfof implementation has the effect that hidden indices might be included even though not requested
-                assertThat(
-                    httpResponse,
-                    containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
-                        "hits.hits[*]._index"
-                    ).reducedBy(user.reference(READ)).whenEmpty(isForbidden())
                 );
             }
         }
@@ -482,21 +517,37 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_all/_search?size=1000");
 
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // The dnfof implementation has the effect that hidden indices might be included even though not requested
+                    assertThat(
+                        httpResponse,
+                        containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
+                            "hits.hits[*]._index"
+                        ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
             } else {
-                // The dnfof implementation has the effect that hidden indices might be included even though not requested
-                assertThat(
-                    httpResponse,
-                    containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
-                        "hits.hits[*]._index"
-                    ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    // The main case: the requested indices are reduced according to privileges; depending on config even to an empty set of
+                    // indices
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // If a user has no search privileges at all, they will get a 403 error
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -510,7 +561,8 @@ public class IndexAuthorizationReadOnlyIntTests {
                 // Users with full privileges get an empty result, like expected due to the expand_wildcards=none option
                 assertThat(httpResponse, isOk());
                 assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
-            } else {
+
+            } else if (clusterConfig.legacyPrivilegeEvaluation) {
                 // The dnfof implementation has the effect that the expand_wildcards=none option is disregarded
                 // Additionally, the dnfof implementation has the effect that hidden indices might be included even though not requested
                 assertThat(
@@ -519,6 +571,11 @@ public class IndexAuthorizationReadOnlyIntTests {
                         "hits.hits[*]._index"
                     ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
+            } else {
+                // TODO check if this is the desired behavior
+                // In the new privilege evaluation, the expand_wildcards=none option is observed;
+                // that means we look at an index called _all, for which the user has no privileges
+                assertThat(httpResponse, isForbidden());
             }
         }
     }
@@ -528,16 +585,28 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_all/_search?size=1000&expand_wildcards=all");
 
-            assertThat(
-                httpResponse,
-                containsExactly(
-                    clusterConfig.systemIndexPrivilegeEnabled || user == SUPER_UNLIMITED_USER
-                        ? ALL_INDICES
-                        : ALL_INDICES_EXCEPT_SYSTEM_INDICES
-                ).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(
+                        clusterConfig.systemIndexPrivilegeEnabled || user == SUPER_UNLIMITED_USER
+                            ? ALL_INDICES
+                            : ALL_INDICES_EXCEPT_SYSTEM_INDICES
+                    ).at("hits.hits[*]._index")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else { // next gen privilege evaluation
+                if (user != LIMITED_USER_NONE) {
+                    // In the new privilege evaluation, the system index privilege is observed and contributes to dnfof.
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_INDICES).at("hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
         }
     }
 
@@ -546,21 +615,37 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("*/_search?size=1000");
 
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // The dnfof implementation has the effect that hidden indices might be included even though not requested
+                    assertThat(
+                        httpResponse,
+                        containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
+                            "hits.hits[*]._index"
+                        ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
             } else {
-                // The dnfof implementation has the effect that hidden indices might be included even though not requested
-                assertThat(
-                    httpResponse,
-                    containsExactly(clusterConfig.systemIndexPrivilegeEnabled ? ALL_INDICES : ALL_INDICES_EXCEPT_SYSTEM_INDICES).at(
-                        "hits.hits[*]._index"
-                    ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    // The main case: the requested indices are reduced according to privileges; depending on config even to an empty set of
+                    // indices
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // If a user has no search privileges at all, they will get a 403 error
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -574,7 +659,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 // Users with full privileges get an empty result, like expected due to the expand_wildcards=none option
                 assertThat(httpResponse, isOk());
                 assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
-            } else {
+            } else if (clusterConfig.legacyPrivilegeEvaluation) {
                 // The dnfof implementation has the effect that the expand_wildcards=none option is disregarded
                 // Additionally, the dnfof implementation has the effect that hidden indices might be included even though not requested
                 assertThat(
@@ -583,6 +668,8 @@ public class IndexAuthorizationReadOnlyIntTests {
                         "hits.hits[*]._index"
                     ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
+            } else {
+                assertThat(httpResponse, isForbidden());
             }
         }
     }
@@ -592,16 +679,21 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("*/_search?size=1000&expand_wildcards=all");
 
-            assertThat(
-                httpResponse,
-                containsExactly(
-                    clusterConfig.systemIndexPrivilegeEnabled || user == SUPER_UNLIMITED_USER
-                        ? ALL_INDICES
-                        : ALL_INDICES_EXCEPT_SYSTEM_INDICES
-                ).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(
+                        clusterConfig.systemIndexPrivilegeEnabled || user == SUPER_UNLIMITED_USER
+                            ? ALL_INDICES
+                            : ALL_INDICES_EXCEPT_SYSTEM_INDICES
+                    ).at("hits.hits[*]._index")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                // If a user has no search privileges at all, they will get a 403 error
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -621,12 +713,17 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_a1,index_b1/_search?size=1000&ignore_unavailable=true");
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_b1).at("hits.hits[*]._index")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                // If a user has no search privileges at all, they will get a 403 error
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -700,7 +797,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     containsExactly(system_index_plugin).at("hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
                 );
             } else {
-                if (user.reference(READ).covers(alias_with_system_index)) {
+                if (user.reference(READ_NEXT_GEN).covers(alias_with_system_index)) {
                     assertThat(httpResponse, isOk());
                     assertThat(httpResponse, containsExactly(system_index_plugin).at("hits.hits[*]._index"));
                 } else {
@@ -715,12 +812,17 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_a*,index_b*/_search?size=1000");
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                // If a user has no search privileges at all, they will get a 403 error
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -729,12 +831,17 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_a*,index_b*,-index_b2,-index_b3/_search?size=1000");
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                // If a user has no search privileges at all, they will get a 403 error
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -744,19 +851,32 @@ public class IndexAuthorizationReadOnlyIntTests {
             TestRestClient.HttpResponse httpResponse = restClient.get(
                 "index_a*,index_b*,xxx_non_existing/_search?size=1000&ignore_unavailable=true"
             );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // The presence of a non existing index has the effect that the other patterns are not resolved by IndexResolverReplacer
+                // This causes a few more 403 errors where the granted index patterns do not use wildcards
 
-            // The presence of a non existing index has the effect that the other patterns are not resolved by IndexResolverReplacer
-            // This causes a few more 403 errors where the granted index patterns do not use wildcards
-
-            if (user == LIMITED_USER_B1 || user == LIMITED_USER_ALIAS_AB1) {
-                assertThat(httpResponse, isForbidden());
+                if (user == LIMITED_USER_B1 || user == LIMITED_USER_ALIAS_AB1) {
+                    assertThat(httpResponse, isForbidden());
+                } else {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
             } else {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // If a user has no search privileges at all, they will get a 403 error
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -765,21 +885,29 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_indexPattern_noWildcards() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_a*,index_b*/_search?size=1000&expand_wildcards=none");
-            // We have to specify the users here explicitly because here we need to check privileges for the
-            // non-existing (and invalidly named) indices "index_a*" and "index_b*".
-            // However: Again, dnfof gets the indices options wrong and ignores the expand_wildcards=none flag when getting active
-            if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
-                // Only these users "get through". Because the indices does not exist, they get a 404
-                assertThat(httpResponse, isNotFound());
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // We have to specify the users here explicitly because here we need to check privileges for the
+                // non-existing (and invalidly named) indices "index_a*" and "index_b*".
+                // However: Again, dnfof gets the indices options wrong and ignores the expand_wildcards=none flag when getting active
+                if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                    // Only these users "get through". Because the indices does not exist, they get a 404
+                    assertThat(httpResponse, isNotFound());
+                } else {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
             } else {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("hits.hits[*]._index")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                    // Only these users "get through". Because the indices does not exist, they get a 404
+                    assertThat(httpResponse, isNotFound());
+                } else {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+                }
             }
-
         }
     }
 
@@ -788,13 +916,16 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             // If there is a wildcard, negation will also affect indices specified without a wildcard
             TestRestClient.HttpResponse httpResponse = restClient.get("index_a*,index_b1,index_b2,-index_b2/_search?size=1000");
-
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -831,7 +962,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                         .reducedBy(user.reference(READ))
                         .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                 );
-            } else {
+            } else if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
                 // Things get buggy here; basically all requests fail with a 403
                 if (user == LIMITED_USER_C_WITH_SYSTEM_INDICES) {
                     // This user is supposed to have the system index privilege for the index .system_index_plugin
@@ -845,6 +976,29 @@ public class IndexAuthorizationReadOnlyIntTests {
                     // out indices without authorization from eligible requests. However, the SystemIndexAccessEvaluator
                     // is not aware of this and just denies all these requests
                     // See also https://github.com/opensearch-project/security/issues/5546
+                    assertThat(httpResponse, isForbidden());
+                }
+            } else {
+                if (user != LIMITED_USER_NONE) {
+                    // Without system index privileges, the system_index_plugin will be included if we have the privilege
+                    assertThat(
+                        httpResponse,
+                        containsExactly(
+                            index_a1,
+                            index_a2,
+                            index_a3,
+                            index_b1,
+                            index_b2,
+                            index_b3,
+                            index_c1,
+                            index_hidden,
+                            index_hidden_dot,
+                            system_index_plugin
+                        ).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
                     assertThat(httpResponse, isForbidden());
                 }
             }
@@ -863,6 +1017,13 @@ public class IndexAuthorizationReadOnlyIntTests {
                         .reducedBy(user.reference(READ))
                         .whenEmpty(isForbidden())
                 );
+            } else {
+                // The new privilege evaluation never replaces aliases
+                if (user.reference(READ).covers(alias_ab1)) {
+                    assertThat(httpResponse, containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index"));
+                } else {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+                }
             }
         }
     }
@@ -872,12 +1033,16 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("alias_ab1*/_search?size=1000");
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -885,14 +1050,28 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void search_alias_pattern_negation() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("alias_*,-alias_ab1/_search?size=1000");
-            // Another interesting effect: The negation on alias names does actually have no effect.
-            // This is this time a bug in core. TODO: File issue
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+
+            if (user != LIMITED_USER_NONE) {
+                if (clusterConfig.systemIndexPrivilegeEnabled) {
+                    // If the system index privilege is enabled, we might also see the system_index_plugin index (being included via the
+                    // alias)
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_c1).at("hits.hits[*]._index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -946,7 +1125,19 @@ public class IndexAuthorizationReadOnlyIntTests {
                         .reducedBy(user.reference(READ))
                         .whenEmpty(isForbidden())
                 );
-
+            } else {
+                // The new privilege evaluation never replaces aliases
+                if (user == LIMITED_USER_NONE) {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+                } else if (user.reference(READ).covers(alias_ab1)) {
+                    assertThat(httpResponse, containsExactly(index_a1, index_a2, index_a3, index_b1).at("hits.hits[*]._index"));
+                } else if (user.reference(READ).covers(index_b1)) {
+                    // Due to the "ignore_unavailable" request param, the alias_ab1 will be just silently ignored if we do not have
+                    // privileges for it
+                    assertThat(httpResponse, containsExactly(index_b1).at("hits.hits[*]._index"));
+                } else {
+                    assertThat(httpResponse, containsExactly().at("hits.hits[*]._index"));
+                }
             }
         }
     }
@@ -968,7 +1159,15 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("x_does_not_exist*/_search?size=1000");
 
-            assertThat(httpResponse, containsExactly().at("hits.hits[*]._index").whenEmpty(isOk()));
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(httpResponse, containsExactly().at("hits.hits[*]._index").whenEmpty(isOk()));
+            } else {
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(httpResponse, containsExactly().at("hits.hits[*]._index").whenEmpty(isOk()));
+                } else {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+                }
+            }
         }
     }
 
@@ -988,12 +1187,28 @@ public class IndexAuthorizationReadOnlyIntTests {
                   }
                 }""");
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at(
-                    "aggregations.indices.buckets[*].key"
-                ).reducedBy(user.reference(READ)).whenEmpty(isOk())
-            );
+            if (clusterConfig == ClusterConfig.NEXT_GEN_PRIVILEGES_EVALUATION) {
+                if (user == LIMITED_USER_NONE) {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
+                } else if (user == LIMITED_USER_OTHER_PRIVILEGES) {
+                    assertThat(httpResponse, isOk());
+                    assertTrue(httpResponse.getBody(), httpResponse.bodyAsMap().get("aggregations") == null);
+                } else {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at(
+                            "aggregations.indices.buckets[*].key"
+                        ).reducedBy(user.reference(READ)).whenEmpty(isOk())
+                    );
+                }
+            } else {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at(
+                        "aggregations.indices.buckets[*].key"
+                    ).reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
+            }
         }
     }
 
@@ -1039,20 +1254,25 @@ public class IndexAuthorizationReadOnlyIntTests {
 
             RestIndexMatchers.OnResponseIndexMatcher indexMatcher;
 
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                indexMatcher = containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1);
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    indexMatcher = containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1);
+                } else {
+                    // the dnfof implementation has the effect that hidden indices might be included even though not requested
+                    indexMatcher = containsExactly(
+                        index_a1,
+                        index_a2,
+                        index_a3,
+                        index_b1,
+                        index_b2,
+                        index_b3,
+                        index_c1,
+                        index_hidden,
+                        index_hidden_dot
+                    );
+                }
             } else {
-                indexMatcher = containsExactly(
-                    index_a1,
-                    index_a2,
-                    index_a3,
-                    index_b1,
-                    index_b2,
-                    index_b3,
-                    index_c1,
-                    index_hidden,
-                    index_hidden_dot
-                );
+                indexMatcher = containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1);
             }
 
             if (indexMatcher.reducedBy(user.reference(READ)).isEmpty()) {
@@ -1070,7 +1290,8 @@ public class IndexAuthorizationReadOnlyIntTests {
                       }
                     }
                     """, pitId));
-                if (clusterConfig.systemIndexPrivilegeEnabled && user == LIMITED_USER_C_WITH_SYSTEM_INDICES) {
+                if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION
+                    && user == LIMITED_USER_C_WITH_SYSTEM_INDICES) {
                     // The current request mixes access to a normal index and a system index.
                     // The current system index permission implementation has the issue that it also
                     // expects the system index permission for the normal issue then.
@@ -1144,10 +1365,6 @@ public class IndexAuthorizationReadOnlyIntTests {
     @Test
     public void search_template_staticIndices() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            String params = """
-                {
-                    "department": [%s]
-                }""".formatted(TestData.DEPARTMENTS.stream().map(s -> '"' + s + '"').collect(joining(",")));
             String query = """
                 {
                   "query": {
@@ -1162,11 +1379,10 @@ public class IndexAuthorizationReadOnlyIntTests {
                 }
                 """;
 
-            TestRestClient.HttpResponse httpResponse = restClient.getWithJsonBody("index_a1/_search/template?size=1000", """
-                {
-                  "params": %s,
-                  "source": "%s"
-                }""".formatted(params, escapeJson(query)));
+            TestRestClient.HttpResponse httpResponse = restClient.get(
+                "index_a1/_search/template?size=1000",
+                json("params", Map.of("department", TestData.DEPARTMENTS), "source", query)
+            );
 
             assertThat(
                 httpResponse,
@@ -1234,10 +1450,19 @@ public class IndexAuthorizationReadOnlyIntTests {
 
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.postJson("/_mget", mget);
-            assertThat(
-                httpResponse,
-                containsExactly(index_c1).at("docs[?(@.found == true)]._index").reducedBy(user.reference(READ)).whenEmpty(isOk())
-            );
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_c1).at("docs[?(@.found == true)]._index").reducedBy(user.reference(READ)).whenEmpty(isOk())
+                );
+            } else {
+                if (user.reference(READ_NEXT_GEN).covers(alias_c1)) {
+                    assertThat(httpResponse, containsExactly(index_c1).at("docs[?(@.found == true)]._index"));
+                } else {
+                    assertThat(httpResponse, containsExactly().at("docs[?(@.found == true)]._index"));
+                }
+            }
         }
     }
 
@@ -1257,7 +1482,15 @@ public class IndexAuthorizationReadOnlyIntTests {
 
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("alias_c1/_doc/" + testDocumentC1.id());
-            assertThat(httpResponse, containsExactly(index_c1).at("_index").reducedBy(user.reference(READ)).whenEmpty(isForbidden()));
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(httpResponse, containsExactly(index_c1).at("_index").reducedBy(user.reference(READ)).whenEmpty(isForbidden()));
+            } else {
+                if (user.reference(READ_NEXT_GEN).covers(alias_c1)) {
+                    assertThat(httpResponse, containsExactly(index_c1).at("_index"));
+                } else {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/get]"));
+                }
+            }
         }
     }
 
@@ -1295,30 +1528,44 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/indices?format=json");
 
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("$[*].index")
-                        .reducedBy(user.reference(READ))
-                );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("$[*].index")
+                            .reducedBy(user.reference(READ))
+                    );
 
+                } else {
+                    // Also here, dnfof might introduce hidden indices even though they were not requested
+                    assertThat(
+                        httpResponse,
+                        containsExactly(
+                            index_a1,
+                            index_a2,
+                            index_a3,
+                            index_b1,
+                            index_b2,
+                            index_b3,
+                            index_c1,
+                            index_hidden_dot,
+                            index_hidden,
+                            system_index_plugin
+                        ).at("$[*].index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
+                    );
+                }
             } else {
-                // Also here, dnfof might introduce hidden indices even though they were not requested
-                assertThat(
-                    httpResponse,
-                    containsExactly(
-                        index_a1,
-                        index_a2,
-                        index_a3,
-                        index_b1,
-                        index_b2,
-                        index_b3,
-                        index_c1,
-                        index_hidden_dot,
-                        index_hidden,
-                        system_index_plugin
-                    ).at("$[*].index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("$[*].index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1328,12 +1575,17 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/indices/index_a*?format=json");
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3).at("$[*].index")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3).at("$[*].index")
+
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -1341,13 +1593,27 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void cat_indices_all_includeHidden() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/indices?format=json&expand_wildcards=all");
-            if (user == UNLIMITED_USER) {
-                assertThat(httpResponse, containsExactly(ALL_INDICES).at("$[*].index"));
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == UNLIMITED_USER) {
+                    assertThat(httpResponse, containsExactly(ALL_INDICES).at("$[*].index"));
+                } else {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_INDICES).at("$[*].index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
+                    );
+                }
             } else {
-                assertThat(
-                    httpResponse,
-                    containsExactly(ALL_INDICES).at("$[*].index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_INDICES).at("$[*].index")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1379,13 +1645,24 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_cat/aliases/alias_a*?format=json");
 
-            if (!user.reference(GET_ALIAS).isEmpty()) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(alias_ab1).at("$[*].alias").reducedBy(user.reference(GET_ALIAS)).whenEmpty(isOk())
-                );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (!user.reference(GET_ALIAS).isEmpty()) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(alias_ab1).at("$[*].alias").reducedBy(user.reference(GET_ALIAS)).whenEmpty(isOk())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             } else {
-                assertThat(httpResponse, isForbidden());
+                if (!user.reference(GET_ALIAS).isEmpty()) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(alias_ab1).at("$[*].alias").reducedBy(user.reference(GET_ALIAS)).whenEmpty(isForbidden())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1395,32 +1672,45 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("/_stats");
 
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("indices.keys()")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("indices.keys()")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // Also here, dnfof can introduce hidden indices even though they were not requested
+                    assertThat(
+                        httpResponse,
+                        containsExactly(
+                            index_a1,
+                            index_a2,
+                            index_a3,
+                            index_b1,
+                            index_b2,
+                            index_b3,
+                            index_c1,
+                            index_hidden,
+                            index_hidden_dot,
+                            system_index_plugin
+                        ).at("indices.keys()")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
             } else {
-                // Also here, dnfof can introduce hidden indices even though they were not requested
-                assertThat(
-                    httpResponse,
-                    containsExactly(
-                        index_a1,
-                        index_a2,
-                        index_a3,
-                        index_b1,
-                        index_b2,
-                        index_b3,
-                        index_c1,
-                        index_hidden,
-                        index_hidden_dot,
-                        system_index_plugin
-                    ).at("indices.keys()")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("indices.keys()")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1430,12 +1720,16 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_b*/_stats");
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_b1, index_b2, index_b3).at("indices.keys()")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_b1, index_b2, index_b3).at("indices.keys()")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -1443,23 +1737,28 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void getAlias_all() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_alias");
-            if (user == UNLIMITED_USER) {
+
+            if (clusterConfig.legacyPrivilegeEvaluation && user == UNLIMITED_USER) {
                 // The legacy privilege evaluation also allows regular users access to metadata of the security index
                 // This is not a security issue, as the metadata are not really security relevant
                 assertThat(httpResponse, containsExactly(ALL_INDICES).at("$.keys()"));
             } else {
-                assertThat(
-                    httpResponse,
-                    containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$.*.aliases.keys()")
-                        .reducedBy(user.reference(GET_ALIAS))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
-                assertThat(
-                    httpResponse,
-                    containsExactly(ALL_INDICES).at("$.keys()")
-                        .reducedBy(user.reference(GET_ALIAS))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (!user.reference(GET_ALIAS).isEmpty()) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$.*.aliases.keys()")
+                            .reducedBy(user.reference(GET_ALIAS))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_INDICES).at("$.keys()")
+                            .reducedBy(user.reference(GET_ALIAS))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1494,17 +1793,27 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_alias/alias_ab*");
 
-            if (user == LIMITED_USER_ALIAS_AB1 || user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
-                assertThat(httpResponse, isOk());
-                assertThat(httpResponse, containsExactly(alias_ab1).at("$.*.aliases.keys()").reducedBy(user.reference(GET_ALIAS)));
-                assertThat(httpResponse, containsExactly(index_a1, index_a2, index_a3, index_b1).at("$.keys()"));
-            } else if (user == LIMITED_USER_ALIAS_C1 || user == LIMITED_USER_C_WITH_SYSTEM_INDICES) {
-                // This is also a kind of anomaly in the legacy privilege evaluation: Even though we do not have permissions
-                // we get a 200 response with an empty result
-                assertThat(httpResponse, isOk());
-                assertTrue(httpResponse.getBody(), httpResponse.bodyAsMap().isEmpty());
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == LIMITED_USER_ALIAS_AB1 || user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                    assertThat(httpResponse, containsExactly(alias_ab1).at("$.*.aliases.keys()").reducedBy(user.reference(GET_ALIAS)));
+                    assertThat(httpResponse, containsExactly(index_a1, index_a2, index_a3, index_b1).at("$.keys()"));
+                } else if (user == LIMITED_USER_ALIAS_C1 || user == LIMITED_USER_C_WITH_SYSTEM_INDICES) {
+                    // This is also a kind of anomaly in the legacy privilege evaluation: Even though we do not have permissions
+                    // we get a 200 response with an empty result
+                    assertThat(httpResponse, isOk());
+                    assertTrue(httpResponse.getBody(), httpResponse.bodyAsMap().isEmpty());
+                } else {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:admin/aliases/get]"));
+                }
             } else {
-                assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:admin/aliases/get]"));
+                if (user.reference(GET_ALIAS).covers(alias_ab1)) {
+                    assertThat(httpResponse, isOk());
+                    assertThat(httpResponse, containsExactly(alias_ab1).at("$.*.aliases.keys()"));
+                    assertThat(httpResponse, containsExactly(index_a1, index_a2, index_a3, index_b1).at("$.keys()"));
+                } else {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:admin/aliases/get]"));
+                }
             }
         }
     }
@@ -1532,27 +1841,45 @@ public class IndexAuthorizationReadOnlyIntTests {
                         system_index_plugin
                     ).at("$.keys()")
                 );
-            } else if (!clusterConfig.systemIndexPrivilegeEnabled) {
+            } else if (clusterConfig != ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION) {
                 if (user == UNLIMITED_USER) {
-                    assertThat(
-                        httpResponse,
-                        containsExactly(
-                            index_a1,
-                            index_a2,
-                            index_a3,
-                            index_b1,
-                            index_b2,
-                            index_b3,
-                            index_c1,
-                            index_hidden,
-                            index_hidden_dot,
-                            system_index_plugin
-                        ).at("$.keys()")
-                    );
-                } else {
+                    if (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION) {
+                        assertThat(
+                            httpResponse,
+                            containsExactly(
+                                index_a1,
+                                index_a2,
+                                index_a3,
+                                index_b1,
+                                index_b2,
+                                index_b3,
+                                index_c1,
+                                index_hidden,
+                                index_hidden_dot,
+                                system_index_plugin
+                            ).at("$.keys()")
+                        );
+                    } else {
+                        assertThat(
+                            httpResponse,
+                            containsExactly(
+                                index_a1,
+                                index_a2,
+                                index_a3,
+                                index_b1,
+                                index_b2,
+                                index_b3,
+                                index_c1,
+                                index_hidden,
+                                index_hidden_dot
+                            ).at("$.keys()")
+                        );
+                    }
+                } else if (!user.reference(GET_ALIAS).isEmpty()) {
                     assertThat(
                         httpResponse,
                         containsExactly(alias_ab1, alias_c1, alias_with_system_index).at("$.*.aliases.keys()")
+
                             .reducedBy(user.reference(GET_ALIAS))
                             .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
@@ -1562,10 +1889,12 @@ public class IndexAuthorizationReadOnlyIntTests {
                             .reducedBy(user.reference(GET_ALIAS))
                             .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
+                } else {
+                    assertThat(httpResponse, isForbidden());
                 }
-            } else {
-                // If the system index privilege is enabled, we only get 403 errors, as SystemIndexPrivilegeEvaluator
-                // is not aware of dnfof; see https://github.com/opensearch-project/security/issues/5546
+            } else { // clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION_SYSTEM_INDEX_PERMISSION
+                // If the system index privilege is enabled, we only get 403 errors, as
+                // the legacy SystemIndexPrivilegeEvaluator is not aware of dnfof
                 assertThat(httpResponse, isForbidden());
             }
         }
@@ -1576,14 +1905,25 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.postJson("_analyze", "{\"text\": \"sample text\"}");
 
-            // _analyze without index is different from most other operations:
-            // Usually, the absence of an index means "all indices". For analyze, however, it means: "no index".
-            // However, the IndexResolverReplacer does not get this right; it assumes that all indices are requested.
-            // Thus, we get only through to this operation with full privileges for all indices
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                assertThat(httpResponse, isOk());
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // _analyze without index is different from most other operations:
+                // Usually, the absence of an index means "all indices". For analyze, however, it means: "no index".
+                // However, the IndexResolverReplacer does not get this right; it assumes that all indices are requested.
+                // Thus, we get only through to this operation with full privileges for all indices
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:admin/analyze]"));
+                }
             } else {
-                assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:admin/analyze]"));
+                if (user != LIMITED_USER_NONE) {
+                    // In the new privilege evaluation, analyze without index is always allowed as long as the user has some index
+                    // privileges
+                    assertThat(httpResponse, isOk());
+                } else {
+                    // This is only forbidden if the user has no index privileges at all for indices:admin/analyze
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1607,33 +1947,60 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_resolve/index/*");
 
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1, alias_ab1, alias_c1).at(
-                        "$.*[*].name"
-                    ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
-            } else {
-                assertThat(
-                    httpResponse,
-                    containsExactly(
-                        index_a1,
-                        index_a2,
-                        index_a3,
-                        index_b1,
-                        index_b2,
-                        index_b3,
-                        index_c1,
-                        index_hidden,
-                        index_hidden_dot,
-                        system_index_plugin
-                    ).at("$.*[*].name")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
-            }
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1, alias_ab1, alias_c1).at(
+                            "$.*[*].name"
+                        ).reducedBy(user.reference(READ)).whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    // In the legacy privilege evaluation, dnfof makes alises in the top level aliases array disappear.
+                    // They remain in the indices array, though:
+                    // 200 OK
+                    // {
+                    // "indices" : [ {
+                    // "name" : "index_c1",
+                    // "aliases" : [ "alias_c1" ],
+                    // "attributes" : [ "open" ]
+                    // } ],
+                    // "aliases" : [ ],
+                    // "data_streams" : [ ]
+                    // }
+                    assertThat(
+                        httpResponse,
+                        containsExactly(
+                            index_a1,
+                            index_a2,
+                            index_a3,
+                            index_b1,
+                            index_b2,
+                            index_b3,
+                            index_c1,
+                            index_hidden,
+                            index_hidden_dot,
+                            system_index_plugin
+                        ).at("$.*[*].name")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
 
+            } else {
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1, alias_ab1, alias_c1).at(
+                            "$.*[*].name"
+                        )
+                            .reducedBy(user.reference(clusterConfig.legacyPrivilegeEvaluation ? READ : READ_NEXT_GEN))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
         }
     }
 
@@ -1642,15 +2009,28 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_resolve/index/*?expand_wildcards=all");
 
-            if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
-                // The legacy privilege evaluation also allows regular users access to metadata of the security index
-                // This is not a security issue, as the metadata are not really security relevant
-                assertThat(httpResponse, containsExactly(ALL_INDICES_AND_ALIASES).at("$.*[*].name"));
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                    // The legacy privilege evaluation also allows regular users access to metadata of the security index
+                    // This is not a security issue, as the metadata are not really security relevant
+                    assertThat(httpResponse, containsExactly(ALL_INDICES_AND_ALIASES).at("$.*[*].name"));
+                } else {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_INDICES).at("$.*[*].name").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
+                    );
+                }
             } else {
-                assertThat(
-                    httpResponse,
-                    containsExactly(ALL_INDICES).at("$.*[*].name").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_INDICES_AND_ALIASES).at("$.*[*].name")
+                            .reducedBy(user.reference(clusterConfig.legacyPrivilegeEvaluation ? READ : READ_NEXT_GEN))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1659,39 +2039,55 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void resolve_indexPattern() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_resolve/index/index_a*,index_b*");
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("$.*[*].name")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3).at("$.*[*].name")
 
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
     @Test
     public void field_caps_all() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
-            if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
-                TestRestClient.HttpResponse httpResponse = restClient.get("_field_caps?fields=*");
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("indices")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+            TestRestClient.HttpResponse httpResponse = restClient.get("_field_caps?fields=*");
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER || user == UNLIMITED_USER) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("indices")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
 
+                } else {
+                    // Also here, dnfof might introduce hidden indices even though they were not requested
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_INDICES).at("indices")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
+                }
             } else {
-                TestRestClient.HttpResponse httpResponse = restClient.get("_field_caps?fields=*");
-                assertThat(
-                    httpResponse,
-                    containsExactly(ALL_INDICES).at("indices")
-                        .reducedBy(user.reference(READ))
-                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-                );
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1).at("indices")
+                            .reducedBy(user.reference(READ))
+                            .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                    );
 
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
-
         }
     }
 
@@ -1699,11 +2095,16 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void field_caps_indexPattern() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_b*/_field_caps?fields=*");
-
-            assertThat(
-                httpResponse,
-                containsExactly(index_b1, index_b2, index_b3).at("indices").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_b1, index_b2, index_b3).at("indices")
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -1734,6 +2135,13 @@ public class IndexAuthorizationReadOnlyIntTests {
                         .reducedBy(user.reference(READ))
                         .whenEmpty(isForbidden())
                 );
+            } else {
+                if (user.reference(READ).covers(alias_ab1)) {
+                    assertThat(httpResponse, isOk());
+                    assertThat(httpResponse, containsExactly(index_a1, index_a2, index_a3, index_b1).at("indices"));
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         }
     }
@@ -1742,13 +2150,17 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void field_caps_aliasPattern() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("alias_ab*/_field_caps?fields=*");
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1).at("indices")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1).at("indices")
 
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 
@@ -1770,8 +2182,16 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("x_does_not_exist*/_field_caps?fields=*");
 
-            // As this resolves to an empty set of indices, we are always allowed
-            assertThat(httpResponse, containsExactly().at("indices").whenEmpty(isOk()));
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // As this resolves to an empty set of indices, we are always allowed
+                assertThat(httpResponse, containsExactly().at("indices").whenEmpty(isOk()));
+            } else {
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(httpResponse, containsExactly().at("indices").whenEmpty(isOk()));
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            }
         }
     }
 
@@ -1779,14 +2199,16 @@ public class IndexAuthorizationReadOnlyIntTests {
     public void field_caps_indexPattern_minus() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("index_a*,index_b*,-index_b2,-index_b3/_field_caps?fields=*");
+            if (user != LIMITED_USER_NONE) {
+                assertThat(
+                    httpResponse,
+                    containsExactly(index_a1, index_a2, index_a3, index_b1).at("indices")
 
-            assertThat(
-                httpResponse,
-                containsExactly(index_a1, index_a2, index_a3, index_b1).at("indices")
-                    .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
-            );
+                        .reducedBy(user.reference(READ))
+                        .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
+                );
 
+            }
         }
     }
 
@@ -1797,15 +2219,24 @@ public class IndexAuthorizationReadOnlyIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse httpResponse = restClient.get("_search/point_in_time/_all");
 
-            // At the moment, it is sufficient to have any privileges for any existing index to use the _all API
-            // This is clearly a bug; yet, not a severe issue, as we do not have really sensitive things available here.
-            // This is caused by the following line which makes PrivilegesEvaluator believe it could reduce the indices
-            // to authorized indices, even though it actually could not:
-            // https://github.com/opensearch-project/security/blob/aee54a8ca2a6cc596cb1e490be1e9fa240286246/src/main/java/org/opensearch/security/resolver/IndexResolverReplacer.java#L824-L825
-            if (user != LIMITED_USER_NONE && user != LIMITED_USER_OTHER_PRIVILEGES) {
-                assertThat(httpResponse, isOk());
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                // At the moment, it is sufficient to have any privileges for any existing index to use the _all API
+                // This is clearly a bug; yet, not a severe issue, as we do not have really sensitive things available here.
+                // This is caused by the following line which makes PrivilegesEvaluator believe it could reduce the indices
+                // to authorized indices, even though it actually could not:
+                // https://github.com/opensearch-project/security/blob/aee54a8ca2a6cc596cb1e490be1e9fa240286246/src/main/java/org/opensearch/security/resolver/IndexResolverReplacer.java#L824-L825
+                if (user != LIMITED_USER_NONE && user != LIMITED_USER_OTHER_PRIVILEGES) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             } else {
-                assertThat(httpResponse, isForbidden());
+                // New privilege evaluation: this is now a cluster privilege, the users below are the users with full cluster privileges
+                if (user == UNLIMITED_USER || user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         } finally {
             deletePit(indexA1pitId);

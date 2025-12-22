@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.data.TestIndex;
@@ -42,9 +43,6 @@ import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserInde
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
-/**
- * TODO requests on non cm node
- */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SnapshotAuthorizationIntTests {
@@ -188,7 +186,7 @@ public class SnapshotAuthorizationIntTests {
     );
 
     static LocalCluster.Builder clusterBuilder() {
-        return new LocalCluster.Builder().singleNode()
+        return new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USERS)//
             .indices(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3)//
