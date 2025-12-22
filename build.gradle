@@ -517,7 +517,7 @@ configurations {
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.21.0"
             force "net.bytebuddy:byte-buddy:1.18.3"
-            force "org.ow2.asm:asm:9.9"
+            force "org.ow2.asm:asm:9.9.1"
             force "com.google.j2objc:j2objc-annotations:3.1"
 
             // For org.opensearch.plugin:transport-grpc
@@ -717,7 +717,7 @@ dependencies {
     compileOnly 'com.google.errorprone:error_prone_annotations:2.44.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.4'
-    runtimeOnly 'org.ow2.asm:asm:9.9'
+    runtimeOnly 'org.ow2.asm:asm:9.9.1'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
@@ -782,7 +782,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.1'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.0"
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.1"
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.1'
