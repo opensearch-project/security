@@ -22,9 +22,11 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -64,6 +66,8 @@ public class PrivilegesConfiguration {
         DashboardsMultiTenancyConfiguration.DEFAULT
     );
     private final PrivilegesInterceptorImpl privilegesInterceptor;
+    private ApiTokenRepository apiTokenRepository;
+    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges = new HashMap<>();
 
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
@@ -84,7 +88,8 @@ public class PrivilegesConfiguration {
         AuditLog auditLog,
         Settings settings,
         Supplier<String> unavailablityReasonSupplier,
-        IndexResolverReplacer indexResolverReplacer
+        IndexResolverReplacer indexResolverReplacer,
+        ApiTokenRepository apiTokenRepository
     ) {
 
         this.privilegesEvaluator = new AtomicReference<>(new PrivilegesEvaluator.NotInitialized(unavailablityReasonSupplier));
@@ -97,6 +102,22 @@ public class PrivilegesConfiguration {
             this.multiTenancyConfiguration::get
         );
         this.staticActionGroups = buildStaticActionGroups();
+
+        if (apiTokenRepository != null) {
+            // TODO Also ensure these are read on node bootstrap
+            apiTokenRepository.subscribeOnChange(() -> {
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+                for (Map.Entry<String, RoleV7> entry : apiTokenRepository.getJtis().entrySet()) {
+                    tokenIdToActionPrivileges.put(
+                        entry.getKey(),
+                        new SubjectBasedActionPrivileges(entry.getValue(), flattenedActionGroups)
+                    );
+                }
+            });
+        }
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -136,7 +157,8 @@ public class PrivilegesConfiguration {
                             staticActionGroups,
                             rolesConfiguration,
                             generalConfiguration,
-                            pluginIdToRolePrivileges
+                            pluginIdToRolePrivileges,
+                            tokenIdToActionPrivileges
                         )
                     );
                     if (oldInstance != null) {
@@ -163,6 +185,8 @@ public class PrivilegesConfiguration {
         if (clusterService != null) {
             clusterService.addListener(event -> { this.privilegesEvaluator.get().updateClusterStateMetadata(clusterService); });
         }
+
+        this.apiTokenRepository = apiTokenRepository;
     }
 
     /**
