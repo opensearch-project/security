@@ -202,9 +202,9 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 }
 
                 if (!excludesSet.isEmpty()) {
-                    filterFunction = XContentMapValues.filter(null, excludes);
+                    filterFunction = XContentMapValues.filter(null, excludes, true);
                 } else {
-                    filterFunction = XContentMapValues.filter(includes, null);
+                    filterFunction = XContentMapValues.filter(includes, null, true);
                 }
             }
 
