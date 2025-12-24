@@ -60,7 +60,7 @@ public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends 
                 RequestContentValidator.ValidationError.WEAK_PASSWORD.message()
             );
             badRequestWithReason(
-                () -> client.putJson(internalUsers("admin"), internalUserWithPassword(randomAsciiAlphanumOfLengthBetween(2, 8))),
+                () -> client.putJson(internalUsers("admin"), internalUserWithPassword("str123")),
                 RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT.message()
             );
         });
@@ -69,18 +69,8 @@ public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends 
     @Test
     public void canCreateUserWithPassword() throws Exception {
         withUser(ADMIN_USER_NAME, client -> {
-            created(
-                () -> client.putJson(
-                    internalUsers(randomAsciiAlphanumOfLength(10)),
-                    internalUserWithPassword(randomAsciiAlphanumOfLength(9))
-                )
-            );
-            ok(
-                () -> client.patch(
-                    internalUsers(),
-                    patch(addOp(randomAsciiAlphanumOfLength(10), internalUserWithPassword(randomAsciiAlphanumOfLength(9))))
-                )
-            );
+            created(() -> client.putJson(internalUsers("str1234567"), internalUserWithPassword("s5tRx2r4bwex")));
+            ok(() -> client.patch(internalUsers(), patch(addOp("str1234567", internalUserWithPassword("s5tRx2r4bwex")))));
         });
     }
 

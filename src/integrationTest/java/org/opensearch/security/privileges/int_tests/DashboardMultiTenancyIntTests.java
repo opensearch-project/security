@@ -16,12 +16,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -45,8 +45,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * An integration test matrix for Dashboards multi-tenancy. Verifies both read and write operations
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class DashboardMultiTenancyIntTests {
 
     // -------------------------------------------------------------------------------------------------------
@@ -747,7 +746,7 @@ public class DashboardMultiTenancyIntTests {
         }
     }
 
-    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    @Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
         for (ClusterConfig clusterConfig : ClusterConfig.values()) {

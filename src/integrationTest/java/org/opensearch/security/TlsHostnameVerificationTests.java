@@ -11,11 +11,9 @@ package org.opensearch.security;
 
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
@@ -25,8 +23,6 @@ import org.opensearch.test.framework.log.LogsRule;
 
 import static org.opensearch.common.network.NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class TlsHostnameVerificationTests {
 
     @Rule
