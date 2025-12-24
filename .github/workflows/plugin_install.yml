@@ -3,7 +3,7 @@ name: Plugin Install
 on: [push, pull_request, workflow_dispatch]
 
 env:
-  OPENSEARCH_VERSION: 3.4.0
+  OPENSEARCH_VERSION: 3.5.0
   PLUGIN_NAME: opensearch-security
 
 jobs:
