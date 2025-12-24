@@ -169,7 +169,10 @@ public class DlsFilterLevelActionHandler {
 
         try (StoredContext ctx = threadContext.newStoredContext(true)) {
 
-            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, request.toString());
+            threadContext.putHeader(
+                ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
+                log.isDebugEnabled() ? request.toString() : "true"
+            );
 
             try {
                 if (!modifyQuery()) {
