@@ -18,7 +18,7 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 import org.apache.hc.core5.http.HttpEntity;
 import org.junit.After;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -195,12 +195,10 @@ public class SnapshotAuthorizationIntTests {
             .plugin(IndexAuthorizationReadOnlyIntTests.SystemIndexTestPlugin.class);
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        SnapshotAuthorizationIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -354,7 +352,7 @@ public class SnapshotAuthorizationIntTests {
 
     public SnapshotAuthorizationIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description) throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster(SnapshotAuthorizationIntTests::clusterBuilder);
+        this.cluster = clusterInstances.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 
