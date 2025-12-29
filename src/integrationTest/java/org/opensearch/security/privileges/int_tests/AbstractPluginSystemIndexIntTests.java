@@ -9,10 +9,8 @@
  */
 package org.opensearch.security.privileges.int_tests;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -40,8 +38,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
  * environments in which these contract tests are executed. This design leverages polymorphism
  * to dynamically bind the test logic to different runtime configurations.
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public abstract class AbstractPluginSystemIndexIntTests {
 
     protected abstract LocalCluster getCluster();
