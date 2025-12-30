@@ -182,19 +182,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                     String key = "attr.jwt." + claim.getKey();
                     Object value = claim.getValue();
 
-                    if (value instanceof Collection<?>) {
-                        try {
-                            // Convert the list to a JSON array string
-                            String jsonValue = DefaultObjectMapper.writeValueAsString(value, false);
-                            ac.addAttribute(key, jsonValue);
-                        } catch (Exception e) {
-                            log.warn("Failed to convert list claim to JSON for key: " + key, e);
-                            // Fallback to string representation
-                            ac.addAttribute(key, String.valueOf(value));
-                        }
-                    } else {
-                        ac.addAttribute(key, String.valueOf(value));
-                    }
+                    flattenClaimsToAttributes(key, value, ac);
                 }
 
                 return ac;
@@ -219,6 +207,28 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
         if (Collections.disjoint(claims.getAudience(), requiredAudience)) {
             throw new BadJWTException("Claim of 'aud' doesn't contain any required audience.");
+        }
+    }
+
+    private void flattenClaimsToAttributes(String prefix, Object value, AuthCredentials ac) {
+        if (value instanceof Map<?, ?> mapValue) {
+            // Recursively traverse nested maps
+            for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
+                String key = entry.getKey().toString();
+                Object subValue = entry.getValue();
+                flattenClaimsToAttributes(prefix + "." + key, subValue, ac);
+            }
+        } else if (value instanceof Collection<?> collection) {
+            // Serialize lists as JSON
+            try {
+                String jsonValue = DefaultObjectMapper.writeValueAsString(value, false);
+                ac.addAttribute(prefix, jsonValue);
+            } catch (Exception e) {
+                log.warn("Failed to convert claim to JSON for key: " + prefix, e);
+                ac.addAttribute(prefix, String.valueOf(value));
+            }
+        } else {
+            ac.addAttribute(prefix, String.valueOf(value));
         }
     }
 
