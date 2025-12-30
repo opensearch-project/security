@@ -77,7 +77,7 @@ configurations {
 
             // Duplicate dependencies with conflicting versions from org.opensearch.plugin:transport-grpc
             // Force versions present in security plugin
-            force "com.google.errorprone:error_prone_annotations:2.44.0"
+            force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
             force "com.google.protobuf:protobuf-java:${versions.protobuf}"
             force "com.google.guava:guava:${guava_version}"
             force "com.google.guava:failureaccess:1.0.3"
