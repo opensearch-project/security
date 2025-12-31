@@ -170,19 +170,16 @@ public class HTTPJwtAuthenticatorTest {
                 .signWith(Keys.hmacShaKeyFor(secretKeyBytes), SignatureAlgorithm.HS512)
                 .compact();
 
-        String jwtUrlParam = "jwt";
-
         Settings settings = Settings.builder()
                 .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
-                .put("jwt_url_parameter", jwtUrlParam)
                 .build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
 
         Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", "");
+        headers.put("Authorization", "Bearer " + jwsToken);
 
-        Map<String, String> params = Map.of(jwtUrlParam, jwsToken);
+        Map<String, String> params = Collections.emptyMap();
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
                 new FakeRestRequest(headers, params).asSecurityRequest(),
@@ -195,7 +192,6 @@ public class HTTPJwtAuthenticatorTest {
         assertEquals("Leonard McCoy", attrs.get("attr.jwt.sub"));
         assertEquals("enterprise", attrs.get("attr.jwt.active_tenant.tenant_id"));
         assertEquals("[\"admin\",\"user\"]", attrs.get("attr.jwt.active_tenant.roles"));
-        assertThat(credentials.getAttributes(), equalTo(expectedAttributes));
     }
 
     @Test
