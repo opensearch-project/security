@@ -172,9 +172,7 @@ public class HTTPJwtAuthenticatorTest {
                 .signWith(Keys.hmacShaKeyFor(secretKeyBytes), SignatureAlgorithm.HS512)
                 .compact();
 
-        Settings settings = Settings.builder()
-                .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
-                .build();
+        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
 
@@ -183,11 +181,7 @@ public class HTTPJwtAuthenticatorTest {
 
         Map<String, String> params = Collections.emptyMap();
 
-        AuthCredentials credentials = jwtAuth.extractCredentials(
-                new FakeRestRequest(headers, params).asSecurityRequest(),
-                null
-        );
-
+        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, params).asSecurityRequest(), null);
 
         assertNotNull(credentials);
         Map<String, String> attrs = credentials.getAttributes();
