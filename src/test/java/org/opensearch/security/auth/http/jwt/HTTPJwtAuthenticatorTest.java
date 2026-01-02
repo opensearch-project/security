@@ -167,10 +167,10 @@ public class HTTPJwtAuthenticatorTest {
         activeTenant.put("roles", List.of("admin", "user"));
 
         String jwsToken = Jwts.builder()
-                .setSubject("Leonard McCoy")
-                .claim("active_tenant", activeTenant)
-                .signWith(Keys.hmacShaKeyFor(secretKeyBytes), SignatureAlgorithm.HS512)
-                .compact();
+            .setSubject("Leonard McCoy")
+            .claim("active_tenant", activeTenant)
+            .signWith(Keys.hmacShaKeyFor(secretKeyBytes), SignatureAlgorithm.HS512)
+            .compact();
 
         Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
 
