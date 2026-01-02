@@ -14,11 +14,14 @@ package org.opensearch.security.ssl;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -67,6 +70,21 @@ public class SslContextHandler {
             SSLParameters sslParams = new SSLParameters();
             sslParams.setEndpointIdentificationAlgorithm("HTTPS");
             sslEngine.setSSLParameters(sslParams);
+        }
+        return sslEngine;
+    }
+
+    /**
+     * Creates a SSL engine for usage as a client with a specified Server Name Indication (SNI).
+     */
+    public SSLEngine createClientSSLEngine(final String hostname, final int port, final String serverName) {
+        SSLEngine sslEngine = this.createClientSSLEngine(hostname, port);
+        if (serverName != null) {
+            SSLParameters params = sslEngine.getSSLParameters();
+            List<SNIServerName> serverNames = new ArrayList<>(1);
+            serverNames.add(new SNIHostName(serverName));
+            params.setServerNames(serverNames);
+            sslEngine.setSSLParameters(params);
         }
         return sslEngine;
     }
