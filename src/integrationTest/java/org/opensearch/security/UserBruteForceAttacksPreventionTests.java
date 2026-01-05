@@ -11,11 +11,9 @@ package org.opensearch.security;
 
 import java.util.concurrent.TimeUnit;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.RateLimiting;
@@ -31,8 +29,6 @@ import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class UserBruteForceAttacksPreventionTests {
 
     private static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);

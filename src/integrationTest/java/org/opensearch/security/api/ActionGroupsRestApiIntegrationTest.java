@@ -87,7 +87,7 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         return (builder, params) -> {
             builder.startObject();
             // TODO exclude in checking null value for the type
-            builder.field("type", randomType());
+            builder.field("type", TestSecurityConfig.ActionGroup.Type.CLUSTER.type());
             if (allowedActions != null) {
                 builder.field("allowed_actions");
                 configJsonArray(allowedActions).toXContent(builder, params);
@@ -105,10 +105,6 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
             }
             return builder.endObject();
         };
-    }
-
-    static String randomType() {
-        return randomFrom(List.of(TestSecurityConfig.ActionGroup.Type.CLUSTER.type(), TestSecurityConfig.ActionGroup.Type.INDEX.type()));
     }
 
     @Override
@@ -189,7 +185,7 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         assertInvalidKeys(badRequest(() -> client.putJson(apiPath("some_action_group"), unknownJsonFields)), "a,c");
 
         assertNullValuesInArray(badRequest(() -> client.putJson(apiPath("some_action_group"), (builder, params) -> {
-            builder.startObject().field("type", randomType()).field("allowed_actions");
+            builder.startObject().field("type", TestSecurityConfig.ActionGroup.Type.CLUSTER.type()).field("allowed_actions");
             configJsonArray("g", null, "f").toXContent(builder, params);
             return builder.endObject();
         })));
@@ -231,7 +227,7 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         }))));
         assertNullValuesInArray(
             badRequest(() -> client.patch(apiPath(), patch(addOp("some_action_group", (ToXContentObject) (builder, params) -> {
-                builder.startObject().field("type", randomType()).field("allowed_actions");
+                builder.startObject().field("type", TestSecurityConfig.ActionGroup.Type.CLUSTER.type()).field("allowed_actions");
                 configJsonArray("g", null, "f").toXContent(builder, params);
                 return builder.endObject();
             }))))

@@ -15,13 +15,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.security.securityconf.impl.CType;
@@ -45,8 +43,6 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_R
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SecurityConfigurationBootstrapTests {
 
     private final static Path configurationFolder = ConfigurationFiles.createConfigurationDirectory();

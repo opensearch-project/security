@@ -12,12 +12,10 @@ package org.opensearch.security.http;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AuthorizationBackend;
@@ -60,8 +58,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 /**
 * Test uses plain (non TLS) connection between OpenSearch and LDAP server.
 */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class LdapAuthenticationCacheTest {
 
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);

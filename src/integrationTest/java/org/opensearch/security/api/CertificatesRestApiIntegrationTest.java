@@ -15,10 +15,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Test;
 
@@ -121,12 +121,13 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
                         .collect(Collectors.joining(","));
                     assertSSLCertsInfo(randomNodes, expectCerts, ok(() -> testRestClient.get(sslCertsPath(nodeIds))));
                 }
-                final var randomCertType = randomFrom(expectCerts);
-                assertSSLCertsInfo(
-                    localCluster.nodes(),
-                    List.of(randomCertType),
-                    ok(() -> testRestClient.get(String.format("%s?cert_type=%s", sslCertsPath(), randomCertType)))
-                );
+                for (CertType certType : expectCerts) {
+                    assertSSLCertsInfo(
+                        localCluster.nodes(),
+                        List.of(certType),
+                        ok(() -> testRestClient.get(String.format("%s?cert_type=%s", sslCertsPath(), certType)))
+                    );
+                }
             } catch (Exception e) {
                 fail("Verify SSLCerts info failed with exception: " + e.getMessage());
             }
@@ -188,7 +189,7 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
 
     private List<LocalOpenSearchCluster.Node> randomNodes() {
         final var nodes = localCluster.nodes();
-        int leaveElements = randomIntBetween(1, nodes.size() - 1);
+        int leaveElements = new Random().nextInt(1, nodes.size() - 1);
         return randomSubsetOf(leaveElements, nodes);
     }
 
@@ -199,7 +200,7 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
             );
         }
         List<T> tempList = new ArrayList<>(collection);
-        Collections.shuffle(tempList, RandomizedContext.current().getRandom());
+        Collections.shuffle(tempList);
         return tempList.subList(0, size);
     }
 }

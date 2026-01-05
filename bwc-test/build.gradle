@@ -65,7 +65,7 @@ repositories {
 configurations.all {
     resolutionStrategy {
         force "org.hamcrest:hamcrest:2.2"
-        force "org.mockito:mockito-core:5.20.0"
+        force "org.mockito:mockito-core:5.21.0"
     }
 }
 
@@ -75,7 +75,7 @@ dependencies {
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-    testImplementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+    testImplementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
 
 }
 

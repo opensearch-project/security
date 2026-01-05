@@ -169,8 +169,8 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
 
     @Override
     Pair<String, String> predefinedHiddenAndReservedConfigEntities() throws Exception {
-        final var hiddenEntityName = randomAsciiAlphanumOfLength(10);
-        final var reservedEntityName = randomAsciiAlphanumOfLength(10);
+        final var hiddenEntityName = "str_hidden";
+        final var reservedEntityName = "str_reserved";
         withUser(
             ADMIN_USER_NAME,
             localCluster.getAdminCertificate(),
@@ -212,42 +212,19 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
 
     @Override
     void verifyCrudOperations(Boolean hidden, Boolean reserved, TestRestClient client) throws Exception {
-        final String roleName = randomAsciiAlphanumOfLength(10);
+        final String roleName = randomAlphanumericString();
         created(() -> client.putJson(rolesApiPath(roleName), roleJson()));
-        // put
-        final var newPutRoleMappingJson = roleMapping(
-            hidden,
-            reserved,
-            randomArray(false),
-            randomArray(false),
-            randomArray(false),
-            randomArray(false)
-        );
-        created(() -> client.putJson(apiPath(roleName), newPutRoleMappingJson));
-        assertRoleMapping(
-            ok(() -> client.get(apiPath(roleName))).bodyAsJsonNode().get(roleName),
-            hidden,
-            reserved,
-            Strings.toString(XContentType.JSON, newPutRoleMappingJson)
-        );
-        final var updatePutRoleMappingJson = roleMapping(
-            hidden,
-            reserved,
-            randomArray(false),
-            randomArray(false),
-            randomArray(false),
-            randomArray(false)
-        );
-        ok(() -> client.putJson(apiPath(roleName), updatePutRoleMappingJson));
-        assertRoleMapping(
-            ok(() -> client.get(apiPath(roleName))).bodyAsJsonNode().get(roleName),
-            hidden,
-            reserved,
-            Strings.toString(XContentType.JSON, updatePutRoleMappingJson)
-        );
 
-        ok(() -> client.delete(apiPath(roleName)));
-        notFound(() -> client.get(apiPath(roleName)));
+        for (ToXContentObject backendRoles : arrayOptions(false)) {
+            for (ToXContentObject hosts : arrayOptions(false)) {
+                for (ToXContentObject users : arrayOptions(false)) {
+                    for (ToXContentObject andBackendRoles : arrayOptions(false)) {
+                        verifyCrudOperationsForCombination(hidden, reserved, client, roleName, backendRoles, hosts, users, andBackendRoles);
+                    }
+                }
+            }
+        }
+
         // patch
         // TODO related to issue #4426
         final var newPatchRoleMappingJson = roleMapping(
@@ -273,6 +250,38 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         badRequest(() -> client.patch(apiPath(roleName), patch(replaceOp("backend_roles", configJsonArray("c", "")))));
 
         ok(() -> client.patch(apiPath(), patch(removeOp(roleName))));
+        notFound(() -> client.get(apiPath(roleName)));
+    }
+
+    void verifyCrudOperationsForCombination(
+        Boolean hidden,
+        Boolean reserved,
+        TestRestClient client,
+        String roleName,
+        ToXContentObject backendRoles,
+        ToXContentObject hosts,
+        ToXContentObject users,
+        ToXContentObject andBackendRoles
+    ) throws Exception {
+        // put
+        final var newPutRoleMappingJson = roleMapping(hidden, reserved, backendRoles, hosts, users, andBackendRoles);
+        created(() -> client.putJson(apiPath(roleName), newPutRoleMappingJson));
+        assertRoleMapping(
+            ok(() -> client.get(apiPath(roleName))).bodyAsJsonNode().get(roleName),
+            hidden,
+            reserved,
+            Strings.toString(XContentType.JSON, newPutRoleMappingJson)
+        );
+        final var updatePutRoleMappingJson = roleMapping(hidden, reserved, backendRoles, hosts, users, andBackendRoles);
+        ok(() -> client.putJson(apiPath(roleName), updatePutRoleMappingJson));
+        assertRoleMapping(
+            ok(() -> client.get(apiPath(roleName))).bodyAsJsonNode().get(roleName),
+            hidden,
+            reserved,
+            Strings.toString(XContentType.JSON, updatePutRoleMappingJson)
+        );
+
+        ok(() -> client.delete(apiPath(roleName)));
         notFound(() -> client.get(apiPath(roleName)));
     }
 
@@ -315,31 +324,32 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
 
         // put
         badRequestWithReason(
-            () -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), EMPTY_BODY),
+            () -> client.putJson(apiPath(randomAlphanumericString()), EMPTY_BODY),
             "Request body required for this action."
         );
         badRequestWithReason(
             () -> client.putJson(
-                apiPath(randomAsciiAlphanumOfLength(5)),
+                apiPath(randomAlphanumericString()),
                 (builder, params) -> builder.startObject().field("users", configJsonArray()).field("users", configJsonArray()).endObject()
             ),
             "Could not parse content of request."
         );
         assertInvalidKeys(
-            badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), unparseableJsonRequest)),
+            badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), unparseableJsonRequest)),
             "unknown_json_property"
         );
-        final var randomPropertyForPut = randomJsonProperty();
-        assertWrongDataType(
-            client.putJson(
-                apiPath(randomAsciiAlphanumOfLength(5)),
-                (builder, params) -> builder.startObject().field(randomPropertyForPut).value("something").endObject()
-            ),
-            Map.of(randomPropertyForPut, "Array expected")
-        );
+        for (String randomPropertyForPut : jsonProperties()) {
+            assertWrongDataType(
+                client.putJson(
+                    apiPath(randomAlphanumericString()),
+                    (builder, params) -> builder.startObject().field(randomPropertyForPut).value("something").endObject()
+                ),
+                Map.of(randomPropertyForPut, "Array expected")
+            );
+        }
         assertNullValuesInArray(
             client.putJson(
-                apiPath(randomAsciiAlphanumOfLength(5)),
+                apiPath(randomAlphanumericString()),
                 roleMapping(
                     configJsonArray(generateArrayValues(true)),
                     configJsonArray(generateArrayValues(true)),
@@ -349,7 +359,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
             )
         );
         // patch
-        final var predefinedRole = randomAsciiAlphanumOfLength(5);
+        final var predefinedRole = randomAlphanumericString();
         created(() -> client.putJson(rolesApiPath(predefinedRole), roleJson()));
         created(
             () -> client.putJson(
@@ -357,34 +367,35 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
                 roleMapping(configJsonArray("a", "b"), configJsonArray(), configJsonArray(), configJsonArray())
             )
         );
-        badRequest(() -> client.patch(apiPath(randomAsciiAlphanumOfLength(5)), EMPTY_BODY));
+        badRequest(() -> client.patch(apiPath(randomAlphanumericString()), EMPTY_BODY));
         badRequest(
             () -> client.patch(
-                apiPath(randomAsciiAlphanumOfLength(5)),
+                apiPath(randomAlphanumericString()),
                 (builder, params) -> builder.startObject().field("users", configJsonArray()).field("users", configJsonArray()).endObject()
             )
         );
         assertInvalidKeys(
-            badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(5), unparseableJsonRequest)))),
+            badRequest(() -> client.patch(apiPath(), patch(addOp(randomAlphanumericString(), unparseableJsonRequest)))),
             "unknown_json_property"
         );
         badRequest(() -> client.patch(apiPath(predefinedRole), patch(replaceOp("users", unparseableJsonRequest))));
-        final var randomPropertyForPatch = randomJsonProperty();
-        assertWrongDataType(
-            client.patch(
-                apiPath(),
-                patch(
-                    addOp(
-                        randomAsciiAlphanumOfLength(5),
-                        (ToXContentObject) (builder, params) -> builder.startObject()
-                            .field(randomPropertyForPatch)
-                            .value("something")
-                            .endObject()
+        for (String randomPropertyForPatch : jsonProperties()) {
+            assertWrongDataType(
+                client.patch(
+                    apiPath(),
+                    patch(
+                        addOp(
+                            randomAlphanumericString(),
+                            (ToXContentObject) (builder, params) -> builder.startObject()
+                                .field(randomPropertyForPatch)
+                                .value("something")
+                                .endObject()
+                        )
                     )
-                )
-            ),
-            Map.of(randomPropertyForPatch, "Array expected")
-        );
+                ),
+                Map.of(randomPropertyForPatch, "Array expected")
+            );
+        }
         // TODO related to issue #4426
         assertWrongDataType(
             client.patch(apiPath(predefinedRole), patch(replaceOp("backend_roles", "something"))),
@@ -401,7 +412,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
                 apiPath(),
                 patch(
                     addOp(
-                        randomAsciiAlphanumOfLength(5),
+                        randomAlphanumericString(),
                         roleMapping(
                             configJsonArray(generateArrayValues(true)),
                             configJsonArray(generateArrayValues(true)),
@@ -420,40 +431,46 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
 
     @Override
     void forbiddenToCreateEntityWithRestAdminPermissions(TestRestClient client) throws Exception {
-        forbidden(() -> client.putJson(apiPath(REST_ADMIN_ROLE), roleMappingWithUsers(randomArray(false))));
-        forbidden(() -> client.patch(apiPath(), patch(addOp(REST_ADMIN_ROLE, roleMappingWithUsers(randomArray(false))))));
-
+        for (ToXContentObject users : arrayOptions(false)) {
+            forbidden(() -> client.putJson(apiPath(REST_ADMIN_ROLE), roleMappingWithUsers(users)));
+            forbidden(() -> client.patch(apiPath(), patch(addOp(REST_ADMIN_ROLE, roleMappingWithUsers(users)))));
+        }
     }
 
     @Override
     void forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(TestRestClient client) throws Exception {
         // update
-        forbidden(
-            () -> client.putJson(
-                apiPath(REST_ADMIN_ROLE_WITH_MAPPING),
-                roleMapping(randomArray(false), randomArray(false), randomArray(false), randomArray(false))
-            )
-        );
-        forbidden(
-            () -> client.patch(
-                apiPath(),
-                patch(
-                    replaceOp(
-                        REST_ADMIN_ROLE_WITH_MAPPING,
-                        roleMapping(randomArray(false), randomArray(false), randomArray(false), randomArray(false))
-                    )
-                )
-            )
-        );
-        forbidden(() -> client.patch(apiPath(REST_ADMIN_ROLE_WITH_MAPPING), patch(replaceOp("users", randomArray(false)))));
+        for (ToXContentObject backendRoles : arrayOptions(false)) {
+            for (ToXContentObject hosts : arrayOptions(false)) {
+                for (ToXContentObject users : arrayOptions(false)) {
+                    for (ToXContentObject andBackendRoles : arrayOptions(false)) {
+                        forbidden(
+                            () -> client.putJson(
+                                apiPath(REST_ADMIN_ROLE_WITH_MAPPING),
+                                roleMapping(backendRoles, hosts, users, andBackendRoles)
+                            )
+                        );
+                        forbidden(
+                            () -> client.patch(
+                                apiPath(),
+                                patch(replaceOp(REST_ADMIN_ROLE_WITH_MAPPING, roleMapping(backendRoles, hosts, users, andBackendRoles)))
+                            )
+                        );
+                    }
+                }
+            }
+        }
+        for (ToXContentObject users : arrayOptions(false)) {
+            forbidden(() -> client.patch(apiPath(REST_ADMIN_ROLE_WITH_MAPPING), patch(replaceOp("users", users))));
+        }
         // remove
         forbidden(() -> client.patch(apiPath(), patch(removeOp(REST_ADMIN_ROLE_WITH_MAPPING))));
         forbidden(() -> client.patch(apiPath(REST_ADMIN_ROLE_WITH_MAPPING), patch(removeOp("users"))));
         forbidden(() -> client.delete(apiPath(REST_ADMIN_ROLE_WITH_MAPPING)));
     }
 
-    String randomJsonProperty() {
-        return randomFrom(List.of("backend_roles", "hosts", "users", "and_backend_roles"));
+    List<String> jsonProperties() {
+        return List.of("backend_roles", "hosts", "users", "and_backend_roles");
     }
 
     ToXContentObject roleJson() {
@@ -474,10 +491,10 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         };
     }
 
-    ToXContentObject randomArray(final boolean useNulls) {
+    List<ToXContentObject> arrayOptions(final boolean useNulls) {
         return useNulls
-            ? configJsonArray(generateArrayValues(useNulls))
-            : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
+            ? List.of(configJsonArray(generateArrayValues(useNulls)))
+            : List.of(configJsonArray(generateArrayValues(false)), configJsonArray());
     }
 
 }

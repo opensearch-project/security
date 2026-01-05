@@ -121,7 +121,7 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         withUser(ADMIN_USER_NAME, client -> {
             verifyNoHiddenEntities(() -> client.get(apiPath()));
             creationOfReadOnlyEntityForbidden(
-                randomAsciiAlphanumOfLength(10),
+                "str1234567",
                 client,
                 (builder, params) -> testDescriptor.hiddenEntityPayload().toXContent(builder, params),
                 (builder, params) -> testDescriptor.reservedEntityPayload().toXContent(builder, params),
@@ -135,8 +135,8 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     }
 
     Pair<String, String> predefinedHiddenAndReservedConfigEntities() throws Exception {
-        final var hiddenEntityName = randomAsciiAlphanumOfLength(10);
-        final var reservedEntityName = randomAsciiAlphanumOfLength(10);
+        final var hiddenEntityName = "str_hidden";
+        final var reservedEntityName = "str_reserved";
         withUser(
             ADMIN_USER_NAME,
             localCluster.getAdminCertificate(),
@@ -165,7 +165,7 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
 
     void availableForSuperAdminUser(final TestRestClient client) throws Exception {
         creationOfReadOnlyEntityForbidden(
-            randomAsciiAlphanumOfLength(10),
+            randomAlphanumericString(),
             client,
             (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
         );
@@ -175,6 +175,10 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         verifyBadRequestOperations(client);
         forbiddenToCreateEntityWithRestAdminPermissions(client);
         forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(client);
+    }
+
+    protected String randomAlphanumericString() {
+        return "str_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
 
     void verifyNoHiddenEntities(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
@@ -194,7 +198,7 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
                 badRequest(() -> client.putJson(apiPath(entityName), configEntity)),
                 is(oneOf("static", "hidden", "reserved"))
             );
-            badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(10), configEntity))));
+            badRequest(() -> client.patch(apiPath(), patch(addOp("str1234567", configEntity))));
         }
     }
 

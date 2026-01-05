@@ -61,7 +61,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
 
             @Override
             public ToXContentObject jsonPropertyPayload() {
-                return randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
+                return configJsonArray();
             }
 
             @Override
@@ -73,16 +73,33 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
 
     @Override
     void verifyCrudOperations(final Boolean hidden, final Boolean reserved, final TestRestClient client) throws Exception {
+        for (ToXContentObject clusterPermissions : clusterPermissionsOptions(false)) {
+            for (ToXContentObject indexPermissions : indexPermissionsOptions(false)) {
+                for (ToXContentObject tenantPermissions : tenantPermissionsOptions(false)) {
+                    verifyCrudOperationsForCombination(hidden, reserved, client, clusterPermissions, indexPermissions, tenantPermissions);
+                }
+            }
+        }
+    }
+
+    void verifyCrudOperationsForCombination(
+        final Boolean hidden,
+        final Boolean reserved,
+        final TestRestClient client,
+        ToXContentObject clusterPermissions,
+        ToXContentObject indexPermissions,
+        ToXContentObject tenantPermissions
+    ) throws Exception {
         final var newRoleJson = Strings.toString(
             XContentType.JSON,
-            role(hidden, reserved, randomClusterPermissions(false), randomIndexPermissions(false), randomTenantPermissions(false))
+            role(hidden, reserved, clusterPermissions, indexPermissions, tenantPermissions)
         );
         created(() -> client.putJson(apiPath("new_role"), newRoleJson));
         assertRole(ok(() -> client.get(apiPath("new_role"))), "new_role", hidden, reserved, newRoleJson);
 
         final var updatedRoleJson = Strings.toString(
             XContentType.JSON,
-            role(hidden, reserved, randomClusterPermissions(false), randomIndexPermissions(false), randomTenantPermissions(false))
+            role(hidden, reserved, clusterPermissions, indexPermissions, tenantPermissions)
         );
         ok(() -> client.putJson(apiPath("new_role"), updatedRoleJson));
         assertRole(ok(() -> client.get(apiPath("new_role"))), "new_role", hidden, reserved, updatedRoleJson);
@@ -109,8 +126,8 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
             () -> client.patch(apiPath("new_role_for_patch"), patch(replaceOp("cluster_permissions", configJsonArray("a", "b", "c")))),
             "'new_role_for_patch' updated."
         );
-        ok(() -> client.patch(apiPath("new_role_for_patch"), patch(addOp("index_permissions", randomIndexPermissions(false)))));
-        ok(() -> client.patch(apiPath("new_role_for_patch"), patch(addOp("tenant_permissions", randomTenantPermissions(false)))));
+        ok(() -> client.patch(apiPath("new_role_for_patch"), patch(addOp("index_permissions", indexPermissions))));
+        ok(() -> client.patch(apiPath("new_role_for_patch"), patch(addOp("tenant_permissions", tenantPermissions))));
 
         ok(() -> client.patch(apiPath(), patch(removeOp("new_role_for_patch"))));
         notFound(() -> client.get(apiPath("new_role_for_patch")));
@@ -119,24 +136,24 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     @Override
     void verifyBadRequestOperations(TestRestClient client) throws Exception {
         // put
-        badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), EMPTY_BODY));
-        badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
+        badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), EMPTY_BODY));
+        badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
             builder.field("cluster_permissions");
-            randomClusterPermissions(false).toXContent(builder, params);
+            clusterPermissionsOptions(false).get(0).toXContent(builder, params);
             builder.field("cluster_permissions");
-            randomClusterPermissions(false).toXContent(builder, params);
+            clusterPermissionsOptions(false).get(0).toXContent(builder, params);
             return builder.endObject();
         }));
-        assertInvalidKeys(badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
+        assertInvalidKeys(badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
             builder.field("unknown_json_property");
             configJsonArray("a", "b").toXContent(builder, params);
             builder.field("cluster_permissions");
-            randomClusterPermissions(false).toXContent(builder, params);
+            clusterPermissionsOptions(false).get(0).toXContent(builder, params);
             return builder.endObject();
         })), "unknown_json_property");
-        assertWrongDataType(badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
+        assertWrongDataType(badRequest(() -> client.putJson(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
             builder.field("cluster_permissions").value("a");
             builder.field("index_permissions").value("b");
@@ -144,45 +161,42 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         })), Map.of("cluster_permissions", "Array expected", "index_permissions", "Array expected"));
         assertNullValuesInArray(
             client.putJson(
-                apiPath(randomAsciiAlphanumOfLength(5)),
-                role(randomClusterPermissions(true), randomIndexPermissions(true), randomTenantPermissions(true))
+                apiPath(randomAlphanumericString()),
+                role(clusterPermissionsOptions(true).get(0), indexPermissionsOptions(true).get(0), tenantPermissionsOptions(true).get(0))
             )
         );
         // patch
-        final var predefinedRoleName = randomAsciiAlphanumOfLength(4);
+        final var predefinedRoleName = randomAlphanumericString();
         created(() -> client.putJson(apiPath(predefinedRoleName), role(configJsonArray("a", "b"), configJsonArray(), configJsonArray())));
 
         badRequest(() -> client.patch(apiPath(), patch(addOp("some_new_role", EMPTY_BODY))));
-        badRequest(
-            () -> client.patch(
-                apiPath(predefinedRoleName),
-                patch(replaceOp(randomFrom(List.of("cluster_permissions", "index_permissions", "tenant_permissions")), EMPTY_BODY))
-            )
-        );
+        for (String field : List.of("cluster_permissions", "index_permissions", "tenant_permissions")) {
+            badRequest(() -> client.patch(apiPath(predefinedRoleName), patch(replaceOp(field, EMPTY_BODY))));
+        }
 
         badRequest(
             () -> client.patch(
-                apiPath(randomAsciiAlphanumOfLength(5)),
-                patch(addOp(randomAsciiAlphanumOfLength(5), (ToXContentObject) (builder, params) -> {
+                apiPath(randomAlphanumericString()),
+                patch(addOp(randomAlphanumericString(), (ToXContentObject) (builder, params) -> {
                     builder.startObject();
                     builder.field("cluster_permissions");
-                    randomClusterPermissions(false).toXContent(builder, params);
+                    clusterPermissionsOptions(false).get(0).toXContent(builder, params);
                     builder.field("cluster_permissions");
-                    randomClusterPermissions(false).toXContent(builder, params);
+                    clusterPermissionsOptions(false).get(0).toXContent(builder, params);
                     return builder.endObject();
                 }))
             )
         );
-        badRequest(() -> client.patch(apiPath(randomAsciiAlphanumOfLength(5)), (builder, params) -> {
+        badRequest(() -> client.patch(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
             builder.field("unknown_json_property");
             configJsonArray("a", "b").toXContent(builder, params);
             builder.field("cluster_permissions");
-            randomClusterPermissions(false).toXContent(builder, params);
+            clusterPermissionsOptions(false).get(0).toXContent(builder, params);
             return builder.endObject();
         }));
         assertWrongDataType(
-            badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(5), (ToXContentObject) (builder, params) -> {
+            badRequest(() -> client.patch(apiPath(), patch(addOp(randomAlphanumericString(), (ToXContentObject) (builder, params) -> {
                 builder.startObject();
                 builder.field("cluster_permissions").value("a");
                 builder.field("index_permissions").value("b");
@@ -199,15 +213,19 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
                 apiPath(),
                 patch(
                     addOp(
-                        randomAsciiAlphanumOfLength(5),
-                        role(randomClusterPermissions(true), randomIndexPermissions(true), randomTenantPermissions(true))
+                        randomAlphanumericString(),
+                        role(
+                            clusterPermissionsOptions(true).get(0),
+                            indexPermissionsOptions(true).get(0),
+                            tenantPermissionsOptions(true).get(0)
+                        )
                     )
                 )
             )
         );
         // TODO related to issue #4426
         assertNullValuesInArray(
-            client.patch(apiPath(predefinedRoleName), patch(replaceOp("cluster_permissions", randomClusterPermissions(true))))
+            client.patch(apiPath(predefinedRoleName), patch(replaceOp("cluster_permissions", clusterPermissionsOptions(true).get(0))))
         );
     }
 
@@ -228,7 +246,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         forbidden(
             () -> client.putJson(
                 apiPath(REST_ADMIN_PERMISSION_ROLE),
-                role(randomClusterPermissions(false), randomIndexPermissions(false), randomTenantPermissions(false))
+                role(clusterPermissionsOptions(false).get(0), indexPermissionsOptions(false).get(0), tenantPermissionsOptions(false).get(0))
             )
         );
         forbidden(
@@ -237,7 +255,11 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
                 patch(
                     replaceOp(
                         REST_ADMIN_PERMISSION_ROLE,
-                        role(randomClusterPermissions(false), randomIndexPermissions(false), randomTenantPermissions(false))
+                        role(
+                            clusterPermissionsOptions(false).get(0),
+                            indexPermissionsOptions(false).get(0),
+                            tenantPermissionsOptions(false).get(0)
+                        )
                     )
                 )
             )
@@ -245,7 +267,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         forbidden(
             () -> client.patch(
                 apiPath(REST_ADMIN_PERMISSION_ROLE),
-                patch(replaceOp("cluster_permissions", randomClusterPermissions(false)))
+                patch(replaceOp("cluster_permissions", clusterPermissionsOptions(false).get(0)))
             )
         );
         // remove
@@ -378,21 +400,30 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         };
     }
 
-    ToXContentObject randomClusterPermissions(final boolean useNulls) {
+    List<ToXContentObject> clusterPermissionsOptions(final boolean useNulls) {
         return useNulls
-            ? configJsonArray(generateArrayValues(useNulls))
-            : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
+            ? List.of(configJsonArray(generateArrayValues(useNulls)))
+            : List.of(configJsonArray(generateArrayValues(false)), configJsonArray());
     }
 
-    ToXContentObject randomIndexPermissions(final boolean useNulls) {
-        return (builder, params) -> {
-            final var possibleJson = useNulls
-                ? randomIndexPermission(useNulls)
-                : randomFrom(List.of(randomIndexPermission(false), (b, p) -> b));
-            builder.startArray();
-            possibleJson.toXContent(builder, params);
-            return builder.endArray();
-        };
+    List<ToXContentObject> indexPermissionsOptions(final boolean useNulls) {
+        if (useNulls) {
+            return List.of((builder, params) -> {
+                builder.startArray();
+                randomIndexPermission(useNulls).toXContent(builder, params);
+                return builder.endArray();
+            });
+        } else {
+            return List.of((builder, params) -> {
+                builder.startArray();
+                randomIndexPermission(false).toXContent(builder, params);
+                return builder.endArray();
+            }, (builder, params) -> {
+                builder.startArray();
+                builder.endArray();
+                return builder;
+            });
+        }
     }
 
     ToXContentObject randomIndexPermission(final boolean useNulls) {
@@ -400,70 +431,82 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
             builder.startObject();
 
             builder.field("index_patterns");
-            randomIndexPatterns(useNulls).toXContent(builder, params);
+            indexPatternsOptions(useNulls).get(0).toXContent(builder, params);
 
             builder.field("dls");
-            randomDls().toXContent(builder, params);
+            dlsOptions().get(0).toXContent(builder, params);
 
             builder.field("fls");
-            randomFls(useNulls).toXContent(builder, params);
+            flsOptions(useNulls).get(0).toXContent(builder, params);
 
             builder.field("masked_fields");
-            randomMaskedFields(useNulls).toXContent(builder, params);
+            maskedFieldsOptions(useNulls).get(0).toXContent(builder, params);
 
             builder.field("allowed_actions");
-            randomAllowedActions(useNulls).toXContent(builder, params);
+            allowedActionsOptions(useNulls).get(0).toXContent(builder, params);
 
             return builder.endObject();
         };
     }
 
-    ToXContentObject randomIndexPatterns(final boolean useNulls) {
+    List<ToXContentObject> indexPatternsOptions(final boolean useNulls) {
         return useNulls
-            ? configJsonArray(generateArrayValues(useNulls))
-            : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
+            ? List.of(configJsonArray(generateArrayValues(useNulls)))
+            : List.of(configJsonArray(generateArrayValues(false)), configJsonArray());
     }
 
-    ToXContentObject randomTenantPermissions(final boolean useNulls) {
-        return (builder, params) -> {
-            final var possibleJson = useNulls ? tenantPermission(useNulls) : randomFrom(List.of(tenantPermission(false), (b, p) -> b));
-            builder.startArray();
-            possibleJson.toXContent(builder, params);
-            return builder.endArray();
-        };
+    List<ToXContentObject> tenantPermissionsOptions(final boolean useNulls) {
+        if (useNulls) {
+            return List.of((builder, params) -> {
+                builder.startArray();
+                tenantPermission(useNulls).toXContent(builder, params);
+                return builder.endArray();
+            });
+        } else {
+            return List.of((builder, params) -> {
+                builder.startArray();
+                tenantPermission(false).toXContent(builder, params);
+                return builder.endArray();
+            }, (builder, params) -> {
+                builder.startArray();
+                builder.endArray();
+                return builder;
+            });
+        }
     }
 
     ToXContentObject tenantPermission(final boolean useNulls) {
         return (builder, params) -> {
             builder.startObject().field("tenant_patterns");
-            randomFrom(List.of(configJsonArray(generateArrayValues(useNulls)), configJsonArray())).toXContent(builder, params);
+            List<ToXContentObject> patterns = useNulls
+                ? List.of(configJsonArray(generateArrayValues(useNulls)))
+                : List.of(configJsonArray(generateArrayValues(false)), configJsonArray());
+            patterns.get(0).toXContent(builder, params);
             builder.field("allowed_actions");
-            randomAllowedActions(useNulls).toXContent(builder, params);
+            allowedActionsOptions(useNulls).get(0).toXContent(builder, params);
             return builder.endObject();
         };
     }
 
-    ToXContentObject randomDls() {
-        return randomFrom(
-            List.of((builder, params) -> builder.value(randomAsciiAlphanumOfLength(10)), (builder, params) -> builder.nullValue())
-        );
+    List<ToXContentObject> dlsOptions() {
+        return List.of((builder, params) -> builder.value("str1234567"), (builder, params) -> builder.nullValue());
     }
 
-    ToXContentObject randomFls(final boolean useNullValues) {
+    List<ToXContentObject> flsOptions(final boolean useNullValues) {
         return useNullValues
-            ? configJsonArray(generateArrayValues(useNullValues))
-            : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray(), (builder, params) -> builder.nullValue()));
+            ? List.of(configJsonArray(generateArrayValues(useNullValues)))
+            : List.of(configJsonArray(generateArrayValues(false)), configJsonArray(), (builder, params) -> builder.nullValue());
     }
 
-    ToXContentObject randomMaskedFields(final boolean useNullValues) {
+    List<ToXContentObject> maskedFieldsOptions(final boolean useNullValues) {
         return useNullValues
-            ? configJsonArray(generateArrayValues(useNullValues))
-            : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray(), (builder, params) -> builder.nullValue()));
+            ? List.of(configJsonArray(generateArrayValues(useNullValues)))
+            : List.of(configJsonArray(generateArrayValues(false)), configJsonArray(), (builder, params) -> builder.nullValue());
     }
 
-    ToXContentObject randomAllowedActions(final boolean useNullValues) {
+    List<ToXContentObject> allowedActionsOptions(final boolean useNullValues) {
         return useNullValues
-            ? configJsonArray(generateArrayValues(useNullValues))
-            : randomFrom(List.of(configJsonArray(generateArrayValues(false)), configJsonArray()));
+            ? List.of(configJsonArray(generateArrayValues(useNullValues)))
+            : List.of(configJsonArray(generateArrayValues(false)), configJsonArray());
     }
 }
