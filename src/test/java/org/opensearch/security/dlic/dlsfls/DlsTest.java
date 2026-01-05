@@ -120,7 +120,9 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        assertThat(res.getHeaders().toString(), res.getHeaders().size(), is(3));
+        // Example headers in response [X-OpenSearch-Version: OpenSearch/3.5.0-SNAPSHOT (opensearch), content-type: application/json;
+        // charset=UTF-8, content-encoding: gzip, content-length: 223]
+        assertThat(res.getHeaders().toString(), res.getHeaders().size(), is(4));
 
         assertThat(
             HttpStatus.SC_OK,
