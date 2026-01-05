@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
@@ -27,7 +25,6 @@ import org.apache.logging.log4j.Logger;
 import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.runner.RunWith;
 
 import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.CheckedSupplier;
@@ -66,11 +63,40 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEF
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
 import static org.opensearch.test.framework.TestSecurityConfig.REST_ADMIN_REST_API_ACCESS;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-public abstract class AbstractApiIntegrationTest extends RandomizedTest {
+public abstract class AbstractApiIntegrationTest {
 
     private static final Logger LOGGER = LogManager.getLogger(TestSecurityConfig.class);
+
+    // Simple random helpers (replacement for randomizedtesting utilities)
+    private static final java.util.Random RAND = new java.util.Random();
+
+    private static <T> T randomFrom(final java.util.List<T> list) {
+        if (list == null || list.isEmpty()) throw new IllegalArgumentException("List must not be empty");
+        return list.get(RAND.nextInt(list.size()));
+    }
+
+    private static <T> T randomFrom(final T[] arr) {
+        if (arr == null || arr.length == 0) throw new IllegalArgumentException("Array must not be empty");
+        return arr[RAND.nextInt(arr.length)];
+    }
+
+    private static boolean randomBoolean() {
+        return RAND.nextBoolean();
+    }
+
+    private static int randomIntBetween(final int min, final int max) {
+        if (max < min) throw new IllegalArgumentException("max < min");
+        return RAND.nextInt(max - min + 1) + min;
+    }
+
+    private static String randomAsciiAlphanumOfLength(final int length) {
+        final String chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        final StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(RAND.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
 
     public static final String NEW_USER = "new-user";
 

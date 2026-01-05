@@ -11,6 +11,8 @@
 
 package org.opensearch.security.api;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -66,30 +68,29 @@ public class DefaultApiAvailabilityIntegrationTest extends AbstractApiIntegratio
     }
 
     private void verifyAuthInfoApi(final TestRestClient client) throws Exception {
-        final var verbose = randomBoolean();
+        for (boolean verbose : List.of(true, false)) {
+            final TestRestClient.HttpResponse response;
+            if (verbose) response = ok(() -> client.get(securityPath("authinfo?verbose=" + verbose)));
+            else response = ok(() -> client.get(securityPath("authinfo")));
+            final var body = response.bodyAsJsonNode();
+            assertThat(response.getBody(), body.has("user"));
+            assertThat(response.getBody(), body.has("user_name"));
+            assertThat(response.getBody(), body.has("user_requested_tenant"));
+            assertThat(response.getBody(), body.has("remote_address"));
+            assertThat(response.getBody(), body.has("backend_roles"));
+            assertThat(response.getBody(), body.has("custom_attribute_names"));
+            assertThat(response.getBody(), body.has("roles"));
+            assertThat(response.getBody(), body.has("tenants"));
+            assertThat(response.getBody(), body.has("principal"));
+            assertThat(response.getBody(), body.has("peer_certificates"));
+            assertThat(response.getBody(), body.has("sso_logout_url"));
 
-        final TestRestClient.HttpResponse response;
-        if (verbose) response = ok(() -> client.get(securityPath("authinfo?verbose=" + verbose)));
-        else response = ok(() -> client.get(securityPath("authinfo")));
-        final var body = response.bodyAsJsonNode();
-        assertThat(response.getBody(), body.has("user"));
-        assertThat(response.getBody(), body.has("user_name"));
-        assertThat(response.getBody(), body.has("user_requested_tenant"));
-        assertThat(response.getBody(), body.has("remote_address"));
-        assertThat(response.getBody(), body.has("backend_roles"));
-        assertThat(response.getBody(), body.has("custom_attribute_names"));
-        assertThat(response.getBody(), body.has("roles"));
-        assertThat(response.getBody(), body.has("tenants"));
-        assertThat(response.getBody(), body.has("principal"));
-        assertThat(response.getBody(), body.has("peer_certificates"));
-        assertThat(response.getBody(), body.has("sso_logout_url"));
-
-        if (verbose) {
-            assertThat(response.getBody(), body.has("size_of_user"));
-            assertThat(response.getBody(), body.has("size_of_custom_attributes"));
-            assertThat(response.getBody(), body.has("size_of_backendroles"));
+            if (verbose) {
+                assertThat(response.getBody(), body.has("size_of_user"));
+                assertThat(response.getBody(), body.has("size_of_custom_attributes"));
+                assertThat(response.getBody(), body.has("size_of_backendroles"));
+            }
         }
-
     }
 
     @Test

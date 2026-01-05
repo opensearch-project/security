@@ -16,13 +16,13 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.ImmutableList;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.indices.open.OpenIndexRequest;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
@@ -64,8 +64,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
  * To cope with the huge space of tests, this class uses test oracles to verify the result of the operations.
  * These are defined with the "indexMatcher()" method of TestSecurityConfig.User. See there and the class IndexApiMatchers.
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 @NotThreadSafe
 public class IndexAuthorizationReadWriteIntTests {
 
@@ -1143,7 +1142,7 @@ public class IndexAuthorizationReadWriteIntTests {
         cluster.getInternalNodeClient().admin().indices().refresh(new RefreshRequest("*")).actionGet();
     }
 
-    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    @Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 
