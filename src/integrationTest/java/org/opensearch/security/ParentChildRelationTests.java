@@ -12,12 +12,10 @@ package org.opensearch.security;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.indices.TermsLookup;
@@ -37,8 +35,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.matcher.RestMatchers.isInternalServerError;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ParentChildRelationTests {
     public static final String INDEX_NAME = "dlstest";
     public static final String TERM_LOOKUP_INDEX_NAME = "term_lookup_index";

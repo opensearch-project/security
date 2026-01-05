@@ -65,7 +65,7 @@ jobs:
           arguments: |
             ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
@@ -108,7 +108,7 @@ jobs:
           arguments: |
             ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
@@ -120,7 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           path: downloaded-artifacts
 
@@ -165,7 +165,7 @@ jobs:
           arguments: |
             :integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -208,7 +208,7 @@ jobs:
           arguments: |
             :integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -250,7 +250,7 @@ jobs:
           arguments: |
             :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -282,7 +282,7 @@ jobs:
           arguments: |
             :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -382,9 +382,9 @@ jobs:
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
-      - run: ./gradlew clean buildHealth
+      - run: ./gradlew clean buildHealth -Dorg.gradle.jvmargs="-Xms1g -Xmx4g -XX:+UseG1GC -XX:MaxMetaspaceSize=512m"
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: dependency-analysis

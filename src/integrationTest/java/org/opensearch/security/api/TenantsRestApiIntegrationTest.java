@@ -48,7 +48,7 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
 
             @Override
             public ToXContentObject jsonPropertyPayload() {
-                return (builder, params) -> builder.value(randomAsciiAlphanumOfLength(10));
+                return (builder, params) -> builder.value("str1234567");
             }
 
             @Override
@@ -63,7 +63,7 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
     }
 
     static ToXContentObject tenant(final Boolean hidden, final Boolean reserved, final Boolean _static) {
-        return tenant(hidden, reserved, _static, randomAsciiAlphanumOfLength(10));
+        return tenant(hidden, reserved, _static, "str1234567");
     }
 
     static ToXContentObject tenant(final Boolean hidden, final Boolean reserved, final Boolean _static, String description) {
@@ -86,16 +86,16 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
     @Override
     void verifyBadRequestOperations(TestRestClient client) throws Exception {
         // put
-        badRequest(() -> client.putJson(apiPath(randomAsciiAlphanumOfLength(4)), EMPTY_BODY));
+        badRequest(() -> client.putJson(apiPath("str12"), EMPTY_BODY));
         badRequest(
             () -> client.putJson(
-                apiPath(randomAsciiAlphanumOfLength(4)),
+                apiPath("str12"),
                 (builder, params) -> builder.startObject().field("description", "a").field("description", "b").endObject()
             )
         );
         assertInvalidKeys(
             client.putJson(
-                apiPath(randomAsciiAlphanumOfLength(10)),
+                apiPath("str1234567"),
                 (builder, params) -> builder.startObject().field("a", "b").field("c", "d").field("description", "e").endObject()
             ),
             "a,c"
@@ -107,7 +107,7 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
                 apiPath(),
                 patch(
                     addOp(
-                        randomAsciiAlphanumOfLength(4),
+                        "str12",
                         (ToXContentObject) (builder, params) -> builder.startObject()
                             .field("description", "a")
                             .field("description", "b")
@@ -121,7 +121,7 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
                 apiPath(),
                 patch(
                     addOp(
-                        randomAsciiAlphanumOfLength(10),
+                        "str1234567",
                         (ToXContentObject) (builder, params) -> builder.startObject()
                             .field("a", "b")
                             .field("c", "d")
@@ -138,12 +138,12 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
     @Override
     void verifyCrudOperations(Boolean hidden, Boolean reserved, TestRestClient client) throws Exception {
         // put
-        final var putDescription = randomAsciiAlphanumOfLength(10);
-        final var putTenantName = randomAsciiAlphanumOfLength(4);
+        final var putDescription = "str1234567";
+        final var putTenantName = "str12";
         created(() -> client.putJson(apiPath(putTenantName), tenant(hidden, reserved, putDescription)));
         assertTenant(ok(() -> client.get(apiPath(putTenantName))).bodyAsJsonNode().get(putTenantName), hidden, reserved, putDescription);
 
-        final var putUpdatedDescription = randomAsciiAlphanumOfLength(10);
+        final var putUpdatedDescription = "str1234567";
         ok(() -> client.putJson(apiPath(putTenantName), tenant(hidden, reserved, putUpdatedDescription)));
         assertTenant(
             ok(() -> client.get(apiPath(putTenantName))).bodyAsJsonNode().get(putTenantName),
@@ -154,8 +154,8 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
         ok(() -> client.delete(apiPath(putTenantName)));
         notFound(() -> client.get(apiPath(putTenantName)));
         // patch
-        final var patchTenantName = randomAsciiAlphanumOfLength(4);
-        final var patchDescription = randomAsciiAlphanumOfLength(10);
+        final var patchTenantName = "str12";
+        final var patchDescription = "str1234567";
         ok(() -> client.patch(apiPath(), patch(addOp(patchTenantName, tenant(hidden, reserved, patchDescription)))));
         assertTenant(
             ok(() -> client.get(apiPath(patchTenantName))).bodyAsJsonNode().get(patchTenantName),
@@ -164,7 +164,7 @@ public class TenantsRestApiIntegrationTest extends AbstractConfigEntityApiIntegr
             patchDescription
         );
 
-        final var patchUpdatedDescription = randomAsciiAlphanumOfLength(10);
+        final var patchUpdatedDescription = "str1234567";
         ok(() -> client.patch(apiPath(patchTenantName), patch(replaceOp("description", patchUpdatedDescription))));
         assertTenant(
             ok(() -> client.get(apiPath(patchTenantName))).bodyAsJsonNode().get(patchTenantName),

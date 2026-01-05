@@ -11,6 +11,7 @@ package org.opensearch.security.grpc;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +42,6 @@ import io.grpc.TlsChannelCredentials;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomFrom;
 import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 
 public class GrpcHelpers {
@@ -91,7 +91,8 @@ public class GrpcHelpers {
             );
             transportAddresses.add(boundAddress);
         }
-        return randomFrom(transportAddresses);
+        Collections.shuffle(transportAddresses);
+        return transportAddresses.get(0);
     }
 
     /*

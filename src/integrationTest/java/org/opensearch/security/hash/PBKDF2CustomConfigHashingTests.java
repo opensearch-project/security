@@ -11,13 +11,18 @@
 
 package org.opensearch.security.hash;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -29,21 +34,37 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
+@RunWith(Parameterized.class)
 public class PBKDF2CustomConfigHashingTests extends HashingTests {
 
-    public static LocalCluster cluster;
+    private LocalCluster cluster;
 
     private static final String PASSWORD = "top$ecret1234!";
 
-    private static String function;
-    private static int iterations, length;
+    private final String function;
+    private final int iterations;
+    private final int length;
 
-    @BeforeClass
-    public static void startCluster() {
+    public PBKDF2CustomConfigHashingTests(String function, int iterations, int length) {
+        this.function = function;
+        this.iterations = iterations;
+        this.length = length;
+    }
 
-        function = randomFrom(List.of("SHA224", "SHA256", "SHA384", "SHA512"));
-        iterations = randomFrom(List.of(32000, 64000, 128000, 256000));
-        length = randomFrom(List.of(128, 256, 512));
+    @Parameterized.Parameters(name = "function={0}, iterations={1}, length={2}")
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+            new Object[][] {
+                { "SHA224", 32000, 128 },
+                { "SHA256", 64000, 256 },
+                { "SHA384", 128000, 512 },
+                { "SHA512", 256000, 256 },
+                { "SHA256", 32000, 512 } }
+        );
+    }
+
+    @Before
+    public void startCluster() {
 
         TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
             .hash(generatePBKDF2Hash("secret", function, iterations, length));
@@ -72,6 +93,13 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
             Awaitility.await()
                 .alias("Load default configuration")
                 .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));
+        }
+    }
+
+    @After
+    public void stopCluster() {
+        if (cluster != null) {
+            cluster.close();
         }
     }
 

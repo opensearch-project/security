@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -72,7 +73,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
 
             @Override
             public ToXContentObject entityPayload(Boolean hidden, Boolean reserved, Boolean _static) {
-                return internalUser(hidden, reserved, _static, randomAsciiAlphanumOfLength(10), null, null, null);
+                return internalUser(hidden, reserved, _static, "rv2fR924a149ava32", null, null, null);
             }
 
             @Override
@@ -262,12 +263,9 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         );
         // patch
         badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(10), EMPTY_BODY))));
-        badRequest(
-            () -> client.patch(
-                apiPath(predefinedUserName),
-                patch(replaceOp(randomFrom(List.of("opendistro_security_roles", "backend_roles", "attributes")), EMPTY_BODY))
-            )
-        );
+        for (String field : List.of("opendistro_security_roles", "backend_roles", "attributes")) {
+            badRequest(() -> client.patch(apiPath(predefinedUserName), patch(replaceOp(field, EMPTY_BODY))));
+        }
         badRequest(() -> client.patch(apiPath(), patch(addOp(randomAsciiAlphanumOfLength(5), (ToXContentObject) (builder, params) -> {
             builder.startObject();
             builder.field("unknown_json_property");
@@ -328,6 +326,20 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
 
     @Override
     void verifyCrudOperations(Boolean hidden, Boolean reserved, TestRestClient client) throws Exception {
+        for (ToXContentObject attributes : attributesOptions()) {
+            for (ToXContentObject securityRoles : securityRolesOptions()) {
+                verifyCrudOperationsForCombination(hidden, reserved, client, attributes, securityRoles);
+            }
+        }
+    }
+
+    void verifyCrudOperationsForCombination(
+        Boolean hidden,
+        Boolean reserved,
+        TestRestClient client,
+        ToXContentObject attributes,
+        ToXContentObject securityRoles
+    ) throws Exception {
         // put
         final var usernamePut = randomAsciiAlphanumOfLength(10);
         final var newUserJsonPut = internalUser(
@@ -335,8 +347,8 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
             reserved,
             randomAsciiAlphanumOfLength(10),
             randomConfigArray(false),
-            randomAttributes(),
-            randomSecurityRoles()
+            attributes,
+            securityRoles
         );
         created(() -> client.putJson(apiPath(usernamePut), newUserJsonPut));
         assertInternalUser(
@@ -350,8 +362,8 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
             reserved,
             randomAsciiAlphanumOfLength(10),
             randomConfigArray(false),
-            randomAttributes(),
-            randomSecurityRoles()
+            attributes,
+            securityRoles
         );
         ok(() -> client.putJson(apiPath(usernamePut), updatedUserJsonPut));
         assertInternalUser(
@@ -392,17 +404,15 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         );
     }
 
-    ToXContentObject randomAttributes() {
-        return randomFrom(
-            List.of(
-                (builder, params) -> builder.startObject().endObject(),
-                (builder, params) -> builder.startObject().field("a", "b").field("c", "d").endObject()
-            )
+    List<ToXContentObject> attributesOptions() {
+        return List.of(
+            (builder, params) -> builder.startObject().endObject(),
+            (builder, params) -> builder.startObject().field("a", "b").field("c", "d").endObject()
         );
     }
 
-    ToXContentObject randomSecurityRoles() {
-        return randomFrom(List.of(configJsonArray(), configJsonArray(SOME_ROLE, RESERVED_ROLE)));
+    List<ToXContentObject> securityRolesOptions() {
+        return List.of(configJsonArray(), configJsonArray(SOME_ROLE, RESERVED_ROLE));
     }
 
     void assertInternalUser(
@@ -800,5 +810,16 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 )
             );
         });
+    }
+
+    private String randomAsciiAlphanumOfLength(int length) {
+        final var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        final var random = new Random();
+        final var sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            final var randomIndex = random.nextInt(characters.length());
+            sb.append(characters.charAt(randomIndex));
+        }
+        return sb.toString();
     }
 }
