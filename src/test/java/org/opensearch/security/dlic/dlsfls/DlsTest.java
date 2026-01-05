@@ -59,14 +59,12 @@ public class DlsTest extends AbstractDlsFlsTest {
 
         setup();
 
-        String query = "{"
-            + "\"query\" : {"
-            + "\"match_all\": {}"
-            + "},"
-            + "\"aggs\" : {"
-            + "\"thesum\" : { \"sum\" : { \"field\" : \"amount\" } }"
-            + "}"
-            + "}";
+        String query = """
+            {
+                "query": {"match_all": {}},
+                "aggs": {"thesum": {"sum": {"field": "amount"}}}
+            }
+            """;
 
         HttpResponse res;
         assertThat(
@@ -138,19 +136,15 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        String query =
-
-            "{"
-                + "\"query\": {"
-                + "\"range\" : {"
-                + "\"amount\" : {"
-                + "\"gte\" : 8,"
-                + "\"lte\" : 20,"
-                + "\"boost\" : 3.0"
-                + "}"
-                + "}"
-                + "}"
-                + "}";
+        String query = """
+            {
+                "query": {
+                    "range": {
+                        "amount": {"gte": 8, "lte": 20, "boost": 3.0}
+                    }
+                }
+            }
+            """;
 
         assertThat(
             HttpStatus.SC_OK,
@@ -159,19 +153,15 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        query =
-
-            "{"
-                + "\"query\": {"
-                + "\"range\" : {"
-                + "\"amount\" : {"
-                + "\"gte\" : 100,"
-                + "\"lte\" : 2000,"
-                + "\"boost\" : 2.0"
-                + "}"
-                + "}"
-                + "}"
-                + "}";
+        query = """
+            {
+                "query": {
+                    "range": {
+                        "amount": {"gte": 100, "lte": 2000, "boost": 2.0}
+                    }
+                }
+            }
+            """;
 
         assertThat(
             HttpStatus.SC_OK,
@@ -222,14 +212,12 @@ public class DlsTest extends AbstractDlsFlsTest {
 
         // mget
         // msearch
-        String msearchBody = "{\"index\":\"deals\", \"ignore_unavailable\": true}"
-            + System.lineSeparator()
-            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
-            + System.lineSeparator()
-            + "{\"index\":\"deals\", \"ignore_unavailable\": true}"
-            + System.lineSeparator()
-            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
-            + System.lineSeparator();
+        String msearchBody = """
+            {"index":"deals", "ignore_unavailable": true}
+            {"size":10, "query":{"bool":{"must":{"match_all":{}}}}}
+            {"index":"deals", "ignore_unavailable": true}
+            {"size":10, "query":{"bool":{"must":{"match_all":{}}}}}
+            """;
 
         assertThat(
             HttpStatus.SC_OK,
@@ -240,18 +228,14 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("\"amount\" : 1500"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        String mgetBody = "{"
-            + "\"docs\" : ["
-            + "{"
-            + "\"_index\" : \"deals\","
-            + "\"_id\" : \"1\""
-            + " },"
-            + " {"
-            + "\"_index\" : \"deals\","
-            + " \"_id\" : \"2\""
-            + "}"
-            + "]"
-            + "}";
+        String mgetBody = """
+            {
+                "docs": [
+                    {"_index": "deals", "_id": "1"},
+                    {"_index": "deals", "_id": "2"}
+                ]
+            }
+            """;
 
         assertThat(
             HttpStatus.SC_OK,
@@ -296,20 +280,16 @@ public class DlsTest extends AbstractDlsFlsTest {
         setup();
 
         HttpResponse res;
-        String query =
-
-            "{"
-                + "\"_source\": false,"
-                + "\"query\": {"
-                + "\"range\" : {"
-                + "\"amount\" : {"
-                + "\"gte\" : 100,"
-                + "\"lte\" : 2000,"
-                + "\"boost\" : 2.0"
-                + "}"
-                + "}"
-                + "}"
-                + "}";
+        String query = """
+            {
+                "_source": false,
+                "query": {
+                    "range": {
+                        "amount": {"gte": 100, "lte": 2000, "boost": 2.0}
+                    }
+                }
+            }
+            """;
 
         assertThat(
             HttpStatus.SC_OK,
@@ -380,30 +360,26 @@ public class DlsTest extends AbstractDlsFlsTest {
         // Terms Aggregation
         // Non-admin user with setting "min_doc_count":0. Expected to get error message "min_doc_count 0 is not supported when DLS is
         // activated".
-        String query1 = "{\n"
-            + "  \"size\":0,\n"
-            + "  \"query\":{\n"
-            + "    \"bool\":{\n"
-            + "      \"must\":[\n"
-            + "        {\n"
-            + "          \"range\":{\n"
-            + "            \"amount\":{\"gte\":1,\"lte\":100}\n"
-            + "          }\n"
-            + "        }\n"
-            + "      ]\n"
-            + "    }\n"
-            + "  },\n"
-            + "  \"aggs\":{\n"
-            + "    \"a\": {\n"
-            + "      \"terms\": {\n"
-            + "        \"field\": \"termX\",\n"
-            + "        \"min_doc_count\":0,\n"
-            + "\"size\": 10,\n"
-            + "\"order\": { \"_count\": \"desc\" }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        String query1 = """
+            {
+                "size": 0,
+                "query": {
+                    "bool": {
+                        "must": [{"range": {"amount": {"gte": 1, "lte": 100}}}]
+                    }
+                },
+                "aggs": {
+                    "a": {
+                        "terms": {
+                            "field": "termX",
+                            "min_doc_count": 0,
+                            "size": 10,
+                            "order": {"_count": "desc"}
+                        }
+                    }
+                }
+            }
+            """;
 
         HttpResponse response1 = rh.executePostRequest("logs*/_search", query1, encodeBasicHeader("dept_manager", "password"));
 
@@ -412,29 +388,25 @@ public class DlsTest extends AbstractDlsFlsTest {
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager excluding E with 0
         // doc_count".
-        String query2 = "{\n"
-            + "  \"size\":0,\n"
-            + "  \"query\":{\n"
-            + "    \"bool\":{\n"
-            + "      \"must\":[\n"
-            + "        {\n"
-            + "          \"range\":{\n"
-            + "            \"amount\":{\"gte\":1,\"lte\":100}\n"
-            + "          }\n"
-            + "        }\n"
-            + "      ]\n"
-            + "    }\n"
-            + "  },\n"
-            + "  \"aggs\":{\n"
-            + "    \"a\": {\n"
-            + "      \"terms\": {\n"
-            + "        \"field\": \"termX\",\n"
-            + "\"size\": 10,\n"
-            + "\"order\": { \"_count\": \"desc\" }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        String query2 = """
+            {
+                "size": 0,
+                "query": {
+                    "bool": {
+                        "must": [{"range": {"amount": {"gte": 1, "lte": 100}}}]
+                    }
+                },
+                "aggs": {
+                    "a": {
+                        "terms": {
+                            "field": "termX",
+                            "size": 10,
+                            "order": {"_count": "desc"}
+                        }
+                    }
+                }
+            }
+            """;
 
         HttpResponse response2 = rh.executePostRequest("logs*/_search", query2, encodeBasicHeader("dept_manager", "password"));
 
@@ -467,8 +439,9 @@ public class DlsTest extends AbstractDlsFlsTest {
 
         // Significant Text Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
-        String query3 =
-            "{\"size\":100,\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\",\"min_doc_count\":0}}}}";
+        String query3 = """
+            {"size":100,"aggregations":{"significant_termX":{"significant_terms":{"field":"termX.keyword","min_doc_count":0}}}}
+            """;
         HttpResponse response5 = rh.executePostRequest("logs*/_search", query3, encodeBasicHeader("dept_manager", "password"));
 
         assertThat(response5.getStatusCode(), is(HttpStatus.SC_OK));
@@ -479,7 +452,9 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertFalse(response5.getBody(), response5.getBody().contains("\"termX\":\"E\""));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
-        String query4 = "{\"size\":100,\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\"}}}}";
+        String query4 = """
+            {"size":100,"aggregations":{"significant_termX":{"significant_terms":{"field":"termX.keyword"}}}}
+            """;
 
         HttpResponse response6 = rh.executePostRequest("logs*/_search", query4, encodeBasicHeader("dept_manager", "password"));
 
@@ -512,7 +487,9 @@ public class DlsTest extends AbstractDlsFlsTest {
 
         // Histogram Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
-        String query5 = "{\"size\":100,\"aggs\":{\"amount\":{\"histogram\":{\"field\":\"amount\",\"interval\":1,\"min_doc_count\":0}}}}";
+        String query5 = """
+            {"size":100,"aggs":{"amount":{"histogram":{"field":"amount","interval":1,"min_doc_count":0}}}}
+            """;
 
         HttpResponse response9 = rh.executePostRequest("logs*/_search", query5, encodeBasicHeader("dept_manager", "password"));
 
@@ -524,7 +501,9 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertFalse(response9.getBody(), response9.getBody().contains("\"termX\":\"E\""));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
-        String query6 = "{\"size\":100,\"aggs\":{\"amount\":{\"histogram\":{\"field\":\"amount\",\"interval\":1}}}}";
+        String query6 = """
+            {"size":100,"aggs":{"amount":{"histogram":{"field":"amount","interval":1}}}}
+            """;
 
         HttpResponse response10 = rh.executePostRequest("logs*/_search", query6, encodeBasicHeader("dept_manager", "password"));
 
@@ -557,8 +536,9 @@ public class DlsTest extends AbstractDlsFlsTest {
 
         // Date Histogram Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
-        String query7 =
-            "{\"size\":100,\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\",\"min_doc_count\":0}}}}";
+        String query7 = """
+            {"size":100,"aggs":{"timestamp":{"date_histogram":{"field":"timestamp","calendar_interval":"month","min_doc_count":0}}}}
+            """;
 
         HttpResponse response13 = rh.executePostRequest("logs*/_search", query7, encodeBasicHeader("dept_manager", "password"));
 
@@ -570,8 +550,9 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertFalse(response13.getBody(), response13.getBody().contains("\"termX\":\"E\""));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
-        String query8 =
-            "{\"size\":100,\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\"}}}}";
+        String query8 = """
+            {"size":100,"aggs":{"timestamp":{"date_histogram":{"field":"timestamp","calendar_interval":"month"}}}}
+            """;
 
         HttpResponse response14 = rh.executePostRequest("logs*/_search", query8, encodeBasicHeader("dept_manager", "password"));
 
