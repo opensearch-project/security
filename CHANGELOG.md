@@ -31,6 +31,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `ch.qos.logback:logback-classic` from 1.5.21 to 1.5.23 ([#5888](https://github.com/opensearch-project/security/pull/5888))
 - Bump `jackson` from 2.18.1 to 2.20.1 ([#5892](https://github.com/opensearch-project/security/pull/5892))
 
+### Removed
+- Remove MakeJava9Happy class that's not applicable in OS 3.X ([#5896](https://github.com/opensearch-project/security/pull/5896))
+
 ### Documentation
 
 [Unreleased 3.x]: https://github.com/opensearch-project/security/compare/3.4...main
