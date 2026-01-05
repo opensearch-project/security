@@ -35,16 +35,18 @@ public class DashboardsInfoTest extends AbstractApiIntegrationTest {
         );
     }
 
-    private String apiPath() {
-        return randomFrom(List.of(PLUGINS_PREFIX + "/dashboardsinfo", LEGACY_OPENDISTRO_PREFIX + "/kibanainfo"));
+    private List<String> apiPaths() {
+        return List.of(PLUGINS_PREFIX + "/dashboardsinfo", LEGACY_OPENDISTRO_PREFIX + "/kibanainfo");
     }
 
     @Test
     public void testDashboardsInfoValidationMessage() throws Exception {
         withUser("dashboards_user", client -> {
-            final var response = ok(() -> client.get(apiPath()));
-            assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
-            assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
+            for (String path : apiPaths()) {
+                final var response = ok(() -> client.get(path));
+                assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
+                assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
+            }
         });
     }
 }

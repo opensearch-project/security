@@ -9,10 +9,8 @@
 */
 package org.opensearch.security.http;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -24,8 +22,6 @@ import static org.opensearch.security.http.BasicAuthTests.TEST_USER;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.DISABLED_AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.JWT_AUTH_DOMAIN;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class DisabledBasicAuthTests {
 
     @ClassRule
