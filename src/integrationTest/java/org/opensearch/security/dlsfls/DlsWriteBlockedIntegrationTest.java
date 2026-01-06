@@ -10,13 +10,10 @@ package org.opensearch.security.dlsfls;
 
 import java.io.IOException;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -28,13 +25,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
+import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 
 /**
  * Integration tests for DLS_WRITE_BLOCKED setting which blocks write operations
  * when users have DLS, FLS, or Field Masking restrictions.
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class DlsWriteBlockedIntegrationTest {
 
     private static final String DLS_INDEX = "dls_index";
@@ -69,10 +65,7 @@ public class DlsWriteBlockedIntegrationTest {
 
     private void setDlsWriteBlocked(boolean enabled) throws IOException {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
-            client.putJson(
-                "_cluster/settings",
-                String.format("{\"transient\":{\"%s\":%b}}", ConfigConstants.SECURITY_DLS_WRITE_BLOCKED, enabled)
-            );
+            client.putJson("_cluster/settings", String.format("{\"transient\":{\"plugins.security.dls.write_blocked\":%b}}", enabled));
         }
     }
 
@@ -82,7 +75,7 @@ public class DlsWriteBlockedIntegrationTest {
         try (TestRestClient client = cluster.getRestClient(DLS_USER)) {
             var response = client.putJson(DLS_INDEX + "/_doc/test1?refresh=true", "{\"dept\":\"sales\",\"amount\":400}");
 
-            assertThat(response.getStatusCode(), is(201));
+            assertThat(response, isCreated());
         }
     }
 
