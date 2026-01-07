@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Enhancements
 - Support nested JWT claims in role DLS queries ([#5687](https://github.com/opensearch-project/security/issues/5687))
+- Support creation of client SSL engine with a given SNI ([#5894](https://github.com/opensearch-project/security/pull/5894))
+
 ### Bug Fixes
 - Fix IllegalArgumentException when resolved indices are empty in PrivilegesEvaluator ([#5770](https://github.com/opensearch-project/security/pull/5797))
 - Fixes an issue where recursive LDAP role search would fail with a NullPointerException ([#5861](https://github.com/opensearch-project/security/pull/5861))
