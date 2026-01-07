@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -228,12 +228,10 @@ public class DataStreamAuthorizationReadOnlyIntTests {
             .indices(index_c1);
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        DataStreamAuthorizationReadOnlyIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -875,7 +873,7 @@ public class DataStreamAuthorizationReadOnlyIntTests {
     public DataStreamAuthorizationReadOnlyIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description)
         throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster(DataStreamAuthorizationReadOnlyIntTests::clusterBuilder);
+        this.cluster = clusterInstances.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 }
