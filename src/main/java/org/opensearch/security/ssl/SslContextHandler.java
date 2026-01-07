@@ -79,7 +79,7 @@ public class SslContextHandler {
             if (serverName != null) {
                 sslParams.setServerNames(List.of(new SNIHostName(serverName)));
             }
-            sslEngine.setSSLParameters(params);
+            sslEngine.setSSLParameters(sslParams);
         }
         return sslEngine;
     }
