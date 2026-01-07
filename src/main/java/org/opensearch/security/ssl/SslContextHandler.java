@@ -14,14 +14,12 @@ package org.opensearch.security.ssl;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -73,16 +71,14 @@ public class SslContextHandler {
      */
     public SSLEngine createClientSSLEngine(final String hostname, final int port, final String serverName) {
         SSLEngine sslEngine = sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
-        if (hostname != null) {
+        if (hostname != null || serverName != null) {
             SSLParameters sslParams = new SSLParameters();
-            sslParams.setEndpointIdentificationAlgorithm("HTTPS");
-            sslEngine.setSSLParameters(sslParams);
-        }
-        if (serverName != null) {
-            SSLParameters params = sslEngine.getSSLParameters();
-            List<SNIServerName> serverNames = new ArrayList<>(1);
-            serverNames.add(new SNIHostName(serverName));
-            params.setServerNames(serverNames);
+            if (hostname != null) {
+                sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+            }
+            if (serverName != null) {
+                sslParams.setServerNames(List.of(new SNIHostName(serverName)));
+            }
             sslEngine.setSSLParameters(params);
         }
         return sslEngine;
