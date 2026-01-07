@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.hc.core5.http.message.BasicHeader;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -361,12 +361,10 @@ public class DashboardMultiTenancyIntTests {
             );
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        DashboardMultiTenancyIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -763,7 +761,7 @@ public class DashboardMultiTenancyIntTests {
         @SuppressWarnings("unused") String description
     ) {
         this.user = user;
-        this.cluster = clusterConfig.cluster(DashboardMultiTenancyIntTests::clusterBuilder);
+        this.cluster = clusterInstances.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 
