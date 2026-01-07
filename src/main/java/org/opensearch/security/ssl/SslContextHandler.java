@@ -65,20 +65,19 @@ public class SslContextHandler {
      * Creates a SSL engine for usage as a client. In this case, we can optionally perform hostname verification.
      */
     public SSLEngine createClientSSLEngine(final String hostname, final int port) {
-        SSLEngine sslEngine = sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
-        if (hostname != null) {
-            SSLParameters sslParams = new SSLParameters();
-            sslParams.setEndpointIdentificationAlgorithm("HTTPS");
-            sslEngine.setSSLParameters(sslParams);
-        }
-        return sslEngine;
+        return createClientSSLEngine(hostname, port, null);
     }
 
     /**
      * Creates a SSL engine for usage as a client with a specified Server Name Indication (SNI).
      */
     public SSLEngine createClientSSLEngine(final String hostname, final int port, final String serverName) {
-        SSLEngine sslEngine = this.createClientSSLEngine(hostname, port);
+        SSLEngine sslEngine = sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
+        if (hostname != null) {
+            SSLParameters sslParams = new SSLParameters();
+            sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+            sslEngine.setSSLParameters(sslParams);
+        }
         if (serverName != null) {
             SSLParameters params = sslEngine.getSSLParameters();
             List<SNIServerName> serverNames = new ArrayList<>(1);
