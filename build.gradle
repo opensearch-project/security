@@ -509,7 +509,7 @@ configurations {
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
-            force "com.google.errorprone:error_prone_annotations:2.44.0"
+            force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
             force "org.checkerframework:checker-qual:3.52.1"
             force "ch.qos.logback:logback-classic:1.5.23"
             force "commons-io:commons-io:2.21.0"
@@ -710,7 +710,7 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.20.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.7'
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.44.0'
+    compileOnly "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.4'
     runtimeOnly 'org.ow2.asm:asm:9.9.1'
@@ -805,7 +805,7 @@ dependencies {
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 
-    implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"

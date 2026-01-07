@@ -46,6 +46,7 @@ import io.jsonwebtoken.security.Keys;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -152,6 +153,41 @@ public class HTTPJwtAuthenticatorTest {
         assertNotNull(credentials);
         assertThat(credentials.getUsername(), is("Leonard McCoy"));
         assertThat(credentials.getAttributes(), equalTo(expectedAttributes));
+    }
+
+    @Test
+    public void testJwtAttributeParsingWithNestedClaims() throws Exception {
+        Map<String, String> expectedAttributes = new HashMap<>();
+        expectedAttributes.put("attr.jwt.sub", "Leonard McCoy");
+        expectedAttributes.put("attr.jwt.active_tenant.tenant_id", "enterprise");
+        expectedAttributes.put("attr.jwt.active_tenant.roles", "[\"admin\",\"user\"]");
+
+        Map<String, Object> activeTenant = new HashMap<>();
+        activeTenant.put("tenant_id", "enterprise");
+        activeTenant.put("roles", List.of("admin", "user"));
+
+        String jwsToken = Jwts.builder()
+            .setSubject("Leonard McCoy")
+            .claim("active_tenant", activeTenant)
+            .signWith(Keys.hmacShaKeyFor(secretKeyBytes), SignatureAlgorithm.HS512)
+            .compact();
+
+        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
+
+        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        Map<String, String> params = Collections.emptyMap();
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, params).asSecurityRequest(), null);
+
+        assertNotNull(credentials);
+        Map<String, String> attrs = credentials.getAttributes();
+        assertEquals("Leonard McCoy", attrs.get("attr.jwt.sub"));
+        assertEquals("enterprise", attrs.get("attr.jwt.active_tenant.tenant_id"));
+        assertEquals("[\"admin\",\"user\"]", attrs.get("attr.jwt.active_tenant.roles"));
     }
 
     @Test

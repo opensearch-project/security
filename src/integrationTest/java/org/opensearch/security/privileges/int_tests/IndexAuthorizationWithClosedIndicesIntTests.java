@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -140,9 +141,13 @@ public class IndexAuthorizationWithClosedIndicesIntTests {
             .plugin(MustacheModulePlugin.class);
     }
 
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        IndexAuthorizationWithClosedIndicesIntTests::clusterBuilder
+    );
+
     private final TestSecurityConfig.User user;
     private final LocalCluster cluster;
-    private final ClusterConfig clusterConfig;
 
     @Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
@@ -159,8 +164,7 @@ public class IndexAuthorizationWithClosedIndicesIntTests {
     public IndexAuthorizationWithClosedIndicesIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description)
         throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster(IndexAuthorizationWithClosedIndicesIntTests::clusterBuilder);
-        this.clusterConfig = clusterConfig;
+        this.cluster = clusterInstances.get(clusterConfig);
     }
 
     @Before
