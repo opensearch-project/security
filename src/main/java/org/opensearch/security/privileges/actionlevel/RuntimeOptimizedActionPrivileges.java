@@ -11,10 +11,15 @@
 
 package org.opensearch.security.privileges.actionlevel;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.collections4.CollectionUtils;
@@ -22,12 +27,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
 import com.selectivem.collections.CheckTable;
@@ -50,9 +58,18 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
     protected final ClusterPrivileges cluster;
     protected final StaticIndexPrivileges index;
 
-    RuntimeOptimizedActionPrivileges(ClusterPrivileges cluster, StaticIndexPrivileges index) {
+    /**
+     * If true, aliases or data streams which do not have direct privileges, will be broken down into individual indices
+     * to check whether there are privileges for the individual indices. This is mainly for backwards compatibility. The
+     * new privilege evaluation mode won't use this, as this does not work well with filtered aliases (the filters would
+     * just disappear).
+     */
+    protected final boolean breakDownAliases;
+
+    RuntimeOptimizedActionPrivileges(ClusterPrivileges cluster, StaticIndexPrivileges index, boolean breakDownAliases) {
         this.cluster = cluster;
         this.index = index;
+        this.breakDownAliases = breakDownAliases;
     }
 
     @Override
@@ -84,43 +101,38 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
     public PrivilegesEvaluatorResponse hasIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
-        IndexResolverReplacer.Resolved resolvedIndices
+        OptionallyResolvedIndices resolvedIndices
     ) {
-        PrivilegesEvaluatorResponse response = this.index.checkWildcardIndexPrivilegesOnWellKnownActions(context, actions);
-        if (response != null) {
-            return response;
-        }
-
-        if (!resolvedIndices.isLocalAll() && resolvedIndices.getAllIndices().isEmpty()) {
+        if (resolvedIndices.local().isEmpty()) {
             // This is necessary for requests which operate on remote indices.
             // Access control for the remote indices will be performed on the remote cluster.
             log.debug("No local indices; grant the request");
             return PrivilegesEvaluatorResponse.ok();
         }
 
-        Set<String> allIndicesResolved = resolvedIndices.getAllIndicesResolved(
-            context.getClusterStateSupplier(),
-            context.getIndexNameExpressionResolver()
-        );
-
-        if (allIndicesResolved.isEmpty()) {
-            log.debug("No resolved indices; grant the request (user has index privileges for the action)");
+        Set<String> localNames = resolvedIndices.local().names(context.clusterState());
+        if (localNames.isEmpty()) {
+            log.debug("No local indices; grant the request");
             return PrivilegesEvaluatorResponse.ok();
         }
 
         // TODO one might want to consider to create a semantic wrapper for action in order to be better tell apart
         // what's the action and what's the index in the generic parameters of CheckTable.
-        CheckTable<String, String> checkTable = CheckTable.create(allIndicesResolved, actions);
+        CheckTable<String, String> checkTable = CheckTable.create(localNames, actions);
+
+        IntermediateResult result = this.index.checkWildcardIndexPrivilegesOnWellKnownActions(context, actions, checkTable);
+        if (result != null) {
+            return this.index.finalizeResult(context, result);
+        }
 
         StatefulIndexPrivileges statefulIndex = this.currentStatefulIndexPrivileges();
-        PrivilegesEvaluatorResponse resultFromStatefulIndex = null;
 
         if (statefulIndex != null) {
-            resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, resolvedIndices, context, checkTable);
+            IntermediateResult resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, context, checkTable);
 
             if (resultFromStatefulIndex != null) {
                 // If we get a result from statefulIndex, we are done.
-                return resultFromStatefulIndex;
+                return this.index.finalizeResult(context, resultFromStatefulIndex);
             }
 
             // Otherwise, we need to carry on checking privileges using the non-stateful object.
@@ -128,7 +140,29 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             // We can carry on using this as an intermediate result and further complete checkTable below.
         }
 
-        return this.index.providesPrivilege(context, actions, resolvedIndices, checkTable);
+        IntermediateResult resultFromStaticIndex = this.index.providesPrivilege(context, actions, checkTable);
+
+        if (this.breakDownAliases
+            && !checkTable.isComplete()
+            && resolvedIndices instanceof ResolvedIndices
+            && containsAliasesOrDataStreams(context, checkTable.getIncompleteRows())) {
+            // If we could not gather privileges for all aliases, try to break down aliases and data streams into individual members
+            // This is for backwards compatibility only
+            return this.breakDownAliases(context, actions, checkTable);
+        }
+
+        return this.index.finalizeResult(context, resultFromStaticIndex);
+    }
+
+    @Override
+    public PrivilegesEvaluatorResponse hasIndexPrivilegeForAnyIndex(PrivilegesEvaluationContext context, Set<String> actions) {
+        CheckTable<String, String> checkTable = CheckTable.create(Set.of("_any_index"), actions);
+        IntermediateResult result = this.index.checkWildcardIndexPrivilegesOnWellKnownActions(context, actions, checkTable);
+        if (result != null) {
+            return PrivilegesEvaluatorResponse.ok(checkTable);
+        }
+
+        return this.index.providesPrivilegeOnAnyIndex(context, actions, checkTable);
     }
 
     /**
@@ -142,13 +176,13 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
     public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
-        IndexResolverReplacer.Resolved resolvedIndices
+        OptionallyResolvedIndices resolvedIndices
     ) {
         if (!CollectionUtils.containsAny(actions, WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS)) {
             return PrivilegesEvaluatorResponse.insufficient(CheckTable.create(ImmutableSet.of("_"), actions));
         }
 
-        CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.getAllIndices(), actions);
+        CheckTable<String, String> checkTable = CheckTable.create(resolvedIndices.local().names(context.clusterState()), actions);
         return this.index.providesExplicitPrivilege(context, actions, checkTable);
     }
 
@@ -157,6 +191,56 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
      * can choose to return null here; then, a slower evaluation path will be used.
      */
     protected abstract StatefulIndexPrivileges currentStatefulIndexPrivileges();
+
+    protected PrivilegesEvaluatorResponse breakDownAliases(
+        PrivilegesEvaluationContext context,
+        Set<String> actions,
+        CheckTable<String, String> checkTable
+    ) {
+        Map<String, IndexAbstraction> indicesLookup = context.getIndicesLookup();
+        Set<String> newIndices = new HashSet<>();
+
+        for (String index : checkTable.getRows()) {
+            if (checkTable.isRowComplete(index)) {
+                newIndices.add(index);
+            } else {
+                IndexAbstraction indexAbstraction = indicesLookup.get(index);
+                if (indexAbstraction instanceof IndexAbstraction.Alias || indexAbstraction instanceof IndexAbstraction.DataStream) {
+                    indexAbstraction.getIndices().forEach(i -> newIndices.add(i.getIndex().getName()));
+                } else {
+                    newIndices.add(index);
+                }
+            }
+        }
+
+        CheckTable<String, String> newCheckTable = CheckTable.create(newIndices, actions);
+        for (String action : actions) {
+            newCheckTable.checkIf(index -> checkTable.getRows().contains(index) && checkTable.isChecked(index, action), action);
+        }
+
+        StatefulIndexPrivileges statefulIndex = this.currentStatefulIndexPrivileges();
+        if (statefulIndex != null) {
+            IntermediateResult resultFromStatefulIndex = statefulIndex.providesPrivilege(actions, context, newCheckTable);
+            if (resultFromStatefulIndex != null) {
+                // If we get a result from statefulIndex, we are done.
+                return this.index.finalizeResult(context, resultFromStatefulIndex);
+            }
+        }
+
+        IntermediateResult resultFromStaticIndex = this.index.providesPrivilege(context, actions, newCheckTable);
+        return this.index.finalizeResult(context, resultFromStaticIndex);
+    }
+
+    private boolean containsAliasesOrDataStreams(PrivilegesEvaluationContext context, Collection<String> names) {
+        Map<String, IndexAbstraction> indicesLookup = context.getIndicesLookup();
+        for (String name : names) {
+            IndexAbstraction indexAbstraction = indicesLookup.get(name);
+            if (indexAbstraction instanceof IndexAbstraction.Alias || indexAbstraction instanceof IndexAbstraction.DataStream) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Base class for evaluating cluster privileges.
@@ -267,23 +351,25 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * This is the slowest way to check for a privilege.
          */
         protected abstract boolean checkPrivilegeViaActionMatcher(PrivilegesEvaluationContext context, String action);
-
     }
 
     /**
      * Base class for evaluating index permissions which evaluates index patterns at privilege evaluation time.
      */
     protected abstract static class StaticIndexPrivileges {
+        protected final Predicate<String> universallyDeniedIndices;
+        protected final Predicate<String> indicesNeedingSystemIndexPrivileges;
+        protected final SpecialIndexProtection.IndicesNeedingSpecialRoles indicesNeedingSpecialRoles;
+
+        protected StaticIndexPrivileges(SpecialIndexProtection specialIndexProtection) {
+            this.universallyDeniedIndices = specialIndexProtection.universallyDeniedIndices;
+            this.indicesNeedingSystemIndexPrivileges = specialIndexProtection.indicesNeedingSystemIndexPrivileges;
+            this.indicesNeedingSpecialRoles = specialIndexProtection.indicesNeedingSpecialRoles;
+        }
 
         /**
          * Checks whether this instance provides privileges for the combination of the provided action,
          * the provided indices and the provided roles.
-         * <p>
-         * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
-         * <p>
-         * If privileges are only available for a sub-set of indices, isPartiallyOk() will return true
-         * and the indices for which privileges are available are returned by getAvailableIndices(). This allows the
-         * do_not_fail_on_forbidden behaviour.
          * <p>
          * This method will only verify privileges for the index/action combinations which are un-checked in
          * the checkTable instance provided to this method. Checked index/action combinations are considered to be
@@ -291,10 +377,22 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * As a side-effect, this method will further mark the available index/action combinations in the provided
          * checkTable instance as checked.
          */
-        protected abstract PrivilegesEvaluatorResponse providesPrivilege(
+        protected abstract IntermediateResult providesPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices,
+            CheckTable<String, String> checkTable
+        );
+
+        /**
+         * Checks whether this instance provides privileges for the provided action on any possible index.
+         * <p>
+         * As a side-effect, this method will mark the available actions in the provided checkTable instance as checked.
+         * This method should not try to interpret the index names in the check table; as we are interested in any
+         * index, the index names will be arbitrary.
+         */
+        protected abstract PrivilegesEvaluatorResponse providesPrivilegeOnAnyIndex(
+            PrivilegesEvaluationContext context,
+            Set<String> actions,
             CheckTable<String, String> checkTable
         );
 
@@ -311,6 +409,13 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             CheckTable<String, String> checkTable
         );
 
+        protected abstract boolean providesExplicitPrivilege(
+            PrivilegesEvaluationContext context,
+            String index,
+            String action,
+            List<PrivilegesEvaluationException> exceptions
+        );
+
         /**
          * Tests whether the current user (according to the context data) has wildcard index privileges for the given well known index actions.
          * Returns false if no privileges are given or if the given actions are not well known actions.
@@ -318,9 +423,10 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * Implementations of this class may interpret the context data differently; they can check the mapped roles
          * or just the subject.
          */
-        protected abstract PrivilegesEvaluatorResponse checkWildcardIndexPrivilegesOnWellKnownActions(
+        protected abstract IntermediateResult checkWildcardIndexPrivilegesOnWellKnownActions(
             PrivilegesEvaluationContext context,
-            Set<String> actions
+            Set<String> actions,
+            CheckTable<String, String> checkTable
         );
 
         /**
@@ -354,7 +460,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
                         } catch (PrivilegesEvaluationException e) {
                             // We can ignore these errors, as this max leads to fewer privileges than available
                             log.error("Error while evaluating index pattern of {}. Ignoring entry", this, e);
-                            exceptions.add(new PrivilegesEvaluationException("Error while evaluating " + this, e));
+                            exceptions.add(new PrivilegesEvaluationException("Error while evaluating index pattern " + indexPattern, e));
                         }
                     }
                 }
@@ -408,34 +514,96 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
         }
 
         /**
-         * Creates a PrivilegesEvaluationResponse in the case we find that the user does not have full privileges.
-         * This result is built based on the state of the given check table:
-         * <ul>
-         *     <li>If the check table is empty, a result with the state "insufficient" will be returned</li>
-         *     <li>If the check table is not empty, a result with the state "partially ok" will be returned. The response
-         *     object will carry a list of the indices for which we have privileges. This can be used for the DNFOF mode.</li>
-         * </ul>
+         * When we have finished the "normal" privilege evaluation, which is based on index_permissions in roles.yml,
+         * we have to pass the CheckTable with the available privileges through this method in order to have specially
+         * protected indices and actions removed again from the CheckTable.
          */
-        protected PrivilegesEvaluatorResponse responseForIncompletePrivileges(
-            PrivilegesEvaluationContext context,
-            IndexResolverReplacer.Resolved resolvedIndices,
-            CheckTable<String, String> checkTable,
-            List<PrivilegesEvaluationException> exceptions
-        ) {
+        protected PrivilegesEvaluatorResponse finalizeResult(PrivilegesEvaluationContext context, IntermediateResult intermediateResult) {
+            CheckTable<String, String> checkTable = intermediateResult.indexToActionCheckTable;
+            List<PrivilegesEvaluationException> exceptions = new ArrayList<>(intermediateResult.exceptions);
+            if (this.universallyDeniedIndices != null) {
+                checkTable.uncheckIf(this.universallyDeniedIndices, checkTable.getColumns());
+            }
+            if (this.indicesNeedingSystemIndexPrivileges != null) {
+                checkTable.uncheckIf(index -> this.isUnauthorizedSystemIndex(context, index, exceptions), checkTable.getColumns());
+            }
+            if (this.indicesNeedingSpecialRoles != null && this.indicesNeedingSpecialRoles.enabled) {
+                checkTable.uncheckIf(index -> this.isUnauthorizedIndexNeedingSpecialRoles(context, index), checkTable.getColumns());
+            }
+
+            if (checkTable.isComplete()) {
+                return PrivilegesEvaluatorResponse.ok(checkTable);
+            }
+
             Set<String> availableIndices = checkTable.getCompleteRows();
 
             if (!availableIndices.isEmpty()) {
                 return PrivilegesEvaluatorResponse.partiallyOk(availableIndices, checkTable).evaluationExceptions(exceptions);
             }
 
-            return PrivilegesEvaluatorResponse.insufficient(checkTable)
-                .reason(
-                    resolvedIndices.getAllIndices().size() == 1
-                        ? "Insufficient permissions for the referenced index"
-                        : "None of " + resolvedIndices.getAllIndices().size() + " referenced indices has sufficient permissions"
-                )
-                .evaluationExceptions(exceptions);
+            Set<String> allIndices = checkTable.getRows();
+
+            String reason;
+            if (allIndices.size() != 1) {
+                reason = "None of the referenced indices has sufficient permissions";
+            } else {
+                reason = "Insufficient permissions for the referenced index";
+            }
+
+            return PrivilegesEvaluatorResponse.insufficient(checkTable).reason(reason).evaluationExceptions(exceptions);
         }
+
+        /**
+         * Returns true if the given indexOrAlias is a system index or an alias containing a system index AND if
+         * the current user does not have the necessary explicit privilege to access this system index.
+         */
+        private boolean isUnauthorizedSystemIndex(
+            PrivilegesEvaluationContext context,
+            String indexOrAlias,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
+            if (this.indicesNeedingSystemIndexPrivileges.test(indexOrAlias)) {
+                return !providesExplicitPrivilege(context, indexOrAlias, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
+            }
+
+            IndexAbstraction indexAbstraction = context.getIndicesLookup().get(indexOrAlias);
+            if (indexAbstraction instanceof IndexAbstraction.Alias alias) {
+                for (IndexMetadata index : alias.getIndices()) {
+                    if (this.indicesNeedingSystemIndexPrivileges.test(index.getIndex().getName())) {
+                        if (!providesExplicitPrivilege(
+                            context,
+                            index.getIndex().getName(),
+                            ConfigConstants.SYSTEM_INDEX_PERMISSION,
+                            exceptions
+                        )) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private boolean isUnauthorizedIndexNeedingSpecialRoles(PrivilegesEvaluationContext context, String indexOrAlias) {
+            if (this.indicesNeedingSpecialRoles.indices.test(indexOrAlias)) {
+                return context.getMappedRoles().stream().noneMatch(this.indicesNeedingSpecialRoles.requiredRoles::test);
+            }
+
+            IndexAbstraction indexAbstraction = context.getIndicesLookup().get(indexOrAlias);
+            if (indexAbstraction instanceof IndexAbstraction.Alias alias) {
+                for (IndexMetadata index : alias.getIndices()) {
+                    if (this.indicesNeedingSpecialRoles.indices.test(index.getIndex().getName())) {
+                        if (context.getMappedRoles().stream().noneMatch(this.indicesNeedingSpecialRoles.requiredRoles::test)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
     }
 
     /**
@@ -457,17 +625,98 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * is returned, because then the remaining logic needs only to check for the unchecked cases.
          *
          * @param actions         the actions the user needs to have privileges for
-         * @param resolvedIndices the index the user needs to have privileges for
          * @param context         context information like user, resolved roles, etc.
          * @param checkTable      An action/index matrix. This method will modify the table as a side effect and check the cells where privileges are present.
          * @return PrivilegesEvaluatorResponse.ok() or null.
          */
-        protected abstract PrivilegesEvaluatorResponse providesPrivilege(
+        protected abstract IntermediateResult providesPrivilege(
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices,
             PrivilegesEvaluationContext context,
             CheckTable<String, String> checkTable
         );
     }
 
+    public static class SpecialIndexProtection {
+        public static final SpecialIndexProtection NONE = new SpecialIndexProtection(null, null, IndicesNeedingSpecialRoles.DISABLED);
+
+        /**
+         * This identifies indices which will never get privileges granted from this class.
+         */
+        protected final Predicate<String> universallyDeniedIndices;
+
+        /**
+         * This identifies indices which need the special system index privilege to get any privileges granted from this class.
+         */
+        protected final Predicate<String> indicesNeedingSystemIndexPrivileges;
+
+        /**
+         * This is the former "protected indices" feature; see https://github.com/opensearch-project/security/pull/126
+         * Indices specified here need special user roles to get any privileges granted from this class.
+         * Note: It is a bit questionable if these are still necessary; see https://github.com/opensearch-project/security/issues/5598
+         */
+        protected final IndicesNeedingSpecialRoles indicesNeedingSpecialRoles;
+
+        public SpecialIndexProtection(
+            Predicate<String> universallyDeniedIndices,
+            Predicate<String> indicesNeedingSystemIndexPrivileges,
+            IndicesNeedingSpecialRoles indicesNeedingSpecialRoles
+        ) {
+            this.universallyDeniedIndices = universallyDeniedIndices;
+            this.indicesNeedingSystemIndexPrivileges = indicesNeedingSystemIndexPrivileges;
+            this.indicesNeedingSpecialRoles = indicesNeedingSpecialRoles;
+        }
+
+        /**
+         * This is the former "protected indices" feature; see https://github.com/opensearch-project/security/pull/126
+         */
+        public static class IndicesNeedingSpecialRoles {
+            public static final IndicesNeedingSpecialRoles DISABLED = new IndicesNeedingSpecialRoles(false, null, null);
+
+            protected final boolean enabled;
+
+            /**
+             * Indices matched by this predicate need special user roles to get any privileges granted from this class.
+             */
+            protected final Predicate<String> indices;
+
+            /**
+             * This matches the required effective roles for accessing indices matched by indicesNeedingSpecialRoles.
+             */
+            protected final Predicate<String> requiredRoles;
+
+            public IndicesNeedingSpecialRoles(boolean enabled, Predicate<String> indices, Predicate<String> requiredRoles) {
+                this.enabled = enabled;
+                this.indices = indices;
+                this.requiredRoles = requiredRoles;
+            }
+        }
+    }
+
+    protected static class IntermediateResult {
+
+        protected final CheckTable<String, String> indexToActionCheckTable;
+        protected final ImmutableList<PrivilegesEvaluationException> exceptions;
+
+        protected IntermediateResult(CheckTable<String, String> indexToActionCheckTable) {
+            this.indexToActionCheckTable = indexToActionCheckTable;
+
+            this.exceptions = ImmutableList.of();
+        }
+
+        IntermediateResult(CheckTable<String, String> indexToActionCheckTable, ImmutableList<PrivilegesEvaluationException> exceptions) {
+            this.indexToActionCheckTable = indexToActionCheckTable;
+            this.exceptions = exceptions;
+        }
+
+        protected IntermediateResult evaluationExceptions(List<PrivilegesEvaluationException> exceptions) {
+            if (exceptions.isEmpty()) {
+                return this;
+            } else {
+                ImmutableList.Builder<PrivilegesEvaluationException> newExceptions = ImmutableList.builder();
+                newExceptions.addAll(this.exceptions);
+                newExceptions.addAll(exceptions);
+                return new IntermediateResult(this.indexToActionCheckTable, newExceptions.build());
+            }
+        }
+    }
 }

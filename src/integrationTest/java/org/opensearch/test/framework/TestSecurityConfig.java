@@ -143,6 +143,11 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public TestSecurityConfig privilegesEvaluationType(String privilegesEvaluationType) {
+        config.privilegesEvaluationType(privilegesEvaluationType);
+        return this;
+    }
+
     public TestSecurityConfig xff(XffConfig xffConfig) {
         config.xffConfig(xffConfig);
         return this;
@@ -280,6 +285,7 @@ public class TestSecurityConfig {
         private boolean anonymousAuth;
 
         private Boolean doNotFailOnForbidden;
+        private String privilegesEvaluationType;
         private XffConfig xffConfig;
         private OnBehalfOfConfig onBehalfOfConfig;
         private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
@@ -294,6 +300,11 @@ public class TestSecurityConfig {
 
         public Config doNotFailOnForbidden(Boolean doNotFailOnForbidden) {
             this.doNotFailOnForbidden = doNotFailOnForbidden;
+            return this;
+        }
+
+        public Config privilegesEvaluationType(String privilegesEvaluationType) {
+            this.privilegesEvaluationType = privilegesEvaluationType;
             return this;
         }
 
@@ -341,6 +352,9 @@ public class TestSecurityConfig {
             }
             if (doNotFailOnForbidden != null) {
                 xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
+            }
+            if (privilegesEvaluationType != null) {
+                xContentBuilder.field("privileges_evaluation_type", privilegesEvaluationType);
             }
             xContentBuilder.field("authc", authcDomainMap);
             if (authzDomainMap.isEmpty() == false) {

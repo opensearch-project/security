@@ -461,6 +461,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder nodeSetting(String key, Object value) {
+            nodeOverrideSettingsBuilder.put(key, String.valueOf(value));
+            return this;
+        }
+
         public Builder nodeSpecificSettings(int nodeNumber, Map<String, Object> settings) {
             if (!nodeSpecificOverrideSettingsBuilder.containsKey(nodeNumber)) {
                 Settings.Builder builderCopy = Settings.builder();
@@ -671,6 +676,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
         public Builder doNotFailOnForbidden(boolean doNotFailOnForbidden) {
             testSecurityConfig.doNotFailOnForbidden(doNotFailOnForbidden);
+            return this;
+        }
+
+        public Builder privilegesEvaluationType(String privilegesEvaluationType) {
+            testSecurityConfig.privilegesEvaluationType(privilegesEvaluationType);
             return this;
         }
 

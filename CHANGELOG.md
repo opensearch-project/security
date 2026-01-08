@@ -1,14 +1,18 @@
 # CHANGELOG
+
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to the [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See the [CONTRIBUTING guide](./CONTRIBUTING.md#Changelog) for instructions on how to add changelog entries.
 
 ## [Unreleased 3.x]
+
 ### Added
 
 ### Changed
 
 ### Features
+
+- New index privilege evaluation engine; provides a smoother experience for users with limited privileges and fixes many bugs related to index authorization. ([#5827](https://github.com/opensearch-project/security/pull/5827))
 
 ### Enhancements
 - Support nested JWT claims in role DLS queries ([#5687](https://github.com/opensearch-project/security/issues/5687))
@@ -16,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Bug Fixes
 - Fix IllegalArgumentException when resolved indices are empty in PrivilegesEvaluator ([#5770](https://github.com/opensearch-project/security/pull/5797))
+
+- Fix IllegalArgumentException when resolved indices are empty in PrivilegesEvaluator ([#5770](https://github.com/opensearch-project/security/pull/5797)
 - Fixes an issue where recursive LDAP role search would fail with a NullPointerException ([#5861](https://github.com/opensearch-project/security/pull/5861))
 - Serialize Search Request object in DLS Filter Level Handler only when debug mode is enabled ([#5883](https://github.com/opensearch-project/security/pull/5883))
 - Skip hasExplicitIndexPrivilege check for plugin users accessing their own system indices ([#5858](https://github.com/opensearch-project/security/pull/5858))
@@ -24,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Refactoring
 
 ### Maintenance
+
 - Bump `spring_version` from 7.0.1 to 7.0.2 ([#5852](https://github.com/opensearch-project/security/pull/5852))
 - Bump `org.apache.commons:commons-text` from 1.14.0 to 1.15.0 ([#5857](https://github.com/opensearch-project/security/pull/5857))
 - Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.34.0 to 3.34.100 and `org.eclipse.platform:org.eclipse.equinox.common` from 3.20.200 to 3.20.300 ([#5863](https://github.com/opensearch-project/security/pull/5863))
