@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 3.x]
 ### Added
+- Support for HTTP/3 (server side) ([#5886](https://github.com/opensearch-project/security/pull/5886)
 
 ### Changed
 
