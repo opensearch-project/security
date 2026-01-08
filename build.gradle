@@ -394,7 +394,7 @@ opensearchplugin {
     name 'opensearch-security'
     description 'Provide access control related features for OpenSearch'
     classname 'org.opensearch.security.OpenSearchSecurityPlugin'
-    extendedPlugins = ['workload-management;optional=true', 'rule-framework']
+    extendedPlugins = ['rule-framework', 'workload-management;optional=true', 'transport-grpc;optional=true']
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -687,6 +687,8 @@ dependencies {
     implementation "com.github.seancfoley:ipaddress:5.5.1"
     compileOnly "org.opensearch.plugin:workload-management-wlm-spi:${opensearch_version}"
     compileOnly "org.opensearch.plugin:autotagging-commons-spi:${opensearch_version}"
+    compileOnly "org.opensearch.plugin:transport-grpc-spi:${opensearch_version}"
+    compileOnly "io.grpc:grpc-api:${versions.grpc}"
 
     // Action privileges: check tables and compact collections
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
