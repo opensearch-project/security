@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 ### Features
+- Add support for a configurable audit log timezone using a dedicated configuration key ([#5867](https://github.com/opensearch-project/security/issues/5867))
 
 ### Enhancements
 - Support nested JWT claims in role DLS queries ([#5687](https://github.com/opensearch-project/security/issues/5687))
