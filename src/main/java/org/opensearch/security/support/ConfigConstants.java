@@ -229,6 +229,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "opendistro_security.audit.exclude_sensitive_headers";
 
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = SECURITY_SETTINGS_PREFIX + "audit.config.";
+    public static final String SECURITY_AUDIT_CONFIG_TIMEZONE = SECURITY_SETTINGS_PREFIX + "audit.config.timezone";
 
     // Internal Opensearch data_stream
     public static final String SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME = "data_stream.name";
