@@ -13,8 +13,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,12 +49,10 @@ public class PluginSystemIndexIntTests {
             .plugin(SystemIndexPlugin1.class, SystemIndexPlugin2.class);
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusters = new ClusterConfig.ClusterInstances(
+            PluginSystemIndexIntTests::clusterBuilder
+    );
 
     @Parameters(name = "{0}")
     public static Collection<Object[]> params() {
@@ -68,7 +66,7 @@ public class PluginSystemIndexIntTests {
 
     public PluginSystemIndexIntTests(ClusterConfig clusterConfig) {
         this.clusterConfig = clusterConfig;
-        this.cluster = clusterConfig.cluster(PluginSystemIndexIntTests::clusterBuilder);
+        this.cluster = clusters.get(clusterConfig);
     }
 
     @Before
