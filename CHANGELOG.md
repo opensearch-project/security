@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Features
 
 ### Enhancements
+- Introduce new dynamic setting (plugins.security.dls.write_blocked) to block all writes when restrictions apply ([#5828](https://github.com/opensearch-project/security/pull/5828))
+
 - Support nested JWT claims in role DLS queries ([#5687](https://github.com/opensearch-project/security/issues/5687))
 - Support creation of client SSL engine with a given SNI ([#5894](https://github.com/opensearch-project/security/pull/5894))
 
