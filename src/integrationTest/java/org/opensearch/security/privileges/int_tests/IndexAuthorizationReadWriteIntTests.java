@@ -18,7 +18,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.After;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -570,12 +570,10 @@ public class IndexAuthorizationReadWriteIntTests {
             .plugin(IndexAuthorizationReadOnlyIntTests.SystemIndexTestPlugin.class);
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        IndexAuthorizationReadWriteIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -1157,7 +1155,7 @@ public class IndexAuthorizationReadWriteIntTests {
     public IndexAuthorizationReadWriteIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description)
         throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster(IndexAuthorizationReadWriteIntTests::clusterBuilder);
+        this.cluster = clusterInstances.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 

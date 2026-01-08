@@ -16,7 +16,6 @@ import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -189,12 +188,10 @@ public class CrossClusterAuthorizationIntTests {
             .indices(LocalIndices.index_a1, LocalIndices.index_a2);
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusters = new ClusterConfig.ClusterInstances(
+        CrossClusterAuthorizationIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -479,7 +476,7 @@ public class CrossClusterAuthorizationIntTests {
     public CrossClusterAuthorizationIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description)
         throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster(CrossClusterAuthorizationIntTests::clusterBuilder);
+        this.cluster = clusters.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 

@@ -92,8 +92,6 @@ public class LDAPConnectionFactoryFactory {
 
         JndiProviderConfig jndiProviderConfig = (JndiProviderConfig) result.getProvider().getProviderConfig();
 
-        jndiProviderConfig.setClassLoader(MakeJava9Happy.getClassLoader());
-
         if (this.sslConfig != null) {
             configureSSLinConnectionFactory(result);
         }
