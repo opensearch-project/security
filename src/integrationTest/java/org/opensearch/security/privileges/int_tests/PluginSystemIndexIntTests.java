@@ -51,7 +51,7 @@ public class PluginSystemIndexIntTests {
 
     @ClassRule
     public static final ClusterConfig.ClusterInstances clusters = new ClusterConfig.ClusterInstances(
-            PluginSystemIndexIntTests::clusterBuilder
+        PluginSystemIndexIntTests::clusterBuilder
     );
 
     @Parameters(name = "{0}")
