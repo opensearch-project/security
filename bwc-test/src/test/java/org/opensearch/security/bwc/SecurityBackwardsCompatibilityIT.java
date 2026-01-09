@@ -337,7 +337,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                 bulkRequestBody.append(Song.randomSong().asJson() + "\n");
             }
             List<Response> responses = RestHelper.requestAgainstAllNodes(
-                testUserRestClient,
+                adminClient(),
                 "POST",
                 "_bulk?refresh=wait_for",
                 new StringEntity(bulkRequestBody.toString(), APPLICATION_NDJSON)
@@ -413,30 +413,31 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
      */
     private void createTestRoleIfNotExists(String role) throws IOException {
         String url = "_plugins/_security/api/roles/" + role;
-        String roleSettings = "{\n"
-            + "  \"cluster_permissions\": [\n"
-            + "    \"unlimited\"\n"
-            + "  ],\n"
-            + "  \"index_permissions\": [\n"
-            + "    {\n"
-            + "      \"index_patterns\": [\n"
-            + "        \"test_index*\"\n"
-            + "      ],\n"
-            + "      \"dls\": \"{ \\\"bool\\\": { \\\"must\\\": { \\\"match\\\": { \\\"genre\\\": \\\"rock\\\" } } } }\",\n"
-            + "      \"fls\": [\n"
-            + "        \"~lyrics\"\n"
-            + "      ],\n"
-            + "      \"masked_fields\": [\n"
-            + "        \"artist\"\n"
-            + "      ],\n"
-            + "      \"allowed_actions\": [\n"
-            + "        \"read\",\n"
-            + "        \"write\"\n"
-            + "      ]\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"tenant_permissions\": []\n"
-            + "}\n";
+        String roleSettings = """
+            {
+              "cluster_permissions": [
+                "unlimited"
+              ],
+              "index_permissions": [
+                {
+                  "index_patterns": [
+                    "test_index*"
+                  ],
+                  "dls": "{ \\\"bool\\\": { \\\"must\\\": { \\\"match\\\": { \\\"genre\\\": \\\"rock\\\" } } } }",
+                  "fls": [
+                    "~lyrics"
+                  ],
+                  "masked_fields": [
+                    "artist"
+                  ],
+                  "allowed_actions": [
+                    "read"
+                  ]
+                }
+              ],
+              "tenant_permissions": []
+            }
+            """;
         Response response = RestHelper.makeRequest(adminClient(), "PUT", url, RestHelper.toHttpEntity(roleSettings));
 
         assertThat(response.getStatusLine().getStatusCode(), anyOf(equalTo(200), equalTo(201)));
