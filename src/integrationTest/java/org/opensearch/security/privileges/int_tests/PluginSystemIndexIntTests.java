@@ -36,6 +36,12 @@ import static org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
+/*
+ * This class serves as a single source of truth for the privilege rules governing plugin users'
+ * access to their own system indices. It enforces consistency across different cluster configurations
+ * (e.g., with and without explicit system index permission enabled) by defining the complete set of
+ * tests that must pass in any environment.
+ */
 @RunWith(Parameterized.class)
 public class PluginSystemIndexIntTests {
 
