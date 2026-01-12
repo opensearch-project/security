@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Refer to version of error_prone_annotations from core's version catalog (2.45.0) ([#5890](https://github.com/opensearch-project/security/pull/5890))
 - Bump `ch.qos.logback:logback-classic` from 1.5.21 to 1.5.23 ([#5888](https://github.com/opensearch-project/security/pull/5888))
 - Bump `jackson` from 2.18.1 to 2.20.1 ([#5892](https://github.com/opensearch-project/security/pull/5892))
+- Bump `com.nimbusds:nimbus-jose-jwt` from 10.6 to 10.7 ([#5904](https://github.com/opensearch-project/security/pull/5904))
 
 ### Removed
 - Remove MakeJava9Happy class that's not applicable in OS 3.X ([#5896](https://github.com/opensearch-project/security/pull/5896))
