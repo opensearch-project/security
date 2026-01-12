@@ -681,7 +681,7 @@ dependencies {
     implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
     implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:10.6'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.5.1"
@@ -780,8 +780,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.10.1'
     testImplementation "org.springframework.kafka:spring-kafka-test:4.0.1"
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.2'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
