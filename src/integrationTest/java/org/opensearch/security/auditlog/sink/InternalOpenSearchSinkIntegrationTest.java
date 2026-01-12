@@ -155,8 +155,7 @@ public class InternalOpenSearchSinkIntegrationTest {
     public void testCreatesAuditIndexAutomatically() throws Exception {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
-
-            // Generate event that triggers index creation
+            
             generateAuditEvent("_cluster/health");
 
             Thread.sleep(1500);
@@ -164,10 +163,8 @@ public class InternalOpenSearchSinkIntegrationTest {
 
             long eventCountAfter = countAuditEvents(client);
 
-            // Verify event was persisted
             assertThat("At least one new audit event must be generated", eventCountAfter, greaterThan(eventCountBefore));
 
-            // Verify at least one index with expected pattern exists
             GetIndexResponse response = client.admin()
                 .indices()
                 .getIndex(new GetIndexRequest().indices(AUDIT_INDEX_PREFIX + "*"))
@@ -175,7 +172,6 @@ public class InternalOpenSearchSinkIntegrationTest {
 
             assertThat("At least one audit index matching pattern must exist", response.indices().length, greaterThan(0));
 
-            // Verify at least one index follows date pattern
             boolean foundDateBasedIndex = false;
             for (String indexName : response.indices()) {
                 if (indexName.matches("^security-auditlog-\\d{4}\\.\\d{2}\\.\\d{2}$")) {
@@ -203,7 +199,6 @@ public class InternalOpenSearchSinkIntegrationTest {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
 
-            // Generate exactly 2 REST requests
             generateAuditEvent("_cluster/health");
             generateAuditEvent("_cluster/stats");
 
@@ -241,7 +236,6 @@ public class InternalOpenSearchSinkIntegrationTest {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
 
-            // Generate multiple events - should reuse existing index
             generateAuditEvent("_cluster/health");
             generateAuditEvent("_cluster/stats");
             generateAuditEvent("_nodes/stats");
@@ -252,7 +246,6 @@ public class InternalOpenSearchSinkIntegrationTest {
             long eventCountAfter = countAuditEvents(client);
             long newEvents = eventCountAfter - eventCountBefore;
 
-            // All events must be persisted successfully
             assertThat("All generated events must be persisted without errors", newEvents, greaterThanOrEqualTo(3L));
         }
     }
@@ -303,12 +296,10 @@ public class InternalOpenSearchSinkIntegrationTest {
 
             Map<String, Object> auditDoc = response.getHits().getAt(0).getSourceAsMap();
 
-            // Validate core fields
             assertThat("Missing mandatory field: audit_category", auditDoc.containsKey("audit_category"), is(true));
             assertThat("Missing mandatory field: audit_request_origin", auditDoc.containsKey("audit_request_origin"), is(true));
             assertThat("Missing mandatory field: @timestamp", auditDoc.containsKey("@timestamp"), is(true));
 
-            // Validate REST-specific fields
             assertThat("Missing REST field: audit_rest_request_method", auditDoc.containsKey("audit_rest_request_method"), is(true));
             assertThat("Missing REST field: audit_rest_request_path", auditDoc.containsKey("audit_rest_request_path"), is(true));
         }
@@ -338,14 +329,11 @@ public class InternalOpenSearchSinkIntegrationTest {
             long eventCountBefore = countAuditEvents(client);
 
             try (TestRestClient restClient = cluster.getRestClient(cluster.getAdminCertificate())) {
-                // Cluster read
                 restClient.get("_cluster/health");
 
-                // Index creation
                 String uniqueIndexName = "test-audit-operations-" + System.currentTimeMillis();
                 restClient.put(uniqueIndexName);
 
-                // Document write
                 StringEntity document = new StringEntity("{\"field\":\"value\"}", ContentType.APPLICATION_JSON);
                 restClient.put(uniqueIndexName + "/_doc/1", document, new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json"));
             }
@@ -386,7 +374,6 @@ public class InternalOpenSearchSinkIntegrationTest {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
 
-            // Generate event to ensure at least one index exists
             generateAuditEvent("_cluster/health");
             Thread.sleep(1500);
             refreshAuditIndices(client);
@@ -401,7 +388,6 @@ public class InternalOpenSearchSinkIntegrationTest {
 
             assertThat("At least one audit index must exist", indicesResponse.indices().length, greaterThan(0));
 
-            // Verify at least one index follows the date pattern
             boolean foundDateBasedIndex = false;
             for (String indexName : indicesResponse.indices()) {
                 if (indexName.matches("^security-auditlog-\\d{4}\\.\\d{2}\\.\\d{2}$")) {
