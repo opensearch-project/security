@@ -85,16 +85,7 @@ import static org.hamcrest.Matchers.not;
  */
 public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
 
-    /**
-     * Custom alias name used as the audit target.
-     * Configured via {@code plugins.security.audit.config.index}.
-     */
     private static final String AUDIT_ALIAS = "security-audit-write-alias";
-
-    /**
-     * Concrete backing index behind the write alias.
-     * In production, ILM policies would manage rollover to new backing indices.
-     */
     private static final String BACKING_INDEX = "security-audit-backend-000001";
 
     /**
@@ -120,10 +111,10 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
     @BeforeClass
     public static void setupAuditAlias() throws Exception {
         try (Client client = cluster.getInternalNodeClient()) {
-            // Step 1: Create concrete backing index
+            // Create concrete backing index
             client.admin().indices().create(new CreateIndexRequest(BACKING_INDEX)).actionGet();
 
-            // Step 2: Create write alias pointing to backing index
+            // Create write alias pointing to backing index
             client.admin()
                 .indices()
                 .aliases(
@@ -194,23 +185,19 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
     @Test
     public void testRecognizesAuditTargetAsWriteAlias() throws Exception {
         try (Client client = cluster.getInternalNodeClient()) {
-            // Trigger sink initialization
             generateAuditEvent("_cluster/health");
             Thread.sleep(1500);
 
-            // 1. Verify alias exists
+            // Verify alias exists
             GetAliasesResponse aliasesResponse = client.admin().indices().getAliases(new GetAliasesRequest(AUDIT_ALIAS)).actionGet();
-
             assertThat("Write alias must exist in cluster metadata", aliasesResponse.getAliases().isEmpty(), is(false));
 
-            // 2. Extract concrete index name from alias
+            // Extract concrete index name from alias
             String concreteIndex = aliasesResponse.getAliases().keySet().iterator().next();
-
             assertThat("Alias must resolve to a concrete index, not to itself", concreteIndex, not(equalTo(AUDIT_ALIAS)));
 
-            // 3. Verify backing index exists physically
+            // Verify backing index exists physically
             boolean backendIndexExists = client.admin().indices().exists(new IndicesExistsRequest(concreteIndex)).actionGet().isExists();
-
             assertThat("Concrete backing index must exist", backendIndexExists, is(true));
         }
     }
@@ -240,8 +227,6 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
     public void testReusesExistingAliasWithoutRecreation() throws Exception {
         try (Client client = cluster.getInternalNodeClient()) {
             long docCountBefore = countAuditDocs(client);
-
-            // Generate event that should write via alias
             generateAuditEvent("_cluster/stats");
             Thread.sleep(1500);
 
@@ -283,8 +268,6 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
     public void testAuditDocumentsViaAliasContainMandatoryFields() throws Exception {
         try (Client client = cluster.getInternalNodeClient()) {
             long docCountBefore = countAuditDocs(client);
-
-            // Generate fresh REST event
             generateAuditEvent("_cluster/health");
             Thread.sleep(1500);
 
@@ -338,7 +321,6 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
         try (Client client = cluster.getInternalNodeClient()) {
             long initialCount = countAuditDocs(client);
 
-            // Generate 3 distinct events
             generateAuditEvent("_cluster/health");
             Thread.sleep(1500);
             generateAuditEvent("_cluster/stats");
