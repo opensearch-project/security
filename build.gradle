@@ -780,8 +780,8 @@ dependencies {
     testImplementation 'commons-validator:commons-validator:1.10.1'
     testImplementation "org.springframework.kafka:spring-kafka-test:4.0.1"
     testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.2'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
