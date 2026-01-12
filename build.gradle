@@ -511,7 +511,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
             force "org.checkerframework:checker-qual:3.53.0"
-            force "ch.qos.logback:logback-classic:1.5.23"
+            force "ch.qos.logback:logback-classic:1.5.24"
             force "commons-io:commons-io:2.21.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
