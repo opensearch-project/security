@@ -510,7 +510,7 @@ configurations {
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
-            force "org.checkerframework:checker-qual:3.52.1"
+            force "org.checkerframework:checker-qual:3.53.0"
             force "ch.qos.logback:logback-classic:1.5.24"
             force "commons-io:commons-io:2.21.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
@@ -741,7 +741,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.52.1'
+    runtimeOnly 'org.checkerframework:checker-qual:3.53.0'
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
