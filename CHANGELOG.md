@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Serialize Search Request object in DLS Filter Level Handler only when debug mode is enabled ([#5883](https://github.com/opensearch-project/security/pull/5883))
 - Skip hasExplicitIndexPrivilege check for plugin users accessing their own system indices ([#5858](https://github.com/opensearch-project/security/pull/5858))
 - Fix test failure related to change in core to add content-encoding to response headers ([#5897](https://github.com/opensearch-project/security/pull/5897))
+- Fix audit log indexing when using aliases and rollover policies by correctly writing to an existing index ([#5878](https://github.com/opensearch-project/security/issues/5878))
 
 ### Refactoring
 
