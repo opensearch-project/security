@@ -34,8 +34,17 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class SecurityGrpcFilter implements GrpcInterceptorProvider {
+
+    private static final Pattern BASIC = Pattern.compile("^\\s*Basic\\s.*", Pattern.CASE_INSENSITIVE);
+    private static final String BEARER = "bearer ";
+    private static final String AUTHORIZATION_HEADER = "authorization";
+
+    // gRPC metadata keys (case-insensitive)
+    private static final Metadata.Key<String> AUTHORIZATION_KEY =
+        Metadata.Key.of(AUTHORIZATION_HEADER, Metadata.ASCII_STRING_MARSHALLER);
 
     static {
         System.out.println("SecurityGrpcFilter - class loaded by ClassLoader: " + SecurityGrpcFilter.class.getClassLoader());
@@ -57,14 +66,86 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
 
             @Override
             public ServerInterceptor getInterceptor() {
-                return new ServerInterceptor() {
-                    @Override
-                    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> serverCall, Metadata metadata, ServerCallHandler<ReqT, RespT> serverCallHandler) {
-                        System.out.println("SecurityGrpcFilter - Interceptor called");
-                        return serverCallHandler.startCall(serverCall, metadata);
-                    }
-                };
+                return new JwtGrpcInterceptor(threadContext);
             }
         });
+    }
+
+    /**
+     * gRPC interceptor that extracts JWT tokens from headers
+     */
+    private static class JwtGrpcInterceptor implements ServerInterceptor {
+        private final ThreadContext threadContext;
+
+        public JwtGrpcInterceptor(ThreadContext threadContext) {
+            this.threadContext = threadContext;
+        }
+
+        @Override
+        public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
+                ServerCall<ReqT, RespT> serverCall,
+                Metadata metadata,
+                ServerCallHandler<ReqT, RespT> serverCallHandler) {
+
+            System.out.println("SecurityGrpcFilter - Interceptor called for method: " + serverCall.getMethodDescriptor().getFullMethodName());
+
+            // Extract JWT token from gRPC metadata
+            String jwtToken = extractJwtToken(metadata);
+
+            if (jwtToken != null) {
+                System.out.println("SecurityGrpcFilter - JWT token extracted: " + maskToken(jwtToken));
+
+                // Store in ThreadContext for potential use by security components
+                threadContext.putHeader(AUTHORIZATION_HEADER, "Bearer " + jwtToken);
+                System.out.println("SecurityGrpcFilter - JWT token stored in ThreadContext");
+            } else {
+                System.out.println("SecurityGrpcFilter - No JWT token found in gRPC headers");
+            }
+
+            // Log all headers for debugging
+            logAllHeaders(metadata);
+
+            return serverCallHandler.startCall(serverCall, metadata);
+        }
+
+        private String extractJwtToken(Metadata metadata) {
+            String authHeader = metadata.get(AUTHORIZATION_KEY);
+
+            if (authHeader == null || authHeader.isEmpty()) {
+                return null;
+            }
+
+            // Skip Basic auth
+            if (BASIC.matcher(authHeader).matches()) {
+                return null;
+            }
+
+            // Extract Bearer token
+            final int index = authHeader.toLowerCase().indexOf(BEARER);
+            if (index > -1) {
+                return authHeader.substring(index + BEARER.length()).trim();
+            }
+
+            return null;
+        }
+
+        private void logAllHeaders(Metadata metadata) {
+            System.out.println("SecurityGrpcFilter - All gRPC headers:");
+            for (String key : metadata.keys()) {
+                if (key.endsWith("-bin")) {
+                    System.out.println("  " + key + ": [binary data]");
+                } else {
+                    String value = metadata.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER));
+                    System.out.println("  " + key + ": " + (key.toLowerCase().contains("auth") ? maskToken(value) : value));
+                }
+            }
+        }
+
+        private String maskToken(String token) {
+            if (token == null || token.length() < 10) {
+                return "[masked]";
+            }
+            return token.substring(0, 10) + "...[" + (token.length() - 10) + " more chars]";
+        }
     }
 }
