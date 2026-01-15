@@ -11,6 +11,7 @@
 package org.opensearch.security.auditlog.sink;
 
 import java.util.Map;
+import java.util.Objects;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -32,6 +33,8 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -39,6 +42,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Integration tests for {@link InternalOpenSearchSink} with write alias configuration.
@@ -83,7 +87,7 @@ import static org.hamcrest.Matchers.not;
  *
  * @see InternalOpenSearchSinkIntegrationTest
  */
-public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
+public class InternalOpenSearchSinkIntegrationTestAuditAlias {
 
     private static final String AUDIT_ALIAS = "security-audit-write-alias";
     private static final String BACKING_INDEX = "security-audit-backend-000001";
@@ -109,12 +113,10 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
      * without attempting to create a regular index with the same name.</p>
      */
     @BeforeClass
-    public static void setupAuditAlias() throws Exception {
+    public static void setupAuditAlias() {
         try (Client client = cluster.getInternalNodeClient()) {
-            // Create concrete backing index
             client.admin().indices().create(new CreateIndexRequest(BACKING_INDEX)).actionGet();
 
-            // Create write alias pointing to backing index
             client.admin()
                 .indices()
                 .aliases(
@@ -124,9 +126,6 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
                 )
                 .actionGet();
         }
-
-        // Allow cluster state to propagate
-        Thread.sleep(2000);
     }
 
     // ----------------------------------------------------
@@ -142,13 +141,13 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
             new SearchRequest(AUDIT_ALIAS).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(0))
         ).actionGet();
 
-        return response.getHits().getTotalHits().value();
+        return Objects.requireNonNull(response.getHits().getTotalHits()).value();
     }
 
     /**
      * Generates a single REST audit event via GET request.
      */
-    private void generateAuditEvent(String path) throws Exception {
+    private void generateAuditEvent(String path) {
         try (TestRestClient restClient = cluster.getRestClient(cluster.getAdminCertificate())) {
             restClient.get(path);
         }
@@ -183,20 +182,18 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
      * }</pre>
      */
     @Test
-    public void testRecognizesAuditTargetAsWriteAlias() throws Exception {
+    public void testRecognizesAuditTargetAsWriteAlias() {
         try (Client client = cluster.getInternalNodeClient()) {
             generateAuditEvent("_cluster/health");
-            Thread.sleep(1500);
 
-            // Verify alias exists
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).until(() -> countAuditDocs(client) > 0);
+
             GetAliasesResponse aliasesResponse = client.admin().indices().getAliases(new GetAliasesRequest(AUDIT_ALIAS)).actionGet();
-            assertThat("Write alias must exist in cluster metadata", aliasesResponse.getAliases().isEmpty(), is(false));
+            assertThat("Write alias must exist", aliasesResponse.getAliases().isEmpty(), is(false));
 
-            // Extract concrete index name from alias
             String concreteIndex = aliasesResponse.getAliases().keySet().iterator().next();
-            assertThat("Alias must resolve to a concrete index, not to itself", concreteIndex, not(equalTo(AUDIT_ALIAS)));
+            assertThat("Alias must resolve to a concrete index", concreteIndex, not(equalTo(AUDIT_ALIAS)));
 
-            // Verify backing index exists physically
             boolean backendIndexExists = client.admin().indices().exists(new IndicesExistsRequest(concreteIndex)).actionGet().isExists();
             assertThat("Concrete backing index must exist", backendIndexExists, is(true));
         }
@@ -224,15 +221,15 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
      * }</pre>
      */
     @Test
-    public void testReusesExistingAliasWithoutRecreation() throws Exception {
+    public void testReusesExistingAliasWithoutRecreation() {
         try (Client client = cluster.getInternalNodeClient()) {
-            long docCountBefore = countAuditDocs(client);
+            long before = countAuditDocs(client);
             generateAuditEvent("_cluster/stats");
-            Thread.sleep(1500);
 
-            long docCountAfter = countAuditDocs(client);
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).until(() -> countAuditDocs(client) > before);
 
-            assertThat("New audit event must be persisted via existing alias", docCountAfter, is(greaterThan(docCountBefore)));
+            long after = countAuditDocs(client);
+            assertThat("New audit event must be persisted via existing alias", after, greaterThan(before));
         }
     }
 
@@ -265,16 +262,13 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
      * test created a new event.</p>
      */
     @Test
-    public void testAuditDocumentsViaAliasContainMandatoryFields() throws Exception {
+    public void testAuditDocumentsViaAliasContainMandatoryFields() {
         try (Client client = cluster.getInternalNodeClient()) {
-            long docCountBefore = countAuditDocs(client);
+            long before = countAuditDocs(client);
             generateAuditEvent("_cluster/health");
-            Thread.sleep(1500);
 
-            long docCountAfter = countAuditDocs(client);
-            assertThat("Test must generate at least one new event", docCountAfter, greaterThan(docCountBefore));
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).until(() -> countAuditDocs(client) > before);
 
-            // Retrieve most recent document
             SearchResponse response = client.search(
                 new SearchRequest(AUDIT_ALIAS).source(
                     new SearchSourceBuilder().query(QueryBuilders.matchAllQuery())
@@ -283,24 +277,17 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
                 )
             ).actionGet();
 
-            Map<String, Object> auditDoc = response.getHits().getAt(0).getSourceAsMap();
+            Map<String, Object> doc = response.getHits().getAt(0).getSourceAsMap();
 
-            // Core fields
-            assertThat("Missing core field: audit_category", auditDoc, hasKey("audit_category"));
-            assertThat("Missing core field: audit_request_origin", auditDoc, hasKey("audit_request_origin"));
-            assertThat("Missing core field: @timestamp", auditDoc, hasKey("@timestamp"));
-
-            // REST-specific fields
-            assertThat("Missing REST field: audit_rest_request_method", auditDoc, hasKey("audit_rest_request_method"));
-            assertThat("Missing REST field: audit_rest_request_path", auditDoc, hasKey("audit_rest_request_path"));
-            assertThat("Missing REST field: audit_request_layer", auditDoc, hasKey("audit_request_layer"));
-
-            // Value validation
-            assertThat("audit_request_layer must be 'REST' for REST events", auditDoc.get("audit_request_layer"), is("REST"));
-            assertThat("audit_request_origin must be 'REST' for REST events", auditDoc.get("audit_request_origin"), is("REST"));
-
-            // Exclusion validation
-            assertThat("Transport field must not exist for REST events", auditDoc, not(hasKey("audit_transport_request_type")));
+            assertThat(doc, hasKey("audit_category"));
+            assertThat(doc, hasKey("audit_request_origin"));
+            assertThat(doc, hasKey("@timestamp"));
+            assertThat(doc, hasKey("audit_rest_request_method"));
+            assertThat(doc, hasKey("audit_rest_request_path"));
+            assertThat(doc, hasKey("audit_request_layer"));
+            assertThat(doc.get("audit_request_layer"), is("REST"));
+            assertThat(doc.get("audit_request_origin"), is("REST"));
+            assertThat(doc, not(hasKey("audit_transport_request_type")));
         }
     }
 
@@ -317,21 +304,18 @@ public class InternalOpenSearchSinkIntegrationTest_AuditAlias {
      * from previous test executions.</p>
      */
     @Test
-    public void testMultipleEventsAccumulateInAlias() throws Exception {
+    public void testMultipleEventsAccumulateInAlias() {
         try (Client client = cluster.getInternalNodeClient()) {
-            long initialCount = countAuditDocs(client);
+            long before = countAuditDocs(client);
 
             generateAuditEvent("_cluster/health");
-            Thread.sleep(1500);
             generateAuditEvent("_cluster/stats");
-            Thread.sleep(1500);
             generateAuditEvent("_nodes/info");
-            Thread.sleep(1500);
 
-            long finalCount = countAuditDocs(client);
-            long newEvents = finalCount - initialCount;
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).until(() -> countAuditDocs(client) - before >= 3);
 
-            assertThat("Three REST requests must generate at least 3 new audit events", newEvents, greaterThanOrEqualTo(3L));
+            long after = countAuditDocs(client);
+            assertThat("Three REST requests must generate at least 3 new audit events", after - before, greaterThanOrEqualTo(3L));
         }
     }
 }

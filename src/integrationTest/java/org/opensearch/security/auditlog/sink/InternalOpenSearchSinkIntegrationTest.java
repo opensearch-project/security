@@ -10,13 +10,14 @@
  */
 package org.opensearch.security.auditlog.sink;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -33,10 +34,13 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Integration tests for {@link InternalOpenSearchSink} with default date-based index naming.
@@ -68,11 +72,11 @@ import static org.hamcrest.Matchers.is;
  *
  * <h3>Why Separate from Alias Tests?</h3>
  * <p>This class tests the regular index creation path, while
- * {@code InternalOpenSearchSinkIntegrationTest_AuditAlias} tests the alias path
+ * {@code InternalOpenSearchSinkIntegrationTestAuditAlias} tests the alias path
  * ({@code metadata.hasAlias(indexName)}). These are mutually exclusive configurations
  * requiring separate cluster setups.</p>
  *
- * @see InternalOpenSearchSinkIntegrationTest_AuditAlias
+ * @see InternalOpenSearchSinkIntegrationTestAuditAlias
  */
 public class InternalOpenSearchSinkIntegrationTest {
 
@@ -88,12 +92,6 @@ public class InternalOpenSearchSinkIntegrationTest {
         .internalAudit(new AuditConfiguration(true).filters(new AuditFilters().enabledRest(true).enabledTransport(false)))
         .build();
 
-    @BeforeClass
-    public static void waitForCluster() throws Exception {
-        // Allow cluster initialization and plugin loading
-        Thread.sleep(2000);
-    }
-
     // --------------------------------------------------
     // Helpers
     // --------------------------------------------------
@@ -106,7 +104,7 @@ public class InternalOpenSearchSinkIntegrationTest {
      * Generates a single REST audit event by performing a GET request.
      * Each call produces exactly one REST audit event.
      */
-    private void generateAuditEvent(String path) throws Exception {
+    private void generateAuditEvent(String path) {
         try (TestRestClient restClient = cluster.getRestClient(cluster.getAdminCertificate())) {
             restClient.get(path);
         }
@@ -116,9 +114,11 @@ public class InternalOpenSearchSinkIntegrationTest {
      * Counts total audit events across all matching indices.
      */
     private long countAuditEvents(Client client) {
-        return client.search(
-            new SearchRequest(AUDIT_INDEX_PREFIX + "*").source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(0))
-        ).actionGet().getHits().getTotalHits().value();
+        return Objects.requireNonNull(
+            client.search(
+                new SearchRequest(AUDIT_INDEX_PREFIX + "*").source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(0))
+            ).actionGet().getHits().getTotalHits()
+        ).value();
     }
 
     // --------------------------------------------------
@@ -152,35 +152,31 @@ public class InternalOpenSearchSinkIntegrationTest {
      * exists after event generation (e.g., {@code security-auditlog-2025.01.11}).</p>
      */
     @Test
-    public void testCreatesAuditIndexAutomatically() throws Exception {
+    public void testCreatesAuditIndexAutomatically() {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
-            
+
             generateAuditEvent("_cluster/health");
 
-            Thread.sleep(1500);
-            refreshAuditIndices(client);
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+                refreshAuditIndices(client); // refresh prima di verificare
+                assertThat("At least one new audit event must be generated", countAuditEvents(client), greaterThan(eventCountBefore));
+            });
 
-            long eventCountAfter = countAuditEvents(client);
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+                GetIndexResponse response = client.admin()
+                    .indices()
+                    .getIndex(new GetIndexRequest().indices(AUDIT_INDEX_PREFIX + "*"))
+                    .actionGet();
 
-            assertThat("At least one new audit event must be generated", eventCountAfter, greaterThan(eventCountBefore));
+                assertThat("At least one audit index matching pattern must exist", response.indices().length, greaterThan(0));
 
-            GetIndexResponse response = client.admin()
-                .indices()
-                .getIndex(new GetIndexRequest().indices(AUDIT_INDEX_PREFIX + "*"))
-                .actionGet();
-
-            assertThat("At least one audit index matching pattern must exist", response.indices().length, greaterThan(0));
-
-            boolean foundDateBasedIndex = false;
-            for (String indexName : response.indices()) {
-                if (indexName.matches("^security-auditlog-\\d{4}\\.\\d{2}\\.\\d{2}$")) {
-                    foundDateBasedIndex = true;
-                    break;
-                }
-            }
-
-            assertThat("At least one index must match date pattern: security-auditlog-YYYY.MM.dd", foundDateBasedIndex, is(true));
+                assertThat(
+                    "At least one index must match date pattern: security-auditlog-YYYY.MM.dd",
+                    Arrays.stream(response.indices()).anyMatch(name -> name.matches("^security-auditlog-\\d{4}\\.\\d{2}\\.\\d{2}$")),
+                    is(true)
+                );
+            });
         }
     }
 
@@ -195,20 +191,21 @@ public class InternalOpenSearchSinkIntegrationTest {
      * Two requests should produce at least two new events.</p>
      */
     @Test
-    public void testPersistsAuditEventsToIndex() throws Exception {
+    public void testPersistsAuditEventsToIndex() {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
 
             generateAuditEvent("_cluster/health");
             generateAuditEvent("_cluster/stats");
 
-            Thread.sleep(1500);
-            refreshAuditIndices(client);
-
-            long eventCountAfter = countAuditEvents(client);
-            long newEvents = eventCountAfter - eventCountBefore;
-
-            assertThat("This test must generate at least 2 new audit events", newEvents, greaterThanOrEqualTo(2L));
+            await().atMost(3, SECONDS).pollInterval(100, java.util.concurrent.TimeUnit.MILLISECONDS).untilAsserted(() -> {
+                refreshAuditIndices(client); // refresh prima di verificare
+                assertThat(
+                    "At least 2 new audit events must be generated",
+                    countAuditEvents(client) - eventCountBefore,
+                    greaterThanOrEqualTo(2L)
+                );
+            });
         }
     }
 
@@ -232,7 +229,7 @@ public class InternalOpenSearchSinkIntegrationTest {
      * with no errors from attempted duplicate index creation.</p>
      */
     @Test
-    public void testReusesExistingIndexWithoutRecreation() throws Exception {
+    public void testReusesExistingIndexWithoutRecreation() {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
 
@@ -240,13 +237,14 @@ public class InternalOpenSearchSinkIntegrationTest {
             generateAuditEvent("_cluster/stats");
             generateAuditEvent("_nodes/stats");
 
-            Thread.sleep(1500);
-            refreshAuditIndices(client);
-
-            long eventCountAfter = countAuditEvents(client);
-            long newEvents = eventCountAfter - eventCountBefore;
-
-            assertThat("All generated events must be persisted without errors", newEvents, greaterThanOrEqualTo(3L));
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+                refreshAuditIndices(client);
+                assertThat(
+                    "All generated events must be persisted without errors",
+                    countAuditEvents(client) - eventCountBefore,
+                    greaterThanOrEqualTo(3L)
+                );
+            });
         }
     }
 
@@ -272,18 +270,17 @@ public class InternalOpenSearchSinkIntegrationTest {
      * previous tests. Uses delta assertion to ensure a new event was created.</p>
      */
     @Test
-    public void testAuditDocumentContainsMandatoryFields() throws Exception {
+    public void testAuditDocumentContainsMandatoryFields() {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
 
             generateAuditEvent("_cluster/health");
-            Thread.sleep(1500);
-            refreshAuditIndices(client);
 
-            long eventCountAfter = countAuditEvents(client);
-            assertThat("Test must generate at least one new event", eventCountAfter, greaterThan(eventCountBefore));
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+                refreshAuditIndices(client);
+                assertThat("Test must generate at least one new event", countAuditEvents(client) - eventCountBefore, greaterThan(0L));
+            });
 
-            // Retrieve most recent document
             SearchResponse response = client.search(
                 new SearchRequest(AUDIT_INDEX_PREFIX + "*").source(
                     new SearchSourceBuilder().query(QueryBuilders.matchAllQuery())
@@ -292,14 +289,17 @@ public class InternalOpenSearchSinkIntegrationTest {
                 )
             ).actionGet();
 
-            assertThat("At least one audit document must exist", response.getHits().getTotalHits().value(), greaterThan(0L));
+            assertThat(
+                "At least one audit document must exist",
+                Objects.requireNonNull(response.getHits().getTotalHits()).value(),
+                greaterThan(0L)
+            );
 
             Map<String, Object> auditDoc = response.getHits().getAt(0).getSourceAsMap();
 
             assertThat("Missing mandatory field: audit_category", auditDoc.containsKey("audit_category"), is(true));
             assertThat("Missing mandatory field: audit_request_origin", auditDoc.containsKey("audit_request_origin"), is(true));
             assertThat("Missing mandatory field: @timestamp", auditDoc.containsKey("@timestamp"), is(true));
-
             assertThat("Missing REST field: audit_rest_request_method", auditDoc.containsKey("audit_rest_request_method"), is(true));
             assertThat("Missing REST field: audit_rest_request_path", auditDoc.containsKey("audit_rest_request_path"), is(true));
         }
@@ -324,7 +324,7 @@ public class InternalOpenSearchSinkIntegrationTest {
      * and midnight rollover timing.</p>
      */
     @Test
-    public void testMultipleRequestTypesGenerateAuditEvents() throws Exception {
+    public void testMultipleRequestTypesGenerateAuditEvents() {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
 
@@ -338,13 +338,14 @@ public class InternalOpenSearchSinkIntegrationTest {
                 restClient.put(uniqueIndexName + "/_doc/1", document, new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json"));
             }
 
-            Thread.sleep(1500);
-            refreshAuditIndices(client);
-
-            long eventCountAfter = countAuditEvents(client);
-            long newEvents = eventCountAfter - eventCountBefore;
-
-            assertThat("Three distinct REST operations must generate at least 3 audit events", newEvents, greaterThanOrEqualTo(3L));
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+                refreshAuditIndices(client);
+                assertThat(
+                    "Three distinct REST operations must generate at least 3 audit events",
+                    countAuditEvents(client) - eventCountBefore,
+                    greaterThanOrEqualTo(3L)
+                );
+            });
         }
     }
 
@@ -370,33 +371,34 @@ public class InternalOpenSearchSinkIntegrationTest {
      * the complete pattern {@code ^security-auditlog-\d{4}\.\d{2}\.\d{2}$}.</p>
      */
     @Test
-    public void testIndexFollowsDateBasedNamingPattern() throws Exception {
+    public void testIndexFollowsDateBasedNamingPattern() {
         try (Client client = cluster.getInternalNodeClient()) {
             long eventCountBefore = countAuditEvents(client);
 
             generateAuditEvent("_cluster/health");
-            Thread.sleep(1500);
-            refreshAuditIndices(client);
 
-            long eventCountAfter = countAuditEvents(client);
-            assertThat("Test must generate at least one new event", eventCountAfter, greaterThan(eventCountBefore));
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+                refreshAuditIndices(client);
+                assertThat("Test must generate at least one new event", countAuditEvents(client) - eventCountBefore, greaterThan(0L));
+            });
 
-            GetIndexResponse indicesResponse = client.admin()
-                .indices()
-                .getIndex(new GetIndexRequest().indices(AUDIT_INDEX_PREFIX + "*"))
-                .actionGet();
+            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+                GetIndexResponse indicesResponse = client.admin()
+                    .indices()
+                    .getIndex(new GetIndexRequest().indices(AUDIT_INDEX_PREFIX + "*"))
+                    .actionGet();
 
-            assertThat("At least one audit index must exist", indicesResponse.indices().length, greaterThan(0));
+                assertThat("At least one audit index must exist", indicesResponse.indices().length, greaterThan(0));
 
-            boolean foundDateBasedIndex = false;
-            for (String indexName : indicesResponse.indices()) {
-                if (indexName.matches("^security-auditlog-\\d{4}\\.\\d{2}\\.\\d{2}$")) {
-                    foundDateBasedIndex = true;
-                    break;
+                boolean foundDateBasedIndex = false;
+                for (String indexName : indicesResponse.indices()) {
+                    if (indexName.matches("^security-auditlog-\\d{4}\\.\\d{2}\\.\\d{2}$")) {
+                        foundDateBasedIndex = true;
+                        break;
+                    }
                 }
-            }
-
-            assertThat("At least one index must follow pattern: security-auditlog-YYYY.MM.dd", foundDateBasedIndex, is(true));
+                assertThat("At least one index must follow pattern: security-auditlog-YYYY.MM.dd", foundDateBasedIndex, is(true));
+            });
         }
     }
 }
