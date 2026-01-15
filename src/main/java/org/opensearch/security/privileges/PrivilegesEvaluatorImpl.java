@@ -510,7 +510,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
                 action0,
                 mappedRoles
             );
-            log.info("Index to privilege matrix:\n{}", presponse.getPrivilegeMatrix());
+            log.debug("Index to privilege matrix:\n{}", presponse.getPrivilegeMatrix());
             if (presponse.hasEvaluationExceptions()) {
                 log.info("Evaluation errors:\n{}", presponse.getEvaluationExceptionInfo());
             }
