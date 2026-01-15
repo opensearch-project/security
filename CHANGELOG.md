@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Refactoring
 - Refactor plugin system index tests to use parameterized test pattern ([#5895](https://github.com/opensearch-project/security/pull/5895))
+- Update info to debug logging of permission matrix for failed requests ([#5909](https://github.com/opensearch-project/security/pull/5909))
 
 ### Maintenance
 - Bump `spring_version` from 7.0.1 to 7.0.2 ([#5852](https://github.com/opensearch-project/security/pull/5852))
