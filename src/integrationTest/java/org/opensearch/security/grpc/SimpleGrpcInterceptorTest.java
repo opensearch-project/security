@@ -20,7 +20,7 @@ import org.opensearch.transport.grpc.GrpcPlugin;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
 
-import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS;
+import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_SSL_ONLY_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
 
@@ -58,7 +58,7 @@ public class SimpleGrpcInterceptorTest {
             )
         )
         .certificates(TEST_CERTIFICATES)
-        .nodeSettings(SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS)
+        .nodeSettings(SINGLE_NODE_SECURE_SSL_ONLY_GRPC_TRANSPORT_SETTINGS)
         .loadConfigurationIntoIndex(false)
         .sslOnly(true)
         .build();

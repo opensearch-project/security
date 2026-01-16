@@ -25,16 +25,12 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.transport.grpc.GrpcPlugin;
 
-import io.grpc.ManagedChannel;
-import io.grpc.StatusRuntimeException;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_GRPC_TRANSPORT_SETTINGS;
+import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
-import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC_AUTH_DOMAIN_ORDER;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -63,7 +59,7 @@ public class JWTGrpcInterceptorTest {
     public static final LocalCluster cluster = new LocalCluster.Builder()
         .clusterManager(ClusterManager.SINGLENODE)
         .certificates(TEST_CERTIFICATES)
-        .nodeSettings(SINGLE_NODE_GRPC_TRANSPORT_SETTINGS)
+        .nodeSettings(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS)
         .plugin(
             // Add GrpcPlugin
             new PluginInfo(

@@ -65,7 +65,7 @@ public class GrpcHelpers {
 
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
 
-    public static final Map<String, Object> SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
+    public static final Map<String, Object> SINGLE_NODE_SECURE_SSL_ONLY_GRPC_TRANSPORT_SETTINGS = Map.of(
         "plugins.security.ssl_only",
         true,
         "aux.transport.types",
@@ -82,7 +82,7 @@ public class GrpcHelpers {
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
 
-    public static final Map<String, Object> SINGLE_NODE_GRPC_TRANSPORT_SETTINGS = Map.of(
+    public static final Map<String, Object> SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS = Map.of(
         "aux.transport.types",
         "secure-transport-grpc",
         "aux.transport.secure-transport-grpc.port",
