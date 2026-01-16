@@ -1194,6 +1194,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, cih);
+        GuiceHolder.setBackendRegistry(backendRegistry);
         backendRegistry.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         cr.subscribeOnChange(configMap -> { backendRegistry.invalidateCache(); });
 
@@ -2483,6 +2484,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
+        private static BackendRegistry backendRegistry;
 
         private static ExtensionsManager extensionsManager;
 
@@ -2519,6 +2521,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         public static ExtensionsManager getExtensionsManager() {
             return extensionsManager;
+        }
+
+        public static BackendRegistry getBackendRegistry() {
+            return backendRegistry;
+        }
+
+        public static void setBackendRegistry(BackendRegistry backendRegistry) {
+            GuiceHolder.backendRegistry = backendRegistry;
         }
 
         @Override
