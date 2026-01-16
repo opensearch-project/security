@@ -34,7 +34,7 @@ public class SimpleGrpcInterceptorTest {
             new PluginInfo(
                 GrpcPlugin.class.getName(),
                 "classpath plugin",
-                "NA", 
+                "NA",
                 Version.CURRENT,
                 "21",
                 GrpcPlugin.class.getName(),
@@ -47,7 +47,7 @@ public class SimpleGrpcInterceptorTest {
             // Override the default security plugin with one that declares extension relationship
             new PluginInfo(
                 OpenSearchSecurityPlugin.class.getName(),
-                "classpath plugin", 
+                "classpath plugin",
                 "NA",
                 Version.CURRENT,
                 "21",
@@ -65,19 +65,17 @@ public class SimpleGrpcInterceptorTest {
 
     @Test
     public void testGrpcInterceptorLoaded() {
-        // Test that our interceptor is loaded and working
+        /*
+        Test to validate extensible plugin framework.
+        Logging will indicate our SecurityGrpcFilter is registered within the integration test framework.
+         */
         ManagedChannel channel = GrpcHelpers.insecureChannel(getSecureGrpcEndpoint(cluster));
-        
         try {
-            // This should trigger our interceptor
             GrpcHelpers.doBulk(channel, "test-index", 1);
         } catch (StatusRuntimeException e) {
-            // Expected - no authentication provided
             System.out.println("Expected auth failure: " + e.getStatus());
         } finally {
             channel.shutdown();
         }
-        
-        System.out.println("✓ gRPC interceptor integration test completed");
     }
 }
