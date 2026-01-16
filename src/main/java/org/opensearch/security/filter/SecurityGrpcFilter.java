@@ -30,7 +30,10 @@ import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 
 import java.util.List;
@@ -51,12 +54,11 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
     }
 
     public SecurityGrpcFilter() {
-        System.out.println("SecurityGrpcFilter - constructor called - interceptor provider is being instantiated");
+        // Default constructor for plugin extension framework
     }
 
     @Override
     public List<OrderedGrpcInterceptor> getOrderedGrpcInterceptors(ThreadContext threadContext) {
-        System.out.println("SecurityGrpcFilter - getOrderedGrpcInterceptors called - returning security interceptor");
         return List.of(new OrderedGrpcInterceptor() {
 
             @Override
@@ -88,6 +90,14 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 ServerCallHandler<ReqT, RespT> serverCallHandler) {
 
             System.out.println("SecurityGrpcFilter - Interceptor called for method: " + serverCall.getMethodDescriptor().getFullMethodName());
+
+            // Access BackendRegistry through GuiceHolder
+            BackendRegistry backendRegistry = OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry();
+            if (backendRegistry != null) {
+                System.out.println("SecurityGrpcFilter - BackendRegistry accessed successfully, isInitialized: " + backendRegistry.isInitialized());
+            } else {
+                System.out.println("SecurityGrpcFilter - BackendRegistry is null");
+            }
 
             // Extract JWT token from gRPC metadata
             String jwtToken = extractJwtToken(metadata);
