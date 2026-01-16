@@ -82,6 +82,21 @@ public class GrpcHelpers {
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
 
+    public static final Map<String, Object> SINGLE_NODE_GRPC_TRANSPORT_SETTINGS = Map.of(
+        "aux.transport.types",
+        "secure-transport-grpc",
+        "aux.transport.secure-transport-grpc.port",
+        PORTS_RANGE.getPortRangeString(),
+        "plugins.security.ssl.aux.secure-transport-grpc.enabled",
+        true,
+        "plugins.security.ssl.aux.secure-transport-grpc.pemkey_filepath",
+        TEST_CERTIFICATES.getNodeKey(0, null).getAbsolutePath(),
+        "plugins.security.ssl.aux.secure-transport-grpc.pemcert_filepath",
+        TEST_CERTIFICATES.getNodeCertificate(0).getAbsolutePath(),
+        "plugins.security.ssl.aux.secure-transport-grpc.pemtrustedcas_filepath",
+        TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
+    );
+
     public static TransportAddress getSecureGrpcEndpoint(LocalCluster cluster) {
         List<TransportAddress> transportAddresses = new ArrayList<>();
         List<LocalOpenSearchCluster.Node> nodeList = cluster.nodes();

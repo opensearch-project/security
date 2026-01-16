@@ -31,7 +31,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS;
+import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -63,7 +63,7 @@ public class JWTGrpcInterceptorTest {
     public static final LocalCluster cluster = new LocalCluster.Builder()
         .clusterManager(ClusterManager.SINGLENODE)
         .certificates(TEST_CERTIFICATES)
-        .nodeSettings(SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS)
+        .nodeSettings(SINGLE_NODE_GRPC_TRANSPORT_SETTINGS)
         .plugin(
             // Add GrpcPlugin
             new PluginInfo(
@@ -98,6 +98,6 @@ public class JWTGrpcInterceptorTest {
 
     @Test
     public void testGrpcInterceptorBackendRegistryInjection() {
-        System.out.println("Test reproduces audit configuration error");
+        System.out.println("Test passes with JWT auth configured cluster (Cluster starts and stops)");
     }
 }
