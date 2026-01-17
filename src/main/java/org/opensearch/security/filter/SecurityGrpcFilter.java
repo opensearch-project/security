@@ -44,10 +44,13 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
     private static final Pattern BASIC = Pattern.compile("^\\s*Basic\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER = "bearer ";
     private static final String AUTHORIZATION_HEADER = "authorization";
+    private static final String JWT_AUTH_HEADER = "jwt-auth";
 
     // gRPC metadata keys (case-insensitive)
     private static final Metadata.Key<String> AUTHORIZATION_KEY =
         Metadata.Key.of(AUTHORIZATION_HEADER, Metadata.ASCII_STRING_MARSHALLER);
+    private static final Metadata.Key<String> JWT_AUTH_KEY =
+        Metadata.Key.of(JWT_AUTH_HEADER, Metadata.ASCII_STRING_MARSHALLER);
 
     static {
         System.out.println("SecurityGrpcFilter - class loaded by ClassLoader: " + SecurityGrpcFilter.class.getClassLoader());
@@ -102,6 +105,7 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
             // Extract JWT token from gRPC metadata
             String jwtToken = extractJwtToken(metadata);
 
+            System.out.println("SecurityGrpcFilter - JWT extraction result: " + (jwtToken != null ? "SUCCESS" : "FAILED"));
             if (jwtToken != null) {
                 System.out.println("SecurityGrpcFilter - JWT token extracted: " + maskToken(jwtToken));
                 
@@ -122,7 +126,13 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
         }
 
         private String extractJwtToken(Metadata metadata) {
-            String authHeader = metadata.get(AUTHORIZATION_KEY);
+            // Try jwt-auth header first
+            String authHeader = metadata.get(JWT_AUTH_KEY);
+            
+            // Fallback to authorization header
+            if (authHeader == null || authHeader.isEmpty()) {
+                authHeader = metadata.get(AUTHORIZATION_KEY);
+            }
 
             if (authHeader == null || authHeader.isEmpty()) {
                 return null;
