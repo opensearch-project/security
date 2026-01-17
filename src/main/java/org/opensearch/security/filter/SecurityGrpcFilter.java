@@ -104,6 +104,9 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
 
             if (jwtToken != null) {
                 System.out.println("SecurityGrpcFilter - JWT token extracted: " + maskToken(jwtToken));
+                
+                // Print JWT token components
+                printJwtComponents(jwtToken);
 
                 // Store in ThreadContext for potential use by security components
                 threadContext.putHeader(AUTHORIZATION_HEADER, "Bearer " + jwtToken);
@@ -156,6 +159,22 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 return "[masked]";
             }
             return token.substring(0, 10) + "...[" + (token.length() - 10) + " more chars]";
+        }
+
+        private void printJwtComponents(String jwtToken) {
+            try {
+                String[] parts = jwtToken.split("\\.");
+                if (parts.length == 3) {
+                    System.out.println("SecurityGrpcFilter - JWT Components:");
+                    System.out.println("  Header: " + new String(java.util.Base64.getUrlDecoder().decode(parts[0])));
+                    System.out.println("  Payload: " + new String(java.util.Base64.getUrlDecoder().decode(parts[1])));
+                    System.out.println("  Signature: " + parts[2].substring(0, Math.min(10, parts[2].length())) + "...");
+                } else {
+                    System.out.println("SecurityGrpcFilter - Invalid JWT format (expected 3 parts, got " + parts.length + ")");
+                }
+            } catch (Exception e) {
+                System.out.println("SecurityGrpcFilter - Error parsing JWT components: " + e.getMessage());
+            }
         }
     }
 }
