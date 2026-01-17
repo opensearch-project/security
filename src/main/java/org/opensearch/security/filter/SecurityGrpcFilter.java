@@ -84,7 +84,7 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
     }
 
     /**
-     * gRPC interceptor that extracts JWT tokens from headers
+     * gRPC interceptor that extracts JWT tokens from headers and authenticates them against the BackendRegistry.
      */
     private static class JwtGrpcInterceptor implements ServerInterceptor {
         private final ThreadContext threadContext;
