@@ -74,7 +74,8 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
     @Override
     public Optional<InetSocketAddress> getRemoteAddress() {
         // gRPC ServerCall doesn't directly expose remote address
-        throw new UnsupportedOperationException("Remote address not supported on gRPC");
+        // This would need to be extracted from call attributes if available
+        return Optional.empty();
     }
 
     @Override
@@ -89,8 +90,7 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
 
     @Override
     public Set<String> getUnconsumedParams() {
-        // Query params should always be contained in the request body/protobuf schema
-        throw new UnsupportedOperationException("Query params not applicable to gRPC");
+        return Set.of(); // No parameters to track for gRPC
     }
 
     @Override
