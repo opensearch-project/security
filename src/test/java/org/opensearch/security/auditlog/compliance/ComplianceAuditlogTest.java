@@ -531,14 +531,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogUnitTest {
             true,
             AuditConfig.Filter.DEFAULT,
             ComplianceConfig.from(
-                ImmutableMap.of(
-                    "enabled",
-                    true,
-                    "write_watched_indices",
-                    Collections.singletonList("movies"),
-                    "write_log_diffs",
-                    true
-                ),
+                ImmutableMap.of("enabled", true, "write_watched_indices", Collections.singletonList("movies"), "write_log_diffs", true),
                 additionalSettings
             )
         );
@@ -563,7 +556,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogUnitTest {
         assertThat(deleteMessage.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_WRITE));
         assertThat((String) deleteMessage.getAsMap().get("audit_compliance_operation"), equalTo("DELETE"));
         assertThat(deleteMessage.getAsMap().get("audit_compliance_diff_content"), notNullValue());
-        
+
         String diffContent = (String) deleteMessage.getAsMap().get("audit_compliance_diff_content");
         assertThat(diffContent, containsString("\"op\":\"remove\""));
         assertThat(diffContent, containsString("\"path\":\"/title\""));

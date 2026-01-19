@@ -706,7 +706,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (complianceConfig.shouldLogDiffsForWrite() && originalResult != null && originalResult.isExists()) {
             try {
                 String originalSource = null;
-                
+
                 if (securityIndex.equals(shardId.getIndexName())) {
                     try (
                         XContentParser parser = XContentHelper.createParser(
@@ -725,7 +725,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     } catch (Exception e) {
                         log.error(e.toString());
                     }
-                    
+
                     // For delete, the "current" state is empty
                     String currentSource = "{}";
                     final JsonNode diffnode = JsonDiff.asJson(
@@ -735,7 +735,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
                     originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
-                    
+
                     // For delete, the "current" state is empty
                     String currentSource = "{}";
                     final JsonNode diffnode = JsonDiff.asJson(
@@ -749,7 +749,10 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
         }
 
-        if (!complianceConfig.shouldLogWriteMetadataOnly() && !complianceConfig.shouldLogDiffsForWrite() && originalResult != null && originalResult.isExists()) {
+        if (!complianceConfig.shouldLogWriteMetadataOnly()
+            && !complianceConfig.shouldLogDiffsForWrite()
+            && originalResult != null
+            && originalResult.isExists()) {
             if (securityIndex.equals(shardId.getIndexName())) {
                 try (
                     XContentParser parser = XContentHelper.createParser(

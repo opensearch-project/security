@@ -86,7 +86,8 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
                 try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
                     threadPool.getThreadContext().putHeader(OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
                     // Use getForUpdate to retrieve the document before deletion
-                    final GetResult getResult = shard.getService().getForUpdate(delete.id(), delete.getIfSeqNo(), delete.getIfPrimaryTerm());
+                    final GetResult getResult = shard.getService()
+                        .getForUpdate(delete.id(), delete.getIfSeqNo(), delete.getIfPrimaryTerm());
                     if (getResult.isExists()) {
                         threadContext.set(new Context(getResult));
                     } else {
@@ -115,7 +116,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             if (result.getFailure() == null
                 && result.isFound()
                 && delete.origin() == org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
-                
+
                 if (complianceConfig.shouldLogDiffsForWrite()) {
                     final Context context = threadContext.get();
                     final GetResult previousContent = context == null ? null : context.getGetResult();
@@ -126,7 +127,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
                 }
             }
         }
-        
+
         // Clean up thread context if logging is enabled but result failed or not found
         if (isLoggingWriteDiffEnabled(complianceConfig, shardId.getIndexName())) {
             threadContext.remove();
