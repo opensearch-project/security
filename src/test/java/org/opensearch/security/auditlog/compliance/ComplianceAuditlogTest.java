@@ -554,7 +554,10 @@ public class ComplianceAuditlogTest extends AbstractAuditlogUnitTest {
 
         AuditMessage deleteMessage = messages.get(0);
         assertThat(deleteMessage.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_WRITE));
-        assertThat(deleteMessage.getAsMap().get("audit_compliance_operation"), equalTo(org.opensearch.security.auditlog.AuditLog.Operation.DELETE));
+        assertThat(
+            deleteMessage.getAsMap().get("audit_compliance_operation"),
+            equalTo(org.opensearch.security.auditlog.AuditLog.Operation.DELETE)
+        );
         assertThat(deleteMessage.getAsMap().get("audit_compliance_diff_content"), notNullValue());
 
         String diffContent = (String) deleteMessage.getAsMap().get("audit_compliance_diff_content");
