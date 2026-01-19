@@ -73,7 +73,7 @@ config:
     write_metadata_only: true
 
     # Log only diffs for document updates
-    write_log_diffs: false
+    write_log_diffs: true
 
     # List of indices to watch for write events. Wildcard patterns are supported
     # write_watched_indices: ["twitter", "logs-*"]

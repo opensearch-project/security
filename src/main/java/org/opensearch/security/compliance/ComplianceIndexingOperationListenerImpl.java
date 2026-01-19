@@ -68,6 +68,46 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
     private static final ThreadLocal<Context> threadContext = new ThreadLocal<Context>();
 
     @Override
+    public Delete preDelete(final ShardId shardId, final Delete delete) {
+        if (isLoggingWriteDiffEnabled(auditlog.getComplianceConfig(), shardId.getIndexName())) {
+            Objects.requireNonNull(is);
+
+            final IndexShard shard;
+
+            if (delete.origin() != org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+                return delete;
+            }
+
+            if ((shard = is.getShardOrNull(shardId.getId())) == null) {
+                return delete;
+            }
+
+            if (shard.isReadAllowed()) {
+                try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+                    threadPool.getThreadContext().putHeader(OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+                    // Use getForUpdate to retrieve the document before deletion
+                    final GetResult getResult = shard.getService().getForUpdate(delete.id(), delete.getIfSeqNo(), delete.getIfPrimaryTerm());
+                    if (getResult.isExists()) {
+                        threadContext.set(new Context(getResult));
+                    } else {
+                        threadContext.set(new Context(null));
+                    }
+                } catch (Exception e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Cannot retrieve original document due to {}", e.toString());
+                    }
+                }
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("Cannot read from shard {}", shardId);
+                }
+            }
+        }
+
+        return delete;
+    }
+
+    @Override
     public void postDelete(final ShardId shardId, final Delete delete, final DeleteResult result) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
         if (isLoggingWriteEnabled(complianceConfig, shardId.getIndexName())) {
@@ -75,8 +115,21 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             if (result.getFailure() == null
                 && result.isFound()
                 && delete.origin() == org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
-                auditlog.logDocumentDeleted(shardId, delete, result);
+                
+                if (complianceConfig.shouldLogDiffsForWrite()) {
+                    final Context context = threadContext.get();
+                    final GetResult previousContent = context == null ? null : context.getGetResult();
+                    threadContext.remove();
+                    auditlog.logDocumentDeleted(shardId, delete, result, previousContent);
+                } else {
+                    auditlog.logDocumentDeleted(shardId, delete, result, null);
+                }
             }
+        }
+        
+        // Clean up thread context if logging is enabled but result failed or not found
+        if (isLoggingWriteDiffEnabled(complianceConfig, shardId.getIndexName())) {
+            threadContext.remove();
         }
     }
 
