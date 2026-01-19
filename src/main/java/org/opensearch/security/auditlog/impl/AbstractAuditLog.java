@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -77,6 +78,7 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 
+import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
 import org.greenrobot.eventbus.Subscribe;
 
@@ -730,7 +732,8 @@ public abstract class AbstractAuditLog implements AuditLog {
                     String currentSource = "{}";
                     final JsonNode diffnode = JsonDiff.asJson(
                         DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource)
+                        DefaultObjectMapper.objectMapper.readTree(currentSource),
+                        EnumSet.noneOf(DiffFlags.class)
                     );
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
@@ -740,7 +743,8 @@ public abstract class AbstractAuditLog implements AuditLog {
                     String currentSource = "{}";
                     final JsonNode diffnode = JsonDiff.asJson(
                         DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource)
+                        DefaultObjectMapper.objectMapper.readTree(currentSource),
+                        EnumSet.noneOf(DiffFlags.class)
                     );
                     msg.addComplianceWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString());
                 }
