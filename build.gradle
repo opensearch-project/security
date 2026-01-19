@@ -516,7 +516,7 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.21.0"
-            force "net.bytebuddy:byte-buddy:1.18.3"
+            force "net.bytebuddy:byte-buddy:1.18.4"
             force "org.ow2.asm:asm:9.9.1"
             force "com.google.j2objc:j2objc-annotations:3.1"
 
