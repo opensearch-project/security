@@ -30,12 +30,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Refactor plugin system index tests to use parameterized test pattern ([#5895](https://github.com/opensearch-project/security/pull/5895))
 
 ### Maintenance
-- Bump `spring_version` from 7.0.1 to 7.0.2 ([#5852](https://github.com/opensearch-project/security/pull/5852))
+- Bump `spring_version` from 7.0.1 to 7.0.3 ([#5852](https://github.com/opensearch-project/security/pull/5852), [#5911](https://github.com/opensearch-project/security/pull/5911))
 - Bump `org.apache.commons:commons-text` from 1.14.0 to 1.15.0 ([#5857](https://github.com/opensearch-project/security/pull/5857))
 - Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.34.0 to 3.34.100 and `org.eclipse.platform:org.eclipse.equinox.common` from 3.20.200 to 3.20.300 ([#5863](https://github.com/opensearch-project/security/pull/5863))
 - Bump `at.yawk.lz4:lz4-java` from 1.10.1 to 1.10.2 ([#5874](https://github.com/opensearch-project/security/pull/5874))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0 to 4.0.1 ([#5873](https://github.com/opensearch-project/security/pull/5873))
-- Bump `net.bytebuddy:byte-buddy` from 1.18.2 to 1.18.3 ([#5877](https://github.com/opensearch-project/security/pull/5877))
+- Bump `net.bytebuddy:byte-buddy` from 1.18.2 to 1.18.4 ([#5877](https://github.com/opensearch-project/security/pull/5877), [#5913](https://github.com/opensearch-project/security/pull/5913))
 - Bump `org.mockito:mockito-core` from 5.20.0 to 5.21.0 ([#5875](https://github.com/opensearch-project/security/pull/5875))
 - Bump `org.ow2.asm:asm` from 9.9 to 9.9.1 ([#5876](https://github.com/opensearch-project/security/pull/5876))
 - Refer to version of error_prone_annotations from core's version catalog (2.45.0) ([#5890](https://github.com/opensearch-project/security/pull/5890))
@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.checkerframework:checker-qual` from 3.52.1 to 3.53.0 ([#5906](https://github.com/opensearch-project/security/pull/5906))
 - Bump `com.nimbusds:nimbus-jose-jwt` from 10.6 to 10.7 ([#5904](https://github.com/opensearch-project/security/pull/5904))
 - Bump `org.junit.jupiter:junit-jupiter-api` from 5.14.1 to 5.14.2 ([#5903](https://github.com/opensearch-project/security/pull/5903))
+- Bump `io.projectreactor:reactor-core` from 3.8.1 to 3.8.2 ([#5910](https://github.com/opensearch-project/security/pull/5910))
 
 ### Removed
 - Remove MakeJava9Happy class that's not applicable in OS 3.X ([#5896](https://github.com/opensearch-project/security/pull/5896))
