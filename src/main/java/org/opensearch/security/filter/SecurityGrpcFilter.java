@@ -30,11 +30,14 @@ import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
+import io.grpc.Status;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 
 import java.util.List;
@@ -101,36 +104,70 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 Metadata metadata,
                 ServerCallHandler<ReqT, RespT> serverCallHandler) {
 
-            System.out.println("SecurityGrpcFilter - Interceptor called for method: " + serverCall.getMethodDescriptor().getFullMethodName());
+            return handleCall(serverCall, metadata, serverCallHandler);
+        }
 
-            // Use injected BackendRegistry, fallback to GuiceHolder if needed
-            if (backendRegistry != null) {
-                System.out.println("SecurityGrpcFilter - BackendRegistry accessed successfully, isInitialized: " + backendRegistry.isInitialized());
-            } else {
-                System.out.println("SecurityGrpcFilter - BackendRegistry is null");
+        /**
+         * Main gRPC call handler implementing the high level security flow.
+         * This handler mirrors the behavior of SecurityRestFilter.handleRequest to maintain parity between protocols.
+         *
+         * Notable features which are not included in the gRPC path include:
+         * 1. Thread context restoration (Pipelining/Multiplexing inherently handled with gRPC and no pre-authentication netty handlers exist).
+         * 2. Unconsumed params check is unnecessary as gRPC has no query params.
+         * 3. Request filtering is unsupported and counterproductive for binary formats.
+         * 4. Superuser authentication not supported over gRPC.
+         * 5. Allowlist checks are not implemented for gRPC in this version.
+         */
+        private <ReqT, RespT> ServerCall.Listener<ReqT> handleCall(
+                ServerCall<ReqT, RespT> serverCall,
+                Metadata metadata,
+                ServerCallHandler<ReqT, RespT> serverCallHandler) {
+
+            // Create request channel
+            final GrpcRequestChannel requestChannel = new GrpcRequestChannel(serverCall, metadata);
+
+            try {
+                // Authenticate request
+                if (!backendRegistry.gRPCauthenticate(requestChannel)) {
+                    if (requestChannel.getQueuedResponse().isPresent()) {
+                        // Send error response and close call
+                        serverCall.close(mapToGrpcStatus(requestChannel.getQueuedResponse().get().getStatus()), new Metadata());
+                        return new ServerCall.Listener<>() {};
+                    }
+                }
+
+                // Authorize request
+                final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                // authorizeRequest(requestChannel, user);
+                if (requestChannel.getQueuedResponse().isPresent()) {
+                    serverCall.close(Status.PERMISSION_DENIED, new Metadata());
+                    return new ServerCall.Listener<>() {};
+                }
+
+                // Caller was authorized - Proceed with request
+                return serverCallHandler.startCall(serverCall, metadata);
+            } catch (Exception e) {
+                // Handle unexpected exceptions
+                serverCall.close(io.grpc.Status.INTERNAL.withDescription("Authentication error: " + e.getMessage()), new Metadata());
+                return new ServerCall.Listener<>() {};
             }
+        }
 
-            // Extract JWT token from gRPC metadata
-            String jwtToken = extractJwtToken(metadata);
-
-            System.out.println("SecurityGrpcFilter - JWT extraction result: " + (jwtToken != null ? "SUCCESS" : "FAILED"));
-            if (jwtToken != null) {
-                System.out.println("SecurityGrpcFilter - JWT token extracted: " + maskToken(jwtToken));
-
-                // Print JWT token components
-                printJwtComponents(jwtToken);
-
-                // Store in ThreadContext for potential use by security components
-                threadContext.putHeader(AUTHORIZATION_HEADER, "Bearer " + jwtToken);
-                System.out.println("SecurityGrpcFilter - JWT token stored in ThreadContext");
-            } else {
-                System.out.println("SecurityGrpcFilter - No JWT token found in gRPC headers");
-            }
-
-            // Log all headers for debugging
-            logAllHeaders(metadata);
-
-            return serverCallHandler.startCall(serverCall, metadata);
+        /**
+         * Map HTTP status codes to gRPC Status
+         * TODO: Move this to GrpcRequestChannel implementation. Add reason to error response.
+         */
+        private io.grpc.Status mapToGrpcStatus(int httpStatus) {
+            return switch (httpStatus) {
+                case 400 -> Status.INVALID_ARGUMENT;
+                case 401 -> Status.UNAUTHENTICATED;
+                case 403 -> Status.PERMISSION_DENIED;
+                case 404 -> Status.NOT_FOUND;
+                case 429 -> Status.RESOURCE_EXHAUSTED;
+                case 500 -> Status.INTERNAL;
+                case 503 -> Status.UNAVAILABLE;
+                default -> Status.UNKNOWN;
+            };
         }
 
         private String extractJwtToken(Metadata metadata) {
