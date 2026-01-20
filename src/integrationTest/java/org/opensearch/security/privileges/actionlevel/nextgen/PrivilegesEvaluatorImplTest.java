@@ -37,6 +37,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RoleMapper;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -107,11 +108,14 @@ public class PrivilegesEvaluatorImplTest {
 
     @Test
     public void createContext_pluginUser() throws Exception {
-        RoleV7 pluginPrivileges = SecurityDynamicConfiguration.fromYaml("""
-            only_role:
-               cluster_permissions:
-               - 'cluster:allowed_for_plugin/*'
-            """, CType.ROLES).getCEntry("only_role");
+        SubjectBasedActionPrivileges.PrivilegeSpecification pluginPrivileges = new SubjectBasedActionPrivileges.PrivilegeSpecification(
+            SecurityDynamicConfiguration.fromYaml("""
+                only_role:
+                   cluster_permissions:
+                   - 'cluster:allowed_for_plugin/*'
+                """, CType.ROLES).getCEntry("only_role"),
+            index -> false
+        );
         PrivilegesEvaluatorImpl subject = createSubject(
             Settings.EMPTY,
             PrivilegesEvaluator.DynamicDependencies.EMPTY.with(Map.of("plugin:test", pluginPrivileges))

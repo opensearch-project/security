@@ -195,7 +195,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
 
         this.pluginIdToActionPrivileges = createActionPrivileges(
-            dynamicDependencies.pluginIdToRolePrivileges(),
+            dynamicDependencies.pluginIdToPrivileges(),
             dynamicDependencies.staticActionGroups()
         );
         this.updateConfiguration(
@@ -739,16 +739,17 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     }
 
     private static ImmutableMap<String, ActionPrivileges> createActionPrivileges(
-        Map<String, RoleV7> pluginIdToRolePrivileges,
+        Map<String, SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToRolePrivileges,
         FlattenedActionGroups staticActionGroups
     ) {
         Map<String, SubjectBasedActionPrivileges> result = new HashMap<>(pluginIdToRolePrivileges.size());
 
-        for (Map.Entry<String, RoleV7> entry : pluginIdToRolePrivileges.entrySet()) {
+        for (Map.Entry<String, SubjectBasedActionPrivileges.PrivilegeSpecification> entry : pluginIdToRolePrivileges.entrySet()) {
             result.put(
                 entry.getKey(),
                 new SubjectBasedActionPrivileges(
-                    entry.getValue(),
+                    entry.getValue().role,
+                    entry.getValue().hasIndexFullPrivileges,
                     staticActionGroups,
                     RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
                     true

@@ -18,7 +18,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.identity.SecurePluginSubject;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -50,7 +53,7 @@ public class PrivilegesConfiguration {
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>(TenantPrivileges.EMPTY);
     private final AtomicReference<PrivilegesEvaluator> privilegesEvaluator;
     private final AtomicReference<FlattenedActionGroups> actionGroups = new AtomicReference<>(FlattenedActionGroups.EMPTY);
-    private final Map<String, RoleV7> pluginIdToRolePrivileges = new HashMap<>();
+    private final Map<String, SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToRolePrivileges = new HashMap<>();
     private final AtomicReference<DashboardsMultiTenancyConfiguration> multiTenancyConfiguration = new AtomicReference<>(
         DashboardsMultiTenancyConfiguration.DEFAULT
     );
@@ -188,7 +191,18 @@ public class PrivilegesConfiguration {
     }
 
     public void updatePluginToActionPrivileges(String pluginIdentifier, RoleV7 pluginPermissions) {
-        pluginIdToRolePrivileges.put(pluginIdentifier, pluginPermissions);
+        String pluginClassName = SecurePluginSubject.getPluginClassNameFromPrincipal(pluginIdentifier);
+        if (pluginClassName == null) {
+            log.error("Cannot update action privileges for plugin identifier '{}', invalid format", pluginIdentifier);
+            return;
+        }
+        pluginIdToRolePrivileges.put(
+            pluginIdentifier,
+            new SubjectBasedActionPrivileges.PrivilegeSpecification(
+                pluginPermissions,
+                index -> SystemIndexRegistry.getPluginSystemIndexPredicate(pluginClassName).test(index)
+            )
+        );
     }
 
     private static FlattenedActionGroups buildStaticActionGroups() {
