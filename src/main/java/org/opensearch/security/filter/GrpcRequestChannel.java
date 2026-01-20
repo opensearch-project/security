@@ -24,6 +24,8 @@ import org.opensearch.rest.RestRequest.Method;
 
 /**
  * gRPC implementation of SecurityRequestChannel.
+ * While the SecurityRequestChannel does not align perfectly with the gRPC protocol the usage is largely analogous.
+ * Unsupported fields and concepts will throw exceptions to prevent unintended usage.
  */
 public class GrpcRequestChannel implements SecurityRequestChannel {
 
@@ -49,26 +51,49 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
         return headerMap;
     }
 
+    /**
+     * @return HTTP header map for this request.
+     */
     @Override
     public Map<String, List<String>> getHeaders() {
         return headers;
     }
 
+    /**
+     * Client certificate auth is not supported in this version.
+     * This feature is still pending implementation.
+     */
     @Override
     public SSLEngine getSSLEngine() {
         throw new UnsupportedOperationException("Client certificate authentication not supported for gRPC");
     }
 
+    /**
+     * gRPC does not support query parameters so there is essentially no distinction between URI and PATH.
+     * Paths are based off of the service being invoked in gRPC and are named after the full service package name.
+     * For example search requests use path "org.opensearch.protobufs.services.SearchService".
+     */
     @Override
     public String path() {
         return serverCall.getMethodDescriptor().getFullMethodName();
     }
 
     @Override
+    public String uri() {
+        return serverCall.getMethodDescriptor().getFullMethodName();
+    }
+
+    /**
+     * Methods are a REST concept and unsupported here.
+     */
+    @Override
     public Method method() {
         throw new UnsupportedOperationException("HTTP methods not applicable to gRPC");
     }
 
+    /**
+     * @return client address.
+     */
     @Override
     public Optional<InetSocketAddress> getRemoteAddress() {
         try {
@@ -82,11 +107,9 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
         return Optional.empty();
     }
 
-    @Override
-    public String uri() {
-        return serverCall.getMethodDescriptor().getFullMethodName();
-    }
-
+    /**
+     * Query params are a REST concept and unsupported here.
+     */
     @Override
     public Map<String, String> params() {
         throw new UnsupportedOperationException("Query params not applicable to gRPC");
@@ -97,11 +120,19 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
         return Set.of(); // No parameters to track for gRPC
     }
 
+    /**
+     * @param response set an error response for this request.
+     */
     @Override
     public void queueForSending(SecurityResponse response) {
         this.queuedResponse = Optional.of(response);
     }
 
+    /**
+     * Note gRPC error codes and responses do not align with REST codes.
+     * TODO: Convert REST error codes to gRPC proto error responses.
+     * @return return the queued response, if any.
+     */
     @Override
     public Optional<SecurityResponse> getQueuedResponse() {
         return queuedResponse;
