@@ -9,6 +9,7 @@
 package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import javax.net.ssl.SSLEngine;
 
+import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import org.opensearch.rest.RestRequest.Method;
@@ -69,8 +71,14 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
 
     @Override
     public Optional<InetSocketAddress> getRemoteAddress() {
-        // TODO: gRPC ServerCall doesn't directly expose remote address
-        // This would need to be extracted from call attributes if available
+        try {
+            SocketAddress remoteAddr = serverCall.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
+            if (remoteAddr instanceof InetSocketAddress) {
+                return Optional.of((InetSocketAddress) remoteAddr);
+            }
+        } catch (Exception e) {
+            return Optional.empty();
+        }
         return Optional.empty();
     }
 
