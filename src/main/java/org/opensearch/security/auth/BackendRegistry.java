@@ -237,13 +237,17 @@ public class BackendRegistry {
     }
 
     /**
-     *
-     * @param request
-     * @return The authenticated user, null means another roundtrip
-     * @throws OpenSearchSecurityException
+     * Iterates through configured auth domains, extracting credentials from the request and thread context.
+     * Credentials are authenticated with the auth backend. Resulting user and roles are stashed in the thread context.
+     * @param request specifying HTTP headers, client ip, and channel to send error response.
+     * @return true if any user is authenticated for this request.
      */
     public boolean authenticate(final SecurityRequestChannel request) {
         final boolean isDebugEnabled = log.isDebugEnabled();
+
+        /*
+        Check for rate limiting on this IP based on api rate limiting configuration.
+         */
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
             .map(InetSocketAddress::getAddress)
             .map(this::isBlocked)
@@ -261,10 +265,14 @@ public class BackendRegistry {
             return false;
         }
 
+        /*
+        Authenticates superuser based on client certificate auth. The certificate DN is read from thread context and
+        compared against adminDNs. If superuser is authenticated here we skip the remaining authentication flow.
+        Note that non superuser client/cert authentication is handled separately by the HTTPClientCertAuthenticator
+        auth backend.
+         */
         ThreadContext threadContext = this.threadPool.getThreadContext();
-
         final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
             User superuser = new User(sslPrincipal);
@@ -274,11 +282,18 @@ public class BackendRegistry {
             return true;
         }
 
+        /*
+        Authenticate users injected in the thread context by internal components (plugins).
+         */
         if (userInjector.injectUser(request)) {
             // ThreadContext injected user
             return true;
         }
 
+        /*
+        Backend registry may not be initialized due to missing configuration.
+        If not initialized we cannot configure with authenticating "normal" users (admin/injections still allowed).
+         */
         if (!isInitialized()) {
             StringBuilder error = new StringBuilder("OpenSearch Security not initialized.");
             if (!clusterInfoHolder.hasClusterManager()) {
@@ -289,23 +304,28 @@ public class BackendRegistry {
             return false;
         }
 
+        /*
+        Log client ip if trace enabled.
+        Stash client ip in thread context.
+         */
         final TransportAddress remoteAddress = xffResolver.resolve(request);
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
             log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress().orElse(null));
         }
-
         threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
 
+        /*
+        Core authentication loop with user configured auth domains.
+         */
         boolean authenticated = false;
-
         User authenticatedUser = null;
-
         AuthCredentials authCredentials = null;
-
         HTTPAuthenticator firstChallengingHttpAuthenticator = null;
 
-        // loop over all http/rest auth domains
+        /*
+        Iterate through configured auth domains.
+         */
         for (final AuthDomain authDomain : restAuthDomains) {
             if (isDebugEnabled) {
                 log.debug(
@@ -318,10 +338,17 @@ public class BackendRegistry {
 
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
 
+            /*
+            If auth domain presents a challenge to client save this initial authenticator.
+            The purpose is to re-request authentication in the case authentication fails on the initial challeng.
+             */
             if (authDomain.isChallenge() && firstChallengingHttpAuthenticator == null) {
                 firstChallengingHttpAuthenticator = httpAuthenticator;
             }
 
+            /*
+            Extract credentials for this auth domain from the request.
+             */
             if (isTraceEnabled) {
                 log.trace("Try to extract auth creds from {} http authenticator", httpAuthenticator.getType());
             }
@@ -335,16 +362,25 @@ public class BackendRegistry {
                 continue;
             }
 
+            /*
+            User may be blocked from authenticating with this auth backend based on rate limiting configurations.
+            Skip this auth domain if the user is blocked.
+             */
             if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
                 if (isDebugEnabled) {
                     log.debug("Rejecting REST request because of blocked user: {}, authDomain: {}", ac.getUsername(), authDomain);
                 }
-
                 continue;
             }
 
+            /*
+            If not credentials are extracted by the auth domain we must handle remaining possible cases:
+            1. Anonymous auth enabled and request is for anonymous login -> skip auth domain.
+            Anonymous users are handled later outside of auth domain loop if no other user is authenticated.
+            2. If auth domain is challenging and no credentials are found -> present challenge.
+            SAML and basic auth for example redirect/re-request credentials from clients.
+             */
             authCredentials = ac;
-
             if (ac == null) {
                 // no credentials found in request
                 if (anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
@@ -389,9 +425,15 @@ public class BackendRegistry {
                 }
             }
 
-            // http completed
+            /*
+            Validates extracted credentials against an authentication backend.
+            Populates associated roles for the authenticated user.
+             */
             authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
 
+            /*
+            In the case where credentials are not validated by the auth backend notify failure listeners and continue.
+             */
             if (authenticatedUser == null) {
                 if (isDebugEnabled) {
                     log.debug(
@@ -414,6 +456,10 @@ public class BackendRegistry {
                 continue;
             }
 
+            /*
+            Disallow superuser authentication through auth domain.
+            Only client cert authentication is allowed for this user.
+             */
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
@@ -423,6 +469,10 @@ public class BackendRegistry {
                 return false;
             }
 
+            /*
+            Extract tenant context from the request for authenticated user.
+            Will be used in conjunction with user to evaluate permissions in authorization steps.
+             */
             final String tenant = resolveTenantFrom(request);
 
             if (isDebugEnabled) {
@@ -438,6 +488,9 @@ public class BackendRegistry {
             break;
         }// end looping auth domains
 
+        /*
+        If authenticated stash the authenticated user in the thread context, handling user impersonation if provided.
+         */
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
@@ -451,6 +504,10 @@ public class BackendRegistry {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
+            /*
+            Final challenge for failed authentication.
+            For example invalid credentials, expired tokens, wrong passwords may prompt this final challenge.
+            */
             Optional<SecurityResponse> challengeResponse = Optional.empty();
 
             if (firstChallengingHttpAuthenticator != null) {
@@ -467,6 +524,10 @@ public class BackendRegistry {
                 }
             }
 
+            /*
+            Handle anonymous auth.
+            Populate thread context with anonymous user is anonymous login requested and no other credentials provided.
+             */
             if (authCredentials == null && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
                 User anonymousUser = User.ANONYMOUS;
 
@@ -499,6 +560,7 @@ public class BackendRegistry {
             );
             return false;
         }
+
         return authenticated;
     }
 
@@ -759,6 +821,11 @@ public class BackendRegistry {
 
     }
 
+    /**
+     * Checks the client ip block registries. These registries are dynamically updated based on rate limiting settings.
+     * @param address client ip
+     * @return true if blocked
+     */
     private boolean isBlocked(InetAddress address) {
         if (this.ipClientBlockRegistries == null || this.ipClientBlockRegistries.isEmpty()) {
             return false;
@@ -789,6 +856,14 @@ public class BackendRegistry {
 
     }
 
+    /**
+     * Checks the auth backend client block registries for the given auth backend and userName.
+     * These registries are dynamically updated and users may appear here due to rate limiting configurations applied
+     * to a specific auth backend.
+     * @param authBackend the authentication backend type (JWT, LDAP, ect...)
+     * @param userName the user
+     * @return true if blocked
+     */
     private boolean isBlocked(String authBackend, String userName) {
 
         if (this.authBackendClientBlockRegistries == null) {
