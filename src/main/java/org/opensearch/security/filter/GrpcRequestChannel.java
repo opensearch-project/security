@@ -26,16 +26,12 @@ import org.opensearch.rest.RestRequest.Method;
 public class GrpcRequestChannel implements SecurityRequestChannel {
 
     private final ServerCall<?, ?> serverCall;
-    private final Metadata metadata;
     private final Map<String, List<String>> headers;
-    private final Map<String, String> params;
     private Optional<SecurityResponse> queuedResponse = Optional.empty();
 
     public GrpcRequestChannel(ServerCall<?, ?> serverCall, Metadata metadata) {
         this.serverCall = serverCall;
-        this.metadata = metadata;
         this.headers = extractHeaders(metadata);
-        this.params = new HashMap<>(); // gRPC doesn't have URL parameters like REST
     }
 
     private Map<String, List<String>> extractHeaders(Metadata metadata) {
@@ -85,7 +81,7 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
 
     @Override
     public Map<String, String> params() {
-        return params;
+        throw new UnsupportedOperationException("Query params not applicable to gRPC");
     }
 
     @Override
