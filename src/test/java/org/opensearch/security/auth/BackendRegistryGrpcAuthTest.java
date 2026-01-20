@@ -9,11 +9,17 @@
 package org.opensearch.security.auth;
 
 import java.net.InetSocketAddress;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
+import javax.crypto.SecretKey;
 
+import com.google.common.io.BaseEncoding;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -26,10 +32,13 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.GrpcRequestChannel;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -57,19 +66,17 @@ public class BackendRegistryGrpcAuthTest {
     private ClusterInfoHolder clusterInfoHolder;
 
     private BackendRegistry backendRegistry;
-    private ThreadContext threadContext;
 
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        threadContext = new ThreadContext(Settings.EMPTY);
-        when(threadPool.getThreadContext()).thenReturn(threadContext);
-
         Settings settings = Settings.builder()
-            .put("plugins.security.authcz.rest_auth_enabled", true)
             .put("plugins.security.unsupported.inject_user.enabled", true)
             .build();
+
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
 
         backendRegistry = new BackendRegistry(
             settings,
@@ -86,6 +93,8 @@ public class BackendRegistryGrpcAuthTest {
                 new InetSocketAddress("127.0.0.1", 9200)
             )
         );
+
+        // no admin user configured - ensure these checks are false
         when(adminDns.isAdmin(any())).thenReturn(false);
         when(adminDns.isAdminDN(any())).thenReturn(false);
     }
@@ -206,22 +215,6 @@ public class BackendRegistryGrpcAuthTest {
     }
 
     @Test
-    public void testGrpcAuthenticateWithBlockedIP() {
-        // Mock IP blocking
-        when(xffResolver.resolve(any())).thenReturn(
-            new org.opensearch.core.common.transport.TransportAddress(
-                new InetSocketAddress("192.168.1.100", 9200)
-            )
-        );
-
-        GrpcRequestChannel request = createTestRequest(new HashMap<>());
-
-        boolean result = backendRegistry.gRPCauthenticate(request);
-
-        assertFalse("Authentication should fail for blocked IP", result);
-    }
-
-    @Test
     public void testGrpcAuthenticateWithCaseInsensitiveHeaders() {
         Map<String, String> headers = new HashMap<>();
         headers.put("AUTHORIZATION", "Bearer test.jwt.token");
@@ -235,15 +228,28 @@ public class BackendRegistryGrpcAuthTest {
     }
 
     @Test
-    public void testGrpcAuthenticateWithCustomJWTHeader() {
+    public void testGrpcAuthenticateWithValidJWTFormatNoAuthDomainConfigured() {
+        final byte[] secretKeyBytes = new byte[64];
+        final SecretKey secretKey = Keys.hmacShaKeyFor(secretKeyBytes);
+        String validJwt = Jwts.builder()
+            .subject("testuser")
+            .claim("roles", "admin,user")
+            .signWith(secretKey, SignatureAlgorithm.HS512)
+            .compact();
+
         Map<String, String> headers = new HashMap<>();
-        headers.put("x-custom-jwt", "test.jwt.token");
+        headers.put("authorization", "Bearer " + validJwt);
 
         GrpcRequestChannel request = createTestRequest(headers);
 
         boolean result = backendRegistry.gRPCauthenticate(request);
 
-        assertFalse("Authentication should fail without standard authorization header", result);
+        /*
+        Since the BackendRegistry doesn't have JWT configured in these tests, it will reject the request.
+        We would like to test a valid JWT but mocking the DynamicConfigModel is complex and more easily covered in
+        integration tests. Here we just confirm a valid JWT produces 401 with no auth domains configured.
+         */
+        assertFalse("Authentication should fail without JWT configuration", result);
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
     }

@@ -554,8 +554,6 @@ public class BackendRegistry {
             return false;
         }
 
-        ThreadContext threadContext = this.threadPool.getThreadContext();
-
         /*
         Skip SSL superuser authentication for gRPC.
         Client certificate authentication is not supported for gRPC endpoints.
