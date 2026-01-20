@@ -73,7 +73,7 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
 
     @Override
     public Optional<InetSocketAddress> getRemoteAddress() {
-        // gRPC ServerCall doesn't directly expose remote address
+        // TODO: gRPC ServerCall doesn't directly expose remote address
         // This would need to be extracted from call attributes if available
         return Optional.empty();
     }

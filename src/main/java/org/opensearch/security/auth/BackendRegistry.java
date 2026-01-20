@@ -779,14 +779,6 @@ public class BackendRegistry {
             return true;
         }
 
-        // Reject anonymous authentication requests
-        Map<String, String> params = request.params();
-        if (params != null && "true".equals(params.get("auth_type")) && "anonymous".equals(params.get("auth_type"))) {
-            log.warn("gRPC request rejected: anonymous authentication not supported");
-            request.queueForSending(new SecurityResponse(SC_FORBIDDEN, "Anonymous authentication not supported in gRPC"));
-            return true;
-        }
-
         return false;
     }
 
