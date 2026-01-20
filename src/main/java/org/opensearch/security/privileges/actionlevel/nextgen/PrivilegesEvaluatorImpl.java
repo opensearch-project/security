@@ -162,7 +162,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
         );
 
         this.pluginIdToActionPrivileges = SubjectBasedActionPrivileges.buildFromMap(
-            dynamicDependencies.pluginIdToRolePrivileges(),
+            dynamicDependencies.pluginIdToPrivileges(),
             dynamicDependencies.staticActionGroups(),
             specialIndexProtection
         );

@@ -39,6 +39,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluatorImpl;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -259,7 +260,7 @@ public interface PrivilegesEvaluator {
      */
     record DynamicDependencies(FlattenedActionGroups actionGroups, FlattenedActionGroups staticActionGroups, CompiledRoles rolesConfiguration, ConfigV7 generalConfiguration, SpecialIndices specialIndices, Supplier<
             TenantPrivileges> tenantPrivilegesSupplier, Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier,
-        Map<String, RoleV7> pluginIdToRolePrivileges) {
+        Map<String, SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToPrivileges) {
 
         public static final DynamicDependencies EMPTY = new PrivilegesEvaluator.DynamicDependencies(
             FlattenedActionGroups.EMPTY,
@@ -281,11 +282,11 @@ public interface PrivilegesEvaluator {
                 specialIndices,
                 tenantPrivilegesSupplier,
                 multiTenancyConfigurationSupplier,
-                pluginIdToRolePrivileges
+                pluginIdToPrivileges
             );
         }
 
-        public DynamicDependencies with(Map<String, RoleV7> pluginIdToRolePrivileges) {
+        public DynamicDependencies with(Map<String, SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToPrivileges) {
             return new DynamicDependencies(
                 actionGroups,
                 staticActionGroups,
@@ -294,7 +295,7 @@ public interface PrivilegesEvaluator {
                 specialIndices,
                 tenantPrivilegesSupplier,
                 multiTenancyConfigurationSupplier,
-                pluginIdToRolePrivileges
+                pluginIdToPrivileges
             );
         }
 

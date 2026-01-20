@@ -557,7 +557,7 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          * Returns true if the given indexOrAlias is a system index or an alias containing a system index AND if
          * the current user does not have the necessary explicit privilege to access this system index.
          */
-        private boolean isUnauthorizedSystemIndex(
+        protected boolean isUnauthorizedSystemIndex(
             PrivilegesEvaluationContext context,
             String indexOrAlias,
             List<PrivilegesEvaluationException> exceptions

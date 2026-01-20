@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -50,17 +51,40 @@ import static org.opensearch.security.privileges.actionlevel.WellKnownActions.al
  */
 public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileges {
 
+    /**
+     * Encapsulates the specification of privileges for a specific subject.
+     * Besides, the specification of privileges via a role format, it also contains a predicate
+     * which can be used to check whether the subject has full index privileges for specific indices.
+     * This is used for system indices specifically assigned to plugins. Plugins have always full
+     * access to such indices, despite the role configuration.
+     */
+    public static class PrivilegeSpecification {
+        public final RoleV7 role;
+        public final Predicate<String> hasIndexFullPrivileges;
+
+        public PrivilegeSpecification(RoleV7 role, Predicate<String> hasIndexFullPrivileges) {
+            this.role = role;
+            this.hasIndexFullPrivileges = hasIndexFullPrivileges;
+        }
+    }
+
     public static ImmutableMap<String, ActionPrivileges> buildFromMap(
-        Map<String, RoleV7> pluginIdToRolePrivileges,
+        Map<String, PrivilegeSpecification> pluginIdToPrivileges,
         FlattenedActionGroups staticActionGroups,
         RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection
     ) {
-        Map<String, SubjectBasedActionPrivileges> result = new HashMap<>(pluginIdToRolePrivileges.size());
+        Map<String, SubjectBasedActionPrivileges> result = new HashMap<>(pluginIdToPrivileges.size());
 
-        for (Map.Entry<String, RoleV7> entry : pluginIdToRolePrivileges.entrySet()) {
+        for (Map.Entry<String, PrivilegeSpecification> entry : pluginIdToPrivileges.entrySet()) {
             result.put(
                 entry.getKey(),
-                new SubjectBasedActionPrivileges(entry.getValue(), staticActionGroups, specialIndexProtection, false)
+                new SubjectBasedActionPrivileges(
+                    entry.getValue().role,
+                    entry.getValue().hasIndexFullPrivileges,
+                    staticActionGroups,
+                    specialIndexProtection,
+                    false
+                )
             );
         }
 
@@ -80,15 +104,25 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
      */
     public SubjectBasedActionPrivileges(
         RoleV7 role,
+        Predicate<String> hasIndexFullPrivileges,
         FlattenedActionGroups actionGroups,
         SpecialIndexProtection specialIndexProtection,
         boolean breakDownAliases
     ) {
         super(
             new ClusterPrivileges(actionGroups.resolve(role.getCluster_permissions())),
-            new IndexPrivileges(role, actionGroups, specialIndexProtection, breakDownAliases),
+            new IndexPrivileges(role, hasIndexFullPrivileges, actionGroups, specialIndexProtection, breakDownAliases),
             breakDownAliases
         );
+    }
+
+    public SubjectBasedActionPrivileges(
+        RoleV7 role,
+        FlattenedActionGroups actionGroups,
+        SpecialIndexProtection specialIndexProtection,
+        boolean breakDownAliases
+    ) {
+        this(role, index -> false, actionGroups, specialIndexProtection, breakDownAliases);
     }
 
     /**
@@ -240,16 +274,21 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
          */
         private final ImmutableMap<String, IndexPattern> explicitActionToIndexPattern;
 
+        private final Predicate<String> hasIndexFullPrivileges;
+
         /**
          * Creates pre-computed index privileges based on the given parameters.
          */
         IndexPrivileges(
             RoleV7 role,
+            Predicate<String> hasIndexFullPrivileges,
             FlattenedActionGroups actionGroups,
             SpecialIndexProtection specialIndexProtection,
             boolean memberIndexPrivilegesYieldALiasPrivileges
         ) {
             super(specialIndexProtection);
+
+            this.hasIndexFullPrivileges = hasIndexFullPrivileges;
 
             Function<Object, IndexPattern.Builder> indexPatternBuilder = k -> new IndexPattern.Builder(
                 memberIndexPrivilegesYieldALiasPrivileges
@@ -344,6 +383,14 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             CheckTable<String, String> checkTable
         ) {
             List<PrivilegesEvaluationException> exceptions = new ArrayList<>();
+
+            for (String action : actions) {
+                checkTable.checkIf(this.hasIndexFullPrivileges, action);
+            }
+
+            if (checkTable.isComplete()) {
+                return new IntermediateResult(checkTable).evaluationExceptions(exceptions);
+            }
 
             checkPrivilegeWithIndexPatternOnWellKnownActions(context, actions, checkTable, actionToIndexPattern, exceptions);
             if (checkTable.isComplete()) {
@@ -491,6 +538,19 @@ public class SubjectBasedActionPrivileges extends RuntimeOptimizedActionPrivileg
             }
 
             return false;
+        }
+
+        @Override
+        protected boolean isUnauthorizedSystemIndex(
+            PrivilegesEvaluationContext context,
+            String indexOrAlias,
+            List<PrivilegesEvaluationException> exceptions
+        ) {
+            if (this.hasIndexFullPrivileges.test(indexOrAlias)) {
+                return false;
+            }
+
+            return super.isUnauthorizedSystemIndex(context, indexOrAlias, exceptions);
         }
     }
 
