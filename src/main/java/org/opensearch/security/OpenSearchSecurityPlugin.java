@@ -1223,6 +1223,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             irr
         );
         this.privilegesConfiguration = privilegesConfiguration;
+        GuiceHolder.setPrivilegesConfiguration(privilegesConfiguration);
 
         dlsFlsBaseContext = new DlsFlsBaseContext(privilegesConfiguration, threadPool.getThreadContext(), adminDns);
 
@@ -2485,6 +2486,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static IndicesService indicesService;
         private static PitService pitService;
         private static BackendRegistry backendRegistry;
+        private static PrivilegesConfiguration privilegesConfiguration;
 
         private static ExtensionsManager extensionsManager;
 
@@ -2529,6 +2531,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         public static void setBackendRegistry(BackendRegistry backendRegistry) {
             GuiceHolder.backendRegistry = backendRegistry;
+        }
+
+        public static PrivilegesConfiguration getPrivilegesConfiguration() {
+            return privilegesConfiguration;
+        }
+
+        public static void setPrivilegesConfiguration(PrivilegesConfiguration privilegesConfiguration) {
+            GuiceHolder.privilegesConfiguration = privilegesConfiguration;
         }
 
         @Override
