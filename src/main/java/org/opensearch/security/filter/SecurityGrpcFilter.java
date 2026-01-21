@@ -124,15 +124,22 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                     if (requestChannel.getQueuedResponse().isPresent()) {
                         // Send error response and close call
                         serverCall.close(mapToGrpcStatus(requestChannel.getQueuedResponse().get().getStatus()), new Metadata());
-                        return new ServerCall.Listener<>() {};
+                    } else {
+                        // Authentication failed without specific error - return UNAUTHENTICATED
+                        serverCall.close(Status.UNAUTHENTICATED, new Metadata());
                     }
+                    return new ServerCall.Listener<>() {};
                 }
                 final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-                // Validate gRPC permissions using privilege evaluator
-                if (!permissionValidator.validateServicePermissions(serverCall, user)) {
-                    return new ServerCall.Listener<>() {};
-                }
+
+                // Happens on the transport layer with SecurityFilter - Just need to propagate user in thread context
+
+
+//                // Validate gRPC permissions using privilege evaluator
+//                if (!permissionValidator.validateServicePermissions(serverCall, user)) {
+//                    return new ServerCall.Listener<>() {};
+//                }
 
                 // Additional authorization checks if needed
                 if (requestChannel.getQueuedResponse().isPresent()) {

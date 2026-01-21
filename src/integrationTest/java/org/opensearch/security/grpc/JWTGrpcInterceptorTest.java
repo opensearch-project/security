@@ -61,6 +61,13 @@ public class JWTGrpcInterceptorTest {
     private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
+    
+    // Role with gRPC index permission
+    static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role")
+        .clusterPermissions("grpc:index", "cluster_monitor");
+    
+    // User with gRPC index permission
+    static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
 
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain(
         "jwt",
@@ -105,13 +112,70 @@ public class JWTGrpcInterceptorTest {
                     false
             )
         ).anonymousAuth(false)
-        .users(ADMIN_USER)
+        .users(ADMIN_USER, GRPC_INDEX_USER)
+        .roles(GRPC_INDEX_ROLE)
         .authc(JWT_AUTH_DOMAIN)
         .build();
 
     @Test
     public void testGrpcInterceptorBackendRegistryInjection() {
         System.out.println("Test passes with JWT auth configured cluster (Cluster starts and stops)");
+    }
+
+    @Test
+    public void testJwtAuthorizedUser() throws Exception {
+        // Create a valid JWT token for user with grpc:index permission
+        // Note: The test framework creates role names like "user_<username>__<rolename>"
+        String jwtToken = createValidJwtToken("grpc_user", "user_grpc_user__grpc_index_role");
+        System.out.println("Created JWT token for authorized gRPC user: " + jwtToken);
+
+        // Initialize gRPC channel
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+
+        try {
+            // Create a client interceptor to add JWT header
+            ClientInterceptor jwtInterceptor = new ClientInterceptor() {
+                @Override
+                public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+                        MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+                    return new ClientCall<ReqT, RespT>() {
+                        private final ClientCall<ReqT, RespT> delegate = next.newCall(method, callOptions);
+
+                        @Override
+                        public void start(Listener<RespT> responseListener, Metadata headers) {
+                            // Add JWT token to headers
+                            Metadata.Key<String> authKey = Metadata.Key.of(JWT_AUTH_HEADER, Metadata.ASCII_STRING_MARSHALLER);
+                            headers.put(authKey, "Bearer " + jwtToken);
+                            System.out.println("Client: Added JWT header for authorized user");
+                            delegate.start(responseListener, headers);
+                        }
+
+                        @Override
+                        public void sendMessage(ReqT message) { delegate.sendMessage(message); }
+
+                        @Override
+                        public void halfClose() { delegate.halfClose(); }
+
+                        @Override
+                        public void cancel(String message, Throwable cause) { delegate.cancel(message, cause); }
+
+                        @Override
+                        public void request(int numMessages) { delegate.request(numMessages); }
+                    };
+                }
+            };
+
+            // Create channel with JWT interceptor
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
+
+            // Send bulk request with authorized JWT token - this should succeed
+            System.out.println("Sending bulk request with authorized gRPC user...");
+            doBulkWithChannel(channelWithAuth, "test-grpc-index", 2);
+            System.out.println("SUCCESS: Bulk request completed with authorized gRPC user!");
+
+        } finally {
+            channel.shutdown();
+        }
     }
 
     @Test
