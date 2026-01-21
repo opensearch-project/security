@@ -274,6 +274,13 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
+    /**
+     * Builds the set of actions required for a request and provide to privilege evaluator.
+     * A set of required actions are associated with the NamedRoute which encapsulates the path and method of a request.
+     * @param original REST handler originating request
+     * @param request security representation of request metadata
+     * @param user authenticated user
+     */
     void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
