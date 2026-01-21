@@ -35,6 +35,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.grpc.GrpcPermissionValidator;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
@@ -68,7 +69,9 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
              */
             @Override
             public ServerInterceptor getInterceptor() {
-                return new JwtGrpcInterceptor(threadContext, OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry());
+                PrivilegesConfiguration privilegesConfiguration = OpenSearchSecurityPlugin.GuiceHolder.getPrivilegesConfiguration();
+                GrpcPermissionValidator validator = new GrpcPermissionValidator(privilegesConfiguration.privilegesEvaluator());
+                return new JwtGrpcInterceptor(threadContext, OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry(), validator);
             }
         });
     }
@@ -79,10 +82,12 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
     private static class JwtGrpcInterceptor implements ServerInterceptor {
         private final ThreadContext threadContext;
         private final BackendRegistry backendRegistry;
+        private final GrpcPermissionValidator permissionValidator;
 
-        public JwtGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry) {
+        public JwtGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry, GrpcPermissionValidator permissionValidator) {
             this.threadContext = threadContext;
             this.backendRegistry = backendRegistry;
+            this.permissionValidator = permissionValidator;
         }
 
         @Override
@@ -124,13 +129,12 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 }
                 final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-                // Validate gRPC permissions - handles service routing and error responses
-                if (!GrpcPermissionValidator.validateServicePermissions(serverCall, user)) {
+                // Validate gRPC permissions using privilege evaluator
+                if (!permissionValidator.validateServicePermissions(serverCall, user)) {
                     return new ServerCall.Listener<>() {};
                 }
 
-                // Authorize request
-                // ... TODO
+                // Additional authorization checks if needed
                 if (requestChannel.getQueuedResponse().isPresent()) {
                     serverCall.close(Status.PERMISSION_DENIED, new Metadata());
                     return new ServerCall.Listener<>() {};
