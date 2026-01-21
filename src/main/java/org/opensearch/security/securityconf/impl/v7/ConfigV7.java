@@ -92,7 +92,7 @@ public class ConfigV7 {
 
         /**
          * This is a successor to the do_not_fail_on_forbidden property; it is only evaluated if
-         * privilegesEvaluationType is set to "next_gen"; we cannot reuse the old property as it we cannot change
+         * privilegesEvaluationType is set to "v4"; we cannot reuse the old property as it we cannot change
          * the default value of it based on privileges_evaluation_type.
          * This should be only very rarely set to "false"; if it is false, users must make sure that they
          * are not hitting any unauthorized indices in their patterns, including system indices, as otherwise these requests

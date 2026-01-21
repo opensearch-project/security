@@ -453,7 +453,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
 
     @Override
     public PrivilegesEvaluatorType type() {
-        return PrivilegesEvaluatorType.NEXT_GEN;
+        return PrivilegesEvaluatorType.V4;
     }
 
     void logPrivilegeEvaluationResult(PrivilegesEvaluationContext context, PrivilegesEvaluatorResponse result, String privilegeType) {

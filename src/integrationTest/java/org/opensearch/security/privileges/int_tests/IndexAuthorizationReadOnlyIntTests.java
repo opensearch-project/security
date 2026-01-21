@@ -161,7 +161,7 @@ public class IndexAuthorizationReadOnlyIntTests {
     /**
      * This key identifies assertion reference data for index search/read permissions of individual users for the new privilege evaluation
      */
-    static final TestSecurityConfig.User.MetadataKey<IndexMatcher> READ_NEXT_GEN = new TestSecurityConfig.User.MetadataKey<>(
+    static final TestSecurityConfig.User.MetadataKey<IndexMatcher> READ_V4 = new TestSecurityConfig.User.MetadataKey<>(
         "read_nextgen",
         IndexMatcher.class
     );
@@ -193,7 +193,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_a*")
         )//
         .reference(READ, limitedTo(index_a1, index_a2, index_a3, index_ax))//
-        .reference(READ_NEXT_GEN, limitedTo(index_a1, index_a2, index_a3, index_ax))//
+        .reference(READ_V4, limitedTo(index_a1, index_a2, index_a3, index_ax))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -208,7 +208,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_b*")
         )//
         .reference(READ, limitedTo(index_b1, index_b2, index_b3))//
-        .reference(READ_NEXT_GEN, limitedTo(index_b1, index_b2, index_b3))//
+        .reference(READ_V4, limitedTo(index_b1, index_b2, index_b3))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -223,7 +223,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_b1")
         )//
         .reference(READ, limitedTo(index_b1))//
-        .reference(READ_NEXT_GEN, limitedTo(index_b1))//
+        .reference(READ_V4, limitedTo(index_b1))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -238,7 +238,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_c*")
         )//
         .reference(READ, limitedTo(index_c1, alias_c1))//
-        .reference(READ_NEXT_GEN, limitedTo(index_c1))//
+        .reference(READ_V4, limitedTo(index_c1))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -254,7 +254,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("alias_ab1*")
         )//
         .reference(READ, limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1))//
-        .reference(READ_NEXT_GEN, limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1))//
+        .reference(READ_V4, limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1))//
         .reference(GET_ALIAS, limitedTo(index_a1, index_a2, index_a3, index_b1, alias_ab1));
 
     /**
@@ -270,7 +270,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("alias_c1")
         )//
         .reference(READ, limitedTo(index_c1, alias_c1))//
-        .reference(READ_NEXT_GEN, limitedTo(index_c1, alias_c1))//
+        .reference(READ_V4, limitedTo(index_c1, alias_c1))//
         .reference(GET_ALIAS, limitedTo(index_c1, alias_c1));
     /**
      * Same as LIMITED_USER_A with the addition of read privileges for index_hidden* and .index_hidden*
@@ -284,7 +284,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_a*", "index_hidden*", ".index_hidden*")
         )//
         .reference(READ, limitedTo(index_a1, index_a2, index_a3, index_ax, index_hidden, index_hidden_dot))//
-        .reference(READ_NEXT_GEN, limitedTo(index_a1, index_a2, index_a3, index_ax, index_hidden, index_hidden_dot))//
+        .reference(READ_V4, limitedTo(index_a1, index_a2, index_a3, index_ax, index_hidden, index_hidden_dot))//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -310,7 +310,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on(".system_index_plugin")
         )//
         .reference(READ, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index))//
-        .reference(READ_NEXT_GEN, limitedTo(index_c1, alias_c1, system_index_plugin))//
+        .reference(READ_V4, limitedTo(index_c1, alias_c1, system_index_plugin))//
         .reference(GET_ALIAS, limitedTo(index_c1, alias_c1, system_index_plugin, alias_with_system_index));
     /**
      * This user has no privileges for indices that are used in this test. But they have privileges for other indices.
@@ -327,7 +327,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .on("index_does_not_exist_*")
         )//
         .reference(READ, limitedToNone())//
-        .reference(READ_NEXT_GEN, limitedToNone())//
+        .reference(READ_V4, limitedToNone())//
         .reference(GET_ALIAS, limitedToNone());
 
     /**
@@ -340,7 +340,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                 .clusterPermissions("cluster_composite_ops_ro", "cluster_monitor")
         )//
         .reference(READ, limitedToNone())//
-        .reference(READ_NEXT_GEN, limitedToNone())//
+        .reference(READ_V4, limitedToNone())//
         .reference(GET_ALIAS, limitedToNone());
     /**
      * A user with "*" privileges on "*"; as it is a regular user, they are still subject to system index
@@ -356,7 +356,7 @@ public class IndexAuthorizationReadOnlyIntTests {
 
         )//
         .reference(READ, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax))//
-        .reference(READ_NEXT_GEN, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax))//
+        .reference(READ_V4, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax))//
         .reference(GET_ALIAS, limitedTo(ALL_INDICES_AND_ALIASES_EXCEPT_SYSTEM_INDICES).and(index_ax));
 
     /**
@@ -367,7 +367,7 @@ public class IndexAuthorizationReadOnlyIntTests {
         .description("super unlimited (admin cert)")//
         .adminCertUser()//
         .reference(READ, unlimitedIncludingOpenSearchSecurityIndex())//
-        .reference(READ_NEXT_GEN, unlimitedIncludingOpenSearchSecurityIndex())//
+        .reference(READ_V4, unlimitedIncludingOpenSearchSecurityIndex())//
         .reference(GET_ALIAS, unlimitedIncludingOpenSearchSecurityIndex());
 
     static final List<TestSecurityConfig.User> USERS = ImmutableList.of(
@@ -794,7 +794,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     containsExactly(system_index_plugin).at("hits.hits[*]._index").reducedBy(user.reference(READ)).whenEmpty(isForbidden())
                 );
             } else {
-                if (user.reference(READ_NEXT_GEN).covers(alias_with_system_index)) {
+                if (user.reference(READ_V4).covers(alias_with_system_index)) {
                     assertThat(httpResponse, isOk());
                     assertThat(httpResponse, containsExactly(system_index_plugin).at("hits.hits[*]._index"));
                 } else {
@@ -1184,7 +1184,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                   }
                 }""");
 
-            if (clusterConfig == ClusterConfig.NEXT_GEN_PRIVILEGES_EVALUATION) {
+            if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION) {
                 if (user == LIMITED_USER_NONE) {
                     assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/search]"));
                 } else if (user == LIMITED_USER_OTHER_PRIVILEGES) {
@@ -1454,7 +1454,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     containsExactly(index_c1).at("docs[?(@.found == true)]._index").reducedBy(user.reference(READ)).whenEmpty(isOk())
                 );
             } else {
-                if (user.reference(READ_NEXT_GEN).covers(alias_c1)) {
+                if (user.reference(READ_V4).covers(alias_c1)) {
                     assertThat(httpResponse, containsExactly(index_c1).at("docs[?(@.found == true)]._index"));
                 } else {
                     assertThat(httpResponse, containsExactly().at("docs[?(@.found == true)]._index"));
@@ -1482,7 +1482,7 @@ public class IndexAuthorizationReadOnlyIntTests {
             if (clusterConfig.legacyPrivilegeEvaluation) {
                 assertThat(httpResponse, containsExactly(index_c1).at("_index").reducedBy(user.reference(READ)).whenEmpty(isForbidden()));
             } else {
-                if (user.reference(READ_NEXT_GEN).covers(alias_c1)) {
+                if (user.reference(READ_V4).covers(alias_c1)) {
                     assertThat(httpResponse, containsExactly(index_c1).at("_index"));
                 } else {
                     assertThat(httpResponse, isForbidden("/error/root_cause/0/reason", "no permissions for [indices:data/read/get]"));
@@ -1991,7 +1991,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                         containsExactly(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3, index_c1, alias_ab1, alias_c1).at(
                             "$.*[*].name"
                         )
-                            .reducedBy(user.reference(clusterConfig.legacyPrivilegeEvaluation ? READ : READ_NEXT_GEN))
+                            .reducedBy(user.reference(clusterConfig.legacyPrivilegeEvaluation ? READ : READ_V4))
                             .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
                 } else {
@@ -2022,7 +2022,7 @@ public class IndexAuthorizationReadOnlyIntTests {
                     assertThat(
                         httpResponse,
                         containsExactly(ALL_INDICES_AND_ALIASES).at("$.*[*].name")
-                            .reducedBy(user.reference(clusterConfig.legacyPrivilegeEvaluation ? READ : READ_NEXT_GEN))
+                            .reducedBy(user.reference(clusterConfig.legacyPrivilegeEvaluation ? READ : READ_V4))
                             .whenEmpty(clusterConfig.allowsEmptyResultSets ? isOk() : isForbidden())
                     );
                 } else {

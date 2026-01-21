@@ -93,7 +93,7 @@ public interface PrivilegesEvaluator {
     enum PrivilegesEvaluatorType {
         NOT_INITIALIZED((c, d) -> new NotInitialized(c)),
         LEGACY(PrivilegesEvaluatorImpl::new),
-        NEXT_GEN(org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluatorImpl::new);
+        V4(org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluatorImpl::new);
 
         static PrivilegesEvaluatorType getFrom(SecurityDynamicConfiguration<ConfigV7> configConfig) {
             final PrivilegesEvaluatorType defaultValue = LEGACY;
@@ -106,8 +106,8 @@ public interface PrivilegesEvaluator {
             if (config == null || config.dynamic == null) {
                 return defaultValue;
             }
-            if (NEXT_GEN.name().equalsIgnoreCase(config.dynamic.privilegesEvaluationType)) {
-                return NEXT_GEN;
+            if (V4.name().equalsIgnoreCase(config.dynamic.privilegesEvaluationType)) {
+                return V4;
             } else {
                 return LEGACY;
             }

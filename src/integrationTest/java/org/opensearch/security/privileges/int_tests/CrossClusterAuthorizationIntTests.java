@@ -173,7 +173,7 @@ public class CrossClusterAuthorizationIntTests {
         .clusterManager(ClusterManager.SINGLENODE)
         .clusterName("remote_1")
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .privilegesEvaluationType("next_gen")
+        .privilegesEvaluationType("v4")
         .roles(LIMITED_USER_ROLE_A_R_REMOTE, LIMITED_USER_ROLE_R_REMOTE, LIMITED_USER_ROLE_R1_REMOTE, LIMITED_ROLE_NONE, UNLIMITED_ROLE)
         .indices(RemoteIndices.index_r1, RemoteIndices.index_r2, RemoteIndices.index_r3)
         .build();
