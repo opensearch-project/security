@@ -68,7 +68,7 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
              */
             @Override
             public ServerInterceptor getInterceptor() {
-                return new JwtGrpcInterceptor(threadContext, OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry());
+                return new JwtGrpcInterceptor(threadContext, OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry(), OpenSearchSecurityPlugin.GuiceHolder.getAuditLog());
             }
         });
     }
@@ -79,10 +79,12 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
     private static class JwtGrpcInterceptor implements ServerInterceptor {
         private final ThreadContext threadContext;
         private final BackendRegistry backendRegistry;
+        private final AuditLog auditLog;
 
-        public JwtGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry) {
+        public JwtGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry, AuditLog auditLog) {
             this.threadContext = threadContext;
             this.backendRegistry = backendRegistry;
+            this.auditLog = auditLog;
         }
 
         @Override

@@ -1194,7 +1194,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, cih);
-        GuiceHolder.setBackendRegistry(backendRegistry);
         backendRegistry.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         cr.subscribeOnChange(configMap -> { backendRegistry.invalidateCache(); });
 
@@ -1373,6 +1372,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
             clusterService.addListener(cr);
         }
+
+        GuiceHolder.setBackendRegistry(backendRegistry);
+        GuiceHolder.setAuditLog(auditLog);
+
         return components;
     }
 
@@ -2486,6 +2489,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static PitService pitService;
         private static BackendRegistry backendRegistry;
         private static PrivilegesConfiguration privilegesConfiguration;
+        private static AuditLog auditLog;
 
         private static ExtensionsManager extensionsManager;
 
@@ -2530,6 +2534,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         public static void setBackendRegistry(BackendRegistry backendRegistry) {
             GuiceHolder.backendRegistry = backendRegistry;
+        }
+
+        public static AuditLog getAuditLog() {
+            return auditLog;
+        }
+
+        public static void setAuditLog(AuditLog auditLog) {
+            GuiceHolder.auditLog = auditLog;
         }
 
         @Override
