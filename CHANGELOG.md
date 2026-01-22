@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Features
 - Add support for a configurable audit log timezone using a dedicated configuration key ([#5867](https://github.com/opensearch-project/security/issues/5867))
+- Add JWT authentication support for the gRPC transport ([#5916](https://github.com/opensearch-project/security/issues/5916))
 
 ### Enhancements
 - Introduce new dynamic setting (plugins.security.dls.write_blocked) to block all writes when restrictions apply ([#5828](https://github.com/opensearch-project/security/pull/5828))
