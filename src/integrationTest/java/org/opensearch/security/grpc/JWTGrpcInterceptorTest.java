@@ -49,6 +49,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
 import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
@@ -65,11 +66,17 @@ public class JWTGrpcInterceptorTest {
     private static final KeyPair KEY_PAIR = Keys.keyPairFor(SignatureAlgorithm.RS256);
     private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
 
-    // bulk write cluster permissions
+    // Role with full bulk index permissions
     static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role")
             .clusterPermissions("indices:data/write/bulk*")
             .indexPermissions("indices:data/write/bulk*", "indices:admin/mapping/put", "indices:admin/create", "indices:data/write/index").on("*");
     static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
+
+    // Role missing mapping permission - Cannot create indices
+    static final TestSecurityConfig.Role GRPC_LIMITED_ROLE = new TestSecurityConfig.Role("grpc_limited_role")
+            .clusterPermissions("indices:data/write/bulk*")
+            .indexPermissions("indices:data/write/bulk*", "indices:admin/create", "indices:data/write/index").on("*");
+    static final TestSecurityConfig.User GRPC_LIMITED_USER = new TestSecurityConfig.User("grpc_limited_user").roles(GRPC_LIMITED_ROLE);
 
     /**
      * @param username OpenSearch user to authenticate.
@@ -131,9 +138,12 @@ public class JWTGrpcInterceptorTest {
                     false
             )
         ).anonymousAuth(false)
-        .users(GRPC_INDEX_USER)
-        .roles(GRPC_INDEX_ROLE)
-        .rolesMapping(new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role"))
+        .users(GRPC_INDEX_USER, GRPC_LIMITED_USER)
+        .roles(GRPC_INDEX_ROLE, GRPC_LIMITED_ROLE)
+        .rolesMapping(
+            new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role"),
+            new TestSecurityConfig.RoleMapping(GRPC_LIMITED_ROLE.getName()).backendRoles("grpc_limited_role")
+        )
         .authc(JWT_AUTH_DOMAIN)
         .build();
 
@@ -144,11 +154,31 @@ public class JWTGrpcInterceptorTest {
         try {
             ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken));
             Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
-
             BulkResponse bulkResp = doBulk(channelWithAuth, "test-grpc-index", 2);
             assertNotNull(bulkResp);
             assertFalse(bulkResp.getErrors());
             assertEquals(2, bulkResp.getItemsCount());
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testJwtUserMissingMappingPermission() throws Exception {
+        String jwtToken = createValidJwtToken("grpc_limited_user", "grpc_limited_role");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
+
+            BulkResponse bulkResp = doBulk(channelWithAuth, "test-limited-index", 2);
+            assertNotNull(bulkResp);
+            assertTrue(bulkResp.getErrors());
+            assertEquals(2, bulkResp.getItemsCount());
+
+            // Expect missing "put mapping" permissions
+            String errorMessage = bulkResp.getItems(0).getIndex().getError().getReason();
+            assertTrue("Expected mapping permission error", errorMessage.contains("indices:admin/mapping/put"));
         } finally {
             channel.shutdown();
         }
