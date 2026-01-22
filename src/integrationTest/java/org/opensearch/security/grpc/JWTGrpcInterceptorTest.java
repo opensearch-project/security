@@ -15,13 +15,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import io.grpc.CallOptions;
 import io.grpc.Channel;
-import io.grpc.ClientCall;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
-import io.grpc.Metadata;
-import io.grpc.MethodDescriptor;
 import io.jsonwebtoken.Jwts;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -29,12 +25,6 @@ import org.junit.Test;
 import org.opensearch.Version;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.protobufs.BulkResponse;
-import org.opensearch.protobufs.BulkRequest;
-import org.opensearch.protobufs.BulkRequestBody;
-import org.opensearch.protobufs.IndexOperation;
-import org.opensearch.protobufs.OperationContainer;
-import org.opensearch.protobufs.Refresh;
-import org.opensearch.protobufs.services.DocumentServiceGrpc;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.JwtConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -238,6 +228,26 @@ public class JWTGrpcInterceptorTest {
             try {
                 doBulk(channelWithAuth, "test-wrong-claims", 2);
                 fail("Expected authentication failure due to wrong JWT claims");
+            } catch (Exception e) {
+                assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
+            }
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testJwtWithStandardAuthorizationHeader() throws Exception {
+        String jwtToken = createValidJwtToken("grpc_user", "grpc_index_role");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            // Test with standard Authorization header - should fail since we configured custom jwt-auth header
+            ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of("Authorization", "Bearer " + jwtToken));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
+            
+            try {
+                doBulk(channelWithAuth, "test-auth-header", 2);
+                fail("Expected authentication failure - Authorization header not configured for JWT");
             } catch (Exception e) {
                 assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
             }
