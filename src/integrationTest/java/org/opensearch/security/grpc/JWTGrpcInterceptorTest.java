@@ -61,11 +61,12 @@ public class JWTGrpcInterceptorTest {
     private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
-    
+
     // Role with gRPC index permission
     static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role")
-        .clusterPermissions("grpc:index", "cluster_monitor");
-    
+        .clusterPermissions("grpc:index", "cluster_monitor", "indices:data/write/bulk")
+        .indexPermissions("indices:data/write/bulk").on("*");
+
     // User with gRPC index permission
     static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
 
@@ -114,6 +115,7 @@ public class JWTGrpcInterceptorTest {
         ).anonymousAuth(false)
         .users(ADMIN_USER, GRPC_INDEX_USER)
         .roles(GRPC_INDEX_ROLE)
+        .rolesMapping(new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role"))
         .authc(JWT_AUTH_DOMAIN)
         .build();
 
@@ -125,8 +127,8 @@ public class JWTGrpcInterceptorTest {
     @Test
     public void testJwtAuthorizedUser() throws Exception {
         // Create a valid JWT token for user with grpc:index permission
-        // Note: The test framework creates role names like "user_<username>__<rolename>"
-        String jwtToken = createValidJwtToken("grpc_user", "user_grpc_user__grpc_index_role");
+        // Use the base role name that matches the role definition
+        String jwtToken = createValidJwtToken("grpc_user", "grpc_index_role");
         System.out.println("Created JWT token for authorized gRPC user: " + jwtToken);
 
         // Initialize gRPC channel
@@ -181,7 +183,7 @@ public class JWTGrpcInterceptorTest {
     @Test
     public void testJwtTokenInGrpcRequest() throws Exception {
         // Create a valid JWT token
-        String jwtToken = createValidJwtToken("john.doe", "admin", "user");
+        String jwtToken = createValidJwtToken("john.doe", "grpc_index_role");
         System.out.println("Created JWT token: " + jwtToken);
 
         // Print JWT components
