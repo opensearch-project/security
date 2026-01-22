@@ -10,6 +10,7 @@ package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,16 +109,16 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
     }
 
     /**
-     * Query params are a REST concept and unsupported here.
+     * Query params are a REST concept and always empty for gRPC requests.
      */
     @Override
     public Map<String, String> params() {
-        throw new UnsupportedOperationException("Query params not applicable to gRPC");
+        return Collections.emptyMap();
     }
 
     @Override
     public Set<String> getUnconsumedParams() {
-        return Set.of(); // No parameters to track for gRPC
+        return Set.of();
     }
 
     /**
