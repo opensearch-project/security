@@ -21,6 +21,7 @@ import javax.net.ssl.SSLEngine;
 import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
+import io.grpc.Status;
 import org.opensearch.rest.RestRequest.Method;
 
 /**
@@ -130,12 +131,41 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
     }
 
     /**
-     * Note gRPC error codes and responses do not align with REST codes.
-     * TODO: Convert REST error codes to gRPC proto error responses.
+     * Map HTTP status codes to gRPC Status enum.
+     * Please find full HTTP -> gRPC mappings here:
+     * https://github.com/opensearch-project/OpenSearch/issues/18926
+     */
+    private io.grpc.Status mapToGrpcStatus(int httpStatus) {
+        return switch (httpStatus) {
+            case 400 -> Status.INVALID_ARGUMENT;
+            case 401 -> Status.UNAUTHENTICATED;
+            case 403 -> Status.PERMISSION_DENIED;
+            case 404 -> Status.NOT_FOUND;
+            case 429 -> Status.RESOURCE_EXHAUSTED;
+            case 500 -> Status.INTERNAL;
+            case 501 -> Status.UNIMPLEMENTED;
+            case 503 -> Status.UNAVAILABLE;
+            default -> Status.UNKNOWN;
+        };
+    }
+
+    /**
+     * Fetch queued SecurityResponse response.
+     * Note the SecurityResponse encapsulates the REST response and HTTP error code.
+     * Please see getQueuedResponseGrpcStatus for the purpose of returning a gRPC error and reason to clients.
      * @return return the queued response, if any.
      */
     @Override
     public Optional<SecurityResponse> getQueuedResponse() {
         return queuedResponse;
+    }
+
+    /**
+     * Translate REST error code to gRPC status and include error body as description.
+     * @return io.grpc.Status representation of SecurityResponse.
+     */
+    public io.grpc.Status getQueuedResponseGrpcStatus() {
+        return queuedResponse.map(securityResponse -> mapToGrpcStatus(securityResponse.getStatus())
+                .withDescription(securityResponse.getBody())).orElse(Status.INTERNAL);
     }
 }

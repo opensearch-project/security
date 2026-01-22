@@ -120,7 +120,7 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 if (!backendRegistry.gRPCauthenticate(requestChannel)) {
                     if (requestChannel.getQueuedResponse().isPresent()) {
                         // Send error response and close call
-                        serverCall.close(mapToGrpcStatus(requestChannel.getQueuedResponse().get().getStatus()), new Metadata());
+                        serverCall.close(requestChannel.getQueuedResponseGrpcStatus(), new Metadata());
                     } else {
                         // Authentication failed without specific error
                         serverCall.close(Status.UNAUTHENTICATED, new Metadata());
@@ -144,23 +144,6 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 serverCall.close(io.grpc.Status.INTERNAL.withDescription("Authentication error: " + e.getMessage()), new Metadata());
                 return new ServerCall.Listener<>() {};
             }
-        }
-
-        /**
-         * Map HTTP status codes to gRPC Status
-         * TODO: Move this to GrpcRequestChannel implementation. Add reason to error response.
-         */
-        private io.grpc.Status mapToGrpcStatus(int httpStatus) {
-            return switch (httpStatus) {
-                case 400 -> Status.INVALID_ARGUMENT;
-                case 401 -> Status.UNAUTHENTICATED;
-                case 403 -> Status.PERMISSION_DENIED;
-                case 404 -> Status.NOT_FOUND;
-                case 429 -> Status.RESOURCE_EXHAUSTED;
-                case 500 -> Status.INTERNAL;
-                case 503 -> Status.UNAVAILABLE;
-                default -> Status.UNKNOWN;
-            };
         }
     }
 }
