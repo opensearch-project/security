@@ -33,6 +33,7 @@ import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -126,6 +127,9 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                     }
                     return new ServerCall.Listener<>() {};
                 }
+
+                // Origin used in audit logging
+                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, AuditLog.Origin.GRPC.toString());
 
                 // Request may be rejected during authentication without throwing exception - Check and reject here
                 if (requestChannel.getQueuedResponse().isPresent()) {
