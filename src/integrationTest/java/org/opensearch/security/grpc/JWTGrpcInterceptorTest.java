@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import org.opensearch.Version;
 import org.opensearch.plugins.PluginInfo;
+import org.opensearch.protobufs.BulkResponse;
 import org.opensearch.protobufs.BulkRequest;
 import org.opensearch.protobufs.BulkRequestBody;
 import org.opensearch.protobufs.IndexOperation;
@@ -45,6 +46,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
 import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
@@ -63,7 +67,8 @@ public class JWTGrpcInterceptorTest {
 
     // bulk write cluster permissions
     static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role")
-        .clusterPermissions("indices:data/write/bulk");
+            .clusterPermissions("indices:data/write/bulk*")
+            .indexPermissions("indices:data/write/bulk*", "indices:admin/mapping/put", "indices:admin/create", "indices:data/write/index").on("*");
     static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
 
     /**
@@ -139,7 +144,11 @@ public class JWTGrpcInterceptorTest {
         try {
             ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken));
             Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
-            doBulk(channelWithAuth, "test-grpc-index", 2);
+
+            BulkResponse bulkResp = doBulk(channelWithAuth, "test-grpc-index", 2);
+            assertNotNull(bulkResp);
+            assertFalse(bulkResp.getErrors());
+            assertEquals(2, bulkResp.getItemsCount());
         } finally {
             channel.shutdown();
         }
