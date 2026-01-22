@@ -255,4 +255,20 @@ public class JWTGrpcInterceptorTest {
             channel.shutdown();
         }
     }
+
+    @Test
+    public void testJwtNoToken() throws Exception {
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            // No JWT token provided - should fail authentication
+            try {
+                doBulk(channel, "test-no-token", 2);
+                fail("Expected authentication failure - no JWT token provided");
+            } catch (Exception e) {
+                assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
+            }
+        } finally {
+            channel.shutdown();
+        }
+    }
 }
