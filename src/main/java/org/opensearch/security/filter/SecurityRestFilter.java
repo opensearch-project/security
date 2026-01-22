@@ -275,8 +275,9 @@ public class SecurityRestFilter {
     }
 
     /**
-     * Builds the set of actions required for a request and provide to privilege evaluator.
-     * A set of required actions are associated with the NamedRoute which encapsulates the path and method of a request.
+     * Specialized authorization for NamedRoute APIs only.
+     * Allows extension and plugin developers to apply authorization directly to an API route, in contrast to
+     * typical OpenSearch authorization which is handled at the node-to-node layer.
      * @param original REST handler originating request
      * @param request security representation of request metadata
      * @param user authenticated user
