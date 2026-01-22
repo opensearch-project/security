@@ -50,6 +50,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
 import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
@@ -78,15 +79,38 @@ public class JWTGrpcInterceptorTest {
             .indexPermissions("indices:data/write/bulk*", "indices:admin/create", "indices:data/write/index").on("*");
     static final TestSecurityConfig.User GRPC_LIMITED_USER = new TestSecurityConfig.User("grpc_limited_user").roles(GRPC_LIMITED_ROLE);
 
-    /**
-     * @param username OpenSearch user to authenticate.
-     * @param roles OpenSearch backend roles.
-     */
     private String createValidJwtToken(String username, String... roles) {
         Date now = new Date();
         return Jwts.builder()
                 .claim(CLAIM_USERNAME.get(0), username)
                 .claim(CLAIM_ROLES.get(0), String.join(",", roles))
+                .setIssuer("test-issuer")
+                .setSubject(username)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + 3600 * 1000))
+                .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
+                .compact();
+    }
+
+    private String createInvalidSignatureJwtToken(String username, String... roles) {
+        KeyPair wrongKeyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
+        Date now = new Date();
+        return Jwts.builder()
+                .claim(CLAIM_USERNAME.get(0), username)
+                .claim(CLAIM_ROLES.get(0), String.join(",", roles))
+                .setIssuer("test-issuer")
+                .setSubject(username)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + 3600 * 1000))
+                .signWith(wrongKeyPair.getPrivate(), SignatureAlgorithm.RS256)
+                .compact();
+    }
+
+    private String createWrongClaimsJwtToken(String username, String... roles) {
+        Date now = new Date();
+        return Jwts.builder()
+                .claim("username", username)  // Wrong claim name
+                .claim("roles", String.join(",", roles))  // Wrong claim name
                 .setIssuer("test-issuer")
                 .setSubject(username)
                 .setIssuedAt(now)
@@ -134,7 +158,7 @@ public class JWTGrpcInterceptorTest {
                     "21",
                     OpenSearchSecurityPlugin.class.getName(),
                     null,
-                    List.of("org.opensearch.transport.grpc.GrpcPlugin"), // Extends GrpcPlugin by class name
+                    List.of("org.opensearch.transport.grpc.GrpcPlugin"), // Extends GrpcPlugin
                     false
             )
         ).anonymousAuth(false)
@@ -179,6 +203,44 @@ public class JWTGrpcInterceptorTest {
             // Expect missing "put mapping" permissions
             String errorMessage = bulkResp.getItems(0).getIndex().getError().getReason();
             assertTrue("Expected mapping permission error", errorMessage.contains("indices:admin/mapping/put"));
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testJwtInvalidSignature() throws Exception {
+        String jwtToken = createInvalidSignatureJwtToken("grpc_user", "grpc_index_role");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
+
+            try {
+                doBulk(channelWithAuth, "test-invalid-sig", 2);
+                fail("Expected authentication failure due to invalid JWT signature");
+            } catch (Exception e) {
+                assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
+            }
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testJwtWrongClaims() throws Exception {
+        String jwtToken = createWrongClaimsJwtToken("grpc_user", "grpc_index_role");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
+
+            try {
+                doBulk(channelWithAuth, "test-wrong-claims", 2);
+                fail("Expected authentication failure due to wrong JWT claims");
+            } catch (Exception e) {
+                assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
+            }
         } finally {
             channel.shutdown();
         }
