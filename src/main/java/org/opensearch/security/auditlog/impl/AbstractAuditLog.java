@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -77,6 +78,7 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 
+import com.flipkart.zjsonpatch.DiffFlags;
 import com.flipkart.zjsonpatch.JsonDiff;
 import org.greenrobot.eventbus.Subscribe;
 
@@ -680,7 +682,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result) {
+    public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult) {
 
         String effectiveUser = getUser();
 
@@ -691,16 +693,99 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
+        final String id = delete.id();
         AuditMessage msg = new AuditMessage(AuditCategory.COMPLIANCE_DOC_WRITE, clusterService, getOrigin(), null);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
         msg.addEffectiveUser(effectiveUser);
         msg.addIndices(new String[] { shardId.getIndexName() });
         msg.addResolvedIndices(new String[] { shardId.getIndexName() });
-        msg.addId(delete.id());
+        msg.addId(id);
         msg.addShardId(shardId);
         msg.addComplianceDocVersion(result.getVersion());
         msg.addComplianceOperation(Operation.DELETE);
+
+        if (complianceConfig.shouldLogDiffsForWrite() && originalResult != null && originalResult.isExists()) {
+            try {
+                String originalSource = null;
+
+                if (securityIndex.equals(shardId.getIndexName())) {
+                    try (
+                        XContentParser parser = XContentHelper.createParser(
+                            NamedXContentRegistry.EMPTY,
+                            THROW_UNSUPPORTED_OPERATION,
+                            originalResult.internalSourceRef(),
+                            XContentType.JSON
+                        )
+                    ) {
+                        Object base64 = parser.map().values().iterator().next();
+                        if (base64 instanceof String) {
+                            originalSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
+                        } else {
+                            originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                        }
+                    } catch (Exception e) {
+                        log.error(e.toString());
+                    }
+
+                    // For delete, the "current" state is empty
+                    String currentSource = "{}";
+                    final JsonNode diffnode = JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper.readTree(originalSource),
+                        DefaultObjectMapper.objectMapper.readTree(currentSource),
+                        EnumSet.noneOf(DiffFlags.class)
+                    );
+                    msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
+                } else {
+                    originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+
+                    // For delete, the "current" state is empty
+                    String currentSource = "{}";
+                    final JsonNode diffnode = JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper.readTree(originalSource),
+                        DefaultObjectMapper.objectMapper.readTree(currentSource),
+                        EnumSet.noneOf(DiffFlags.class)
+                    );
+                    msg.addComplianceWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString());
+                }
+            } catch (Exception e) {
+                log.error("Unable to generate diff for delete operation {}", msg.toPrettyString(), e);
+            }
+        }
+
+        if (!complianceConfig.shouldLogWriteMetadataOnly()
+            && !complianceConfig.shouldLogDiffsForWrite()
+            && originalResult != null
+            && originalResult.isExists()) {
+            if (securityIndex.equals(shardId.getIndexName())) {
+                try (
+                    XContentParser parser = XContentHelper.createParser(
+                        NamedXContentRegistry.EMPTY,
+                        THROW_UNSUPPORTED_OPERATION,
+                        originalResult.internalSourceRef(),
+                        XContentType.JSON
+                    )
+                ) {
+                    Object base64 = parser.map().values().iterator().next();
+                    if (base64 instanceof String) {
+                        msg.addSecurityConfigContentToRequestBody(
+                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                            id
+                        );
+                    } else {
+                        msg.addSecurityConfigTupleToRequestBody(
+                            new Tuple<XContentType, BytesReference>(XContentType.JSON, originalResult.internalSourceRef()),
+                            id
+                        );
+                    }
+                } catch (Exception e) {
+                    log.error(e.toString());
+                }
+            } else {
+                msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(XContentType.JSON, originalResult.internalSourceRef()));
+            }
+        }
+
         save(msg);
     }
 

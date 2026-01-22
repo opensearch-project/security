@@ -67,6 +67,73 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     private static final ThreadLocal<Context> threadContext = new ThreadLocal<Context>();
 
+    /**
+     * Attempts to retrieve the original document from the shard before a write operation.
+     * This is a best-effort operation for diff logging - if retrieval fails, the operation proceeds normally.
+     *
+     * @param shardId The shard ID
+     * @param documentId The document ID
+     * @param ifSeqNo The sequence number for optimistic concurrency control
+     * @param ifPrimaryTerm The primary term for optimistic concurrency control
+     * @param origin The operation origin (must be PRIMARY for logging)
+     */
+    private void retrieveOriginalDocumentForDiff(
+        final ShardId shardId,
+        final String documentId,
+        final long ifSeqNo,
+        final long ifPrimaryTerm,
+        final org.opensearch.index.engine.Engine.Operation.Origin origin
+    ) {
+        if (!isLoggingWriteDiffEnabled(auditlog.getComplianceConfig(), shardId.getIndexName())) {
+            return;
+        }
+
+        Objects.requireNonNull(is);
+
+        if (origin != org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+            return;
+        }
+
+        final IndexShard shard = is.getShardOrNull(shardId.getId());
+        if (shard == null) {
+            return;
+        }
+
+        if (shard.isReadAllowed()) {
+            try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+                threadPool.getThreadContext().putHeader(OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+                final GetResult getResult = shard.getService().getForUpdate(documentId, ifSeqNo, ifPrimaryTerm);
+                threadContext.set(new Context(getResult.isExists() ? getResult : null));
+            } catch (Exception e) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Cannot retrieve original document due to {}", e.toString());
+                }
+            }
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Cannot read from shard {}", shardId);
+            }
+        }
+    }
+
+    /**
+     * Retrieves the previous document content from thread context and cleans up.
+     *
+     * @return The previous document content, or null if not available
+     */
+    private GetResult retrieveAndCleanupContext() {
+        final Context context = threadContext.get();
+        final GetResult previousContent = context == null ? null : context.getGetResult();
+        threadContext.remove();
+        return previousContent;
+    }
+
+    @Override
+    public Delete preDelete(final ShardId shardId, final Delete delete) {
+        retrieveOriginalDocumentForDiff(shardId, delete.id(), delete.getIfSeqNo(), delete.getIfPrimaryTerm(), delete.origin());
+        return delete;
+    }
+
     @Override
     public void postDelete(final ShardId shardId, final Delete delete, final DeleteResult result) {
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
@@ -75,47 +142,25 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
             if (result.getFailure() == null
                 && result.isFound()
                 && delete.origin() == org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
-                auditlog.logDocumentDeleted(shardId, delete, result);
+
+                if (complianceConfig.shouldLogDiffsForWrite()) {
+                    final GetResult previousContent = retrieveAndCleanupContext();
+                    auditlog.logDocumentDeleted(shardId, delete, result, previousContent);
+                } else {
+                    auditlog.logDocumentDeleted(shardId, delete, result, null);
+                }
             }
+        }
+
+        // Clean up thread context if logging is enabled but result failed or not found
+        if (isLoggingWriteDiffEnabled(complianceConfig, shardId.getIndexName())) {
+            threadContext.remove();
         }
     }
 
     @Override
     public Index preIndex(final ShardId shardId, final Index index) {
-        if (isLoggingWriteDiffEnabled(auditlog.getComplianceConfig(), shardId.getIndexName())) {
-            Objects.requireNonNull(is);
-
-            final IndexShard shard;
-
-            if (index.origin() != org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
-                return index;
-            }
-
-            if ((shard = is.getShardOrNull(shardId.getId())) == null) {
-                return index;
-            }
-
-            if (shard.isReadAllowed()) {
-                try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-                    threadPool.getThreadContext().putHeader(OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-                    final GetResult getResult = shard.getService().getForUpdate(index.id(), index.getIfSeqNo(), index.getIfPrimaryTerm());
-                    if (getResult.isExists()) {
-                        threadContext.set(new Context(getResult));
-                    } else {
-                        threadContext.set(new Context(null));
-                    }
-                } catch (Exception e) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Cannot retrieve original document due to {}", e.toString());
-                    }
-                }
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("Cannot read from shard {}", shardId);
-                }
-            }
-        }
-
+        retrieveOriginalDocumentForDiff(shardId, index.id(), index.getIfSeqNo(), index.getIfPrimaryTerm(), index.origin());
         return index;
     }
 
@@ -134,9 +179,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
         }
 
         if (complianceConfig.shouldLogDiffsForWrite()) {
-            final Context context = threadContext.get();
-            final GetResult previousContent = context == null ? null : context.getGetResult();
-            threadContext.remove();
+            final GetResult previousContent = retrieveAndCleanupContext();
             Objects.requireNonNull(is);
 
             if (result.getFailure() != null || index.origin() != org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
