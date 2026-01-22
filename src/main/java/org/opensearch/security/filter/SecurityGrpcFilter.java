@@ -26,20 +26,20 @@
 
 package org.opensearch.security.filter;
 
-import io.grpc.Metadata;
-import io.grpc.ServerCall;
-import io.grpc.ServerCallHandler;
-import io.grpc.ServerInterceptor;
-import io.grpc.Status;
+import java.util.List;
+
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 
-import java.util.List;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.Status;
 
 public class SecurityGrpcFilter implements GrpcInterceptorProvider {
 
@@ -87,9 +87,10 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
 
         @Override
         public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
-                ServerCall<ReqT, RespT> serverCall,
-                Metadata metadata,
-                ServerCallHandler<ReqT, RespT> serverCallHandler) {
+            ServerCall<ReqT, RespT> serverCall,
+            Metadata metadata,
+            ServerCallHandler<ReqT, RespT> serverCallHandler
+        ) {
 
             return handleCall(serverCall, metadata, serverCallHandler);
         }
@@ -106,9 +107,10 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
          * 5. Allowlist checks are not implemented for gRPC in this version.
          */
         private <ReqT, RespT> ServerCall.Listener<ReqT> handleCall(
-                ServerCall<ReqT, RespT> serverCall,
-                Metadata metadata,
-                ServerCallHandler<ReqT, RespT> serverCallHandler) {
+            ServerCall<ReqT, RespT> serverCall,
+            Metadata metadata,
+            ServerCallHandler<ReqT, RespT> serverCallHandler
+        ) {
             final GrpcRequestChannel requestChannel = new GrpcRequestChannel(serverCall, metadata);
 
             try {
@@ -125,7 +127,8 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                         // Authentication failed without specific error
                         serverCall.close(Status.UNAUTHENTICATED, new Metadata());
                     }
-                    return new ServerCall.Listener<>() {};
+                    return new ServerCall.Listener<>() {
+                    };
                 }
 
                 // Origin used in audit logging
@@ -134,7 +137,8 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 // Request may be rejected during authentication without throwing exception - Check and reject here
                 if (requestChannel.getQueuedResponse().isPresent()) {
                     serverCall.close(Status.PERMISSION_DENIED, new Metadata());
-                    return new ServerCall.Listener<>() {};
+                    return new ServerCall.Listener<>() {
+                    };
                 }
 
                 // Caller was authorized - Proceed with request
@@ -142,7 +146,8 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
             } catch (Exception e) {
                 // Handle unexpected exceptions
                 serverCall.close(io.grpc.Status.INTERNAL.withDescription("Authentication error: " + e.getMessage()), new Metadata());
-                return new ServerCall.Listener<>() {};
+                return new ServerCall.Listener<>() {
+                };
             }
         }
     }

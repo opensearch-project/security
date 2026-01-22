@@ -61,7 +61,10 @@ public class GrpcHelpers {
         return new ClientInterceptor() {
             @Override
             public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-                    MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+                MethodDescriptor<ReqT, RespT> method,
+                CallOptions callOptions,
+                Channel next
+            ) {
                 return new ClientCall<ReqT, RespT>() {
                     private final ClientCall<ReqT, RespT> delegate = next.newCall(method, callOptions);
 
@@ -75,16 +78,24 @@ public class GrpcHelpers {
                     }
 
                     @Override
-                    public void sendMessage(ReqT message) { delegate.sendMessage(message); }
+                    public void sendMessage(ReqT message) {
+                        delegate.sendMessage(message);
+                    }
 
                     @Override
-                    public void halfClose() { delegate.halfClose(); }
+                    public void halfClose() {
+                        delegate.halfClose();
+                    }
 
                     @Override
-                    public void cancel(String message, Throwable cause) { delegate.cancel(message, cause); }
+                    public void cancel(String message, Throwable cause) {
+                        delegate.cancel(message, cause);
+                    }
 
                     @Override
-                    public void request(int numMessages) { delegate.request(numMessages); }
+                    public void request(int numMessages) {
+                        delegate.request(numMessages);
+                    }
                 };
             }
         };

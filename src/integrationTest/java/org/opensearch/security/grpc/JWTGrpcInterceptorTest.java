@@ -15,12 +15,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import io.grpc.Channel;
-import io.grpc.ClientInterceptor;
-import io.grpc.ManagedChannel;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import io.jsonwebtoken.Jwts;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -34,21 +28,27 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.transport.grpc.GrpcPlugin;
 
+import io.grpc.Channel;
+import io.grpc.ClientInterceptor;
+import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
+import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
+import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
+import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
+import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
+import static org.opensearch.security.grpc.GrpcHelpers.secureChannel;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
-import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
-import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
-import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
-import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
-import static org.opensearch.security.grpc.GrpcHelpers.secureChannel;
 
 public class JWTGrpcInterceptorTest {
 
@@ -60,100 +60,94 @@ public class JWTGrpcInterceptorTest {
     private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
 
     // Role with full bulk index permissions
-    static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role")
-            .clusterPermissions("indices:data/write/bulk*")
-            .indexPermissions("indices:data/write/bulk*", "indices:admin/mapping/put", "indices:admin/create", "indices:data/write/index").on("*");
+    static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role").clusterPermissions(
+        "indices:data/write/bulk*"
+    ).indexPermissions("indices:data/write/bulk*", "indices:admin/mapping/put", "indices:admin/create", "indices:data/write/index").on("*");
     static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
 
     // Role missing mapping permission - Cannot create indices
-    static final TestSecurityConfig.Role GRPC_LIMITED_ROLE = new TestSecurityConfig.Role("grpc_limited_role")
-            .clusterPermissions("indices:data/write/bulk*")
-            .indexPermissions("indices:data/write/bulk*", "indices:admin/create", "indices:data/write/index").on("*");
+    static final TestSecurityConfig.Role GRPC_LIMITED_ROLE = new TestSecurityConfig.Role("grpc_limited_role").clusterPermissions(
+        "indices:data/write/bulk*"
+    ).indexPermissions("indices:data/write/bulk*", "indices:admin/create", "indices:data/write/index").on("*");
     static final TestSecurityConfig.User GRPC_LIMITED_USER = new TestSecurityConfig.User("grpc_limited_user").roles(GRPC_LIMITED_ROLE);
 
     private String createValidJwtToken(String username, String... roles) {
         Date now = new Date();
         return Jwts.builder()
-                .claim(CLAIM_USERNAME.get(0), username)
-                .claim(CLAIM_ROLES.get(0), String.join(",", roles))
-                .setIssuer("test-issuer")
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + 3600 * 1000))
-                .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
-                .compact();
+            .claim(CLAIM_USERNAME.get(0), username)
+            .claim(CLAIM_ROLES.get(0), String.join(",", roles))
+            .setIssuer("test-issuer")
+            .setSubject(username)
+            .setIssuedAt(now)
+            .setExpiration(new Date(now.getTime() + 3600 * 1000))
+            .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
+            .compact();
     }
 
     private String createInvalidSignatureJwtToken(String username, String... roles) {
         KeyPair wrongKeyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
         Date now = new Date();
         return Jwts.builder()
-                .claim(CLAIM_USERNAME.get(0), username)
-                .claim(CLAIM_ROLES.get(0), String.join(",", roles))
-                .setIssuer("test-issuer")
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + 3600 * 1000))
-                .signWith(wrongKeyPair.getPrivate(), SignatureAlgorithm.RS256)
-                .compact();
+            .claim(CLAIM_USERNAME.get(0), username)
+            .claim(CLAIM_ROLES.get(0), String.join(",", roles))
+            .setIssuer("test-issuer")
+            .setSubject(username)
+            .setIssuedAt(now)
+            .setExpiration(new Date(now.getTime() + 3600 * 1000))
+            .signWith(wrongKeyPair.getPrivate(), SignatureAlgorithm.RS256)
+            .compact();
     }
 
     private String createWrongClaimsJwtToken(String username, String... roles) {
         Date now = new Date();
         return Jwts.builder()
-                .claim("username", username)  // Wrong claim name
-                .claim("roles", String.join(",", roles))  // Wrong claim name
-                .setIssuer("test-issuer")
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + 3600 * 1000))
-                .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
-                .compact();
+            .claim("username", username)  // Wrong claim name
+            .claim("roles", String.join(",", roles))  // Wrong claim name
+            .setIssuer("test-issuer")
+            .setSubject(username)
+            .setIssuedAt(now)
+            .setExpiration(new Date(now.getTime() + 3600 * 1000))
+            .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
+            .compact();
     }
 
-    public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain(
-        "jwt",
-        2
-    ).jwtHttpAuthenticator(
-        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER)
-            .signingKey(List.of(PUBLIC_KEY))
-            .subjectKey(CLAIM_USERNAME)
-            .rolesKey(CLAIM_ROLES)
+    public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain("jwt", 2).jwtHttpAuthenticator(
+        new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY)).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
     ).backend("noop");
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder()
-        .clusterManager(ClusterManager.SINGLENODE)
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .certificates(TEST_CERTIFICATES)
         .nodeSettings(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS)
         .plugin(
             // Add GrpcPlugin
             new PluginInfo(
-                    GrpcPlugin.class.getName(),
-                    "classpath plugin",
-                    "NA",
-                    Version.CURRENT,
-                    "21",
-                    GrpcPlugin.class.getName(),
-                    null,
-                    Collections.emptyList(),
-                    false
+                GrpcPlugin.class.getName(),
+                "classpath plugin",
+                "NA",
+                Version.CURRENT,
+                "21",
+                GrpcPlugin.class.getName(),
+                null,
+                Collections.emptyList(),
+                false
             )
         )
         .plugin(
             // Override the default security plugin with one that declares extension relationship
             new PluginInfo(
-                    OpenSearchSecurityPlugin.class.getName(),
-                    "classpath plugin",
-                    "NA",
-                    Version.CURRENT,
-                    "21",
-                    OpenSearchSecurityPlugin.class.getName(),
-                    null,
-                    List.of("org.opensearch.transport.grpc.GrpcPlugin"), // Extends GrpcPlugin
-                    false
+                OpenSearchSecurityPlugin.class.getName(),
+                "classpath plugin",
+                "NA",
+                Version.CURRENT,
+                "21",
+                OpenSearchSecurityPlugin.class.getName(),
+                null,
+                List.of("org.opensearch.transport.grpc.GrpcPlugin"), // Extends GrpcPlugin
+                false
             )
-        ).anonymousAuth(false)
+        )
+        .anonymousAuth(false)
         .users(GRPC_INDEX_USER, GRPC_LIMITED_USER)
         .roles(GRPC_INDEX_ROLE, GRPC_LIMITED_ROLE)
         .rolesMapping(
@@ -248,7 +242,7 @@ public class JWTGrpcInterceptorTest {
             // Test with standard Authorization header - should fail since we configured custom jwt-auth header
             ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of("Authorization", "Bearer " + jwtToken));
             Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
-            
+
             try {
                 doBulk(channelWithAuth, "test-auth-header", 2);
                 fail("Expected authentication failure - Authorization header not configured for JWT");

@@ -13,15 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.crypto.SecretKey;
 
-import io.grpc.Metadata;
-import io.grpc.ServerCall;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -31,6 +24,14 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.GrpcRequestChannel;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.threadpool.ThreadPool;
+
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -62,27 +63,16 @@ public class BackendRegistryGrpcAuthTest {
     public void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        Settings settings = Settings.builder()
-            .put("plugins.security.unsupported.inject_user.enabled", true)
-            .build();
+        Settings settings = Settings.builder().put("plugins.security.unsupported.inject_user.enabled", true).build();
 
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
 
-        backendRegistry = new BackendRegistry(
-            settings,
-            adminDns,
-            xffResolver,
-            auditLog,
-            threadPool,
-            clusterInfoHolder
-        );
+        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, clusterInfoHolder);
 
         when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
         when(xffResolver.resolve(any())).thenReturn(
-            new org.opensearch.core.common.transport.TransportAddress(
-                new InetSocketAddress("127.0.0.1", 9200)
-            )
+            new org.opensearch.core.common.transport.TransportAddress(new InetSocketAddress("127.0.0.1", 9200))
         );
 
         // no admin user configured - ensure these checks are false
@@ -113,8 +103,10 @@ public class BackendRegistryGrpcAuthTest {
         assertFalse("Authentication should fail with tenant header", result);
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         assertEquals("Should return 400 Bad Request", 400, request.getQueuedResponse().get().getStatus());
-        assertTrue("Error message should mention tenant",
-            request.getQueuedResponse().get().getBody().contains("Tenant selection not supported"));
+        assertTrue(
+            "Error message should mention tenant",
+            request.getQueuedResponse().get().getBody().contains("Tenant selection not supported")
+        );
     }
 
     @Test
@@ -129,8 +121,10 @@ public class BackendRegistryGrpcAuthTest {
         assertFalse("Authentication should fail with impersonation header", result);
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         assertEquals("Should return 403 Forbidden", 403, request.getQueuedResponse().get().getStatus());
-        assertTrue("Error message should mention impersonation",
-            request.getQueuedResponse().get().getBody().contains("User impersonation not supported"));
+        assertTrue(
+            "Error message should mention impersonation",
+            request.getQueuedResponse().get().getBody().contains("User impersonation not supported")
+        );
     }
 
     @Test

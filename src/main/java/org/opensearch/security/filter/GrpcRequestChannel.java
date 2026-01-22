@@ -18,11 +18,12 @@ import java.util.Optional;
 import java.util.Set;
 import javax.net.ssl.SSLEngine;
 
+import org.opensearch.rest.RestRequest.Method;
+
 import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.Status;
-import org.opensearch.rest.RestRequest.Method;
 
 /**
  * gRPC implementation of SecurityRequestChannel.
@@ -165,7 +166,8 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
      * @return io.grpc.Status representation of SecurityResponse.
      */
     public io.grpc.Status getQueuedResponseGrpcStatus() {
-        return queuedResponse.map(securityResponse -> mapToGrpcStatus(securityResponse.getStatus())
-                .withDescription(securityResponse.getBody())).orElse(Status.INTERNAL);
+        return queuedResponse.map(
+            securityResponse -> mapToGrpcStatus(securityResponse.getStatus()).withDescription(securityResponse.getBody())
+        ).orElse(Status.INTERNAL);
     }
 }

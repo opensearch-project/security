@@ -247,7 +247,7 @@ public class BackendRegistry {
     public boolean authenticate(final SecurityRequestChannel request) {
         final boolean isDebugEnabled = log.isDebugEnabled();
 
-        if(checkRemoteAddrBlocked(request)){
+        if (checkRemoteAddrBlocked(request)) {
             return false;
         }
 
@@ -276,7 +276,7 @@ public class BackendRegistry {
             return true;
         }
 
-        if(!checkInitialized(request)){
+        if (!checkInitialized(request)) {
             return false;
         }
 
@@ -546,11 +546,11 @@ public class BackendRegistry {
     public boolean gRPCauthenticate(final GrpcRequestChannel request) {
         final boolean isDebugEnabled = log.isDebugEnabled();
 
-        if(checkGrpcUnsupported(request)){
+        if (checkGrpcUnsupported(request)) {
             return false;
         }
 
-        if(checkRemoteAddrBlocked(request)){
+        if (checkRemoteAddrBlocked(request)) {
             return false;
         }
 
@@ -564,7 +564,7 @@ public class BackendRegistry {
         Internal component user injection is not supported for gRPC.
          */
 
-        if(!checkInitialized(request)){
+        if (!checkInitialized(request)) {
             return false;
         }
 
@@ -698,9 +698,7 @@ public class BackendRegistry {
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate gRPC user because admin user is not permitted to login via JWT");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
-                request.queueForSending(
-                    new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate admin user via JWT")
-                );
+                request.queueForSending(new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate admin user via JWT"));
                 return false;
             }
 
@@ -806,17 +804,17 @@ public class BackendRegistry {
      * @param request for sending error response if client is blocked.
      * @return true if client ip is blocked.
      */
-    private boolean checkRemoteAddrBlocked(SecurityRequestChannel request){
+    private boolean checkRemoteAddrBlocked(SecurityRequestChannel request) {
         final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
-                .map(InetSocketAddress::getAddress)
-                .map(this::isBlocked)
-                .orElse(false);
+            .map(InetSocketAddress::getAddress)
+            .map(this::isBlocked)
+            .orElse(false);
         if (isBlockedBasedOnAddress) {
             if (log.isDebugEnabled()) {
                 InetSocketAddress ipAddress = request.getRemoteAddress().orElse(null);
                 log.debug(
-                        "Rejecting REST request because of blocked address: {}",
-                        ipAddress != null ? "/" + ipAddress.getAddress().getHostAddress() : null
+                    "Rejecting REST request because of blocked address: {}",
+                    ipAddress != null ? "/" + ipAddress.getAddress().getHostAddress() : null
                 );
             }
 
@@ -831,7 +829,7 @@ public class BackendRegistry {
      * @param request with remote address.
      * @return remote address.
      */
-    private TransportAddress resolveRemoteAddress(SecurityRequestChannel request){
+    private TransportAddress resolveRemoteAddress(SecurityRequestChannel request) {
         final TransportAddress remoteAddress = xffResolver.resolve(request);
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {

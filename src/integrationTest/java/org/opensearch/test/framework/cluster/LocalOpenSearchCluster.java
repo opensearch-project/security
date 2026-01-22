@@ -442,35 +442,37 @@ public class LocalOpenSearchCluster {
 
             // default plugins
             for (Class<? extends Plugin> defaultPlugins : nodeSettings.getPlugins()) {
-                pluginMap.put(defaultPlugins.getName(),
-                        new PluginInfo(
-                                defaultPlugins.getName(),
-                                "classpath plugin",
-                                null,
-                                Version.CURRENT,
-                                "1.8",
-                                defaultPlugins.getName(),
-                                null,
-                                Collections.emptyList(),
-                                false
-                        )
+                pluginMap.put(
+                    defaultPlugins.getName(),
+                    new PluginInfo(
+                        defaultPlugins.getName(),
+                        "classpath plugin",
+                        null,
+                        Version.CURRENT,
+                        "1.8",
+                        defaultPlugins.getName(),
+                        null,
+                        Collections.emptyList(),
+                        false
+                    )
                 );
             }
 
             // plugins configured by class in LocalOpenSearchCluster builder
             for (Class<? extends Plugin> plugin : plugins) {
-                pluginMap.put(plugin.getName(),
-                        new PluginInfo(
-                                plugin.getName(),
-                                "classpath plugin",
-                                null,
-                                Version.CURRENT,
-                                "1.8",
-                                plugin.getName(),
-                                null,
-                                Collections.emptyList(),
-                                false
-                        )
+                pluginMap.put(
+                    plugin.getName(),
+                    new PluginInfo(
+                        plugin.getName(),
+                        "classpath plugin",
+                        null,
+                        Version.CURRENT,
+                        "1.8",
+                        plugin.getName(),
+                        null,
+                        Collections.emptyList(),
+                        false
+                    )
                 );
             }
 
