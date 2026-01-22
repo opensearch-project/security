@@ -35,9 +35,15 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
 import org.opensearch.transport.grpc.ssl.SecureNetty4GrpcServerTransport;
 
+import io.grpc.CallOptions;
+import io.grpc.Channel;
 import io.grpc.ChannelCredentials;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
 import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
 import io.grpc.TlsChannelCredentials;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -47,6 +53,42 @@ import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 public class GrpcHelpers {
     protected static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
     protected static final TestCertificates UN_TRUSTED_TEST_CERTIFICATES = new TestCertificates();
+
+    /**
+     * Creates a gRPC client interceptor that adds arbitrary headers to requests
+     */
+    public static ClientInterceptor createHeaderInterceptor(Map<String, String> headers) {
+        return new ClientInterceptor() {
+            @Override
+            public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+                    MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+                return new ClientCall<ReqT, RespT>() {
+                    private final ClientCall<ReqT, RespT> delegate = next.newCall(method, callOptions);
+
+                    @Override
+                    public void start(Listener<RespT> responseListener, Metadata metadata) {
+                        headers.forEach((key, value) -> {
+                            Metadata.Key<String> metadataKey = Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER);
+                            metadata.put(metadataKey, value);
+                        });
+                        delegate.start(responseListener, metadata);
+                    }
+
+                    @Override
+                    public void sendMessage(ReqT message) { delegate.sendMessage(message); }
+
+                    @Override
+                    public void halfClose() { delegate.halfClose(); }
+
+                    @Override
+                    public void cancel(String message, Throwable cause) { delegate.cancel(message, cause); }
+
+                    @Override
+                    public void request(int numMessages) { delegate.request(numMessages); }
+                };
+            }
+        };
+    }
 
     protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(
         "plugins.security.ssl.aux.secure-transport-grpc.clientauth_mode",
@@ -150,7 +192,7 @@ public class GrpcHelpers {
         return Grpc.newChannelBuilderForAddress(addr.getAddress(), addr.getPort(), credentials).build();
     }
 
-    public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
+    public static BulkResponse doBulk(Channel channel, String index, long numDocs) {
         BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE).setIndex(index);
         for (int i = 0; i < numDocs; i++) {
             String docBody = """
@@ -170,7 +212,7 @@ public class GrpcHelpers {
         return stub.bulk(requestBuilder.build());
     }
 
-    public static SearchResponse doMatchAll(ManagedChannel channel, String index, int size) {
+    public static SearchResponse doMatchAll(Channel channel, String index, int size) {
         QueryContainer query = QueryContainer.newBuilder().setMatchAll(MatchAllQuery.newBuilder().build()).build();
         SearchRequestBody requestBody = SearchRequestBody.newBuilder().setSize(size).setQuery(query).build();
         SearchRequest searchRequest = SearchRequest.newBuilder().addIndex(index).setSearchRequestBody(requestBody).build();

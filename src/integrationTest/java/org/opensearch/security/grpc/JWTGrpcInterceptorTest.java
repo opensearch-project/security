@@ -13,6 +13,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -45,34 +46,46 @@ import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
+import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
+import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
 import static org.opensearch.security.grpc.GrpcHelpers.secureChannel;
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC_AUTH_DOMAIN_ORDER;
-import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 public class JWTGrpcInterceptorTest {
 
+    // JWT claims/keys
     public static final List<String> CLAIM_USERNAME = List.of("preferred-username");
     public static final List<String> CLAIM_ROLES = List.of("backend-user-roles");
     public static final String JWT_AUTH_HEADER = "jwt-auth";
-
     private static final KeyPair KEY_PAIR = Keys.keyPairFor(SignatureAlgorithm.RS256);
     private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
 
-    static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
-
-    // Role with gRPC index permission
+    // bulk write cluster permissions
     static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role")
-        .clusterPermissions("grpc:index", "cluster_monitor", "indices:data/write/bulk")
-        .indexPermissions("indices:data/write/bulk").on("*");
-
-    // User with gRPC index permission
+        .clusterPermissions("indices:data/write/bulk");
     static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
+
+    /**
+     * @param username OpenSearch user to authenticate.
+     * @param roles OpenSearch backend roles.
+     */
+    private String createValidJwtToken(String username, String... roles) {
+        Date now = new Date();
+        return Jwts.builder()
+                .claim(CLAIM_USERNAME.get(0), username)
+                .claim(CLAIM_ROLES.get(0), String.join(",", roles))
+                .setIssuer("test-issuer")
+                .setSubject(username)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + 3600 * 1000))
+                .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
+                .compact();
+    }
 
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain(
         "jwt",
-        BASIC_AUTH_DOMAIN_ORDER - 1
+        2
     ).jwtHttpAuthenticator(
         new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER)
             .signingKey(List.of(PUBLIC_KEY))
@@ -113,164 +126,22 @@ public class JWTGrpcInterceptorTest {
                     false
             )
         ).anonymousAuth(false)
-        .users(ADMIN_USER, GRPC_INDEX_USER)
+        .users(GRPC_INDEX_USER)
         .roles(GRPC_INDEX_ROLE)
         .rolesMapping(new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role"))
         .authc(JWT_AUTH_DOMAIN)
         .build();
 
     @Test
-    public void testGrpcInterceptorBackendRegistryInjection() {
-        System.out.println("Test passes with JWT auth configured cluster (Cluster starts and stops)");
-    }
-
-    @Test
     public void testJwtAuthorizedUser() throws Exception {
-        // Create a valid JWT token for user with grpc:index permission
-        // Use the base role name that matches the role definition
         String jwtToken = createValidJwtToken("grpc_user", "grpc_index_role");
-        System.out.println("Created JWT token for authorized gRPC user: " + jwtToken);
-
-        // Initialize gRPC channel
         ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
-
         try {
-            // Create a client interceptor to add JWT header
-            ClientInterceptor jwtInterceptor = new ClientInterceptor() {
-                @Override
-                public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-                        MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
-                    return new ClientCall<ReqT, RespT>() {
-                        private final ClientCall<ReqT, RespT> delegate = next.newCall(method, callOptions);
-
-                        @Override
-                        public void start(Listener<RespT> responseListener, Metadata headers) {
-                            // Add JWT token to headers
-                            Metadata.Key<String> authKey = Metadata.Key.of(JWT_AUTH_HEADER, Metadata.ASCII_STRING_MARSHALLER);
-                            headers.put(authKey, "Bearer " + jwtToken);
-                            System.out.println("Client: Added JWT header for authorized user");
-                            delegate.start(responseListener, headers);
-                        }
-
-                        @Override
-                        public void sendMessage(ReqT message) { delegate.sendMessage(message); }
-
-                        @Override
-                        public void halfClose() { delegate.halfClose(); }
-
-                        @Override
-                        public void cancel(String message, Throwable cause) { delegate.cancel(message, cause); }
-
-                        @Override
-                        public void request(int numMessages) { delegate.request(numMessages); }
-                    };
-                }
-            };
-
-            // Create channel with JWT interceptor
+            ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken));
             Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
-
-            // Send bulk request with authorized JWT token - this should succeed
-            System.out.println("Sending bulk request with authorized gRPC user...");
-            doBulkWithChannel(channelWithAuth, "test-grpc-index", 2);
-            System.out.println("SUCCESS: Bulk request completed with authorized gRPC user!");
-
+            doBulk(channelWithAuth, "test-grpc-index", 2);
         } finally {
             channel.shutdown();
         }
-    }
-
-    @Test
-    public void testJwtTokenInGrpcRequest() throws Exception {
-        // Create a valid JWT token
-        String jwtToken = createValidJwtToken("john.doe", "grpc_index_role");
-        System.out.println("Created JWT token: " + jwtToken);
-
-        // Print JWT components
-        String[] parts = jwtToken.split("\\.");
-        System.out.println("JWT Header: " + new String(Base64.getUrlDecoder().decode(parts[0])));
-        System.out.println("JWT Payload: " + new String(Base64.getUrlDecoder().decode(parts[1])));
-        System.out.println("JWT Signature: " + parts[2]);
-
-        // Initialize gRPC channel
-        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
-
-        try {
-            // Create a client interceptor to add JWT header
-            ClientInterceptor jwtInterceptor = new ClientInterceptor() {
-                @Override
-                public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-                        MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
-                    return new ClientCall<ReqT, RespT>() {
-                        private final ClientCall<ReqT, RespT> delegate = next.newCall(method, callOptions);
-
-                        @Override
-                        public void start(Listener<RespT> responseListener, Metadata headers) {
-                            // Add JWT token to headers
-                            Metadata.Key<String> authKey = Metadata.Key.of(JWT_AUTH_HEADER, Metadata.ASCII_STRING_MARSHALLER);
-                            headers.put(authKey, "Bearer " + jwtToken);
-                            System.out.println("Client: Added JWT header: " + JWT_AUTH_HEADER + " = Bearer " + jwtToken.substring(0, 20) + "...");
-                            delegate.start(responseListener, headers);
-                        }
-
-                        @Override
-                        public void sendMessage(ReqT message) { delegate.sendMessage(message); }
-
-                        @Override
-                        public void halfClose() { delegate.halfClose(); }
-
-                        @Override
-                        public void cancel(String message, Throwable cause) { delegate.cancel(message, cause); }
-
-                        @Override
-                        public void request(int numMessages) { delegate.request(numMessages); }
-                    };
-                }
-            };
-
-            // Create channel with JWT interceptor
-            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
-
-            // Send bulk request with JWT token
-            System.out.println("Sending bulk request with JWT token...");
-            doBulkWithChannel(channelWithAuth, "test-index", 1);
-            System.out.println("Bulk request completed - JWT token should have been processed by SecurityGrpcFilter");
-
-        } finally {
-            channel.shutdown();
-        }
-    }
-
-    private String createValidJwtToken(String username, String... roles) {
-        Date now = new Date();
-        return Jwts.builder()
-                .claim(CLAIM_USERNAME.get(0), username)
-                .claim(CLAIM_ROLES.get(0), String.join(",", roles))
-                .setIssuer("test-issuer")
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + 3600 * 1000))
-                .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
-                .compact();
-    }
-
-    private void doBulkWithChannel(Channel channel, String index, long numDocs) {
-        BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE).setIndex(index);
-        for (int i = 0; i < numDocs; i++) {
-            String docBody = """
-                {
-                    "field": "doc %d body"
-                }
-                """.formatted(i);
-            IndexOperation.Builder indexOp = IndexOperation.newBuilder().setXId(String.valueOf(i));
-            OperationContainer.Builder opCont = OperationContainer.newBuilder().setIndex(indexOp);
-            BulkRequestBody requestBody = BulkRequestBody.newBuilder()
-                    .setOperationContainer(opCont)
-                    .setObject(com.google.protobuf.ByteString.copyFromUtf8(docBody))
-                    .build();
-            requestBuilder.addBulkRequestBody(requestBody);
-        }
-        DocumentServiceGrpc.DocumentServiceBlockingStub stub = DocumentServiceGrpc.newBlockingStub(channel);
-        stub.bulk(requestBuilder.build());
     }
 }
