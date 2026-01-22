@@ -34,8 +34,6 @@ import io.grpc.Status;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.grpc.GrpcPermissionValidator;
-import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
@@ -69,9 +67,7 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
              */
             @Override
             public ServerInterceptor getInterceptor() {
-                PrivilegesConfiguration privilegesConfiguration = OpenSearchSecurityPlugin.GuiceHolder.getPrivilegesConfiguration();
-                GrpcPermissionValidator validator = new GrpcPermissionValidator(privilegesConfiguration.privilegesEvaluator());
-                return new JwtGrpcInterceptor(threadContext, OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry(), validator);
+                return new JwtGrpcInterceptor(threadContext, OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry());
             }
         });
     }
@@ -82,12 +78,10 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
     private static class JwtGrpcInterceptor implements ServerInterceptor {
         private final ThreadContext threadContext;
         private final BackendRegistry backendRegistry;
-        private final GrpcPermissionValidator permissionValidator;
 
-        public JwtGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry, GrpcPermissionValidator permissionValidator) {
+        public JwtGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry) {
             this.threadContext = threadContext;
             this.backendRegistry = backendRegistry;
-            this.permissionValidator = permissionValidator;
         }
 
         @Override
@@ -114,34 +108,26 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 ServerCall<ReqT, RespT> serverCall,
                 Metadata metadata,
                 ServerCallHandler<ReqT, RespT> serverCallHandler) {
-
-            // Create request channel
             final GrpcRequestChannel requestChannel = new GrpcRequestChannel(serverCall, metadata);
 
             try {
-                // Authenticate user
+                /*
+                 Authenticate user - Authenticated users are stashed in the thread context under:
+                 ConfigConstants.OPENDISTRO_SECURITY_USER
+                 Authorization handled by the node-to-node transport layer given the authenticated user.
+                 */
                 if (!backendRegistry.gRPCauthenticate(requestChannel)) {
                     if (requestChannel.getQueuedResponse().isPresent()) {
                         // Send error response and close call
                         serverCall.close(mapToGrpcStatus(requestChannel.getQueuedResponse().get().getStatus()), new Metadata());
                     } else {
-                        // Authentication failed without specific error - return UNAUTHENTICATED
+                        // Authentication failed without specific error
                         serverCall.close(Status.UNAUTHENTICATED, new Metadata());
                     }
                     return new ServerCall.Listener<>() {};
                 }
-                final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-
-                // Happens on the transport layer with SecurityFilter - Just need to propagate user in thread context
-
-
-//                // Validate gRPC permissions using privilege evaluator
-//                if (!permissionValidator.validateServicePermissions(serverCall, user)) {
-//                    return new ServerCall.Listener<>() {};
-//                }
-
-                // Additional authorization checks if needed
+                // Request may be rejected during authentication without throwing exception - Check and reject here
                 if (requestChannel.getQueuedResponse().isPresent()) {
                     serverCall.close(Status.PERMISSION_DENIED, new Metadata());
                     return new ServerCall.Listener<>() {};
