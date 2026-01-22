@@ -18,6 +18,8 @@ import java.util.Map;
 import io.grpc.Channel;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.jsonwebtoken.Jwts;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -209,8 +211,9 @@ public class JWTGrpcInterceptorTest {
             try {
                 doBulk(channelWithAuth, "test-invalid-sig", 2);
                 fail("Expected authentication failure due to invalid JWT signature");
-            } catch (Exception e) {
-                assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
+            } catch (StatusRuntimeException e) {
+                assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
+                assertEquals("Expected specific error message", "gRPC authentication failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -228,8 +231,9 @@ public class JWTGrpcInterceptorTest {
             try {
                 doBulk(channelWithAuth, "test-wrong-claims", 2);
                 fail("Expected authentication failure due to wrong JWT claims");
-            } catch (Exception e) {
-                assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
+            } catch (StatusRuntimeException e) {
+                assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
+                assertEquals("Expected specific error message", "gRPC authentication failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -248,8 +252,9 @@ public class JWTGrpcInterceptorTest {
             try {
                 doBulk(channelWithAuth, "test-auth-header", 2);
                 fail("Expected authentication failure - Authorization header not configured for JWT");
-            } catch (Exception e) {
-                assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
+            } catch (StatusRuntimeException e) {
+                assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
+                assertEquals("Expected specific error message", "gRPC authentication failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -264,8 +269,9 @@ public class JWTGrpcInterceptorTest {
             try {
                 doBulk(channel, "test-no-token", 2);
                 fail("Expected authentication failure - no JWT token provided");
-            } catch (Exception e) {
-                assertTrue("Expected authentication error", e.getMessage().contains("UNAUTHENTICATED"));
+            } catch (StatusRuntimeException e) {
+                assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
+                assertEquals("Expected specific error message", "gRPC authentication failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
