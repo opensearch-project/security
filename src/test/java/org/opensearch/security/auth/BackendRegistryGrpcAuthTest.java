@@ -9,12 +9,10 @@
 package org.opensearch.security.auth;
 
 import java.net.InetSocketAddress;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 import javax.crypto.SecretKey;
 
-import com.google.common.io.BaseEncoding;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.jsonwebtoken.Jwts;
@@ -32,22 +30,15 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.GrpcRequestChannel;
 import org.opensearch.security.http.XFFResolver;
-import org.opensearch.security.securityconf.DynamicConfigModel;
-import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Comprehensive unit tests for BackendRegistry gRPC authentication functionality.
- * Tests JWT-only authentication and validates gRPC-specific behavior.
- */
 public class BackendRegistryGrpcAuthTest {
 
     @Mock

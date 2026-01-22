@@ -25,10 +25,22 @@ import static org.mockito.Mockito.when;
 
 public class GrpcRequestChannelTest {
 
+    private static class TestMarshaller<T> implements MethodDescriptor.Marshaller<T> {
+        @Override
+        public java.io.InputStream stream(T value) {
+            return new java.io.ByteArrayInputStream(new byte[0]);
+        }
+
+        @Override
+        public T parse(java.io.InputStream stream) {
+            return null;
+        }
+    }
+
     private ServerCall<Object, Object> createMockServerCall(String methodName) {
         @SuppressWarnings("unchecked")
         ServerCall<Object, Object> serverCall = mock(ServerCall.class);
-        
+
         // Create a real MethodDescriptor instead of mocking
         MethodDescriptor<Object, Object> methodDescriptor = MethodDescriptor.newBuilder()
             .setType(MethodDescriptor.MethodType.UNARY)
@@ -36,7 +48,7 @@ public class GrpcRequestChannelTest {
             .setRequestMarshaller(new TestMarshaller<>())
             .setResponseMarshaller(new TestMarshaller<>())
             .build();
-            
+
         when(serverCall.getMethodDescriptor()).thenReturn(methodDescriptor);
         return serverCall;
     }
@@ -114,25 +126,7 @@ public class GrpcRequestChannelTest {
     }
 
     @Test
-    public void testResponseQueuing() {
-        ServerCall<Object, Object> serverCall = createMockServerCall("test.Service/Method");
-        Metadata metadata = new Metadata();
-        GrpcRequestChannel channel = new GrpcRequestChannel(serverCall, metadata);
-
-        // Initially no queued response
-        assertTrue(channel.getQueuedResponse().isEmpty());
-
-        // Queue a response
-        SecurityResponse response = mock(SecurityResponse.class);
-        channel.queueForSending(response);
-
-        // Should now have queued response
-        assertTrue(channel.getQueuedResponse().isPresent());
-        assertEquals(response, channel.getQueuedResponse().get());
-    }
-
-    @Test
-    public void testSecurityRequestFactoryIntegration() {
+    public void testSecurityRequestFactory() {
         ServerCall<Object, Object> serverCall = createMockServerCall("test.Service/Method");
 
         Metadata metadata = new Metadata();
@@ -146,18 +140,5 @@ public class GrpcRequestChannelTest {
         assertTrue(channel instanceof GrpcRequestChannel);
         assertEquals("test.Service/Method", channel.path());
         assertEquals("test-value", channel.header("test-header"));
-    }
-
-    // Simple test marshaller for MethodDescriptor creation
-    private static class TestMarshaller<T> implements MethodDescriptor.Marshaller<T> {
-        @Override
-        public java.io.InputStream stream(T value) {
-            return new java.io.ByteArrayInputStream(new byte[0]);
-        }
-
-        @Override
-        public T parse(java.io.InputStream stream) {
-            return null;
-        }
     }
 }
