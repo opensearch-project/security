@@ -271,4 +271,23 @@ public class JWTGrpcInterceptorTest {
             channel.shutdown();
         }
     }
+
+    @Test
+    public void testBadSecurityHeaderInMetadata() throws Exception {
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor badHeaderInterceptor = createHeaderInterceptor(Map.of("_opendistro_security_user", "malicious_user"));
+            Channel channelWithBadHeader = io.grpc.ClientInterceptors.intercept(channel, badHeaderInterceptor);
+
+            try {
+                doBulk(channelWithBadHeader, "test-bad-header", 2);
+                fail("Expected rejection due to bad security header");
+            } catch (StatusRuntimeException e) {
+                assertEquals(Status.Code.PERMISSION_DENIED, e.getStatus().getCode());
+                assertEquals("Illegal security header in gRPC request", e.getStatus().getDescription());
+            }
+        } finally {
+            channel.shutdown();
+        }
+    }
 }
