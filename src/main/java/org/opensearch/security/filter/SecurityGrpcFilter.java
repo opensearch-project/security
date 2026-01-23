@@ -46,10 +46,6 @@ import io.grpc.Status;
 
 public class SecurityGrpcFilter implements GrpcInterceptorProvider {
 
-    static {
-        System.out.println("SecurityGrpcFilter - class loaded by ClassLoader: " + SecurityGrpcFilter.class.getClassLoader());
-    }
-
     public SecurityGrpcFilter() {
         // Empty constructor initialized by extensible plugin framework
     }
