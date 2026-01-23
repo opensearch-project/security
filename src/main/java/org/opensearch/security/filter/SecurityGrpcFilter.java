@@ -33,6 +33,7 @@ import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 
 import io.grpc.Metadata;
@@ -141,6 +142,12 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                     serverCall.close(Status.PERMISSION_DENIED, new Metadata());
                     return new ServerCall.Listener<>() {
                     };
+                }
+
+                // Log successful authentication for audit
+                final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                if (user != null) {
+                    auditLog.logSucceededLogin(user.getName(), false, null, requestChannel);
                 }
 
                 // Caller was authorized - Proceed with request
