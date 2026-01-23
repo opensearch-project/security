@@ -33,6 +33,8 @@ import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HTTPHelper;
+import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 
@@ -117,6 +119,18 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
             final GrpcRequestChannel requestChannel = new GrpcRequestChannel(serverCall, metadata);
 
             try {
+                if (HTTPHelper.containsBadHeader(requestChannel)) {
+                    auditLog.logBadHeaders(requestChannel);
+                    serverCall.close(Status.PERMISSION_DENIED.withDescription("Illegal security header in gRPC request"), new Metadata());
+                    return new ServerCall.Listener<>() {};
+                }
+
+                if (SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
+                    auditLog.logBadHeaders(requestChannel);
+                    serverCall.close(Status.PERMISSION_DENIED.withDescription("Illegal security header in thread context"), new Metadata());
+                    return new ServerCall.Listener<>() {};
+                }
+
                 /*
                  Authenticate user - Authenticated users are stashed in the thread context under:
                  ConfigConstants.OPENDISTRO_SECURITY_USER
