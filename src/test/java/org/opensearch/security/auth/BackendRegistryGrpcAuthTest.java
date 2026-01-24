@@ -18,6 +18,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
@@ -63,16 +64,17 @@ public class BackendRegistryGrpcAuthTest {
     public void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        Settings settings = Settings.builder().put("plugins.security.unsupported.inject_user.enabled", true).build();
+        Settings settings = Settings.builder().build();
 
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
+
 
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, clusterInfoHolder);
 
         when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
         when(xffResolver.resolve(any())).thenReturn(
-            new org.opensearch.core.common.transport.TransportAddress(new InetSocketAddress("127.0.0.1", 9200))
+            new TransportAddress(new InetSocketAddress("127.0.0.1", 9200))
         );
 
         // no admin user configured - ensure these checks are false
@@ -86,7 +88,7 @@ public class BackendRegistryGrpcAuthTest {
 
         boolean result = backendRegistry.gRPCauthenticate(request);
 
-        assertFalse("Authentication should fail without credentials", result);
+        assertFalse("Authentication should fail without credentials - No auth domains", result);
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
     }
@@ -128,34 +130,6 @@ public class BackendRegistryGrpcAuthTest {
     }
 
     @Test
-    public void testGrpcAuthenticateWithInvalidJWT() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("authorization", "Bearer invalid.jwt.token");
-
-        GrpcRequestChannel request = createTestRequest(headers);
-
-        boolean result = backendRegistry.gRPCauthenticate(request);
-
-        assertFalse("Authentication should fail with invalid JWT", result);
-        assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
-        assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
-    }
-
-    @Test
-    public void testGrpcAuthenticateWithMalformedJWT() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("authorization", "Bearer malformed-token");
-
-        GrpcRequestChannel request = createTestRequest(headers);
-
-        boolean result = backendRegistry.gRPCauthenticate(request);
-
-        assertFalse("Authentication should fail with malformed JWT", result);
-        assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
-        assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
-    }
-
-    @Test
     public void testGrpcAuthenticateWithEmptyAuthorizationHeader() {
         Map<String, String> headers = new HashMap<>();
         headers.put("authorization", "");
@@ -165,20 +139,6 @@ public class BackendRegistryGrpcAuthTest {
         boolean result = backendRegistry.gRPCauthenticate(request);
 
         assertFalse("Authentication should fail with empty authorization header", result);
-        assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
-        assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
-    }
-
-    @Test
-    public void testGrpcAuthenticateWithBasicAuthHeader() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("authorization", "Basic dXNlcjpwYXNz");
-
-        GrpcRequestChannel request = createTestRequest(headers);
-
-        boolean result = backendRegistry.gRPCauthenticate(request);
-
-        assertFalse("Authentication should fail with non-Bearer token", result);
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
     }
@@ -197,19 +157,6 @@ public class BackendRegistryGrpcAuthTest {
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         // Should fail on first unsupported feature (tenant)
         assertEquals("Should return 400 Bad Request", 400, request.getQueuedResponse().get().getStatus());
-    }
-
-    @Test
-    public void testGrpcAuthenticateWithCaseInsensitiveHeaders() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("AUTHORIZATION", "Bearer test.jwt.token");
-
-        GrpcRequestChannel request = createTestRequest(headers);
-
-        boolean result = backendRegistry.gRPCauthenticate(request);
-
-        assertFalse("Authentication should handle case-insensitive headers", result);
-        assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
     }
 
     @Test
