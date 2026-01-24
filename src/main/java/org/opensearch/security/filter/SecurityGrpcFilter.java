@@ -59,12 +59,6 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 return 0;
             }
 
-            /**
-             * Construct gRPC interceptors provided by this plugin.
-             * GuiceHolder is used over the more direct @Inject here due to how @inject interacts with the extensible
-             * plugin framework. Extensible plugins are initialized via SPIClassIterator which interferes with Guice's
-             * ability to build a dependency graph as it obfuscates when/where the SecurityGrpcFilter will be created.
-             */
             @Override
             public ServerInterceptor getInterceptor() {
                 return new JwtGrpcInterceptor(
