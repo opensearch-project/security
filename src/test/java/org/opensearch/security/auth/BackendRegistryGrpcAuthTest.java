@@ -69,13 +69,10 @@ public class BackendRegistryGrpcAuthTest {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
 
-
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, clusterInfoHolder);
 
         when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
-        when(xffResolver.resolve(any())).thenReturn(
-            new TransportAddress(new InetSocketAddress("127.0.0.1", 9200))
-        );
+        when(xffResolver.resolve(any())).thenReturn(new TransportAddress(new InetSocketAddress("127.0.0.1", 9200)));
 
         // no admin user configured - ensure these checks are false
         when(adminDns.isAdmin(any())).thenReturn(false);

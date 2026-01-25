@@ -30,11 +30,11 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.configuration.DlsFlsValveImpl;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
@@ -168,7 +168,10 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 return serverCallHandler.startCall(serverCall, metadata);
             } catch (Exception e) {
                 log.error("Unexpected authentication error", e);
-                serverCall.close(io.grpc.Status.INTERNAL.withDescription("Unexpected authentication error: " + e.getMessage()), new Metadata());
+                serverCall.close(
+                    io.grpc.Status.INTERNAL.withDescription("Unexpected authentication error: " + e.getMessage()),
+                    new Metadata()
+                );
                 return new ServerCall.Listener<>() {
                 };
             }
