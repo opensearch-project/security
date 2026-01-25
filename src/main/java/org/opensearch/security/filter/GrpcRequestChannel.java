@@ -132,25 +132,6 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
     }
 
     /**
-     * Map HTTP status codes to gRPC Status enum.
-     * Please find full HTTP -> gRPC mappings here:
-     * https://github.com/opensearch-project/OpenSearch/issues/18926
-     */
-    private io.grpc.Status mapToGrpcStatus(int httpStatus) {
-        return switch (httpStatus) {
-            case 400 -> Status.INVALID_ARGUMENT;
-            case 401 -> Status.UNAUTHENTICATED;
-            case 403 -> Status.PERMISSION_DENIED;
-            case 404 -> Status.NOT_FOUND;
-            case 429 -> Status.RESOURCE_EXHAUSTED;
-            case 500 -> Status.INTERNAL;
-            case 501 -> Status.UNIMPLEMENTED;
-            case 503 -> Status.UNAVAILABLE;
-            default -> Status.UNKNOWN;
-        };
-    }
-
-    /**
      * Fetch queued SecurityResponse response.
      * Note the SecurityResponse encapsulates the REST response and HTTP error code.
      * Please see getQueuedResponseGrpcStatus for the purpose of returning a gRPC error and reason to clients.
@@ -169,5 +150,29 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
         return queuedResponse.map(
             securityResponse -> mapToGrpcStatus(securityResponse.getStatus()).withDescription(securityResponse.getBody())
         ).orElse(Status.INTERNAL);
+    }
+
+    /**
+     * Map HTTP status codes to gRPC Status enum.
+     * Please find full HTTP -> gRPC mappings here:
+     * https://github.com/opensearch-project/OpenSearch/issues/18926
+     */
+    private io.grpc.Status mapToGrpcStatus(int httpStatus) {
+        return switch (httpStatus) {
+            case 100, 101, 200, 201, 202, 203, 204, 205, 206 -> Status.OK;
+            case 300, 301, 302, 303, 304, 305, 307, 411, 412, 417, 423, 424 -> Status.FAILED_PRECONDITION;
+            case 400, 406, 414, 415, 421, 422 -> Status.INVALID_ARGUMENT;
+            case 401, 407 -> Status.UNAUTHENTICATED;
+            case 402, 403 -> Status.PERMISSION_DENIED;
+            case 404, 410 -> Status.NOT_FOUND;
+            case 405, 501, 505 -> Status.UNIMPLEMENTED;
+            case 408, 504 -> Status.DEADLINE_EXCEEDED;
+            case 409 -> Status.ABORTED;
+            case 413, 416 -> Status.OUT_OF_RANGE;
+            case 429, 507 -> Status.RESOURCE_EXHAUSTED;
+            case 500 -> Status.INTERNAL;
+            case 502, 503 -> Status.UNAVAILABLE;
+            default -> Status.UNKNOWN;
+        };
     }
 }
