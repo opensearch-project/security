@@ -63,20 +63,18 @@ public class BackendRegistryGrpcAuthTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-
-        Settings settings = Settings.builder().build();
-
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        when(threadPool.getThreadContext()).thenReturn(threadContext);
-
-        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, clusterInfoHolder);
-
-        when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
-        when(xffResolver.resolve(any())).thenReturn(new TransportAddress(new InetSocketAddress("127.0.0.1", 9200)));
-
         // no admin user configured - ensure these checks are false
         when(adminDns.isAdmin(any())).thenReturn(false);
         when(adminDns.isAdminDN(any())).thenReturn(false);
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+        when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
+        when(xffResolver.resolve(any())).thenReturn(new TransportAddress(new InetSocketAddress("127.0.0.1", 9200)));
+
+        // backend registry requires at least one auth path is available to initialize.
+        // here we enable user injection to allow us to mock/test other failure cases.
+        Settings settings = Settings.builder().put("plugins.security.unsupported.inject_user.enabled", true).build();
+        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, clusterInfoHolder);
     }
 
     @Test
