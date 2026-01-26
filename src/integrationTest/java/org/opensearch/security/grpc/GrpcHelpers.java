@@ -12,6 +12,7 @@ package org.opensearch.security.grpc;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -117,24 +118,7 @@ public class GrpcHelpers {
     );
 
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
-
-    public static final Map<String, Object> SINGLE_NODE_SECURE_SSL_ONLY_GRPC_TRANSPORT_SETTINGS = Map.of(
-        "plugins.security.ssl_only",
-        true,
-        "aux.transport.types",
-        "secure-transport-grpc",
-        "aux.transport.secure-transport-grpc.port",
-        PORTS_RANGE.getPortRangeString(),
-        "plugins.security.ssl.aux.secure-transport-grpc.enabled",
-        true,
-        "plugins.security.ssl.aux.secure-transport-grpc.pemkey_filepath",
-        TEST_CERTIFICATES.getNodeKey(0, null).getAbsolutePath(),
-        "plugins.security.ssl.aux.secure-transport-grpc.pemcert_filepath",
-        TEST_CERTIFICATES.getNodeCertificate(0).getAbsolutePath(),
-        "plugins.security.ssl.aux.secure-transport-grpc.pemtrustedcas_filepath",
-        TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
-    );
-
+    
     public static final Map<String, Object> SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS = Map.of(
         "aux.transport.types",
         "secure-transport-grpc",
@@ -149,6 +133,11 @@ public class GrpcHelpers {
         "plugins.security.ssl.aux.secure-transport-grpc.pemtrustedcas_filepath",
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
+
+    public static final Map<String, Object> SINGLE_NODE_SECURE_SSL_ONLY_GRPC_TRANSPORT_SETTINGS =
+            new HashMap<>(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS) {{
+                put("plugins.security.ssl_only", true);
+            }};
 
     public static TransportAddress getSecureGrpcEndpoint(LocalCluster cluster) {
         List<TransportAddress> transportAddresses = new ArrayList<>();
