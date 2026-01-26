@@ -9,6 +9,7 @@
 package org.opensearch.security.grpc;
 
 import java.security.KeyPair;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
@@ -119,6 +120,7 @@ public class JWTGrpcInterceptorTest {
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .certificates(TEST_CERTIFICATES)
         .nodeSettings(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS)
+        .nodeSettings(Map.of("plugins.security.authcz.admin_dn", Arrays.asList(TEST_CERTIFICATES.getAdminDNs())))
         .plugin(
             // Add GrpcPlugin
             new PluginInfo(
@@ -168,6 +170,28 @@ public class JWTGrpcInterceptorTest {
             assertNotNull(bulkResp);
             assertFalse(bulkResp.getErrors());
             assertEquals(2, bulkResp.getItemsCount());
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testJwtAuthorizedUserIsAdmin() throws Exception {
+        // Use the actual admin DN from the certificate as the JWT username
+        String adminDN = "CN=kirk,OU=client,O=client,L=test,C=de";
+        String jwtToken = createValidJwtToken(adminDN, "grpc_index_role");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
+
+            try {
+                doBulk(channelWithAuth, "test-fake-admin", 2);
+                fail("Expected authentication failure due to invalid JWT signature");
+            } catch (StatusRuntimeException e) {
+                assertEquals("Expected PERMISSION_DENIED status", Status.Code.PERMISSION_DENIED, e.getStatus().getCode());
+                assertEquals("Expected specific error message", "Cannot authenticate admin user via JWT", e.getStatus().getDescription());
+            }
         } finally {
             channel.shutdown();
         }
