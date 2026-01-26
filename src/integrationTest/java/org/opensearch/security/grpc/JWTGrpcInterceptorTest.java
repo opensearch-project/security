@@ -48,6 +48,7 @@ import static org.opensearch.security.grpc.GrpcHelpers.secureChannel;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -116,6 +117,9 @@ public class JWTGrpcInterceptorTest {
         new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY)).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
     ).backend("noop");
 
+    public static final TestSecurityConfig.AuthcDomain BASIC_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain("basic", 1)
+        .httpAuthenticator("basic").backend("internal");
+
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .certificates(TEST_CERTIFICATES)
@@ -157,6 +161,7 @@ public class JWTGrpcInterceptorTest {
             new TestSecurityConfig.RoleMapping(GRPC_LIMITED_ROLE.getName()).backendRoles("grpc_limited_role")
         )
         .authc(JWT_AUTH_DOMAIN)
+        .authc(BASIC_AUTH_DOMAIN)
         .build();
 
     @Test
@@ -309,6 +314,26 @@ public class JWTGrpcInterceptorTest {
             } catch (StatusRuntimeException e) {
                 assertEquals(Status.Code.PERMISSION_DENIED, e.getStatus().getCode());
                 assertEquals("Illegal security header in gRPC request", e.getStatus().getDescription());
+            }
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testBasicAuthRejectedForGrpc() throws Exception {
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            String credentials = Base64.getEncoder().encodeToString("grpc_user:password".getBytes());
+            ClientInterceptor basicAuthInterceptor = createHeaderInterceptor(Map.of("Authorization", "Basic " + credentials));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, basicAuthInterceptor);
+
+            try {
+                doBulk(channelWithAuth, "test-basic-auth-header", 2);
+                fail("Expected rejection - basic auth not supported");
+            } catch (StatusRuntimeException e) {
+                assertEquals(Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
+                assertEquals("gRPC authentication failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
