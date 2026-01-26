@@ -48,7 +48,6 @@ import static org.opensearch.security.grpc.GrpcHelpers.secureChannel;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -117,8 +116,9 @@ public class JWTGrpcInterceptorTest {
         new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY)).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
     ).backend("noop");
 
-    public static final TestSecurityConfig.AuthcDomain BASIC_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain("basic", 1)
-        .httpAuthenticator("basic").backend("internal");
+    public static final TestSecurityConfig.AuthcDomain BASIC_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain("basic", 1).httpAuthenticator(
+        "basic"
+    ).backend("internal");
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
