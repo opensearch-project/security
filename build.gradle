@@ -778,7 +778,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.1'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.1"
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.2"
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.2'
