@@ -300,7 +300,7 @@ public class BackendRegistry {
 
             /*
             If auth domain presents a challenge to client save this initial authenticator.
-            The purpose is to re-request authentication in the case authentication fails on the initial challeng.
+            The purpose is to re-request authentication in the case authentication fails on the initial challenge.
              */
             if (authDomain.isChallenge() && firstChallengingHttpAuthenticator == null) {
                 firstChallengingHttpAuthenticator = httpAuthenticator;
