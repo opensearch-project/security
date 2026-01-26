@@ -121,7 +121,7 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                  ConfigConstants.OPENDISTRO_SECURITY_USER
                  Authorization handled by the node-to-node transport layer given the authenticated user.
                  */
-                if (!backendRegistry.gRPCauthenticate(requestChannel)) {
+                if (!backendRegistry.authenticate(requestChannel)) {
                     if (requestChannel.getQueuedResponse().isPresent()) {
                         // Send error response and close call
                         serverCall.close(requestChannel.getQueuedResponseGrpcStatus(), new Metadata());

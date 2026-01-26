@@ -198,7 +198,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure due to invalid JWT signature");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected PERMISSION_DENIED status", Status.Code.PERMISSION_DENIED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "Cannot authenticate admin user via JWT", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", "Cannot authenticate user because admin user is not permitted to login via HTTP", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -239,7 +239,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure due to invalid JWT signature");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "gRPC authentication failed", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -259,7 +259,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure due to wrong JWT claims");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "gRPC authentication failed", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -280,7 +280,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure - Authorization header not configured for JWT");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "gRPC authentication failed", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -297,7 +297,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure - no JWT token provided");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "gRPC authentication failed", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -324,6 +324,29 @@ public class JWTGrpcInterceptorTest {
     }
 
     @Test
+    public void testJwtTenantSelectionRejected() throws Exception {
+        String jwtToken = createValidJwtToken("grpc_user", "grpc_index_role");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(
+                JWT_AUTH_HEADER, "Bearer " + jwtToken,
+                "securitytenant", "test_tenant"
+            ));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
+
+            try {
+                doBulk(channelWithAuth, "test-tenant-rejected", 2);
+                fail("Expected rejection - tenant selection not supported");
+            } catch (StatusRuntimeException e) {
+                assertEquals(Status.Code.INVALID_ARGUMENT, e.getStatus().getCode());
+                assertEquals("Tenant selection not supported in gRPC", e.getStatus().getDescription());
+            }
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
     public void testBasicAuthRejectedForGrpc() throws Exception {
         ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
         try {
@@ -336,7 +359,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected rejection - basic auth not supported");
             } catch (StatusRuntimeException e) {
                 assertEquals(Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("gRPC authentication failed", e.getStatus().getDescription());
+                assertEquals("Authentication finally failed", e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();

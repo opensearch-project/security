@@ -231,13 +231,28 @@ public class BackendRegistry {
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled || injectedUserEnabled;
     }
 
+    public boolean authenticate(final SecurityRequestChannel request) {
+        return authenticate(request, false);
+    }
+
+    /**
+     * Over gRPC, we do not support the full set of authentication features.
+     * - Auth domain support is limited to JWT only.
+     * - Authenticating as superuser is blocked over gRPC.
+     * - Tenant headers are unsupported.
+     * - Anonymous auth is unsupported.
+     */
+    public boolean authenticate(final GrpcRequestChannel request) {
+        return authenticate(request, true);
+    }
+
     /**
      * Iterates through configured auth domains, extracting credentials from the request and thread context.
      * Credentials are authenticated with the auth backend. Resulting user and roles are stashed in the thread context.
      * @param request specifying HTTP headers, client ip, and channel to send error response.
      * @return true if any user is authenticated for this request.
      */
-    public boolean authenticate(final SecurityRequestChannel request) {
+    private boolean authenticate(final SecurityRequestChannel request, boolean gRPC) {
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (checkRemoteAddrBlocked(request)) {
@@ -252,7 +267,7 @@ public class BackendRegistry {
          */
         ThreadContext threadContext = this.threadPool.getThreadContext();
         final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-        if (adminDns.isAdminDN(sslPrincipal)) {
+        if (!gRPC && adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
             User superuser = new User(sslPrincipal);
             UserSubject subject = new UserSubjectImpl(threadPool, superuser);
@@ -299,6 +314,16 @@ public class BackendRegistry {
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
 
             /*
+            Exclude unsupported auth domains over gRPC.
+             */
+            if (gRPC && !"jwt".equals(httpAuthenticator.getType())) {
+                if (isDebugEnabled) {
+                    log.debug("Skipping un-supported auth domain {} for gRPC request", httpAuthenticator.getType());
+                }
+                continue;
+            }
+
+            /*
             If auth domain presents a challenge to client save this initial authenticator.
             The purpose is to re-request authentication in the case authentication fails on the initial challenge.
              */
@@ -328,7 +353,7 @@ public class BackendRegistry {
              */
             if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
                 if (isDebugEnabled) {
-                    log.debug("Rejecting REST request because of blocked user: {}, authDomain: {}", ac.getUsername(), authDomain);
+                    log.debug("Rejecting request because of blocked user: {}, authDomain: {}, channel: {}", ac.getUsername(), authDomain, request.getClass().getName());
                 }
                 continue;
             }
@@ -343,7 +368,7 @@ public class BackendRegistry {
             authCredentials = ac;
             if (ac == null) {
                 // no credentials found in request
-                if (anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
+                if (!gRPC && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
                     continue;
                 }
 
@@ -397,7 +422,7 @@ public class BackendRegistry {
             if (authenticatedUser == null) {
                 if (isDebugEnabled) {
                     log.debug(
-                        "Cannot authenticate rest user {} (or add roles) with authdomain {}/{} of {}, try next",
+                        "Cannot authenticate user {} (or add roles) with authdomain {}/{} of {}, try next",
                         ac.getUsername(),
                         authDomain.getBackend().getType(),
                         authDomain.getOrder(),
@@ -421,7 +446,7 @@ public class BackendRegistry {
             Only client cert authentication is allowed for this user.
              */
             if (adminDns.isAdmin(authenticatedUser)) {
-                log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
+                log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
                 request.queueForSending(
                     new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP")
@@ -441,6 +466,11 @@ public class BackendRegistry {
             }
 
             if (tenant != null) {
+                if (gRPC) {
+                    log.warn("gRPC request rejected: tenant selection not supported");
+                    request.queueForSending(new SecurityResponse(SC_BAD_REQUEST, "Tenant selection not supported in gRPC"));
+                    return false;
+                }
                 authenticatedUser = authenticatedUser.withRequestedTenant(tenant);
             }
 
@@ -522,253 +552,6 @@ public class BackendRegistry {
         }
 
         return authenticated;
-    }
-
-    /**
-     * gRPC-specific authentication method mirroring the REST authenticate() flow.
-     * Supports JWT authentication only for now.
-     *
-     * Several features are unsupported on the gRPC transport:
-     * 1. Anonymous auth, user impersonation, security tenant headers (advances security features).
-     * 2. Super use authentication with client/cert auth (still available on REST if needed).
-     * 3. Challenge responses (currently only JWT is supported and does not issue challenges).
-     *
-     * @param request specifying HTTP headers, client ip, and channel to send error response.
-     * @return true if any user is authenticated for this request.
-     */
-    public boolean gRPCauthenticate(final GrpcRequestChannel request) {
-        final boolean isDebugEnabled = log.isDebugEnabled();
-
-        if (checkGrpcUnsupported(request)) {
-            return false;
-        }
-
-        if (checkRemoteAddrBlocked(request)) {
-            return false;
-        }
-
-        /*
-        Skip SSL superuser authentication for gRPC.
-        Client certificate authentication is not supported for gRPC endpoints.
-         */
-
-        /*
-        Skip user injection for gRPC.
-        Internal component user injection is not supported for gRPC.
-         */
-
-        if (!checkInitialized(request)) {
-            return false;
-        }
-
-        /*
-        Log client ip if trace enabled.
-        Stash client ip in thread context.
-         */
-        final TransportAddress remoteAddress = resolveRemoteAddress(request);
-
-        /*
-        Core authentication loop with user configured auth domains.
-         */
-        boolean authenticated = false;
-        User authenticatedUser = null;
-        AuthCredentials authCredentials = null;
-
-        /*
-        Iterate through configured auth domains.
-        For gRPC, skip unsupported auth domains.
-         */
-        for (final AuthDomain authDomain : restAuthDomains) {
-            final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
-            if (!"jwt".equals(httpAuthenticator.getType())) {
-                if (isDebugEnabled) {
-                    log.debug("Skipping un-supported auth domain {} for gRPC request", httpAuthenticator.getType());
-                }
-                continue;
-            }
-
-            /*
-            Skip challenge authenticator tracking for gRPC.
-            No gRPC supported auth domains issue challenges.
-             */
-
-            if (isDebugEnabled) {
-                log.debug(
-                    "Check JWT authdomain for gRPC {}/{} or {} in total",
-                    authDomain.getBackend().getType(),
-                    authDomain.getOrder(),
-                    restAuthDomains.size()
-                );
-            }
-
-            /*
-            Extract credentials for this auth domain from the request.
-             */
-            if (log.isTraceEnabled()) {
-                log.trace("Try to extract auth creds from {} http authenticator", httpAuthenticator.getType());
-            }
-
-            final AuthCredentials ac;
-            try {
-                ac = httpAuthenticator.extractCredentials(request, threadPool.getThreadContext());
-            } catch (Exception e1) {
-                if (isDebugEnabled) {
-                    log.debug("'{}' extracting credentials from {} http authenticator", e1.toString(), httpAuthenticator.getType(), e1);
-                }
-                continue;
-            }
-
-            /*
-            User may be blocked from authenticating with this auth backend based on rate limiting configurations.
-            Skip this auth domain if the user is blocked.
-             */
-            if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
-                if (isDebugEnabled) {
-                    log.debug("Rejecting gRPC request because of blocked user: {}, authDomain: {}", ac.getUsername(), authDomain);
-                }
-                continue;
-            }
-
-            authCredentials = ac;
-
-            /*
-            If no credentials are extracted by the auth domain, skip to next domain.
-            gRPC does not support challenge responses or anonymous authentication in this version.
-             */
-            if (ac == null) {
-                if (log.isTraceEnabled()) {
-                    log.trace("No JWT credentials found in gRPC request");
-                }
-                continue;
-            } else {
-                org.apache.logging.log4j.ThreadContext.put("user", ac.getUsername());
-                /*
-                Skip incomplete credential handling for gRPC.
-                gRPC credentials are either complete or invalid in this version - no multistep authentication.
-                 */
-                if (!ac.isComplete()) {
-                    if (isDebugEnabled) {
-                        log.debug("Incomplete JWT credentials for gRPC request, no challenge support");
-                    }
-                    continue;
-                }
-            }
-
-            /*
-            Validates extracted credentials against an authentication backend.
-            Populates associated roles for the authenticated user.
-             */
-            authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
-
-            /*
-            In the case where credentials are not validated by the auth backend notify failure listeners and continue.
-             */
-            if (authenticatedUser == null) {
-                if (isDebugEnabled) {
-                    log.debug(
-                        "Cannot authenticate gRPC user {} with JWT authdomain {}/{}",
-                        ac.getUsername(),
-                        authDomain.getBackend().getType(),
-                        authDomain.getOrder()
-                    );
-                }
-                for (AuthFailureListener authFailureListener : this.authBackendFailureListeners.get(
-                    authDomain.getBackend().getClass().getName()
-                )) {
-                    authFailureListener.onAuthFailure(
-                        request.getRemoteAddress().map(InetSocketAddress::getAddress).orElse(null),
-                        ac,
-                        request
-                    );
-                }
-                continue;
-            }
-
-            /*
-            Disallow superuser authentication through JWT auth domain.
-            Only client cert authentication is allowed for admin users.
-             */
-            if (adminDns.isAdmin(authenticatedUser)) {
-                log.error("Cannot authenticate gRPC user because admin user is not permitted to login via JWT");
-                auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
-                request.queueForSending(new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate admin user via JWT"));
-                return false;
-            }
-
-            /*
-            Skip tenant context extraction for this version of gRPC implementation.
-            Tenant selection is not supported and requests with tenant headers are rejected upfront.
-             */
-
-            if (isDebugEnabled) {
-                log.debug("gRPC user '{}' is authenticated", authenticatedUser);
-            }
-
-            authenticated = true;
-            break;
-        }// end looping auth domains
-
-        /*
-        If authenticated stash the authenticated user in the thread context.
-        Skip user impersonation handling for gRPC - Unsupported in this version.
-         */
-        if (authenticated) {
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, authenticatedUser);
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER, authenticatedUser.getName());
-
-            UserSubject subject = new UserSubjectImpl(threadPool, authenticatedUser);
-            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
-        } else {
-            if (isDebugEnabled) {
-                log.debug("gRPC user still not authenticated after checking JWT domains");
-            }
-
-            /*
-            Skip final challenge for gRPC.
-            No auth domains with challenge responses supported.
-             */
-
-            /*
-            Skip anonymous authentication for gRPC - Unsupported in this version.
-            Anonymous users are not supported and requests are rejected upfront if detected.
-             */
-
-            log.warn(
-                "gRPC authentication failed for {} from {}",
-                authCredentials == null ? null : authCredentials.getUsername(),
-                remoteAddress
-            );
-            auditLog.logFailedLogin(authCredentials == null ? null : authCredentials.getUsername(), false, null, request);
-
-            request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, "gRPC authentication failed"));
-            return false;
-        }
-
-        return authenticated;
-    }
-
-    /**
-     * Validates that gRPC request doesn't contain unsupported features.
-     * Fails fast with clear error messages for unsupported functionality.
-     * @param request containing headers and params to validate
-     * @return true if unsupported features are used.
-     */
-    private boolean checkGrpcUnsupported(final SecurityRequestChannel request) {
-        // Reject tenant selection
-        if (request.header("securitytenant") != null) {
-            log.warn("gRPC request rejected: tenant selection not supported");
-            request.queueForSending(new SecurityResponse(SC_BAD_REQUEST, "Tenant selection not supported in gRPC"));
-            return true;
-        }
-
-        // Reject user impersonation
-        if (request.header("opendistro_security_impersonate_as") != null) {
-            log.warn("gRPC request rejected: user impersonation not supported");
-            request.queueForSending(new SecurityResponse(SC_FORBIDDEN, "User impersonation not supported in gRPC"));
-            return true;
-        }
-
-        return false;
     }
 
     /**

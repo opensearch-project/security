@@ -84,47 +84,11 @@ public class BackendRegistryGrpcAuthTest {
     public void testGrpcAuthenticateWithNoCredentials() {
         GrpcRequestChannel request = createTestRequest(new HashMap<>());
 
-        boolean result = backendRegistry.gRPCauthenticate(request);
+        boolean result = backendRegistry.authenticate(request);
 
         assertFalse("Authentication should fail without credentials - No auth domains", result);
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
-    }
-
-    @Test
-    public void testGrpcAuthenticateRejectsTenantHeader() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("securitytenant", "test-tenant");
-
-        GrpcRequestChannel request = createTestRequest(headers);
-
-        boolean result = backendRegistry.gRPCauthenticate(request);
-
-        assertFalse("Authentication should fail with tenant header", result);
-        assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
-        assertEquals("Should return 400 Bad Request", 400, request.getQueuedResponse().get().getStatus());
-        assertTrue(
-            "Error message should mention tenant",
-            request.getQueuedResponse().get().getBody().contains("Tenant selection not supported")
-        );
-    }
-
-    @Test
-    public void testGrpcAuthenticateRejectsImpersonationHeader() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("opendistro_security_impersonate_as", "someuser");
-
-        GrpcRequestChannel request = createTestRequest(headers);
-
-        boolean result = backendRegistry.gRPCauthenticate(request);
-
-        assertFalse("Authentication should fail with impersonation header", result);
-        assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
-        assertEquals("Should return 403 Forbidden", 403, request.getQueuedResponse().get().getStatus());
-        assertTrue(
-            "Error message should mention impersonation",
-            request.getQueuedResponse().get().getBody().contains("User impersonation not supported")
-        );
     }
 
     @Test
@@ -134,27 +98,11 @@ public class BackendRegistryGrpcAuthTest {
 
         GrpcRequestChannel request = createTestRequest(headers);
 
-        boolean result = backendRegistry.gRPCauthenticate(request);
+        boolean result = backendRegistry.authenticate(request);
 
         assertFalse("Authentication should fail with empty authorization header", result);
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
-    }
-
-    @Test
-    public void testGrpcAuthenticateRejectsMultipleUnsupportedFeatures() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("securitytenant", "test-tenant");
-        headers.put("opendistro_security_impersonate_as", "admin");
-
-        GrpcRequestChannel request = createTestRequest(headers);
-
-        boolean result = backendRegistry.gRPCauthenticate(request);
-
-        assertFalse("Authentication should fail with multiple unsupported features", result);
-        assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
-        // Should fail on first unsupported feature (tenant)
-        assertEquals("Should return 400 Bad Request", 400, request.getQueuedResponse().get().getStatus());
     }
 
     @Test
@@ -172,7 +120,7 @@ public class BackendRegistryGrpcAuthTest {
 
         GrpcRequestChannel request = createTestRequest(headers);
 
-        boolean result = backendRegistry.gRPCauthenticate(request);
+        boolean result = backendRegistry.authenticate(request);
 
         /*
         Since the BackendRegistry doesn't have JWT configured in these tests, it will reject the request.
