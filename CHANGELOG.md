@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.nimbusds:nimbus-jose-jwt` from 10.6 to 10.7 ([#5904](https://github.com/opensearch-project/security/pull/5904))
 - Bump `org.junit.jupiter:junit-jupiter-api` from 5.14.1 to 5.14.2 ([#5903](https://github.com/opensearch-project/security/pull/5903))
 - Bump `io.projectreactor:reactor-core` from 3.8.1 to 3.8.2 ([#5910](https://github.com/opensearch-project/security/pull/5910))
+- Bump `io.dropwizard.metrics:metrics-core` from 4.2.37 to 4.2.38 ([#5922](https://github.com/opensearch-project/security/pull/5922))
 
 ### Removed
 - Remove MakeJava9Happy class that's not applicable in OS 3.X ([#5896](https://github.com/opensearch-project/security/pull/5896))
