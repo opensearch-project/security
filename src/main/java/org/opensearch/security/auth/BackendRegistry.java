@@ -524,7 +524,7 @@ public class BackendRegistry {
             Populate thread context with anonymous user is anonymous login requested and no other credentials provided.
              */
             if (authCredentials == null && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
-                if(gRPC){
+                if (gRPC) {
                     log.error("Anonymous auth not supported over gRPC");
                     request.queueForSending(new SecurityResponse(SC_BAD_REQUEST, "Anonymous auth not supported over gRPC"));
                     return false;
