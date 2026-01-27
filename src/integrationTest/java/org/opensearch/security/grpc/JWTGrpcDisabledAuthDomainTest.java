@@ -18,14 +18,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import io.grpc.Channel;
-import io.grpc.ClientInterceptor;
-import io.grpc.ManagedChannel;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -38,8 +30,16 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.transport.grpc.GrpcPlugin;
 
+import io.grpc.Channel;
+import io.grpc.ClientInterceptor;
+import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+
 import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.junit.Assert.fail;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
@@ -49,7 +49,7 @@ import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
 import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
 import static org.opensearch.security.grpc.GrpcHelpers.secureChannel;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 public class JWTGrpcDisabledAuthDomainTest {
 
@@ -62,14 +62,14 @@ public class JWTGrpcDisabledAuthDomainTest {
     private String createValidJwtToken(String username, String... roles) {
         Date now = new Date();
         return Jwts.builder()
-                .claim(CLAIM_USERNAME.get(0), username)
-                .claim(CLAIM_ROLES.get(0), String.join(",", roles))
-                .setIssuer("test-issuer")
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + 3600 * 1000))
-                .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
-                .compact();
+            .claim(CLAIM_USERNAME.get(0), username)
+            .claim(CLAIM_ROLES.get(0), String.join(",", roles))
+            .setIssuer("test-issuer")
+            .setSubject(username)
+            .setIssuedAt(now)
+            .setExpiration(new Date(now.getTime() + 3600 * 1000))
+            .signWith(KEY_PAIR.getPrivate(), SignatureAlgorithm.RS256)
+            .compact();
     }
 
     // Basic auth domain to ensure security plugin initializes (must have at least 1 auth domain/auth path)
@@ -80,9 +80,11 @@ public class JWTGrpcDisabledAuthDomainTest {
     // JWT auth domain with http_enabled: false
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN_DISABLED = new TestSecurityConfig.AuthcDomain("jwt", 2, false)
         .jwtHttpAuthenticator(
-            new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER).signingKey(List.of(PUBLIC_KEY)).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES)
-        )
-        .backend("noop");
+            new JwtConfigBuilder().jwtHeader(JWT_AUTH_HEADER)
+                .signingKey(List.of(PUBLIC_KEY))
+                .subjectKey(CLAIM_USERNAME)
+                .rolesKey(CLAIM_ROLES)
+        ).backend("noop");
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -116,9 +118,7 @@ public class JWTGrpcDisabledAuthDomainTest {
         )
         .users(GRPC_INDEX_USER)
         .roles(GRPC_INDEX_ROLE)
-        .rolesMapping(
-            new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role")
-        )
+        .rolesMapping(new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role"))
         .authc(BASIC_AUTH_DOMAIN)
         .authc(JWT_AUTH_DOMAIN_DISABLED)
         .build();
