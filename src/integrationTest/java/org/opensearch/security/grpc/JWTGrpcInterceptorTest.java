@@ -42,13 +42,13 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE_NO_MAPPING;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER_NO_MAPPING;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_LIMITED_GET_ROLE;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_LIMITED_GET_USER;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
-import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE_NO_MAPPING;
-import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
 import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
@@ -121,10 +121,14 @@ public class JWTGrpcInterceptorTest {
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .certificates(TEST_CERTIFICATES)
         .nodeSettings(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS)
-        .nodeSettings(Map.of(
-            "plugins.security.authcz.admin_dn", Arrays.asList(TEST_CERTIFICATES.getAdminDNs()),
-            "plugins.security.unsupported.inject_user.enabled", true
-        ))
+        .nodeSettings(
+            Map.of(
+                "plugins.security.authcz.admin_dn",
+                Arrays.asList(TEST_CERTIFICATES.getAdminDNs()),
+                "plugins.security.unsupported.inject_user.enabled",
+                true
+            )
+        )
         .plugin(
             // Add GrpcPlugin
             new PluginInfo(
@@ -196,7 +200,11 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure due to invalid JWT signature");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected PERMISSION_DENIED status", Status.Code.PERMISSION_DENIED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "Cannot authenticate user because admin user is not permitted to login via HTTP", e.getStatus().getDescription());
+                assertEquals(
+                    "Expected specific error message",
+                    "Cannot authenticate user because admin user is not permitted to login via HTTP",
+                    e.getStatus().getDescription()
+                );
             }
         } finally {
             channel.shutdown();
@@ -326,10 +334,9 @@ public class JWTGrpcInterceptorTest {
         String jwtToken = createValidJwtToken("grpc_user", "grpc_index_role");
         ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
         try {
-            ClientInterceptor jwtInterceptor = createHeaderInterceptor(Map.of(
-                JWT_AUTH_HEADER, "Bearer " + jwtToken,
-                "securitytenant", "test_tenant"
-            ));
+            ClientInterceptor jwtInterceptor = createHeaderInterceptor(
+                Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken, "securitytenant", "test_tenant")
+            );
             Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, jwtInterceptor);
 
             try {
@@ -368,7 +375,9 @@ public class JWTGrpcInterceptorTest {
     public void testUserInjectionWithNoAuthUser() throws Exception {
         ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
         try {
-            ClientInterceptor injectionInterceptor = createHeaderInterceptor(Map.of("test-user-injection", "injected_grpc_index_user|grpc_index_role"));
+            ClientInterceptor injectionInterceptor = createHeaderInterceptor(
+                Map.of("test-user-injection", "injected_grpc_index_user|grpc_index_role")
+            );
             Channel channelWithInjection = io.grpc.ClientInterceptors.intercept(channel, injectionInterceptor);
 
             BulkResponse bulkResp = doBulk(channelWithInjection, "test-user-injection", 2);
@@ -384,7 +393,9 @@ public class JWTGrpcInterceptorTest {
     public void testLimitedUserInjectionWithNoAuthUser() throws Exception {
         ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
         try {
-            ClientInterceptor injectionInterceptor = createHeaderInterceptor(Map.of("test-user-injection", "injected_limited_user|grpc_limited_role"));
+            ClientInterceptor injectionInterceptor = createHeaderInterceptor(
+                Map.of("test-user-injection", "injected_limited_user|grpc_limited_role")
+            );
             Channel channelWithInjection = io.grpc.ClientInterceptors.intercept(channel, injectionInterceptor);
 
             BulkResponse bulkResp = doBulk(channelWithInjection, "test-limited-injection", 2);
@@ -404,10 +415,9 @@ public class JWTGrpcInterceptorTest {
         String jwtToken = createValidJwtToken("grpc_user", "grpc_index_role");
         ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
         try {
-            ClientInterceptor interceptor = createHeaderInterceptor(Map.of(
-                JWT_AUTH_HEADER, "Bearer " + jwtToken,
-                "test-user-injection", "injected_limited_user|grpc_limited_role"
-            ));
+            ClientInterceptor interceptor = createHeaderInterceptor(
+                Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken, "test-user-injection", "injected_limited_user|grpc_limited_role")
+            );
             Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, interceptor);
 
             BulkResponse bulkResp = doBulk(channelWithAuth, "test-injection-override", 2);
@@ -427,10 +437,9 @@ public class JWTGrpcInterceptorTest {
         String jwtToken = createValidJwtToken("grpc_get_user", "grpc_get_role");
         ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
         try {
-            ClientInterceptor interceptor = createHeaderInterceptor(Map.of(
-                JWT_AUTH_HEADER, "Bearer " + jwtToken,
-                "test-user-injection", "injected_grpc_index_user|grpc_index_role"
-            ));
+            ClientInterceptor interceptor = createHeaderInterceptor(
+                Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken, "test-user-injection", "injected_grpc_index_user|grpc_index_role")
+            );
             Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, interceptor);
 
             BulkResponse bulkResp = doBulk(channelWithAuth, "test-valid-injection", 2);

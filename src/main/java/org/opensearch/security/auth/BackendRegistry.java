@@ -353,7 +353,12 @@ public class BackendRegistry {
              */
             if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
                 if (isDebugEnabled) {
-                    log.debug("Rejecting request because of blocked user: {}, authDomain: {}, channel: {}", ac.getUsername(), authDomain, request.getClass().getName());
+                    log.debug(
+                        "Rejecting request because of blocked user: {}, authDomain: {}, channel: {}",
+                        ac.getUsername(),
+                        authDomain,
+                        request.getClass().getName()
+                    );
                 }
                 continue;
             }

@@ -29,20 +29,15 @@ import org.opensearch.protobufs.QueryContainer;
 import org.opensearch.protobufs.Refresh;
 import org.opensearch.protobufs.SearchRequest;
 import org.opensearch.protobufs.SearchRequestBody;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
-
-import io.grpc.Metadata;
-import io.grpc.ServerCall;
-import io.grpc.ServerCallHandler;
-import io.grpc.ServerInterceptor;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.protobufs.services.DocumentServiceGrpc;
 import org.opensearch.protobufs.services.SearchServiceGrpc;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
+import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 import org.opensearch.transport.grpc.ssl.SecureNetty4GrpcServerTransport;
 
 import io.grpc.CallOptions;
@@ -54,6 +49,9 @@ import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
 import io.grpc.TlsChannelCredentials;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -143,26 +141,32 @@ public class GrpcHelpers {
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
 
-    public static final Map<String, Object> SINGLE_NODE_SECURE_SSL_ONLY_GRPC_TRANSPORT_SETTINGS =
-            new HashMap<>(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS) {{
-                put("plugins.security.ssl_only", true);
-            }};
+    public static final Map<String, Object> SINGLE_NODE_SECURE_SSL_ONLY_GRPC_TRANSPORT_SETTINGS = new HashMap<>(
+        SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS
+    ) {
+        {
+            put("plugins.security.ssl_only", true);
+        }
+    };
 
     // Role with full bulk index permissions
     static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role").clusterPermissions(
-            "indices:data/write/bulk*"
+        "indices:data/write/bulk*"
     ).indexPermissions("indices:data/write/bulk*", "indices:admin/mapping/put", "indices:admin/create", "indices:data/write/index").on("*");
     static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
 
     // Role missing mapping permission - Cannot create indices
     static final TestSecurityConfig.Role GRPC_INDEX_ROLE_NO_MAPPING = new TestSecurityConfig.Role("grpc_limited_role").clusterPermissions(
-            "indices:data/write/bulk*"
+        "indices:data/write/bulk*"
     ).indexPermissions("indices:data/write/bulk*", "indices:admin/create", "indices:data/write/index").on("*");
-    static final TestSecurityConfig.User GRPC_INDEX_USER_NO_MAPPING = new TestSecurityConfig.User("grpc_limited_user").roles(GRPC_INDEX_ROLE_NO_MAPPING);
+    static final TestSecurityConfig.User GRPC_INDEX_USER_NO_MAPPING = new TestSecurityConfig.User("grpc_limited_user").roles(
+        GRPC_INDEX_ROLE_NO_MAPPING
+    );
 
     // Role with full bulk index permissions
-    static final TestSecurityConfig.Role GRPC_LIMITED_GET_ROLE = new TestSecurityConfig.Role("grpc_get_role")
-            .indexPermissions("indices:data/read/get").on("*");
+    static final TestSecurityConfig.Role GRPC_LIMITED_GET_ROLE = new TestSecurityConfig.Role("grpc_get_role").indexPermissions(
+        "indices:data/read/get"
+    ).on("*");
     static final TestSecurityConfig.User GRPC_LIMITED_GET_USER = new TestSecurityConfig.User("grpc_get_user").roles(GRPC_LIMITED_GET_ROLE);
 
     /*
