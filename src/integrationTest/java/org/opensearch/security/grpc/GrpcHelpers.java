@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.opensearch.common.transport.PortsRange;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.protobufs.BulkRequest;
 import org.opensearch.protobufs.BulkRequestBody;
@@ -28,9 +29,17 @@ import org.opensearch.protobufs.QueryContainer;
 import org.opensearch.protobufs.Refresh;
 import org.opensearch.protobufs.SearchRequest;
 import org.opensearch.protobufs.SearchRequestBody;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
+
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.protobufs.services.DocumentServiceGrpc;
 import org.opensearch.protobufs.services.SearchServiceGrpc;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
@@ -138,6 +147,58 @@ public class GrpcHelpers {
             new HashMap<>(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS) {{
                 put("plugins.security.ssl_only", true);
             }};
+
+    // Role with full bulk index permissions
+    static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role").clusterPermissions(
+            "indices:data/write/bulk*"
+    ).indexPermissions("indices:data/write/bulk*", "indices:admin/mapping/put", "indices:admin/create", "indices:data/write/index").on("*");
+    static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
+
+    // Role missing mapping permission - Cannot create indices
+    static final TestSecurityConfig.Role GRPC_INDEX_ROLE_NO_MAPPING = new TestSecurityConfig.Role("grpc_limited_role").clusterPermissions(
+            "indices:data/write/bulk*"
+    ).indexPermissions("indices:data/write/bulk*", "indices:admin/create", "indices:data/write/index").on("*");
+    static final TestSecurityConfig.User GRPC_INDEX_USER_NO_MAPPING = new TestSecurityConfig.User("grpc_limited_user").roles(GRPC_INDEX_ROLE_NO_MAPPING);
+
+    // Role with full bulk index permissions
+    static final TestSecurityConfig.Role GRPC_LIMITED_GET_ROLE = new TestSecurityConfig.Role("grpc_get_role")
+            .indexPermissions("indices:data/read/get").on("*");
+    static final TestSecurityConfig.User GRPC_LIMITED_GET_USER = new TestSecurityConfig.User("grpc_get_user").roles(GRPC_LIMITED_GET_ROLE);
+
+    /*
+    This test plugin provides enables user injection on test clusters by injecting the value of "test-user-injection"
+    from gRPC metadata into the thread context.
+    */
+    public static class TestUserInjectionInterceptorProvider implements GrpcInterceptorProvider {
+        @Override
+        public List<OrderedGrpcInterceptor> getOrderedGrpcInterceptors(ThreadContext threadContext) {
+            return List.of(new OrderedGrpcInterceptor() {
+                @Override
+                public int order() {
+                    return -1; // Run before SecurityGrpcFilter (order 0)
+                }
+
+                @Override
+                public ServerInterceptor getInterceptor() {
+                    return new ServerInterceptor() {
+                        @Override
+                        public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
+                            ServerCall<ReqT, RespT> serverCall,
+                            Metadata metadata,
+                            ServerCallHandler<ReqT, RespT> serverCallHandler
+                        ) {
+                            // Check for test-user-injection header
+                            String injectedUser = metadata.get(Metadata.Key.of("test-user-injection", Metadata.ASCII_STRING_MARSHALLER));
+                            if (injectedUser != null && !injectedUser.isEmpty()) {
+                                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUser);
+                            }
+                            return serverCallHandler.startCall(serverCall, metadata);
+                        }
+                    };
+                }
+            });
+        }
+    }
 
     public static TransportAddress getSecureGrpcEndpoint(LocalCluster cluster) {
         List<TransportAddress> transportAddresses = new ArrayList<>();

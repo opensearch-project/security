@@ -42,7 +42,13 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER_NO_MAPPING;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_LIMITED_GET_ROLE;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_LIMITED_GET_USER;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE_NO_MAPPING;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
 import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
@@ -62,18 +68,6 @@ public class JWTGrpcInterceptorTest {
     public static final String JWT_AUTH_HEADER = "jwt-auth";
     private static final KeyPair KEY_PAIR = Keys.keyPairFor(SignatureAlgorithm.RS256);
     private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
-
-    // Role with full bulk index permissions
-    static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role").clusterPermissions(
-        "indices:data/write/bulk*"
-    ).indexPermissions("indices:data/write/bulk*", "indices:admin/mapping/put", "indices:admin/create", "indices:data/write/index").on("*");
-    static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
-
-    // Role missing mapping permission - Cannot create indices
-    static final TestSecurityConfig.Role GRPC_LIMITED_ROLE = new TestSecurityConfig.Role("grpc_limited_role").clusterPermissions(
-        "indices:data/write/bulk*"
-    ).indexPermissions("indices:data/write/bulk*", "indices:admin/create", "indices:data/write/index").on("*");
-    static final TestSecurityConfig.User GRPC_LIMITED_USER = new TestSecurityConfig.User("grpc_limited_user").roles(GRPC_LIMITED_ROLE);
 
     private String createValidJwtToken(String username, String... roles) {
         Date now = new Date();
@@ -127,7 +121,10 @@ public class JWTGrpcInterceptorTest {
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .certificates(TEST_CERTIFICATES)
         .nodeSettings(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS)
-        .nodeSettings(Map.of("plugins.security.authcz.admin_dn", Arrays.asList(TEST_CERTIFICATES.getAdminDNs())))
+        .nodeSettings(Map.of(
+            "plugins.security.authcz.admin_dn", Arrays.asList(TEST_CERTIFICATES.getAdminDNs()),
+            "plugins.security.unsupported.inject_user.enabled", true
+        ))
         .plugin(
             // Add GrpcPlugin
             new PluginInfo(
@@ -157,11 +154,12 @@ public class JWTGrpcInterceptorTest {
             )
         )
         .anonymousAuth(false)
-        .users(GRPC_INDEX_USER, GRPC_LIMITED_USER)
-        .roles(GRPC_INDEX_ROLE, GRPC_LIMITED_ROLE)
+        .users(GRPC_INDEX_USER, GRPC_INDEX_USER_NO_MAPPING, GRPC_LIMITED_GET_USER)
+        .roles(GRPC_INDEX_ROLE, GRPC_INDEX_ROLE_NO_MAPPING, GRPC_LIMITED_GET_ROLE)
         .rolesMapping(
             new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role"),
-            new TestSecurityConfig.RoleMapping(GRPC_LIMITED_ROLE.getName()).backendRoles("grpc_limited_role")
+            new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE_NO_MAPPING.getName()).backendRoles("grpc_limited_role"),
+            new TestSecurityConfig.RoleMapping(GRPC_LIMITED_GET_ROLE.getName()).backendRoles("grpc_get_role")
         )
         .authc(JWT_AUTH_DOMAIN)
         .authc(BASIC_AUTH_DOMAIN)
@@ -361,6 +359,84 @@ public class JWTGrpcInterceptorTest {
                 assertEquals(Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
                 assertEquals("Authentication finally failed", e.getStatus().getDescription());
             }
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testUserInjectionWithNoAuthUser() throws Exception {
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor injectionInterceptor = createHeaderInterceptor(Map.of("test-user-injection", "injected_grpc_index_user|grpc_index_role"));
+            Channel channelWithInjection = io.grpc.ClientInterceptors.intercept(channel, injectionInterceptor);
+
+            BulkResponse bulkResp = doBulk(channelWithInjection, "test-user-injection", 2);
+            assertNotNull(bulkResp);
+            assertFalse(bulkResp.getErrors());
+            assertEquals(2, bulkResp.getItemsCount());
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testLimitedUserInjectionWithNoAuthUser() throws Exception {
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor injectionInterceptor = createHeaderInterceptor(Map.of("test-user-injection", "injected_limited_user|grpc_limited_role"));
+            Channel channelWithInjection = io.grpc.ClientInterceptors.intercept(channel, injectionInterceptor);
+
+            BulkResponse bulkResp = doBulk(channelWithInjection, "test-limited-injection", 2);
+            assertNotNull(bulkResp);
+            assertTrue(bulkResp.getErrors());
+            assertEquals(2, bulkResp.getItemsCount());
+
+            String errorMessage = bulkResp.getItems(0).getIndex().getError().getReason();
+            assertTrue("Expected mapping permission error", errorMessage.contains("indices:admin/mapping/put"));
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testLimitedUserInjectionWithValidAuthUser() throws Exception {
+        String jwtToken = createValidJwtToken("grpc_user", "grpc_index_role");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor interceptor = createHeaderInterceptor(Map.of(
+                JWT_AUTH_HEADER, "Bearer " + jwtToken,
+                "test-user-injection", "injected_limited_user|grpc_limited_role"
+            ));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, interceptor);
+
+            BulkResponse bulkResp = doBulk(channelWithAuth, "test-injection-override", 2);
+            assertNotNull(bulkResp);
+            assertTrue(bulkResp.getErrors());
+            assertEquals(2, bulkResp.getItemsCount());
+
+            String errorMessage = bulkResp.getItems(0).getIndex().getError().getReason();
+            assertTrue("Expected mapping permission error", errorMessage.contains("indices:admin/mapping/put"));
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testValidUserInjectionWithLimitedAuthUser() throws Exception {
+        String jwtToken = createValidJwtToken("grpc_get_user", "grpc_get_role");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor interceptor = createHeaderInterceptor(Map.of(
+                JWT_AUTH_HEADER, "Bearer " + jwtToken,
+                "test-user-injection", "injected_grpc_index_user|grpc_index_role"
+            ));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, interceptor);
+
+            BulkResponse bulkResp = doBulk(channelWithAuth, "test-valid-injection", 2);
+            assertNotNull(bulkResp);
+            assertFalse(bulkResp.getErrors());
+            assertEquals(2, bulkResp.getItemsCount());
         } finally {
             channel.shutdown();
         }

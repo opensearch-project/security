@@ -79,7 +79,6 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
             Metadata metadata,
             ServerCallHandler<ReqT, RespT> serverCallHandler
         ) {
-
             return handleCall(serverCall, metadata, serverCallHandler);
         }
 
