@@ -24,13 +24,14 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.resolver;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -42,6 +43,7 @@ import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -84,41 +86,46 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.IndexUtils;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.configuration.ClusterInfoHolder;
-import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.snapshots.SnapshotInfo;
 import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.TransportRequest;
 
-import org.greenrobot.eventbus.Subscribe;
-
 import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 
+/**
+ * Moved from https://github.com/opensearch-project/security/blob/a41bd035dad0c522f9218fce81b105a1cbaf2714/src/main/java/org/opensearch/security/resolver/IndexResolverReplacer.java
+ *
+ * @deprecated This is only used for the legacy privilege evaluation; new code should use ResolvedIndices from ActionRequestMetadata
+ */
+@Deprecated
 public class IndexResolverReplacer {
 
     private static final Set<String> NULL_SET = new HashSet<>(Collections.singleton(null));
     private final Logger log = LogManager.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
     private final Supplier<ClusterState> clusterStateSupplier;
-    private final ClusterInfoHolder clusterInfoHolder;
+    private final Supplier<Boolean> isLocalNodeElectedClusterManager;
     private volatile boolean respectRequestIndicesOptions = false;
 
     public IndexResolverReplacer(
         IndexNameExpressionResolver resolver,
         Supplier<ClusterState> clusterStateSupplier,
-        ClusterInfoHolder clusterInfoHolder
+        Supplier<Boolean> isLocalNodeElectedClusterManager
     ) {
         this.resolver = resolver;
         this.clusterStateSupplier = clusterStateSupplier;
-        this.clusterInfoHolder = clusterInfoHolder;
+        this.isLocalNodeElectedClusterManager = isLocalNodeElectedClusterManager;
     }
 
     private static boolean isAllWithNoRemote(final String... requestedPatterns) {
@@ -165,6 +172,7 @@ public class IndexResolverReplacer {
         private final ImmutableSet.Builder<String> allIndices;
         private final ImmutableSet.Builder<String> originalRequested;
         private final ImmutableSet.Builder<String> remoteIndices;
+        private final HashMap<String, OriginalIndices> remoteIndicesAsMap = new HashMap<>();
         // set of previously resolved index requests to avoid resolving
         // the same index more than once while processing bulk requests
         private final Set<AlreadyResolvedKey> alreadyResolved;
@@ -239,6 +247,7 @@ public class IndexResolverReplacer {
             }
 
             Set<String> remoteIndices;
+            Map<String, OriginalIndices> remoteIndicesAsMap;
             final List<String> localRequestedPatterns = new ArrayList<>(Arrays.asList(original));
 
             final RemoteClusterService remoteClusterService = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService();
@@ -247,10 +256,9 @@ public class IndexResolverReplacer {
                 remoteIndices = new HashSet<>();
                 final Map<String, OriginalIndices> remoteClusterIndices = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService()
                     .groupIndices(indicesOptions, original, idx -> resolver.hasIndexAbstraction(idx, clusterStateSupplier.get()));
-                final Set<String> remoteClusters = remoteClusterIndices.keySet()
-                    .stream()
-                    .filter(k -> !RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY.equals(k))
-                    .collect(Collectors.toSet());
+                remoteClusterIndices.remove(RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY);
+                remoteIndicesAsMap = remoteClusterIndices;
+                final Set<String> remoteClusters = remoteClusterIndices.keySet();
                 for (String remoteCluster : remoteClusters) {
                     for (String remoteIndex : remoteClusterIndices.get(remoteCluster).indices()) {
                         remoteIndices.add(RemoteClusterService.buildRemoteIndexName(remoteCluster, remoteIndex));
@@ -277,6 +285,7 @@ public class IndexResolverReplacer {
 
             } else {
                 remoteIndices = Collections.emptySet();
+                remoteIndicesAsMap = Collections.emptyMap();
             }
 
             final Collection<String> matchingAliases;
@@ -355,7 +364,7 @@ public class IndexResolverReplacer {
                 );
             }
 
-            resolveTo(matchingAliases, matchingAllIndices, matchingDataStreams, original, remoteIndices);
+            resolveTo(matchingAliases, matchingAllIndices, matchingDataStreams, original, remoteIndices, remoteIndicesAsMap);
         }
 
         private void resolveToLocalAll() {
@@ -369,13 +378,15 @@ public class IndexResolverReplacer {
             Iterable<String> matchingAllIndices,
             Iterable<String> matchingDataStreams,
             String[] original,
-            Iterable<String> remoteIndices
+            Iterable<String> remoteIndices,
+            Map<String, OriginalIndices> remoteIndicesAsMap
         ) {
             aliases.addAll(matchingAliases);
             allIndices.addAll(matchingAllIndices);
             allIndices.addAll(matchingDataStreams);
             originalRequested.add(original);
             this.remoteIndices.addAll(remoteIndices);
+            this.remoteIndicesAsMap.putAll(remoteIndicesAsMap);
         }
 
         @Override
@@ -400,7 +411,14 @@ public class IndexResolverReplacer {
         Resolved resolved(IndicesOptions indicesOptions) {
             final Resolved resolved = alreadyResolved.isEmpty()
                 ? Resolved._LOCAL_ALL
-                : new Resolved(aliases.build(), allIndices.build(), originalRequested.build(), remoteIndices.build(), indicesOptions);
+                : new Resolved(
+                    aliases.build(),
+                    allIndices.build(),
+                    originalRequested.build(),
+                    remoteIndices.build(),
+                    remoteIndicesAsMap,
+                    indicesOptions
+                );
 
             if (log.isTraceEnabled()) {
                 log.trace("Finally resolved for {}: {}", name, resolved);
@@ -457,6 +475,7 @@ public class IndexResolverReplacer {
             All_SET,
             All_SET,
             ImmutableSet.of(),
+            ImmutableMap.of(),
             SearchRequest.DEFAULT_INDICES_OPTIONS
         );
 
@@ -469,6 +488,7 @@ public class IndexResolverReplacer {
         private final Set<String> allIndices;
         private final Set<String> originalRequested;
         private final Set<String> remoteIndices;
+        private final Map<String, OriginalIndices> remoteIndicesAsMap;
         private final boolean isLocalAll;
         private final IndicesOptions indicesOptions;
 
@@ -477,12 +497,14 @@ public class IndexResolverReplacer {
             final ImmutableSet<String> allIndices,
             final ImmutableSet<String> originalRequested,
             final ImmutableSet<String> remoteIndices,
+            Map<String, OriginalIndices> remoteIndicesAsMap,
             IndicesOptions indicesOptions
         ) {
             this.aliases = aliases;
             this.allIndices = allIndices;
             this.originalRequested = originalRequested;
             this.remoteIndices = remoteIndices;
+            this.remoteIndicesAsMap = remoteIndicesAsMap;
             this.isLocalAll = IndexResolverReplacer.isLocalAll(originalRequested.toArray(new String[0]))
                 || (aliases.contains("*") && allIndices.contains("*"));
             this.indicesOptions = indicesOptions;
@@ -526,6 +548,18 @@ public class IndexResolverReplacer {
 
         public Set<String> getRemoteIndices() {
             return remoteIndices;
+        }
+
+        public ResolvedIndices toResolvedIndices(PrivilegesEvaluationContext context) {
+            return this.toResolvedIndices(context::clusterState, context.getIndexNameExpressionResolver());
+        }
+
+        public ResolvedIndices toResolvedIndices(Supplier<ClusterState> clusterStateSupplier, IndexNameExpressionResolver resolver) {
+            if (isLocalAll) {
+                return ResolvedIndices.of(getAllIndicesResolved(clusterStateSupplier, resolver)).withRemoteIndices(remoteIndicesAsMap);
+            } else {
+                return ResolvedIndices.of(allIndices).withRemoteIndices(remoteIndicesAsMap);
+            }
         }
 
         @Override
@@ -577,7 +611,7 @@ public class IndexResolverReplacer {
 
         public static Resolved ofIndex(String index) {
             ImmutableSet<String> indexSet = ImmutableSet.of(index);
-            return new Resolved(ImmutableSet.of(), indexSet, indexSet, ImmutableSet.of(), EXACT_INDEX_OPTIONS);
+            return new Resolved(ImmutableSet.of(), indexSet, indexSet, ImmutableSet.of(), ImmutableMap.of(), EXACT_INDEX_OPTIONS);
         }
     }
 
@@ -710,7 +744,7 @@ public class IndexResolverReplacer {
             }
         } else if (request instanceof RestoreSnapshotRequest) {
 
-            if (clusterInfoHolder.isLocalNodeElectedClusterManager() == Boolean.FALSE) {
+            if (!this.isLocalNodeElectedClusterManager.get()) {
                 return true;
             }
 
@@ -856,8 +890,7 @@ public class IndexResolverReplacer {
         }
     }
 
-    @Subscribe
-    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
-        respectRequestIndicesOptions = dcm.isRespectRequestIndicesEnabled();
+    public void updateConfig(ConfigV7 configV7) {
+        respectRequestIndicesOptions = configV7.dynamic != null && configV7.dynamic.respect_request_indices_options;
     }
 }
