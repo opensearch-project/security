@@ -46,8 +46,8 @@ import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE_NO_MAPPING;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER_NO_MAPPING;
-import static org.opensearch.security.grpc.GrpcHelpers.GRPC_LIMITED_GET_ROLE;
-import static org.opensearch.security.grpc.GrpcHelpers.GRPC_LIMITED_GET_USER;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_SEARCH_ROLE;
+import static org.opensearch.security.grpc.GrpcHelpers.GRPC_SEARCH_USER;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
@@ -61,6 +61,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JWTGrpcInterceptorTest {
+
+    // User with no permissions for impersonation testing
+    static final TestSecurityConfig.User GRPC_IMPERSONATING_USER = new TestSecurityConfig.User("grpc_impersonating_user");
 
     // JWT claims/keys
     public static final List<String> CLAIM_USERNAME = List.of("preferred-username");
@@ -126,7 +129,9 @@ public class JWTGrpcInterceptorTest {
                 "plugins.security.authcz.admin_dn",
                 Arrays.asList(TEST_CERTIFICATES.getAdminDNs()),
                 "plugins.security.unsupported.inject_user.enabled",
-                true
+                true,
+                "plugins.security.authcz.rest_impersonation_user.grpc_impersonating_user",
+                Arrays.asList("grpc_search_user", "grpc_user")
             )
         )
         .plugin(
@@ -158,12 +163,12 @@ public class JWTGrpcInterceptorTest {
             )
         )
         .anonymousAuth(false)
-        .users(GRPC_INDEX_USER, GRPC_INDEX_USER_NO_MAPPING, GRPC_LIMITED_GET_USER)
-        .roles(GRPC_INDEX_ROLE, GRPC_INDEX_ROLE_NO_MAPPING, GRPC_LIMITED_GET_ROLE)
+        .users(GRPC_INDEX_USER, GRPC_INDEX_USER_NO_MAPPING, GRPC_SEARCH_USER, GRPC_IMPERSONATING_USER)
+        .roles(GRPC_INDEX_ROLE, GRPC_INDEX_ROLE_NO_MAPPING, GRPC_SEARCH_ROLE)
         .rolesMapping(
             new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role"),
             new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE_NO_MAPPING.getName()).backendRoles("grpc_limited_role"),
-            new TestSecurityConfig.RoleMapping(GRPC_LIMITED_GET_ROLE.getName()).backendRoles("grpc_get_role")
+            new TestSecurityConfig.RoleMapping(GRPC_SEARCH_ROLE.getName()).backendRoles("grpc_search_role")
         )
         .authc(JWT_AUTH_DOMAIN)
         .authc(BASIC_AUTH_DOMAIN)
@@ -446,6 +451,48 @@ public class JWTGrpcInterceptorTest {
             assertNotNull(bulkResp);
             assertFalse(bulkResp.getErrors());
             assertEquals(2, bulkResp.getItemsCount());
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testUserImpersonation() throws Exception {
+        String jwtToken = createValidJwtToken("grpc_impersonating_user", "");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor interceptor = createHeaderInterceptor(
+                Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken, "opendistro_security_impersonate_as", "grpc_user")
+            );
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, interceptor);
+
+            BulkResponse bulkResp = doBulk(channelWithAuth, "test-impersonation", 2);
+            assertNotNull(bulkResp);
+            assertFalse(bulkResp.getErrors());
+            assertEquals(2, bulkResp.getItemsCount());
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testUserImpersonationInsufficientPermissions() throws Exception {
+        String jwtToken = createValidJwtToken("grpc_impersonating_user", "");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        try {
+            ClientInterceptor interceptor = createHeaderInterceptor(
+                Map.of(JWT_AUTH_HEADER, "Bearer " + jwtToken, "opendistro_security_impersonate_as", "grpc_search_user")
+            );
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, interceptor);
+
+            try {
+                doBulk(channelWithAuth, "test-impersonation-denied", 2);
+                fail("Expected permission denied - search user cannot perform bulk operations");
+            } catch (StatusRuntimeException e) {
+                assertEquals("Expected PERMISSION_DENIED status", Status.Code.PERMISSION_DENIED, e.getStatus().getCode());
+                assertNotNull(e.getStatus().getDescription());
+                assertTrue("Expected bulk permission error", e.getStatus().getDescription().contains("indices:data/write/bulk"));
+            }
         } finally {
             channel.shutdown();
         }

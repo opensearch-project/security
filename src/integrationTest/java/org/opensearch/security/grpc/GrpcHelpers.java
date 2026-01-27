@@ -163,11 +163,12 @@ public class GrpcHelpers {
         GRPC_INDEX_ROLE_NO_MAPPING
     );
 
-    // Role with full bulk index permissions
-    static final TestSecurityConfig.Role GRPC_LIMITED_GET_ROLE = new TestSecurityConfig.Role("grpc_get_role").indexPermissions(
+    // Role with search permissions
+    static final TestSecurityConfig.Role GRPC_SEARCH_ROLE = new TestSecurityConfig.Role("grpc_search_role").indexPermissions(
+        "indices:data/read/search*",
         "indices:data/read/get"
     ).on("*");
-    static final TestSecurityConfig.User GRPC_LIMITED_GET_USER = new TestSecurityConfig.User("grpc_get_user").roles(GRPC_LIMITED_GET_ROLE);
+    static final TestSecurityConfig.User GRPC_SEARCH_USER = new TestSecurityConfig.User("grpc_search_user").roles(GRPC_SEARCH_ROLE);
 
     /*
     This test plugin provides enables user injection on test clusters by injecting the value of "test-user-injection"
