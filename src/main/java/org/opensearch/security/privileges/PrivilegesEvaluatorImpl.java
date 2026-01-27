@@ -287,7 +287,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             joiner.add(escapePipe(String.join(",", user.getSecurityRoles())));
 
             String requestedTenant = user.getRequestedTenant();
-            joiner.add(requestedTenant);
+            final String tenant = Strings.isNullOrEmpty(requestedTenant) ? "" : requestedTenant;
+            joiner.add(tenant);
             String tenantAccessToCheck = getTenancyAccess(requestedTenant, mapTenants(user, mappedRoles));
             joiner.add(tenantAccessToCheck);
             log.debug(joiner);
