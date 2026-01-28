@@ -50,7 +50,7 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
 
             @Override
             public ServerInterceptor getInterceptor() {
-                return new JwtGrpcInterceptor(
+                return new AuthNGrpcInterceptor(
                     threadContext,
                     OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry(),
                     OpenSearchSecurityPlugin.GuiceHolder.getAuditLog()
@@ -60,14 +60,16 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
     }
 
     /**
-     * gRPC interceptor that extracts JWT tokens from headers and authenticates them against the BackendRegistry.
+     * gRPC interceptor which handles authentication of client requests.
+     * Extracts security headers from the gRPC metadata and authenticates the user against the backend registry.
+     * Authenticated users are stashed in the thread context for authorization processing on the transport layer.
      */
-    private static class JwtGrpcInterceptor implements ServerInterceptor {
+    private static class AuthNGrpcInterceptor implements ServerInterceptor {
         private final ThreadContext threadContext;
         private final BackendRegistry backendRegistry;
         private final AuditLog auditLog;
 
-        public JwtGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry, AuditLog auditLog) {
+        public AuthNGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry, AuditLog auditLog) {
             this.threadContext = threadContext;
             this.backendRegistry = backendRegistry;
             this.auditLog = auditLog;
