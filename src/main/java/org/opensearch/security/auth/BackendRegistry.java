@@ -231,28 +231,21 @@ public class BackendRegistry {
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled || injectedUserEnabled;
     }
 
-    public boolean authenticate(final SecurityRequestChannel request) {
-        return authenticate(request, false);
-    }
-
-    /**
-     * Over gRPC, we do not support the full set of authentication features.
-     * - Auth domain support is limited to JWT only.
-     * - Authenticating as superuser is blocked over gRPC.
-     * - Tenant headers are unsupported.
-     * - Anonymous auth is unsupported.
-     */
-    public boolean authenticate(final GrpcRequestChannel request) {
-        return authenticate(request, true);
-    }
-
     /**
      * Iterates through configured auth domains, extracting credentials from the request and thread context.
      * Credentials are authenticated with the auth backend. Resulting user and roles are stashed in the thread context.
      * @param request specifying HTTP headers, client ip, and channel to send error response.
      * @return true if any user is authenticated for this request.
      */
-    private boolean authenticate(final SecurityRequestChannel request, boolean gRPC) {
+    public boolean authenticate(final SecurityRequestChannel request) {
+        /*
+        Over gRPC, we do not support the full set of authentication features.
+        - Auth domain support is limited to JWT only.
+        - Authenticating as superuser is blocked over gRPC.
+        - Tenant headers are unsupported.
+        - Anonymous auth is unsupported.
+         */
+        boolean gRPC = request instanceof GrpcRequestChannel;
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (checkRemoteAddrBlocked(request)) {
