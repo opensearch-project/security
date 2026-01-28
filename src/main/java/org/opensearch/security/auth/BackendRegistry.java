@@ -80,6 +80,8 @@ import static org.opensearch.security.http.HTTPBasicAuthenticator.BASIC_TYPE;
 public class BackendRegistry {
 
     protected static final Logger log = LogManager.getLogger(BackendRegistry.class);
+    private static final Set<String> GRPC_SUPPORTED_AUTH = Set.of("jwt");
+
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
 
@@ -309,7 +311,7 @@ public class BackendRegistry {
             /*
             Exclude unsupported auth domains over gRPC.
              */
-            if (gRPC && !"jwt".equals(httpAuthenticator.getType())) {
+            if (gRPC && !GRPC_SUPPORTED_AUTH.contains(httpAuthenticator.getType())) {
                 if (isDebugEnabled) {
                     log.debug("Skipping un-supported auth domain {} for gRPC request", httpAuthenticator.getType());
                 }
