@@ -61,6 +61,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JWTGrpcInterceptorTest {
+    // Graceful authentication failure message
+    private static final String AUTH_FINALLY_FAILED = "Authentication finally failed";
 
     // User with no permissions for impersonation testing
     static final TestSecurityConfig.User GRPC_IMPERSONATING_USER = new TestSecurityConfig.User("grpc_impersonating_user");
@@ -250,7 +252,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure due to invalid JWT signature");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", AUTH_FINALLY_FAILED, e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -270,7 +272,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure due to wrong JWT claims");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", AUTH_FINALLY_FAILED, e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -291,7 +293,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure - Authorization header not configured for JWT");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", AUTH_FINALLY_FAILED, e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -308,7 +310,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected authentication failure - no JWT token provided");
             } catch (StatusRuntimeException e) {
                 assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
+                assertEquals("Expected specific error message", AUTH_FINALLY_FAILED, e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
@@ -369,7 +371,7 @@ public class JWTGrpcInterceptorTest {
                 fail("Expected rejection - basic auth not supported");
             } catch (StatusRuntimeException e) {
                 assertEquals(Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
-                assertEquals("Authentication finally failed", e.getStatus().getDescription());
+                assertEquals(AUTH_FINALLY_FAILED, e.getStatus().getDescription());
             }
         } finally {
             channel.shutdown();
