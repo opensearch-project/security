@@ -15,8 +15,6 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -24,12 +22,10 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.support.ConfigConstants;
-
-import io.grpc.Metadata;
-import io.grpc.ServerCall;
-import io.grpc.ServerCallHandler;
-import io.grpc.ServerInterceptor;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
+
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -54,9 +50,7 @@ public class SecurityGrpcFilterTest {
 
     @Test
     public void testSecurityDisabledReturnsEmptyList() {
-        Settings settings = Settings.builder()
-            .put(ConfigConstants.SECURITY_DISABLED, true)
-            .build();
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DISABLED, true).build();
 
         securityGrpcFilter.initNodeSettings(settings);
         List<GrpcInterceptorProvider.OrderedGrpcInterceptor> interceptors = securityGrpcFilter.getOrderedGrpcInterceptors(threadContext);
@@ -66,9 +60,7 @@ public class SecurityGrpcFilterTest {
 
     @Test
     public void testSslOnlyReturnsEmptyList() {
-        Settings settings = Settings.builder()
-            .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .build();
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_SSL_ONLY, true).build();
 
         securityGrpcFilter.initNodeSettings(settings);
         List<GrpcInterceptorProvider.OrderedGrpcInterceptor> interceptors = securityGrpcFilter.getOrderedGrpcInterceptors(threadContext);
@@ -78,9 +70,7 @@ public class SecurityGrpcFilterTest {
 
     @Test
     public void testNonNodeClientTypeReturnsEmptyList() {
-        Settings settings = Settings.builder()
-            .put(OpenSearchSecuritySSLPlugin.CLIENT_TYPE, "transport")
-            .build();
+        Settings settings = Settings.builder().put(OpenSearchSecuritySSLPlugin.CLIENT_TYPE, "transport").build();
 
         securityGrpcFilter.initNodeSettings(settings);
         List<GrpcInterceptorProvider.OrderedGrpcInterceptor> interceptors = securityGrpcFilter.getOrderedGrpcInterceptors(threadContext);
@@ -90,14 +80,14 @@ public class SecurityGrpcFilterTest {
 
     @Test
     public void testNormalConfigurationReturnsInterceptor() {
-        Settings settings = Settings.builder()
-            .put(OpenSearchSecuritySSLPlugin.CLIENT_TYPE, "node")
-            .build();
+        Settings settings = Settings.builder().put(OpenSearchSecuritySSLPlugin.CLIENT_TYPE, "node").build();
 
         securityGrpcFilter.initNodeSettings(settings);
 
         try {
-            List<GrpcInterceptorProvider.OrderedGrpcInterceptor> interceptors = securityGrpcFilter.getOrderedGrpcInterceptors(threadContext);
+            List<GrpcInterceptorProvider.OrderedGrpcInterceptor> interceptors = securityGrpcFilter.getOrderedGrpcInterceptors(
+                threadContext
+            );
             assertEquals(1, interceptors.size());
             interceptors.get(0).getInterceptor(); // This will throw due to uninitialized GuiceHolder
         } catch (Exception e) {

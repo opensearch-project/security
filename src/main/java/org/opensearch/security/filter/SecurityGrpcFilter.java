@@ -60,8 +60,8 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
 
         // Handle settings which disable client/server auth
         if (settings.getAsBoolean(ConfigConstants.SECURITY_DISABLED, false)
-                || settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false)
-                || !"node".equals(settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE))) {
+            || settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false)
+            || !"node".equals(settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE))) {
             return List.of();
         }
 

@@ -16,8 +16,6 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import org.opensearch.security.filter.SecurityResponse;
-
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
