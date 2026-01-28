@@ -16,10 +16,12 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
@@ -34,13 +36,35 @@ import io.grpc.Status;
 
 public class SecurityGrpcFilter implements GrpcInterceptorProvider {
     private static final Logger log = LogManager.getLogger(SecurityGrpcFilter.class);
+    private Settings settings;
 
     public SecurityGrpcFilter() {
         // Empty constructor initialized by extensible plugin framework
     }
 
     @Override
+    public void initNodeSettings(Settings settings) {
+        this.settings = settings;
+    }
+
+    /**
+     * Mirror the getRestHandlerWrapper logic of OpenSearchSecurityPlugin.
+     * Several settings disable authn/authz on the node. In these cases no interceptor is returned.
+     */
+    @Override
     public List<OrderedGrpcInterceptor> getOrderedGrpcInterceptors(ThreadContext threadContext) {
+
+        if (settings == null) {
+            throw new RuntimeException("SecurityGrpcFilter error: Settings are null");
+        }
+
+        // Handle settings which disable client/server auth
+        if (settings.getAsBoolean(ConfigConstants.SECURITY_DISABLED, false)
+                || settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false)
+                || !"node".equals(settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE))) {
+            return List.of();
+        }
+
         return List.of(new OrderedGrpcInterceptor() {
 
             @Override
