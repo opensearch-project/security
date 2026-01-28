@@ -81,7 +81,7 @@ configurations {
             force "com.google.protobuf:protobuf-java:${versions.protobuf}"
             force "com.google.guava:guava:${guava_version}"
             force "com.google.guava:failureaccess:1.0.3"
-            force "io.projectreactor:reactor-core:3.8.1"
+            force "io.projectreactor:reactor-core:3.8.2"
 
         }
     }
