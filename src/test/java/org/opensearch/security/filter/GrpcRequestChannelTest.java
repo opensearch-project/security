@@ -16,9 +16,12 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import org.opensearch.security.filter.SecurityResponse;
+
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
+import io.grpc.Status;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -143,5 +146,40 @@ public class GrpcRequestChannelTest {
         assertTrue(channel instanceof GrpcRequestChannel);
         assertEquals("test.Service/Method", channel.path());
         assertEquals("test-value", channel.header("test-header"));
+    }
+
+    @Test
+    public void testHttpToGrpcStatusMappings() {
+        ServerCall<Object, Object> serverCall = createMockServerCall("test.Service/Method");
+        Metadata metadata = new Metadata();
+        GrpcRequestChannel channel = new GrpcRequestChannel(serverCall, metadata);
+        channel.queueForSending(new SecurityResponse(200, Map.of(), ""));
+        assertEquals(Status.Code.OK, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(400, Map.of(), ""));
+        assertEquals(Status.Code.INVALID_ARGUMENT, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(401, Map.of(), ""));
+        assertEquals(Status.Code.UNAUTHENTICATED, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(403, Map.of(), ""));
+        assertEquals(Status.Code.PERMISSION_DENIED, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(404, Map.of(), ""));
+        assertEquals(Status.Code.NOT_FOUND, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(405, Map.of(), ""));
+        assertEquals(Status.Code.UNIMPLEMENTED, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(408, Map.of(), ""));
+        assertEquals(Status.Code.DEADLINE_EXCEEDED, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(409, Map.of(), ""));
+        assertEquals(Status.Code.ABORTED, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(413, Map.of(), ""));
+        assertEquals(Status.Code.OUT_OF_RANGE, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(429, Map.of(), ""));
+        assertEquals(Status.Code.RESOURCE_EXHAUSTED, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(500, Map.of(), ""));
+        assertEquals(Status.Code.INTERNAL, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(503, Map.of(), ""));
+        assertEquals(Status.Code.UNAVAILABLE, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(411, Map.of(), ""));
+        assertEquals(Status.Code.FAILED_PRECONDITION, channel.getQueuedResponseGrpcStatus().getCode());
+        channel.queueForSending(new SecurityResponse(999, Map.of(), ""));
+        assertEquals(Status.Code.UNKNOWN, channel.getQueuedResponseGrpcStatus().getCode());
     }
 }
