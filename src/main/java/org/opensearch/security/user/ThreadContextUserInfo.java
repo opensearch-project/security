@@ -80,7 +80,8 @@ public class ThreadContextUserInfo {
             joiner.add(escapePipe(String.join(",", context.getMappedRoles())));
 
             String requestedTenant = context.getUser().getRequestedTenant();
-            joiner.add(requestedTenant);
+            final String tenant = Strings.isNullOrEmpty(requestedTenant) ? "" : requestedTenant;
+            joiner.add(tenant);
 
             String tenantAccessToCheck = getTenancyAccess(context);
             joiner.add(tenantAccessToCheck);
