@@ -16,11 +16,12 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import org.opensearch.rest.RestRequest;
+
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
 import io.grpc.Status;
-import org.opensearch.rest.RestRequest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
