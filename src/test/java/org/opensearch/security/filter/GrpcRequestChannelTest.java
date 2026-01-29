@@ -20,6 +20,7 @@ import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
 import io.grpc.Status;
+import org.opensearch.rest.RestRequest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -101,13 +102,40 @@ public class GrpcRequestChannelTest {
         channel.getSSLEngine();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testMethodThrowsException() {
-        ServerCall<Object, Object> serverCall = createMockServerCall("test.Service/Method");
+    @Test
+    public void testMethodForSearchService() {
+        ServerCall<Object, Object> serverCall = createMockServerCall("org.opensearch.protobufs.services.SearchService/Search");
         Metadata metadata = new Metadata();
         GrpcRequestChannel channel = new GrpcRequestChannel(serverCall, metadata);
 
-        channel.method();
+        assertEquals(RestRequest.Method.GET, channel.method());
+    }
+
+    @Test
+    public void testMethodForDocumentService() {
+        ServerCall<Object, Object> serverCall = createMockServerCall("org.opensearch.protobufs.services.DocumentService/Bulk");
+        Metadata metadata = new Metadata();
+        GrpcRequestChannel channel = new GrpcRequestChannel(serverCall, metadata);
+
+        assertEquals(RestRequest.Method.POST, channel.method());
+    }
+
+    @Test
+    public void testMethodForHealthService() {
+        ServerCall<Object, Object> serverCall = createMockServerCall("grpc.health.v1.Health/Check");
+        Metadata metadata = new Metadata();
+        GrpcRequestChannel channel = new GrpcRequestChannel(serverCall, metadata);
+
+        assertEquals(RestRequest.Method.GET, channel.method());
+    }
+
+    @Test
+    public void testMethodForUnknownService() {
+        ServerCall<Object, Object> serverCall = createMockServerCall("unknown.Service/Method");
+        Metadata metadata = new Metadata();
+        GrpcRequestChannel channel = new GrpcRequestChannel(serverCall, metadata);
+
+        assertEquals(RestRequest.Method.GET, channel.method());
     }
 
     @Test
