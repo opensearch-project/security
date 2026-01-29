@@ -72,11 +72,8 @@ public class JWTGrpcDefaultAuthHeaderTest {
 
     // JWT auth domain with default Authorization header
     public static final TestSecurityConfig.AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig.AuthcDomain("jwt", 1, true)
-        .jwtHttpAuthenticator(
-            new JwtConfigBuilder().signingKey(List.of(PUBLIC_KEY))
-                .subjectKey(CLAIM_USERNAME)
-                .rolesKey(CLAIM_ROLES)
-        ).backend("noop");
+        .jwtHttpAuthenticator(new JwtConfigBuilder().signingKey(List.of(PUBLIC_KEY)).subjectKey(CLAIM_USERNAME).rolesKey(CLAIM_ROLES))
+        .backend("noop");
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)

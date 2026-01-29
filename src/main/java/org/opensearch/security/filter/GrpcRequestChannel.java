@@ -13,15 +13,12 @@ package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 import java.util.Set;
+import java.util.TreeMap;
 import javax.net.ssl.SSLEngine;
 
 import org.opensearch.rest.RestRequest.Method;
