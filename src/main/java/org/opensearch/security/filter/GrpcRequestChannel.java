@@ -13,11 +13,14 @@ package org.opensearch.security.filter;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.util.Set;
 import javax.net.ssl.SSLEngine;
 
@@ -44,8 +47,12 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
         this.headers = extractHeaders(metadata);
     }
 
+    /**
+     * @param metadata gRPC metadata object.
+     * @return case-insensitive header map - excluding binary headers.
+     */
     private Map<String, List<String>> extractHeaders(Metadata metadata) {
-        Map<String, List<String>> headerMap = new HashMap<>();
+        Map<String, List<String>> headerMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (String key : metadata.keys()) {
             if (!key.endsWith("-bin")) { // Skip binary headers
                 String value = metadata.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER));
