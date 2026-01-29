@@ -79,7 +79,7 @@ public class UserBruteForceAttacksPreventionTests {
             response.assertStatusCode(SC_UNAUTHORIZED);
         }
         // Rejecting REST request because of blocked user:
-        logsRule.assertThatContain("Rejecting REST request because of blocked user: " + USER_2.getName());
+        logsRule.assertThatContain("Rejecting request because of blocked user: " + USER_2.getName());
     }
 
     @Test
@@ -90,7 +90,7 @@ public class UserBruteForceAttacksPreventionTests {
 
             response.assertStatusCode(SC_UNAUTHORIZED);
         }
-        logsRule.assertThatContain("Rejecting REST request because of blocked user: " + USER_3.getName());
+        logsRule.assertThatContain("Rejecting request because of blocked user: " + USER_3.getName());
     }
 
     @Test
@@ -115,7 +115,7 @@ public class UserBruteForceAttacksPreventionTests {
 
             response.assertStatusCode(SC_OK);
         }
-        logsRule.assertThatContain("Rejecting REST request because of blocked user: " + USER_5.getName());
+        logsRule.assertThatContain("Rejecting request because of blocked user: " + USER_5.getName());
     }
 
     private static void authenticateUserWithIncorrectPassword(User user, int numberOfAttempts) {

@@ -38,7 +38,7 @@ import org.opensearch.transport.client.Client;
 
 import org.greenrobot.eventbus.Subscribe;
 
-public final class AuditLogImpl extends AbstractAuditLog {
+public class AuditLogImpl extends AbstractAuditLog {
 
     private final AuditMessageRouter messageRouter;
     private final Settings settings;

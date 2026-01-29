@@ -1345,6 +1345,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(cr);
         components.add(xffResolver);
         components.add(backendRegistry);
+        components.add(auditLog);
         components.add(privilegesConfiguration);
         components.add(restLayerEvaluator);
         components.add(si);
@@ -1372,6 +1373,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
             clusterService.addListener(cr);
         }
+
         return components;
     }
 
@@ -2483,6 +2485,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
+        private static BackendRegistry backendRegistry;
+        private static AuditLogImpl auditLog;
+        private static PrivilegesConfiguration privilegesConfiguration;
 
         private static ExtensionsManager extensionsManager;
 
@@ -2492,13 +2497,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             final TransportService remoteClusterService,
             IndicesService indicesService,
             PitService pitService,
-            ExtensionsManager extensionsManager
+            ExtensionsManager extensionsManager,
+            BackendRegistry backendRegistry,
+            AuditLogImpl auditLog
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
+            GuiceHolder.backendRegistry = backendRegistry;
+            GuiceHolder.auditLog = auditLog;
         }
 
         public static RepositoriesService getRepositoriesService() {
@@ -2519,6 +2528,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         public static ExtensionsManager getExtensionsManager() {
             return extensionsManager;
+        }
+
+        public static BackendRegistry getBackendRegistry() {
+            return backendRegistry;
+        }
+
+        public static AuditLog getAuditLog() {
+            return auditLog;
         }
 
         @Override

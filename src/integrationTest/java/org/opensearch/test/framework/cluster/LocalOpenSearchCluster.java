@@ -37,8 +37,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
@@ -431,24 +433,56 @@ public class LocalOpenSearchCluster {
 
         CompletableFuture<StartStage> start() {
             CompletableFuture<StartStage> completableFuture = new CompletableFuture<>();
-            final Collection<Class<? extends Plugin>> mergedPlugins = nodeSettings.pluginsWithAddition(plugins);
-            final List<PluginInfo> classpathPlugins = mergedPlugins.stream()
-                .map(
-                    p -> new PluginInfo(
-                        p.getName(),
+
+            /*
+            Merge plugin declarations while disposing of duplicates.
+            Explicitly declared plugins take priority over the default configuration.
+             */
+            Map<String, PluginInfo> pluginMap = new LinkedHashMap<>();
+
+            // default plugins
+            for (Class<? extends Plugin> defaultPlugins : nodeSettings.getPlugins()) {
+                pluginMap.put(
+                    defaultPlugins.getName(),
+                    new PluginInfo(
+                        defaultPlugins.getName(),
                         "classpath plugin",
-                        "NA",
+                        null,
                         Version.CURRENT,
                         "1.8",
-                        p.getName(),
+                        defaultPlugins.getName(),
                         null,
                         Collections.emptyList(),
                         false
                     )
-                )
-                .collect(Collectors.toList());
-            classpathPlugins.addAll(additionalPlugins);
-            this.node = new PluginAwareNode(nodeSettings.containRole(NodeRole.CLUSTER_MANAGER), getOpenSearchSettings(), classpathPlugins);
+                );
+            }
+
+            // plugins configured by class in LocalOpenSearchCluster builder
+            for (Class<? extends Plugin> plugin : plugins) {
+                pluginMap.put(
+                    plugin.getName(),
+                    new PluginInfo(
+                        plugin.getName(),
+                        "classpath plugin",
+                        null,
+                        Version.CURRENT,
+                        "1.8",
+                        plugin.getName(),
+                        null,
+                        Collections.emptyList(),
+                        false
+                    )
+                );
+            }
+
+            // plugins configured with PluginInfo in LocalOpenSearchCluster builder
+            for (PluginInfo pluginInfo : additionalPlugins) {
+                pluginMap.put(pluginInfo.getClassname(), pluginInfo);
+            }
+
+            List<PluginInfo> finalPlugins = new ArrayList<>(pluginMap.values());
+            this.node = new PluginAwareNode(nodeSettings.containRole(NodeRole.CLUSTER_MANAGER), getOpenSearchSettings(), finalPlugins);
 
             new Thread(new Runnable() {
 

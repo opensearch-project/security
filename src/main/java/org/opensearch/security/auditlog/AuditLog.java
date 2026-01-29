@@ -86,7 +86,8 @@ public interface AuditLog extends Closeable {
     public enum Origin {
         REST,
         TRANSPORT,
-        LOCAL
+        LOCAL,
+        GRPC
     }
 
     public enum Operation {
