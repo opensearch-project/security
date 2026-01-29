@@ -89,12 +89,15 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
         return serverCall.getMethodDescriptor().getFullMethodName();
     }
 
-
     private static final Map<String, Method> SERVICE_METHOD_MAP = Map.of(
-        "grpc.health.v1.Health", Method.GET,
-        "grpc.reflection.v1alpha.ServerReflection", Method.GET,
-        "org.opensearch.protobufs.services.SearchService", Method.GET,
-        "org.opensearch.protobufs.services.DocumentService", Method.POST
+        "grpc.health.v1.Health",
+        Method.GET,
+        "grpc.reflection.v1alpha.ServerReflection",
+        Method.GET,
+        "org.opensearch.protobufs.services.SearchService",
+        Method.GET,
+        "org.opensearch.protobufs.services.DocumentService",
+        Method.POST
     );
 
     /**
@@ -106,7 +109,8 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
     public Method method() {
         String servicePath = path();
 
-        return SERVICE_METHOD_MAP.entrySet().stream()
+        return SERVICE_METHOD_MAP.entrySet()
+            .stream()
             .filter(entry -> servicePath.contains(entry.getKey()))
             .map(Map.Entry::getValue)
             .findFirst()
