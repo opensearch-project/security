@@ -89,12 +89,28 @@ public class GrpcRequestChannel implements SecurityRequestChannel {
         return serverCall.getMethodDescriptor().getFullMethodName();
     }
 
+
+    private static final Map<String, Method> SERVICE_METHOD_MAP = Map.of(
+        "grpc.health.v1.Health", Method.GET,
+        "grpc.reflection.v1alpha.ServerReflection", Method.GET,
+        "org.opensearch.protobufs.services.SearchService", Method.GET,
+        "org.opensearch.protobufs.services.DocumentService", Method.POST
+    );
+
     /**
-     * Methods are a REST concept and unsupported here.
+     * Methods are a REST concept but in some cases used in audit logs.
+     * To support this logging do best effort service to HTTP method conversion.
+     * @return approximate HTTP method.
      */
     @Override
     public Method method() {
-        throw new UnsupportedOperationException("HTTP methods not applicable to gRPC");
+        String servicePath = path();
+
+        return SERVICE_METHOD_MAP.entrySet().stream()
+            .filter(entry -> servicePath.contains(entry.getKey()))
+            .map(Map.Entry::getValue)
+            .findFirst()
+            .orElse(Method.GET);
     }
 
     /**
