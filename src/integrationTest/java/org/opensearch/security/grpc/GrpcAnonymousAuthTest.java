@@ -112,7 +112,7 @@ public class GrpcAnonymousAuthTest {
                 doBulk(channelWithAuth, "test-invalid-auth", 2);
                 fail("Expected authentication failure - invalid auth header");
             } catch (StatusRuntimeException e) {
-                assertEquals(Status.Code.INVALID_ARGUMENT, e.getStatus().getCode());
+                assertEquals(Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
             }
         } finally {
             channel.shutdown();
