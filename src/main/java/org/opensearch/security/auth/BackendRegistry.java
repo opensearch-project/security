@@ -269,7 +269,7 @@ public class BackendRegistry {
          */
         ThreadContext threadContext = this.threadPool.getThreadContext();
         final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-        if (!gRPC && adminDns.isAdminDN(sslPrincipal)) {
+        if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
             User superuser = new User(sslPrincipal);
             UserSubject subject = new UserSubjectImpl(threadPool, superuser);
