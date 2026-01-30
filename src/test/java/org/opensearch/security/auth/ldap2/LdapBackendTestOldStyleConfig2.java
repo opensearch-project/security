@@ -301,7 +301,11 @@ public class LdapBackendTestOldStyleConfig2 {
             new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("jacksonm", "secret"));
             Assert.fail("Expected Exception");
         } catch (Exception e) {
-            assertThat(e.getCause().getClass(), is(org.ldaptive.LdapException.class));
+            // ldaptive 2.x throws ConnectException (subclass of LdapException) or IllegalStateException
+            Assert.assertTrue(
+                "Expected LdapException or IllegalStateException but got: " + e.getCause().getClass(),
+                e.getCause() instanceof org.ldaptive.LdapException || e.getCause() instanceof IllegalStateException
+            );
             Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains("No appropriate protocol"));
         }
 
@@ -326,7 +330,13 @@ public class LdapBackendTestOldStyleConfig2 {
             new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("jacksonm", "secret"));
             Assert.fail("Expected Exception");
         } catch (Exception e) {
-            assertThat(e.getCause().getClass().toString(), org.ldaptive.LdapException.class, is(e.getCause().getClass()));
+            // ldaptive 2.x throws ConnectException (subclass of LdapException), IllegalStateException, or IllegalArgumentException
+            Assert.assertTrue(
+                "Expected LdapException, IllegalStateException, or IllegalArgumentException but got: " + e.getCause().getClass(),
+                e.getCause() instanceof org.ldaptive.LdapException
+                    || e.getCause() instanceof IllegalStateException
+                    || e.getCause() instanceof IllegalArgumentException
+            );
             Assert.assertTrue(ExceptionUtils.getStackTrace(e), EXCEPTION_MATCHER.test(ExceptionUtils.getStackTrace(e).toLowerCase()));
         }
 

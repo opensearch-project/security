@@ -197,8 +197,11 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
 
     private void authenticateByLdapServer(final String dn, byte[] password) throws LdapException {
         // Create a new connection factory with the user's credentials for authentication
+        ConnectionConfig originalConfig = ((DefaultConnectionFactory) authConnectionFactory).getConnectionConfig();
         ConnectionConfig authConfig = ConnectionConfig.builder()
-            .url(((DefaultConnectionFactory) authConnectionFactory).getConnectionConfig().getLdapUrl())
+            .url(originalConfig.getLdapUrl())
+            .sslConfig(originalConfig.getSslConfig())
+            .useStartTLS(originalConfig.getUseStartTLS())
             .connectionInitializers(BindConnectionInitializer.builder().dn(dn).credential(new Credential(password)).build())
             .build();
 

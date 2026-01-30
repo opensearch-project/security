@@ -234,7 +234,8 @@ description: krb user
 dn: CN=AA BB/CC (DD) my\, comp
  any end\=with\=whitespace\ ,ou=people,o=TEST
 objectclass: inetOrgPerson
-cn: "AA BB/CC (DD) my\, company end\=with\=whitespace\ "
+# cn value is base64 encoded due to trailing space: "AA BB/CC (DD) my, company end=with=whitespace "
+cn:: QUEgQkIvQ0MgKEREKSBteSwgY29tcGFueSBlbmQ9d2l0aD13aGl0ZXNwYWNlIA==
 sn: spec186
 uid: spec186
 userpassword: spec186

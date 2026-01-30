@@ -13,20 +13,20 @@ package org.opensearch.security.auth.ldap2;
 
 import java.nio.file.Path;
 import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
-import org.opensearch.security.util.SettingsBasedSSLConfigurator;
-import org.opensearch.security.util.SettingsBasedSSLConfigurator.SSLConfigException;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.PemKeyReader;
 
 import org.ldaptive.ActivePassiveConnectionStrategy;
 import org.ldaptive.BindConnectionInitializer;
@@ -47,21 +47,24 @@ import org.ldaptive.sasl.SaslConfig;
 import org.ldaptive.ssl.AllowAnyHostnameVerifier;
 import org.ldaptive.ssl.AllowAnyTrustManager;
 import org.ldaptive.ssl.CredentialConfig;
-import org.ldaptive.ssl.DefaultSSLContextInitializer;
+import org.ldaptive.ssl.CredentialConfigFactory;
 import org.ldaptive.ssl.SslConfig;
 
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 public class LDAPConnectionFactoryFactory {
 
     private static final Logger log = LogManager.getLogger(LDAPConnectionFactoryFactory.class);
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = Arrays.asList("TLSv1.2", "TLSv1.3");
 
     private final Settings settings;
-    private final SettingsBasedSSLConfigurator.SSLConfig sslConfig;
+    private final Path configPath;
 
-    public LDAPConnectionFactoryFactory(Settings settings, Path configPath) throws SSLConfigException {
+    public LDAPConnectionFactoryFactory(Settings settings, Path configPath) {
         this.settings = settings;
-        this.sslConfig = new SettingsBasedSSLConfigurator(settings, configPath, "").buildSSLConfig();
+        this.configPath = configPath;
     }
 
     public ConnectionFactory createConnectionFactory(PooledConnectionFactory pooledConnectionFactory) {
@@ -108,8 +111,10 @@ public class LDAPConnectionFactoryFactory {
         builder.connectTimeout(Duration.ofMillis(connectTimeout < 0L ? 0L : connectTimeout));
         builder.responseTimeout(Duration.ofMillis(responseTimeout < 0L ? 0L : responseTimeout));
 
-        if (this.sslConfig != null) {
+        try {
             configureSSL(builder);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to configure SSL for LDAP", e);
         }
 
         ConnectionConfig result = builder.build();
@@ -221,65 +226,105 @@ public class LDAPConnectionFactoryFactory {
         return result.toString();
     }
 
-    private void configureSSL(ConnectionConfig.Builder builder) {
-        if (this.sslConfig == null) {
+    private void configureSSL(ConnectionConfig.Builder builder) throws Exception {
+        final boolean enableSSL = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_SSL, false);
+        final boolean enableStartTLS = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_START_TLS, false);
+
+        if (!enableSSL && !enableStartTLS) {
             return;
         }
 
-        SslConfig ldaptiveSslConfig = new SslConfig();
+        final boolean enableClientAuth = settings.getAsBoolean(
+            ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH,
+            ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH_DEFAULT
+        );
+        final boolean trustAll = settings.getAsBoolean(ConfigConstants.LDAPS_TRUST_ALL, false);
+        final boolean verifyHostnames = !trustAll
+            && settings.getAsBoolean(ConfigConstants.LDAPS_VERIFY_HOSTNAMES, ConfigConstants.LDAPS_VERIFY_HOSTNAMES_DEFAULT);
 
-        KeyStore trustStore = this.sslConfig.getEffectiveTruststore();
-        KeyStore keyStore = this.sslConfig.getEffectiveKeystore();
-        String keyPassword = this.sslConfig.getEffectiveKeyPasswordString();
+        final boolean pem = settings.get(ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH, null) != null
+            || settings.get(ConfigConstants.LDAPS_PEMTRUSTEDCAS_CONTENT, null) != null;
 
-        try {
-            TrustManagerFactory tmf = null;
-            KeyManagerFactory kmf = null;
+        SslConfig sslConfig = new SslConfig();
 
-            if (trustStore != null) {
-                tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                tmf.init(trustStore);
+        if (pem) {
+            X509Certificate[] trustCerts = PemKeyReader.loadCertificatesFromStream(
+                PemKeyReader.resolveStream(ConfigConstants.LDAPS_PEMTRUSTEDCAS_CONTENT, settings)
+            );
+            if (trustCerts == null) {
+                trustCerts = PemKeyReader.loadCertificatesFromFile(
+                    PemKeyReader.resolve(ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH, settings, configPath, !trustAll)
+                );
             }
-            if (keyStore != null) {
-                kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                kmf.init(keyStore, keyPassword != null ? keyPassword.toCharArray() : null);
+
+            X509Certificate authCert = PemKeyReader.loadCertificateFromStream(
+                PemKeyReader.resolveStream(ConfigConstants.LDAPS_PEMCERT_CONTENT, settings)
+            );
+            if (authCert == null) {
+                authCert = PemKeyReader.loadCertificateFromFile(
+                    PemKeyReader.resolve(ConfigConstants.LDAPS_PEMCERT_FILEPATH, settings, configPath, enableClientAuth)
+                );
             }
 
-            if (tmf != null || kmf != null) {
-                if (tmf != null) {
-                    ldaptiveSslConfig.setTrustManagers(tmf.getTrustManagers());
-                }
-                if (kmf != null) {
-                    ldaptiveSslConfig.setCredentialConfig(createCredentialConfig(kmf.getKeyManagers()));
-                }
+            PrivateKey authKey = PemKeyReader.loadKeyFromStream(
+                settings.get(ConfigConstants.LDAPS_PEMKEY_PASSWORD),
+                PemKeyReader.resolveStream(ConfigConstants.LDAPS_PEMKEY_CONTENT, settings)
+            );
+            if (authKey == null) {
+                authKey = PemKeyReader.loadKeyFromFile(
+                    settings.get(ConfigConstants.LDAPS_PEMKEY_PASSWORD),
+                    PemKeyReader.resolve(ConfigConstants.LDAPS_PEMKEY_FILEPATH, settings, configPath, enableClientAuth)
+                );
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to configure SSL for LDAP", e);
+
+            CredentialConfig cc = CredentialConfigFactory.createX509CredentialConfig(trustCerts, authCert, authKey);
+            sslConfig.setCredentialConfig(cc);
+        } else {
+            KeyStore trustStore = PemKeyReader.loadKeyStore(
+                PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, !trustAll),
+                SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
+                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
+            );
+
+            KeyStore keyStore = PemKeyReader.loadKeyStore(
+                PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, settings, configPath, enableClientAuth),
+                SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE)
+            );
+
+            String keyStorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(
+                settings,
+                SSLConfigConstants.DEFAULT_STORE_PASSWORD
+            );
+            List<String> trustAliases = settings.getAsList(ConfigConstants.LDAPS_JKS_TRUST_ALIAS, null);
+            String keyAlias = settings.get(ConfigConstants.LDAPS_JKS_CERT_ALIAS, null);
+
+            CredentialConfig cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
+                trustStore,
+                trustAliases != null ? trustAliases.toArray(new String[0]) : null,
+                keyStore,
+                keyStorePassword,
+                keyAlias != null ? new String[] { keyAlias } : null
+            );
+            sslConfig.setCredentialConfig(cc);
         }
 
-        if (!this.sslConfig.isHostnameVerificationEnabled()) {
-            ldaptiveSslConfig.setHostnameVerifier(new AllowAnyHostnameVerifier());
+        if (trustAll) {
+            sslConfig.setTrustManagers(new AllowAnyTrustManager());
+        }
+        if (!verifyHostnames) {
+            sslConfig.setHostnameVerifier(new AllowAnyHostnameVerifier());
         }
 
-        if (this.sslConfig.getSupportedCipherSuites() != null && this.sslConfig.getSupportedCipherSuites().length > 0) {
-            ldaptiveSslConfig.setEnabledCipherSuites(this.sslConfig.getSupportedCipherSuites());
+        List<String> ciphers = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_CIPHERS, Collections.emptyList());
+        if (!ciphers.isEmpty()) {
+            sslConfig.setEnabledCipherSuites(ciphers.toArray(new String[0]));
         }
 
-        ldaptiveSslConfig.setEnabledProtocols(this.sslConfig.getSupportedProtocols());
+        List<String> protocols = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_PROTOCOLS, DEFAULT_TLS_PROTOCOLS);
+        sslConfig.setEnabledProtocols(protocols.toArray(new String[0]));
 
-        if (this.sslConfig.isTrustAllEnabled()) {
-            ldaptiveSslConfig.setTrustManagers(new AllowAnyTrustManager());
-        }
-
-        builder.sslConfig(ldaptiveSslConfig);
-        builder.useStartTLS(this.sslConfig.isStartTlsEnabled());
-    }
-
-    private static CredentialConfig createCredentialConfig(KeyManager[] keyManagers) {
-        return () -> {
-            DefaultSSLContextInitializer init = new DefaultSSLContextInitializer();
-            init.setKeyManagers(keyManagers);
-            return init;
-        };
+        builder.sslConfig(sslConfig);
+        builder.useStartTLS(enableStartTLS);
     }
 }
