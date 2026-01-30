@@ -272,7 +272,9 @@ public final class PemKeyReader {
             return null;
         }
 
-        return new ByteArrayInputStream(content.getBytes(StandardCharsets.US_ASCII));
+        // Strip leading whitespace from each line - YAML block scalars may preserve indentation
+        String normalized = content.lines().map(String::stripLeading).collect(java.util.stream.Collectors.joining("\n"));
+        return new ByteArrayInputStream(normalized.getBytes(StandardCharsets.US_ASCII));
     }
 
     public static String resolve(String propName, Settings settings, Path configPath, boolean mustBeValid) {

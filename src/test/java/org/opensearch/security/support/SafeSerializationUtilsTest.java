@@ -23,10 +23,8 @@ import org.junit.Test;
 import org.opensearch.security.user.User;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
-import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
-import org.ldaptive.SearchEntry;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -48,9 +46,7 @@ public class SafeSerializationUtilsTest {
         assertTrue(SafeSerializationUtils.isSafeClass(User.class));
         assertTrue(SafeSerializationUtils.isSafeClass(SourceFieldsContext.class));
         assertTrue(SafeSerializationUtils.isSafeClass(LdapUser.class));
-        assertTrue(SafeSerializationUtils.isSafeClass(SearchEntry.class));
         assertTrue(SafeSerializationUtils.isSafeClass(LdapEntry.class));
-        assertTrue(SafeSerializationUtils.isSafeClass(AbstractLdapBean.class));
         assertTrue(SafeSerializationUtils.isSafeClass(LdapAttribute.class));
     }
 

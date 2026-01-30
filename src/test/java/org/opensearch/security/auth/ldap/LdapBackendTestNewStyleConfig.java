@@ -35,7 +35,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-import org.ldaptive.Connection;
+import org.ldaptive.ConnectionFactory;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
 
@@ -372,12 +372,12 @@ public class LdapBackendTestNewStyleConfig {
             .put("users.u1.search", "(uid={0})")
             .build();
 
-        final Connection con = LDAPAuthorizationBackend.getConnection(settings, null);
+        final ConnectionFactory cf = LDAPAuthorizationBackend.getConnectionFactory(settings, null);
         try {
-            final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), true);
+            final LdapEntry ref1 = LdapHelper.lookup(cf, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL_USER.value(), true);
             assertThat(ref1.getDn(), is("cn=refsolved,ou=people,o=TEST"));
         } finally {
-            con.close();
+            cf.close();
         }
 
     }
@@ -391,18 +391,18 @@ public class LdapBackendTestNewStyleConfig {
             .put(ConfigConstants.FOLLOW_REFERRALS, false)
             .build();
 
-        final Connection con = LDAPAuthorizationBackend.getConnection(settings, null);
+        final ConnectionFactory cf = LDAPAuthorizationBackend.getConnectionFactory(settings, null);
         try {
             // If following is off then should fail to return the result provided by following
             final LdapEntry ref1 = LdapHelper.lookup(
-                con,
+                cf,
                 "cn=Ref1,ou=people,o=TEST",
-                ReturnAttributes.ALL.value(),
+                ReturnAttributes.ALL_USER.value(),
                 settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT)
             );
             Assert.assertNull(ref1);
         } finally {
-            con.close();
+            cf.close();
         }
     }
 
