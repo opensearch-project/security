@@ -235,9 +235,13 @@ public class LdapBackendTestNewStyleConfig {
 
         try {
             new LDAPAuthenticationBackend(settings, null).authenticate(ctx("jacksonm", "secret"));
+            Assert.fail("Expected Exception");
         } catch (Exception e) {
-            assertThat(org.ldaptive.LdapException.class, is(e.getCause().getClass()));
-            Assert.assertTrue(e.getCause().getMessage().contains("Unable to connec"));
+            // ldaptive 2.x throws ConnectException (subclass of LdapException) or IllegalStateException
+            Assert.assertTrue(
+                "Expected LdapException or IllegalStateException but got: " + e.getCause().getClass(),
+                e.getCause() instanceof org.ldaptive.LdapException || e.getCause() instanceof IllegalStateException
+            );
         }
 
     }
@@ -260,9 +264,15 @@ public class LdapBackendTestNewStyleConfig {
 
         try {
             new LDAPAuthenticationBackend(settings, null).authenticate(ctx("jacksonm", "secret"));
+            Assert.fail("Expected Exception");
         } catch (Exception e) {
-            assertThat(org.ldaptive.LdapException.class, is(e.getCause().getClass()));
-            Assert.assertTrue(e.getCause().getMessage().contains("Unable to connec"));
+            // ldaptive 2.x throws ConnectException (subclass of LdapException), IllegalStateException, or IllegalArgumentException
+            Assert.assertTrue(
+                "Expected LdapException, IllegalStateException, or IllegalArgumentException but got: " + e.getCause().getClass(),
+                e.getCause() instanceof org.ldaptive.LdapException
+                    || e.getCause() instanceof IllegalStateException
+                    || e.getCause() instanceof IllegalArgumentException
+            );
         }
 
     }
@@ -321,8 +331,12 @@ public class LdapBackendTestNewStyleConfig {
 
         try {
             new LDAPAuthenticationBackend(settings, null).authenticate(ctx("jacksonm", "secret"));
+            Assert.fail("Expected Exception");
         } catch (final Exception e) {
-            assertThat(e.getCause().getClass(), is(org.ldaptive.LdapException.class));
+            Assert.assertTrue(
+                "Expected LdapException or IllegalStateException but got: " + e.getCause().getClass(),
+                e.getCause() instanceof org.ldaptive.LdapException || e.getCause() instanceof IllegalStateException
+            );
         }
     }
 
