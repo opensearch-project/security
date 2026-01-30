@@ -84,6 +84,34 @@ public class GrpcRequestChannelTest {
     }
 
     @Test
+    public void testHeaderExtractionCaseInsensitive() {
+        ServerCall<Object, Object> serverCall = createMockServerCall("org.opensearch.protobufs.services.DocumentService/Bulk");
+
+        Metadata metadata = new Metadata();
+        Metadata.Key<String> authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
+        Metadata.Key<String> contentKey = Metadata.Key.of("content-type", Metadata.ASCII_STRING_MARSHALLER);
+        Metadata.Key<String> customKey = Metadata.Key.of("x-custom-header", Metadata.ASCII_STRING_MARSHALLER);
+        metadata.put(authKey, "Bearer mytoken123");
+        metadata.put(contentKey, "application/json");
+        metadata.put(customKey, "custom-value");
+
+        GrpcRequestChannel channel = new GrpcRequestChannel(serverCall, metadata);
+
+        assertEquals("Bearer mytoken123", channel.header("authorization"));
+        assertEquals("Bearer mytoken123", channel.header("Authorization"));
+        assertEquals("Bearer mytoken123", channel.header("AUTHORIZATION"));
+        assertEquals("Bearer mytoken123", channel.header("AuThOrIzAtIoN"));
+
+        assertEquals("application/json", channel.header("content-type"));
+        assertEquals("application/json", channel.header("Content-Type"));
+        assertEquals("application/json", channel.header("CONTENT-TYPE"));
+
+        assertEquals("custom-value", channel.header("x-custom-header"));
+        assertEquals("custom-value", channel.header("X-Custom-Header"));
+        assertEquals("custom-value", channel.header("X-CUSTOM-HEADER"));
+    }
+
+    @Test
     public void testPathAndUri() {
         ServerCall<Object, Object> serverCall = createMockServerCall("org.opensearch.protobufs.services.DocumentService/Bulk");
 
