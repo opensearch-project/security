@@ -16,10 +16,10 @@ import java.util.Optional;
 import java.util.StringJoiner;
 
 import org.hamcrest.Matcher;
-import org.junit.Test;
 
 import org.opensearch.common.CheckedSupplier;
 import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import com.nimbusds.jose.util.Pair;
@@ -27,7 +27,6 @@ import com.nimbusds.jose.util.Pair;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.oneOf;
 import static org.opensearch.security.api.PatchPayloadHelper.addOp;
@@ -35,18 +34,16 @@ import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
+import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
+import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApiIntegrationTest {
 
-    static {
-        testSecurityConfig.withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions());
-    }
-
-    @Override
-    protected Map<String, Object> getClusterSettings() {
-        Map<String, Object> clusterSettings = super.getClusterSettings();
-        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
-        return clusterSettings;
+    protected static LocalCluster.Builder clusterBuilder() {
+        return AbstractApiIntegrationTest.clusterBuilder().nodeSetting(SECURITY_RESTAPI_ADMIN_ENABLED, true);
     }
 
     interface TestDescriptor {
@@ -99,26 +96,24 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         return fullPath.toString();
     }
 
-    @Test
-    public void forbiddenForRegularUsers() throws Exception {
-        withUser(NEW_USER, client -> {
-            forbidden(() -> client.putJson(apiPath("some_entity"), EMPTY_BODY));
-            forbidden(() -> client.get(apiPath()));
-            forbidden(() -> client.get(apiPath("some_entity")));
-            forbidden(() -> client.putJson(apiPath("some_entity"), EMPTY_BODY));
-            forbidden(() -> client.patch(apiPath(), EMPTY_BODY));
-            forbidden(() -> client.patch(apiPath("some_entity"), EMPTY_BODY));
-            forbidden(() -> client.delete(apiPath("some_entity")));
-        });
+    public void forbiddenForRegularUsers(LocalCluster localCluster) throws Exception {
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
+            assertThat(client.putJson(apiPath("some_entity"), EMPTY_BODY), isForbidden());
+            assertThat(client.get(apiPath()), isForbidden());
+            assertThat(client.get(apiPath("some_entity")), isForbidden());
+            assertThat(client.putJson(apiPath("some_entity"), EMPTY_BODY), isForbidden());
+            assertThat(client.patch(apiPath(), EMPTY_BODY), isForbidden());
+            assertThat(client.patch(apiPath("some_entity"), EMPTY_BODY), isForbidden());
+            assertThat(client.delete(apiPath("some_entity")), isForbidden());
+        }
     }
 
-    @Test
-    public void availableForAdminUser() throws Exception {
-        final var entitiesNames = predefinedHiddenAndReservedConfigEntities();
+    public void availableForAdminUser(LocalCluster localCluster) throws Exception {
+        final var entitiesNames = predefinedHiddenAndReservedConfigEntities(localCluster);
         final var hiddenEntityName = entitiesNames.getLeft();
         final var reservedEntityName = entitiesNames.getRight();
         // can't see hidden resources
-        withUser(ADMIN_USER_NAME, client -> {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             verifyNoHiddenEntities(() -> client.get(apiPath()));
             creationOfReadOnlyEntityForbidden(
                 "str1234567",
@@ -131,35 +126,28 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
             verifyUpdateAndDeleteReservedConfigEntityForbidden(reservedEntityName, client);
             verifyCrudOperations(null, null, client);
             verifyBadRequestOperations(client);
-        });
+        }
     }
 
-    Pair<String, String> predefinedHiddenAndReservedConfigEntities() throws Exception {
+    Pair<String, String> predefinedHiddenAndReservedConfigEntities(LocalCluster localCluster) throws Exception {
         final var hiddenEntityName = "str_hidden";
         final var reservedEntityName = "str_reserved";
-        withUser(
-            ADMIN_USER_NAME,
-            localCluster.getAdminCertificate(),
-            client -> created(() -> client.putJson(apiPath(hiddenEntityName), testDescriptor.hiddenEntityPayload()))
-        );
-        withUser(
-            ADMIN_USER_NAME,
-            localCluster.getAdminCertificate(),
-            client -> created(() -> client.putJson(apiPath(reservedEntityName), testDescriptor.reservedEntityPayload()))
-        );
+        try (TestRestClient client = localCluster.getAdminCertRestClient()) {
+            assertThat(client.putJson(apiPath(hiddenEntityName), testDescriptor.hiddenEntityPayload()), isCreated());
+            assertThat(client.putJson(apiPath(reservedEntityName), testDescriptor.reservedEntityPayload()), isCreated());
+        }
         return Pair.of(hiddenEntityName, reservedEntityName);
     }
 
-    @Test
-    public void availableForTLSAdminUser() throws Exception {
-        withUser(ADMIN_USER_NAME, localCluster.getAdminCertificate(), this::availableForSuperAdminUser);
+    public void availableForTLSAdminUser(LocalCluster localCluster) throws Exception {
+        try (TestRestClient client = localCluster.getAdminCertRestClient()) {
+            availableForSuperAdminUser(client);
+        }
     }
 
-    @Test
-    public void availableForRESTAdminUser() throws Exception {
-        withUser(REST_ADMIN_USER, this::availableForSuperAdminUser);
-        if (testDescriptor.restAdminLimitedUser().isPresent()) {
-            withUser(testDescriptor.restAdminLimitedUser().get(), this::availableForSuperAdminUser);
+    public void availableForRESTAdminUser(LocalCluster localCluster) throws Exception {
+        try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
+            availableForSuperAdminUser(client);
         }
     }
 
@@ -182,7 +170,9 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     }
 
     void verifyNoHiddenEntities(final CheckedSupplier<TestRestClient.HttpResponse, Exception> endpointCallback) throws Exception {
-        final var body = ok(endpointCallback).bodyAsJsonNode();
+        final var resp = endpointCallback.get();
+        assertThat(resp, isOk());
+        final var body = resp.bodyAsJsonNode();
         final var pretty = body.toPrettyString();
         final var it = body.elements();
         while (it.hasNext()) {
@@ -194,11 +184,11 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     void creationOfReadOnlyEntityForbidden(final String entityName, final TestRestClient client, final ToXContentObject... entities)
         throws Exception {
         for (final var configEntity : entities) {
-            assertInvalidKeys(
-                badRequest(() -> client.putJson(apiPath(entityName), configEntity)),
-                is(oneOf("static", "hidden", "reserved"))
-            );
-            badRequest(() -> client.patch(apiPath(), patch(addOp("str1234567", configEntity))));
+            final var resp = client.putJson(apiPath(entityName), configEntity);
+            assertThat(resp, isBadRequest());
+            assertInvalidKeys(resp, is(oneOf("static", "hidden", "reserved")));
+            final var resp2 = client.patch(apiPath(), patch(addOp("str1234567", configEntity)));
+            assertThat(resp2, isBadRequest());
         }
     }
 
@@ -226,54 +216,60 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
             assertThat(response.getBody(), response.getTextFromJsonBody("/" + p.getKey()), is(p.getValue()));
     }
 
-    void assertSpecifyOneOf(final TestRestClient.HttpResponse response, final String expectedSpecifyOneOfKeys) {
-        assertThat(response.getBody(), response.getTextFromJsonBody("/status"), is("error"));
-        assertThat(response.getBody(), response.getTextFromJsonBody("/reason"), equalTo("Invalid configuration"));
-        assertThat(response.getBody(), response.getTextFromJsonBody("/specify_one_of/keys"), containsString(expectedSpecifyOneOfKeys));
-    }
-
-    void assertMissingMandatoryKeys(final TestRestClient.HttpResponse response, final String expectedKeys) {
-        assertThat(response.getBody(), response.getTextFromJsonBody("/status"), is("error"));
-        assertThat(response.getBody(), response.getTextFromJsonBody("/reason"), equalTo("Invalid configuration"));
-        assertThat(response.getBody(), response.getTextFromJsonBody("/missing_mandatory_keys/keys"), containsString(expectedKeys));
-    }
-
     void verifyUpdateAndDeleteHiddenConfigEntityForbidden(final String hiddenEntityName, final TestRestClient client) throws Exception {
         final var expectedErrorMessage = "Resource '" + hiddenEntityName + "' is not available.";
-        notFound(() -> client.putJson(apiPath(hiddenEntityName), testDescriptor.entityPayload()), expectedErrorMessage);
-        notFound(
-            () -> client.patch(
+        assertThat(
+            client.putJson(apiPath(hiddenEntityName), testDescriptor.entityPayload()),
+            isNotFound().withAttribute("/message", expectedErrorMessage)
+        );
+        assertThat(
+            client.patch(
                 apiPath(hiddenEntityName),
                 patch(replaceOp(testDescriptor.entityJsonProperty(), testDescriptor.jsonPropertyPayload()))
             ),
-            expectedErrorMessage
+            isNotFound().withAttribute("/message", expectedErrorMessage)
         );
-        notFound(() -> client.patch(apiPath(), patch(replaceOp(hiddenEntityName, testDescriptor.entityPayload()))), expectedErrorMessage);
-        notFound(() -> client.patch(apiPath(hiddenEntityName), patch(removeOp(testDescriptor.entityJsonProperty()))), expectedErrorMessage);
-        notFound(() -> client.patch(apiPath(), patch(removeOp(hiddenEntityName))), expectedErrorMessage);
-        notFound(() -> client.delete(apiPath(hiddenEntityName)), expectedErrorMessage);
+        assertThat(
+            client.patch(apiPath(), patch(replaceOp(hiddenEntityName, testDescriptor.entityPayload()))),
+            isNotFound().withAttribute("/message", expectedErrorMessage)
+        );
+        assertThat(
+            client.patch(apiPath(hiddenEntityName), patch(removeOp(testDescriptor.entityJsonProperty()))),
+            isNotFound().withAttribute("/message", expectedErrorMessage)
+        );
+        assertThat(
+            client.patch(apiPath(), patch(removeOp(hiddenEntityName))),
+            isNotFound().withAttribute("/message", expectedErrorMessage)
+        );
+        assertThat(client.delete(apiPath(hiddenEntityName)), isNotFound().withAttribute("/message", expectedErrorMessage));
     }
 
     void verifyUpdateAndDeleteReservedConfigEntityForbidden(final String reservedEntityName, final TestRestClient client) throws Exception {
         final var expectedErrorMessage = "Resource '" + reservedEntityName + "' is reserved.";
-        forbidden(() -> client.putJson(apiPath(reservedEntityName), testDescriptor.entityPayload()), expectedErrorMessage);
-        forbidden(
-            () -> client.patch(
+        assertThat(
+            client.putJson(apiPath(reservedEntityName), testDescriptor.entityPayload()),
+            isForbidden().withAttribute("/message", expectedErrorMessage)
+        );
+        assertThat(
+            client.patch(
                 apiPath(reservedEntityName),
                 patch(replaceOp(testDescriptor.entityJsonProperty(), testDescriptor.entityJsonProperty()))
             ),
-            expectedErrorMessage
+            isForbidden().withAttribute("/message", expectedErrorMessage)
         );
-        forbidden(
-            () -> client.patch(apiPath(), patch(replaceOp(reservedEntityName, testDescriptor.entityPayload()))),
-            expectedErrorMessage
+        assertThat(
+            client.patch(apiPath(), patch(replaceOp(reservedEntityName, testDescriptor.entityPayload()))),
+            isForbidden().withAttribute("/message", expectedErrorMessage)
         );
-        forbidden(() -> client.patch(apiPath(), patch(removeOp(reservedEntityName))), expectedErrorMessage);
-        forbidden(
-            () -> client.patch(apiPath(reservedEntityName), patch(removeOp(testDescriptor.entityJsonProperty()))),
-            expectedErrorMessage
+        assertThat(
+            client.patch(apiPath(), patch(removeOp(reservedEntityName))),
+            isForbidden().withAttribute("/message", expectedErrorMessage)
         );
-        forbidden(() -> client.delete(apiPath(reservedEntityName)), expectedErrorMessage);
+        assertThat(
+            client.patch(apiPath(reservedEntityName), patch(removeOp(testDescriptor.entityJsonProperty()))),
+            isForbidden().withAttribute("/message", expectedErrorMessage)
+        );
+        assertThat(client.delete(apiPath(reservedEntityName)), isForbidden().withAttribute("/message", expectedErrorMessage));
     }
 
     void forbiddenToCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {}
