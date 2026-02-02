@@ -7,7 +7,7 @@ apply plugin: 'maven-publish'
 buildscript {
     ext {
         open_saml_version = '5.2.0'
-        open_saml_shib_version = "9.1.6"
+        open_saml_shib_version = "9.2.0"
     }
 
     repositories {
