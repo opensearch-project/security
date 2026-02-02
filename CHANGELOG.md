@@ -35,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `spring_version` from 7.0.1 to 7.0.3 ([#5852](https://github.com/opensearch-project/security/pull/5852), [#5911](https://github.com/opensearch-project/security/pull/5911))
 - Bump `org.apache.commons:commons-text` from 1.14.0 to 1.15.0 ([#5857](https://github.com/opensearch-project/security/pull/5857))
 - Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.34.0 to 3.34.100 and `org.eclipse.platform:org.eclipse.equinox.common` from 3.20.200 to 3.20.300 ([#5863](https://github.com/opensearch-project/security/pull/5863))
-- Bump `at.yawk.lz4:lz4-java` from 1.10.1 to 1.10.2 ([#5874](https://github.com/opensearch-project/security/pull/5874))
+- Bump `at.yawk.lz4:lz4-java` from 1.10.1 to 1.10.3 ([#5874](https://github.com/opensearch-project/security/pull/5874), [#5938](https://github.com/opensearch-project/security/pull/5938))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0 to 4.0.2 ([#5873](https://github.com/opensearch-project/security/pull/5873), [#5918](https://github.com/opensearch-project/security/pull/5918))
 - Bump `net.bytebuddy:byte-buddy` from 1.18.2 to 1.18.4 ([#5877](https://github.com/opensearch-project/security/pull/5877), [#5913](https://github.com/opensearch-project/security/pull/5913))
 - Bump `org.mockito:mockito-core` from 5.20.0 to 5.21.0 ([#5875](https://github.com/opensearch-project/security/pull/5875))
