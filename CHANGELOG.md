@@ -5,55 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 3.x]
 ### Added
-- Support for HTTP/3 (server side) ([#5886](https://github.com/opensearch-project/security/pull/5886)
 
 ### Changed
 
 ### Features
-- Add support for a configurable audit log timezone using a dedicated configuration key ([#5867](https://github.com/opensearch-project/security/issues/5867))
-- Add JWT authentication support for the gRPC transport ([#5916](https://github.com/opensearch-project/security/issues/5916))
 
 ### Enhancements
-- Introduce new dynamic setting (plugins.security.dls.write_blocked) to block all writes when restrictions apply ([#5828](https://github.com/opensearch-project/security/pull/5828))
-- Fix JWT case-sensitive header parsing over gRPC transport ([#5929](https://github.com/opensearch-project/security/issues/5929))
-- Support nested JWT claims in role DLS queries ([#5687](https://github.com/opensearch-project/security/issues/5687))
-- Support creation of client SSL engine with a given SNI ([#5894](https://github.com/opensearch-project/security/pull/5894))
-- Enable audit logging of document contents for DELETE operations ([#5914](https://github.com/opensearch-project/security/pull/5914))
 
 ### Bug Fixes
-- Fix IllegalArgumentException when resolved indices are empty in PrivilegesEvaluator ([#5770](https://github.com/opensearch-project/security/pull/5797))
-- Fixes an issue where recursive LDAP role search would fail with a NullPointerException ([#5861](https://github.com/opensearch-project/security/pull/5861))
-- Serialize Search Request object in DLS Filter Level Handler only when debug mode is enabled ([#5883](https://github.com/opensearch-project/security/pull/5883))
-- Skip hasExplicitIndexPrivilege check for plugin users accessing their own system indices ([#5858](https://github.com/opensearch-project/security/pull/5858))
-- Fix test failure related to change in core to add content-encoding to response headers ([#5897](https://github.com/opensearch-project/security/pull/5897))
-- Fix partial cache update post snapshot restore[#5478](https://github.com/opensearch-project/security/pull/5478)
 
 ### Refactoring
-- Refactor plugin system index tests to use parameterized test pattern ([#5895](https://github.com/opensearch-project/security/pull/5895))
 
 ### Maintenance
-- Bump `spring_version` from 7.0.1 to 7.0.3 ([#5852](https://github.com/opensearch-project/security/pull/5852), [#5911](https://github.com/opensearch-project/security/pull/5911))
-- Bump `org.apache.commons:commons-text` from 1.14.0 to 1.15.0 ([#5857](https://github.com/opensearch-project/security/pull/5857))
-- Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.34.0 to 3.34.100 and `org.eclipse.platform:org.eclipse.equinox.common` from 3.20.200 to 3.20.300 ([#5863](https://github.com/opensearch-project/security/pull/5863))
-- Bump `at.yawk.lz4:lz4-java` from 1.10.1 to 1.10.2 ([#5874](https://github.com/opensearch-project/security/pull/5874))
-- Bump `org.springframework.kafka:spring-kafka-test` from 4.0.0 to 4.0.2 ([#5873](https://github.com/opensearch-project/security/pull/5873), [#5918](https://github.com/opensearch-project/security/pull/5918))
-- Bump `net.bytebuddy:byte-buddy` from 1.18.2 to 1.18.4 ([#5877](https://github.com/opensearch-project/security/pull/5877), [#5913](https://github.com/opensearch-project/security/pull/5913))
-- Bump `org.mockito:mockito-core` from 5.20.0 to 5.21.0 ([#5875](https://github.com/opensearch-project/security/pull/5875))
-- Bump `org.ow2.asm:asm` from 9.9 to 9.9.1 ([#5876](https://github.com/opensearch-project/security/pull/5876))
-- Refer to version of error_prone_annotations from core's version catalog (2.45.0) ([#5890](https://github.com/opensearch-project/security/pull/5890))
-- Bump `ch.qos.logback:logback-classic` from 1.5.21 to 1.5.26 ([#5888](https://github.com/opensearch-project/security/pull/5888), [#5902](https://github.com/opensearch-project/security/pull/5902), [#5912](https://github.com/opensearch-project/security/pull/5912), [#5919](https://github.com/opensearch-project/security/pull/5919))
-- Bump `jackson` from 2.18.1 to 2.20.1 ([#5892](https://github.com/opensearch-project/security/pull/5892))
-- Bump `org.checkerframework:checker-qual` from 3.52.1 to 3.53.0 ([#5906](https://github.com/opensearch-project/security/pull/5906))
-- Bump `com.nimbusds:nimbus-jose-jwt` from 10.6 to 10.7 ([#5904](https://github.com/opensearch-project/security/pull/5904))
-- Bump `org.junit.jupiter:junit-jupiter-api` from 5.14.1 to 5.14.2 ([#5903](https://github.com/opensearch-project/security/pull/5903))
-- Bump `io.projectreactor:reactor-core` from 3.8.1 to 3.8.2 ([#5910](https://github.com/opensearch-project/security/pull/5910))
-- Bump `org.cryptacular:cryptacular` from 1.2.7 to 1.3.0 ([#5921](https://github.com/opensearch-project/security/pull/5921))
-- Bump `io.dropwizard.metrics:metrics-core` from 4.2.37 to 4.2.38 ([#5922](https://github.com/opensearch-project/security/pull/5922))
 - Bump `commons-codec:commons-codec` from 1.20.0 to 1.21.0 ([#5937](https://github.com/opensearch-project/security/pull/5937))
 
 ### Removed
-- Remove MakeJava9Happy class that's not applicable in OS 3.X ([#5896](https://github.com/opensearch-project/security/pull/5896))
 
 ### Documentation
 
-[Unreleased 3.x]: https://github.com/opensearch-project/security/compare/3.4...main
+[Unreleased 3.x]: https://github.com/opensearch-project/security/compare/3.5...main
