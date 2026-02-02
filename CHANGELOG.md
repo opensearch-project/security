@@ -49,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `io.projectreactor:reactor-core` from 3.8.1 to 3.8.2 ([#5910](https://github.com/opensearch-project/security/pull/5910))
 - Bump `org.cryptacular:cryptacular` from 1.2.7 to 1.3.0 ([#5921](https://github.com/opensearch-project/security/pull/5921))
 - Bump `io.dropwizard.metrics:metrics-core` from 4.2.37 to 4.2.38 ([#5922](https://github.com/opensearch-project/security/pull/5922))
+- Bump `commons-codec:commons-codec` from 1.20.0 to 1.21.0 ([#5937](https://github.com/opensearch-project/security/pull/5937))
 
 ### Removed
 - Remove MakeJava9Happy class that's not applicable in OS 3.X ([#5896](https://github.com/opensearch-project/security/pull/5896))
