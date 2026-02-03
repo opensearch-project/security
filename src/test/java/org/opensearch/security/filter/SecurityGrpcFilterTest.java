@@ -110,22 +110,4 @@ public class SecurityGrpcFilterTest {
             interceptors.get(0).order()
         );
     }
-
-    @Test
-    public void testInterceptorOrderEnsuresSecurityRunsFirst() {
-        Settings settings = Settings.builder().put(OpenSearchSecuritySSLPlugin.CLIENT_TYPE, "node").build();
-
-        securityGrpcFilter.initNodeSettings(settings);
-
-        List<GrpcInterceptorProvider.OrderedGrpcInterceptor> interceptors = securityGrpcFilter.getOrderedGrpcInterceptors(threadContext);
-
-        // Verify security interceptor runs before any other possible interceptor
-        // by checking its order is the minimum possible value
-        int securityOrder = interceptors.get(0).order();
-        assertTrue("Security interceptor order should be less than 0", securityOrder < 0);
-        assertTrue(
-            "Security interceptor should have the lowest possible order value for highest priority",
-            securityOrder <= Integer.MIN_VALUE
-        );
-    }
 }
