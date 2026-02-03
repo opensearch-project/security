@@ -7,7 +7,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.5.0
 * Allow configuring the timezone for audit log - Feature #5867 ([#5901](https://github.com/opensearch-project/security/pull/5901))
 * Introduce new dynamic setting (`plugins.security.dls.write_blocked`) to block all writes when restrictions apply ([#5828](https://github.com/opensearch-project/security/pull/5828))
 * JWT authentication for gRPC transport ([#5916](https://github.com/opensearch-project/security/pull/5916))
-* [FEATURE] Support for HTTP/3 (server side) ([#5886](https://github.com/opensearch-project/security/pull/5886))
+* Support for HTTP/3 (server side) ([#5886](https://github.com/opensearch-project/security/pull/5886))
 
 ### Enhancements
 
@@ -23,15 +23,11 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.5.0
 * Fix IllegalArgumentException when resolved indices are empty ([#5797](https://github.com/opensearch-project/security/pull/5797))
 * Fix test failure related to change in core to add content-encoding to response headers ([#5897](https://github.com/opensearch-project/security/pull/5897))
 * Fixed NPE in LDAP recursive role search ([#5861](https://github.com/opensearch-project/security/pull/5861))
-* [Bugfix] Make gRPC JWT header keys case insensitive ([#5929](https://github.com/opensearch-project/security/pull/5929))
+* Make gRPC JWT header keys case insensitive ([#5929](https://github.com/opensearch-project/security/pull/5929))
 
 ### Infrastructure
 
 * Clear CHANGELOG post 3.4 release ([#5864](https://github.com/opensearch-project/security/pull/5864))
-* Reduce log spam caused by TlsHostnameVerificationTests ([#5868](https://github.com/opensearch-project/security/pull/5868))
-* New tests for protected indices feature ([#5865](https://github.com/opensearch-project/security/pull/5865))
-* Removed com.carrotsearch.randomizedtesting.RandomizedRunner from tests in src/integrationTest ([#5869](https://github.com/opensearch-project/security/pull/5869))
-* Removed redundant Argon2 tests to avoid memory leaks ([#5923](https://github.com/opensearch-project/security/pull/5923))
 
 ### Maintenance
 
@@ -53,10 +49,10 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.5.0
 * Bump org.springframework.kafka:spring-kafka-test from 4.0.0 to 4.0.1 ([#5873](https://github.com/opensearch-project/security/pull/5873))
 * Bump org.springframework.kafka:spring-kafka-test from 4.0.1 to 4.0.2 ([#5918](https://github.com/opensearch-project/security/pull/5918))
 * Bump spring_version from 7.0.2 to 7.0.3 ([#5911](https://github.com/opensearch-project/security/pull/5911))
-* Update Jackson to 2.20.1 ([#5892](https://github.com/opensearch-project/security/pull/5892))
-* Upgrade eclipse dependencies ([#5863](https://github.com/opensearch-project/security/pull/5863))
 * Refer to version of error_prone_annotations from core's version catalog (2.45.0) ([#5890](https://github.com/opensearch-project/security/pull/5890))
 * Remove MakeJava9Happy class that's not applicable in OS 3.X ([#5896](https://github.com/opensearch-project/security/pull/5896))
+* Update Jackson to 2.20.1 ([#5892](https://github.com/opensearch-project/security/pull/5892))
+* Upgrade eclipse dependencies ([#5863](https://github.com/opensearch-project/security/pull/5863))
 
 ### Refactoring
 
