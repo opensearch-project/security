@@ -423,6 +423,7 @@ public class ConfigConstants {
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
 
+    public static final String OPENSEARCH_API_TOKENS_INDEX = ".opensearch_security_api_tokens";
     // Resource sharing feature-flag
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
     public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
