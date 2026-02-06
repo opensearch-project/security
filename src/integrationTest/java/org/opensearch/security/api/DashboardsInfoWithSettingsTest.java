@@ -12,18 +12,22 @@
 package org.opensearch.security.api;
 
 import java.util.List;
-import java.util.Map;
 
+import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 public class DashboardsInfoWithSettingsTest extends AbstractApiIntegrationTest {
 
@@ -32,35 +36,29 @@ public class DashboardsInfoWithSettingsTest extends AbstractApiIntegrationTest {
     private static final String CUSTOM_PASSWORD_MESSAGE =
         "Password must be minimum 5 characters long and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
 
-    static {
-        testSecurityConfig.user(
+    @ClassRule
+    public static LocalCluster localCluster = clusterBuilder().nodeSetting(
+        SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
+        CUSTOM_PASSWORD_REGEX
+    )
+        .nodeSetting(SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, CUSTOM_PASSWORD_MESSAGE)
+        .users(
             new TestSecurityConfig.User("dashboards_user").roles(
                 new Role("dashboards_role").indexPermissions("read").on("*").clusterPermissions("cluster_composite_ops")
             )
-        );
-    }
-
-    @Override
-    protected Map<String, Object> getClusterSettings() {
-        Map<String, Object> clusterSettings = super.getClusterSettings();
-        clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, CUSTOM_PASSWORD_REGEX);
-        clusterSettings.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, CUSTOM_PASSWORD_MESSAGE);
-        return clusterSettings;
-    }
-
-    private List<String> apiPaths() {
-        return List.of(PLUGINS_PREFIX + "/dashboardsinfo", LEGACY_OPENDISTRO_PREFIX + "/kibanainfo");
-    }
+        )
+        .build();
 
     @Test
     public void testDashboardsInfoValidationMessageWithCustomMessage() throws Exception {
 
-        withUser("dashboards_user", client -> {
-            for (String path : apiPaths()) {
-                final var response = ok(() -> client.get(path));
+        try (TestRestClient client = localCluster.getRestClient("dashboards_user", DEFAULT_PASSWORD)) {
+            for (String path : List.of(PLUGINS_PREFIX + "/dashboardsinfo", LEGACY_OPENDISTRO_PREFIX + "/kibanainfo")) {
+                final var response = client.get(path);
+                assertThat(response, isOk());
                 assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(CUSTOM_PASSWORD_MESSAGE));
                 assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(CUSTOM_PASSWORD_REGEX));
             }
-        });
+        }
     }
 }
