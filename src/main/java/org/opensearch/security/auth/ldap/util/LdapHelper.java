@@ -15,30 +15,28 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
 
 import org.opensearch.secure_sm.AccessController;
 
-import org.ldaptive.Connection;
-import org.ldaptive.DerefAliases;
+import org.ldaptive.ConnectionFactory;
+import org.ldaptive.FilterTemplate;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
-import org.ldaptive.Response;
-import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchOperation;
 import org.ldaptive.SearchRequest;
-import org.ldaptive.SearchResult;
+import org.ldaptive.SearchResponse;
 import org.ldaptive.SearchScope;
-import org.ldaptive.referral.SearchReferralHandler;
+import org.ldaptive.handler.SearchResultHandler;
+import org.ldaptive.referral.FollowSearchReferralHandler;
 
 public class LdapHelper {
 
-    private static SearchFilter ALL = new SearchFilter("(objectClass=*)");
+    private static FilterTemplate ALL = FilterTemplate.builder().filter("(objectClass=*)").build();
 
     public static List<LdapEntry> search(
-        final Connection conn,
+        final ConnectionFactory connectionFactory,
         final String unescapedDn,
-        SearchFilter filter,
+        FilterTemplate filter,
         final SearchScope searchScope,
         final String[] returnAttributes,
         boolean shouldFollowReferrals
@@ -48,21 +46,22 @@ public class LdapHelper {
             final String baseDn = escapeDn(unescapedDn);
             return AccessController.doPrivilegedChecked(() -> {
                 final List<LdapEntry> entries = new ArrayList<>();
-                final SearchRequest request = new SearchRequest(baseDn, filter);
 
-                request.setSearchScope(searchScope);
-                request.setDerefAliases(DerefAliases.ALWAYS);
-                request.setReturnAttributes(returnAttributes);
-                final SearchOperation search = new SearchOperation(conn);
+                SearchRequest request = SearchRequest.builder()
+                    .dn(baseDn)
+                    .filter(filter)
+                    .scope(searchScope)
+                    .returnAttributes(returnAttributes)
+                    .build();
+
+                SearchOperation search = new SearchOperation(connectionFactory);
 
                 if (shouldFollowReferrals) {
-                    // referrals will be followed to build the response
-                    request.setReferralHandler(new SearchReferralHandler());
+                    search.setSearchResultHandlers(new SearchResultHandler[] { new FollowSearchReferralHandler() });
                 }
 
-                final Response<SearchResult> r = search.execute(request);
-                final org.ldaptive.SearchResult result = r.getResult();
-                entries.addAll(result.getEntries());
+                final SearchResponse response = search.execute(request);
+                entries.addAll(response.getEntries());
 
                 return entries;
             });
@@ -72,13 +71,20 @@ public class LdapHelper {
     }
 
     public static LdapEntry lookup(
-        final Connection conn,
+        final ConnectionFactory connectionFactory,
         final String unescapedDn,
         final String[] returnAttributes,
         boolean shouldFollowReferrals
     ) throws LdapException {
 
-        final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes, shouldFollowReferrals);
+        final List<LdapEntry> entries = search(
+            connectionFactory,
+            unescapedDn,
+            ALL,
+            SearchScope.OBJECT,
+            returnAttributes,
+            shouldFollowReferrals
+        );
 
         if (entries.size() == 1) {
             return entries.get(0);
@@ -88,20 +94,9 @@ public class LdapHelper {
     }
 
     private static String escapeDn(String dn) throws InvalidNameException {
+        // LdapName handles proper DN escaping - just return the normalized form
         final LdapName dnName = new LdapName(dn);
-        final List<Rdn> escaped = new ArrayList<>(dnName.size());
-        for (Rdn rdn : dnName.getRdns()) {
-            escaped.add(new Rdn(rdn.getType(), escapeForwardSlash(rdn.getValue())));
-        }
-        return new LdapName(escaped).toString();
-    }
-
-    private static Object escapeForwardSlash(Object input) {
-        if (input != null && input instanceof String) {
-            return ((String) input).replace("/", "\\2f");
-        } else {
-            return input;
-        }
+        return dnName.toString();
     }
 
 }

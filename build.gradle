@@ -269,6 +269,9 @@ def setCommonTestConfig(Test task) {
     // this is needed to reflect access system env map.
     task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
     task.jvmArgs += "--add-opens=java.base/java.util=ALL-UNNAMED"
+    task.jvmArgs += "--add-opens=java.base/java.nio=ALL-UNNAMED"
+    task.jvmArgs += "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+    task.jvmArgs += "-Dio.netty.transport.noNative=true"
     task.retry {
         failOnPassedAfterRetry = false
         maxRetries = 5
@@ -302,6 +305,9 @@ test {
     // this is needed to reflect access system env map.
     jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
     jvmArgs += "--add-opens=java.base/java.util=ALL-UNNAMED"
+    jvmArgs += "--add-opens=java.base/java.nio=ALL-UNNAMED"
+    jvmArgs += "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+    jvmArgs += "-Dio.netty.transport.noNative=true"
     retry {
         failOnPassedAfterRetry = false
         maxRetries = 5
@@ -680,7 +686,7 @@ dependencies {
     implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
     implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
     implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
-    implementation 'org.ldaptive:ldaptive:1.2.3'
+    implementation 'org.ldaptive:ldaptive:2.3.2'
     implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"

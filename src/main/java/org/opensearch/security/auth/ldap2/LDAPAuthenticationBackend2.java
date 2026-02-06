@@ -32,19 +32,19 @@ import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.ImpersonationBackend;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
-import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
-import org.ldaptive.BindRequest;
-import org.ldaptive.Connection;
+import org.ldaptive.BindConnectionInitializer;
+import org.ldaptive.ConnectionConfig;
 import org.ldaptive.ConnectionFactory;
 import org.ldaptive.Credential;
+import org.ldaptive.DefaultConnectionFactory;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
+import org.ldaptive.PooledConnectionFactory;
 import org.ldaptive.ReturnAttributes;
-import org.ldaptive.pool.ConnectionPool;
 
 public class LDAPAuthenticationBackend2 implements AuthenticationBackend, ImpersonationBackend, Destroyable {
 
@@ -52,7 +52,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
 
     private final Settings settings;
 
-    private ConnectionPool connectionPool;
+    private PooledConnectionFactory pooledConnectionFactory;
     private ConnectionFactory connectionFactory;
     private ConnectionFactory authConnectionFactory;
     private LDAPUserSearcher userSearcher;
@@ -66,10 +66,10 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
 
         LDAPConnectionFactoryFactory ldapConnectionFactoryFactory = new LDAPConnectionFactoryFactory(settings, configPath);
 
-        this.connectionPool = ldapConnectionFactoryFactory.createConnectionPool();
-        this.connectionFactory = ldapConnectionFactoryFactory.createConnectionFactory(this.connectionPool);
+        this.pooledConnectionFactory = ldapConnectionFactoryFactory.createPooledConnectionFactory();
+        this.connectionFactory = ldapConnectionFactoryFactory.createConnectionFactory(this.pooledConnectionFactory);
 
-        if (this.connectionPool != null) {
+        if (this.pooledConnectionFactory != null) {
             this.authConnectionFactory = ldapConnectionFactoryFactory.createBasicConnectionFactory();
         } else {
             this.authConnectionFactory = this.connectionFactory;
@@ -92,16 +92,11 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
 
     private User authenticate0(AuthenticationContext context) throws OpenSearchSecurityException {
 
-        Connection ldapConnection = null;
         final String user = context.getCredentials().getUsername();
         byte[] password = context.getCredentials().getPassword();
 
         try {
-
-            ldapConnection = connectionFactory.getConnection();
-            ldapConnection.open();
-
-            LdapEntry entry = userSearcher.exists(ldapConnection, user, this.returnAttributes, this.shouldFollowReferrals);
+            LdapEntry entry = userSearcher.exists(connectionFactory, user, this.returnAttributes, this.shouldFollowReferrals);
 
             // fake a user that no exists
             // makes guessing if a user exists or not harder when looking on the
@@ -111,7 +106,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
                     ConfigConstants.LDAP_FAKE_LOGIN_DN,
                     "CN=faketomakebindfail,DC=" + UUID.randomUUID().toString()
                 );
-                entry = new LdapEntry(fakeLognDn);
+                entry = LdapEntry.builder().dn(fakeLognDn).build();
                 password = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_PASSWORD, "fakeLoginPwd123").getBytes(StandardCharsets.UTF_8);
             } else if (entry == null) {
                 throw new OpenSearchSecurityException("No user " + user + " found");
@@ -123,17 +118,13 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
                 log.trace("Try to authenticate dn {}", dn);
             }
 
-            if (this.connectionPool == null) {
-                authenticateByLdapServer(ldapConnection, dn, password);
-            } else {
-                authenticateByLdapServerWithSeparateConnection(dn, password);
-            }
+            authenticateByLdapServer(dn, password);
 
             final String usernameAttribute = settings.get(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, null);
             String username = dn;
 
             if (usernameAttribute != null && entry.getAttribute(usernameAttribute) != null) {
-                username = Utils.getSingleStringValue(entry.getAttribute(usernameAttribute));
+                username = entry.getAttribute(usernameAttribute).getStringValue();
             }
 
             if (log.isDebugEnabled()) {
@@ -161,8 +152,6 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
             throw new OpenSearchSecurityException(e.toString(), e);
         } finally {
             Arrays.fill(password, (byte) '\0');
-            password = null;
-            Utils.unbindAndCloseSilently(ldapConnection);
         }
 
     }
@@ -175,13 +164,15 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
     @Override
     public Optional<User> impersonate(User user) {
         return AccessController.doPrivileged(() -> {
-            Connection ldapConnection = null;
             String userName = user.getName();
 
             try {
-                ldapConnection = this.connectionFactory.getConnection();
-                ldapConnection.open();
-                LdapEntry userEntry = this.userSearcher.exists(ldapConnection, userName, this.returnAttributes, this.shouldFollowReferrals);
+                LdapEntry userEntry = this.userSearcher.exists(
+                    connectionFactory,
+                    userName,
+                    this.returnAttributes,
+                    this.shouldFollowReferrals
+                );
 
                 if (userEntry != null) {
                     return Optional.of(
@@ -200,30 +191,36 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
             } catch (final Exception e) {
                 log.warn("User {} does not exist due to exception", userName, e);
                 return Optional.empty();
-            } finally {
-                Utils.unbindAndCloseSilently(ldapConnection);
             }
         });
     }
 
-    private void authenticateByLdapServer(final Connection connection, final String dn, byte[] password) throws LdapException {
-        AccessController.doPrivilegedChecked(() -> connection.getProviderConnection().bind(new BindRequest(dn, new Credential(password))));
-    }
+    private void authenticateByLdapServer(final String dn, byte[] password) throws LdapException {
+        // Create a new connection factory with the user's credentials for authentication
+        ConnectionConfig originalConfig = ((DefaultConnectionFactory) authConnectionFactory).getConnectionConfig();
+        ConnectionConfig authConfig = ConnectionConfig.builder()
+            .url(originalConfig.getLdapUrl())
+            .sslConfig(originalConfig.getSslConfig())
+            .useStartTLS(originalConfig.getUseStartTLS())
+            .connectionInitializers(BindConnectionInitializer.builder().dn(dn).credential(new Credential(password)).build())
+            .build();
 
-    private void authenticateByLdapServerWithSeparateConnection(final String dn, byte[] password) throws LdapException {
-        try (Connection unpooledConnection = this.authConnectionFactory.getConnection()) {
-            unpooledConnection.open();
-            authenticateByLdapServer(unpooledConnection, dn, password);
-        }
+        DefaultConnectionFactory userAuthFactory = new DefaultConnectionFactory(authConfig);
+
+        AccessController.doPrivilegedChecked(() -> {
+            try (var conn = userAuthFactory.getConnection()) {
+                conn.open();
+            }
+            return null;
+        });
     }
 
     @Override
     public void destroy() {
-        if (this.connectionPool != null) {
-            this.connectionPool.close();
-            this.connectionPool = null;
+        if (this.pooledConnectionFactory != null) {
+            this.pooledConnectionFactory.close();
+            this.pooledConnectionFactory = null;
         }
-
     }
 
 }
