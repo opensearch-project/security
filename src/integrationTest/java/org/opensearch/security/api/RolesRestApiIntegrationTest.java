@@ -524,7 +524,8 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     }
 
     List<ToXContentObject> dlsOptions() {
-        return List.of((builder, params) -> builder.value("str1234567"), (builder, params) -> builder.nullValue());
+        // DLS must be a valid query JSON string, not arbitrary text
+        return List.of((builder, params) -> builder.value("{\"match_all\": {}}"), (builder, params) -> builder.nullValue());
     }
 
     List<ToXContentObject> flsOptions(final boolean useNullValues) {
