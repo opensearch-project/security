@@ -684,7 +684,7 @@ dependencies {
     implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
-    implementation "com.github.seancfoley:ipaddress:5.5.1"
+    implementation "com.github.seancfoley:ipaddress:5.6.1"
     compileOnly "org.opensearch.plugin:workload-management-wlm-spi:${opensearch_version}"
     compileOnly "org.opensearch.plugin:autotagging-commons-spi:${opensearch_version}"
     compileOnly "org.opensearch.plugin:transport-grpc-spi:${opensearch_version}"
