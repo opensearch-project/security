@@ -66,6 +66,14 @@ public class RestMatchers {
         return new OpenSearchErrorHttpResponseMatcher(404, "Not Found");
     }
 
+    public static OpenSearchErrorHttpResponseMatcher isNotAllowed() {
+        return new OpenSearchErrorHttpResponseMatcher(405, "Not Allowed");
+    }
+
+    public static OpenSearchErrorHttpResponseMatcher isUnauthorized() {
+        return new OpenSearchErrorHttpResponseMatcher(401, "Unauthorized");
+    }
+
     public static class HttpResponseMatcher extends DiagnosingMatcher<HttpResponse> {
         final int statusCode;
         final String statusName;

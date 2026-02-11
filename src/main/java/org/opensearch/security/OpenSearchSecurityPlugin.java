@@ -104,6 +104,9 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.http.netty4.Netty4CompositeHttpServerTransport;
+import org.opensearch.http.netty4.Netty4Http3ServerTransport;
+import org.opensearch.http.netty4.http3.Http3Utils;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.identity.PluginSubject;
 import org.opensearch.identity.Subject;
@@ -239,6 +242,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.netty4.ssl.SecureNetty4Transport;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import static org.opensearch.http.HttpTransportSettings.SETTING_HTTP_HTTP3_ENABLED;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.privileges.dlsfls.FieldMasking.Config.BLAKE2B_LEGACY_DEFAULT;
@@ -1068,7 +1072,29 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     tracer
                 );
 
-                return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
+                if (Http3Utils.isHttp3Available() == true && SETTING_HTTP_HTTP3_ENABLED.get(settings).booleanValue() == true) {
+                    return Collections.singletonMap(
+                        "org.opensearch.security.http.SecurityHttpServerTransport",
+                        () -> new Netty4CompositeHttpServerTransport(
+                            odshst,
+                            new Netty4Http3ServerTransport(
+                                migrateSettings(settings),
+                                networkService,
+                                bigArrays,
+                                threadPool,
+                                xContentRegistry,
+                                validatingDispatcher,
+                                clusterSettings,
+                                sharedGroupFactory,
+                                secureHttpTransportSettingsProvider,
+                                tracer
+                            )
+                        )
+                    );
+                } else {
+                    return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport", () -> odshst);
+                }
+
             } else if (!client) {
                 return Collections.singletonMap(
                     "org.opensearch.security.http.SecurityHttpServerTransport",
@@ -1326,6 +1352,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(cr);
         components.add(xffResolver);
         components.add(backendRegistry);
+        components.add(auditLog);
         components.add(privilegesConfiguration);
         components.add(restLayerEvaluator);
         components.add(si);
@@ -1353,6 +1380,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
             clusterService.addListener(cr);
         }
+
         return components;
     }
 
@@ -2276,6 +2304,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
 
             settings.add(SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING);
+            settings.add(SecuritySettings.DLS_WRITE_BLOCKED);
         }
 
         return settings;
@@ -2463,6 +2492,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
+        private static BackendRegistry backendRegistry;
+        private static AuditLogImpl auditLog;
+        private static PrivilegesConfiguration privilegesConfiguration;
 
         private static ExtensionsManager extensionsManager;
 
@@ -2472,13 +2504,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             final TransportService remoteClusterService,
             IndicesService indicesService,
             PitService pitService,
-            ExtensionsManager extensionsManager
+            ExtensionsManager extensionsManager,
+            BackendRegistry backendRegistry,
+            AuditLogImpl auditLog
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
+            GuiceHolder.backendRegistry = backendRegistry;
+            GuiceHolder.auditLog = auditLog;
         }
 
         public static RepositoriesService getRepositoriesService() {
@@ -2499,6 +2535,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         public static ExtensionsManager getExtensionsManager() {
             return extensionsManager;
+        }
+
+        public static BackendRegistry getBackendRegistry() {
+            return backendRegistry;
+        }
+
+        public static AuditLog getAuditLog() {
+            return auditLog;
         }
 
         @Override

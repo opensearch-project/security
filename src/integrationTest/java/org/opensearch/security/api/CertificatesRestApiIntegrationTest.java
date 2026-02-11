@@ -14,19 +14,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.opensearch.common.CheckedConsumer;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.TestCertificates;
+import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -36,6 +36,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 import static junit.framework.TestCase.fail;
 
 public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTest {
@@ -43,22 +45,18 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
     final static String REGULAR_USER = "regular_user";
     final static String ROOT_CA = "Root CA";
 
-    static {
-        testSecurityConfig.roles(
-            new TestSecurityConfig.Role("simple_user_role").clusterPermissions("cluster:admin/security/certificates/info")
+    @ClassRule
+    public static LocalCluster localCluster = clusterBuilder().nodeSetting(SECURITY_RESTAPI_ADMIN_ENABLED, true)
+        .roles(new TestSecurityConfig.Role("simple_user_role").clusterPermissions("cluster:admin/security/certificates/info"))
+        .rolesMapping(new TestSecurityConfig.RoleMapping("simple_user_role").users(REGULAR_USER, ADMIN_USER.getName()))
+        .users(
+            new TestSecurityConfig.User(REGULAR_USER),
+            new TestSecurityConfig.User(REST_API_ADMIN_SSL_INFO).referencedRoles(REST_ADMIN_REST_API_ACCESS_ROLE)
+                .roles(
+                    new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.SSL, CERTS_INFO_ACTION))
+                )
         )
-            .rolesMapping(new TestSecurityConfig.RoleMapping("simple_user_role").users(REGULAR_USER, ADMIN_USER_NAME))
-            .user(new TestSecurityConfig.User(REGULAR_USER))
-            .withRestAdminUser(REST_ADMIN_USER, allRestAdminPermissions())
-            .withRestAdminUser(REST_API_ADMIN_SSL_INFO, restAdminPermission(Endpoint.SSL, CERTS_INFO_ACTION));
-    }
-
-    @Override
-    protected Map<String, Object> getClusterSettings() {
-        Map<String, Object> clusterSettings = super.getClusterSettings();
-        clusterSettings.put(SECURITY_RESTAPI_ADMIN_ENABLED, true);
-        return clusterSettings;
-    }
+        .build();
 
     @Override
     protected String apiPathPrefix() {
@@ -78,60 +76,66 @@ public class CertificatesRestApiIntegrationTest extends AbstractApiIntegrationTe
 
     @Test
     public void forbiddenForRegularUser() throws Exception {
-        withUser(REGULAR_USER, client -> forbidden(() -> client.get(sslCertsPath())));
+        try (TestRestClient client = localCluster.getRestClient(REGULAR_USER, DEFAULT_PASSWORD)) {
+            assertThat(client.get(sslCertsPath()), isForbidden());
+        }
     }
 
     @Test
     public void forbiddenForAdminUser() throws Exception {
-        withUser(ADMIN_USER_NAME, client -> forbidden(() -> client.get(sslCertsPath())));
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            assertThat(client.get(sslCertsPath()), isForbidden());
+        }
     }
 
     @Test
     public void availableForTlsAdmin() throws Exception {
-        withUser(
-            ADMIN_USER_NAME,
-            localCluster.getAdminCertificate(),
-            verifySSLCertsInfo(List.of(CertType.HTTP, CertType.TRANSPORT, CertType.TRANSPORT_CLIENT))
-        );
+        try (TestRestClient client = localCluster.getAdminCertRestClient()) {
+            verifySSLCertsInfo(client, List.of(CertType.HTTP, CertType.TRANSPORT, CertType.TRANSPORT_CLIENT));
+        }
     }
 
     @Test
     public void availableForRestAdmin() throws Exception {
-        withUser(REST_ADMIN_USER, verifySSLCertsInfo(List.of(CertType.HTTP, CertType.TRANSPORT, CertType.TRANSPORT_CLIENT)));
-        withUser(REST_API_ADMIN_SSL_INFO, verifySSLCertsInfo(List.of(CertType.HTTP, CertType.TRANSPORT, CertType.TRANSPORT_CLIENT)));
+        try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
+            verifySSLCertsInfo(client, List.of(CertType.HTTP, CertType.TRANSPORT, CertType.TRANSPORT_CLIENT));
+        }
+        try (TestRestClient client = localCluster.getRestClient(REST_API_ADMIN_SSL_INFO, DEFAULT_PASSWORD)) {
+            verifySSLCertsInfo(client, List.of(CertType.HTTP, CertType.TRANSPORT, CertType.TRANSPORT_CLIENT));
+        }
     }
 
     @Test
     public void timeoutTest() throws Exception {
-        withUser(REST_ADMIN_USER, this::verifyTimeoutRequest);
+        try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
+            verifyTimeoutRequest(client);
+        }
     }
 
     private void verifyTimeoutRequest(final TestRestClient client) throws Exception {
-        ok(() -> client.get(sslCertsPath() + "?timeout=0"));
+        assertThat(client.get(sslCertsPath() + "?timeout=0"), isOk());
     }
 
-    private CheckedConsumer<TestRestClient, Exception> verifySSLCertsInfo(List<CertType> expectCerts) {
-        return testRestClient -> {
-            try {
-                assertSSLCertsInfo(localCluster.nodes(), expectCerts, ok(() -> testRestClient.get(sslCertsPath())));
-                if (localCluster.nodes().size() > 1) {
-                    final var randomNodes = randomNodes();
-                    final var nodeIds = randomNodes.stream()
-                        .map(n -> n.esNode().getNodeEnvironment().nodeId())
-                        .collect(Collectors.joining(","));
-                    assertSSLCertsInfo(randomNodes, expectCerts, ok(() -> testRestClient.get(sslCertsPath(nodeIds))));
-                }
-                for (CertType certType : expectCerts) {
-                    assertSSLCertsInfo(
-                        localCluster.nodes(),
-                        List.of(certType),
-                        ok(() -> testRestClient.get(String.format("%s?cert_type=%s", sslCertsPath(), certType)))
-                    );
-                }
-            } catch (Exception e) {
-                fail("Verify SSLCerts info failed with exception: " + e.getMessage());
+    private void verifySSLCertsInfo(final TestRestClient testRestClient, List<CertType> expectCerts) {
+        try {
+            assertSSLCertsInfo(localCluster.nodes(), expectCerts, testRestClient.get(sslCertsPath()));
+            if (localCluster.nodes().size() > 1) {
+                final var randomNodes = randomNodes();
+                final var nodeIds = randomNodes.stream()
+                    .map(n -> n.esNode().getNodeEnvironment().nodeId())
+                    .collect(Collectors.joining(","));
+                assertSSLCertsInfo(randomNodes, expectCerts, testRestClient.get(sslCertsPath(nodeIds)));
             }
-        };
+            for (CertType certType : expectCerts) {
+                assertSSLCertsInfo(
+                    localCluster.nodes(),
+                    List.of(certType),
+                    testRestClient.get(String.format("%s?cert_type=%s", sslCertsPath(), certType))
+                );
+            }
+        } catch (Exception e) {
+            fail("Verify SSLCerts info failed with exception: " + e.getMessage());
+        }
     }
 
     private void assertSSLCertsInfo(

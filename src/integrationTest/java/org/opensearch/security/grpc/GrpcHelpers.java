@@ -12,10 +12,12 @@ package org.opensearch.security.grpc;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.opensearch.common.transport.PortsRange;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.protobufs.BulkRequest;
 import org.opensearch.protobufs.BulkRequestBody;
@@ -30,14 +32,26 @@ import org.opensearch.protobufs.SearchRequestBody;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.protobufs.services.DocumentServiceGrpc;
 import org.opensearch.protobufs.services.SearchServiceGrpc;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
+import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 import org.opensearch.transport.grpc.ssl.SecureNetty4GrpcServerTransport;
 
+import io.grpc.CallOptions;
+import io.grpc.Channel;
 import io.grpc.ChannelCredentials;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
 import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
 import io.grpc.TlsChannelCredentials;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
@@ -47,6 +61,53 @@ import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 public class GrpcHelpers {
     protected static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
     protected static final TestCertificates UN_TRUSTED_TEST_CERTIFICATES = new TestCertificates();
+
+    /**
+     * Creates a gRPC client interceptor that adds arbitrary headers to requests
+     */
+    public static ClientInterceptor createHeaderInterceptor(Map<String, String> headers) {
+        return new ClientInterceptor() {
+            @Override
+            public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+                MethodDescriptor<ReqT, RespT> method,
+                CallOptions callOptions,
+                Channel next
+            ) {
+                return new ClientCall<ReqT, RespT>() {
+                    private final ClientCall<ReqT, RespT> delegate = next.newCall(method, callOptions);
+
+                    @Override
+                    public void start(Listener<RespT> responseListener, Metadata metadata) {
+                        headers.forEach((key, value) -> {
+                            Metadata.Key<String> metadataKey = Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER);
+                            metadata.put(metadataKey, value);
+                        });
+                        delegate.start(responseListener, metadata);
+                    }
+
+                    @Override
+                    public void sendMessage(ReqT message) {
+                        delegate.sendMessage(message);
+                    }
+
+                    @Override
+                    public void halfClose() {
+                        delegate.halfClose();
+                    }
+
+                    @Override
+                    public void cancel(String message, Throwable cause) {
+                        delegate.cancel(message, cause);
+                    }
+
+                    @Override
+                    public void request(int numMessages) {
+                        delegate.request(numMessages);
+                    }
+                };
+            }
+        };
+    }
 
     protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(
         "plugins.security.ssl.aux.secure-transport-grpc.clientauth_mode",
@@ -65,9 +126,7 @@ public class GrpcHelpers {
 
     private static final PortsRange PORTS_RANGE = new PortsRange("9400-9500");
 
-    public static final Map<String, Object> SINGLE_NODE_SECURE_GRPC_TRANSPORT_SETTINGS = Map.of(
-        "plugins.security.ssl_only",
-        true,
+    public static final Map<String, Object> SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS = Map.of(
         "aux.transport.types",
         "secure-transport-grpc",
         "aux.transport.secure-transport-grpc.port",
@@ -81,6 +140,70 @@ public class GrpcHelpers {
         "plugins.security.ssl.aux.secure-transport-grpc.pemtrustedcas_filepath",
         TEST_CERTIFICATES.getRootCertificate().getAbsolutePath()
     );
+
+    public static final Map<String, Object> SINGLE_NODE_SECURE_SSL_ONLY_GRPC_TRANSPORT_SETTINGS = new HashMap<>(
+        SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS
+    ) {
+        {
+            put("plugins.security.ssl_only", true);
+        }
+    };
+
+    // Role with full bulk index permissions
+    static final TestSecurityConfig.Role GRPC_INDEX_ROLE = new TestSecurityConfig.Role("grpc_index_role").clusterPermissions(
+        "indices:data/write/bulk*"
+    ).indexPermissions("indices:data/write/bulk*", "indices:admin/mapping/put", "indices:admin/create", "indices:data/write/index").on("*");
+    static final TestSecurityConfig.User GRPC_INDEX_USER = new TestSecurityConfig.User("grpc_user").roles(GRPC_INDEX_ROLE);
+
+    // Role missing mapping permission - Cannot create indices
+    static final TestSecurityConfig.Role GRPC_INDEX_ROLE_NO_MAPPING = new TestSecurityConfig.Role("grpc_limited_role").clusterPermissions(
+        "indices:data/write/bulk*"
+    ).indexPermissions("indices:data/write/bulk*", "indices:admin/create", "indices:data/write/index").on("*");
+    static final TestSecurityConfig.User GRPC_INDEX_USER_NO_MAPPING = new TestSecurityConfig.User("grpc_limited_user").roles(
+        GRPC_INDEX_ROLE_NO_MAPPING
+    );
+
+    // Role with search permissions
+    static final TestSecurityConfig.Role GRPC_SEARCH_ROLE = new TestSecurityConfig.Role("grpc_search_role").indexPermissions(
+        "indices:data/read/search*",
+        "indices:data/read/get"
+    ).on("*");
+    static final TestSecurityConfig.User GRPC_SEARCH_USER = new TestSecurityConfig.User("grpc_search_user").roles(GRPC_SEARCH_ROLE);
+
+    /*
+    This test plugin provides enables user injection on test clusters by injecting the value of "test-user-injection"
+    from gRPC metadata into the thread context.
+    */
+    public static class TestUserInjectionInterceptorProvider implements GrpcInterceptorProvider {
+        @Override
+        public List<OrderedGrpcInterceptor> getOrderedGrpcInterceptors(ThreadContext threadContext) {
+            return List.of(new OrderedGrpcInterceptor() {
+                @Override
+                public int order() {
+                    return -1; // Run before SecurityGrpcFilter (order 0)
+                }
+
+                @Override
+                public ServerInterceptor getInterceptor() {
+                    return new ServerInterceptor() {
+                        @Override
+                        public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
+                            ServerCall<ReqT, RespT> serverCall,
+                            Metadata metadata,
+                            ServerCallHandler<ReqT, RespT> serverCallHandler
+                        ) {
+                            // Check for test-user-injection header
+                            String injectedUser = metadata.get(Metadata.Key.of("test-user-injection", Metadata.ASCII_STRING_MARSHALLER));
+                            if (injectedUser != null && !injectedUser.isEmpty()) {
+                                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUser);
+                            }
+                            return serverCallHandler.startCall(serverCall, metadata);
+                        }
+                    };
+                }
+            });
+        }
+    }
 
     public static TransportAddress getSecureGrpcEndpoint(LocalCluster cluster) {
         List<TransportAddress> transportAddresses = new ArrayList<>();
@@ -135,7 +258,7 @@ public class GrpcHelpers {
         return Grpc.newChannelBuilderForAddress(addr.getAddress(), addr.getPort(), credentials).build();
     }
 
-    public static BulkResponse doBulk(ManagedChannel channel, String index, long numDocs) {
+    public static BulkResponse doBulk(Channel channel, String index, long numDocs) {
         BulkRequest.Builder requestBuilder = BulkRequest.newBuilder().setRefresh(Refresh.REFRESH_TRUE).setIndex(index);
         for (int i = 0; i < numDocs; i++) {
             String docBody = """
@@ -155,7 +278,7 @@ public class GrpcHelpers {
         return stub.bulk(requestBuilder.build());
     }
 
-    public static SearchResponse doMatchAll(ManagedChannel channel, String index, int size) {
+    public static SearchResponse doMatchAll(Channel channel, String index, int size) {
         QueryContainer query = QueryContainer.newBuilder().setMatchAll(MatchAllQuery.newBuilder().build()).build();
         SearchRequestBody requestBody = SearchRequestBody.newBuilder().setSize(size).setQuery(query).build();
         SearchRequest searchRequest = SearchRequest.newBuilder().addIndex(index).setSearchRequestBody(requestBody).build();
