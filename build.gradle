@@ -19,6 +19,7 @@ buildscript {
         opensearch_version = System.getProperty("opensearch.version", "3.6.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
+        isFips = "FIPS-140-3" == findProperty("crypto.standard")
 
         // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
         version_tokens = opensearch_version.tokenize('-')
@@ -677,9 +678,16 @@ dependencies {
     implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.11.0'
-    implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
-    implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
-    implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
+    // When building with -Pcrypto.standard=FIPS-140-3, bcFips jars are provided by OpenSearch
+    if (isFips) {
+        compileOnly "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+        compileOnly "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+        compileOnly "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
+    } else {
+        implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+        implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+        implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
+    }
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
     implementation 'com.rfksystems:blake2b:2.0.0'
