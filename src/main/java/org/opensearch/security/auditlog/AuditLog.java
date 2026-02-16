@@ -75,7 +75,7 @@ public interface AuditLog extends Closeable {
 
     void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
 
-    void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
+    void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult);
 
     // compliance config
     ComplianceConfig getComplianceConfig();
@@ -86,7 +86,8 @@ public interface AuditLog extends Closeable {
     public enum Origin {
         REST,
         TRANSPORT,
-        LOCAL
+        LOCAL,
+        GRPC
     }
 
     public enum Operation {

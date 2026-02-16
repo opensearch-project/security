@@ -69,7 +69,7 @@ configurations {
         resolutionStrategy {
             force 'org.apache.httpcomponents:httpclient:4.5.14'
             force 'org.apache.httpcomponents:httpcore:4.4.16'
-            force 'commons-codec:commons-codec:1.20.0'
+            force 'commons-codec:commons-codec:1.21.0'
             force 'commons-logging:commons-logging:1.3.5'
             force 'org.hamcrest:hamcrest:2.2'
             force 'org.mockito:mockito-core:5.21.0'
@@ -81,7 +81,7 @@ configurations {
             force "com.google.protobuf:protobuf-java:${versions.protobuf}"
             force "com.google.guava:guava:${guava_version}"
             force "com.google.guava:failureaccess:1.0.3"
-            force "io.projectreactor:reactor-core:3.8.1"
+            force "io.projectreactor:reactor-core:3.8.2"
 
         }
     }

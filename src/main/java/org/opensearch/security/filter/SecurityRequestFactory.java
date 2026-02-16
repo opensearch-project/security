@@ -15,6 +15,8 @@ import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
 import io.netty.handler.codec.http.HttpRequest;
 
 /**
@@ -35,5 +37,10 @@ public class SecurityRequestFactory {
     /** Creates a security request channel from a RestRequest & RestChannel */
     public static SecurityRequestChannel from(final RestRequest request, final RestChannel channel) {
         return new OpenSearchRequestChannel(request, channel);
+    }
+
+    /** Creates a security request channel from a gRPC ServerCall & Metadata */
+    public static SecurityRequestChannel from(final ServerCall<?, ?> serverCall, final Metadata metadata) {
+        return new GrpcRequestChannel(serverCall, metadata);
     }
 }

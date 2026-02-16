@@ -94,8 +94,6 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 */
 public class TestSecurityConfig {
 
-    public static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
-
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
     private static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
@@ -178,18 +176,6 @@ public class TestSecurityConfig {
     public TestSecurityConfig users(User... users) {
         for (User user : users) {
             this.user(user);
-        }
-        return this;
-    }
-
-    public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
-        if (!internalUsers.containsKey(name)) {
-            user(new User(name).description("REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
-            final var roleName = name + "__rest_admin_role";
-            roles(new Role(roleName).clusterPermissions(permissions));
-
-            rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
-            rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
         }
         return this;
     }

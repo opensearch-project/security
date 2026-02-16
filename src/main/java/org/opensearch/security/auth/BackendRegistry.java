@@ -62,6 +62,7 @@ import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.filter.GrpcRequestChannel;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
@@ -76,6 +77,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import org.greenrobot.eventbus.Subscribe;
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_SERVICE_UNAVAILABLE;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
@@ -85,6 +87,8 @@ import static org.opensearch.security.http.HTTPBasicAuthenticator.BASIC_TYPE;
 public class BackendRegistry {
 
     protected static final Logger log = LogManager.getLogger(BackendRegistry.class);
+    private static final Set<String> GRPC_SUPPORTED_AUTH = Set.of("jwt");
+
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
 
@@ -237,34 +241,34 @@ public class BackendRegistry {
     }
 
     /**
-     *
-     * @param request
-     * @return The authenticated user, null means another roundtrip
-     * @throws OpenSearchSecurityException
+     * Iterates through configured auth domains, extracting credentials from the request and thread context.
+     * Credentials are authenticated with the auth backend. Resulting user and roles are stashed in the thread context.
+     * @param request specifying HTTP headers, client ip, and channel to send error response.
+     * @return true if any user is authenticated for this request.
      */
     public boolean authenticate(final SecurityRequestChannel request) {
+        /*
+        Over gRPC, we do not support the full set of authentication features.
+        - Auth domain support is limited to JWT only.
+        - Authenticating as superuser is blocked over gRPC.
+        - Tenant headers are unsupported.
+        - Anonymous auth is unsupported.
+         */
+        boolean gRPC = request instanceof GrpcRequestChannel;
         final boolean isDebugEnabled = log.isDebugEnabled();
-        final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
-            .map(InetSocketAddress::getAddress)
-            .map(this::isBlocked)
-            .orElse(false);
-        if (isBlockedBasedOnAddress) {
-            if (isDebugEnabled) {
-                InetSocketAddress ipAddress = request.getRemoteAddress().orElse(null);
-                log.debug(
-                    "Rejecting REST request because of blocked address: {}",
-                    ipAddress != null ? "/" + ipAddress.getAddress().getHostAddress() : null
-                );
-            }
 
-            request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"));
+        if (checkRemoteAddrBlocked(request)) {
             return false;
         }
 
+        /*
+        Authenticates superuser based on client certificate auth. The certificate DN is read from thread context and
+        compared against adminDNs. If superuser is authenticated here we skip the remaining authentication flow.
+        Note that non superuser client/cert authentication is handled separately by the HTTPClientCertAuthenticator
+        auth backend.
+         */
         ThreadContext threadContext = this.threadPool.getThreadContext();
-
         final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
             User superuser = new User(sslPrincipal);
@@ -274,38 +278,31 @@ public class BackendRegistry {
             return true;
         }
 
+        /*
+        Authenticate users injected in the thread context by internal components (plugins).
+         */
         if (userInjector.injectUser(request)) {
             // ThreadContext injected user
             return true;
         }
 
-        if (!isInitialized()) {
-            StringBuilder error = new StringBuilder("OpenSearch Security not initialized.");
-            if (!clusterInfoHolder.hasClusterManager()) {
-                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
-            }
-            log.error("{} (you may need to run securityadmin)", error.toString());
-            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, error.toString()));
+        if (!checkInitialized(request)) {
             return false;
         }
 
-        final TransportAddress remoteAddress = xffResolver.resolve(request);
-        final boolean isTraceEnabled = log.isTraceEnabled();
-        if (isTraceEnabled) {
-            log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress().orElse(null));
-        }
+        final TransportAddress remoteAddress = resolveRemoteAddress(request);
 
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
-
+        /*
+        Core authentication loop with user configured auth domains.
+         */
         boolean authenticated = false;
-
         User authenticatedUser = null;
-
         AuthCredentials authCredentials = null;
-
         HTTPAuthenticator firstChallengingHttpAuthenticator = null;
 
-        // loop over all http/rest auth domains
+        /*
+        Iterate through configured auth domains.
+         */
         for (final AuthDomain authDomain : restAuthDomains) {
             if (isDebugEnabled) {
                 log.debug(
@@ -318,11 +315,28 @@ public class BackendRegistry {
 
             final HTTPAuthenticator httpAuthenticator = authDomain.getHttpAuthenticator();
 
+            /*
+            Exclude unsupported auth domains over gRPC.
+             */
+            if (gRPC && !GRPC_SUPPORTED_AUTH.contains(httpAuthenticator.getType())) {
+                if (isDebugEnabled) {
+                    log.debug("Skipping un-supported auth domain {} for gRPC request", httpAuthenticator.getType());
+                }
+                continue;
+            }
+
+            /*
+            If auth domain presents a challenge to client save this initial authenticator.
+            The purpose is to re-request authentication in the case authentication fails on the initial challenge.
+             */
             if (authDomain.isChallenge() && firstChallengingHttpAuthenticator == null) {
                 firstChallengingHttpAuthenticator = httpAuthenticator;
             }
 
-            if (isTraceEnabled) {
+            /*
+            Extract credentials for this auth domain from the request.
+             */
+            if (log.isTraceEnabled()) {
                 log.trace("Try to extract auth creds from {} http authenticator", httpAuthenticator.getType());
             }
             final AuthCredentials ac;
@@ -335,19 +349,33 @@ public class BackendRegistry {
                 continue;
             }
 
+            /*
+            User may be blocked from authenticating with this auth backend based on rate limiting configurations.
+            Skip this auth domain if the user is blocked.
+             */
             if (ac != null && isBlocked(authDomain.getBackend().getClass().getName(), ac.getUsername())) {
                 if (isDebugEnabled) {
-                    log.debug("Rejecting REST request because of blocked user: {}, authDomain: {}", ac.getUsername(), authDomain);
+                    log.debug(
+                        "Rejecting request because of blocked user: {}, authDomain: {}, channel: {}",
+                        ac.getUsername(),
+                        authDomain,
+                        request.getClass().getName()
+                    );
                 }
-
                 continue;
             }
 
+            /*
+            If not credentials are extracted by the auth domain we must handle remaining possible cases:
+            1. Anonymous auth enabled and request is for anonymous login -> skip auth domain.
+            Anonymous users are handled later outside of auth domain loop if no other user is authenticated.
+            2. If auth domain is challenging and no credentials are found -> present challenge.
+            SAML and basic auth for example redirect/re-request credentials from clients.
+             */
             authCredentials = ac;
-
             if (ac == null) {
                 // no credentials found in request
-                if (anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
+                if (!gRPC && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
                     continue;
                 }
 
@@ -367,7 +395,7 @@ public class BackendRegistry {
                     }
                 } else {
                     // no reRequest possible
-                    if (isTraceEnabled) {
+                    if (log.isTraceEnabled()) {
                         log.trace("No 'Authorization' header, send 403");
                     }
                     continue;
@@ -389,13 +417,19 @@ public class BackendRegistry {
                 }
             }
 
-            // http completed
+            /*
+            Validates extracted credentials against an authentication backend.
+            Populates associated roles for the authenticated user.
+             */
             authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
 
+            /*
+            In the case where credentials are not validated by the auth backend notify failure listeners and continue.
+             */
             if (authenticatedUser == null) {
                 if (isDebugEnabled) {
                     log.debug(
-                        "Cannot authenticate rest user {} (or add roles) with authdomain {}/{} of {}, try next",
+                        "Cannot authenticate user {} (or add roles) with authdomain {}/{} of {}, try next",
                         ac.getUsername(),
                         authDomain.getBackend().getType(),
                         authDomain.getOrder(),
@@ -414,8 +448,12 @@ public class BackendRegistry {
                 continue;
             }
 
+            /*
+            Disallow superuser authentication through auth domain.
+            Only client cert authentication is allowed for this user.
+             */
             if (adminDns.isAdmin(authenticatedUser)) {
-                log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
+                log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
                 request.queueForSending(
                     new SecurityResponse(SC_FORBIDDEN, "Cannot authenticate user because admin user is not permitted to login via HTTP")
@@ -423,6 +461,10 @@ public class BackendRegistry {
                 return false;
             }
 
+            /*
+            Extract tenant context from the request for authenticated user.
+            Will be used in conjunction with user to evaluate permissions in authorization steps.
+             */
             final String tenant = resolveTenantFrom(request);
 
             if (isDebugEnabled) {
@@ -431,6 +473,11 @@ public class BackendRegistry {
             }
 
             if (tenant != null) {
+                if (gRPC) {
+                    log.warn("gRPC request rejected: tenant selection not supported");
+                    request.queueForSending(new SecurityResponse(SC_BAD_REQUEST, "Tenant selection not supported in gRPC"));
+                    return false;
+                }
                 authenticatedUser = authenticatedUser.withRequestedTenant(tenant);
             }
 
@@ -438,6 +485,9 @@ public class BackendRegistry {
             break;
         }// end looping auth domains
 
+        /*
+        If authenticated stash the authenticated user in the thread context, handling user impersonation if provided.
+         */
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             final User effectiveUser = impersonatedUser == null ? authenticatedUser : impersonatedUser;
@@ -451,6 +501,10 @@ public class BackendRegistry {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
             }
 
+            /*
+            Final challenge for failed authentication.
+            For example invalid credentials, expired tokens, wrong passwords may prompt this final challenge.
+            */
             Optional<SecurityResponse> challengeResponse = Optional.empty();
 
             if (firstChallengingHttpAuthenticator != null) {
@@ -467,7 +521,17 @@ public class BackendRegistry {
                 }
             }
 
+            /*
+            Handle anonymous auth.
+            Populate thread context with anonymous user is anonymous login requested and no other credentials provided.
+             */
             if (authCredentials == null && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
+                if (gRPC) {
+                    log.error("Anonymous auth not supported over gRPC");
+                    request.queueForSending(new SecurityResponse(SC_BAD_REQUEST, "Anonymous auth not supported over gRPC"));
+                    return false;
+                }
+
                 User anonymousUser = User.ANONYMOUS;
 
                 final String tenant = resolveTenantFrom(request);
@@ -499,7 +563,69 @@ public class BackendRegistry {
             );
             return false;
         }
+
         return authenticated;
+    }
+
+    /**
+     * The backend registry may not be initialized due to missing configuration or cluster manager.
+     * If not initialized we cannot continue with authenticating "normal" users.
+     * (admin/injections still allowed as last resort authentication options).
+     * @param request for sending error response if registry misconfigured.
+     * @return false if uninitialized.
+     */
+    private boolean checkInitialized(SecurityRequestChannel request) {
+        if (!isInitialized()) {
+            StringBuilder error = new StringBuilder("OpenSearch Security not initialized.");
+            if (!clusterInfoHolder.hasClusterManager()) {
+                error.append(String.format(" %s", ClusterInfoHolder.CLUSTER_MANAGER_NOT_PRESENT));
+            }
+            log.error("{} (you may need to run securityadmin)", error.toString());
+            request.queueForSending(new SecurityResponse(SC_SERVICE_UNAVAILABLE, error.toString()));
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Check the client ip against dynamically updated blocked client registries.
+     * Client IPs may become blocked due to rate limiting configurations.
+     * @param request for sending error response if client is blocked.
+     * @return true if client ip is blocked.
+     */
+    private boolean checkRemoteAddrBlocked(SecurityRequestChannel request) {
+        final boolean isBlockedBasedOnAddress = request.getRemoteAddress()
+            .map(InetSocketAddress::getAddress)
+            .map(this::isBlocked)
+            .orElse(false);
+        if (isBlockedBasedOnAddress) {
+            if (log.isDebugEnabled()) {
+                InetSocketAddress ipAddress = request.getRemoteAddress().orElse(null);
+                log.debug(
+                    "Rejecting REST request because of blocked address: {}",
+                    ipAddress != null ? "/" + ipAddress.getAddress().getHostAddress() : null
+                );
+            }
+
+            request.queueForSending(new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"));
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Resolve and stash client IP in thread context.
+     * @param request with remote address.
+     * @return remote address.
+     */
+    private TransportAddress resolveRemoteAddress(SecurityRequestChannel request) {
+        final TransportAddress remoteAddress = xffResolver.resolve(request);
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
+            log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getRemoteAddress().orElse(null));
+        }
+        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
+        return remoteAddress;
     }
 
     /**
@@ -759,6 +885,11 @@ public class BackendRegistry {
 
     }
 
+    /**
+     * Checks the client ip block registries. These registries are dynamically updated based on rate limiting settings.
+     * @param address client ip
+     * @return true if blocked
+     */
     private boolean isBlocked(InetAddress address) {
         if (this.ipClientBlockRegistries == null || this.ipClientBlockRegistries.isEmpty()) {
             return false;
@@ -789,6 +920,14 @@ public class BackendRegistry {
 
     }
 
+    /**
+     * Checks the auth backend client block registries for the given auth backend and userName.
+     * These registries are dynamically updated and users may appear here due to rate limiting configurations applied
+     * to a specific auth backend.
+     * @param authBackend the authentication backend type (JWT, LDAP, ect...)
+     * @param userName the user
+     * @return true if blocked
+     */
     private boolean isBlocked(String authBackend, String userName) {
 
         if (this.authBackendClientBlockRegistries == null) {
