@@ -10,11 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Features
 
-### Enhancements
+### Enh
+- Make security plugin aware of FIPS build param (-Pcrypto.standard=FIPS-140-3) ([#5952](https://github.com/opensearch-project/security/pull/5952))
 - Hardens input validation for resource sharing APIs ([#5831](https://github.com/opensearch-project/security/pull/5831)
 
 ### Bug Fixes
-
+- Fix the issue of unprocessed X-Request-Id ([#5954](https://github.com/opensearch-project/security/pull/5954))
 ### Refactoring
 
 ### Maintenance
@@ -25,6 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `aws-actions/configure-aws-credentials` from 5 to 6 ([#5946](https://github.com/opensearch-project/security/pull/5946))
 - Bump `ch.qos.logback:logback-classic` from 1.5.26 to 1.5.28 ([#5948](https://github.com/opensearch-project/security/pull/5948))
 - Bump `com.github.seancfoley:ipaddress` from 5.5.1 to 5.6.1 ([#5949](https://github.com/opensearch-project/security/pull/5949))
+- Bump `spring_version` from 7.0.3 to 7.0.4 ([#5957](https://github.com/opensearch-project/security/pull/5957))
+- Bump `org.junit.jupiter:junit-jupiter-api` from 5.14.2 to 5.14.3 ([#5956](https://github.com/opensearch-project/security/pull/5956))
+- Bump `org.checkerframework:checker-qual` from 3.53.0 to 3.53.1 ([#5955](https://github.com/opensearch-project/security/pull/5955))
 
 ### Removed
 
