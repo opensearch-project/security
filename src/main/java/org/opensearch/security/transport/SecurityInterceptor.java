@@ -175,7 +175,7 @@ public class SecurityInterceptor {
                 requestHeadersToCopy,
                 getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS).split(",")
             );
-            requestHeadersToCopy.remove(Task.X_OPAQUE_ID); // Special case where this header is preserved during stashContext.
+            requestHeadersToCopy.removeAll(Task.REQUEST_HEADERS); // Special case where this header is preserved during stashContext.
         }
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {

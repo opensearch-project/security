@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix test failure related to change in core to add content-encoding to response headers ([#5897](https://github.com/opensearch-project/security/pull/5897))
 - Fix partial cache update post snapshot restore[#5478](https://github.com/opensearch-project/security/pull/5478)
 
+- Fix the issue of unprocessed X-Request-Id ([#5954](https://github.com/opensearch-project/security/pull/5954))
 ### Refactoring
 - Refactor plugin system index tests to use parameterized test pattern ([#5895](https://github.com/opensearch-project/security/pull/5895))
 
