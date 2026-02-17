@@ -11,7 +11,6 @@
 package org.opensearch.security.auditlog.sink;
 
 import java.util.Map;
-import java.util.Objects;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -33,8 +32,6 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -67,7 +64,6 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(true)
         .nodeSettings(Map.of("plugins.security.audit.config.index", AUDIT_ALIAS))
         .internalAudit(new AuditConfiguration(true).filters(new AuditFilters().enabledRest(true).enabledTransport(false)))
         .build();
@@ -92,7 +88,7 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
             new SearchRequest(AUDIT_ALIAS).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(0))
         ).actionGet();
 
-        return Objects.requireNonNull(response.getHits().getTotalHits()).value();
+        return response.getHits().getTotalHits().value();
     }
 
     private void generateAuditEvent(String path) {
@@ -117,7 +113,7 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
         try (Client client = cluster.getInternalNodeClient()) {
             generateAuditEvent("_cluster/health");
 
-            await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).until(() -> countAuditDocs(client) > 0);
+            await().until(() -> countAuditDocs(client) > 0);
 
             GetAliasesResponse aliasesResponse = client.admin().indices().getAliases(new GetAliasesRequest(AUDIT_ALIAS)).actionGet();
 
@@ -147,7 +143,7 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
             generateAuditEvent("_cluster/stats");
             generateAuditEvent("_nodes/info");
 
-            await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).until(() -> countAuditDocs(client) - before >= 3);
+            await().until(() -> countAuditDocs(client) - before >= 3);
 
             long after = countAuditDocs(client);
             assertThat("Multiple events must be written through alias", after - before, greaterThan(2L));
@@ -155,26 +151,24 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
     }
 
     /**
-     * Verifies that audit documents written via a write alias contain all mandatory fields
-     * and do not include irrelevant fields.
+     * Verifies that audit documents written via a write alias contain all mandatory fields,
+     * correct values, and do not include irrelevant transport-layer fields.
      *
      * <p><b>Validates:</b> When an audit event is generated and routed through a write alias,
      * the resulting document contains the required fields:
      * <ul>
-     *     <li>audit_category</li>
-     *     <li>audit_request_origin</li>
-     *     <li>@timestamp</li>
-     *     <li>audit_rest_request_method</li>
-     *     <li>audit_rest_request_path</li>
-     *     <li>audit_request_layer</li>
+     *     <li>{@code audit_category}</li>
+     *     <li>{@code audit_request_origin} (value: {@code "REST"})</li>
+     *     <li>{@code @timestamp}</li>
+     *     <li>{@code audit_rest_request_method}</li>
+     *     <li>{@code audit_rest_request_path}</li>
+     *     <li>{@code audit_request_layer} (value: {@code "REST"})</li>
      * </ul>
-     * and does not include the transport-specific field audit_transport_request_type.</p>
+     * and does <b>not</b> include {@code audit_transport_request_type},
+     * confirming that transport-specific fields are absent for REST events.</p>
      *
      * <p><b>Why it's important:</b> This ensures that using a write alias does not alter
      * the content or structure of audit documents, preserving compliance and correctness.</p>
-     *
-     * <p><b>Test coverage:</b> Confirms that documents routed via aliases maintain
-     * expected audit fields and values (REST events only).</p>
      */
     @Test
     public void testAuditDocumentsViaAliasContainMandatoryFields() {
@@ -182,7 +176,7 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
             long before = countAuditDocs(client);
             generateAuditEvent("_cluster/health");
 
-            await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS).until(() -> countAuditDocs(client) > before);
+            await().until(() -> countAuditDocs(client) > before);
 
             SearchResponse response = client.search(
                 new SearchRequest(AUDIT_ALIAS).source(
