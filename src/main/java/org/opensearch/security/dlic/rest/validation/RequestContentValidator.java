@@ -12,12 +12,14 @@
 package org.opensearch.security.dlic.rest.validation;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -85,6 +87,77 @@ public class RequestContentValidator implements ToXContent {
         BOOLEAN;
     }
 
+    /**
+     * Validator interface for field-level validation
+     */
+    @FunctionalInterface
+    public interface FieldValidator {
+        /**
+         * Validate a field value
+         * @param fieldName the name of the field being validated
+         * @param value the value to validate (can be String, JsonNode, etc.)
+         * @throws IllegalArgumentException if validation fails
+         */
+        void validate(String fieldName, Object value);
+    }
+
+    /**
+     * Configuration for a field including its type and validation rules
+     */
+    public static class FieldConfiguration {
+        private final DataType dataType;
+        private final Integer maxLength;
+        private final FieldValidator validator;
+
+        private FieldConfiguration(DataType dataType, Integer maxLength, FieldValidator validator) {
+            this.dataType = dataType;
+            this.maxLength = maxLength;
+            this.validator = validator;
+        }
+
+        public static FieldConfiguration of(DataType dataType) {
+            return new FieldConfiguration(dataType, null, null);
+        }
+
+        public static FieldConfiguration of(DataType dataType, int maxLength) {
+            return new FieldConfiguration(dataType, maxLength, null);
+        }
+
+        public static FieldConfiguration of(DataType dataType, FieldValidator validator) {
+            return new FieldConfiguration(dataType, null, validator);
+        }
+
+        public static FieldConfiguration of(DataType dataType, int maxLength, FieldValidator validator) {
+            return new FieldConfiguration(dataType, maxLength, validator);
+        }
+
+        public DataType getDataType() {
+            return dataType;
+        }
+
+        public Integer getMaxLength() {
+            return maxLength;
+        }
+
+        public FieldValidator getValidator() {
+            return validator;
+        }
+
+        public void validate(String fieldName, Object value) {
+            // Validate max length for strings
+            if (maxLength != null && value instanceof String strValue) {
+                if (strValue.length() > maxLength) {
+                    throw new IllegalArgumentException(fieldName + " length [" + strValue.length() + "] exceeds max [" + maxLength + "]");
+                }
+            }
+
+            // Run custom validator if present
+            if (validator != null) {
+                validator.validate(fieldName, value);
+            }
+        }
+    }
+
     public interface ValidationContext {
 
         default boolean hasParams() {
@@ -104,6 +177,15 @@ public class RequestContentValidator implements ToXContent {
         Settings settings();
 
         Map<String, DataType> allowedKeys();
+
+        /**
+         * Optional: Returns field configurations with validation rules.
+         * If not overridden, returns null and the validator will use allowedKeys() instead.
+         * This is an opt-in enhancement for more flexible validation.
+         */
+        default Map<String, FieldConfiguration> allowedKeysWithConfig() {
+            return null;
+        }
 
     }
 
@@ -177,7 +259,14 @@ public class RequestContentValidator implements ToXContent {
         mandatory.removeAll(requestedKeys);
         missingMandatoryKeys.addAll(mandatory);
 
-        final Set<String> allowed = new HashSet<>(validationContext.allowedKeys().keySet());
+        // Use allowedKeysWithConfig if provided, otherwise fall back to allowedKeys
+        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
+        final Set<String> allowed;
+        if (fieldConfigs != null) {
+            allowed = new HashSet<>(fieldConfigs.keySet());
+        } else {
+            allowed = new HashSet<>(validationContext.allowedKeys().keySet());
+        }
         requestedKeys.removeAll(allowed);
         invalidKeys.addAll(requestedKeys);
 
@@ -189,14 +278,32 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> validateDataType(final JsonNode jsonContent) {
+        // Check if enhanced validation is available
+        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
+        final boolean useEnhancedValidation = (fieldConfigs != null);
+
         try (final JsonParser parser = DefaultObjectMapper.objectMapper.treeAsTokens(jsonContent)) {
             JsonToken token;
             while ((token = parser.nextToken()) != null) {
                 if (token.equals(JsonToken.FIELD_NAME)) {
-                    String currentName = parser.getCurrentName();
-                    final DataType dataType = validationContext.allowedKeys().get(currentName);
+                    String currentName = parser.currentName();
+
+                    // Get data type from either FieldConfiguration or simple DataType map
+                    final DataType dataType;
+                    final FieldConfiguration fieldConfig;
+
+                    if (useEnhancedValidation && fieldConfigs != null) {
+                        fieldConfig = fieldConfigs.get(currentName);
+                        dataType = (fieldConfig != null) ? fieldConfig.getDataType() : null;
+                    } else {
+                        fieldConfig = null;
+                        dataType = validationContext.allowedKeys().get(currentName);
+                    }
+
                     if (dataType != null) {
                         JsonToken valueToken = parser.nextToken();
+
+                        // Validate data type
                         switch (dataType) {
                             case INTEGER:
                                 if (valueToken != JsonToken.VALUE_NUMBER_INT) {
@@ -206,16 +313,53 @@ public class RequestContentValidator implements ToXContent {
                             case STRING:
                                 if (valueToken != JsonToken.VALUE_STRING) {
                                     wrongDataTypes.put(currentName, "String expected");
+                                } else if (fieldConfig != null) {
+                                    // Enhanced validation: validate string-specific constraints
+                                    String stringValue = parser.getText();
+                                    try {
+                                        fieldConfig.validate(currentName, stringValue);
+                                    } catch (IllegalArgumentException e) {
+                                        wrongDataTypes.put(currentName, e.getMessage());
+                                    }
                                 }
                                 break;
                             case ARRAY:
                                 if (valueToken != JsonToken.START_ARRAY && valueToken != JsonToken.END_ARRAY) {
                                     wrongDataTypes.put(currentName, "Array expected");
+                                } else if (fieldConfig != null && fieldConfig.getValidator() != null) {
+                                    // Enhanced validation: validate array content
+                                    JsonNode arrayNode = jsonContent.get(currentName);
+                                    try {
+                                        fieldConfig.validate(currentName, arrayNode);
+                                    } catch (IllegalArgumentException e) {
+                                        wrongDataTypes.put(currentName, e.getMessage());
+                                    }
                                 }
                                 break;
                             case OBJECT:
                                 if (!valueToken.equals(JsonToken.START_OBJECT) && !valueToken.equals(JsonToken.END_OBJECT)) {
                                     wrongDataTypes.put(currentName, "Object expected");
+                                } else if (fieldConfig != null && fieldConfig.getValidator() != null) {
+                                    // Enhanced validation: validate object content
+                                    JsonNode objectNode = jsonContent.get(currentName);
+                                    try {
+                                        fieldConfig.validate(currentName, objectNode);
+                                    } catch (IllegalArgumentException e) {
+                                        wrongDataTypes.put(currentName, e.getMessage());
+                                    }
+                                }
+                                break;
+                            case BOOLEAN:
+                                if (valueToken != JsonToken.VALUE_TRUE && valueToken != JsonToken.VALUE_FALSE) {
+                                    // Backwards compatibility: accept string "true" or "false"
+                                    if (valueToken == JsonToken.VALUE_STRING) {
+                                        String strValue = parser.getText();
+                                        if (!"true".equalsIgnoreCase(strValue) && !"false".equalsIgnoreCase(strValue)) {
+                                            wrongDataTypes.put(currentName, "Boolean expected");
+                                        }
+                                    } else {
+                                        wrongDataTypes.put(currentName, "Boolean expected");
+                                    }
                                 }
                                 break;
                         }
@@ -338,6 +482,7 @@ public class RequestContentValidator implements ToXContent {
             private final Set<String> mandatoryOrKeys = validationContext.mandatoryOrKeys();
 
             private final Map<String, DataType> allowedKeys = validationContext.allowedKeys();
+            private final Map<String, FieldConfiguration> allowedKeysWithConfig = validationContext.allowedKeysWithConfig();
 
             @Override
             public Settings settings() {
@@ -362,6 +507,11 @@ public class RequestContentValidator implements ToXContent {
             @Override
             public Map<String, DataType> allowedKeys() {
                 return allowedKeys;
+            }
+
+            @Override
+            public Map<String, FieldConfiguration> allowedKeysWithConfig() {
+                return allowedKeysWithConfig;
             }
         });
     }
@@ -392,5 +542,200 @@ public class RequestContentValidator implements ToXContent {
             return message;
         }
 
+    }
+
+    /* ========================================================================
+     * Input Validation Utilities (Generic)
+     * ======================================================================== */
+
+    public static final int MAX_STRING_LENGTH = 256;
+    public static final int MAX_ARRAY_SIZE = 100_000;
+
+    // Alphanumeric + _ - : OR : * - "*" is only allowed as standalone
+    private static final Pattern SAFE_VALUE = Pattern.compile("^(\\*|[A-Za-z0-9_:-]+)$");
+
+    /* ---------------------- generic helpers ---------------------- */
+
+    public static void requireNonEmpty(String fieldName, String value) {
+        if (Strings.isNullOrEmpty(value)) {
+            throw new IllegalArgumentException(fieldName + " must not be null or empty");
+        }
+    }
+
+    public static void validateMaxLength(String fieldName, String value, int maxLength) {
+        if (value.length() > maxLength) {
+            throw new IllegalArgumentException(fieldName + " length [" + value.length() + "] exceeds max [" + maxLength + "]");
+        }
+    }
+
+    /**
+     * Validates a value against safe character pattern with optional wildcard support
+     * @param fieldName the name of the field being validated
+     * @param value the value to validate
+     * @param maxLength maximum allowed length
+     * @param allowWildcard whether to allow "*" as a standalone value
+     */
+    public static void validateSafeValue(String fieldName, String value, int maxLength, boolean allowWildcard) {
+        requireNonEmpty(fieldName, value);
+        validateMaxLength(fieldName, value, maxLength);
+        if (!SAFE_VALUE.matcher(value).matches()) {
+            throw new IllegalArgumentException(
+                fieldName + " contains invalid characters; allowed: " + (allowWildcard ? "* OR " : "") + "A-Z a-z 0-9 _ - :"
+            );
+        }
+    }
+
+    /**
+     * Validates a value against safe character pattern (no wildcard support)
+     */
+    public static void validateSafeValue(String fieldName, String value, int maxLength) {
+        validateSafeValue(fieldName, value, maxLength, false);
+    }
+
+    public static void validateArrayEntryCount(String fieldName, int count) {
+        if (count > MAX_ARRAY_SIZE) {
+            throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + MAX_ARRAY_SIZE);
+        }
+    }
+
+    /**
+     * Generic value validation against an allowed set (for types, levels, etc.)
+     * @param fieldName the name of the field being validated
+     * @param value the value to validate
+     * @param maxLength maximum allowed length
+     * @param allowedValues set or collection of allowed values
+     */
+    public static void validateValueInSet(String fieldName, String value, int maxLength, Collection<String> allowedValues) {
+        validateSafeValue(fieldName, value, maxLength);
+
+        if (allowedValues == null || allowedValues.isEmpty()) {
+            throw new IllegalStateException("No allowed values configured for " + fieldName);
+        }
+
+        if (!allowedValues.contains(value)) {
+            throw new IllegalArgumentException(
+                "Invalid " + fieldName + " [" + value + "]. Allowed values: " + String.join(", ", allowedValues)
+            );
+        }
+    }
+
+    /* ---------------------- specialized validators ---------------------- */
+
+    /**
+     * Validates a path-like value (no whitespace allowed)
+     */
+    public static void validatePath(String fieldName, String path, int maxLength) {
+        requireNonEmpty(fieldName, path);
+        validateMaxLength(fieldName, path, maxLength);
+        if (!path.equals(path.trim()) || path.chars().anyMatch(Character::isWhitespace)) {
+            throw new IllegalArgumentException(fieldName + " must not contain whitespace");
+        }
+    }
+
+    /**
+     * Validates a value against an allowed set
+     */
+    public static void validateFieldValueInSet(
+        String fieldName,
+        String value,
+        int maxLength,
+        Set<String> allowedValues,
+        String errorContext
+    ) {
+        requireNonEmpty(fieldName, value);
+        validateMaxLength(fieldName, value, maxLength);
+        if (allowedValues == null || allowedValues.isEmpty()) {
+            throw new IllegalStateException("No allowed " + errorContext + " configured");
+        }
+        if (!allowedValues.contains(value)) {
+            throw new IllegalArgumentException("Invalid " + fieldName + " [" + value + "]. Allowed " + errorContext + ": " + allowedValues);
+        }
+    }
+
+    /**
+     * Validates a JSON object node with non-empty string values
+     */
+    public static void validateNonEmptyValuesInAnObject(String fieldName, JsonNode node) {
+        if (node == null || node.isNull()) {
+            return;
+        }
+
+        if (!node.isObject()) {
+            throw new IllegalArgumentException(fieldName + " must be an object");
+        }
+
+        if (!node.fieldNames().hasNext()) {
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
+        }
+
+        node.fields().forEachRemaining(entry -> {
+            JsonNode val = entry.getValue();
+            if (!val.isTextual() || val.asText().isEmpty()) {
+                throw new IllegalArgumentException(fieldName + " for key [" + entry.getKey() + "] must be a non-empty string");
+            }
+        });
+    }
+
+    /* ========================================================================
+     * Pre-built Field Validators for Common Use Cases
+     * ======================================================================== */
+
+    /**
+     * Creates a validator for principal values (users, roles, backend_roles, etc.)
+     * @param allowWildcard whether to allow "*" as a standalone value
+     */
+    public static FieldValidator principalValidator(boolean allowWildcard) {
+        return (fieldName, value) -> {
+            if (value instanceof String strValue) {
+                validateSafeValue(fieldName, strValue, MAX_STRING_LENGTH, allowWildcard);
+            }
+        };
+    }
+
+    /**
+     * Validator for path-like values (no whitespace allowed)
+     */
+    public static final FieldValidator PATH_VALIDATOR = (fieldName, value) -> {
+        if (value instanceof String strValue) {
+            validatePath(fieldName, strValue, MAX_STRING_LENGTH);
+        }
+    };
+
+    /**
+     * Validator for array entry counts (works with JsonNode arrays)
+     */
+    public static final FieldValidator ARRAY_SIZE_VALIDATOR = (fieldName, value) -> {
+        if (value instanceof JsonNode node) {
+            if (node.isArray() && node.size() > MAX_ARRAY_SIZE) {
+                throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + MAX_ARRAY_SIZE);
+            }
+        } else if (value instanceof Integer) {
+            int count = (Integer) value;
+            if (count > MAX_ARRAY_SIZE) {
+                throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + MAX_ARRAY_SIZE);
+            }
+        }
+    };
+
+    /**
+     * Creates a validator that checks if a string value is in an allowed set
+     */
+    public static FieldValidator allowedValuesValidator(Set<String> allowedValues, String errorMessage) {
+        return (fieldName, value) -> {
+            if (value instanceof String strValue) {
+                if (!allowedValues.contains(strValue)) {
+                    throw new IllegalArgumentException(
+                        errorMessage != null ? errorMessage : fieldName + " must be one of: " + String.join(", ", allowedValues)
+                    );
+                }
+            }
+        };
+    }
+
+    /**
+     * overloaded implementation of #allowedValuesValidator() to pass null errorMessage
+     */
+    public static FieldValidator allowedValuesValidator(Set<String> allowedValues) {
+        return allowedValuesValidator(allowedValues, null);
     }
 }

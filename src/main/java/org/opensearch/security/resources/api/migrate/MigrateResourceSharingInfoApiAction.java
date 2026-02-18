@@ -10,6 +10,7 @@ package org.opensearch.security.resources.api.migrate;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -153,44 +154,62 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     private ValidationResult<ValidationResultArg> loadCurrentSharingInfo(RestRequest request, Client client) throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
+        // Extract fields - validation already done by RequestContentValidator framework via FieldConfiguration
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
-        String defaultOwner = body.get("default_owner").asText();
-        JsonNode node = body.get("default_access_level");
-        Map<String, String> typeToDefaultAccessLevel = Utils.toMapOfStrings(node);
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(sourceIndex)) {
-            String badRequestMessage = "Invalid resource index " + sourceIndex + ".";
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
-        }
+
+        // Optional field
+        JsonNode defaultOwnerNode = body.get("default_owner");
+        String defaultOwner = (defaultOwnerNode != null && !defaultOwnerNode.isNull()) ? defaultOwnerNode.asText() : null;
+
+        // Raw JSON for default_access_level
+        JsonNode defaultAccessNode = body.get("default_access_level");
+
+        // Convert after structural validation
+        Map<String, String> typeToDefaultAccessLevel = defaultAccessNode == null || defaultAccessNode.isNull()
+            ? Collections.emptyMap()
+            : Utils.toMapOfStrings(defaultAccessNode);
 
         String typePath = null;
-        for (String type : typeToDefaultAccessLevel.keySet()) {
+
+        // Validate each type + its accessLevel
+        for (Map.Entry<String, String> entry : typeToDefaultAccessLevel.entrySet()) {
+            String type = entry.getKey();
+            String defaultAccessLevelForType = entry.getValue();
+
+            // Validate resource type exists
             ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
-            String defaultAccessLevelForType = typeToDefaultAccessLevel.get(type);
-            LOGGER.info("Default access level for resource type [{}] is [{}]", type, typeToDefaultAccessLevel.get(type));
-            // check that access level exists for given resource-index
             if (provider == null) {
-                String badRequestMessage = "Invalid resource type " + type + ".";
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+                // We do not expect this to be null, as validation check will already have been performed in request content validator
+                String message = String.format("resource_type be one of: %s", resourcePluginInfo.currentProtectedTypes());
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(message));
             }
-            typePath = provider.typeField(); // All types in the same index must have same typeField
-            var accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
-            if (!accessLevels.contains(defaultAccessLevelForType)) {
-                LOGGER.error(
-                    "Invalid access level {} for resource sharing for resource type [{}]. Available access-levels are [{}]",
+
+            typePath = provider.typeField();
+
+            // Allowed access-levels for this type
+            Set<String> accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
+
+            try {
+                RequestContentValidator.validateValueInSet(
+                    "access_level",
                     defaultAccessLevelForType,
-                    type,
+                    RequestContentValidator.MAX_STRING_LENGTH,
                     accessLevels
                 );
-                String badRequestMessage = "Invalid access level "
-                    + defaultAccessLevelForType
-                    + " for resource sharing for resource type ["
-                    + type
-                    + "]. Available access-levels are ["
-                    + accessLevels
-                    + "]";
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+            } catch (Exception e) {
+                return ValidationResult.error(
+                    RestStatus.BAD_REQUEST,
+                    badRequestMessage(
+                        "Invalid access level "
+                            + defaultAccessLevelForType
+                            + " for resource type ["
+                            + type
+                            + "]. Allowed: "
+                            + String.join(", ", accessLevels)
+                    )
+                );
             }
         }
 
@@ -412,12 +431,75 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        // Provide basic type information for backward compatibility
                         return ImmutableMap.<String, RequestContentValidator.DataType>builder()
-                            .put("source_index", RequestContentValidator.DataType.STRING) // name of the resource plugin index
-                            .put("username_path", RequestContentValidator.DataType.STRING) // path to resource creator's name
-                            .put("backend_roles_path", RequestContentValidator.DataType.STRING) // path to backend_roles
-                            .put("default_owner", RequestContentValidator.DataType.STRING) // default owner name for resources without owner
-                            .put("default_access_level", RequestContentValidator.DataType.OBJECT) // default access level by type
+                            .put("source_index", RequestContentValidator.DataType.STRING)
+                            .put("username_path", RequestContentValidator.DataType.STRING)
+                            .put("backend_roles_path", RequestContentValidator.DataType.STRING)
+                            .put("default_owner", RequestContentValidator.DataType.STRING)
+                            .put("default_access_level", RequestContentValidator.DataType.OBJECT)
+                            .build();
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
+                        Set<String> allowedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
+                        RequestContentValidator.FieldValidator sourceIndexValidator = (fieldName, value) -> {
+                            if (value instanceof String strValue) {
+                                RequestContentValidator.validateFieldValueInSet(
+                                    fieldName,
+                                    strValue,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    allowedIndices,
+                                    "indices"
+                                );
+                            }
+                        };
+
+                        return ImmutableMap.<String, RequestContentValidator.FieldConfiguration>builder()
+                            .put(
+                                "source_index",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    sourceIndexValidator
+                                )
+                            )
+                            .put(
+                                "username_path",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    RequestContentValidator.PATH_VALIDATOR
+                                )
+                            )
+                            .put(
+                                "backend_roles_path",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    RequestContentValidator.PATH_VALIDATOR
+                                )
+                            )
+                            .put(
+                                "default_owner",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    RequestContentValidator.principalValidator(false)
+                                )
+                            )
+                            .put(
+                                "default_access_level",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.OBJECT,
+                                    (fieldName, value) -> {
+                                        if (value instanceof JsonNode node) {
+                                            RequestContentValidator.validateNonEmptyValuesInAnObject(fieldName, node);
+                                        }
+                                    }
+                                )
+                            )
                             .build();
                     }
                 });

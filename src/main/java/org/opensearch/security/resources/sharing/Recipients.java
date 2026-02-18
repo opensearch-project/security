@@ -22,6 +22,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 
 /**
  * This class represents the entities with which a resource is shared for a particular action-group.
@@ -96,19 +97,64 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
         return builder.endObject();
     }
 
-    public static Recipients fromXContent(XContentParser parser) throws IOException {
+    /**
+     * Parse Recipients from XContent with validators
+     * @param parser the XContent parser
+     * @param arraySizeValidator optional validator for array size (can be null)
+     * @param elementValidator optional validator for each array element value (can be null)
+     */
+    public static Recipients fromXContent(
+        XContentParser parser,
+        RequestContentValidator.FieldValidator arraySizeValidator,
+        RequestContentValidator.FieldValidator elementValidator
+    ) throws IOException {
         Map<Recipient, Set<String>> recipients = new HashMap<>();
 
         XContentParser.Token token;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
-                Recipient recipient = Recipient.valueOf(fieldName.toUpperCase(Locale.ROOT));
+
+                final Recipient recipient;
+                try {
+                    recipient = Recipient.valueOf(fieldName.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Unknown recipient type [" + fieldName + "]", e);
+                }
 
                 parser.nextToken();
+                if (parser.currentToken() != XContentParser.Token.START_ARRAY) {
+                    throw new IllegalArgumentException("Expected array for [" + fieldName + "], but found [" + parser.currentToken() + "]");
+                }
+
                 Set<String> values = new HashSet<>();
+                int count = 0;
+
                 while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                    values.add(parser.text());
+                    count++;
+
+                    // Validate array size if validator provided
+                    if (arraySizeValidator != null) {
+                        arraySizeValidator.validate(fieldName, count);
+                    }
+
+                    String value = parser.text();
+
+                    // Validate element value if validator provided
+                    // For "users" field, allow wildcard; for others, don't
+                    if (elementValidator != null) {
+                        // Check if wildcard should be allowed based on recipient type
+                        boolean allowWildcard = (recipient == Recipient.USERS);
+                        if (allowWildcard) {
+                            // Use wildcard-enabled validator for users
+                            RequestContentValidator.principalValidator(true).validate(fieldName, value);
+                        } else {
+                            // Use standard validator for roles and backend_roles
+                            elementValidator.validate(fieldName, value);
+                        }
+                    }
+
+                    values.add(value);
                 }
                 recipients.put(recipient, values);
             }

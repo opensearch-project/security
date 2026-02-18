@@ -9,6 +9,8 @@
 package org.opensearch.security.resources.api.share;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -20,6 +22,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.sharing.ShareWith;
 
@@ -188,6 +191,15 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         }
 
         public void parseContent(XContentParser xContentParser, ResourcePluginInfo resourcePluginInfo) throws IOException {
+            final List<String> allowedTypes = resourcePluginInfo.currentProtectedTypes();
+            final Set<String> validAccessLevels = resourcePluginInfo.availableAccessLevels();
+
+            // Create access level validator using the pre-built helper
+            final RequestContentValidator.FieldValidator accessLevelValidator = RequestContentValidator.allowedValuesValidator(
+                validAccessLevels,
+                null
+            );
+
             try (XContentParser parser = xContentParser) {
                 XContentParser.Token token; // START_OBJECT
                 while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -196,20 +208,44 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                         parser.nextToken();
                         switch (name) {
                             case "resource_id":
-                                this.resourceId(parser.text());
+                                String resourceId = parser.text();
+                                RequestContentValidator.validateSafeValue(
+                                    "resource_id",
+                                    resourceId,
+                                    RequestContentValidator.MAX_STRING_LENGTH
+                                );
+                                this.resourceId(resourceId);
                                 break;
                             case "resource_type":
-                                this.resourceType(parser.text());
-                                this.resourceIndex(resourcePluginInfo.indexByType(parser.text()));
+                                String resourceType = parser.text();
+
+                                // Validate type syntax + membership in dynamic protected-types list
+                                RequestContentValidator.validateValueInSet(
+                                    "resource_type",
+                                    resourceType,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    allowedTypes
+                                );
+
+                                // Resolve to index, using pluginInfo
+                                String indexName = resourcePluginInfo.indexByType(resourceType);
+                                if (indexName == null) {
+                                    throw new IllegalArgumentException(
+                                        "Invalid resource_type [" + resourceType + "]. Allowed types: " + String.join(", ", allowedTypes)
+                                    );
+                                }
+
+                                this.resourceType(resourceType);
+                                this.resourceIndex(resourcePluginInfo.indexByType(resourceType));
                                 break;
                             case "share_with":
-                                this.shareWith(ShareWith.fromXContent(parser));
+                                this.shareWith(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
                             case "add":
-                                this.add(ShareWith.fromXContent(parser));
+                                this.add(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
                             case "revoke":
-                                this.revoke(ShareWith.fromXContent(parser));
+                                this.revoke(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
                             default:
                                 parser.skipChildren();
