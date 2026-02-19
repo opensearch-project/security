@@ -64,6 +64,10 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
             return true;
         }
 
+        if (clusterService.state().metadata().hasAlias(indexName)) {
+            return true;
+        }
+
         try {
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
             final boolean ok = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
