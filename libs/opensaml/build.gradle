@@ -69,6 +69,7 @@ dependencies {
 }
 
 tasks.shadowJar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     mergeServiceFiles()
     exclude 'com/**'
     exclude 'org/apache/**'
