@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `spring_version` from 7.0.3 to 7.0.4 ([#5957](https://github.com/opensearch-project/security/pull/5957))
 - Bump `org.junit.jupiter:junit-jupiter-api` from 5.14.2 to 5.14.3 ([#5956](https://github.com/opensearch-project/security/pull/5956))
 - Bump `org.checkerframework:checker-qual` from 3.53.0 to 3.53.1 ([#5955](https://github.com/opensearch-project/security/pull/5955))
+- Bump `open_saml_version` from 5.1.6 to 5.2.1 ([#5965](https://github.com/opensearch-project/security/pull/5965))
 
 ### Removed
 
