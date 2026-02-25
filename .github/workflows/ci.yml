@@ -192,7 +192,7 @@ jobs:
         name: Run BWC suite
         uses: ./.github/actions/run-bwc-suite
         with:
-          plugin-previous-branch: "2.16"
+          plugin-previous-branch: "2.18"
           plugin-next-branch: "current_branch"
           report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
           username: admin
