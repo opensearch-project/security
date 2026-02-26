@@ -31,6 +31,7 @@ import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
@@ -42,6 +43,7 @@ import org.ldaptive.ReturnAttributes;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assume.assumeFalse;
 
 public class LdapBackendTestNewStyleConfig {
 
@@ -173,7 +175,6 @@ public class LdapBackendTestNewStyleConfig {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -193,7 +194,6 @@ public class LdapBackendTestNewStyleConfig {
                 ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").toFile().getName()
             )
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .put("path.conf", FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").getParent())
             .build();
@@ -216,13 +216,13 @@ public class LdapBackendTestNewStyleConfig {
 
     @Test
     public void testLdapAuthenticationSSLSSLv3() throws Exception {
+        assumeFalse("SSLv3 is not FIPS-approved", FipsMode.isEnabled());
 
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "SSLv3")
             .put("path.home", ".")
             .build();
@@ -244,7 +244,6 @@ public class LdapBackendTestNewStyleConfig {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_ciphers", "AAA")
             .put("path.home", ".")
             .build();
@@ -266,7 +265,6 @@ public class LdapBackendTestNewStyleConfig {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "TLSv1.2")
             .putList("enabled_ssl_ciphers", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA")
             .put("path.home", ".")
@@ -286,7 +284,6 @@ public class LdapBackendTestNewStyleConfig {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -570,7 +567,6 @@ public class LdapBackendTestNewStyleConfig {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 

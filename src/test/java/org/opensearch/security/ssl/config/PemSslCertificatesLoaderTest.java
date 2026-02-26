@@ -23,6 +23,7 @@ import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
 
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.env.TestEnvironment;
+import org.opensearch.security.ssl.CertificatesRule;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -61,7 +62,7 @@ public class PemSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
             path(PEM_CERTIFICATE_PRIVATE_KEY_FILE_NAME),
             new PKCS8Generator(
                 PrivateKeyInfo.getInstance(certificatesRule.accessCertificatePrivateKey().getEncoded()),
-                new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.PBE_SHA1_3DES).setRandom(new SecureRandom())
+                new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC).setRandom(new SecureRandom())
                     .setPassword(certificatesRule.privateKeyPassword().toCharArray())
                     .build()
             ).generate()
@@ -119,7 +120,7 @@ public class PemSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
         final var clientCaCertificatePath = "client_ca_certificate.pem";
         final var clientKeyCertificatePath = "client_key_certificate.pem";
         final var clientPrivateKeyCertificatePath = "client_private_key_certificate.pem";
-        final var clientPrivateKeyPassword = RandomStringUtils.randomAlphabetic(10);
+        final var clientPrivateKeyPassword = RandomStringUtils.secure().nextAlphanumeric(CertificatesRule.FIPS_MIN_PASSWORD_LENGTH);
 
         writePemContent(path(clientCaCertificatePath), clientCaCertificate);
         writePemContent(path(clientKeyCertificatePath), keyAndCertificate.v2());

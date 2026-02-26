@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -26,6 +27,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.support.PemKeyReaderLoadSecretKeyTest;
 
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
@@ -66,6 +68,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_ONLY;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
 import static org.junit.Assert.assertThrows;
 
+@ThreadLeakFilters(filters = { PemKeyReaderLoadSecretKeyTest.BCFipsEntropyDaemonFilter.class })
 public class SslSettingsManagerTest extends RandomizedTest {
 
     @ClassRule

@@ -61,10 +61,14 @@ public class SslCertificatesLoader {
     public Tuple<TrustStoreConfiguration, KeyStoreConfiguration> loadConfiguration(final Environment environment) {
         final var settings = environment.settings();
         final var sslConfigSettings = settings.getByPrefix(fullSslConfigSuffix);
-        if (settings.hasValue(sslConfigSuffix + KEYSTORE_FILEPATH)) {
+        final boolean isPkcs11Keystore = PemKeyReader.PKCS11.equalsIgnoreCase(environment.settings().get(sslConfigSuffix + KEYSTORE_TYPE));
+        final boolean isPkcs11Truststore = PemKeyReader.PKCS11.equalsIgnoreCase(
+            environment.settings().get(sslConfigSuffix + TRUSTSTORE_TYPE)
+        );
+        if (settings.hasValue(sslConfigSuffix + KEYSTORE_FILEPATH) || isPkcs11Keystore) {
             final var keyStorePassword = resolvePassword(sslConfigSuffix + KEYSTORE_PASSWORD, settings, DEFAULT_STORE_PASSWORD);
             return Tuple.tuple(
-                environment.settings().hasValue(sslConfigSuffix + TRUSTSTORE_FILEPATH)
+                environment.settings().hasValue(sslConfigSuffix + TRUSTSTORE_FILEPATH) || isPkcs11Truststore
                     ? buildJdkTrustStoreConfiguration(
                         sslConfigSettings,
                         environment,
@@ -126,9 +130,10 @@ public class SslCertificatesLoader {
         final char[] keyStorePassword,
         final char[] keyPassword
     ) {
-        final Path path = resolvePath(environment.settings().get(sslConfigSuffix + KEYSTORE_FILEPATH), environment);
         final String explicitType = environment.settings().get(sslConfigSuffix + KEYSTORE_TYPE);
-        final String resolvedType = PemKeyReader.extractStoreType(path.toString(), explicitType);
+        final boolean isPkcs11 = PemKeyReader.PKCS11.equalsIgnoreCase(explicitType);
+        final Path path = isPkcs11 ? null : resolvePath(environment.settings().get(sslConfigSuffix + KEYSTORE_FILEPATH), environment);
+        final String resolvedType = isPkcs11 ? PemKeyReader.PKCS11 : PemKeyReader.extractStoreType(path.toString(), explicitType);
         return new KeyStoreConfiguration.JdkKeyStoreConfiguration(
             path,
             resolvedType,
@@ -143,9 +148,10 @@ public class SslCertificatesLoader {
         final Environment environment,
         final char[] trustStorePassword
     ) {
-        final Path path = resolvePath(environment.settings().get(sslConfigSuffix + TRUSTSTORE_FILEPATH), environment);
         final String explicitType = environment.settings().get(sslConfigSuffix + TRUSTSTORE_TYPE);
-        final String resolvedType = PemKeyReader.extractStoreType(path.toString(), explicitType);
+        final boolean isPkcs11 = PemKeyReader.PKCS11.equalsIgnoreCase(explicitType);
+        final Path path = isPkcs11 ? null : resolvePath(environment.settings().get(sslConfigSuffix + TRUSTSTORE_FILEPATH), environment);
+        final String resolvedType = isPkcs11 ? PemKeyReader.PKCS11 : PemKeyReader.extractStoreType(path.toString(), explicitType);
         return new TrustStoreConfiguration.JdkTrustStoreConfiguration(
             path,
             resolvedType,
