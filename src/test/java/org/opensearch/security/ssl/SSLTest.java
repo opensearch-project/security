@@ -35,6 +35,7 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -627,6 +628,8 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testHttpsV3Fail() throws Exception {
+        assumeFalse("SSLv3 is not FIPS-approved", CryptoServicesRegistrar.isInApprovedOnlyMode());
+
         thrown.expect(SSLHandshakeException.class);
 
         final Settings settings = Settings.builder()
@@ -824,6 +827,7 @@ public class SSLTest extends SingleClusterTest {
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/chain-ca.pem")
             )
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE, FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, CertificateValidatorTest.CRL_DATE.getTime())
             .build();
 

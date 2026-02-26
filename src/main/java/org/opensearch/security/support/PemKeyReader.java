@@ -46,7 +46,6 @@ import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -54,6 +53,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.stream.Stream;
 import javax.crypto.Cipher;
 import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.NoSuchPaddingException;
@@ -343,15 +343,6 @@ public final class PemKeyReader {
             return null;
         }
 
-    }
-
-    public static char[] randomChars(int len) {
-        final SecureRandom r = new SecureRandom();
-        final char[] ret = new char[len];
-        for (int i = 0; i < len; i++) {
-            ret[i] = (char) (r.nextInt(26) + 'a');
-        }
-        return ret;
     }
 
     public static String extractStoreType(String storePath, String storeType) {
