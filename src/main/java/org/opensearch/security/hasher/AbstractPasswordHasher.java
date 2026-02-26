@@ -30,6 +30,20 @@ abstract class AbstractPasswordHasher implements PasswordHasher {
      */
     HashingFunction hashingFunction;
 
+    private volatile String dummyHash;
+
+    @Override
+    public String getDummyHash() {
+        if (dummyHash == null) {
+            synchronized (this) {
+                if (dummyHash == null) {
+                    dummyHash = hash(new char[]{ 'd', 'u', 'm', 'm', 'y', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', 'h', 'a', 's', 'h' });
+                }
+            }
+        }
+        return dummyHash;
+    }
+
     /**
      * {@inheritDoc}
      */

@@ -61,6 +61,7 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
@@ -273,7 +274,12 @@ public interface OpenSearchClientProvider {
             trustCertificates = PemKeyReader.loadCertificatesFromFile(getTestCertificates().getRootCertificate());
 
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            KeyStore ks;
+            if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+                ks = KeyStore.getInstance("BCFKS");
+            } else {
+                ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            }
 
             ks.load(null);
 
@@ -284,7 +290,12 @@ public interface OpenSearchClientProvider {
             if (useCertificateData != null) {
                 Certificate[] chainOfTrust = { useCertificateData.certificate() };
                 ks.setKeyEntry("admin-certificate", useCertificateData.getKey(), null, chainOfTrust);
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                KeyManagerFactory keyManagerFactory;
+                if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+                    keyManagerFactory = KeyManagerFactory.getInstance("PKIX", "BCJSSE");
+                } else {
+                    keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                }
                 keyManagerFactory.init(ks, null);
                 keyManagers = keyManagerFactory.getKeyManagers();
             }

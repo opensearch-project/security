@@ -25,8 +25,10 @@ import com.nimbusds.jose.Algorithm;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
+import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.proc.SimpleSecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -103,18 +105,21 @@ public class JwtVerifier {
     private JWSVerifier getInitializedSignatureVerifier(JWK key, SignedJWT jwt) throws BadCredentialsException, JOSEException {
 
         validateSignatureAlgorithm(key, jwt);
-        final JWSVerifier result;
-        if (key.getClass() == OctetSequenceKey.class) {
+        JWSVerifier result;
+        if (key instanceof OctetSequenceKey) {
+            // HMAC algorithms (HS256, HS384, HS512)
             result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toOctetSequenceKey().toSecretKey());
-        } else {
+        } else if (key instanceof ECKey) {
+            // ECDSA algorithms (ES256, ES384, ES512, ES256K)
+            result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toECKey().toECPublicKey());
+        } else if (key instanceof RSAKey) {
+            // RSA algorithms (RS256, RS384, RS512, PS256, PS384, PS512)
             result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toRSAKey().toRSAPublicKey());
+        } else {
+            throw new BadCredentialsException("Cannot verify JWT - unsupported key type: " + key.getClass().getName());
         }
 
-        if (result == null) {
-            throw new BadCredentialsException("Cannot verify JWT");
-        } else {
-            return result;
-        }
+        return result;
     }
 
     private void validateClaims(SignedJWT jwt) throws ParseException, BadJWTException {

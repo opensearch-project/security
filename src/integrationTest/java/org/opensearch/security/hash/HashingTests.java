@@ -32,7 +32,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 public class HashingTests {
 
-    private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
+    protected static TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     static final String PASSWORD = "top$ecret1234!";
 

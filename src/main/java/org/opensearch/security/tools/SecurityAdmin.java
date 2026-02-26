@@ -502,14 +502,14 @@ public class SecurityAdmin {
         System.out.println(" ... done");
 
         if (ks != null) {
-            kst = kst == null ? (ks.endsWith(".jks") ? "JKS" : "PKCS12") : kst;
+            kst = PemKeyReader.extractStoreType(ks, kst);
             if (kspass == null && promptForPassword) {
                 kspass = promptForPassword("Keystore", "kspass", OPENDISTRO_SECURITY_KS_PASS);
             }
         }
 
         if (ts != null) {
-            tst = tst == null ? (ts.endsWith(".jks") ? "JKS" : "PKCS12") : tst;
+            tst = PemKeyReader.extractStoreType(ts, tst);
             if (tspass == null && promptForPassword) {
                 tspass = promptForPassword("Truststore", "tspass", OPENDISTRO_SECURITY_TS_PASS);
             }

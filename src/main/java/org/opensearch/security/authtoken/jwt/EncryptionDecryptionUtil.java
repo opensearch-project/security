@@ -12,60 +12,73 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import org.bouncycastle.crypto.KDFCalculator;
+import org.bouncycastle.crypto.fips.FipsKDF;
 
 public class EncryptionDecryptionUtil {
 
-    private final Cipher encryptCipher;
-    private final Cipher decryptCipher;
+    private static final byte[] HKDF_INFO = "opensearch-obo-jwt-encryption".getBytes(StandardCharsets.UTF_8);
+    private static final int GCM_NONCE_LENGTH = 12;  // 96 bits, recommended for AES-GCM
+    private static final int GCM_TAG_LENGTH = 128;   // bits
+    private static final String AES_GCM_NO_PADDING = "AES/GCM/NoPadding";
+
+    private final SecretKey aesKey;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public EncryptionDecryptionUtil(final String secret) {
-        this.encryptCipher = createCipherFromSecret(secret, CipherMode.ENCRYPT);
-        this.decryptCipher = createCipherFromSecret(secret, CipherMode.DECRYPT);
+        this.aesKey = deriveKey(secret);
     }
 
     public String encrypt(final String data) {
-        byte[] encryptedBytes = processWithCipher(data.getBytes(StandardCharsets.UTF_8), encryptCipher);
-        return Base64.getEncoder().encodeToString(encryptedBytes);
-    }
-
-    public String decrypt(final String encryptedString) {
-        byte[] decodedBytes = Base64.getDecoder().decode(encryptedString);
-        return new String(processWithCipher(decodedBytes, decryptCipher), StandardCharsets.UTF_8);
-    }
-
-    private static Cipher createCipherFromSecret(final String secret, final CipherMode mode) {
+        byte[] plaintext = data.getBytes(StandardCharsets.UTF_8);
         try {
-            final byte[] decodedKey = Base64.getDecoder().decode(secret);
-            final Cipher cipher = Cipher.getInstance("AES");
-            final SecretKey originalKey = new SecretKeySpec(Arrays.copyOf(decodedKey, 16), "AES");
-            cipher.init(mode.opmode, originalKey);
-            return cipher;
-        } catch (final Exception e) {
-            throw new RuntimeException("Error creating cipher from secret in mode " + mode.name(), e);
-        }
-    }
-
-    private static byte[] processWithCipher(final byte[] data, final Cipher cipher) {
-        try {
-            return cipher.doFinal(data);
+            byte[] nonce = new byte[GCM_NONCE_LENGTH];
+            secureRandom.nextBytes(nonce);
+            Cipher cipher = Cipher.getInstance(AES_GCM_NO_PADDING);
+            cipher.init(Cipher.ENCRYPT_MODE, aesKey, new GCMParameterSpec(GCM_TAG_LENGTH, nonce));
+            byte[] ciphertext = cipher.doFinal(plaintext);
+            byte[] output = new byte[GCM_NONCE_LENGTH + ciphertext.length];
+            System.arraycopy(nonce, 0, output, 0, GCM_NONCE_LENGTH);
+            System.arraycopy(ciphertext, 0, output, GCM_NONCE_LENGTH, ciphertext.length);
+            return Base64.getEncoder().encodeToString(output);
         } catch (final Exception e) {
             throw new RuntimeException("Error processing data with cipher", e);
         }
     }
 
-    private enum CipherMode {
-        ENCRYPT(Cipher.ENCRYPT_MODE),
-        DECRYPT(Cipher.DECRYPT_MODE);
+    public String decrypt(final String encryptedString) {
+        byte[] decodedBytes = Base64.getDecoder().decode(encryptedString);
+        try {
+            byte[] nonce = Arrays.copyOfRange(decodedBytes, 0, GCM_NONCE_LENGTH);
+            byte[] ciphertext = Arrays.copyOfRange(decodedBytes, GCM_NONCE_LENGTH, decodedBytes.length);
+            Cipher cipher = Cipher.getInstance(AES_GCM_NO_PADDING);
+            cipher.init(Cipher.DECRYPT_MODE, aesKey, new GCMParameterSpec(GCM_TAG_LENGTH, nonce));
+            return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+        } catch (final Exception e) {
+            throw new RuntimeException("Error processing data with cipher", e);
+        }
+    }
 
-        private final int opmode;
-
-        private CipherMode(final int opmode) {
-            this.opmode = opmode;
+    private static SecretKey deriveKey(final String secret) {
+        try {
+            final byte[] secretBytes = Base64.getDecoder().decode(secret);
+            FipsKDF.AgreementKDFParameters hkdfParams = FipsKDF.HKDF.withPRF(FipsKDF.AgreementKDFPRF.SHA256_HMAC)
+                .using(secretBytes)
+                .withIV(HKDF_INFO);  // "info" parameter in HKDF terminology
+            KDFCalculator<FipsKDF.AgreementKDFParameters> kdf = new FipsKDF.AgreementOperatorFactory().createKDFCalculator(hkdfParams);
+            byte[] derivedKey = new byte[32];  // 256 bits for AES-256
+            kdf.generateBytes(derivedKey);
+            return new SecretKeySpec(derivedKey, "AES");
+        } catch (final Exception e) {
+            throw new RuntimeException("Error deriving key from secret", e);
         }
     }
 }

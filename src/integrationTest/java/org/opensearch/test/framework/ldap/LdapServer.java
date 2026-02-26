@@ -34,6 +34,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.cluster.SocketUtils;
@@ -154,7 +155,12 @@ final class LdapServer {
     }
 
     private static KeyStore createEmptyKeyStore() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        KeyStore keyStore;
+        if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+            keyStore = KeyStore.getInstance("BCFKS");
+        } else {
+            keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        }
         keyStore.load(null);
         return keyStore;
     }

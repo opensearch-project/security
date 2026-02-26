@@ -36,9 +36,11 @@ import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
@@ -48,6 +50,7 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
+import org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.WildcardMatcher;
@@ -75,6 +78,7 @@ import org.ldaptive.ssl.AllowAnyHostnameVerifier;
 import org.ldaptive.ssl.AllowAnyTrustManager;
 import org.ldaptive.ssl.CredentialConfig;
 import org.ldaptive.ssl.CredentialConfigFactory;
+import org.ldaptive.ssl.DefaultHostnameVerifier;
 import org.ldaptive.ssl.SslConfig;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
@@ -86,7 +90,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
     private static final String COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION =
         "com.sun.jndi.ldap.object.disableEndpointIdentification";
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = Arrays.asList("TLSv1.2", "TLSv1.1");
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                                                              ? ImmutableList.of("TLSv1.2")
+                                                              : ImmutableList.of("TLSv1.2", "TLSv1.1");
     static final int ONE_PLACEHOLDER = 1;
     static final int TWO_PLACEHOLDER = 2;
     static final String DEFAULT_ROLEBASE = "";
@@ -201,6 +207,20 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             config.setConnectionInitializer(new BindConnectionInitializer(bindDn, new Credential(password)));
 
             DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
+
+            // Register custom socket factory for SNI hostname verification with BouncyCastle FIPS if SSL is enabled
+            if (config.getLdapUrl() != null && config.getLdapUrl().startsWith("ldaps:")) {
+                // Extract hostname from LDAP URL and set in ThreadLocal for SNI
+                String ldapUrl = config.getLdapUrl();
+                int protocolEnd = ldapUrl.indexOf("://");
+                if (protocolEnd > 0) {
+                    String hostPort = ldapUrl.substring(protocolEnd + 3);
+                    String hostname = hostPort.contains(":") ? hostPort.substring(0, hostPort.indexOf(":")) : hostPort;
+                    org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory.setHostname(hostname);
+                }
+                configureCustomSocketFactory(connFactory);
+            }
+
             connection = connFactory.getConnection();
 
             connection.open();
@@ -257,6 +277,12 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     log.trace("Connect to {}", config.getLdapUrl());
                 }
 
+                // Set hostname in ThreadLocal for SNI before SSL configuration
+                // This is needed for BouncyCastle FIPS hostname verification
+                if (enableSSL) {
+                    org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory.setHostname(split[0]);
+                }
+
                 configureSSL(config, settings, configPath);
 
                 final String bindDn = settings.get(ConfigConstants.LDAP_BIND_DN, null);
@@ -302,6 +328,14 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
 
                 DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
+
+                // Register custom socket factory for SNI hostname verification with BouncyCastle FIPS
+                // This addresses a known issue where JNDI LDAP doesn't pass hostname to SSLSocketFactory
+                // See: https://github.com/bcgit/bc-java/issues/460
+                if (enableSSL) {
+                    configureCustomSocketFactory(connFactory);
+                }
+
                 connection = connFactory.getConnection();
 
                 connection.open();
@@ -462,6 +496,14 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void configureCustomSocketFactory(DefaultConnectionFactory connFactory) {
+        Map<String, Object> props = new HashMap<>();
+        props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");
+        final org.ldaptive.provider.ProviderConfig providerConfig = connFactory.getProvider().getProviderConfig();
+        providerConfig.setProperties(props);
+    }
+
     private static void configureSSL(final ConnectionConfig config, final Settings settings, final Path configPath) throws Exception {
 
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -607,6 +649,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
                 System.setProperty(COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION, "true");
 
+            } else {
+                sslConfig.setHostnameVerifier(new DefaultHostnameVerifier());
             }
 
             final List<String> enabledCipherSuites = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_CIPHERS, Collections.emptyList());
@@ -1177,12 +1221,14 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         @Override
         public Class loadClass(String name) throws ClassNotFoundException {
 
-            if (!name.equalsIgnoreCase("org.ldaptive.ssl.ThreadLocalTLSSocketFactory")) {
-                return super.loadClass(name);
+            if (name.equals("org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory")) {
+                return SNISettingTLSSocketFactory.class;
+            }
+            if (name.equalsIgnoreCase("org.ldaptive.ssl.ThreadLocalTLSSocketFactory")) {
+                return clazz;
             }
 
-            return clazz;
+            return super.loadClass(name);
         }
-
     }
 }

@@ -309,7 +309,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
             );
 
             if (isDebugEnabled) {
-                log.debug("Results for LDAP search for " + user + " in base " + entry.getKey() + ":\n" + result);
+                log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), foundEntries);
             }
 
             if (foundEntries != null) {

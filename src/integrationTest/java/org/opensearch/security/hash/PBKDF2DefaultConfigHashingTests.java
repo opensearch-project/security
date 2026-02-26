@@ -17,6 +17,7 @@ import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -28,15 +29,20 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 public class PBKDF2DefaultConfigHashingTests extends HashingTests {
 
-    private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
-        .hash(
-            generatePBKDF2Hash(
-                "secret",
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+    private static final String password = CryptoServicesRegistrar.isInApprovedOnlyMode() ? "dtekVF0vEAA9FNvm#KMkTwMN" : "secret";
+
+    static {
+        ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
+            .hash(
+                generatePBKDF2Hash(
+                    password,
+                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
+                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
+                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+                )
             )
-        );
+            .password(password);
+    }
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
