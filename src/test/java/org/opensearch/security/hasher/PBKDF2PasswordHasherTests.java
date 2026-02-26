@@ -13,11 +13,15 @@ package org.opensearch.security.hasher;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
+import org.bouncycastle.crypto.fips.FipsUnapprovedOperationError;
 
 import org.opensearch.security.support.ConfigConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assume.assumeTrue;
 
 public class PBKDF2PasswordHasherTests extends AbstractPasswordHasherTests {
 
@@ -56,5 +60,12 @@ public class PBKDF2PasswordHasherTests extends AbstractPasswordHasherTests {
         hash = hasher.hash(password.toCharArray());
         assertThat(hasher.check(password.toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
+    }
+
+    @Test
+    public void shouldThrowExceptionForWeekPassword() {
+        assumeTrue("BCFIPS provider is required", CryptoServicesRegistrar.isInApprovedOnlyMode());
+        var hasher = new PBKDF2PasswordHasher("SHA512", 10000, 512);
+        assertThrows(FipsUnapprovedOperationError.class, () -> hasher.hash("test".toCharArray()));
     }
 }
