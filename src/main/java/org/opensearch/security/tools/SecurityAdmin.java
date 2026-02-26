@@ -41,7 +41,10 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.KeyStore;
+import java.security.Principal;
 import java.security.PrivateKey;
+import java.security.Provider;
+import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
@@ -51,8 +54,12 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509ExtendedKeyManager;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -191,17 +198,27 @@ public class SecurityAdmin {
         Options options = new Options();
         options.addOption("nhnv", "disable-host-name-verification", false, "Disable hostname verification");
         options.addOption(
-            Option.builder("ts").longOpt("truststore").hasArg().argName("file").desc("Path to truststore (JKS/PKCS12 format)").build()
+            Option.builder("ts")
+                .longOpt("truststore")
+                .hasArg()
+                .argName("file")
+                .desc("Path to truststore (JKS/PKCS12/BCFKS/PKCS11 format)")
+                .build()
         );
         options.addOption(
-            Option.builder("ks").longOpt("keystore").hasArg().argName("file").desc("Path to keystore (JKS/PKCS12 format").build()
+            Option.builder("ks")
+                .longOpt("keystore")
+                .hasArg()
+                .argName("file")
+                .desc("Path to keystore (JKS/PKCS12/BCFKS/PKCS11 format")
+                .build()
         );
         options.addOption(
             Option.builder("tst")
                 .longOpt("truststore-type")
                 .hasArg()
                 .argName("type")
-                .desc("JKS or PKCS12, if not given we use the file extension to detect the type")
+                .desc("JKS, PKCS12, BCFKS, or PKCS11; if not given the type is auto-detected from the file")
                 .build()
         );
         options.addOption(
@@ -209,7 +226,7 @@ public class SecurityAdmin {
                 .longOpt("keystore-type")
                 .hasArg()
                 .argName("type")
-                .desc("JKS or PKCS12, if not given we use the file extension to detect the type")
+                .desc("JKS, PKCS12, BCFKS, or PKCS11; if not given the type is auto-detected from the file")
                 .build()
         );
         options.addOption(
@@ -507,6 +524,8 @@ public class SecurityAdmin {
             if (kspass == null && promptForPassword) {
                 kspass = promptForPassword("Keystore", "kspass", OPENDISTRO_SECURITY_KS_PASS);
             }
+        } else if ("PKCS11".equalsIgnoreCase(kst) && kspass == null && promptForPassword) {
+            kspass = promptForPassword("PKCS#11 token PIN", "kspass", OPENDISTRO_SECURITY_KS_PASS);
         }
 
         if (ts != null) {
@@ -514,6 +533,8 @@ public class SecurityAdmin {
             if (tspass == null && promptForPassword) {
                 tspass = promptForPassword("Truststore", "tspass", OPENDISTRO_SECURITY_TS_PASS);
             }
+        } else if ("PKCS11".equalsIgnoreCase(tst) && tspass == null && promptForPassword) {
+            tspass = promptForPassword("PKCS#11 token PIN", "tspass", OPENDISTRO_SECURITY_TS_PASS);
         }
 
         if (key != null) {
@@ -1223,12 +1244,37 @@ public class SecurityAdmin {
             throw new ParseException("Specify at least -cd or -f together with vc");
         }
 
-        if (!line.hasOption("vc") && !line.hasOption("ks") && !line.hasOption("cert") /*&& !line.hasOption("simple-auth")*/) {
-            throw new ParseException("Specify at least -ks or -cert");
+        boolean pkcs11Keystore = "PKCS11".equalsIgnoreCase(line.getOptionValue("kst"));
+        if (!line.hasOption("vc")
+            && !line.hasOption("ks")
+            && !line.hasOption("cert")
+            && !pkcs11Keystore /*&& !line.hasOption("simple-auth")*/) {
+            throw new ParseException("Specify at least -ks, -cert, or -kst PKCS11");
+        }
+        if (pkcs11Keystore && line.hasOption("ks")) {
+            throw new ParseException(
+                "Do not specify -ks together with -kst PKCS11; PKCS11 keystores are token-based and have no file path"
+            );
+        }
+        if (pkcs11Keystore && Security.getProviders("KeyStore.PKCS11") == null) {
+            throw new ParseException("No PKCS#11 provider is registered in the JVM; cannot use -kst PKCS11");
         }
 
-        if (!line.hasOption("vc") && !line.hasOption("mo") && !line.hasOption("ts") && !line.hasOption("cacert")) {
-            throw new ParseException("Specify at least -ts or -cacert");
+        boolean pkcs11Truststore = "PKCS11".equalsIgnoreCase(line.getOptionValue("tst"));
+        if (!line.hasOption("vc") && !line.hasOption("ts") && !line.hasOption("cacert") && !pkcs11Truststore) {
+            throw new ParseException("Specify at least -ts, -cacert, or -tst PKCS11");
+        }
+        if (pkcs11Truststore && line.hasOption("ts")) {
+            throw new ParseException(
+                "Do not specify -ts together with -tst PKCS11; PKCS11 truststores are token-based and have no file path"
+            );
+        }
+        if (pkcs11Truststore && Security.getProviders("KeyStore.PKCS11") == null) {
+            throw new ParseException("No PKCS#11 provider is registered in the JVM; cannot use -tst PKCS11");
+        }
+
+        if (line.hasOption("cert") != line.hasOption("key")) {
+            throw new ParseException("-cert and -key must both be specified together");
         }
 
         // TODO add more validation rules
@@ -1515,32 +1561,37 @@ public class SecurityAdmin {
         String keypass
     ) throws Exception {
 
+        if ("PKCS11".equalsIgnoreCase(keyStoreType)) {
+            final char[] kspassChars = kspass == null ? null : kspass.toCharArray();
+            return buildPkcs11SslContext(
+                loadStore(ks, keyStoreType, kspassChars),
+                kspassChars,
+                ksAlias,
+                cacert,
+                ts,
+                tspass,
+                trustStoreType
+            );
+        }
+
         final SSLContextBuilder sslContextBuilder = SSLContexts.custom();
 
         if (ks != null) {
-            File keyStoreFile = Paths.get(ks).toFile();
-
-            KeyStore keyStore = KeyStore.getInstance(keyStoreType.toUpperCase());
-            keyStore.load(new FileInputStream(keyStoreFile), kspass.toCharArray());
-            sslContextBuilder.loadKeyMaterial(keyStore, kspass.toCharArray(), (aliases, socket) -> {
+            final char[] kspassChars = kspass == null ? null : kspass.toCharArray();
+            final KeyStore keyStore = loadStore(ks, keyStoreType, kspassChars);
+            sslContextBuilder.loadKeyMaterial(keyStore, kspassChars, (aliases, socket) -> {
                 if (aliases == null || aliases.isEmpty()) {
                     return ksAlias;
                 }
-
                 if (ksAlias == null || ksAlias.isEmpty()) {
                     return aliases.keySet().iterator().next();
                 }
-
                 return ksAlias;
             });
         }
 
-        if (ts != null) {
-            File trustStoreFile = Paths.get(ts).toFile();
-
-            KeyStore trustStore = KeyStore.getInstance(trustStoreType.toUpperCase());
-            trustStore.load(new FileInputStream(trustStoreFile), tspass == null ? null : tspass.toCharArray());
-            sslContextBuilder.loadTrustMaterial(trustStore, null);
+        if (ts != null || "PKCS11".equalsIgnoreCase(trustStoreType)) {
+            sslContextBuilder.loadTrustMaterial(loadStore(ts, trustStoreType, tspass == null ? null : tspass.toCharArray()), null);
         }
 
         if (cacert != null) {
@@ -1583,6 +1634,100 @@ public class SecurityAdmin {
         }
 
         return sslContextBuilder.build();
+    }
+
+    private static SSLContext buildPkcs11SslContext(
+        KeyStore keyStore,
+        char[] pin,
+        String ksAlias,
+        String cacert,
+        String ts,
+        String tspass,
+        String trustStoreType
+    ) throws Exception {
+        Provider sunJSSE = Security.getProvider("SunJSSE");
+        if (sunJSSE == null) {
+            throw new IllegalStateException("SunJSSE provider not available; required for PKCS11 key store support");
+        }
+        SSLContext ctx = SSLContext.getInstance("TLS", sunJSSE);
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, pin);
+        KeyManager[] kms = Arrays.stream(kmf.getKeyManagers())
+            .map(km -> km instanceof X509ExtendedKeyManager ? new AliasSelectingKeyManager((X509ExtendedKeyManager) km, ksAlias) : km)
+            .toArray(KeyManager[]::new);
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        if (cacert != null) {
+            try (FileInputStream in = new FileInputStream(Paths.get(cacert).toFile())) {
+                tmf.init(PemKeyReader.toTruststore("ca", PemKeyReader.loadCertificatesFromStream(in)));
+            }
+        } else if (ts != null || "PKCS11".equalsIgnoreCase(trustStoreType)) {
+            tmf.init(loadStore(ts, trustStoreType, tspass == null ? null : tspass.toCharArray()));
+        } else {
+            tmf.init((KeyStore) null);
+        }
+
+        ctx.init(kms, tmf.getTrustManagers(), null);
+        return ctx;
+    }
+
+    private static final class AliasSelectingKeyManager extends X509ExtendedKeyManager {
+        private final X509ExtendedKeyManager delegate;
+        private final String alias;
+
+        AliasSelectingKeyManager(X509ExtendedKeyManager delegate, String alias) {
+            this.delegate = delegate;
+            this.alias = alias;
+        }
+
+        @Override
+        public String chooseClientAlias(String[] keyType, Principal[] issuers, java.net.Socket socket) {
+            return alias != null ? alias : delegate.chooseClientAlias(keyType, issuers, socket);
+        }
+
+        @Override
+        public String chooseEngineClientAlias(String[] keyType, Principal[] issuers, SSLEngine engine) {
+            return alias != null ? alias : delegate.chooseEngineClientAlias(keyType, issuers, engine);
+        }
+
+        @Override
+        public String chooseServerAlias(String keyType, Principal[] issuers, java.net.Socket socket) {
+            return delegate.chooseServerAlias(keyType, issuers, socket);
+        }
+
+        @Override
+        public String[] getClientAliases(String keyType, Principal[] issuers) {
+            return delegate.getClientAliases(keyType, issuers);
+        }
+
+        @Override
+        public String[] getServerAliases(String keyType, Principal[] issuers) {
+            return delegate.getServerAliases(keyType, issuers);
+        }
+
+        @Override
+        public X509Certificate[] getCertificateChain(String alias) {
+            return delegate.getCertificateChain(alias);
+        }
+
+        @Override
+        public PrivateKey getPrivateKey(String alias) {
+            return delegate.getPrivateKey(alias);
+        }
+    }
+
+    private static KeyStore loadStore(String path, String type, char[] password) throws Exception {
+        KeyStore ks = KeyStore.getInstance(type.toUpperCase());
+
+        if ("PKCS11".equalsIgnoreCase(type)) {
+            ks.load(null, password);
+        } else {
+            try (final var fin = new FileInputStream(Paths.get(path).toFile())) {
+                ks.load(fin, password);
+            }
+        }
+        return ks;
     }
 
     private static String responseToString(Response response, boolean prettyJson) {

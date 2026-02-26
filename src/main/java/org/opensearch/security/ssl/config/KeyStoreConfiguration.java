@@ -119,17 +119,19 @@ public interface KeyStoreConfiguration {
                 }
                 final var list = listBuilder.build();
                 if (list.isEmpty()) {
-                    throw new OpenSearchException("The file " + path + " does not contain any certificates");
+                    throw new OpenSearchException(
+                        "The keystore " + (path != null ? path : "(PKCS#11 token)") + " does not contain any certificates"
+                    );
                 }
                 return listBuilder.build();
             } catch (GeneralSecurityException e) {
-                throw new OpenSearchException("Couldn't load certificates from file " + path, e);
+                throw new OpenSearchException("Couldn't load certificates from " + (path != null ? path : "PKCS#11 token"), e);
             }
         }
 
         @Override
         public List<Path> files() {
-            return List.of(path);
+            return path != null ? List.of(path) : List.of();
         }
 
         @Override

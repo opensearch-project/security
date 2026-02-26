@@ -66,11 +66,10 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
-
-import reactor.netty.http.HttpProtocol;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
@@ -233,8 +232,8 @@ public interface OpenSearchClientProvider {
     /**
      * Returns a generic HTTP/1.1/HTTP 2.0/HTTP 3.0 client.
      */
-    default ReactorHttpClient getGenericClient(HttpProtocol protocol, boolean secure, Settings settings) {
-        return new ReactorHttpClient(true, true, settings, getHttpAddress());
+    default ReactorHttpClient getGenericClient(Settings settings) {
+        return new ReactorHttpClient(true, true, settings, getHttpAddress(), FipsMode.isEnabled());
     }
 
     default TestRestClient getRestClient(Header... headers) {
@@ -294,7 +293,12 @@ public interface OpenSearchClientProvider {
             if (useCertificateData != null) {
                 Certificate[] chainOfTrust = { useCertificateData.certificate() };
                 ks.setKeyEntry("admin-certificate", useCertificateData.getKey(), null, chainOfTrust);
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                KeyManagerFactory keyManagerFactory;
+                if (FipsMode.isEnabled()) {
+                    keyManagerFactory = KeyManagerFactory.getInstance("PKIX", "BCJSSE");
+                } else {
+                    keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                }
                 keyManagerFactory.init(ks, null);
                 keyManagers = keyManagerFactory.getKeyManagers();
             }

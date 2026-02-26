@@ -110,4 +110,3 @@ pemtrustedcas_content: |
     pTIIfrQcZ1vrDg0lYzVgQ1iT
     -----END CERTIFICATE-----
 usersearch: "(uid={0})"
-verify_hostnames: false

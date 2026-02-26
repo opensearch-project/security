@@ -25,6 +25,7 @@ import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -87,12 +88,20 @@ public abstract class AbstractApiIntegrationTest {
      */
     public static final TestSecurityConfig.User NEW_USER = new TestSecurityConfig.User("new-user");
 
-    public static final String DEFAULT_PASSWORD = "secret";
+    public static final String DEFAULT_PASSWORD = TestSecurityConfig.DEFAULT_TEST_PASSWORD;
+
+    // BC FIPS requires PBKDF2 passwords to be at least 112 bits; with ASCII chars that is 14 bytes.
+    public static final int FIPS_MIN_PASSWORD_LENGTH = 14;
 
     public static final ToXContentObject EMPTY_BODY = (builder, params) -> builder.startObject().endObject();
 
     public static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        Settings.builder()
+            .put(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
+                FipsMode.isEnabled() ? ConfigConstants.PBKDF2 : ConfigConstants.BCRYPT
+            )
+            .build()
     );
 
     protected static LocalCluster.Builder clusterBuilder() {

@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -65,9 +66,10 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
 
     @Before
     public void startCluster() {
-
-        TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
-            .hash(generatePBKDF2Hash("secret", function, iterations, length));
+        var password = FipsMode.isEnabled() ? "dtekVF0vEAA9FNvm#KMkTwMN" : "secret";
+        ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
+            .password(password)
+            .hash(generatePBKDF2Hash(password, function, iterations, length));
         cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(ADMIN_USER)
@@ -89,7 +91,7 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
             .build();
         cluster.before();
 
-        try (TestRestClient client = cluster.getRestClient(ADMIN_USER.getName(), "secret")) {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER.getName(), password)) {
             Awaitility.await()
                 .alias("Load default configuration")
                 .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));

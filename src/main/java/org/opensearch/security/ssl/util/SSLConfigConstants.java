@@ -24,11 +24,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
-
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.support.FipsMode;
 
 import io.netty.handler.ssl.ClientAuth;
 
@@ -46,8 +45,8 @@ public final class SSLConfigConstants {
     public static final String ENABLED = "enabled";
     public static final String CLIENT_AUTH_MODE = "clientauth_mode";
     public static final String ENFORCE_CERT_RELOAD_DN_VERIFICATION = "enforce_cert_reload_dn_verification";
-    public static final String DEFAULT_STORE_TYPE = CryptoServicesRegistrar.isInApprovedOnlyMode()
-        ? "BCFKS"
+    public static final String DEFAULT_STORE_TYPE = FipsMode.isEnabled()
+        ? "BCFKS" // PKCS#11 must remain opt-in via explicit config
         : KeyStore.getDefaultType().toUpperCase(Locale.ROOT);
     public static final String SSL_PREFIX = "plugins.security.ssl.";
 

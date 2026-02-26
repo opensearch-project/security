@@ -15,10 +15,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpStatus;
+import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.RuleChain;
 
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -31,7 +35,7 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
         .hash(
             generateArgon2Hash(
-                "secret",
+                TestSecurityConfig.DEFAULT_TEST_PASSWORD,
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
@@ -41,8 +45,7 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
             )
         );
 
-    @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+    private static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
         .anonymousAuth(false)
@@ -55,6 +58,14 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
             )
         )
         .build();
+
+    @ClassRule
+    public static final RuleChain rules = RuleChain.outerRule(new ExternalResource() {
+        @Override
+        protected void before() {
+            Assume.assumeFalse("Skipping Argon2 hashing tests: Argon2 is (yet) not FIPS-compliant", FipsMode.isEnabled());
+        }
+    }).around(cluster);
 
     @Test
     public void shouldAuthenticateWithCorrectPassword() {

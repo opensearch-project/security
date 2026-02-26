@@ -14,6 +14,9 @@ package org.opensearch.security;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Optional;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -23,6 +26,7 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
@@ -40,7 +44,9 @@ import tools.jackson.dataformat.yaml.YAMLFactory;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -119,21 +125,118 @@ public class UserServiceUnitTests {
         );
     }
 
+
     @Test
     public void testGeneratedPasswordContents() {
-        String password = UserService.generatePassword();
+        char[] password = UserService.generatePassword();
+        try {
+            assertThat(password.length >= 20 && password.length <= 27, is(true));
+            assertThat(new String(password).chars().anyMatch(Character::isLowerCase), is(true));
+            assertThat(new String(password).chars().anyMatch(Character::isUpperCase), is(true));
+            assertThat(new String(password).chars().anyMatch(Character::isDigit), is(true));
 
-        // Verify length is 8-16
-        assertThat(password.length() >= 8 && password.length() <= 16, is(true));
+            char[] password2 = UserService.generatePassword();
+            try {
+                assertNotEquals(new String(password), new String(password2));
+            } finally {
+                Arrays.fill(password2, '\0');
+            }
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+    }
 
-        // Verify at least 1 lowercase, 1 uppercase, 1 digit
-        assertThat(password.chars().anyMatch(Character::isLowerCase), is(true));
-        assertThat(password.chars().anyMatch(Character::isUpperCase), is(true));
-        assertThat(password.chars().anyMatch(Character::isDigit), is(true));
+    @Test
+    public void testGeneratedPasswordWithInjectedRandom() {
+        SecureRandom seededRandom = new SecureRandom(new byte[] { 1, 2, 3, 4 });
+        char[] passwordChars = UserService.generatePassword(seededRandom);
+        String password = new String(passwordChars);
+        try {
+            assertThat(password.length() >= 20 && password.length() <= 27, is(true));
+            assertThat(password.chars().anyMatch(Character::isLowerCase), is(true));
+            assertThat(password.chars().anyMatch(Character::isUpperCase), is(true));
+            assertThat(password.chars().anyMatch(Character::isDigit), is(true));
 
-        // Verify two generated passwords are different
-        String password2 = UserService.generatePassword();
-        assertNotEquals(password, password2);
+            // password bytes serve as IKM for BC FIPS HKDF → AES-256 key derivation
+            byte[] passwordBytes = password.getBytes(StandardCharsets.UTF_8);
+            String base64Secret = Base64.getEncoder().encodeToString(passwordBytes);
+            Arrays.fill(passwordBytes, (byte) 0);
+
+            EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(base64Secret);
+            String testData = "FIPS entropy test payload";
+            assertEquals("AES round-trip failed with password-derived key", testData, util.decrypt(util.encrypt(testData)));
+
+            SecureRandom seededRandom2 = new SecureRandom(new byte[] { 5, 6, 7, 8 });
+            char[] password2Chars = UserService.generatePassword(seededRandom2);
+            try {
+                assertNotEquals(password, new String(password2Chars));
+            } finally {
+                Arrays.fill(password2Chars, '\0');
+            }
+        } finally {
+            Arrays.fill(passwordChars, '\0');
+        }
+    }
+
+    @Test
+    public void testGeneratedPasswordEntropyMeetsFipsRequirement() {
+        // FIPS 140-2/3 requires minimum 112 bits of entropy for cryptographic keys
+        final double FIPS_MIN_ENTROPY_BITS = 112.0;
+        final int CHARSET_SIZE = 62; // a-z (26) + A-Z (26) + 0-9 (10)
+        final int MIN_PASSWORD_LENGTH = 20;
+
+        double entropyPerChar = Math.log(CHARSET_SIZE) / Math.log(2);
+        double minEntropy = entropyPerChar * MIN_PASSWORD_LENGTH;
+
+        assertTrue(
+            String.format("Password entropy %.2f bits must be >= %.2f bits (FIPS minimum)", minEntropy, FIPS_MIN_ENTROPY_BITS),
+            minEntropy >= FIPS_MIN_ENTROPY_BITS
+        );
+
+        char[] password = UserService.generatePassword();
+        try {
+            assertTrue("Generated password must be >= " + MIN_PASSWORD_LENGTH + " chars", password.length >= MIN_PASSWORD_LENGTH);
+
+            double actualEntropy = entropyPerChar * password.length;
+            assertTrue(
+                String.format("Actual password entropy %.2f bits must be >= %.2f bits", actualEntropy, FIPS_MIN_ENTROPY_BITS),
+                actualEntropy >= FIPS_MIN_ENTROPY_BITS
+            );
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+    }
+
+    @Test
+    public void testGeneratedPasswordLengthExceedsFipsMinimum() {
+        // PBKDF2PasswordHasher.check() rejects passwords < 14 chars in FIPS mode
+        final int FIPS_MIN_PASSWORD_LENGTH = 14;
+        final int OUR_MIN_PASSWORD_LENGTH = 20;
+
+        for (int i = 0; i < 10; i++) {
+            char[] password = UserService.generatePassword();
+            try {
+                assertTrue(
+                    "Generated password length " + password.length + " must be >= FIPS minimum " + FIPS_MIN_PASSWORD_LENGTH,
+                    password.length >= FIPS_MIN_PASSWORD_LENGTH
+                );
+                assertTrue(
+                    "Generated password length " + password.length + " must be >= our minimum " + OUR_MIN_PASSWORD_LENGTH,
+                    password.length >= OUR_MIN_PASSWORD_LENGTH
+                );
+            } finally {
+                Arrays.fill(password, '\0');
+            }
+        }
+
+        char[] weakPassword = "1234567890abc".toCharArray();
+        assertTrue("Weak password must be below FIPS threshold", weakPassword.length < FIPS_MIN_PASSWORD_LENGTH);
+
+        // 20 * log2(62) ≈ 119 bits vs 14 * log2(62) ≈ 83 bits
+        assertTrue(
+            "Our minimum length must exceed FIPS minimum by significant margin",
+            OUR_MIN_PASSWORD_LENGTH - FIPS_MIN_PASSWORD_LENGTH >= 6
+        );
     }
 
 }

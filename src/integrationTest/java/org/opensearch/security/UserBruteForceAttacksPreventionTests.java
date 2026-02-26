@@ -11,6 +11,7 @@ package org.opensearch.security;
 
 import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,6 +40,7 @@ public class UserBruteForceAttacksPreventionTests {
 
     public static final int ALLOWED_TRIES = 3;
     public static final int TIME_WINDOW_SECONDS = 3;
+    public static final int LOCK_RELEASE_TIMEOUT_SECONDS = TIME_WINDOW_SECONDS * 3;
     private static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
         new RateLimiting("internal_authentication_backend_limiting").type("username")
             .authenticationBackend("intern")
@@ -74,9 +76,8 @@ public class UserBruteForceAttacksPreventionTests {
     public void shouldBlockUserWhenNumberOfFailureLoginAttemptIsEqualToLimit() {
         authenticateUserWithIncorrectPassword(USER_2, ALLOWED_TRIES);
         try (TestRestClient client = cluster.getRestClient(USER_2)) {
-            HttpResponse response = client.getAuthInfo();
-
-            response.assertStatusCode(SC_UNAUTHORIZED);
+            Awaitility.await("user " + USER_2.getName() + " blocked after " + ALLOWED_TRIES + " failed attempts")
+                .until(() -> client.getAuthInfo().getStatusCode() == SC_UNAUTHORIZED);
         }
         // Rejecting REST request because of blocked user:
         logsRule.assertThatContain("Rejecting request because of blocked user: " + USER_2.getName());
@@ -86,9 +87,8 @@ public class UserBruteForceAttacksPreventionTests {
     public void shouldBlockUserWhenNumberOfFailureLoginAttemptIsGreaterThanLimit() {
         authenticateUserWithIncorrectPassword(USER_3, ALLOWED_TRIES * 2);
         try (TestRestClient client = cluster.getRestClient(USER_3)) {
-            HttpResponse response = client.getAuthInfo();
-
-            response.assertStatusCode(SC_UNAUTHORIZED);
+            Awaitility.await("user " + USER_3.getName() + " blocked after " + (ALLOWED_TRIES * 2) + " failed attempts")
+                .until(() -> client.getAuthInfo().getStatusCode() == SC_UNAUTHORIZED);
         }
         logsRule.assertThatContain("Rejecting request because of blocked user: " + USER_3.getName());
     }
@@ -104,16 +104,14 @@ public class UserBruteForceAttacksPreventionTests {
     }
 
     @Test
-    public void shouldReleaseLock() throws InterruptedException {
+    public void shouldReleaseLock() {
         authenticateUserWithIncorrectPassword(USER_5, ALLOWED_TRIES);
         try (TestRestClient client = cluster.getRestClient(USER_5)) {
-            HttpResponse response = client.getAuthInfo();
-            response.assertStatusCode(SC_UNAUTHORIZED);
-            TimeUnit.SECONDS.sleep(TIME_WINDOW_SECONDS);
-
-            response = client.getAuthInfo();
-
-            response.assertStatusCode(SC_OK);
+            Awaitility.await("user " + USER_5.getName() + " initially blocked")
+                .until(() -> client.getAuthInfo().getStatusCode() == SC_UNAUTHORIZED);
+            Awaitility.await("block released for user " + USER_5.getName())
+                .atMost(LOCK_RELEASE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .until(() -> client.getAuthInfo().getStatusCode() == SC_OK);
         }
         logsRule.assertThatContain("Rejecting request because of blocked user: " + USER_5.getName());
     }
