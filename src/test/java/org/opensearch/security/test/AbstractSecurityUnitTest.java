@@ -83,6 +83,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
@@ -167,7 +168,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             var typedKeyStore = FileHelper.resolveStore(prefix + keyStoreName);
             File keyStoreFile = typedKeyStore.path().toFile();
             KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
-            keyStore.load(new FileInputStream(keyStoreFile), null);
+            keyStore.load(new FileInputStream(keyStoreFile), "changeit".toCharArray());
             sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
 
             var typedTrustStore = FileHelper.resolveStore(prefix + trustStoreName);
@@ -179,11 +180,13 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             SSLContext sslContext = sslContextBuilder.build();
 
             HttpHost httpHost = new HttpHost("https", info.httpHost, info.httpPort);
-
+            String[] tlsVersions = FipsMode.isEnabled()
+                ? new String[] { "TLSv1.2", "TLSv1.3" }
+                : new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" };
             RestClientBuilder restClientBuilder = RestClient.builder(httpHost).setHttpClientConfigCallback(builder -> {
                 TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
                     .setSslContext(sslContext)
-                    .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
+                    .setTlsVersions(tlsVersions)
                     .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
                     // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
                     .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {

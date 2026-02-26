@@ -48,7 +48,6 @@ import org.opensearch.transport.client.Client;
 
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import reactor.netty.http.HttpProtocol;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -158,13 +157,7 @@ public class ResourceFocusedTests {
         final int totalNumberOfRequests
     ) {
         final byte[] compressedRequestBody = createCompressedRequestBody(size);
-        try (
-            final ReactorHttpClient client = cluster.getGenericClient(
-                HttpProtocol.HTTP3,
-                true,
-                Settings.builder().loadFromMap(NODE_SETTINGS).build()
-            )
-        ) {
+        try (final ReactorHttpClient client = cluster.getGenericClient(Settings.builder().loadFromMap(NODE_SETTINGS).build())) {
             List<Tuple<String, byte[]>> requestUris = new ArrayList<>();
             for (int i = 0; i < totalNumberOfRequests; i++) {
                 requestUris.add(Tuple.tuple(requestPath, compressedRequestBody));

@@ -19,10 +19,15 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.http.netty4.http3.Http3Utils;
+import org.opensearch.security.support.FipsMode;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -38,7 +43,14 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http2.HttpConversionUtil;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.resolver.DefaultAddressResolverGroup;
 import reactor.core.publisher.Flux;
@@ -50,13 +62,13 @@ import reactor.netty.http.Http3SslContextSpec;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 
-import static org.opensearch.http.HttpTransportSettings.SETTING_HTTP_HTTP3_ENABLED;
 import static org.opensearch.http.HttpTransportSettings.SETTING_HTTP_MAX_CONTENT_LENGTH;
 
 /**
  * Tiny helper to send http requests over netty.
  */
 public class ReactorHttpClient implements Closeable {
+    private static final Logger LOG = LogManager.getLogger(ReactorHttpClient.class);
     private static final java.util.Random RAND = new java.util.Random();
 
     private final boolean compression;
@@ -66,9 +78,19 @@ public class ReactorHttpClient implements Closeable {
     private final InetSocketAddress remoteAddress;
 
     public ReactorHttpClient(boolean compression, boolean secure, Settings settings, InetSocketAddress remoteAddress) {
+        this(compression, secure, selectSupportedProtocol(secure), settings, remoteAddress);
+    }
+
+    public ReactorHttpClient(
+        boolean compression,
+        boolean secure,
+        HttpProtocol protocol,
+        Settings settings,
+        InetSocketAddress remoteAddress
+    ) {
         this.compression = compression;
         this.secure = secure;
-        this.protocol = randomProtocol(secure, settings);
+        this.protocol = protocol;
         this.settings = settings;
         this.remoteAddress = remoteAddress;
     }
@@ -127,6 +149,7 @@ public class ReactorHttpClient implements Closeable {
                                     )
                                 )
                         )
+                        .doOnError(e -> LOG.warn("Request failed [protocol={}]: {}", protocol, e.getMessage(), e))
                 )
                 .toArray(Mono[]::new);
 
@@ -150,22 +173,47 @@ public class ReactorHttpClient implements Closeable {
 
         if (secure) {
             if (protocol == HttpProtocol.HTTP11) {
+                Consumer<SslContextBuilder> http11Configure = s -> {
+                    if (FipsMode.isEnabled()) {
+                        s.sslProvider(SslProvider.JDK);
+                    }
+                    s.clientAuth(ClientAuth.NONE).trustManager(InsecureTrustManagerFactory.INSTANCE);
+                };
                 return client.protocol(protocol)
                     .secure(
-                        spec -> spec.sslContext(
-                            Http11SslContextSpec.forClient()
-                                .configure(s -> s.clientAuth(ClientAuth.NONE).trustManager(InsecureTrustManagerFactory.INSTANCE))
-                        ).handshakeTimeout(Duration.ofSeconds(30))
+                        spec -> spec.sslContext(Http11SslContextSpec.forClient().configure(http11Configure))
+                            .handshakeTimeout(Duration.ofSeconds(30))
                     );
             } else if (protocol == HttpProtocol.H2) {
-                return client.protocol(new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2 })
+                Consumer<SslContextBuilder> h2Configure = s -> {
+                    if (FipsMode.isEnabled()) {
+                        s.sslProvider(SslProvider.JDK)
+                            .applicationProtocolConfig(
+                                new ApplicationProtocolConfig(
+                                    Protocol.ALPN,
+                                    SelectorFailureBehavior.NO_ADVERTISE,
+                                    SelectedListenerFailureBehavior.ACCEPT,
+                                    ApplicationProtocolNames.HTTP_2
+                                )
+                            );
+                    }
+                    s.clientAuth(ClientAuth.NONE).trustManager(InsecureTrustManagerFactory.INSTANCE);
+                };
+                HttpProtocol[] h2Protocols = FipsMode.isEnabled()
+                    ? new HttpProtocol[] { HttpProtocol.H2 }
+                    : new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2 };
+                return client.protocol(h2Protocols)
                     .secure(
-                        spec -> spec.sslContext(
-                            Http2SslContextSpec.forClient()
-                                .configure(s -> s.clientAuth(ClientAuth.NONE).trustManager(InsecureTrustManagerFactory.INSTANCE))
-                        ).handshakeTimeout(Duration.ofSeconds(30))
+                        spec -> spec.sslContext(Http2SslContextSpec.forClient().configure(h2Configure))
+                            .handshakeTimeout(Duration.ofSeconds(30))
                     );
             } else {
+                if (FipsMode.isEnabled()) {
+                    throw new IllegalStateException(
+                        "HTTP/3 requires BoringSSL which is not built from the FIPS-validated branch in this distribution; "
+                            + "substitute a FIPS-certified BoringSSL build to enable HTTP/3 in FIPS mode"
+                    );
+                }
                 return client.protocol(protocol)
                     .secure(
                         spec -> spec.sslContext(
@@ -181,6 +229,11 @@ public class ReactorHttpClient implements Closeable {
                     );
             }
         } else {
+            if (FipsMode.isEnabled()) {
+                throw new IllegalStateException(
+                    "Plaintext connections are not permitted in FIPS mode; TLS is required to engage the FIPS security providers"
+                );
+            }
             if (protocol == HttpProtocol.HTTP11) {
                 return client.protocol(protocol);
             } else {
@@ -198,15 +251,22 @@ public class ReactorHttpClient implements Closeable {
         return protocol;
     }
 
-    private static HttpProtocol randomProtocol(boolean secure, Settings settings) {
-        HttpProtocol[] values = null;
+    private static HttpProtocol selectSupportedProtocol(boolean secure) {
+        if (FipsMode.isEnabled() && !secure) {
+            throw new IllegalStateException(
+                "Plaintext connections are not permitted in FIPS mode; TLS is required to engage the FIPS security providers"
+            );
+        }
+
+        HttpProtocol[] values;
 
         if (secure) {
-            if (Http3Utils.isHttp3Available() && SETTING_HTTP_HTTP3_ENABLED.get(settings).booleanValue() == true) {
-                values = new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2, HttpProtocol.HTTP3 };
-            } else {
-                values = new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2 };
-            }
+            // In FIPS mode, exclude HTTP/3: the bundled BoringSSL (used by QUIC) is not built from the
+            // FIPS-validated branch and bypasses JSSE/BC FIPS entirely. This is a build-level constraint —
+            // a FIPS-certified BoringSSL substituted at the OS level would re-enable HTTP/3 in FIPS mode.
+            values = Http3Utils.isHttp3Available() && !FipsMode.isEnabled()
+                ? new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2, HttpProtocol.HTTP3 }
+                : new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2 };
         } else {
             values = new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2C };
         }

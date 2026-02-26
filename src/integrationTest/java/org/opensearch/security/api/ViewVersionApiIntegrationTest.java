@@ -34,8 +34,10 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isUnauthorized;
 
 public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
 
+    private static final String LIMITED_USER_PASSWORD = "limitedPass1234!";
+
     @Rule
-    public LocalCluster localCluster = clusterBuilder().users(new TestSecurityConfig.User("limitedUser").password("limitedPass"))
+    public LocalCluster localCluster = clusterBuilder().users(new TestSecurityConfig.User("limitedUser").password(LIMITED_USER_PASSWORD))
         .nodeSetting(EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, true)
         .build();
 
@@ -108,7 +110,7 @@ public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
 
     @Test
     public void testViewAllVersions_forbiddenWithoutAdminCert() throws Exception {
-        try (TestRestClient client = localCluster.getRestClient("limitedUser", "limitedPass")) {
+        try (TestRestClient client = localCluster.getRestClient("limitedUser", LIMITED_USER_PASSWORD)) {
             var response = client.get(viewVersionBase());
             assertThat(response, anyOf(isUnauthorized(), isForbidden()));
         }

@@ -37,6 +37,7 @@ import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
@@ -50,6 +51,7 @@ import org.ldaptive.ReturnAttributes;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assume.assumeFalse;
 
 @RunWith(Parameterized.class)
 public class LdapBackendTestOldStyleConfig2 {
@@ -219,7 +221,6 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -236,7 +237,6 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(ConfigConstants.LDAP_POOL_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -255,7 +255,6 @@ public class LdapBackendTestOldStyleConfig2 {
                 ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").toFile().getName()
             )
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .put("path.conf", FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").getParent())
             .build();
@@ -278,6 +277,7 @@ public class LdapBackendTestOldStyleConfig2 {
 
     @Test
     public void testLdapAuthenticationSSLSSLv3() throws Exception {
+        assumeFalse("SSLv3 is not FIPS-approved", FipsMode.isEnabled());
 
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
@@ -293,7 +293,8 @@ public class LdapBackendTestOldStyleConfig2 {
             Assert.fail("Expected Exception");
         } catch (Exception e) {
             assertThat(e.getCause().getClass(), is(org.ldaptive.provider.ConnectionException.class));
-            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains("No appropriate protocol"));
+            var message = FipsMode.isEnabled() ? "'protocols' cannot be null, or contain unsupported protocols" : "No appropriate protocol";
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains(message));
         }
 
     }
@@ -305,7 +306,6 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_ciphers", "AAA")
             .put("path.home", ".")
             .build();
@@ -314,8 +314,9 @@ public class LdapBackendTestOldStyleConfig2 {
             new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("jacksonm", "secret"));
             Assert.fail("Expected Exception");
         } catch (Exception e) {
-            assertThat(e.getCause().getClass().toString(), org.ldaptive.provider.ConnectionException.class, is(e.getCause().getClass()));
-            Assert.assertTrue(ExceptionUtils.getStackTrace(e), EXCEPTION_MATCHER.test(ExceptionUtils.getStackTrace(e).toLowerCase()));
+            assertThat(e.getCause().getClass(), is(org.ldaptive.provider.ConnectionException.class));
+            var message = FipsMode.isEnabled() ? "No usable cipher suites enabled" : "Unsupported CipherSuite: AAA";
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains(message));
         }
 
     }
@@ -327,7 +328,6 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "TLSv1.2")
             .putList("enabled_ssl_ciphers", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA")
             .put("path.home", ".")
@@ -346,7 +346,6 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -646,7 +645,6 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 

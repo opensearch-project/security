@@ -61,10 +61,12 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.bouncycastle.tls.TlsFatalAlert;
 
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.security.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
@@ -134,7 +136,8 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
             ) {
 
-                thrown.expect(SSLHandshakeException.class);
+                Class<? extends Throwable> exceptionClass = FipsMode.isEnabled() ? TlsFatalAlert.class : SSLHandshakeException.class;
+                thrown.expect(exceptionClass);
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     Assert.fail("Connection should have failed due to wrong trust");
@@ -159,7 +162,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .put("prefix.enable_ssl_client_auth", "true")
                 .put("prefix.pemcert_filepath", "kirk.pem")
                 .put("prefix.pemkey_filepath", "kirk.key")
-                .put("prefix.pemkey_password", "secret")
+                .put("prefix.pemkey_password", "notarealpassword")
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
@@ -194,7 +197,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .put("prefix.enable_ssl_client_auth", "true")
                 .put("prefix.pemcert_filepath", "wrong-kirk.pem")
                 .put("prefix.pemkey_filepath", "wrong-kirk.key")
-                .put("prefix.pemkey_password", "G0CVtComen4a")
+                .put("prefix.pemkey_password", "notarealpassword")
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
@@ -357,7 +360,8 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
             ) {
 
-                thrown.expect(SSLHandshakeException.class);
+                Class<? extends Throwable> exceptionClass = FipsMode.isEnabled() ? TlsFatalAlert.class : SSLHandshakeException.class;
+                thrown.expect(exceptionClass);
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     Assert.fail("Connection should have failed due to wrong trust");

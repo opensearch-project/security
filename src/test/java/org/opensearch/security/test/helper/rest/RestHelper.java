@@ -100,6 +100,8 @@ public class RestHelper {
     public boolean enableHTTPClientSSLv3Only = false;
     public boolean sendAdminCertificate = false;
     public boolean trustHTTPServerCertificate = true;
+    public FileHelper.TypedStore customTrustStoreFile = null;
+    public String customTrustStorePassword = null;
     public boolean sendHTTPClientCredentials = false;
     public String keystore = "node-0-keystore";
     public final String prefix;
@@ -339,8 +341,15 @@ public class RestHelper {
             String keystoreDir = ksParent != null ? ksParent + "/" : "";
             var resolvedTrustStore = FileHelper.resolveStore(keystoreDir + "truststore");
 
-            final KeyStore myTrustStore = KeyStore.getInstance(resolvedTrustStore.type());
-            myTrustStore.load(new FileInputStream(resolvedTrustStore.path().toFile()), "changeit".toCharArray());
+            final KeyStore myTrustStore;
+            if (customTrustStoreFile != null) {
+                myTrustStore = KeyStore.getInstance(customTrustStoreFile.type());
+                char[] tsPass = customTrustStorePassword != null ? customTrustStorePassword.toCharArray() : null;
+                myTrustStore.load(new FileInputStream(customTrustStoreFile.path().toFile()), tsPass);
+            } else {
+                myTrustStore = KeyStore.getInstance(resolvedTrustStore.type());
+                myTrustStore.load(new FileInputStream(resolvedTrustStore.path().toFile()), "changeit".toCharArray());
+            }
 
             final KeyStore keyStore = KeyStore.getInstance(resolvedKeyStore.type());
             keyStore.load(new FileInputStream(resolvedKeyStore.path().toFile()), "changeit".toCharArray());
