@@ -393,6 +393,7 @@ opensearchplugin {
 }
 
 // This requires an additional Jar not published as part of build-tools
+// TODO do we still need this?
 loggerUsageCheck.enabled = false
 
 publishing {
