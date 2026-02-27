@@ -316,6 +316,13 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
+     * @return true if the request is from an API token, otherwise false
+     */
+    public boolean isApiTokenRequest() {
+        return name != null && name.startsWith("token:");
+    }
+
+    /**
      * Returns a String containing serialized form of this User object. Never returns null.
      */
     public String toSerializedBase64() {

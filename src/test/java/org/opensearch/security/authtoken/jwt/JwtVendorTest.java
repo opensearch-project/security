@@ -23,12 +23,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.authtoken.jwt.claims.ApiJwtClaimsBuilder;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -43,6 +43,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -70,14 +71,14 @@ public class JwtVendorTest {
     @Test
     public void testCreateJwkFromSettingsWithWeakKey() {
         Settings settings = Settings.builder().put("signing_key", "abcd1234").build();
-        Throwable exception = Assert.assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Throwable exception = assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }
 
     @Test
     public void testCreateJwkFromSettingsWithoutSigningKey() {
         Settings settings = Settings.builder().put("jwt", "").build();
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Throwable exception = assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(
             exception.getMessage(),
             equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")
@@ -222,4 +223,49 @@ public class JwtVendorTest {
         final String[] parts = logMessage.split("\\.");
         assertTrue(parts.length >= 3);
     }
+
+    @Test
+    public void testCreateApiTokenJwtSuccess() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "audience_0";
+        int expirySeconds = 300;
+        // 2023 oct 4, 10:00:00 AM GMT
+        LongSupplier currentTime = () -> 1696413600000L;
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
+
+        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
+
+        JwtVendor apiTokenJwtVendor = new JwtVendor(settings);
+        final ExpiringBearerAuthToken authToken = apiTokenJwtVendor.createJwt(
+            new ApiJwtClaimsBuilder().issuer(issuer)
+                .subject(subject)
+                .audience(audience)
+                .expirationTime(expiryTime)
+                .issueTime(new Date(currentTime.getAsLong())),
+            subject.toString(),
+            expiryTime,
+            (long) expirySeconds
+        );
+
+        SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
+
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
+        // 2023 oct 4, 10:00:00 AM GMT
+        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("iat")).getTime(), is(1696413600000L));
+        // 2023 oct 4, 10:05:00 AM GMT
+        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
+    }
+
+    @Test
+    public void testKeyTooShortForApiTokenThrowsException() {
+        String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());
+        Settings settings = Settings.builder().put("signing_key", tooShortKey).build();
+        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new JwtVendor(settings); });
+
+        assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
+    }
+
 }

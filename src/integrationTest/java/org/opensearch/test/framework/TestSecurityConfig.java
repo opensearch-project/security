@@ -151,6 +151,11 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public TestSecurityConfig apiToken(ApiTokenConfig apiTokenConfig) {
+        config.apiTokenConfig(apiTokenConfig);
+        return this;
+    }
+
     public TestSecurityConfig authc(AuthcDomain authcDomain) {
         config.authc(authcDomain);
         return this;
@@ -268,6 +273,7 @@ public class TestSecurityConfig {
         private Boolean doNotFailOnForbidden;
         private XffConfig xffConfig;
         private OnBehalfOfConfig onBehalfOfConfig;
+        private ApiTokenConfig apiTokenConfig;
         private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
         private AuthFailureListeners authFailureListeners;
@@ -293,6 +299,11 @@ public class TestSecurityConfig {
             return this;
         }
 
+        public Config apiTokenConfig(ApiTokenConfig apiTokenConfig) {
+            this.apiTokenConfig = apiTokenConfig;
+            return this;
+        }
+
         public Config authc(AuthcDomain authcDomain) {
             authcDomainMap.put(authcDomain.id, authcDomain);
             return this;
@@ -315,6 +326,10 @@ public class TestSecurityConfig {
 
             if (onBehalfOfConfig != null) {
                 xContentBuilder.field("on_behalf_of", onBehalfOfConfig);
+            }
+
+            if (apiTokenConfig != null) {
+                xContentBuilder.field("api_tokens", apiTokenConfig);
             }
 
             if (anonymousAuth || (xffConfig != null)) {
