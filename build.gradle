@@ -65,7 +65,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.10.1"
     id "org.gradle.test-retry" version "1.6.1"
     id 'eclipse'
-    id "com.github.spotbugs" version "5.2.5"
+    id "com.github.spotbugs" version "6.4.8"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -381,7 +381,7 @@ jacocoTestReport {
 }
 
 checkstyle {
-    toolVersion "10.26.1"
+    toolVersion "11.0.0"
     showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
@@ -393,7 +393,6 @@ opensearchplugin {
 }
 
 // This requires an additional Jar not published as part of build-tools
-// TODO do we still need this?
 loggerUsageCheck.enabled = false
 
 publishing {
@@ -654,7 +653,7 @@ dependencies {
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.2'
-    runtimeOnly 'org.apache.commons:commons-text:1.13.0'
+    runtimeOnly 'org.apache.commons:commons-text:1.15.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
