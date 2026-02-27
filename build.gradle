@@ -241,23 +241,23 @@ task listTasksAsJSON {
     }
 }
 
-task copyExtraTestResources(dependsOn: testClasses) {
+tasks.register('copyExtraTestResources', Copy.class) {
+    dependsOn testClasses
 
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/test/src/test/resources'
+    into "build/testrun" // base dir for all `into` below
+
+    from("src/test/resources") {
+        into("test/src/test/resources")
     }
 
     taskNames.each { testName ->
-        copy {
-            from 'src/test/resources'
-            into "build/testrun/${testName}/src/test/resources"
+        from("src/test/resources") {
+            into("${testName}/src/test/resources")
         }
     }
 
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/citest/src/test/resources'
+    from("src/test/resources") {
+        into "citest/src/test/resources"
     }
 }
 
