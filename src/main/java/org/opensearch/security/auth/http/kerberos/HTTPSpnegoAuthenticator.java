@@ -19,6 +19,7 @@ import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.security.auth.Subject;
+import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Strings;
@@ -78,9 +80,9 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                 try {
                     if (settings.getAsBoolean("krb_debug", false)) {
                         JaasKrbUtil.setDebug(true);
-                        System.setProperty("sun.security.krb5.debug", "true");
-                        System.setProperty("java.security.debug", "gssloginconfig,logincontext,configparser,configfile");
-                        System.setProperty("sun.security.spnego.debug", "true");
+//                        System.setProperty("sun.security.krb5.debug", "true");
+//                        System.setProperty("java.security.debug", "gssloginconfig,logincontext,configparser,configfile");
+//                        System.setProperty("sun.security.spnego.debug", "true");
                         log.info("Kerberos debug is enabled on stdout");
                     } else {
                         log.debug("Kerberos debug is NOT enabled");
@@ -181,14 +183,16 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                 log.warn("No 'Negotiate Authorization' header, send 401 and 'WWW-Authenticate Negotiate'");
                 return null;
             } else {
-                final byte[] decodedNegotiateHeader = Base64.getDecoder().decode(authorizationHeader.substring(10));
-
+                byte[] decodedNegotiateHeader = null;
                 GSSContext gssContext = null;
+                LoginContext loginContext = null;
                 byte[] outToken = null;
 
                 try {
+                    decodedNegotiateHeader = Base64.getDecoder().decode(authorizationHeader.substring(10));
 
-                    final Subject subject = JaasKrbUtil.loginUsingKeytab(acceptorPrincipal, acceptorKeyTabPath, false);
+                    loginContext = JaasKrbUtil.loginUsingKeytabWithContext(acceptorPrincipal, acceptorKeyTabPath, false);
+                    final Subject subject = loginContext.getSubject();
 
                     final GSSManager manager = GSSManager.getInstance();
                     final int credentialLifetime = GSSCredential.INDEFINITE_LIFETIME;
@@ -225,6 +229,9 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                     }
                     return null;
                 } finally {
+                    if (decodedNegotiateHeader != null) {
+                        Arrays.fill(decodedNegotiateHeader, (byte) 0);
+                    }
                     if (gssContext != null) {
                         try {
                             gssContext.dispose();
@@ -232,6 +239,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                             // Ignore
                         }
                     }
+                    JaasKrbUtil.logout(loginContext);
                 }
 
                 if (principal == null) {
@@ -241,10 +249,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                 final String username = ((SimpleUserPrincipal) principal).getName();
 
                 if (username == null || username.length() == 0) {
-                    log.error(
-                        "Got empty or null user from kerberos. Normally this means that you acceptor principal {} does not match the server hostname",
-                        acceptorPrincipal
-                    );
+                    log.error("Got empty or null user from kerberos. The configured acceptor principal may not match the server hostname");
                 }
 
                 return new AuthCredentials(username, (Object) outToken).markComplete();

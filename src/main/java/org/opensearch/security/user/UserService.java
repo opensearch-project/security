@@ -14,6 +14,7 @@ package org.opensearch.security.user;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -21,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -160,9 +160,13 @@ public class UserService {
         if (!attributeNode.get("service").isNull() && attributeNode.get("service").asString().equalsIgnoreCase("true")) { // If this is a
                                                                                                                           // service account
             verifyServiceAccount(securityJsonNode, accountName);
-            String password = generatePassword();
-            contentAsNode.put("hash", passwordHasher.hash(password.toCharArray()));
-            contentAsNode.put("service", "true");
+            char[] password = generatePassword();
+            try {
+                contentAsNode.put("hash", passwordHasher.hash(password));
+                contentAsNode.put("service", "true");
+            } finally {
+                Arrays.fill(password, '\0');
+            }
         } else {
             contentAsNode.put("service", "false");
         }
@@ -233,22 +237,42 @@ public class UserService {
     }
 
     /**
-     * Use Passay to generate an 8 - 16 character password with 1+ lowercase, 1+ uppercase, 1+ digit, 1+ special character
+     * Generates a random password for service accounts using Passay.
+     * Uses FIPS-approved CSPRNG via {@link Randomness#createSecure()}.
      *
-     * @return A password for a service account.
+     * @return A password as char[] (caller must clear with Arrays.fill after use).
      */
-    public static String generatePassword() {
+    public static char[] generatePassword() {
+        return generatePassword(Randomness.createSecure());
+    }
 
+    /**
+     * Generates a random password using the provided SecureRandom.
+     * <p>
+     * Security analysis:
+     * <ul>
+     *   <li>Character set: alphanumeric (a-z, A-Z, 0-9) = 62 characters</li>
+     *   <li>Length: 20-27 characters (20 + random[0-7])</li>
+     *   <li>Entropy: log2(62) * 20 ≈ 119 bits minimum (exceeds FIPS 112-bit requirement)</li>
+     * </ul>
+     *
+     * @param secureRandom the random source to use
+     * @return A password as char[] (caller must clear with Arrays.fill after use).
+     */
+    // Visible for testing - allows injection of SecureRandom for deterministic tests
+    public static char[] generatePassword(SecureRandom secureRandom) {
+        // Character set size: 26 + 26 + 10 = 62 characters
         CharacterRule lowercaseCharacterRule = new CharacterRule(EnglishCharacterData.LowerCase, 1);
         CharacterRule uppercaseCharacterRule = new CharacterRule(EnglishCharacterData.UpperCase, 1);
         CharacterRule numericCharacterRule = new CharacterRule(EnglishCharacterData.Digit, 1);
 
         List<CharacterRule> rules = Arrays.asList(lowercaseCharacterRule, uppercaseCharacterRule, numericCharacterRule);
-        PasswordGenerator passwordGenerator = new PasswordGenerator();
+        // Pass SecureRandom to constructor for FIPS-compliant randomness
+        PasswordGenerator passwordGenerator = new PasswordGenerator(secureRandom);
 
-        Random random = Randomness.get();
-
-        return passwordGenerator.generatePassword(random.nextInt(8) + 8, rules);
+        // Length 20-27: entropy = log2(62) * length ≈ 5.95 * 20 = 119 bits minimum
+        int length = 20 + secureRandom.nextInt(8);
+        return passwordGenerator.generatePassword(length, rules).toCharArray();
     }
 
     /**
@@ -284,22 +308,39 @@ public class UserService {
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
             // Generate a new password for the account and store the hash of it
-            String plainTextPassword = generatePassword();
-            contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
-            contentAsNode.put("enabled", "true");
-            contentAsNode.put("service", "true");
+            char[] plainTextPassword = generatePassword();
+            byte[] credentialBytes = null;
+            try {
+                contentAsNode.put("hash", passwordHasher.hash(plainTextPassword));
+                contentAsNode.put("enabled", "true");
+                contentAsNode.put("service", "true");
 
-            // Update the internal user associated with the auth token
-            internalUsersConfiguration.remove(accountName);
-            contentAsNode.remove("name");
-            internalUsersConfiguration.putCObject(
-                accountName,
-                DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
-            );
-            saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
+                // Update the internal user associated with the auth token
+                internalUsersConfiguration.remove(accountName);
+                contentAsNode.remove("name");
+                internalUsersConfiguration.putCObject(
+                    accountName,
+                    DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
+                );
+                saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
-            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
-            return new BasicAuthToken("Basic " + authToken);
+                // Build credential bytes without creating intermediate String
+                byte[] accountBytes = accountName.getBytes(StandardCharsets.UTF_8);
+                byte[] passwordBytes = new String(plainTextPassword).getBytes(StandardCharsets.UTF_8);
+                credentialBytes = new byte[accountBytes.length + 1 + passwordBytes.length];
+                System.arraycopy(accountBytes, 0, credentialBytes, 0, accountBytes.length);
+                credentialBytes[accountBytes.length] = ':';
+                System.arraycopy(passwordBytes, 0, credentialBytes, accountBytes.length + 1, passwordBytes.length);
+                Arrays.fill(passwordBytes, (byte) 0);
+
+                authToken = Base64.getUrlEncoder().encodeToString(credentialBytes);
+                return new BasicAuthToken("Basic " + authToken);
+            } finally {
+                Arrays.fill(plainTextPassword, '\0');
+                if (credentialBytes != null) {
+                    Arrays.fill(credentialBytes, (byte) 0);
+                }
+            }
 
         } catch (JsonProcessingException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);

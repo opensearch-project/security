@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyException;
 import java.security.KeyStore;
@@ -34,12 +35,14 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.OpenSearchException;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.ApplicationProtocolNegotiator;
 import io.netty.handler.ssl.SslContext;
+import org.opensearch.security.support.PemKeyReader;
 
 final class KeyStoreUtils {
 
@@ -136,8 +139,9 @@ final class KeyStoreUtils {
         }
     }
 
-    private static KeyStore newKeyStore() throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
-        final var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+    private static KeyStore newKeyStore() throws GeneralSecurityException, IOException {
+        var storeType = CryptoServicesRegistrar.isInApprovedOnlyMode() ? PemKeyReader.BCFKS : KeyStore.getDefaultType();
+        var keyStore = KeyStore.getInstance(storeType);
         keyStore.load(null, null);
         return keyStore;
     }
