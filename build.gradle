@@ -27,7 +27,7 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.2.0.0')
 
-        kafka_version  = '4.1.1'
+        kafka_version  = '4.2.0'
         open_saml_version = '5.2.1'
         open_saml_shib_version = "9.1.4"
         one_login_java_saml = '2.9.0'
@@ -495,6 +495,7 @@ configurations {
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.8"
             force "com.google.guava:guava:${guava_version}"
+            force "at.yawk.lz4:lz4-java:1.10.3"
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
@@ -523,8 +524,6 @@ configurations {
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
-
-            exclude group: "org.lz4", module: "lz4-java"
         }
     }
 }
