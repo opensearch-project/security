@@ -65,7 +65,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.10.1"
     id "org.gradle.test-retry" version "1.6.1"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.4.8"
+    id "com.github.spotbugs" version "5.2.5"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -381,7 +381,7 @@ jacocoTestReport {
 }
 
 checkstyle {
-    toolVersion "11.0.0"
+    toolVersion "10.26.1"
     showViolations true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
@@ -509,6 +509,8 @@ configurations {
             force "org.checkerframework:checker-qual:3.48.3"
             force "ch.qos.logback:logback-classic:1.5.16"
             force "commons-io:commons-io:2.18.0"
+            force "org.apache.commons:commons-text:1.15.0"
+            force "org.apache.logging.log4j:log4j-core:2.25.3"
 
             exclude group: "org.lz4", module: "lz4-java"
         }
