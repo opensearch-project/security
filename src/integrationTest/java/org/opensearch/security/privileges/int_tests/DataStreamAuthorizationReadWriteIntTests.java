@@ -507,13 +507,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
                 { "b": 1, "test": "putDocument_bulk", "@timestamp": "2025-09-15T12:00:01Z" }
                 """);
 
-            if (user == LIMITED_USER_PERMISSIONS_ON_BACKING_INDICES) {
-                // IndexResolverReplacer won't resolve data stream names to member index names, because it does not
-                // specify the includeDataStream option and thus just stumbles over an IndexNotFoundException
-                // Thus, in contrast to aliases, privileges on backing index names won't work
-                assertThat(httpResponse, isOk());
-                assertThat(httpResponse, containsExactly().at("items[*].create[?(@.result == 'created')]._index"));
-            } else if (user != LIMITED_USER_NONE) {
+            if (user != LIMITED_USER_NONE) {
                 assertThat(
                     httpResponse,
                     containsExactly(ds_aw1, ds_bw1).at("items[*].create[?(@.result == 'created')]._index")

@@ -15,14 +15,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.settings.Settings;
@@ -35,14 +33,13 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.internal.ShardSearchRequest;
-import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
+import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.transport.Transport;
 
@@ -335,40 +332,21 @@ public class DlsFlsLegacyHeadersTest {
 
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, true);
-        User user = new User("test_user");
         ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).build();
 
-        PrivilegesEvaluationContext ctx = new PrivilegesEvaluationContext(
-            user,
-            ImmutableSet.of("test_role"),
-            null,
-            new ClusterSearchShardsRequest(),
-            null,
-            null,
-            new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            () -> clusterState,
-            ActionPrivileges.EMPTY
-        );
+        PrivilegesEvaluationContext ctx = MockPrivilegeEvaluationContextBuilder.ctx()
+            .roles("test_role")
+            .request(new ClusterSearchShardsRequest())
+            .clusterState(clusterState)
+            .get();
 
         DlsFlsLegacyHeaders.prepare(threadContext, ctx, dlsFlsProcessedConfig(exampleRolesConfig(), metadata), metadata, false);
         assertTrue(threadContext.getResponseHeaders().containsKey(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER));
     }
 
     static PrivilegesEvaluationContext ctx(Metadata metadata, String... roles) {
-        User user = new User("test_user");
         ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).build();
-
-        return new PrivilegesEvaluationContext(
-            user,
-            ImmutableSet.copyOf(roles),
-            null,
-            null,
-            null,
-            null,
-            new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY)),
-            () -> clusterState,
-            ActionPrivileges.EMPTY
-        );
+        return MockPrivilegeEvaluationContextBuilder.ctx().roles(roles).clusterState(clusterState).get();
     }
 
     static DlsFlsProcessedConfig dlsFlsProcessedConfig(SecurityDynamicConfiguration<RoleV7> rolesConfig, Metadata metadata) {

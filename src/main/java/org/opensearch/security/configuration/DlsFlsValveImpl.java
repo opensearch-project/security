@@ -33,12 +33,14 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.admin.indices.shrink.ResizeRequest;
+import org.opensearch.action.bulk.BulkAction;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
-import org.opensearch.action.get.MultiGetAction;
+import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -48,6 +50,8 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.query.ParsedQuery;
+import org.opensearch.index.reindex.ReindexAction;
+import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.search.DocValueFormat;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregatorFactories;
@@ -76,7 +80,6 @@ import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.IndexToRuleMap;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingDlsUtils;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -90,7 +93,6 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_DLS_WRITE_BLOCKED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT;
 
@@ -103,7 +105,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final ClusterService clusterService;
     private final ThreadContext threadContext;
     private final Mode mode;
-    private final IndexNameExpressionResolver resolver;
     private final NamedXContentRegistry namedXContentRegistry;
     private final DlsFlsBaseContext dlsFlsBaseContext;
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
@@ -118,7 +119,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         Settings settings,
         Client nodeClient,
         ClusterService clusterService,
-        IndexNameExpressionResolver resolver,
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
         DlsFlsBaseContext dlsFlsBaseContext,
@@ -129,7 +129,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         super();
         this.nodeClient = nodeClient;
         this.clusterService = clusterService;
-        this.resolver = resolver;
         this.threadContext = threadPool.getThreadContext();
         this.mode = Mode.get(settings);
         this.namedXContentRegistry = namedXContentRegistry;
@@ -143,7 +142,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
 
             if (config != null) {
-                config.updateClusterStateMetadataAsync(clusterService, threadPool);
+                config.updateClusterStateMetadataAsync(clusterService::state, threadPool);
             }
         });
         this.dlsWriteBlockedEnabled = settings.getAsBoolean(SECURITY_DLS_WRITE_BLOCKED, SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT);
@@ -162,23 +161,27 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      */
     @Override
     public boolean invoke(PrivilegesEvaluationContext context, final ActionListener<?> listener) {
-        UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        if (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction())) {
+        if (!isApplicable(context.getAction())) {
             return true;
         }
+
+        UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
             return true;
         }
+        OptionallyResolvedIndices resolved = context.getResolvedIndices();
         ActionRequest request = context.getRequest();
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
-            if (resourceSharingEnabledSetting.getDynamicSettingValue() && request instanceof SearchRequest) {
-                IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
+            if (resourceSharingEnabledSetting.getDynamicSettingValue()
+                && request instanceof SearchRequest
+                && resolved instanceof ResolvedIndices resolvedIndices) {
                 Set<String> protectedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
                 WildcardMatcher resourceIndicesMatcher = WildcardMatcher.from(protectedIndices);
-                if (resourceIndicesMatcher.matchAll(resolved.getAllIndices())) {
+                Set<String> resolvedIndexNames = resolvedIndices.local().namesOfIndices(context.clusterState());
+                if (resourceIndicesMatcher.matchAll(resolvedIndexNames)) {
                     IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
                         namedXContentRegistry,
-                        resolved,
+                        resolvedIndexNames,
                         userSubject.getUser()
                     );
 
@@ -189,7 +192,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         nodeClient,
                         clusterService,
                         OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
-                        resolver,
                         threadContext
                     );
                 }
@@ -197,16 +199,19 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return true;
         }
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
-        IndexResolverReplacer.Resolved resolved = context.getResolvedRequest();
 
         DocumentAllowList documentAllowList = DocumentAllowList.get(threadContext);
 
-        if (!resolved.isLocalAll() && resolved.getAllIndices().stream().anyMatch(index -> documentAllowList.isAllowed(index, "*"))) {
+        if (resolved instanceof ResolvedIndices resolvedIndices
+            && resolvedIndices.local()
+                .namesOfIndices(context.clusterState())
+                .stream()
+                .anyMatch(index -> documentAllowList.isAllowed(index, "*"))) {
             // The documentAllowList is needed here for Dashboards multi tenancy which can redirect index accesses to indices for which no
             // normal index privileges are present
             // If we would not use the documentAllowList here, the index would appear to be protected
 
-            if (resolved.getAllIndices().size() == 1) {
+            if (resolvedIndices.local().names().size() == 1) {
                 return true;
             }
         }
@@ -236,14 +241,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             if (mode == Mode.FILTER_LEVEL) {
                 doFilterLevelDls = true;
-                dlsRestrictionMap = config.getDocumentPrivileges()
-                    .getRestrictions(context, resolved.getAllIndicesResolved(clusterService, context.getIndexNameExpressionResolver()));
+                dlsRestrictionMap = config.getDocumentPrivileges().getRestrictions(context, resolved.local().names(context.clusterState()));
             } else if (mode == Mode.LUCENE_LEVEL) {
                 doFilterLevelDls = false;
             } else { // mode == Mode.ADAPTIVE
                 Mode modeByHeader = getDlsModeHeader();
-                dlsRestrictionMap = config.getDocumentPrivileges()
-                    .getRestrictions(context, resolved.getAllIndicesResolved(clusterService, context.getIndexNameExpressionResolver()));
+                dlsRestrictionMap = config.getDocumentPrivileges().getRestrictions(context, resolved.local().names(context.clusterState()));
 
                 if (modeByHeader == Mode.FILTER_LEVEL) {
                     doFilterLevelDls = true;
@@ -409,7 +412,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     nodeClient,
                     clusterService,
                     OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
-                    resolver,
                     threadContext
                 );
             } else {
@@ -568,6 +570,34 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
         return config.getFieldPrivileges().getRestriction(ctx, index).isAllowedRecursive(field);
+    }
+
+    private static boolean isApplicable(String action) {
+        if (action.startsWith("cluster:")) {
+            // Cluster actions are generally not applicable
+            return false;
+        }
+        if (action.startsWith("indices:admin/template/") || action.startsWith("indices:admin/index_template/")) {
+            // Template related actions can be safely executed without DLS/FLS applied
+            return false;
+        }
+        if (action.equals(BulkAction.NAME)) {
+            // We do not need to consider top-level bulk actions; we check the shard level later
+            return false;
+        }
+        if (action.equals(MultiSearchAction.NAME)) {
+            // We do not need to consider top-level multi search actions; we check the search actions that are executed later
+            return false;
+        }
+        if (action.equals(RenderSearchTemplateAction.NAME)) {
+            // Template related actions trigger further sub actions which we check later
+            return false;
+        }
+        if (action.equals(ReindexAction.NAME)) {
+            // Reindex actions break apart in search and bulk actions; we will handle on these levels
+            return false;
+        }
+        return true;
     }
 
     private static InternalAggregation aggregateBuckets(InternalAggregation aggregation) {

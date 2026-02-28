@@ -276,9 +276,7 @@ public class TestRestClient implements AutoCloseable {
                 uriRequest.addHeader(header);
             }
 
-            HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
-            log.debug(res.getBody());
-            return res;
+            return new HttpResponse(httpClient.execute(uriRequest));
         } catch (IOException e) {
             throw new RestClientException("Error occured during HTTP request execution", e);
         }

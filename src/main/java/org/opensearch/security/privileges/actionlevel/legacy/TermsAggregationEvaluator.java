@@ -24,7 +24,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -38,12 +38,16 @@ import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.search.MultiSearchAction;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 
 public class TermsAggregationEvaluator {
 
@@ -89,7 +93,7 @@ public class TermsAggregationEvaluator {
                             PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
                                 context,
                                 READ_ACTIONS,
-                                Resolved._LOCAL_ALL
+                                ResolvedIndices.unknown()
                             );
 
                             if (subResponse.isPartiallyOk()) {

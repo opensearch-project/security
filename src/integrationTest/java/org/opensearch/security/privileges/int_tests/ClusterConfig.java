@@ -41,7 +41,8 @@ public enum ClusterConfig {
         true,
         true,
         false
-    );
+    ),
+    V4_PRIVILEGES_EVALUATION("v4", c -> c.privilegesEvaluationType("v4"), false, true, true);
 
     final String name;
     final Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration;

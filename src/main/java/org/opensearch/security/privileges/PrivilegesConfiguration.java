@@ -13,19 +13,15 @@ package org.opensearch.security.privileges;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.identity.SecurePluginSubject;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -34,8 +30,6 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.client.Client;
 
 /**
  * This class manages and gives access to various additional classes which are derived from privileges related configuration in
@@ -59,11 +53,11 @@ public class PrivilegesConfiguration {
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>(TenantPrivileges.EMPTY);
     private final AtomicReference<PrivilegesEvaluator> privilegesEvaluator;
     private final AtomicReference<FlattenedActionGroups> actionGroups = new AtomicReference<>(FlattenedActionGroups.EMPTY);
-    private final Map<String, RoleV7> pluginIdToRolePrivileges = new HashMap<>();
+    private final Map<String, SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToRolePrivileges = new HashMap<>();
     private final AtomicReference<DashboardsMultiTenancyConfiguration> multiTenancyConfiguration = new AtomicReference<>(
         DashboardsMultiTenancyConfiguration.DEFAULT
     );
-    private final PrivilegesInterceptorImpl privilegesInterceptor;
+    private final SpecialIndices specialIndices;
 
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
@@ -73,30 +67,13 @@ public class PrivilegesConfiguration {
      */
     private final FlattenedActionGroups staticActionGroups;
 
-    public PrivilegesConfiguration(
-        ConfigurationRepository configurationRepository,
-        ClusterService clusterService,
-        Supplier<ClusterState> clusterStateSupplier,
-        Client client,
-        RoleMapper roleMapper,
-        ThreadPool threadPool,
-        IndexNameExpressionResolver resolver,
-        AuditLog auditLog,
-        Settings settings,
-        Supplier<String> unavailablityReasonSupplier,
-        IndexResolverReplacer indexResolverReplacer
-    ) {
+    public PrivilegesConfiguration(ConfigurationRepository configurationRepository, PrivilegesEvaluator.CoreDependencies coreDependencies) {
 
-        this.privilegesEvaluator = new AtomicReference<>(new PrivilegesEvaluator.NotInitialized(unavailablityReasonSupplier));
-        this.privilegesInterceptor = new PrivilegesInterceptorImpl(
-            resolver,
-            clusterService,
-            client,
-            threadPool,
-            this.tenantPrivileges::get,
-            this.multiTenancyConfiguration::get
+        this.privilegesEvaluator = new AtomicReference<>(
+            new PrivilegesEvaluator.NotInitialized(coreDependencies.unavailablityReasonSupplier())
         );
         this.staticActionGroups = buildStaticActionGroups();
+        this.specialIndices = new SpecialIndices(coreDependencies.settings());
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -116,28 +93,24 @@ public class PrivilegesConfiguration {
 
                 // We are targeting an initialized PrivilegesEvaluator; this might seem a bit redundant, but gives us
                 // in the future the flexibility to introduce different implementations of PrivilegesEvaluator
-                PrivilegesEvaluator.PrivilegesEvaluatorType targetType = PrivilegesEvaluator.PrivilegesEvaluatorType.STANDARD;
+                PrivilegesEvaluator.PrivilegesEvaluatorType targetType = PrivilegesEvaluator.PrivilegesEvaluatorType.getFrom(
+                    configurationRepository.getConfiguration(CType.CONFIG)
+                );
                 PrivilegesEvaluator.PrivilegesEvaluatorType currentType = currentPrivilegesEvaluator.type();
+                PrivilegesEvaluator.DynamicDependencies dynamicDependencies = new PrivilegesEvaluator.DynamicDependencies(
+                    flattenedActionGroups,
+                    staticActionGroups,
+                    rolesConfiguration,
+                    generalConfiguration,
+                    specialIndices,
+                    this.tenantPrivileges::get,
+                    this.multiTenancyConfiguration::get,
+                    this.pluginIdToRolePrivileges
+                );
 
                 if (currentType != targetType) {
                     PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
-                        new org.opensearch.security.privileges.PrivilegesEvaluatorImpl(
-                            clusterService,
-                            clusterStateSupplier,
-                            roleMapper,
-                            threadPool,
-                            threadPool.getThreadContext(),
-                            resolver,
-                            auditLog,
-                            settings,
-                            privilegesInterceptor,
-                            indexResolverReplacer,
-                            flattenedActionGroups,
-                            staticActionGroups,
-                            rolesConfiguration,
-                            generalConfiguration,
-                            pluginIdToRolePrivileges
-                        )
+                        targetType.factory.create(coreDependencies, dynamicDependencies)
                     );
                     if (oldInstance != null) {
                         oldInstance.shutdown();
@@ -153,15 +126,25 @@ public class PrivilegesConfiguration {
                 }
 
                 try {
-                    this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
+                    this.tenantPrivileges.set(
+                        new TenantPrivileges(
+                            rolesConfiguration,
+                            tenantConfiguration,
+                            flattenedActionGroups,
+                            targetType == PrivilegesEvaluator.PrivilegesEvaluatorType.LEGACY
+                        )
+                    );
                 } catch (Exception e) {
                     log.error("Error while updating TenantPrivileges", e);
                 }
             });
         }
 
-        if (clusterService != null) {
-            clusterService.addListener(event -> { this.privilegesEvaluator.get().updateClusterStateMetadata(clusterService); });
+        // For unit testing purposes, clusterService can be null
+        if (coreDependencies.clusterService() != null) {
+            coreDependencies.clusterService().addListener(event -> {
+                this.privilegesEvaluator.get().updateClusterStateMetadata(coreDependencies.clusterStateSupplier());
+            });
         }
     }
 
@@ -171,8 +154,8 @@ public class PrivilegesConfiguration {
      */
     public PrivilegesConfiguration(PrivilegesEvaluator privilegesEvaluator) {
         this.privilegesEvaluator = new AtomicReference<>(privilegesEvaluator);
-        this.privilegesInterceptor = null;
         this.staticActionGroups = buildStaticActionGroups();
+        this.specialIndices = new SpecialIndices(Settings.EMPTY);
     }
 
     /**
@@ -208,7 +191,18 @@ public class PrivilegesConfiguration {
     }
 
     public void updatePluginToActionPrivileges(String pluginIdentifier, RoleV7 pluginPermissions) {
-        pluginIdToRolePrivileges.put(pluginIdentifier, pluginPermissions);
+        String pluginClassName = SecurePluginSubject.getPluginClassNameFromPrincipal(pluginIdentifier);
+        if (pluginClassName == null) {
+            log.error("Cannot update action privileges for plugin identifier '{}', invalid format", pluginIdentifier);
+            return;
+        }
+        pluginIdToRolePrivileges.put(
+            pluginIdentifier,
+            new SubjectBasedActionPrivileges.PrivilegeSpecification(
+                pluginPermissions,
+                index -> SystemIndexRegistry.getPluginSystemIndexPredicate(pluginClassName).test(index)
+            )
+        );
     }
 
     private static FlattenedActionGroups buildStaticActionGroups() {

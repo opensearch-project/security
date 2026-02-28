@@ -679,6 +679,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder privilegesEvaluationType(String privilegesEvaluationType) {
+            testSecurityConfig.privilegesEvaluationType(privilegesEvaluationType);
+            return this;
+        }
+
         public Builder defaultConfigurationInitDirectory(String defaultConfigurationInitDirectory) {
             this.defaultConfigurationInitDirectory = defaultConfigurationInitDirectory;
             return this;
