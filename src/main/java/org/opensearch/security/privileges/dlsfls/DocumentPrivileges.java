@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.logging.log4j.util.Strings;
 
@@ -176,8 +177,11 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             RenderedDlsQuery evaluate(PrivilegesEvaluationContext context) throws PrivilegesEvaluationException {
                 String effectiveQueryString = UserAttributes.replaceProperties(this.queryString, context);
                 if (UserAttributes.needsAttributeSubstitution(effectiveQueryString)) {
+                    List<String> unresolved = UserAttributes.findUnresolvedAttributes(effectiveQueryString);
+                    Set<String> available = context.getUser().getCustomAttributesMap().keySet();
                     throw new PrivilegesEvaluationException(
-                        "Invalid DLS query: " + effectiveQueryString,
+                        "DLS query references undefined user attributes: " + unresolved
+                            + ". Available attributes are: " + available,
                         new OpenSearchSecurityException("User attribute substitution failed")
                     );
                 }

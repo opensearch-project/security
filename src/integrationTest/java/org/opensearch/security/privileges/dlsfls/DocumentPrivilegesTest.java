@@ -64,6 +64,7 @@ import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.dataStreams;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
@@ -1173,6 +1174,18 @@ public class DocumentPrivilegesTest {
         public void invalidTemplatedQuery() throws Exception {
             DocumentPrivileges.DlsQuery.create("{\"invalid\": \"totally ${attr.foo}\"}", xContentRegistry)
                 .evaluate(MockPrivilegeEvaluationContextBuilder.ctx().get());
+        }
+
+        @Test
+        public void invalidTemplatedQuery_errorMessageIdentifiesUndefinedAttribute() throws Exception {
+            try {
+                DocumentPrivileges.DlsQuery.create("{\"terms\":{\"arr\":[${attr.jwt.array}]}}", xContentRegistry)
+                    .evaluate(MockPrivilegeEvaluationContextBuilder.ctx().attr("attr.jwt.other", "x").get());
+                fail("Expected PrivilegesEvaluationException");
+            } catch (PrivilegesEvaluationException e) {
+                assertThat(e.getMessage(), containsString("attr.jwt.array"));
+                assertThat(e.getMessage(), containsString("attr.jwt.other"));
+            }
         }
 
         @Test
