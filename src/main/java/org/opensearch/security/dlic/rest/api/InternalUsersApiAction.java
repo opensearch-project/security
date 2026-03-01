@@ -338,6 +338,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
                             .put("opendistro_security_roles", DataType.ARRAY)
                             .put("hash", DataType.STRING)
                             .put("password", DataType.STRING)
+                            .put("service", DataType.BOOLEAN)
+                            .put("enabled", DataType.BOOLEAN)
                             .build();
                     }
                 });
