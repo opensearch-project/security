@@ -94,4 +94,20 @@ public class SecurityGrpcFilterTest {
             assertTrue(e.getMessage().contains("GuiceHolder") || e instanceof NullPointerException);
         }
     }
+
+    @Test
+    public void testInterceptorOrderIsMinValue() {
+        Settings settings = Settings.builder().put(OpenSearchSecuritySSLPlugin.CLIENT_TYPE, "node").build();
+
+        securityGrpcFilter.initNodeSettings(settings);
+
+        List<GrpcInterceptorProvider.OrderedGrpcInterceptor> interceptors = securityGrpcFilter.getOrderedGrpcInterceptors(threadContext);
+
+        assertEquals("Should return exactly one interceptor", 1, interceptors.size());
+        assertEquals(
+            "Security interceptor should have highest priority (Integer.MIN_VALUE)",
+            Integer.MIN_VALUE,
+            interceptors.get(0).order()
+        );
+    }
 }
