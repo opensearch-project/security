@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 3.x]
 ### Added
+- Add `plugins.security.audit.config.log4j.maximum_index_characters_per_message` setting to allow splitting of Log4j audit log messages to keep the `audit_trace_indices` and `audit_trace_resolved_indices` fields below the maximum characters specified. ([5977](https://github.com/opensearch-project/security/pull/5977))
 
 ### Changed
 
