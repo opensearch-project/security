@@ -211,51 +211,52 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             ImmutableSet.Builder<String> rolesWithWildcardPermissions = ImmutableSet.builder();
             ImmutableMap.Builder<String, WildcardMatcher> rolesToActionMatcher = ImmutableMap.builder();
 
+            // Group roles by their resolved cluster_permissions to avoid redundant computation
+            Map<ImmutableSet<String>, List<String>> permissionsToRoles = new HashMap<>();
             for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
+                String roleName = entry.getKey();
+                roleSetBuilder.next(roleName);
                 try {
-                    String roleName = entry.getKey();
-                    RoleV7 role = entry.getValue();
-
-                    roleSetBuilder.next(roleName);
-
-                    ImmutableSet<String> permissionPatterns = actionGroups.resolve(role.getCluster_permissions());
-
-                    // This list collects all the matchers for action names that will be found for the current role
-                    List<WildcardMatcher> wildcardMatchers = new ArrayList<>();
-
-                    for (String permission : permissionPatterns) {
-                        // If we have a permission which does not use any pattern, we just simply add it to the
-                        // "actionToRoles" map.
-                        // Otherwise, we match the pattern against the provided well-known cluster actions and add
-                        // these to the "actionToRoles" map. Additionally, for the case that the well-known cluster
-                        // actions are not complete, we also collect the matcher to be used as a last resort later.
-
-                        if (WildcardMatcher.isExact(permission)) {
-                            actionToRoles.computeIfAbsent(permission, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
-                        } else if (permission.equals("*")) {
-                            // Special case: Roles with a wildcard "*" giving privileges for all actions. We will not resolve
-                            // this stuff, but just note separately that this role just gets all the cluster privileges.
-                            rolesWithWildcardPermissions.add(roleName);
-                        } else {
-                            WildcardMatcher wildcardMatcher = WildcardMatcher.from(permission);
-                            Set<String> matchedActions = wildcardMatcher.getMatchAny(
-                                WellKnownActions.CLUSTER_ACTIONS,
-                                Collectors.toUnmodifiableSet()
-                            );
-
-                            for (String action : matchedActions) {
-                                actionToRoles.computeIfAbsent(action, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
-                            }
-
-                            wildcardMatchers.add(wildcardMatcher);
-                        }
-                    }
-
-                    if (!wildcardMatchers.isEmpty()) {
-                        rolesToActionMatcher.put(roleName, WildcardMatcher.from(wildcardMatchers));
-                    }
+                    ImmutableSet<String> resolved = actionGroups.resolve(entry.getValue().getCluster_permissions());
+                    permissionsToRoles.computeIfAbsent(resolved, k -> new ArrayList<>()).add(roleName);
                 } catch (Exception e) {
-                    log.error("Unexpected exception while processing role: {}\nIgnoring role.", entry.getKey(), e);
+                    log.error("Unexpected exception while processing role: {}\nIgnoring role.", roleName, e);
+                }
+            }
+
+            // Process each unique permission set once, apply to all roles sharing it
+            for (Map.Entry<ImmutableSet<String>, List<String>> entry : permissionsToRoles.entrySet()) {
+                ImmutableSet<String> patterns = entry.getKey();
+                List<String> roleNames = entry.getValue();
+
+                Set<String> actions = new java.util.HashSet<>();
+                List<WildcardMatcher> matchers = new ArrayList<>();
+                boolean hasWildcard = false;
+
+                for (String permission : patterns) {
+                    if (WildcardMatcher.isExact(permission)) {
+                        actions.add(permission);
+                    } else if (permission.equals("*")) {
+                        hasWildcard = true;
+                    } else {
+                        WildcardMatcher matcher = WildcardMatcher.from(permission);
+                        actions.addAll(matcher.getMatchAny(WellKnownActions.CLUSTER_ACTIONS, Collectors.toSet()));
+                        matchers.add(matcher);
+                    }
+                }
+
+                WildcardMatcher patternMatcher = matchers.isEmpty() ? null : WildcardMatcher.from(matchers);
+
+                for (String roleName : roleNames) {
+                    if (hasWildcard) {
+                        rolesWithWildcardPermissions.add(roleName);
+                    }
+                    for (String action : actions) {
+                        actionToRoles.computeIfAbsent(action, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
+                    }
+                    if (patternMatcher != null) {
+                        rolesToActionMatcher.put(roleName, patternMatcher);
+                    }
                 }
             }
 
