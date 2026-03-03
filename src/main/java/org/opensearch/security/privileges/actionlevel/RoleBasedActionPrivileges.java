@@ -211,7 +211,8 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             ImmutableSet.Builder<String> rolesWithWildcardPermissions = ImmutableSet.builder();
             ImmutableMap.Builder<String, WildcardMatcher> rolesToActionMatcher = ImmutableMap.builder();
 
-            // First pass: resolve permissions and cache computed results per unique permission set
+            // First pass: resolve permissions and cache computed results per unique permission set.
+            // Roles with identical cluster_permissions share the expensive pattern matching computation.
             record ResolvedPermissions(Set<String> actions, WildcardMatcher matcher, boolean hasWildcard) {
             }
             Map<ImmutableSet<String>, ResolvedPermissions> cache = new HashMap<>();
@@ -224,14 +225,22 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                     roleToPermissions.put(roleName, resolved);
 
                     cache.computeIfAbsent(resolved, patterns -> {
-                        Set<String> actions = new java.util.HashSet<>();
+                        // This list collects all the matchers for action patterns found in the permission set
                         List<WildcardMatcher> matchers = new ArrayList<>();
+                        Set<String> actions = new java.util.HashSet<>();
                         boolean hasWildcard = false;
 
                         for (String permission : patterns) {
+                            // If we have a permission which does not use any pattern, we just simply add it to the
+                            // actions set.
+                            // Otherwise, we match the pattern against the provided well-known cluster actions and add
+                            // these to the actions set. Additionally, for the case that the well-known cluster
+                            // actions are not complete, we also collect the matcher to be used as a last resort later.
+
                             if (WildcardMatcher.isExact(permission)) {
                                 actions.add(permission);
                             } else if (permission.equals("*")) {
+                                // Special case: Roles with a wildcard "*" giving privileges for all actions.
                                 hasWildcard = true;
                             } else {
                                 WildcardMatcher matcher = WildcardMatcher.from(permission);
