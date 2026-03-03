@@ -12,6 +12,7 @@
 package org.opensearch.security.auditlog.impl;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -68,17 +69,19 @@ public class AuditMessageTest {
         "test-4"
     );
 
+    private final ClusterService clusterServiceMock = mock(ClusterService.class);
+    private final DiscoveryNode discoveryNodeMock = mock(DiscoveryNode.class);
+    private final ClusterName clusterNameMock = mock(ClusterName.class);
+    private final AuditConfig auditConfig = mock(AuditConfig.class);
+    private final AuditConfig.Filter auditFilterMock = mock(AuditConfig.Filter.class);
+
     private AuditMessage message;
-    private AuditConfig auditConfig;
 
     @Before
     public void setUp() {
-        final ClusterService clusterServiceMock = mock(ClusterService.class);
-        when(clusterServiceMock.localNode()).thenReturn(mock(DiscoveryNode.class));
-        when(clusterServiceMock.getClusterName()).thenReturn(mock(ClusterName.class));
-        auditConfig = mock(AuditConfig.class);
-        final AuditConfig.Filter auditFilter = mock(AuditConfig.Filter.class);
-        when(auditConfig.getFilter()).thenReturn(auditFilter);
+        when(clusterServiceMock.localNode()).thenReturn(discoveryNodeMock);
+        when(clusterServiceMock.getClusterName()).thenReturn(clusterNameMock);
+        when(auditConfig.getFilter()).thenReturn(auditFilterMock);
         message = new AuditMessage(AuditCategory.AUTHENTICATED, clusterServiceMock, AuditLog.Origin.REST, AuditLog.Origin.REST);
     }
 
@@ -199,5 +202,54 @@ public class AuditMessageTest {
 
         message.addRestRequestInfo(request, auditConfig.getFilter());
         assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("ERROR: Unable to generate request body"));
+    }
+
+    private AuditMessage dummyAuditMessage(final String[] indices, String[] resolvedIndices) {
+        final AuditMessage auditMessage = new AuditMessage(
+            AuditCategory.AUTHENTICATED,
+            clusterServiceMock,
+            AuditLog.Origin.REST,
+            AuditLog.Origin.REST
+        );
+
+        if (indices != null) {
+            auditMessage.addIndices(indices);
+        }
+        if (resolvedIndices != null) {
+            auditMessage.addResolvedIndices(resolvedIndices);
+        }
+        return auditMessage;
+    }
+
+    private String[] getTestIndices(final int indexNameLength, final int numberOfIndices) {
+        ArrayList<String> indices = new ArrayList<>();
+        for (int i = 0; i < numberOfIndices; i++) {
+            indices.add("a".repeat(indexNameLength));
+        }
+        return indices.toArray(new String[0]);
+    }
+
+    @Test
+    public void testToJsonSplitIndices() {
+        // test standard case, should be split into 4 messages
+        AuditMessage auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 3));
+        List<String> splitMessages = auditMessage.toJsonSplitIndices(255);
+        assertThat(splitMessages.size(), is(4));
+
+        // test when audit_trace_indices is not present, should be split into 3 messages
+        auditMessage = dummyAuditMessage(null, getTestIndices(255, 3));
+        splitMessages = auditMessage.toJsonSplitIndices(255);
+        assertThat(splitMessages.size(), is(3));
+
+        // test when splitting isn't required, should return a single message
+        auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 2));
+        splitMessages = auditMessage.toJsonSplitIndices(700);
+        assertThat(splitMessages.size(), is(1));
+
+        // test when there aren't enough indices to fill a whole message so some resolved indices are added too.
+        // Should be split into 2 messages. First with "*" and one resolved index, second with the remaining resolved indices
+        auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 3));
+        splitMessages = auditMessage.toJsonSplitIndices(700);
+        assertThat(splitMessages.size(), is(2));
     }
 }
