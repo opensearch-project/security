@@ -47,6 +47,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.PermissionBuilder;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -117,7 +118,13 @@ public class RestEndpointPermissionTests {
     final RoleBasedActionPrivileges actionPrivileges;
 
     public RestEndpointPermissionTests() throws IOException {
-        this.actionPrivileges = new RoleBasedActionPrivileges(createRolesConfig(), FlattenedActionGroups.EMPTY, Settings.EMPTY);
+        this.actionPrivileges = new RoleBasedActionPrivileges(
+            createRolesConfig(),
+            FlattenedActionGroups.EMPTY,
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+            Settings.EMPTY,
+            false
+        );
     }
 
     @Test
