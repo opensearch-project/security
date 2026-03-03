@@ -14,6 +14,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
+
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -71,7 +73,11 @@ public class TlsHostnameVerificationTests {
                 );
             clusterFuture.cancel(true);
         } catch (Exception e) {
-            logsRule.assertThatContain("No subject alternative names matching IP address 127.0.0.1 found");
+            if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+                logsRule.assertThatStackTraceContain("No subject alternative name found matching IP address 127.0.0.1");
+            } else {
+                logsRule.assertThatContain("No subject alternative names matching IP address 127.0.0.1 found");
+            }
         }
     }
 }

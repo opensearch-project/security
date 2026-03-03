@@ -3,7 +3,7 @@
  *
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ * compatible open source source license.
  *
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
@@ -15,16 +15,20 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.InternalUsersModel;
 import org.opensearch.security.support.ConfigConstants;
@@ -39,21 +43,53 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
+@RunWith(Parameterized.class)
 public class InternalAuthBackendTests {
 
-    private InternalUsersModel internalUsersModel;
+    private final Settings settings;
 
+    private InternalUsersModel internalUsersModel;
     private InternalAuthenticationBackend internalAuthenticationBackend;
+    private PasswordHasher passwordHasher;
+    private String storedHash;
+
+    public InternalAuthBackendTests(String algorithmName, Settings settings) {
+        this.settings = settings;
+    }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> hashingAlgorithms() {
+        return Arrays.asList(new Object[][] {
+            {
+                "BCrypt",
+                Settings.builder()
+                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT)
+                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS, 4)
+                    .build()
+            },
+            {
+                "PBKDF2",
+                Settings.builder()
+                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2)
+                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS, 1)
+                    .build()
+            },
+            {
+                "Argon2",
+                Settings.builder()
+                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.ARGON2)
+                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY, 8)
+                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS, 1)
+                    .build()
+            }
+        });
+    }
 
     @Before
     public void internalAuthBackendTestsSetup() {
-        internalAuthenticationBackend = spy(
-            new InternalAuthenticationBackend(
-                PasswordHasherFactory.createPasswordHasher(
-                    Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
-                )
-            )
-        );
+        passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
+        storedHash = passwordHasher.hash("$adminpassword!".toCharArray());
+        internalAuthenticationBackend = spy(new InternalAuthenticationBackend(passwordHasher));
         internalUsersModel = mock(InternalUsersModel.class);
         internalAuthenticationBackend.onInternalUsersModelChanged(internalUsersModel);
     }
@@ -71,16 +107,14 @@ public class InternalAuthBackendTests {
     public void testHashActionWithValidUserValidPassword() {
 
         // Make authentication info for valid username with valid password
-        final String validPassword = "admin";
+        final String validPassword = "$adminpassword!";
         final byte[] validPasswordBytes = validPassword.getBytes();
 
-        final AuthCredentials validUsernameAuth = new AuthCredentials("admin", validPasswordBytes);
-
-        final String hash = "$2y$12$NmKhjNssNgSIj8iXT7SYxeXvMA1E95a9tCt4cySY9FrQ4fB18xEc2";
+        final AuthCredentials validUsernameAuth = new AuthCredentials("$adminpassword!", validPasswordBytes);
 
         char[] array = createArrayFromPasswordBytes(validPasswordBytes);
 
-        when(internalUsersModel.getHash(validUsernameAuth.getUsername())).thenReturn(hash);
+        when(internalUsersModel.getHash(validUsernameAuth.getUsername())).thenReturn(storedHash);
         when(internalUsersModel.exists(validUsernameAuth.getUsername())).thenReturn(true);
         when(internalUsersModel.getAttributes(validUsernameAuth.getUsername())).thenReturn(ImmutableMap.of());
         when(internalUsersModel.getSecurityRoles(validUsernameAuth.getUsername())).thenReturn(ImmutableSet.of());
@@ -91,7 +125,7 @@ public class InternalAuthBackendTests {
         // Act
         internalAuthenticationBackend.authenticate(new AuthenticationContext(validUsernameAuth));
 
-        verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(hash, array);
+        verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(storedHash, array);
         verify(internalUsersModel, times(1)).getBackendRoles(validUsernameAuth.getUsername());
     }
 
@@ -101,32 +135,30 @@ public class InternalAuthBackendTests {
         // Make authentication info for valid with bad password
         final String gibberishPassword = "ajdhflkasdjfaklsdf";
         final byte[] gibberishPasswordBytes = gibberishPassword.getBytes();
-        final AuthCredentials validUsernameAuth = new AuthCredentials("admin", gibberishPasswordBytes);
-
-        final String hash = "$2y$12$NmKhjNssNgSIj8iXT7SYxeXvMA1E95a9tCt4cySY9FrQ4fB18xEc2";
+        final AuthCredentials validUsernameAuth = new AuthCredentials("$adminpassword!", gibberishPasswordBytes);
 
         char[] array = createArrayFromPasswordBytes(gibberishPasswordBytes);
 
-        when(internalUsersModel.getHash("admin")).thenReturn(hash);
-        when(internalUsersModel.exists("admin")).thenReturn(true);
+        when(internalUsersModel.getHash("$adminpassword!")).thenReturn(storedHash);
+        when(internalUsersModel.exists("$adminpassword!")).thenReturn(true);
 
         OpenSearchSecurityException ex = Assert.assertThrows(
             OpenSearchSecurityException.class,
             () -> internalAuthenticationBackend.authenticate(new AuthenticationContext(validUsernameAuth))
         );
         assert (ex.getMessage().contains("password does not match"));
-        verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(hash, array);
+        verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(storedHash, array);
     }
 
     @Test
     public void testHashActionWithInvalidUserValidPassword() {
 
         // Make authentication info for valid and invalid usernames both with bad passwords
-        final String validPassword = "admin";
+        final String validPassword = "$adminpassword!";
         final byte[] validPasswordBytes = validPassword.getBytes();
         final AuthCredentials invalidUsernameAuth = new AuthCredentials("ertyuiykgjjfguyifdghc", validPasswordBytes);
 
-        final String hash = "$2y$12$NmKhjNssNgSIj8iXT7SYxeXvMA1E95a9tCt4cySY9FrQ4fB18xEc2";
+        final String hash = passwordHasher.getDummyHash();
 
         char[] array = createArrayFromPasswordBytes(validPasswordBytes);
 
@@ -149,7 +181,7 @@ public class InternalAuthBackendTests {
         final byte[] gibberishPasswordBytes = gibberishPassword.getBytes();
         final AuthCredentials invalidUsernameAuth = new AuthCredentials("ertyuiykgjjfguyifdghc", gibberishPasswordBytes);
 
-        final String hash = "$2y$12$NmKhjNssNgSIj8iXT7SYxeXvMA1E95a9tCt4cySY9FrQ4fB18xEc2";
+        final String hash = passwordHasher.getDummyHash();
 
         char[] array = createArrayFromPasswordBytes(gibberishPasswordBytes);
 

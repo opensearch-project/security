@@ -18,6 +18,7 @@ import java.io.PrintStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.security.support.ConfigConstants;
 
@@ -32,6 +33,7 @@ public class HasherTests {
     private final ByteArrayOutputStream out = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
     private final InputStream originalIn = System.in;
+    private final String password = CryptoServicesRegistrar.isInApprovedOnlyMode() ? "notarealpassword" : "password";
 
     @Before
     public void setOutputStreams() {
@@ -46,58 +48,58 @@ public class HasherTests {
 
     @Test
     public void testWithDefaultArguments() {
-        Hasher.main(new String[] { "-p", "password" });
+        Hasher.main(new String[] { "-p", password });
         assertTrue("should return a valid BCrypt hash with the default BCrypt configuration", out.toString().startsWith("$2y$12"));
     }
 
     // BCRYPT
     @Test
     public void testWithBCryptRoundsArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-r", "5" });
+        Hasher.main(new String[] { "-p", password, "-a", "BCrypt", "-r", "5" });
         assertTrue("should return a valid BCrypt hash with the correct value for \"rounds\"", out.toString().startsWith("$2y$05"));
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-r", "5" });
+        Hasher.main(new String[] { "-p", password, "-a", "BCrypt", "-r", "5" });
         assertTrue("should return a valid BCrypt hash with the correct value for \"rounds\"", out.toString().startsWith("$2y$05"));
     }
 
     @Test
     public void testWithBCryptMinorArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-min", "A" });
+        Hasher.main(new String[] { "-p", password, "-a", "BCrypt", "-min", "A" });
         assertTrue("should return a valid BCrypt hash with the correct value for \"minor\"", out.toString().startsWith("$2a$12"));
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-min", "Y" });
+        Hasher.main(new String[] { "-p", password, "-a", "BCrypt", "-min", "Y" });
         assertTrue("should return a valid BCrypt hash with the correct value for \"minor\"", out.toString().startsWith("$2y$12"));
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-min", "B" });
+        Hasher.main(new String[] { "-p", password, "-a", "BCrypt", "-min", "B" });
         assertTrue("should return a valid BCrypt hash with the correct value for \"minor\"", out.toString().startsWith("$2b$12"));
         out.reset();
     }
 
     @Test
     public void testWithBCryptAllArguments() {
-        Hasher.main(new String[] { "-p", "password", "-a", "BCrypt", "-min", "A", "-r", "5" });
+        Hasher.main(new String[] { "-p", password, "-a", "BCrypt", "-min", "A", "-r", "5" });
         assertTrue("should return a valid BCrypt hash with the correct configuration", out.toString().startsWith("$2a$05"));
     }
 
     @Test
     public void testWithPBKDF2Prefix() {
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2" });
         assertTrue("should return a valid PBKDF2 hash with the default configuration", out.toString().startsWith("$3$25"));
     }
 
     @Test
     public void testWithArgon2Prefix() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2" });
         assertTrue("should return a valid Argon2 hash with the default configuration", out.toString().startsWith("$argon2"));
     }
 
     // PBKDF2
     @Test
     public void testWithPBKDF2DefaultArguments() {
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2" });
         CompressedPBKDF2Function pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA256");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 600000);
@@ -106,14 +108,14 @@ public class HasherTests {
 
     @Test
     public void testWithPBKDF2FunctionArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-f", "SHA512" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2", "-f", "SHA512" });
         CompressedPBKDF2Function pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA512");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 600000);
         assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 256);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-f", "SHA384" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2", "-f", "SHA384" });
         pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA384");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 600000);
@@ -122,14 +124,14 @@ public class HasherTests {
 
     @Test
     public void testWithPBKDF2IterationsArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-i", "100000" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2", "-i", "100000" });
         CompressedPBKDF2Function pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA256");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 100000);
         assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 256);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-i", "200000" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2", "-i", "200000" });
         pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA256");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 200000);
@@ -138,14 +140,14 @@ public class HasherTests {
 
     @Test
     public void testWithPBKDF2LengthArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-l", "400" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2", "-l", "400" });
         CompressedPBKDF2Function pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA256");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 600000);
         assertEquals("should return a valid PBKDF2 hash with the default value for \"length\"", pbkdf2Function.getLength(), 400);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-l", "300" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2", "-l", "300" });
         pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA256");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 600000);
@@ -154,7 +156,7 @@ public class HasherTests {
 
     @Test
     public void testWithPBKDF2AllArguments() {
-        Hasher.main(new String[] { "-p", "password", "-a", "PBKDF2", "-l", "250", "-i", "150000", "-f", "SHA384" });
+        Hasher.main(new String[] { "-p", password, "-a", "PBKDF2", "-l", "250", "-i", "150000", "-f", "SHA384" });
         CompressedPBKDF2Function pbkdf2Function = CompressedPBKDF2Function.getInstanceFromHash(out.toString());
         assertEquals("should return a valid PBKDF2 hash with the correct value for \"function\"", pbkdf2Function.getAlgorithm(), "SHA384");
         assertEquals("should return a valid PBKDF2 hash with the default value for \"iterations\"", pbkdf2Function.getIterations(), 150000);
@@ -164,7 +166,7 @@ public class HasherTests {
     // ARGON2
     @Test
     public void testWithArgon2DefaultArguments() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2" });
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"memory\"",
@@ -200,7 +202,7 @@ public class HasherTests {
 
     @Test
     public void testWithArgon2MemoryArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-m", "47104" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-m", "47104" });
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the correct value for \"memory\"", argon2Function.getMemory(), 47104);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -210,7 +212,7 @@ public class HasherTests {
         assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-m", "19456" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-m", "19456" });
         argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the correct value for \"memory\"", argon2Function.getMemory(), 19456);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -222,7 +224,7 @@ public class HasherTests {
 
     @Test
     public void testWithArgon2IterationsArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-i", "1" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-i", "1" });
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the correct value for \"iterations\"", argon2Function.getIterations(), 1);
@@ -232,7 +234,7 @@ public class HasherTests {
         assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-i", "5" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-i", "5" });
         argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the correct value for \"iterations\"", argon2Function.getIterations(), 5);
@@ -244,7 +246,7 @@ public class HasherTests {
 
     @Test
     public void testWithArgon2ParallelismArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-par", "2" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-par", "2" });
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -254,7 +256,7 @@ public class HasherTests {
         assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-par", "1" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-par", "1" });
         argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -266,7 +268,7 @@ public class HasherTests {
 
     @Test
     public void testWithArgon2LengthArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-l", "64" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-l", "64" });
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -276,7 +278,7 @@ public class HasherTests {
         assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-l", "12" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-l", "12" });
         argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -288,7 +290,7 @@ public class HasherTests {
 
     @Test
     public void testWithArgon2TypeArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-t", "argon2i" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-t", "argon2i" });
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -298,7 +300,7 @@ public class HasherTests {
         assertEquals("should return a valid Argon2 hash with the default value for \"version\"", argon2Function.getVersion(), 19);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-t", "argon2d" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-t", "argon2d" });
         argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -310,7 +312,7 @@ public class HasherTests {
 
     @Test
     public void testWithArgon2VersionArgument() {
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-v", "16" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-v", "16" });
         Argon2Function argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -320,7 +322,7 @@ public class HasherTests {
         assertEquals("should return a valid Argon2 hash with the correct value for \"version\"", argon2Function.getVersion(), 16);
         out.reset();
 
-        Hasher.main(new String[] { "-p", "password", "-a", "Argon2", "-v", "19" });
+        Hasher.main(new String[] { "-p", password, "-a", "Argon2", "-v", "19" });
         argon2Function = Argon2Function.getInstanceFromHash(out.toString().trim());
         assertEquals("should return a valid Argon2 hash with the default value for \"memory\"", argon2Function.getMemory(), 65536);
         assertEquals("should return a valid Argon2 hash with the default value for \"iterations\"", argon2Function.getIterations(), 3);
@@ -335,7 +337,7 @@ public class HasherTests {
         Hasher.main(
             new String[] {
                 "-p",
-                "password",
+                password,
                 "-a",
                 "Argon2",
                 "-m",

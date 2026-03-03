@@ -11,6 +11,7 @@ package org.opensearch.security.http;
 
 import java.util.List;
 
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -94,7 +95,11 @@ public class UntrustedLdapServerCertificateTest {
 
             response.assertStatusCode(401);
         }
-        logsRule.assertThatStackTraceContain("javax.net.ssl.SSLHandshakeException");
+        if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+            logsRule.assertThatStackTraceContain("org.bouncycastle.tls.TlsFatalAlert");
+        } else {
+            logsRule.assertThatStackTraceContain("javax.net.ssl.SSLHandshakeException");
+        }
     }
 
 }
