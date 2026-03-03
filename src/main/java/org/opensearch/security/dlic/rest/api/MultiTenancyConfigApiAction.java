@@ -55,6 +55,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     public static final String DEFAULT_TENANT_JSON_PROPERTY = "default_tenant";
     public static final String PRIVATE_TENANT_ENABLED_JSON_PROPERTY = "private_tenant_enabled";
     public static final String MULTITENANCY_ENABLED_JSON_PROPERTY = "multitenancy_enabled";
+    public static final String PREFERRED_TENANTS = "preferred_tenants";
     public static final String SIGN_IN_OPTIONS = "sign_in_options";
 
     private static final List<Route> ROUTES = addRoutesPrefix(
@@ -140,6 +141,8 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
                             MULTITENANCY_ENABLED_JSON_PROPERTY,
                             DataType.BOOLEAN,
                             SIGN_IN_OPTIONS,
+                            DataType.ARRAY,
+                            PREFERRED_TENANTS,
                             DataType.ARRAY
                         );
                     }
@@ -154,6 +157,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             .field(PRIVATE_TENANT_ENABLED_JSON_PROPERTY, config.dynamic.kibana.private_tenant_enabled)
             .field(MULTITENANCY_ENABLED_JSON_PROPERTY, config.dynamic.kibana.multitenancy_enabled)
             .field(SIGN_IN_OPTIONS, config.dynamic.kibana.sign_in_options)
+            .field(PREFERRED_TENANTS, config.dynamic.kibana.preferred_tenants)
             .endObject();
     }
 
@@ -204,6 +208,10 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             List<DashboardSignInOption> options = getNewSignInOptions(newOptions, config.dynamic.authc);
             config.dynamic.kibana.sign_in_options = options;
         }
+        if (jsonContent.hasNonNull(PREFERRED_TENANTS)) {
+            List<String> preferredTenants = getPreferredTenants(jsonContent.findValue(PREFERRED_TENANTS));
+            config.dynamic.kibana.preferred_tenants = preferredTenants;
+        }
 
         final String defaultTenant = Optional.ofNullable(config.dynamic.kibana.default_tenant).map(String::toLowerCase).orElse("");
 
@@ -222,6 +230,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             .stream()
             .map(String::toLowerCase)
             .collect(Collectors.toSet());
+
         if (!availableTenants.contains(defaultTenant)) {
             throw new IllegalArgumentException(
                 config.dynamic.kibana.default_tenant
@@ -245,5 +254,18 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
                 );
             }
         }).map(DashboardSignInOption::valueOf).collect(Collectors.toList());
+    }
+
+    private List<String> getPreferredTenants(JsonNode preferredTenants) {
+        if (!preferredTenants.isArray()) {
+            throw new IllegalArgumentException(PREFERRED_TENANTS + " should be an array of strings.");
+        }
+
+        return IntStream.range(0, preferredTenants.size()).mapToObj(preferredTenants::get).map(tenant -> {
+            if (!tenant.isTextual()) {
+                throw new IllegalArgumentException(PREFERRED_TENANTS + " should only contain string values.");
+            }
+            return tenant.asText();
+        }).collect(Collectors.toList());
     }
 }
