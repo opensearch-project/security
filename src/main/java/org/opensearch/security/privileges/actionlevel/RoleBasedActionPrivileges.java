@@ -211,52 +211,58 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             ImmutableSet.Builder<String> rolesWithWildcardPermissions = ImmutableSet.builder();
             ImmutableMap.Builder<String, WildcardMatcher> rolesToActionMatcher = ImmutableMap.builder();
 
-            // Group roles by their resolved cluster_permissions to avoid redundant computation
-            Map<ImmutableSet<String>, List<String>> permissionsToRoles = new HashMap<>();
+            // First pass: resolve permissions and cache computed results per unique permission set
+            record ResolvedPermissions(Set<String> actions, WildcardMatcher matcher, boolean hasWildcard) {
+            }
+            Map<ImmutableSet<String>, ResolvedPermissions> cache = new HashMap<>();
+            Map<String, ImmutableSet<String>> roleToPermissions = new HashMap<>();
+
             for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
                 String roleName = entry.getKey();
-                roleSetBuilder.next(roleName);
                 try {
                     ImmutableSet<String> resolved = actionGroups.resolve(entry.getValue().getCluster_permissions());
-                    permissionsToRoles.computeIfAbsent(resolved, k -> new ArrayList<>()).add(roleName);
+                    roleToPermissions.put(roleName, resolved);
+
+                    cache.computeIfAbsent(resolved, patterns -> {
+                        Set<String> actions = new java.util.HashSet<>();
+                        List<WildcardMatcher> matchers = new ArrayList<>();
+                        boolean hasWildcard = false;
+
+                        for (String permission : patterns) {
+                            if (WildcardMatcher.isExact(permission)) {
+                                actions.add(permission);
+                            } else if (permission.equals("*")) {
+                                hasWildcard = true;
+                            } else {
+                                WildcardMatcher matcher = WildcardMatcher.from(permission);
+                                actions.addAll(matcher.getMatchAny(WellKnownActions.CLUSTER_ACTIONS, Collectors.toSet()));
+                                matchers.add(matcher);
+                            }
+                        }
+
+                        return new ResolvedPermissions(actions, matchers.isEmpty() ? null : WildcardMatcher.from(matchers), hasWildcard);
+                    });
                 } catch (Exception e) {
                     log.error("Unexpected exception while processing role: {}\nIgnoring role.", roleName, e);
                 }
             }
 
-            // Process each unique permission set once, apply to all roles sharing it
-            for (Map.Entry<ImmutableSet<String>, List<String>> entry : permissionsToRoles.entrySet()) {
-                ImmutableSet<String> patterns = entry.getKey();
-                List<String> roleNames = entry.getValue();
+            // Second pass: iterate in original order (required by DeduplicatingCompactSubSetBuilder)
+            for (String roleName : roles.getCEntries().keySet()) {
+                roleSetBuilder.next(roleName);
 
-                Set<String> actions = new java.util.HashSet<>();
-                List<WildcardMatcher> matchers = new ArrayList<>();
-                boolean hasWildcard = false;
+                ImmutableSet<String> permissions = roleToPermissions.get(roleName);
+                if (permissions == null) continue; // Role had error during resolution
 
-                for (String permission : patterns) {
-                    if (WildcardMatcher.isExact(permission)) {
-                        actions.add(permission);
-                    } else if (permission.equals("*")) {
-                        hasWildcard = true;
-                    } else {
-                        WildcardMatcher matcher = WildcardMatcher.from(permission);
-                        actions.addAll(matcher.getMatchAny(WellKnownActions.CLUSTER_ACTIONS, Collectors.toSet()));
-                        matchers.add(matcher);
-                    }
+                ResolvedPermissions resolved = cache.get(permissions);
+                if (resolved.hasWildcard) {
+                    rolesWithWildcardPermissions.add(roleName);
                 }
-
-                WildcardMatcher patternMatcher = matchers.isEmpty() ? null : WildcardMatcher.from(matchers);
-
-                for (String roleName : roleNames) {
-                    if (hasWildcard) {
-                        rolesWithWildcardPermissions.add(roleName);
-                    }
-                    for (String action : actions) {
-                        actionToRoles.computeIfAbsent(action, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
-                    }
-                    if (patternMatcher != null) {
-                        rolesToActionMatcher.put(roleName, patternMatcher);
-                    }
+                for (String action : resolved.actions) {
+                    actionToRoles.computeIfAbsent(action, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
+                }
+                if (resolved.matcher != null) {
+                    rolesToActionMatcher.put(roleName, resolved.matcher);
                 }
             }
 
