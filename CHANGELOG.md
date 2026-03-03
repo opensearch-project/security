@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `actions/download-artifact` from 7 to 8 ([#5979](https://github.com/opensearch-project/security/pull/5979))
 - Bump `jakarta.xml.bind:jakarta.xml.bind-api` from 4.0.4 to 4.0.5 ([#5978](https://github.com/opensearch-project/security/pull/5978))
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.2 to 4.0.3 ([#5981](https://github.com/opensearch-project/security/pull/5981))
+- Bump `kafka_version` from 4.1.1 to 4.2.0 ([#5966](https://github.com/opensearch-project/security/pull/5966))
 
 ### Removed
 
