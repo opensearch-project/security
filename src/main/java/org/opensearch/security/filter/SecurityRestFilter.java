@@ -71,6 +71,7 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
+import org.opensearch.telemetry.tracing.TracerContextStorage;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -159,6 +160,7 @@ public class SecurityRestFilter {
                         tmpHeaders.put(header.getName(), value);
                     }
                 }
+                final Object currentSpan = threadContext.getTransient(TracerContextStorage.CURRENT_SPAN);
                 storedContext.restore();
 
                 if (tmpHeaders != null) {
@@ -166,6 +168,9 @@ public class SecurityRestFilter {
                         threadContext.putHeader(header.getKey(), header.getValue());
                     }
                     threadContext.putHeader(OPENSEARCH_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
+                }
+                if (currentSpan != null && threadContext.getTransient(TracerContextStorage.CURRENT_SPAN) == null) {
+                    threadContext.putTransient(TracerContextStorage.CURRENT_SPAN, currentSpan);
                 }
             });
 
