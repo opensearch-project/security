@@ -12,11 +12,14 @@ package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SortedMap;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,13 +38,44 @@ public class IndexPattern {
     /**
      * An IndexPattern which does not match any index.
      */
-    public static final IndexPattern EMPTY = new IndexPattern(WildcardMatcher.NONE, ImmutableList.of(), ImmutableList.of());
+    public static final IndexPattern EMPTY = new IndexPattern(
+        ImmutableList.of(),
+        WildcardMatcher.NONE,
+        WildcardMatcher.NONE,
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableList.of(),
+        ImmutableList.of()
+    );
 
     /**
-     * Plain index patterns without any dynamic expressions like user attributes and date math.
+     * The original strings used to compile this index pattern.
+     */
+    private final ImmutableList<String> source;
+
+    /**
+     * Plain index patterns without any dynamic expressions like user attributes.
      * This can be not null. If this instance cannot match any static pattern, this will be WildcardMatcher.NONE.
      */
     private final WildcardMatcher staticPattern;
+
+    /**
+     * Plain index patterns without any dynamic expressions like user attributes and date math AND which are NOT
+     * staticConstantValuePatterns and NOT staticPrefixPatterns.
+     * This can be not null. If this instance cannot match any static pattern, this will be WildcardMatcher.NONE.
+     */
+    private final WildcardMatcher staticPatternWithoutConstantAndPrefixPatterns;
+
+    /**
+     * Plain index patterns without any dynamic expressions like user attributes which are static constant values (like "index-2023-01-01").
+     */
+    private final ImmutableSet<String> staticExactValues;
+
+    /**
+     * Plain index patterns without any dynamic expressions like user attributes which are static prefix patterns (like "index-*").
+     * The strings in this set are the prefix patterns without the trailing wildcard (like "index-").
+     */
+    private final ImmutableSet<String> staticPrefixPatterns;
 
     /**
      * Index patterns which contain user attributes (like ${user.name})
@@ -54,11 +88,31 @@ public class IndexPattern {
     private final ImmutableList<String> dateMathExpressions;
     private final int hashCode;
 
-    private IndexPattern(WildcardMatcher staticPattern, ImmutableList<String> patternTemplates, ImmutableList<String> dateMathExpressions) {
+    private IndexPattern(
+        ImmutableList<String> source,
+        WildcardMatcher staticPattern,
+        WildcardMatcher staticPatternWithoutConstantAndPrefixPattern,
+        ImmutableSet<String> staticExactValues,
+        ImmutableSet<String> staticPrefixPatterns,
+        ImmutableList<String> patternTemplates,
+        ImmutableList<String> dateMathExpressions
+    ) {
+        this.source = source;
         this.staticPattern = staticPattern;
         this.patternTemplates = patternTemplates;
         this.dateMathExpressions = dateMathExpressions;
+        this.staticExactValues = staticExactValues;
+        this.staticPatternWithoutConstantAndPrefixPatterns = staticPatternWithoutConstantAndPrefixPattern;
+        this.staticPrefixPatterns = staticPrefixPatterns;
         this.hashCode = staticPattern.hashCode() + patternTemplates.hashCode() + dateMathExpressions.hashCode();
+    }
+
+    public ImmutableList<String> source() {
+        return source;
+    }
+
+    public boolean isMatchAll() {
+        return staticPattern == WildcardMatcher.ANY;
     }
 
     public boolean matches(String index, PrivilegesEvaluationContext context, Map<String, IndexAbstraction> indexMetadata)
@@ -125,6 +179,44 @@ public class IndexPattern {
         return false;
     }
 
+    /**
+     * Returns the indices matching the non-dynamic patterns in this object.
+     */
+    public Collection<IndexAbstraction> matchingNonDynamic(SortedMap<String, IndexAbstraction> indices)
+        throws PrivilegesEvaluationException {
+        if (this.staticPatternWithoutConstantAndPrefixPatterns == WildcardMatcher.ANY) {
+            return indices.values();
+        }
+
+        List<IndexAbstraction> result = new ArrayList<>();
+
+        if (!this.staticExactValues.isEmpty()) {
+            for (String staticExactValue : this.staticExactValues) {
+                IndexAbstraction indexAbstraction = indices.get(staticExactValue);
+                if (indexAbstraction != null) {
+                    result.add(indexAbstraction);
+                }
+            }
+        }
+
+        if (!this.staticPrefixPatterns.isEmpty()) {
+            for (String staticPrefixPattern : this.staticPrefixPatterns) {
+                String toKey = staticPrefixPattern + Character.MAX_VALUE;
+                result.addAll(indices.subMap(staticPrefixPattern, toKey).values());
+            }
+        }
+
+        if (this.staticPatternWithoutConstantAndPrefixPatterns != WildcardMatcher.NONE) {
+            for (Map.Entry<String, IndexAbstraction> entry : indices.entrySet()) {
+                if (staticPatternWithoutConstantAndPrefixPatterns.test(entry.getKey())) {
+                    result.add(entry.getValue());
+                }
+            }
+        }
+
+        return result;
+    }
+
     @Override
     public String toString() {
         if (patternTemplates.size() == 0 && dateMathExpressions.size() == 0) {
@@ -183,7 +275,15 @@ public class IndexPattern {
         if (patternTemplates.isEmpty() && dateMathExpressions.isEmpty()) {
             return EMPTY;
         } else {
-            return new IndexPattern(WildcardMatcher.NONE, this.patternTemplates, this.dateMathExpressions);
+            return new IndexPattern(
+                this.source,
+                WildcardMatcher.NONE,
+                WildcardMatcher.NONE,
+                ImmutableSet.of(),
+                ImmutableSet.of(),
+                this.patternTemplates,
+                this.dateMathExpressions
+            );
         }
     }
 
@@ -209,11 +309,16 @@ public class IndexPattern {
     }
 
     public static class Builder {
-        private List<WildcardMatcher> constantPatterns = new ArrayList<>();
+        private List<String> source = new ArrayList<>();
+        private List<WildcardMatcher> nonDynamicPatterns = new ArrayList<>();
         private List<String> patternTemplates = new ArrayList<>();
         private List<String> dateMathExpressions = new ArrayList<>();
+        private List<String> nonDynamicExactPatterns = new ArrayList<>();
+        private List<String> nonDynamicPrefixPatterns = new ArrayList<>();
+        private List<String> nonDynamicPatternsWithoutExactAndPrefixPatterns = new ArrayList<>();
 
         public void add(List<String> source) {
+            this.source.addAll(source);
             for (int i = 0; i < source.size(); i++) {
                 try {
                     String indexPattern = source.get(i);
@@ -221,7 +326,15 @@ public class IndexPattern {
                     if (indexPattern.startsWith("<") && indexPattern.endsWith(">")) {
                         this.dateMathExpressions.add(indexPattern);
                     } else if (!UserAttributes.needsAttributeSubstitution(indexPattern)) {
-                        this.constantPatterns.add(WildcardMatcher.from(indexPattern));
+                        this.nonDynamicPatterns.add(WildcardMatcher.from(indexPattern));
+
+                        if (WildcardMatcher.isExactPattern(indexPattern)) {
+                            this.nonDynamicExactPatterns.add(indexPattern);
+                        } else if (WildcardMatcher.isPrefixPattern(indexPattern)) {
+                            this.nonDynamicPrefixPatterns.add(indexPattern.substring(0, indexPattern.length() - 1));
+                        } else {
+                            this.nonDynamicPatternsWithoutExactAndPrefixPatterns.add(indexPattern);
+                        }
                     } else {
                         this.patternTemplates.add(indexPattern);
                     }
@@ -234,7 +347,13 @@ public class IndexPattern {
 
         public IndexPattern build() {
             return new IndexPattern(
-                constantPatterns.size() != 0 ? WildcardMatcher.from(constantPatterns) : WildcardMatcher.NONE,
+                ImmutableList.copyOf(source),
+                nonDynamicPatterns.size() != 0 ? WildcardMatcher.from(nonDynamicPatterns) : WildcardMatcher.NONE,
+                nonDynamicPatternsWithoutExactAndPrefixPatterns.size() != 0
+                    ? WildcardMatcher.from(nonDynamicPatternsWithoutExactAndPrefixPatterns)
+                    : WildcardMatcher.NONE,
+                ImmutableSet.copyOf(nonDynamicExactPatterns),
+                ImmutableSet.copyOf(nonDynamicPrefixPatterns),
                 ImmutableList.copyOf(patternTemplates),
                 ImmutableList.copyOf(dateMathExpressions)
             );
