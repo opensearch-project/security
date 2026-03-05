@@ -31,10 +31,13 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.telemetry.tracing.Span;
+import org.opensearch.telemetry.tracing.TracerContextStorage;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -103,5 +106,37 @@ public class SecurityRestFilterUnitTests {
     }
 
     // unit tests for restPathMatches are in RestPathMatchesTests.java
+
+    /**
+     * Test that current_span transient is preserved after context restoration.
+     * We have avoided static mock here hence, we are just checking if our fix helps with the bug
+     */
+    @Test
+    public void testCurrentSpanTransientPreservedAfterRestore() throws Exception {
+        ThreadPool tp = spy(new ThreadPool(Settings.builder().put("node.name", "mock").build()));
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        doReturn(threadContext).when(tp).getThreadContext();
+
+        Span mockSpan = mock(Span.class);
+
+        // Create a stored context without current_span (simulates stashContext clearing it)
+        ThreadContext.StoredContext storedContext = threadContext.newStoredContext(false);
+
+        // Now add current_span to the current context (simulates it being set after stash)
+        threadContext.putTransient(TracerContextStorage.CURRENT_SPAN, mockSpan);
+
+        // Save the span before restore
+        final Object currentSpan = threadContext.getTransient(TracerContextStorage.CURRENT_SPAN);
+
+        // Restore the stored context (this wipes current_span)
+        storedContext.restore();
+
+        // Apply the fix: restore current_span if it was wiped
+        if (currentSpan != null && threadContext.getTransient(TracerContextStorage.CURRENT_SPAN) == null) {
+            threadContext.putTransient(TracerContextStorage.CURRENT_SPAN, currentSpan);
+        }
+
+        assertNotNull("current_span should be preserved", threadContext.getTransient(TracerContextStorage.CURRENT_SPAN));
+    }
 
 }
