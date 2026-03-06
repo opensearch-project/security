@@ -12,9 +12,10 @@ package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.SortedMap;
 
@@ -180,41 +181,89 @@ public class IndexPattern {
     }
 
     /**
-     * Returns the indices matching the non-dynamic patterns in this object.
+     * Returns the indices matching the non-dynamic patterns in this object as a lazy {@link Iterable}.
+     * The results are computed on-the-fly during iteration without storing them in an intermediate list.
      */
-    public Collection<IndexAbstraction> matchingNonDynamic(SortedMap<String, IndexAbstraction> indices)
-        throws PrivilegesEvaluationException {
+    public Iterable<IndexAbstraction> matchingNonDynamic(SortedMap<String, IndexAbstraction> indices) {
         if (this.staticPatternWithoutConstantAndPrefixPatterns == WildcardMatcher.ANY) {
             return indices.values();
         }
 
-        List<IndexAbstraction> result = new ArrayList<>();
+        return () -> new Iterator<IndexAbstraction>() {
 
-        if (!this.staticExactValues.isEmpty()) {
-            for (String staticExactValue : this.staticExactValues) {
-                IndexAbstraction indexAbstraction = indices.get(staticExactValue);
-                if (indexAbstraction != null) {
-                    result.add(indexAbstraction);
+            // --- Phase 1: exact value lookups ---
+            private final Iterator<String> exactValuesIter = staticExactValues.iterator();
+
+            // --- Phase 2: prefix sub-map iterators ---
+            private final Iterator<String> prefixPatternsIter = staticPrefixPatterns.iterator();
+            private Iterator<IndexAbstraction> currentPrefixSubIter = null;
+
+            // --- Phase 3: full scan with wildcard matcher ---
+            private final Iterator<Map.Entry<String, IndexAbstraction>> fullScanIter =
+                staticPatternWithoutConstantAndPrefixPatterns != WildcardMatcher.NONE ? indices.entrySet().iterator() : null;
+
+            private IndexAbstraction next = null;
+            private boolean done = false;
+
+            @Override
+            public boolean hasNext() {
+                if (next != null) {
+                    return true;
                 }
-            }
-        }
-
-        if (!this.staticPrefixPatterns.isEmpty()) {
-            for (String staticPrefixPattern : this.staticPrefixPatterns) {
-                String toKey = staticPrefixPattern + Character.MAX_VALUE;
-                result.addAll(indices.subMap(staticPrefixPattern, toKey).values());
-            }
-        }
-
-        if (this.staticPatternWithoutConstantAndPrefixPatterns != WildcardMatcher.NONE) {
-            for (Map.Entry<String, IndexAbstraction> entry : indices.entrySet()) {
-                if (staticPatternWithoutConstantAndPrefixPatterns.test(entry.getKey())) {
-                    result.add(entry.getValue());
+                if (done) {
+                    return false;
                 }
+                next = advance();
+                if (next == null) {
+                    done = true;
+                }
+                return next != null;
             }
-        }
 
-        return result;
+            @Override
+            public IndexAbstraction next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                IndexAbstraction result = next;
+                next = null;
+                return result;
+            }
+
+            private IndexAbstraction advance() {
+                // Phase 1: exact values
+                while (exactValuesIter.hasNext()) {
+                    IndexAbstraction ia = indices.get(exactValuesIter.next());
+                    if (ia != null) {
+                        return ia;
+                    }
+                }
+
+                // Phase 2: prefix patterns
+                while (true) {
+                    if (currentPrefixSubIter != null && currentPrefixSubIter.hasNext()) {
+                        return currentPrefixSubIter.next();
+                    }
+                    if (!prefixPatternsIter.hasNext()) {
+                        break;
+                    }
+                    String prefix = prefixPatternsIter.next();
+                    currentPrefixSubIter = indices.subMap(prefix, prefix + Character.MAX_VALUE).values().iterator();
+                }
+
+                // Phase 3: full scan for remaining wildcard patterns
+                if (fullScanIter != null) {
+                    while (fullScanIter.hasNext()) {
+                        Map.Entry<String, IndexAbstraction> entry = fullScanIter.next();
+                        if (staticPatternWithoutConstantAndPrefixPatterns.test(entry.getKey())) {
+                            return entry.getValue();
+                        }
+                    }
+                }
+
+                return null;
+            }
+        };
     }
 
     @Override
