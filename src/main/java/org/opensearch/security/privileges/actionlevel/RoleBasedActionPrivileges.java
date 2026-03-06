@@ -37,14 +37,12 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.unit.ByteSizeUnit;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.security.privileges.ClusterStateMetadataDependentPrivileges;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
 
 import com.selectivem.collections.CheckTable;
@@ -93,20 +91,14 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
     private static final Logger log = LogManager.getLogger(RoleBasedActionPrivileges.class);
 
     private final CompiledRoles compiledRoles;
-    private final FlattenedActionGroups actionGroups;
     private final ByteSizeValue statefulIndexMaxHeapSize;
     private final boolean statefulIndexEnabled;
 
     private final AtomicReference<StatefulIndexPrivileges> statefulIndex = new AtomicReference<>();
 
-    public RoleBasedActionPrivileges(SecurityDynamicConfiguration<RoleV7> roles, FlattenedActionGroups actionGroups, Settings settings) {
-        this(new CompiledRoles(roles, actionGroups), actionGroups, settings);
-    }
-
-    private RoleBasedActionPrivileges(CompiledRoles compiledRoles, FlattenedActionGroups actionGroups, Settings settings) {
+    public RoleBasedActionPrivileges(CompiledRoles compiledRoles, Settings settings) {
         super(new ClusterPrivileges(compiledRoles), new IndexPrivileges(compiledRoles));
         this.compiledRoles = compiledRoles;
-        this.actionGroups = actionGroups;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);
         this.statefulIndexEnabled = PRECOMPUTED_PRIVILEGES_ENABLED.get(settings);
     }
@@ -217,10 +209,10 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             ImmutableSet.Builder<String> rolesWithWildcardPermissions = ImmutableSet.builder();
             ImmutableMap.Builder<String, WildcardMatcher> rolesToActionMatcher = ImmutableMap.builder();
 
-            for (Map.Entry<String, CompiledRoles.CompiledRole> entry : compiledRoles.roles.entrySet()) {
+            for (Map.Entry<String, CompiledRoles.Role> entry : compiledRoles.roles.entrySet()) {
                 try {
                     String roleName = entry.getKey();
-                    CompiledRoles.CompiledRole role = entry.getValue();
+                    CompiledRoles.Role role = entry.getValue();
 
                     roleSetBuilder.next(roleName);
 
@@ -363,14 +355,14 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                 compiledRoles.roles.keySet()
             );
 
-            for (Map.Entry<String, CompiledRoles.CompiledRole> entry : compiledRoles.roles.entrySet()) {
+            for (Map.Entry<String, CompiledRoles.Role> entry : compiledRoles.roles.entrySet()) {
                 try {
                     String roleName = entry.getKey();
-                    CompiledRoles.CompiledRole role = entry.getValue();
+                    CompiledRoles.Role role = entry.getValue();
 
                     roleSetBuilder.next(roleName);
 
-                    for (CompiledRoles.CompiledRole.Index indexPermissions : role.indexPermissions) {
+                    for (CompiledRoles.Role.Index indexPermissions : role.indexPermissions) {
 
                         for (String permission : indexPermissions.resolvedActions) {
                             // If we have a permission which does not use any pattern, we just simply add it to the
@@ -676,14 +668,14 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
             // - If more complex index names are used, the complexity is O(n*m) where n is dependent on the structure of
             // the roles configuration and m is the number of indices.
 
-            top: for (Map.Entry<String, CompiledRoles.CompiledRole> entry : compiledRoles.roles.entrySet()) {
+            top: for (Map.Entry<String, CompiledRoles.Role> entry : compiledRoles.roles.entrySet()) {
                 try {
                     String roleName = entry.getKey();
-                    CompiledRoles.CompiledRole role = entry.getValue();
+                    CompiledRoles.Role role = entry.getValue();
 
                     roleSetBuilder.next(roleName);
 
-                    for (CompiledRoles.CompiledRole.Index indexPermissions : role.indexPermissions) {
+                    for (CompiledRoles.Role.Index indexPermissions : role.indexPermissions) {
 
                         if (indexPermissions.indexPattern.isMatchAll()) {
                             // Wildcard index patterns are handled in the static IndexPermissions object.
@@ -903,143 +895,4 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
         }
     };
 
-    /**
-     * A compiled, pre-processed view of all roles. Instances of this class are immutable.
-     * <p>
-     * This class converts the raw {@link RoleV7} configuration into optimized data structures by resolving
-     * action groups and compiling index/action patterns upfront.
-     */
-    static class CompiledRoles {
-
-        /**
-         * Maps role names to their compiled {@link CompiledRole} representation.
-         */
-        final ImmutableMap<String, CompiledRole> roles;
-
-        /**
-         * Creates a {@link CompiledRoles} instance from raw role configuration and resolved action groups.
-         *
-         * @param rolesConfig  the raw role configuration
-         * @param actionGroups the flattened/resolved action groups to use for resolving action patterns
-         */
-        CompiledRoles(SecurityDynamicConfiguration<RoleV7> rolesConfig, FlattenedActionGroups actionGroups) {
-            ImmutableMap.Builder<String, CompiledRole> rolesBuilder = ImmutableMap.builder();
-
-            for (Map.Entry<String, RoleV7> entry : rolesConfig.getCEntries().entrySet()) {
-                try {
-                    rolesBuilder.put(entry.getKey(), new CompiledRole(entry.getValue(), actionGroups));
-                } catch (Exception e) {
-                    log.error("Unexpected exception while compiling role: {}\nIgnoring role.", entry.getKey(), e);
-                }
-            }
-
-            this.roles = rolesBuilder.build();
-        }
-
-        /**
-         * A compiled representation of a single role, corresponding to {@link RoleV7}.
-         * <p>
-         * Action group references in cluster and index permissions are resolved and compiled into
-         * {@link WildcardMatcher} instances upfront.
-         */
-        static class CompiledRole {
-            /**
-             * The raw underlying role configuration.
-             */
-            final RoleV7 base;
-
-            /**
-             * The resolved set of cluster permission patterns (after action group expansion).
-             */
-            final ImmutableSet<String> clusterPermissions;
-
-            /**
-             * A matcher compiled from the resolved cluster permissions. Can be used to check whether
-             * a given action is covered by this role's cluster privileges.
-             */
-            final WildcardMatcher clusterPermissionsMatcher;
-
-            /**
-             * The compiled index permission entries for this role.
-             */
-            final List<Index> indexPermissions;
-
-            CompiledRole(RoleV7 base, FlattenedActionGroups actionGroups) {
-                this.base = base;
-                this.clusterPermissions = actionGroups.resolve(base.getCluster_permissions());
-                this.clusterPermissionsMatcher = WildcardMatcher.from(this.clusterPermissions);
-
-                List<Index> compiledIndexPermissions = new ArrayList<>(base.getIndex_permissions().size());
-                for (RoleV7.Index rawIndex : base.getIndex_permissions()) {
-                    compiledIndexPermissions.add(new Index(rawIndex, actionGroups));
-                }
-                this.indexPermissions = Collections.unmodifiableList(compiledIndexPermissions);
-            }
-
-            /**
-             * A compiled representation of an index permission entry ({@link RoleV7.Index}).
-             * <p>
-             * The {@code index_patterns} list is compiled into an {@link IndexPattern}. The {@code allowed_actions}
-             * list is resolved via action groups and compiled into a {@link WildcardMatcher}. Additionally,
-             * the matcher is applied against the set of well-known index actions to produce a pre-computed
-             * set {@link #allowedWellKnownActions} for fast lookup.
-             */
-            static class Index {
-                /**
-                 * The compiled index pattern, built from the raw {@code index_patterns} list.
-                 */
-                final IndexPattern indexPattern;
-
-                /**
-                 * The resolved and compiled action matcher, built from the raw {@code allowed_actions} list
-                 * after passing through the action group resolver.
-                 */
-                final WildcardMatcher allowedActionsMatcher;
-
-                /**
-                 * The resolved set of actions (after action group expansion), prior to compilation into a matcher.
-                 * Retained so that {@link IndexPrivileges} can iterate over individual permission strings.
-                 */
-                final ImmutableSet<String> resolvedActions;
-
-                /**
-                 * The subset of {@link WellKnownActions#INDEX_ACTIONS} that are matched by
-                 * {@link #allowedActionsMatcher}. This enables O(1) lookups for well-known actions.
-                 */
-                final ImmutableSet<String> allowedWellKnownActions;
-
-                /**
-                 * The document-level security (DLS) query string, or {@code null} if none is configured.
-                 */
-                final String dls;
-
-                /**
-                 * The field-level security (FLS) field list.
-                 */
-                final List<String> fls;
-
-                /**
-                 * The masked fields list.
-                 */
-                final List<String> maskedFields;
-
-                Index(RoleV7.Index rawIndex, FlattenedActionGroups actionGroups) {
-                    this.indexPattern = IndexPattern.from(rawIndex.getIndex_patterns());
-
-                    this.resolvedActions = actionGroups.resolve(rawIndex.getAllowed_actions());
-                    this.allowedActionsMatcher = WildcardMatcher.from(this.resolvedActions);
-                    this.allowedWellKnownActions = allowedActionsMatcher.getMatchAny(
-                        WellKnownActions.INDEX_ACTIONS,
-                        ImmutableSet.toImmutableSet()
-                    );
-
-                    this.dls = rawIndex.getDls();
-                    this.fls = rawIndex.getFls() != null ? Collections.unmodifiableList(rawIndex.getFls()) : Collections.emptyList();
-                    this.maskedFields = rawIndex.getMasked_fields() != null
-                        ? Collections.unmodifiableList(rawIndex.getMasked_fields())
-                        : Collections.emptyList();
-                }
-            }
-        }
-    }
 }

@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.CollectionUtils;
@@ -26,14 +27,13 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -67,9 +67,9 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
     private static final Logger log = LogManager.getLogger(AbstractRuleBasedPrivileges.class);
 
     /**
-     * The roles configuration this instance is based on
+     * The pre-compiled roles – the single source of truth for role/index/action configuration.
      */
-    protected final SecurityDynamicConfiguration<RoleV7> roles;
+    private final CompiledRoles compiledRoles;
 
     /**
      * Compiled rules that are immutable.
@@ -98,17 +98,17 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
     private final boolean statefulIndexEnabled;
 
     public AbstractRuleBasedPrivileges(
-        SecurityDynamicConfiguration<RoleV7> roles,
-        Map<String, IndexAbstraction> indexMetadata,
+        CompiledRoles compiledRoles,
+        SortedMap<String, IndexAbstraction> indexMetadata,
         RoleToRuleFunction<SingleRule> roleToRuleFunction,
         Settings settings
     ) {
-        this.roles = roles;
+        this.compiledRoles = compiledRoles;
         this.roleToRuleFunction = roleToRuleFunction;
-        this.staticRules = new StaticRules<>(roles, roleToRuleFunction);
+        this.staticRules = new StaticRules<>(compiledRoles, roleToRuleFunction);
         this.dfmEmptyOverridesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
         this.statefulIndexEnabled = RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.get(settings);
-        this.statefulRules = this.statefulIndexEnabled ? new StatefulRules<>(roles, indexMetadata, roleToRuleFunction) : null;
+        this.statefulRules = this.statefulIndexEnabled ? new StatefulRules<>(compiledRoles, indexMetadata, roleToRuleFunction) : null;
     }
 
     /**
@@ -530,7 +530,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
     protected abstract JoinedRule compile(PrivilegesEvaluationContext context, Collection<SingleRule> rules)
         throws PrivilegesEvaluationException;
 
-    synchronized void updateIndices(Map<String, IndexAbstraction> indexMetadata) {
+    synchronized void updateIndices(SortedMap<String, IndexAbstraction> indexMetadata) {
         if (!this.statefulIndexEnabled) {
             return;
         }
@@ -538,7 +538,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
         StatefulRules<SingleRule> statefulRules = this.statefulRules;
 
         if (statefulRules == null || !statefulRules.indexMetadata.keySet().equals(indexMetadata.keySet())) {
-            this.statefulRules = new StatefulRules<>(roles, indexMetadata, this.roleToRuleFunction);
+            this.statefulRules = new StatefulRules<>(compiledRoles, indexMetadata, this.roleToRuleFunction);
         }
     }
 
@@ -589,11 +589,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
          */
         protected final Map<String, WildcardMatcher> rolesToStaticIndexPatternWithoutRule;
 
-        protected final RoleToRuleFunction<SingleRule> roleToRuleFunction;
-
-        StaticRules(SecurityDynamicConfiguration<RoleV7> roles, RoleToRuleFunction<SingleRule> roleToRuleFunction) {
-            this.roleToRuleFunction = roleToRuleFunction;
-
+        StaticRules(CompiledRoles compiledRoles, RoleToRuleFunction<SingleRule> roleToRuleFunction) {
             Set<String> rolesWithIndexWildcardWithoutRule = new HashSet<>();
             Map<String, SingleRule> roleWithIndexWildcardToRule = new HashMap<>();
             Map<String, Map<IndexPattern, SingleRule>> rolesToDynamicIndexPatternToRule = new HashMap<>();
@@ -601,14 +597,14 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
             Map<String, Map<WildcardMatcher, SingleRule>> rolesToStaticIndexPatternToRule = new HashMap<>();
             Map<String, List<WildcardMatcher>> rolesToStaticIndexPatternWithoutRule = new HashMap<>();
 
-            for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
+            for (Map.Entry<String, CompiledRoles.Role> entry : compiledRoles.roles.entrySet()) {
                 try {
                     String roleName = entry.getKey();
-                    RoleV7 role = entry.getValue();
+                    CompiledRoles.Role role = entry.getValue();
 
-                    for (RoleV7.Index rolePermissions : role.getIndex_permissions()) {
-                        if (rolePermissions.getIndex_patterns().contains("*")) {
-                            SingleRule singleRule = this.roleToRule(rolePermissions);
+                    for (CompiledRoles.Role.Index indexPermissions : role.indexPermissions) {
+                        if (indexPermissions.indexPattern.isMatchAll()) {
+                            SingleRule singleRule = roleToRuleFunction.apply(indexPermissions);
 
                             if (singleRule == null) {
                                 rolesWithIndexWildcardWithoutRule.add(roleName);
@@ -616,8 +612,8 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
                                 roleWithIndexWildcardToRule.put(roleName, singleRule);
                             }
                         } else {
-                            SingleRule singleRule = this.roleToRule(rolePermissions);
-                            IndexPattern indexPattern = IndexPattern.from(rolePermissions.getIndex_patterns());
+                            SingleRule singleRule = roleToRuleFunction.apply(indexPermissions);
+                            IndexPattern indexPattern = indexPermissions.indexPattern;
 
                             if (indexPattern.hasStaticPattern()) {
                                 if (singleRule == null) {
@@ -641,7 +637,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
                         }
                     }
                 } catch (Exception e) {
-                    log.error("Unexpected exception while processing role: {}\nIgnoring role.", entry, e);
+                    log.error("Unexpected exception while processing role: {}\nIgnoring role.", entry.getKey(), e);
                 }
             }
 
@@ -653,11 +649,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
             this.rolesToStaticIndexPatternToRule = rolesToStaticIndexPatternToRule;
             this.rolesToStaticIndexPatternWithoutRule = rolesToStaticIndexPatternWithoutRule.entrySet()
                 .stream()
-                .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> WildcardMatcher.from(entry.getValue())));
-        }
-
-        protected SingleRule roleToRule(RoleV7.Index rolePermissions) throws PrivilegesConfigurationValidationException {
-            return this.roleToRuleFunction.apply(rolePermissions);
+                .collect(ImmutableMap.toImmutableMap(e -> e.getKey(), e -> WildcardMatcher.from(e.getValue())));
         }
 
         /**
@@ -744,65 +736,61 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
     /**
      * This is an immutable class which contains compiled rules based on the set of actually existing indices. Objects
      * of this class need to be re-constructed whenever the set of indices changes.
+     * <p>
+     * Uses {@link IndexPattern#matchingNonDynamic(SortedMap)} for efficient O(log n) index matching (for prefix/exact
+     * patterns) by leveraging the {@link CompiledRoles} pre-compiled index patterns.
      */
     static class StatefulRules<SingleRule> {
-        final Map<String, IndexAbstraction> indexMetadata;
+        final SortedMap<String, IndexAbstraction> indexMetadata;
 
         final ImmutableMap<String, Map<String, SingleRule>> indexToRoleToRule;
         final ImmutableMap<String, Set<String>> indexToRoleWithoutRule;
 
-        private final RoleToRuleFunction<SingleRule> roleToRuleFunction;
-
         StatefulRules(
-            SecurityDynamicConfiguration<RoleV7> roles,
-            Map<String, IndexAbstraction> indexMetadata,
+            CompiledRoles compiledRoles,
+            SortedMap<String, IndexAbstraction> indexMetadata,
             RoleToRuleFunction<SingleRule> roleToRuleFunction
         ) {
-            this.roleToRuleFunction = roleToRuleFunction;
             this.indexMetadata = indexMetadata;
 
             DeduplicatingCompactSubSetBuilder<String> roleSetBuilder = new DeduplicatingCompactSubSetBuilder<>(
-                roles.getCEntries().keySet()
+                compiledRoles.roles.keySet()
             );
-            CompactMapGroupBuilder<String, SingleRule> roleMapBuilder = new CompactMapGroupBuilder<>(roles.getCEntries().keySet());
+            CompactMapGroupBuilder<String, SingleRule> roleMapBuilder = new CompactMapGroupBuilder<>(compiledRoles.roles.keySet());
             Map<String, DeduplicatingCompactSubSetBuilder.SubSetBuilder<String>> indexToRoleWithoutRule = new HashMap<>();
             Map<String, CompactMapGroupBuilder.MapBuilder<String, SingleRule>> indexToRoleToRule = new HashMap<>();
 
-            for (Map.Entry<String, RoleV7> entry : roles.getCEntries().entrySet()) {
+            for (Map.Entry<String, CompiledRoles.Role> entry : compiledRoles.roles.entrySet()) {
                 try {
                     String roleName = entry.getKey();
-                    RoleV7 role = entry.getValue();
+                    CompiledRoles.Role role = entry.getValue();
 
                     roleSetBuilder.next(roleName);
 
-                    for (RoleV7.Index indexPermissions : role.getIndex_permissions()) {
-                        if (indexPermissions.getIndex_patterns().contains("*")) {
-                            // Wildcard index patterns are handled in the static IndexPermissions object.
+                    for (CompiledRoles.Role.Index indexPermissions : role.indexPermissions) {
+                        if (indexPermissions.indexPattern.isMatchAll()) {
+                            // Wildcard index patterns are handled in the static rules.
                             continue;
                         }
 
-                        WildcardMatcher indexMatcher = IndexPattern.from(indexPermissions.getIndex_patterns()).getStaticPattern();
-
-                        if (indexMatcher == WildcardMatcher.NONE) {
-                            // The pattern is likely blank because there are only dynamic patterns.
-                            // Dynamic index patterns are not handled here, but in the static IndexPermissions object
+                        if (!indexPermissions.indexPattern.hasStaticPattern()) {
+                            // Only dynamic patterns — handled by static rules.
                             continue;
                         }
 
-                        SingleRule rule = this.roleToRule(indexPermissions);
+                        SingleRule rule = roleToRuleFunction.apply(indexPermissions);
 
-                        if (rule != null) {
-                            for (String index : indexMatcher.iterateMatching(indexMetadata.keySet())) {
-                                indexToRoleToRule.computeIfAbsent(index, k -> roleMapBuilder.createMapBuilder()).put(roleName, rule);
-                            }
-                        } else {
-                            for (String index : indexMatcher.iterateMatching(indexMetadata.keySet())) {
-                                indexToRoleWithoutRule.computeIfAbsent(index, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
+                        for (IndexAbstraction index : indexPermissions.indexPattern.matchingNonDynamic(indexMetadata)) {
+                            String indexName = index.getName();
+                            if (rule != null) {
+                                indexToRoleToRule.computeIfAbsent(indexName, k -> roleMapBuilder.createMapBuilder()).put(roleName, rule);
+                            } else {
+                                indexToRoleWithoutRule.computeIfAbsent(indexName, k -> roleSetBuilder.createSubSetBuilder()).add(roleName);
                             }
                         }
                     }
                 } catch (Exception e) {
-                    log.error("Unexpected exception while processing role: {}\nIgnoring role.", entry, e);
+                    log.error("Unexpected exception while processing role: {}\nIgnoring role.", entry.getKey(), e);
                 }
             }
 
@@ -814,11 +802,6 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
             this.indexToRoleWithoutRule = indexToRoleWithoutRule.entrySet()
                 .stream()
                 .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> entry.getValue().build(completed)));
-
-        }
-
-        protected SingleRule roleToRule(RoleV7.Index rolePermissions) throws PrivilegesConfigurationValidationException {
-            return this.roleToRuleFunction.apply(rolePermissions);
         }
 
         /**
@@ -834,7 +817,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
 
     @FunctionalInterface
     static interface RoleToRuleFunction<SingleRule> {
-        SingleRule apply(RoleV7.Index indexPrivileges) throws PrivilegesConfigurationValidationException;
+        SingleRule apply(CompiledRoles.Role.Index indexPermissions) throws PrivilegesConfigurationValidationException;
     }
 
     static abstract class Rule {

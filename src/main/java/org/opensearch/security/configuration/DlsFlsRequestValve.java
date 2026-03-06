@@ -27,23 +27,19 @@
 package org.opensearch.security.configuration;
 
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
 
     boolean invoke(PrivilegesEvaluationContext context, ActionListener<?> listener);
 
-    void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
+    void handleSearchContext(SearchContext context, ThreadPool threadPool);
 
     void onQueryPhase(QuerySearchResult queryResult);
-
-    DlsFlsProcessedConfig getCurrentConfig();
 
     boolean hasFlsOrFieldMasking(String index) throws PrivilegesEvaluationException;
 
@@ -59,18 +55,13 @@ public interface DlsFlsRequestValve {
         }
 
         @Override
-        public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
+        public void handleSearchContext(SearchContext context, ThreadPool threadPool) {
 
         }
 
         @Override
         public void onQueryPhase(QuerySearchResult queryResult) {
 
-        }
-
-        @Override
-        public DlsFlsProcessedConfig getCurrentConfig() {
-            return null;
         }
 
         @Override
