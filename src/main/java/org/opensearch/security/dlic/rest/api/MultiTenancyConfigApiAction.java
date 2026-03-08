@@ -50,7 +50,8 @@ import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.*;
+import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.arraySizeValidator;
+import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
