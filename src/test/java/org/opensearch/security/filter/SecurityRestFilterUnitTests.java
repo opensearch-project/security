@@ -12,7 +12,7 @@
 package org.opensearch.security.filter;
 
 import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -84,7 +84,7 @@ public class SecurityRestFilterUnitTests {
     public void testSecurityRestFilterWrap() throws Exception {
         AdminDNs adminDNs = mock(AdminDNs.class);
 
-        RestHandler wrappedRestHandler = sf.wrap(testRestHandler, adminDNs, new HashSet<>());
+        RestHandler wrappedRestHandler = sf.wrap(testRestHandler, adminDNs, new HashSet<>(), new HashSet<>());
 
         assertTrue(wrappedRestHandler instanceof SecurityRestFilter.AuthczRestHandler);
         assertFalse(wrappedRestHandler instanceof TestRestHandler);
@@ -96,7 +96,7 @@ public class SecurityRestFilterUnitTests {
         AdminDNs adminDNs = mock(AdminDNs.class);
 
         RestHandler testRestHandlerSpy = spy(testRestHandler);
-        RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs, new HashSet<>());
+        RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs, new HashSet<>(), new HashSet<>());
 
         doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
 
@@ -119,6 +119,7 @@ public class SecurityRestFilterUnitTests {
 
         Span mockSpan = mock(Span.class);
 
+        Set<String> transientsToCopy = new HashSet<>(List.of(TracerContextStorage.CURRENT_SPAN));
         // Create a stored context without current_span (simulates stashContext clearing it)
         ThreadContext.StoredContext storedContext = threadContext.newStoredContext(false);
 
@@ -126,14 +127,25 @@ public class SecurityRestFilterUnitTests {
         threadContext.putTransient(TracerContextStorage.CURRENT_SPAN, mockSpan);
 
         // Save the span before restore
-        final Object currentSpan = threadContext.getTransient(TracerContextStorage.CURRENT_SPAN);
+        Map<String, Object> trasients = null;
+        for (String transientValue : transientsToCopy) {
+            final Object value = threadContext.getTransient(transientValue);
+            if (value != null) {
+                if (trasients == null) {
+                    trasients = new HashMap<>();
+                }
+                trasients.put(transientValue, value);
+            }
+        }
 
         // Restore the stored context (this wipes current_span)
         storedContext.restore();
 
         // Apply the fix: restore current_span if it was wiped
-        if (currentSpan != null && threadContext.getTransient(TracerContextStorage.CURRENT_SPAN) == null) {
-            threadContext.putTransient(TracerContextStorage.CURRENT_SPAN, currentSpan);
+        if(trasients != null) {
+            for (Map.Entry<String, Object> transientVal : trasients.entrySet()) {
+                threadContext.putTransient(transientVal.getKey(), transientVal.getValue());
+            }
         }
 
         assertNotNull("current_span should be preserved", threadContext.getTransient(TracerContextStorage.CURRENT_SPAN));
