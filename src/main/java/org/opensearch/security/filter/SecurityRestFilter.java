@@ -165,7 +165,7 @@ public class SecurityRestFilter {
 
                 Map<String, Object> trasients = null;
                 for (String transientValue : transientsToCopy) {
-                    final String value = threadContext.getHeader(transientValue);
+                    final String value = threadContext.getTransient(transientValue);
                     if (value != null) {
                         if (trasients == null) {
                             trasients = new HashMap<>();
