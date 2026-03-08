@@ -729,13 +729,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
-    public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext, Set<RestHeaderDefinition> headersToCopy) {
+    public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext, Set<RestHeaderDefinition> headersToCopy, Set<String> transientsToCopy) {
 
         if (client || disabled || SSLConfig.isSslOnlyMode()) {
             return (rh) -> rh;
         }
 
-        return (rh) -> securityRestHandler.wrap(rh, adminDns, headersToCopy);
+        return (rh) -> securityRestHandler.wrap(rh, adminDns, headersToCopy, transientsToCopy);
     }
 
     @Override

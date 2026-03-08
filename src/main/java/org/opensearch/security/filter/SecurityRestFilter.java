@@ -128,11 +128,13 @@ public class SecurityRestFilter {
     class AuthczRestHandler extends DelegatingRestHandler {
         private final AdminDNs adminDNs;
         private final Set<RestHeaderDefinition> headersToCopy;
+        private final Set<String> transientsToCopy;
 
-        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
+        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy, Set<String> transientsToCopy) {
             super(original);
             this.adminDNs = adminDNs;
             this.headersToCopy = headersToCopy;
+            this.transientsToCopy = transientsToCopy;
         }
 
         @Override
@@ -160,7 +162,18 @@ public class SecurityRestFilter {
                         tmpHeaders.put(header.getName(), value);
                     }
                 }
-                final Object currentSpan = threadContext.getTransient(TracerContextStorage.CURRENT_SPAN);
+
+                Map<String, Object> trasients = null;
+                for (String transientValue : transientsToCopy) {
+                    final String value = threadContext.getHeader(transientValue);
+                    if (value != null) {
+                        if (trasients == null) {
+                            trasients = new HashMap<>();
+                        }
+                        trasients.put(transientValue, value);
+                    }
+                }
+
                 storedContext.restore();
 
                 if (tmpHeaders != null) {
@@ -169,8 +182,10 @@ public class SecurityRestFilter {
                     }
                     threadContext.putHeader(OPENSEARCH_SECURITY_REQUEST_HEADERS, String.join(",", tmpHeaders.keySet()));
                 }
-                if (currentSpan != null && threadContext.getTransient(TracerContextStorage.CURRENT_SPAN) == null) {
-                    threadContext.putTransient(TracerContextStorage.CURRENT_SPAN, currentSpan);
+                if(trasients != null) {
+                    for (Map.Entry<String, Object> transientVal : trasients.entrySet()) {
+                        threadContext.putTransient(transientVal.getKey(), transientVal.getValue());
+                    }
                 }
             });
 
@@ -268,8 +283,8 @@ public class SecurityRestFilter {
      * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
-    public RestHandler wrap(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
-        return new AuthczRestHandler(original, adminDNs, headersToCopy);
+    public RestHandler wrap(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy, Set<String> transientsToCopy) {
+        return new AuthczRestHandler(original, adminDNs, headersToCopy, transientsToCopy);
     }
 
     /**
