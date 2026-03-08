@@ -250,7 +250,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         assertThat(preferredTenantsContainInvalidType.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
         assertThat(
             preferredTenantsContainInvalidType.getBody(),
-            preferredTenantsContainInvalidType.findValueInJson("error.reason"),
+            preferredTenantsContainInvalidType.findValueInJson("preferred_tenants"),
             containsString("preferred_tenants should only contain string values")
         );
     }

@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Enh
 - Make security plugin aware of FIPS build param (-Pcrypto.standard=FIPS-140-3) ([#5952](https://github.com/opensearch-project/security/pull/5952))
 - Hardens input validation for resource sharing APIs ([#5831](https://github.com/opensearch-project/security/pull/5831)
+- Add `preferred_tenants` to config and dashboard info APIs ([#5969](https://github.com/opensearch-project/security/issues/5969))
 
 ### Bug Fixes
 - Fix the issue of unprocessed X-Request-Id ([#5954](https://github.com/opensearch-project/security/pull/5954))

@@ -32,6 +32,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
@@ -49,6 +50,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.*;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
@@ -74,6 +76,8 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         ConfigConstants.TENANCY_GLOBAL_TENANT_NAME,
         ConfigConstants.TENANCY_PRIVATE_TENANT_NAME
     );
+
+    private static final int PREFERRED_TENANTS_MAX_SIZE = 100;
 
     @Override
     public String getName() {
@@ -133,18 +137,38 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
                     @Override
                     public Map<String, DataType> allowedKeys() {
+                        // Provide basic type information for backward compatibility
                         return ImmutableMap.of(
-                            DEFAULT_TENANT_JSON_PROPERTY,
-                            DataType.STRING,
-                            PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
-                            DataType.BOOLEAN,
-                            MULTITENANCY_ENABLED_JSON_PROPERTY,
-                            DataType.BOOLEAN,
-                            SIGN_IN_OPTIONS,
-                            DataType.ARRAY,
-                            PREFERRED_TENANTS,
-                            DataType.ARRAY
+                            DEFAULT_TENANT_JSON_PROPERTY, DataType.STRING,
+                            PRIVATE_TENANT_ENABLED_JSON_PROPERTY, DataType.BOOLEAN,
+                            MULTITENANCY_ENABLED_JSON_PROPERTY, DataType.BOOLEAN,
+                            SIGN_IN_OPTIONS, DataType.ARRAY,
+                            PREFERRED_TENANTS, DataType.ARRAY
                         );
+                    }
+
+                    @Override
+                    public Map<String, FieldConfiguration> allowedKeysWithConfig() {
+                        return ImmutableMap.<String, FieldConfiguration>builder()
+                            .put(
+                                DEFAULT_TENANT_JSON_PROPERTY,
+                                FieldConfiguration.of(
+                                    DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    RequestContentValidator.principalValidator(false)
+                                )
+                            )
+                            .put(PRIVATE_TENANT_ENABLED_JSON_PROPERTY, FieldConfiguration.of(DataType.BOOLEAN))
+                            .put(MULTITENANCY_ENABLED_JSON_PROPERTY, FieldConfiguration.of(DataType.BOOLEAN))
+                            .put(SIGN_IN_OPTIONS, FieldConfiguration.of(DataType.ARRAY))
+                            .put(
+                                PREFERRED_TENANTS,
+                                FieldConfiguration.of(DataType.ARRAY, (fieldName, value) -> {
+                                    arraySizeValidator(PREFERRED_TENANTS_MAX_SIZE).validate(fieldName, value);
+                                    ARRAY_OF_STRINGS_VALIDATOR.validate(fieldName, value);
+                                })
+                            )
+                            .build();
                     }
                 });
             }
@@ -257,14 +281,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     private List<String> getPreferredTenants(JsonNode preferredTenants) {
-        if (!preferredTenants.isArray()) {
-            throw new IllegalArgumentException(PREFERRED_TENANTS + " should be an array of strings.");
-        }
-
         return IntStream.range(0, preferredTenants.size()).mapToObj(preferredTenants::get).map(tenant -> {
-            if (!tenant.isTextual()) {
-                throw new IllegalArgumentException(PREFERRED_TENANTS + " should only contain string values.");
-            }
             return tenant.asText();
         }).collect(Collectors.toList());
     }
