@@ -165,7 +165,7 @@ public class SecurityRestFilter {
 
                 Map<String, Object> trasients = null;
                 for (String transientValue : transientsToCopy) {
-                    final String value = threadContext.getTransient(transientValue);
+                    final Object value = threadContext.getTransient(transientValue);
                     if (value != null) {
                         if (trasients == null) {
                             trasients = new HashMap<>();
@@ -184,7 +184,9 @@ public class SecurityRestFilter {
                 }
                 if(trasients != null) {
                     for (Map.Entry<String, Object> transientVal : trasients.entrySet()) {
-                        threadContext.putTransient(transientVal.getKey(), transientVal.getValue());
+                        if (threadContext.getTransient(transientVal.getKey()) == null) {
+                            threadContext.putTransient(transientVal.getKey(), transientVal.getValue());
+                        }
                     }
                 }
             });
