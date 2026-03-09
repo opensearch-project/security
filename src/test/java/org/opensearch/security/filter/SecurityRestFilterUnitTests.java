@@ -12,7 +12,10 @@
 package org.opensearch.security.filter;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
