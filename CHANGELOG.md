@@ -20,11 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Maintenance
 - Bump `commons-codec:commons-codec` from 1.20.0 to 1.21.0 ([#5937](https://github.com/opensearch-project/security/pull/5937))
-- Bump `at.yawk.lz4:lz4-java` from 1.10.2 to 1.10.3 ([#5938](https://github.com/opensearch-project/security/pull/5938))
+- Bump `at.yawk.lz4:lz4-java` from 1.10.2 to 1.10.4 ([#5938](https://github.com/opensearch-project/security/pull/5938), [#5994](https://github.com/opensearch-project/security/pull/5994))
 - Bump `open_saml_shib_version` from 9.1.6 to 9.2.1 ([#5936](https://github.com/opensearch-project/security/pull/5936), [#5982](https://github.com/opensearch-project/security/pull/5982))
 - Bump `com.google.googlejavaformat:google-java-format` from 1.33.0 to 1.34.1 ([#5947](https://github.com/opensearch-project/security/pull/5947))
 - Bump `aws-actions/configure-aws-credentials` from 5 to 6 ([#5946](https://github.com/opensearch-project/security/pull/5946))
-- Bump `ch.qos.logback:logback-classic` from 1.5.26 to 1.5.28 ([#5948](https://github.com/opensearch-project/security/pull/5948))
+- Bump `ch.qos.logback:logback-classic` from 1.5.26 to 1.5.32 ([#5948](https://github.com/opensearch-project/security/pull/5948), [#5995](https://github.com/opensearch-project/security/pull/5995))
 - Bump `com.github.seancfoley:ipaddress` from 5.5.1 to 5.6.1 ([#5949](https://github.com/opensearch-project/security/pull/5949))
 - Bump `spring_version` from 7.0.3 to 7.0.5 ([#5957](https://github.com/opensearch-project/security/pull/5957), [#5967](https://github.com/opensearch-project/security/pull/5967))
 - Bump `org.junit.jupiter:junit-jupiter-api` from 5.14.2 to 5.14.3 ([#5956](https://github.com/opensearch-project/security/pull/5956))
