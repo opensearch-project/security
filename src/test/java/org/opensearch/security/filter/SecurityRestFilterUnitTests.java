@@ -155,7 +155,7 @@ public class SecurityRestFilterUnitTests {
 
     @SuppressWarnings("unchecked")
     private RestRequest addRelevantMocksAndGetRequest(ThreadContext threadContext ) {
-        // Mock Netty attributes
+        // Mocking Netty attributes
         RestRequest request = mock(RestRequest.class);
         org.opensearch.http.HttpChannel httpChannel = mock(org.opensearch.http.HttpChannel.class);
         io.netty.channel.Channel nettyChannel = mock(io.netty.channel.Channel.class);
