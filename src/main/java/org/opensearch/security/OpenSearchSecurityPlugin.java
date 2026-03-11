@@ -112,6 +112,7 @@ import org.opensearch.identity.PluginSubject;
 import org.opensearch.identity.Subject;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
+import org.opensearch.indices.IndicesRequestCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ClusterPlugin;
@@ -812,6 +813,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public Weight doCache(Weight weight, QueryCachingPolicy policy) {
+                    if (!indexSettings.getValue(IndicesRequestCache.INDEX_CACHE_REQUEST_ENABLED_SETTING)) {
+                        return weight;
+                    }
                     try {
                         if (dlsFlsValve.hasFlsOrFieldMasking(index().getName())) {
                             // Do not cache
