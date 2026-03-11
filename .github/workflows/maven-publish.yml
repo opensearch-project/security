@@ -38,4 +38,4 @@ jobs:
           aws-region: us-east-1
       - name: publish snapshots to maven
         run: |
-          ./gradlew --no-daemon publishPluginZipPublicationToSnapshotsRepository publishShadowPublicationToSnapshotsRepository
+          ./gradlew --no-daemon publishPluginZipPublicationToSnapshotsRepository publishShadowPublicationToSnapshotsRepository -Pcrypto.standard=FIPS-140-3

@@ -122,6 +122,11 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             }
 
             @Override
+            public Optional<SSLContext> buildSecureTransportContext(Settings settings) {
+                return sslSettingsManager.sslContextHandler(CertType.TRANSPORT).map(SslContextHandler::tryFetchSSLContext);
+            }
+
+            @Override
             public Optional<SSLEngine> buildSecureServerTransportEngine(Settings settings, Transport transport) throws SSLException {
                 return sslSettingsManager.sslContextHandler(CertType.TRANSPORT).map(SslContextHandler::createSSLEngine);
             }

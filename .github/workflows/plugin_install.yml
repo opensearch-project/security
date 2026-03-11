@@ -33,7 +33,7 @@ jobs:
         uses: gradle/gradle-build-action@v3
         with:
           cache-disabled: true
-          arguments: assemble
+          arguments: assemble -Pcrypto.standard=FIPS-140-3
 
       # Move and rename the plugin for installation
       - name: Move and rename the plugin for installation
