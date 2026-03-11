@@ -63,6 +63,8 @@ import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -82,7 +84,6 @@ import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
@@ -91,7 +92,6 @@ import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -115,9 +115,7 @@ public class SecurityFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final ClusterService cs;
-    private final ClusterInfoHolder clusterInfoHolder;
     private final CompatConfig compatConfig;
-    private final IndexResolverReplacer indexResolverReplacer;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
@@ -132,9 +130,7 @@ public class SecurityFilter implements ActionFilter {
         AuditLog auditLog,
         ThreadPool threadPool,
         ClusterService cs,
-        final ClusterInfoHolder clusterInfoHolder,
         final CompatConfig compatConfig,
-        final IndexResolverReplacer indexResolverReplacer,
         final XFFResolver xffResolver,
         ResourceAccessEvaluator resourceAccessEvaluator
     ) {
@@ -144,9 +140,7 @@ public class SecurityFilter implements ActionFilter {
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.cs = cs;
-        this.clusterInfoHolder = clusterInfoHolder;
         this.compatConfig = compatConfig;
-        this.indexResolverReplacer = indexResolverReplacer;
         this.immutableIndicesMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList())
         );
@@ -321,13 +315,13 @@ public class SecurityFilter implements ActionFilter {
 
                 if (request instanceof BulkShardRequest) {
                     for (BulkItemRequest bsr : ((BulkShardRequest) request).items()) {
-                        isImmutable = checkImmutableIndices(bsr.request(), listener);
+                        isImmutable = checkImmutableIndices(bsr.request(), actionRequestMetadata, listener);
                         if (isImmutable) {
                             break;
                         }
                     }
                 } else {
-                    isImmutable = checkImmutableIndices(request, listener);
+                    isImmutable = checkImmutableIndices(request, actionRequestMetadata, listener);
                 }
 
                 if (isImmutable) {
@@ -564,7 +558,7 @@ public class SecurityFilter implements ActionFilter {
     }
 
     @SuppressWarnings("rawtypes")
-    private boolean checkImmutableIndices(Object request, ActionListener listener) {
+    private boolean checkImmutableIndices(Object request, ActionRequestMetadata<?, ?> actionRequestMetadata, ActionListener listener) {
         final boolean isModifyIndexRequest = request instanceof DeleteRequest
             || request instanceof UpdateRequest
             || request instanceof UpdateByQueryRequest
@@ -574,24 +568,24 @@ public class SecurityFilter implements ActionFilter {
             || request instanceof CloseIndexRequest
             || request instanceof IndicesAliasesRequest;
 
-        if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
+        if (isModifyIndexRequest && isRequestIndexImmutable(request, actionRequestMetadata)) {
             listener.onFailure(new OpenSearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }
 
-        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request)) {
+        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request, actionRequestMetadata)) {
             ((IndexRequest) request).opType(OpType.CREATE);
         }
 
         return false;
     }
 
-    private boolean isRequestIndexImmutable(Object request) {
-        final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
-        if (resolved.isLocalAll()) {
+    private boolean isRequestIndexImmutable(Object request, ActionRequestMetadata<?, ?> actionRequestMetadata) {
+        OptionallyResolvedIndices optionalResolvedIndices = actionRequestMetadata.resolvedIndices();
+        if (optionalResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+            return immutableIndicesMatcher.matchAny(resolvedIndices.local().namesOfIndices(cs.state()));
+        } else {
             return true;
         }
-        final Set<String> allIndices = resolved.getAllIndices();
-        return immutableIndicesMatcher.matchAny(allIndices);
     }
 }
