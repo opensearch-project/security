@@ -19,7 +19,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Fix the issue of unprocessed X-Request-Id ([#5954](https://github.com/opensearch-project/security/pull/5954))
 - Improve DLS error message to identify undefined user attributes when query substitution fails ([#5975](https://github.com/opensearch-project/security/pull/5975))
-
 - Fix the issue of unprocessed X-Request-Id ([#5976](https://github.com/opensearch-project/security/pull/5976))
 ### Refactoring
 

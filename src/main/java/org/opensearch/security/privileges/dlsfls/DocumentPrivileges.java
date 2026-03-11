@@ -48,6 +48,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
  * Instances of this class are managed by DlsFlsProcessedConfig.
  */
 public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPrivileges.DlsQuery, DlsRestriction> {
+    private static final int MAX_ATTRIBUTES_IN_ERROR_MESSAGE = 10;
+
     private final NamedXContentRegistry xContentRegistry;
 
     public DocumentPrivileges(
@@ -180,12 +182,14 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
                 if (UserAttributes.needsAttributeSubstitution(effectiveQueryString)) {
                     List<String> unresolved = UserAttributes.findUnresolvedAttributes(effectiveQueryString);
                     Set<String> available = context.getUser().getCustomAttributesMap().keySet();
-                    String availableStr = available.size() > 10
-                        ? available.stream().limit(10).collect(Collectors.joining(", ")) + " ... and " + (available.size() - 10) + " more"
+                    String availableStr = available.size() > MAX_ATTRIBUTES_IN_ERROR_MESSAGE
+                        ? available.stream().limit(MAX_ATTRIBUTES_IN_ERROR_MESSAGE).collect(Collectors.joining(", "))
+                            + " ... and "
+                            + (available.size() - MAX_ATTRIBUTES_IN_ERROR_MESSAGE)
+                            + " more"
                         : String.join(", ", available);
                     throw new PrivilegesEvaluationException(
-                        "DLS query references undefined user attributes: " + unresolved
-                            + ". Available attributes are: " + availableStr,
+                        "DLS query references undefined user attributes: " + unresolved + ". Available attributes are: " + availableStr,
                         new OpenSearchSecurityException("User attribute substitution failed")
                     );
                 }

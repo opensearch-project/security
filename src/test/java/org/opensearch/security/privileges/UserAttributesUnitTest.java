@@ -25,9 +25,11 @@ import static org.junit.Assert.assertTrue;
 public class UserAttributesUnitTest {
     @Test
     public void testNeedsAttributeSubstitution() {
-        assertTrue(UserAttributes.needsAttributeSubstitution("{\"foo\": \"${user.name}}\""));
+        assertTrue(UserAttributes.needsAttributeSubstitution("""
+            {"foo": "${user.name}}"}"""));
         assertTrue(UserAttributes.needsAttributeSubstitution("${attr1.proxy.foo}"));
-        assertFalse(UserAttributes.needsAttributeSubstitution("{\"foo\": \"bar\"}"));
+        assertFalse(UserAttributes.needsAttributeSubstitution("""
+            {"foo": "bar"}"""));
     }
 
     @Test
@@ -74,25 +76,27 @@ public class UserAttributesUnitTest {
 
     @Test
     public void testFindUnresolvedAttributes_noTokens() {
-        assertTrue(UserAttributes.findUnresolvedAttributes("{\"term\": {\"dept\": \"value\"}}").isEmpty());
+        assertTrue(UserAttributes.findUnresolvedAttributes("""
+            {"term": {"dept": "value"}}""").isEmpty());
     }
 
     @Test
     public void testFindUnresolvedAttributes_singleToken() {
-        assertEquals(
-            List.of("attr.jwt.array"),
-            UserAttributes.findUnresolvedAttributes("{\"terms\":{\"arr\":[${attr.jwt.array}]}}")
-        );
+        assertEquals(List.of("attr.jwt.array"), UserAttributes.findUnresolvedAttributes("""
+            {"terms": {"arr": [${attr.jwt.array}]}}"""));
     }
 
     @Test
     public void testFindUnresolvedAttributes_multipleTokens() {
-        assertEquals(
-            List.of("attr.jwt.dept", "attr.proxy.region"),
-            UserAttributes.findUnresolvedAttributes(
-                "{\"bool\":{\"must\":[{\"term\":{\"dept\":\"${attr.jwt.dept}\"}},{\"term\":{\"region\":\"${attr.proxy.region}\"}}]}}"
-            )
-        );
+        assertEquals(List.of("attr.jwt.dept", "attr.proxy.region"), UserAttributes.findUnresolvedAttributes("""
+            {
+                "bool": {
+                    "must": [
+                        {"term": {"dept": "${attr.jwt.dept}"}},
+                        {"term": {"region": "${attr.proxy.region}"}}
+                    ]
+                }
+            }"""));
     }
 
     @Test(expected = UnsupportedOperationException.class)
