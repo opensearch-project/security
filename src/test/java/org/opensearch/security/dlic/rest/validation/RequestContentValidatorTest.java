@@ -647,6 +647,28 @@ public class RequestContentValidatorTest {
     }
 
     @Test
+    public void testArraySizeValidatorFactoryUsesCustomLimit() {
+        final RequestContentValidator.FieldValidator validator = RequestContentValidator.arraySizeValidator(2);
+        final ObjectNode node = DefaultObjectMapper.objectMapper.createObjectNode();
+        node.putArray("arr").add("1").add("2").add("3");
+        expectThrows(IllegalArgumentException.class, () -> validator.validate("arr", node.get("arr")));
+    }
+
+    @Test
+    public void testArrayOfStringsValidatorAcceptsStringArray() {
+        final ObjectNode node = DefaultObjectMapper.objectMapper.createObjectNode();
+        node.putArray("arr").add("one").add("two");
+        RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate("arr", node.get("arr"));
+    }
+
+    @Test
+    public void testArrayOfStringsValidatorRejectsNonStringElement() {
+        final ObjectNode node = DefaultObjectMapper.objectMapper.createObjectNode();
+        node.putArray("arr").add("one").add(2);
+        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate("arr", node.get("arr")));
+    }
+
+    @Test
     public void testAllowedValuesValidator() {
         final Set<String> allowed = Set.of("read", "write");
         final RequestContentValidator.FieldValidator validator = RequestContentValidator.allowedValuesValidator(allowed);

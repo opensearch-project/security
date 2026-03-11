@@ -113,6 +113,7 @@ public class ConfigV7 {
         public boolean private_tenant_enabled = true;
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public String default_tenant = "";
+        public List<String> preferred_tenants = Collections.emptyList();
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
         public String index = ".kibana";
@@ -127,6 +128,8 @@ public class ConfigV7 {
                 + private_tenant_enabled
                 + ", default_tenant="
                 + default_tenant
+                + ", preferred_tenants="
+                + preferred_tenants
                 + ", server_username="
                 + server_username
                 + ", opendistro_role="
