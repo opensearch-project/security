@@ -26,13 +26,13 @@ public class SSLConfigConstantsTest {
     @Test
     public void testDefaultTLSProtocols() {
         final var tlsDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.TRANSPORT);
-        assertArrayEquals(new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" }, tlsDefaultProtocols);
+        assertArrayEquals(new String[] { "TLSv1.3", "TLSv1.2" }, tlsDefaultProtocols);
     }
 
     @Test
     public void testDefaultSSLProtocols() {
         final var sslDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.HTTP);
-        assertArrayEquals(new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" }, sslDefaultProtocols);
+        assertArrayEquals(new String[] { "TLSv1.3", "TLSv1.2" }, sslDefaultProtocols);
     }
 
     @Test
