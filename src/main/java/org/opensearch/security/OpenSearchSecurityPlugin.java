@@ -820,6 +820,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         if (cached == null) {
                             cached = dlsFlsValve.hasFlsOrFieldMasking(index().getName());
                             threadPool.getThreadContext().putTransient(cacheKey, cached);
+                            log.debug("doCache: evaluated hasFlsOrFieldMasking({})={}", index().getName(), cached);
+                        } else {
+                            log.debug("doCache: memoized hasFlsOrFieldMasking({})={}", index().getName(), cached);
                         }
                         if (cached) {
                             // Do not cache

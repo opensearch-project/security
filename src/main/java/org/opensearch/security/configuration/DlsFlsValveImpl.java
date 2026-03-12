@@ -16,7 +16,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
@@ -538,11 +537,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return dlsFlsProcessedConfig.get();
     }
 
-    public static final AtomicLong HAS_FLS_OR_FIELD_MASKING_CALL_COUNT = new AtomicLong();
-
     @Override
     public boolean hasFlsOrFieldMasking(String index) throws PrivilegesEvaluationException {
-        HAS_FLS_OR_FIELD_MASKING_CALL_COUNT.incrementAndGet();
         PrivilegesEvaluationContext privilegesEvaluationContext = this.dlsFlsBaseContext.getPrivilegesEvaluationContext();
         if (privilegesEvaluationContext == null) {
             return false;
