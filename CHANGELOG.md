@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix audit log writing errors for rollover-enabled alias indices ([#5878](https://github.com/opensearch-project/security/pull/5878)
 
 - Fix the issue of unprocessed X-Request-Id ([#5954](https://github.com/opensearch-project/security/pull/5954))
+- Skip logic in doCache if index request cache is disabled ([#6001](https://github.com/opensearch-project/security/pull/6001))
+
 ### Refactoring
 
 ### Maintenance

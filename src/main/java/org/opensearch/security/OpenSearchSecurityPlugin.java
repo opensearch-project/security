@@ -794,6 +794,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
 
             indexModule.forceQueryCacheProvider((indexSettings, nodeCache) -> new QueryCache() {
+                // Transient key used to cache the hasFlsOrFieldMasking result for the duration of a single request,
+                // avoiding repeated alias traversal for every sub-clause of a BooleanQuery.
+                private final String cacheKey = "_opendistro_security_flsfm_" + indexSettings.getIndex().getName();
 
                 @Override
                 public Index index() {
@@ -813,7 +816,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 @Override
                 public Weight doCache(Weight weight, QueryCachingPolicy policy) {
                     try {
-                        if (dlsFlsValve.hasFlsOrFieldMasking(index().getName())) {
+                        Boolean cached = threadPool.getThreadContext().getTransient(cacheKey);
+                        if (cached == null) {
+                            cached = dlsFlsValve.hasFlsOrFieldMasking(index().getName());
+                            threadPool.getThreadContext().putTransient(cacheKey, cached);
+                            log.debug("doCache: evaluated hasFlsOrFieldMasking({})={}", index().getName(), cached);
+                        } else {
+                            log.debug("doCache: memoized hasFlsOrFieldMasking({})={}", index().getName(), cached);
+                        }
+                        if (cached) {
                             // Do not cache
                             return weight;
                         } else {
