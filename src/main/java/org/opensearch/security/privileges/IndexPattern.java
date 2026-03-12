@@ -183,6 +183,8 @@ public class IndexPattern {
     /**
      * Returns the indices matching the non-dynamic patterns in this object as a lazy {@link Iterable}.
      * The results are computed on-the-fly during iteration without storing them in an intermediate list.
+     * Doing so instead of returning a List<> avoids unnecessary copying; this might be relevant because of
+     * the complex pattern structure the number of matches is not known in advance.
      */
     public Iterable<IndexAbstraction> matchingNonDynamic(SortedMap<String, IndexAbstraction> indices) {
         if (this.staticPatternWithoutConstantAndPrefixPatterns == WildcardMatcher.ANY) {

@@ -69,7 +69,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
     /**
      * The pre-compiled roles – the single source of truth for role/index/action configuration.
      */
-    private final CompiledRoles compiledRoles;
+    protected final CompiledRoles compiledRoles;
 
     /**
      * Compiled rules that are immutable.

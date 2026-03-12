@@ -187,10 +187,16 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
     }
 
+    /**
+     * Returns true if the given pattern is an exact pattern, meaning that the pattern matches only exactly one string.
+     */
     public static boolean isExactPattern(String pattern) {
         return pattern == null || !(pattern.contains("*") || pattern.contains("?") || (pattern.startsWith("/") && pattern.endsWith("/")));
     }
 
+    /**
+     * Returns true if the pattern has the form "index*", meaning that it matches all strings that start with "index".
+     */
     public static boolean isPrefixPattern(String pattern) {
         return pattern != null && !pattern.isEmpty() && pattern.indexOf('*') == pattern.length() - 1 && !pattern.contains("?");
     }
