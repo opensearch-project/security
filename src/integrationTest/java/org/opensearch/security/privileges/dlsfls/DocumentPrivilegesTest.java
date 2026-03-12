@@ -1189,6 +1189,21 @@ public class DocumentPrivilegesTest {
         }
 
         @Test
+        public void invalidTemplatedQuery_errorMessageTruncatesWhenMoreThanTenAvailableAttributes() throws Exception {
+            MockPrivilegeEvaluationContextBuilder ctx = MockPrivilegeEvaluationContextBuilder.ctx();
+            for (int i = 1; i <= 12; i++) {
+                ctx.attr("attr.jwt.attr" + i, "v" + i);
+            }
+            try {
+                DocumentPrivileges.DlsQuery.create("{\"term\":{\"dept\":\"${attr.jwt.missing}\"}}", xContentRegistry).evaluate(ctx.get());
+                fail("Expected PrivilegesEvaluationException");
+            } catch (PrivilegesEvaluationException e) {
+                assertThat(e.getMessage(), containsString("attr.jwt.missing"));
+                assertThat(e.getMessage(), containsString("... and 2 more"));
+            }
+        }
+
+        @Test
         public void equals() throws Exception {
             DocumentPrivileges.DlsQuery query1a = DocumentPrivileges.DlsQuery.create(
                 Strings.toString(MediaTypeRegistry.JSON, QueryBuilders.termQuery("foo", "1")),
