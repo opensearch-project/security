@@ -802,7 +802,7 @@ public class DocumentPrivilegesTest {
                 new UserSpec("non_dls_role, attributes", "non_dls_role").attribute("attr.attr_a", "a"), //
                 new UserSpec("dls_role_1, attributes", "dls_role_1").attribute("attr.attr_a", "a"), //
                 new UserSpec("dls_role_1 and dls_role_2, attributes", "dls_role_1", "dls_role_2").attribute("attr.attr_a", "a"), //
-                new UserSpec("dls_role_1 and non_dls_role, attributes", "dls_role", "non_dls_role").attribute("attr.attr_a", "a"), //
+                new UserSpec("dls_role_1 and non_dls_role, attributes", "dls_role_1", "non_dls_role").attribute("attr.attr_a", "a"), //
                 new UserSpec("no roles")//
             )) {
                 for (IndicesSpec indicesSpec : Arrays.asList(
