@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.util.Strings;
 
@@ -46,6 +48,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
  * Instances of this class are managed by DlsFlsProcessedConfig.
  */
 public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPrivileges.DlsQuery, DlsRestriction> {
+    private static final int MAX_ATTRIBUTES_IN_ERROR_MESSAGE = 10;
+
     private final NamedXContentRegistry xContentRegistry;
 
     public DocumentPrivileges(
@@ -176,8 +180,16 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             RenderedDlsQuery evaluate(PrivilegesEvaluationContext context) throws PrivilegesEvaluationException {
                 String effectiveQueryString = UserAttributes.replaceProperties(this.queryString, context);
                 if (UserAttributes.needsAttributeSubstitution(effectiveQueryString)) {
+                    List<String> unresolved = UserAttributes.findUnresolvedAttributes(effectiveQueryString);
+                    Set<String> available = context.getUser().getCustomAttributesMap().keySet();
+                    String availableStr = available.size() > MAX_ATTRIBUTES_IN_ERROR_MESSAGE
+                        ? available.stream().limit(MAX_ATTRIBUTES_IN_ERROR_MESSAGE).collect(Collectors.joining(", "))
+                            + " ... and "
+                            + (available.size() - MAX_ATTRIBUTES_IN_ERROR_MESSAGE)
+                            + " more"
+                        : String.join(", ", available);
                     throw new PrivilegesEvaluationException(
-                        "Invalid DLS query: " + effectiveQueryString,
+                        "DLS query references undefined user attributes: " + unresolved + ". Available attributes are: " + availableStr,
                         new OpenSearchSecurityException("User attribute substitution failed")
                     );
                 }
