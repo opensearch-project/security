@@ -6,8 +6,8 @@ apply plugin: 'maven-publish'
 
 buildscript {
     ext {
-        open_saml_version = '5.1.6'
-        open_saml_shib_version = "9.1.6"
+        open_saml_version = '5.2.1'
+        open_saml_shib_version = "9.2.1"
     }
 
     repositories {
@@ -28,8 +28,8 @@ repositories {
 configurations.all {
     resolutionStrategy {
         force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
-        force "org.bouncycastle:bcpkix-jdk18on:1.82"
-        force "org.bouncycastle:bcprov-jdk18on:1.82"
+        force "org.bouncycastle:bcpkix-jdk18on:1.83"
+        force "org.bouncycastle:bcprov-jdk18on:1.83"
         force "org.apache.commons:commons-lang3:${versions.commonslang}"
     }
 }
@@ -69,6 +69,7 @@ dependencies {
 }
 
 tasks.shadowJar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     mergeServiceFiles()
     exclude 'com/**'
     exclude 'org/apache/**'

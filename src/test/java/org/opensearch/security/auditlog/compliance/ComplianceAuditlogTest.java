@@ -517,4 +517,54 @@ public class ComplianceAuditlogTest extends AbstractAuditlogUnitTest {
         );
         assertThat(complianceDocWriteMessage.getRequestBody(), nullValue());
     }
+
+    @Test
+    public void testDeleteLogDiffs() throws Exception {
+        Settings additionalSettings = Settings.builder().put("plugins.security.audit.type", TestAuditlogImpl.class.getName()).build();
+
+        setup(additionalSettings);
+        rh.sendAdminCertificate = true;
+        rh.keystore = "auditlog/kirk-keystore.jks";
+
+        // Enable write diff logging for movies index
+        AuditConfig auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.DEFAULT,
+            ComplianceConfig.from(
+                ImmutableMap.of("enabled", true, "write_watched_indices", Collections.singletonList("movies"), "write_log_diffs", true),
+                additionalSettings
+            )
+        );
+        updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
+
+        // Create index and document
+        try (Client tc = getClient()) {
+            rh.executePutRequest("movies", "{\"settings\": {\"index\": {\"number_of_shards\": 1, \"number_of_replicas\": 0}}}");
+            rh.executePutRequest(
+                "movies/_doc/1?refresh",
+                "{\"title\": \"Jaws\", \"director\": \"Steven Spielberg\", \"year\": 1975, \"genre\": \"Thriller\"}"
+            );
+        }
+
+        // Delete the document and verify audit log contains diff
+        List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            HttpResponse response = rh.executeDeleteRequest("movies/_doc/1?refresh", encodeBasicHeader("admin", "admin"));
+            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+        }, 1);
+
+        AuditMessage deleteMessage = messages.get(0);
+        assertThat(deleteMessage.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_WRITE));
+        assertThat(
+            deleteMessage.getAsMap().get("audit_compliance_operation"),
+            equalTo(org.opensearch.security.auditlog.AuditLog.Operation.DELETE)
+        );
+        assertThat(deleteMessage.getAsMap().get("audit_compliance_diff_content"), notNullValue());
+
+        String diffContent = (String) deleteMessage.getAsMap().get("audit_compliance_diff_content");
+        assertThat(diffContent, containsString("\"op\":\"remove\""));
+        assertThat(diffContent, containsString("\"path\":\"/title\""));
+        assertThat(diffContent, containsString("\"value\":\"Jaws\""));
+        assertThat(diffContent, containsString("\"path\":\"/director\""));
+        assertThat(diffContent, containsString("\"value\":\"Steven Spielberg\""));
+    }
 }

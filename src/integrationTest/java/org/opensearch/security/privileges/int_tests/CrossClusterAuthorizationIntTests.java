@@ -15,13 +15,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.ImmutableList;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.TestCertificates;
@@ -40,8 +39,7 @@ import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserInde
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class CrossClusterAuthorizationIntTests {
 
     // -------------------------------------------------------------------------------------------------------
@@ -190,12 +188,10 @@ public class CrossClusterAuthorizationIntTests {
             .indices(LocalIndices.index_a1, LocalIndices.index_a2);
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusters = new ClusterConfig.ClusterInstances(
+        CrossClusterAuthorizationIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -464,7 +460,7 @@ public class CrossClusterAuthorizationIntTests {
         }
     }
 
-    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    @Parameters(name = "{0}, {1}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 
@@ -480,7 +476,7 @@ public class CrossClusterAuthorizationIntTests {
     public CrossClusterAuthorizationIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description)
         throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster(CrossClusterAuthorizationIntTests::clusterBuilder);
+        this.cluster = clusters.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 

@@ -79,7 +79,7 @@ opensearchplugin {
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
-  src/main/resources/META-INF/services/org.opensearch.security.spi.ResourceSharingExtension
+  src/main/resources/META-INF/services/org.opensearch.security.spi.resources.ResourceSharingExtension
   ```
   - This file must contain a **single line** specifying the **fully qualified class name** of the plugin’s `ResourceSharingExtension` implementation, e.g.:
     ```

@@ -10,16 +10,17 @@
 package org.opensearch.security;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -65,8 +66,7 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searc
 * option is enabled or disabled. Method {@link #parameters()} is a source of parameters values.
 */
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class CrossClusterSearchTests {
 
     private static final String SONG_INDEX_NAME = "song_lyrics";
@@ -155,8 +155,8 @@ public class CrossClusterSearchTests {
         .users(ADMIN_USER, LIMITED_USER, DLS_USER_ROCK, DLS_USER_JAZZ, FLS_INCLUDE_TITLE_USER, FLS_EXCLUDE_LYRICS_USER)
         .build();
 
-    @ParametersFactory(shuffle = false)
-    public static Iterable<Object[]> parameters() {
+    @Parameters(name = "ccsMinimizeRoundtrips={0}")
+    public static Collection<Object[]> parameters() {
         return List.of(new Object[] { true }, new Object[] { false });
     }
 

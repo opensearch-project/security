@@ -274,6 +274,14 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
+    /**
+     * Specialized authorization for NamedRoute APIs only.
+     * Allows extension and plugin developers to apply authorization directly to an API route, in contrast to
+     * typical OpenSearch authorization which is handled at the node-to-node layer.
+     * @param original REST handler originating request
+     * @param request security representation of request metadata
+     * @param user authenticated user
+     */
     void authorizeRequest(RestHandler original, SecurityRequestChannel request, User user) {
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()

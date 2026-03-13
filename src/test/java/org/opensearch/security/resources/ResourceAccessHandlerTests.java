@@ -42,7 +42,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings("unchecked") // action listener mock
-public class ResourceAccessHandlerTest {
+public class ResourceAccessHandlerTests {
 
     @Mock
     private ThreadPool threadPool;

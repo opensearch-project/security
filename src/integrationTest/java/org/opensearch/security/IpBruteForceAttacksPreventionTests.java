@@ -13,10 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.RateLimiting;
@@ -38,8 +36,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.userWithSourceIp;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IpBruteForceAttacksPreventionTests {
     protected static final User USER_1 = new User("simple-user-1").roles(ALL_ACCESS);
     protected static final User USER_2 = new User("simple-user-2").roles(ALL_ACCESS);

@@ -229,6 +229,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "opendistro_security.audit.exclude_sensitive_headers";
 
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = SECURITY_SETTINGS_PREFIX + "audit.config.";
+    public static final String SECURITY_AUDIT_CONFIG_TIMEZONE = SECURITY_SETTINGS_PREFIX + "audit.config.timezone";
 
     // Internal Opensearch data_stream
     public static final String SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME = "data_stream.name";
@@ -340,6 +341,8 @@ public class ConfigConstants {
     public static final String SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = SECURITY_SETTINGS_PREFIX
         + "filter_securityindex_from_all_requests";
     public static final String SECURITY_DLS_MODE = SECURITY_SETTINGS_PREFIX + "dls.mode";
+    public static final String SECURITY_DLS_WRITE_BLOCKED = SECURITY_SETTINGS_PREFIX + "dls.write_blocked";
+    public static final boolean SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT = false;
     // REST API
     public static final String SECURITY_RESTAPI_ROLES_ENABLED = SECURITY_SETTINGS_PREFIX + "restapi.roles_enabled";
     public static final String SECURITY_RESTAPI_ADMIN_ENABLED = SECURITY_SETTINGS_PREFIX + "restapi.admin.enabled";

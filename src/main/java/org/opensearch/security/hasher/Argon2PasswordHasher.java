@@ -13,6 +13,8 @@ package org.opensearch.security.hasher;
 
 import java.nio.CharBuffer;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import com.password4j.Argon2Function;
 import com.password4j.HashingFunction;
 import com.password4j.Password;
@@ -76,7 +78,8 @@ class Argon2PasswordHasher extends AbstractPasswordHasher {
         return Argon2Function.getInstanceFromHash(hash);
     }
 
-    private Argon2 parseType(String type) {
+    @VisibleForTesting
+    static Argon2 parseType(String type) {
         if (type == null) {
             throw new IllegalArgumentException("Argon2 type can't be null");
         }

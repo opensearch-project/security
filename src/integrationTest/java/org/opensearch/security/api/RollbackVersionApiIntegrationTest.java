@@ -11,22 +11,26 @@
 
 package org.opensearch.security.api;
 
-import java.util.Map;
-
-import org.apache.http.HttpStatus;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isOneOf;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED;
+import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
+import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
+import static org.opensearch.test.framework.matcher.RestMatchers.isUnauthorized;
 
 public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTest {
 
@@ -38,61 +42,57 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
         return ROLLBACK_BASE + "/" + versionId;
     }
 
-    @Override
-    protected Map<String, Object> getClusterSettings() {
-        Map<String, Object> settings = super.getClusterSettings();
-        settings.put(EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, true);
-        return settings;
-    }
+    @Rule
+    public LocalCluster localCluster = clusterBuilder().nodeSetting(EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, true).build();
 
     @Before
     public void setupConfigVersionsIndex() throws Exception {
-        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-            client.createUser(USER.getName(), USER).assertStatusCode(201);
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            assertThat(client.createUser(USER.getName(), USER), anyOf(isOk(), isCreated()));
         }
     }
 
     @Test
     public void testRollbackToPreviousVersion_success() throws Exception {
-        withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             var response = client.post(ROLLBACK_BASE);
-            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+            assertThat(response, isOk());
             assertThat(response.getTextFromJsonBody("/status"), equalTo("OK"));
             assertThat(response.getTextFromJsonBody("/message"), containsString("config rolled back to version"));
-        });
+        }
     }
 
     @Test
     public void testRollbackToSpecificVersion_success() throws Exception {
         String versionId = "v1";
-        withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             var response = client.post(RollbackVersion(versionId));
-            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+            assertThat(response, isOk());
             assertThat(response.getTextFromJsonBody("/status"), equalTo("OK"));
             assertThat(response.getTextFromJsonBody("/message"), containsString("config rolled back to version " + versionId));
-        });
+        }
     }
 
     @Test
     public void testRollbackWithNonAdmin_shouldBeUnauthorized() throws Exception {
-        withUser(NEW_USER, DEFAULT_PASSWORD, client -> {
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
             var response = client.post(ROLLBACK_BASE);
-            assertThat(response.getStatusCode(), isOneOf(HttpStatus.SC_FORBIDDEN, HttpStatus.SC_UNAUTHORIZED));
-        });
+            assertThat(response, anyOf(isForbidden(), isUnauthorized()));
+        }
     }
 
     @Test
     public void testRollbackToInvalidVersion_shouldReturnNotFound() throws Exception {
-        withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             var response = client.post(RollbackVersion("does-not-exist"));
-            assertThat(response.getStatusCode(), is(HttpStatus.SC_NOT_FOUND));
+            assertThat(response, isNotFound());
             assertThat(response.getTextFromJsonBody("/message"), containsString("not found"));
-        });
+        }
     }
 
     @Test
     public void testRollbackWhenOnlyOneVersion_shouldFail() throws Exception {
-        withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             // To perform below test, delete all entries in .opensearch_security_config_versions index
             String deleteQuery = """
                     {
@@ -116,7 +116,7 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
             var response = client.post(ROLLBACK_BASE);
             assertThat(response.getStatusCode(), is(404));
             assertThat(response.getBody(), containsString("No previous version available to rollback"));
-        });
+        }
     }
 
 }

@@ -38,7 +38,7 @@ import org.opensearch.transport.client.Client;
 
 import org.greenrobot.eventbus.Subscribe;
 
-public final class AuditLogImpl extends AbstractAuditLog {
+public class AuditLogImpl extends AbstractAuditLog {
 
     private final AuditMessageRouter messageRouter;
     private final Settings settings;
@@ -230,9 +230,9 @@ public final class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
-    public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result) {
+    public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult) {
         if (enabled) {
-            super.logDocumentDeleted(shardId, delete, result);
+            super.logDocumentDeleted(shardId, delete, result, originalResult);
         }
     }
 

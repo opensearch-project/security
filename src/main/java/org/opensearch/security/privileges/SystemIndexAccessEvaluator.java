@@ -242,6 +242,22 @@ public class SystemIndexAccessEvaluator {
     }
 
     /**
+     * Gets all system indices registered by the plugin user
+     * @param user the plugin user
+     * @param requestedResolved request which contains indices to be matched
+     * @return the set of system indices owned by this plugin, empty set if not a plugin user
+     */
+    private Set<String> getMatchingPluginIndices(User user, Resolved requestedResolved) {
+        if (!user.isPluginUser() || !this.isSystemIndexEnabled) {
+            return Set.of();
+        }
+        return SystemIndexRegistry.matchesPluginSystemIndexPattern(
+            user.getName().replace("plugin:", ""),
+            requestedResolved.getAllIndices()
+        );
+    }
+
+    /**
      * Perform access check on requested indices and actions for those indices
      * @param action action to be performed on request indices
      * @param requestedResolved this object contains all indices this request is resolved to
@@ -264,6 +280,11 @@ public class SystemIndexAccessEvaluator {
         boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
         boolean containsRegularIndex = requestContainsAnyRegularIndices(requestedResolved);
         boolean serviceAccountUser = user.isServiceAccount();
+
+        // Calculate plugin-related information once for reuse
+        final Set<String> matchingPluginIndices = getMatchingPluginIndices(user, requestedResolved);
+        final boolean containsOnlyPluginSystemIndices = !matchingPluginIndices.isEmpty()
+            && requestedResolved.getAllIndices().equals(matchingPluginIndices);
 
         if (isSystemIndexPermissionEnabled) {
             if (serviceAccountUser && containsRegularIndex) {
@@ -294,8 +315,12 @@ public class SystemIndexAccessEvaluator {
                     );
                 }
                 return PrivilegesEvaluatorResponse.insufficient("");
-            } else if (containsSystemIndex
-                && !actionPrivileges.hasExplicitIndexPrivilege(context, SYSTEM_INDEX_PERMISSION_SET, requestedResolved).isAllowed()) {
+            } else if (containsSystemIndex) {
+                // Skip permission check for plugin user accessing only its own system indices with non-cluster action
+                boolean isPluginIndexAction = !isClusterPerm(action) && containsOnlyPluginSystemIndices;
+
+                if (!isPluginIndexAction
+                    && !actionPrivileges.hasExplicitIndexPrivilege(context, SYSTEM_INDEX_PERMISSION_SET, requestedResolved).isAllowed()) {
                     auditLog.logSecurityIndexAttempt(request, action, task);
                     if (log.isInfoEnabled()) {
                         log.info(
@@ -307,16 +332,13 @@ public class SystemIndexAccessEvaluator {
                     }
                     return PrivilegesEvaluatorResponse.insufficient("");
                 }
+            }
         }
 
         // the following section should only be run for index actions
         if (user.isPluginUser() && !isClusterPerm(action)) {
             if (this.isSystemIndexEnabled) {
-                Set<String> matchingPluginIndices = SystemIndexRegistry.matchesPluginSystemIndexPattern(
-                    user.getName().replace("plugin:", ""),
-                    requestedResolved.getAllIndices()
-                );
-                if (requestedResolved.getAllIndices().equals(matchingPluginIndices)) {
+                if (containsOnlyPluginSystemIndices) {
                     // plugin is authorized to perform any actions on its own registered system indices
                     return PrivilegesEvaluatorResponse.ok();
                 } else {

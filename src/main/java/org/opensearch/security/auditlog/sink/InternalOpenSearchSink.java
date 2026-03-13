@@ -16,6 +16,7 @@ import java.nio.file.Path;
 
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
@@ -52,7 +53,7 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
             this.indexPattern = DateTimeFormat.forPattern(index);
         } catch (IllegalArgumentException e) {
             log.debug(
-                "Unable to parse index pattern due to {}. " + "If you have no date pattern configured you can safely ignore this message",
+                "Unable to parse index pattern due to {}. If you have no date pattern configured you can safely ignore this message",
                 e.getMessage()
             );
         }
@@ -60,18 +61,32 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
 
     @Override
     public boolean createIndexIfAbsent(String indexName) {
-        if (clusterService.state().metadata().hasIndex(indexName)) {
+        final Metadata metadata = clusterService.state().metadata();
+
+        if (metadata.hasAlias(indexName)) {
+            log.debug("Audit log target '{}' is an alias. Audit events will be written to the associated write index.", indexName);
             return true;
         }
-
+        if (metadata.hasIndex(indexName)) {
+            log.debug("Audit log index '{}' already exists.", indexName);
+            return true;
+        }
         try {
             final CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).settings(indexSettings);
-            final boolean ok = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
-            log.info("Index {} created?: {}", indexName, ok);
-            return ok;
-        } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
-            log.info("Index {} already exists", indexName);
+            final boolean acknowledged = clientProvider.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
+            if (acknowledged) {
+                log.info("Created audit log index '{}'", indexName);
+            } else {
+                log.error("Failed to create audit log index '{}'. Index creation was not acknowledged.", indexName);
+            }
+            return acknowledged;
+        } catch (ResourceAlreadyExistsException e) {
+            // Race condition: another node created the index between our check and creation attempt
+            log.debug("Audit log index '{}' was created by another node", indexName);
             return true;
+        } catch (Exception e) {
+            log.error("Error creating audit log index '{}'", indexName, e);
+            return false;
         }
     }
 
@@ -80,6 +95,7 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
 
     }
 
+    @Override
     public boolean doStore(final AuditMessage msg) {
         return super.doStore(msg, getExpandedIndexName(this.indexPattern, this.index));
     }
