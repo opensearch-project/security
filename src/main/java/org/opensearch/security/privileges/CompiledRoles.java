@@ -10,11 +10,9 @@
  */
 package org.opensearch.security.privileges;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
@@ -103,7 +101,7 @@ public class CompiledRoles {
         /**
          * The compiled index permission entries for this role.
          */
-        public final List<Index> indexPermissions;
+        public final ImmutableList<Index> indexPermissions;
 
         public Role(
             String roleName,
@@ -116,11 +114,13 @@ public class CompiledRoles {
             this.clusterPermissions = actionGroups.resolve(base.getCluster_permissions());
             this.clusterPermissionsMatcher = WildcardMatcher.from(this.clusterPermissions);
 
-            List<Index> compiledIndexPermissions = new ArrayList<>(base.getIndex_permissions().size());
+            ImmutableList.Builder<Index> compiledIndexPermissions = ImmutableList.builderWithExpectedSize(
+                base.getIndex_permissions().size()
+            );
             for (RoleV7.Index rawIndex : base.getIndex_permissions()) {
                 compiledIndexPermissions.add(new Index(roleName, rawIndex, actionGroups, xContentRegistry, fieldMaskingConfig));
             }
-            this.indexPermissions = Collections.unmodifiableList(compiledIndexPermissions);
+            this.indexPermissions = compiledIndexPermissions.build();
         }
 
         /**
