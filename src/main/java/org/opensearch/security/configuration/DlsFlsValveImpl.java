@@ -565,7 +565,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         if (ctx == null) {
             return false;
         }
-        DlsFlsProcessedConfig config = this.dlsFlsProcessedConfig.get();
+        DlsFlsProcessedConfig config = this.dlsFlsBaseContext.config();
         return !config.getFieldPrivileges().getRestriction(ctx, index).isUnrestricted();
     }
 

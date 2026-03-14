@@ -16,9 +16,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-
 import java.util.SortedMap;
+import java.util.stream.Collectors;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.metadata.IndexAbstraction;
