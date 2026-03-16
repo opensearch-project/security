@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.springframework.kafka:spring-kafka-test` from 4.0.2 to 4.0.3 ([#5981](https://github.com/opensearch-project/security/pull/5981))
 - Bump `com.carrotsearch.randomizedtesting:randomizedtesting-runner` from 2.8.3 to 2.8.4 ([#5993](https://github.com/opensearch-project/security/pull/5993))
 - Bump `gradle-wrapper` from 9.2.0 to 9.4.0 ([#5996](https://github.com/opensearch-project/security/pull/5996))
+- Bump `release-drafter/release-drafter` from 6 to 7 ([#6007](https://github.com/opensearch-project/security/pull/6007))
 - Bump `net.bytebuddy:byte-buddy` from 1.18.4 to 1.18.7 ([#6012](https://github.com/opensearch-project/security/pull/6012))
 
 ### Removed
