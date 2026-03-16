@@ -1646,9 +1646,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.DFM_EMPTY_OVERRIDES_ALL_SETTING);
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".", Property.NodeScope)); // not
                                                                                                                                     // filtered
                                                                                                                                     // here
