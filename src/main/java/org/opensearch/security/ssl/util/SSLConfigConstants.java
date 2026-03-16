@@ -276,8 +276,7 @@ public final class SSLConfigConstants {
 
         // TLS 1.2 ECDHE-ChaCha20 suites (Java >= 12 / OpenSSL >= 1.1.0)
         "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-        "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-    };
+        "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", };
     // @formatter:on
 
     private SSLConfigConstants() {}
