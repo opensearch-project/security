@@ -1,5 +1,7 @@
 name: Dependabot PR actions
-on: pull_request_target
+
+on:
+  pull_request_target:
 
 jobs:
   dependabot:
@@ -7,7 +9,9 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
+      issues: write
     if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
+
     steps:
       - name: GitHub App token
         id: github_app_token
@@ -17,13 +21,18 @@ jobs:
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
           installation_id: 22958780
 
+      - name: Fetch Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ steps.github_app_token.outputs.token }}
+
       - name: Check out code
         uses: actions/checkout@v6
         with:
           token: ${{ steps.github_app_token.outputs.token }}
           ref: ${{ github.head_ref }}
 
-      # See please https://docs.gradle.org/8.10/userguide/upgrading_version_8.html#minimum_daemon_jvm_version
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
@@ -31,10 +40,9 @@ jobs:
           distribution: temurin
 
       - name: Update Gradle SHAs
-        run: |
-          ./gradlew updateSHAs
+        run: ./gradlew updateSHAs
 
-      - name: Commit the changes
+      - name: Commit SHA changes
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Updating SHAs
@@ -44,10 +52,9 @@ jobs:
           commit_options: '--signoff'
 
       - name: Run spotless
-        run: |
-          ./gradlew spotlessApply
+        run: ./gradlew spotlessApply
 
-      - name: Commit the changes
+      - name: Commit spotless changes
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Spotless formatting
@@ -56,13 +63,21 @@ jobs:
           commit_user_email: support@github.com
           commit_options: '--signoff'
 
+      - name: Add skip-changelog label for GitHub Actions bumps
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'github-actions' }}
+        run: gh pr edit "${{ github.event.pull_request.html_url }}" --add-label "skip-changelog"
+        env:
+          GITHUB_TOKEN: ${{ steps.github_app_token.outputs.token }}
+
       - name: Update the changelog
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem != 'github-actions' }}
         uses: dangoslen/dependabot-changelog-helper@v4
         with:
           version: 'Unreleased 3.x'
           sectionHeader: "Maintenance"
 
-      - name: Commit the changes
+      - name: Commit changelog changes
+        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem != 'github-actions' }}
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "Update changelog"
