@@ -120,7 +120,15 @@ public class Certificate {
         }
         try (final ASN1InputStream in = new ASN1InputStream((byte[]) altName.get(1))) {
             final ASN1Primitive asn1Primitive = in.readObject();
-            final ASN1Sequence sequence = ASN1Sequence.getInstance(asn1Primitive);
+            // Handle the case where the primitive is a tagged object that needs to be unwrapped first
+            ASN1Sequence sequence;
+            if (asn1Primitive instanceof ASN1TaggedObject) {
+                // If it's already a tagged object, get the inner object and convert to sequence
+                ASN1TaggedObject taggedObject = ASN1TaggedObject.getInstance(asn1Primitive);
+                sequence = ASN1Sequence.getInstance(taggedObject, false);
+            } else {
+                sequence = ASN1Sequence.getInstance(asn1Primitive);
+            }
             final ASN1ObjectIdentifier asn1ObjectIdentifier = ASN1ObjectIdentifier.getInstance(sequence.getObjectAt(0));
             final ASN1TaggedObject asn1TaggedObject = ASN1TaggedObject.getInstance(sequence.getObjectAt(1));
             ASN1Object maybeTaggedAsn1Primitive = asn1TaggedObject.getObject();

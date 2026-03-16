@@ -77,11 +77,61 @@ public class LDAPConnectionFactoryFactory {
     }
 
     public ConnectionFactory createConnectionFactory(ConnectionPool connectionPool) {
+        ConnectionFactory factory;
         if (connectionPool != null) {
-            return new PooledConnectionFactory(connectionPool);
+            factory = new PooledConnectionFactory(connectionPool);
         } else {
-            return createBasicConnectionFactory();
+            factory = createHostnameAwareConnectionFactory();
         }
+
+        // PooledConnectionFactory wraps a pool whose connections are already hostname-aware
+        // Non-pooled factory is already wrapped by createHostnameAwareConnectionFactory()
+        return factory;
+    }
+
+    /**
+     * Creates a connection factory wrapped with HostnameAwareConnectionFactory
+     * to ensure SNI hostname is set for each connection.
+     * This must be used for both pooled and non-pooled connections.
+     */
+    private ConnectionFactory createHostnameAwareConnectionFactory() {
+        DefaultConnectionFactory basicFactory = createBasicConnectionFactory();
+        String ldapUrl = getLdapUrlString();
+        return new HostnameAwareConnectionFactory(basicFactory, ldapUrl);
+    }
+
+    /**
+     * Creates a DefaultConnectionFactory that sets hostname in ThreadLocal before each connection.
+     * This is needed for connection pools which require DefaultConnectionFactory (not just ConnectionFactory).
+     */
+    private DefaultConnectionFactory createHostnameAwareDefaultConnectionFactory() {
+        final String ldapUrl = getLdapUrlString();
+
+        // Create a custom DefaultConnectionFactory that sets hostname before creating connections
+        DefaultConnectionFactory factory = new DefaultConnectionFactory(getConnectionConfig()) {
+            @Override
+            public Connection getConnection() {
+                // Extract hostname from LDAP URL and set in ThreadLocal before getting connection
+                String hostname = HostnameAwareConnectionFactory.extractHostname(ldapUrl);
+                if (hostname != null) {
+                    log.debug("Setting hostname for pooled LDAP connection: {}", hostname);
+                    SNISettingTLSSocketFactory.setHostname(hostname);
+                } else {
+                    log.warn("Could not extract hostname from LDAP URL: {}", ldapUrl);
+                }
+                return super.getConnection();
+            }
+        };
+
+        @SuppressWarnings("unchecked")
+        Provider<JndiProviderConfig> provider = (Provider<JndiProviderConfig>) factory.getProvider();
+        factory.setProvider(new PrivilegedProvider(provider));
+
+        if (this.sslConfig != null) {
+            configureSSLinConnectionFactory(factory);
+        }
+
+        return factory;
     }
 
     @SuppressWarnings("unchecked")
@@ -89,8 +139,6 @@ public class LDAPConnectionFactoryFactory {
         DefaultConnectionFactory result = new DefaultConnectionFactory(getConnectionConfig());
 
         result.setProvider(new PrivilegedProvider((Provider<JndiProviderConfig>) result.getProvider()));
-
-        JndiProviderConfig jndiProviderConfig = (JndiProviderConfig) result.getProvider().getProviderConfig();
 
         if (this.sslConfig != null) {
             configureSSLinConnectionFactory(result);
@@ -120,10 +168,14 @@ public class LDAPConnectionFactoryFactory {
 
         AbstractConnectionPool result;
 
+        // Use hostname-aware DefaultConnectionFactory for pool to ensure SNI is set for all connections
+        // including those created during pool initialization
+        DefaultConnectionFactory hostnameAwareFactory = createHostnameAwareDefaultConnectionFactory();
+
         if ("blocking".equals(this.settings.get(ConfigConstants.LDAP_POOL_TYPE))) {
-            result = new BlockingConnectionPool(poolConfig, createBasicConnectionFactory());
+            result = new BlockingConnectionPool(poolConfig, hostnameAwareFactory);
         } else {
-            result = new SoftLimitConnectionPool(poolConfig, createBasicConnectionFactory());
+            result = new SoftLimitConnectionPool(poolConfig, hostnameAwareFactory);
         }
 
         result.setValidator(getConnectionValidator());
@@ -351,6 +403,13 @@ public class LDAPConnectionFactoryFactory {
         if (this.sslConfig.isStartTlsEnabled() && !this.sslConfig.isHostnameVerificationEnabled()) {
             props.put("jndi.starttls.allowAnyHostname", "true");
         }
+
+        // Register the custom socket factory with JNDI for SSL/TLS connections
+        // SNISettingTLSSocketFactory uses BouncyCastle's CustomSSLSocketFactory to properly
+        // set SNI hostname and endpoint identification for hostname verification.
+        // This addresses a known issue where JNDI LDAP doesn't pass hostname to SSLSocketFactory.
+        // See: https://github.com/bcgit/bc-java/issues/460
+        props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");
 
         connectionFactory.getProvider().getProviderConfig().setProperties(props);
 
