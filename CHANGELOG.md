@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.google.googlejavaformat:google-java-format` from 1.33.0 to 1.35.0 ([#5947](https://github.com/opensearch-project/security/pull/5947), [#6011](https://github.com/opensearch-project/security/pull/6011))
 - Bump `aws-actions/configure-aws-credentials` from 5 to 6 ([#5946](https://github.com/opensearch-project/security/pull/5946))
 - Bump `ch.qos.logback:logback-classic` from 1.5.26 to 1.5.32 ([#5948](https://github.com/opensearch-project/security/pull/5948), [#5995](https://github.com/opensearch-project/security/pull/5995))
-- Bump `com.github.seancfoley:ipaddress` from 5.5.1 to 5.6.1 ([#5949](https://github.com/opensearch-project/security/pull/5949))
+- Bump `com.github.seancfoley:ipaddress` from 5.5.1 to 5.6.2 ([#5949](https://github.com/opensearch-project/security/pull/5949), [#6010](https://github.com/opensearch-project/security/pull/6010))
 - Bump `spring_version` from 7.0.3 to 7.0.6 ([#5957](https://github.com/opensearch-project/security/pull/5957), [#5967](https://github.com/opensearch-project/security/pull/5967), [#6008](https://github.com/opensearch-project/security/pull/6008))
 - Bump `org.junit.jupiter:junit-jupiter-api` from 5.14.2 to 5.14.3 ([#5956](https://github.com/opensearch-project/security/pull/5956))
 - Bump `org.checkerframework:checker-qual` from 3.53.0 to 3.54.0 ([#5955](https://github.com/opensearch-project/security/pull/5955), [#6009](https://github.com/opensearch-project/security/pull/6009))
