@@ -17,14 +17,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.sample.resource.TestUtils;
-import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
-import static org.opensearch.sample.resource.TestUtils.SAMPLE_GROUP_FULL_ACCESS;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_GROUP_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
@@ -59,15 +57,6 @@ public class ResourceHierarchyTests {
         api.wipeOutResourceEntries();
     }
 
-    private void assertNoAccessBeforeSharing(TestSecurityConfig.User user) throws Exception {
-        forbidden(() -> api.getResourceGroup(resourceGroupId, user));
-        forbidden(() -> api.updateResourceGroup(resourceGroupId, user, "sampleUpdateAdmin"));
-        forbidden(() -> api.deleteResourceGroup(resourceGroupId, user));
-
-        forbidden(() -> api.shareResourceGroup(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS));
-        forbidden(() -> api.revokeResourceGroup(resourceGroupId, user, user, SAMPLE_GROUP_FULL_ACCESS));
-    }
-
     @Test
     public void testShouldHaveAccessToResourceWithGroupLevelAccess() throws Exception {
         TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, USER_ADMIN));
@@ -76,11 +65,51 @@ public class ResourceHierarchyTests {
         forbidden(() -> api.getResourceGroup(resourceGroupId, FULL_ACCESS_USER));
         forbidden(() -> api.getResource(resourceGroupId, FULL_ACCESS_USER));
 
-        // 1. share at read-only for full-access user and at full-access for limited-perms user
         ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
 
         ok(() -> api.getResourceGroup(resourceGroupId, FULL_ACCESS_USER));
         ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
+    }
+
+    @Test
+    public void testGroupReadOnlyShouldNotGrantWriteOnChild() throws Exception {
+        ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
+
+        // read is allowed via parent
+        ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
+
+        // write/delete on child should still be forbidden — read_only only maps to get actions
+        forbidden(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "shouldFail"));
+        forbidden(() -> api.deleteResource(resourceId, FULL_ACCESS_USER));
+    }
+
+    @Test
+    public void testRevokingGroupAccessRemovesChildAccess() throws Exception {
+        ok(() -> api.shareResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
+
+        ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
+
+        ok(() -> api.revokeResourceGroup(resourceGroupId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_GROUP_READ_ONLY));
+
+        forbidden(() -> api.getResourceGroup(resourceGroupId, FULL_ACCESS_USER));
+        forbidden(() -> api.getResource(resourceId, FULL_ACCESS_USER));
+    }
+
+    @Test
+    public void testDirectChildShareGrantsAccessWithoutGroupShare() throws Exception {
+        // group is not shared with FULL_ACCESS_USER at all
+        forbidden(() -> api.getResourceGroup(resourceGroupId, FULL_ACCESS_USER));
+        forbidden(() -> api.getResource(resourceId, FULL_ACCESS_USER));
+
+        // share the child directly at full_access
+        ok(() -> api.shareResource(resourceId, USER_ADMIN, FULL_ACCESS_USER, TestUtils.SAMPLE_FULL_ACCESS));
+
+        // child is now accessible
+        ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
+        ok(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "directShareUpdate"));
+
+        // group itself remains inaccessible
+        forbidden(() -> api.getResourceGroup(resourceGroupId, FULL_ACCESS_USER));
     }
 
 }
