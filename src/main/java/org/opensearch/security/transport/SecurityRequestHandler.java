@@ -28,7 +28,6 @@ package org.opensearch.security.transport;
 
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -72,7 +71,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
     private final UserFactory userFactory;
-    private static final Set<String> knownChannelTypes = Set.of("direct", "transport", "stream-transport");
 
     SecurityRequestHandler(
         String action,
@@ -129,11 +127,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             }
 
             String channelType = transportChannel.getChannelType();
-
-            if (!knownChannelTypes.contains(channelType)) {
-                TransportChannel innerChannel = getInnerChannel(transportChannel);
-                channelType = innerChannel.getChannelType();
-            }
 
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());

@@ -42,4 +42,11 @@ public class SecuritySettings {
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
     ); // Not filtered
+
+    public static final Setting<Boolean> DLS_WRITE_BLOCKED = Setting.boolSetting(
+        ConfigConstants.SECURITY_DLS_WRITE_BLOCKED,
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    );
 }

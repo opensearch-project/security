@@ -16,12 +16,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.hc.core5.http.message.BasicHeader;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -45,8 +45,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * An integration test matrix for Dashboards multi-tenancy. Verifies both read and write operations
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class DashboardMultiTenancyIntTests {
 
     // -------------------------------------------------------------------------------------------------------
@@ -362,12 +361,10 @@ public class DashboardMultiTenancyIntTests {
             );
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        DashboardMultiTenancyIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -747,7 +744,7 @@ public class DashboardMultiTenancyIntTests {
         }
     }
 
-    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    @Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
         for (ClusterConfig clusterConfig : ClusterConfig.values()) {
@@ -764,7 +761,7 @@ public class DashboardMultiTenancyIntTests {
         @SuppressWarnings("unused") String description
     ) {
         this.user = user;
-        this.cluster = clusterConfig.cluster(DashboardMultiTenancyIntTests::clusterBuilder);
+        this.cluster = clusterInstances.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 

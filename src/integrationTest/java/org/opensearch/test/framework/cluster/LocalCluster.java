@@ -201,6 +201,17 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         }
     }
 
+    /**
+     * Stops the cluster without throwing an exception in case of an error.
+     */
+    public void stopSafe() {
+        try {
+            close();
+        } catch (Exception e) {
+            log.error("Error while stopping LocalCluster", e);
+        }
+    };
+
     @Override
     public String getClusterName() {
         return clusterName;
@@ -447,6 +458,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                 }
             });
 
+            return this;
+        }
+
+        public Builder nodeSetting(String key, Object value) {
+            nodeOverrideSettingsBuilder.put(key, String.valueOf(value));
             return this;
         }
 

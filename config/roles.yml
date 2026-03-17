@@ -18,6 +18,7 @@ security_rest_api_full_access:
     - 'restapi:admin/config/update'
     - 'restapi:admin/internalusers'
     - 'restapi:admin/nodesdn'
+    - 'restapi:admin/resource_sharing/migrate'
     - 'restapi:admin/roles'
     - 'restapi:admin/rolesmapping'
     - 'restapi:admin/ssl/certs/info'
@@ -486,7 +487,7 @@ search_relevance_full_access:
         - '*'
       allowed_actions:
         - 'indices:admin/mappings/get'
-        - 'indices:data/read/search*'
+        - 'indices:data/read/*'
 
 # Allow users to read Search Relevance resources
 search_relevance_read_access:
@@ -496,6 +497,12 @@ search_relevance_read_access:
     - 'cluster:admin/opensearch/search_relevance/judgment/get'
     - 'cluster:admin/opensearch/search_relevance/queryset/get'
     - 'cluster:admin/opensearch/search_relevance/search_configuration/get'
+  index_permissions:
+    - index_patterns:
+        - 'search-relevance-*'
+      allowed_actions:
+        - 'indices:admin/mappings/get'
+        - 'indices:data/read/*'
 
 # Allow users to read Forecast resources
 forecast_read_access:

@@ -15,14 +15,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.ImmutableList;
 import org.apache.hc.core5.http.HttpEntity;
 import org.junit.After;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -45,8 +45,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 /**
  * TODO requests on non cm node
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class SnapshotAuthorizationIntTests {
     static final TestIndex index_a1 = TestIndex.name("index_ar1").documentCount(10).seed(1).build();
     static final TestIndex index_a2 = TestIndex.name("index_ar2").documentCount(11).seed(2).build();
@@ -196,12 +195,10 @@ public class SnapshotAuthorizationIntTests {
             .plugin(IndexAuthorizationReadOnlyIntTests.SystemIndexTestPlugin.class);
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        SnapshotAuthorizationIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -341,7 +338,7 @@ public class SnapshotAuthorizationIntTests {
         cluster.getInternalNodeClient().admin().indices().refresh(new RefreshRequest("*")).actionGet();
     }
 
-    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    @Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 
@@ -355,7 +352,7 @@ public class SnapshotAuthorizationIntTests {
 
     public SnapshotAuthorizationIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description) throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster(SnapshotAuthorizationIntTests::clusterBuilder);
+        this.cluster = clusterInstances.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 

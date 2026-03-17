@@ -11,12 +11,10 @@
 
 package org.opensearch.security.rest;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
@@ -42,8 +40,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.privilegePredicateRESTLayer;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.privilegePredicateTransportLayer;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class AuthZinRestLayerTests {
     protected final static TestSecurityConfig.User REST_ONLY = new TestSecurityConfig.User("rest_only").roles(
         new Role("rest_only_role").clusterPermissions("security:dummy_protected/get").clusterPermissions("cluster:admin/dummy_plugin/dummy")

@@ -256,7 +256,10 @@ public class FeatureFlagSettingTests {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
-            assertThat(migrateResponse.bodyAsMap().get("summary"), equalTo("Migration complete. migrated 1; skippedNoUser 0; failed 0"));
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 1; skippedNoType 0; skippedExisting 0; failed 0")
+            );
         }
 
         // “Enabled” expectations:

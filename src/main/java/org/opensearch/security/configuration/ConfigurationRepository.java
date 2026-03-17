@@ -80,6 +80,9 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.index.shard.IndexEventListener;
 import org.opensearch.index.shard.IndexShard;
+import org.opensearch.security.action.configupdate.ConfigUpdateAction;
+import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
+import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -652,8 +655,37 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
             if (indexShard.routingEntry() != null && indexShard.routingEntry().primary()) {
                 threadPool.generic().execute(() -> {
                     if (isSecurityIndexRestoredFromSnapshot(clusterService, index, securityIndex)) {
-                        LOGGER.info("Security index primary shard {} started - config reloading for snapshot restore", shardId);
-                        reloadConfiguration(CType.values(), null);
+                        LOGGER.info(
+                            "Security index primary shard {} started - triggering cluster-wide config reload for snapshot restore",
+                            shardId
+                        );
+
+                        // Get all config types as string array for the request
+                        final String[] configTypes = CType.lcStringValues().toArray(new String[0]);
+                        final ConfigUpdateRequest configUpdateRequest = new ConfigUpdateRequest(configTypes);
+
+                        try {
+                            // Execute ConfigUpdateAction synchronously to broadcast reload to all nodes
+                            ConfigUpdateResponse response = client.execute(ConfigUpdateAction.INSTANCE, configUpdateRequest).actionGet();
+
+                            if (response.hasFailures()) {
+                                LOGGER.error(
+                                    "Failed to reload security configuration on some nodes after snapshot restore. Failures: {}",
+                                    response.failures()
+                                );
+                            }
+
+                            // Log all nodes that successfully updated
+                            LOGGER.debug(
+                                "Security configuration reload after snapshot restore completed. Updated nodes: {}",
+                                response.getNodes()
+                                    .stream()
+                                    .map(node -> node.getNode().getName())
+                                    .collect(java.util.stream.Collectors.toList())
+                            );
+                        } catch (Exception e) {
+                            LOGGER.error("Failed to trigger cluster-wide security configuration reload after snapshot restore", e);
+                        }
                     }
                 });
             }

@@ -21,7 +21,7 @@ jobs:
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Load secret
         uses: 1password/load-secrets-action@v3
         with:
@@ -32,7 +32,7 @@ jobs:
           MAVEN_SNAPSHOTS_S3_REPO: op://opensearch-infra-secrets/maven-snapshots-s3/repo
           MAVEN_SNAPSHOTS_S3_ROLE: op://opensearch-infra-secrets/maven-snapshots-s3/role
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ env.MAVEN_SNAPSHOTS_S3_ROLE }}
           aws-region: us-east-1

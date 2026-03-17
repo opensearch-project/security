@@ -402,18 +402,14 @@ public class SecurityFilter implements ActionFilter {
             User finalUser = user;
             Consumer<PrivilegesEvaluatorResponse> handleUnauthorized = response -> {
                 auditLog.logMissingPrivileges(action, request, task);
-                String err;
-                if (!response.getMissingSecurityRoles().isEmpty()) {
-                    err = String.format("No mapping for %s on roles %s", finalUser, response.getMissingSecurityRoles());
-                } else {
-                    err = (injectedRoles != null)
-                        ? String.format(
-                            "no permissions for %s and associated roles %s",
-                            response.getMissingPrivileges(),
-                            context.getMappedRoles()
-                        )
-                        : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
-                }
+                String err = (injectedRoles != null)
+                    ? String.format(
+                        "no permissions for %s and associated roles %s",
+                        response.getMissingPrivileges(),
+                        context.getMappedRoles()
+                    )
+                    : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
+
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
             };

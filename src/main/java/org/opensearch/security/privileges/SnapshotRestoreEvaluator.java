@@ -68,34 +68,29 @@ public class SnapshotRestoreEvaluator {
         this.isLocalNodeElectedClusterManagerSupplier = isLocalNodeElectedClusterManagerSupplier;
     }
 
-    public PrivilegesEvaluatorResponse evaluate(
-        final ActionRequest request,
-        final Task task,
-        final String action,
-        final PrivilegesEvaluatorResponse presponse
-    ) {
+    /**
+     * @return a PrivilegesEvaluatorResponse if the evaluation process is completed here, null otherwise
+     */
+    public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action) {
 
         if (!(request instanceof RestoreSnapshotRequest)) {
-            return presponse;
+            return null;
         }
 
         // snapshot restore for regular users not enabled
         if (!enableSnapshotRestorePrivilege) {
             log.warn("{} is not allowed for a regular user", action);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient(action);
         }
 
         // if this feature is enabled, users can also snapshot and restore
         // the Security index and the global state
         if (restoreSecurityIndexEnabled) {
-            presponse.allowed = true;
-            return presponse;
+            return null;
         }
 
         if (!isLocalNodeElectedClusterManagerSupplier.get()) {
-            presponse.allowed = true;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.ok();
         }
 
         final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
@@ -104,8 +99,7 @@ public class SnapshotRestoreEvaluator {
         if (restoreRequest.includeGlobalState()) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn("{} with 'include_global_state' enabled is not allowed", action);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient(action).reason("'include_global_state' is not allowed");
         }
 
         final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
@@ -113,9 +107,8 @@ public class SnapshotRestoreEvaluator {
         if (rs != null && (rs.contains(securityIndex) || rs.contains("_all") || rs.contains("*"))) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn("{} for '{}' as source index is not allowed", action, securityIndex);
-            presponse.allowed = false;
-            return presponse.markComplete();
+            return PrivilegesEvaluatorResponse.insufficient("").reason(securityIndex + " as source index is not allowed");
         }
-        return presponse;
+        return null;
     }
 }

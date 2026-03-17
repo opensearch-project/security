@@ -14,11 +14,9 @@ package org.opensearch.security.http;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -35,8 +33,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ServiceAccountAuthenticationTest {
 
     public static final String SERVICE_ATTRIBUTE = "service";

@@ -11,37 +11,17 @@
 
 package org.opensearch.security.hasher;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.security.support.ConfigConstants;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import com.password4j.types.Argon2;
 
-@RunWith(Parameterized.class)
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+
 public class Argon2PasswordHasherTests extends AbstractPasswordHasherTests {
-
-    private final int memory;
-    private final int iterations;
-    private final int parallelism;
-    private final int length;
-    private final String type;
-    private final int version;
-
-    public Argon2PasswordHasherTests(int memory, int iterations, int parallelism, int length, String type, int version) {
-        this.memory = memory;
-        this.iterations = iterations;
-        this.parallelism = parallelism;
-        this.length = length;
-        this.type = type;
-        this.version = version;
-    }
 
     @Before
     public void setup() {
@@ -55,34 +35,16 @@ public class Argon2PasswordHasherTests extends AbstractPasswordHasherTests {
         );
     }
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(
-            new Object[][] {
-                { 47104, 1, 2, 32, "argon2id", 19 },
-                { 19456, 2, 1, 64, "argon2i", 19 },
-                { 65536, 1, 1, 128, "argon2d", 19 },
-                { 7168, 5, 1, 256, "argon2id", 16 },
-                { 9216, 4, 1, 512, "argon2id", 16 },
-                { 65536, 3, 1, 1024, "argon2id", 16 },
-                { 47104, 3, 2, 128, "argon2id", 19 },
-                { 19456, 4, 1, 256, "argon2i", 19 } }
-        );
+    @Test
+    public void parseType() {
+        assertEquals(Argon2.ID, Argon2PasswordHasher.parseType("argon2id"));
+        assertEquals(Argon2.I, Argon2PasswordHasher.parseType("argon2i"));
+        assertEquals(Argon2.D, Argon2PasswordHasher.parseType("argon2d"));
     }
 
     @Test
-    public void shouldGenerateValidHashesFromParameters() {
-        PasswordHasher hasher = new Argon2PasswordHasher(memory, iterations, parallelism, length, type, version);
-        String hash = hasher.hash(password.toCharArray());
-        assertThat(hasher.check(password.toCharArray(), hash), is(true));
-        assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
-    }
-
-    @Test
-    public void shouldReturnFalseForInvalidHash() {
-        PasswordHasher hasher = new Argon2PasswordHasher(memory, iterations, parallelism, length, type, version);
-        String invalidHash = "invalid_hash";
-        boolean result = hasher.check(password.toCharArray(), invalidHash);
-        assertThat("Invalid hash should return false", result, is(false));
+    public void parseType_invalid() {
+        assertThrows(IllegalArgumentException.class, () -> Argon2PasswordHasher.parseType("invalid"));
+        assertThrows(IllegalArgumentException.class, () -> Argon2PasswordHasher.parseType(null));
     }
 }

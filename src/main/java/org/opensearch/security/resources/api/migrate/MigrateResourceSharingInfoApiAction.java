@@ -10,19 +10,19 @@ package org.opensearch.security.resources.api.migrate;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,6 +33,7 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -68,6 +69,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
+import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RESOURCE_MIGRATE_ACTION;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -78,12 +80,13 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *  - POST `_plugins/_security/api/resources/migrate`
  *      {
  *          source_index: "abc",                                    // name of plugin index
- *          username_path: "/path/to/username/node",               // path to user-name in resource document in the plugin index
+ *          username_path: "/path/to/username/node",                // path to user-name in resource document in the plugin index
  *          backend_roles_path: "/path/to/user_backend-roles/node"  // path to backend-roles in resource document in the plugin index
+ *          default_owner: "<user-name>"                            // default owner when username_path is not available
  *          default_access_level: "<some-default-access-level>"     // default access-level at which sharing records should be created
  *      }
  *   - Response:
- *      200 OK Migration Complete. Migrate X, skippedNoUser Y, failed Z // migrate -> successful migration count, skippedNoUser -> records with no creator info, failed -> records that failed to migrate
+ *      200 OK Migration Complete. migrated %d; skippedNoType %s; skippedExisting %s; failed %d // migrate -> successful migration count, skippedNoType -> records with no type, skippedExisting -> records that were already migrated, failed -> records that failed to migrate
  */
 public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
@@ -118,7 +121,15 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     private void migrateApiRequestHandlers(RequestHandler.RequestHandlersBuilder b) {
-        b.allMethodsNotImplemented().override(POST, this::handleMigrate);
+        b.withAccessHandler(this::accessHandler).allMethodsNotImplemented().override(POST, this::handleMigrate);
+    }
+
+    boolean accessHandler(final RestRequest request) {
+        if (request.method() == POST) {
+            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, RESOURCE_MIGRATE_ACTION);
+        } else {
+            return false;
+        }
     }
 
     private void handleMigrate(RestChannel channel, RestRequest request, Client client) throws IOException {
@@ -138,108 +149,126 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      1. Pulls "source_index" from request body
      *      2. Does a match_all search (up to 10k) in the "source_index"
      *      3. Create a SourceDoc for each raw doc
-     *      4. Returns a triple of the source index name, the default access level and the list of source docs.
+     *      4. Returns an object of the source index name, the default owner name, the mapping of type to default access level and the list of source docs.
      */
-    private ValidationResult<Triple<String, Map<String, String>, List<SourceDoc>>> loadCurrentSharingInfo(
-        RestRequest request,
-        Client client
-    ) throws IOException {
+    private ValidationResult<ValidationResultArg> loadCurrentSharingInfo(RestRequest request, Client client) throws IOException {
         JsonNode body = Utils.toJsonNode(request.content().utf8ToString());
 
+        // Extract fields - validation already done by RequestContentValidator framework via FieldConfiguration
         String sourceIndex = body.get("source_index").asText();
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
-        JsonNode node = body.get("default_access_level");
-        Map<String, String> typeToDefaultAccessLevel = Utils.toMapOfStrings(node);
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(sourceIndex)) {
-            String badRequestMessage = "Invalid resource index " + sourceIndex + ".";
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
-        }
+
+        // Optional field
+        JsonNode defaultOwnerNode = body.get("default_owner");
+        String defaultOwner = (defaultOwnerNode != null && !defaultOwnerNode.isNull()) ? defaultOwnerNode.asText() : null;
+
+        // Raw JSON for default_access_level
+        JsonNode defaultAccessNode = body.get("default_access_level");
+
+        // Convert after structural validation
+        Map<String, String> typeToDefaultAccessLevel = defaultAccessNode == null || defaultAccessNode.isNull()
+            ? Collections.emptyMap()
+            : Utils.toMapOfStrings(defaultAccessNode);
 
         String typePath = null;
-        for (String type : typeToDefaultAccessLevel.keySet()) {
+
+        // Validate each type + its accessLevel
+        for (Map.Entry<String, String> entry : typeToDefaultAccessLevel.entrySet()) {
+            String type = entry.getKey();
+            String defaultAccessLevelForType = entry.getValue();
+
+            // Validate resource type exists
             ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
-            String defaultAccessLevelForType = typeToDefaultAccessLevel.get(type);
-            LOGGER.info("Default access level for resource type [{}] is [{}]", type, typeToDefaultAccessLevel.get(type));
-            // check that access level exists for given resource-index
             if (provider == null) {
-                String badRequestMessage = "Invalid resource type " + type + ".";
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+                // We do not expect this to be null, as validation check will already have been performed in request content validator
+                String message = String.format("resource_type be one of: %s", resourcePluginInfo.currentProtectedTypes());
+                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(message));
             }
-            typePath = provider.typeField(); // All types in the same index must have same typeField
-            var accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
-            if (!accessLevels.contains(defaultAccessLevelForType)) {
-                LOGGER.error(
-                    "Invalid access level {} for resource sharing for resource type [{}]. Available access-levels are [{}]",
+
+            typePath = provider.typeField();
+
+            // Allowed access-levels for this type
+            Set<String> accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
+
+            try {
+                RequestContentValidator.validateValueInSet(
+                    "access_level",
                     defaultAccessLevelForType,
-                    type,
+                    RequestContentValidator.MAX_STRING_LENGTH,
                     accessLevels
                 );
-                String badRequestMessage = "Invalid access level "
-                    + defaultAccessLevelForType
-                    + " for resource sharing for resource type ["
-                    + type
-                    + "]. Available access-levels are ["
-                    + accessLevels
-                    + "]";
-                return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(badRequestMessage));
+            } catch (Exception e) {
+                return ValidationResult.error(
+                    RestStatus.BAD_REQUEST,
+                    badRequestMessage(
+                        "Invalid access level "
+                            + defaultAccessLevelForType
+                            + " for resource type ["
+                            + type
+                            + "]. Allowed: "
+                            + String.join(", ", accessLevels)
+                    )
+                );
             }
         }
 
-        List<SourceDoc> results = new ArrayList<>();
+        // need to stash context because source index may be a system index
+        try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+            List<SourceDoc> results = new ArrayList<>();
 
-        // 1) configure a 1-minute scroll
-        Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
-        SearchRequest searchRequest = new SearchRequest(sourceIndex).scroll(scroll)
-            .source(
-                new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(1_000)        // batch size per scroll “page”
-            );
+            // 1) configure a 1-minute scroll
+            Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+            SearchRequest searchRequest = new SearchRequest(sourceIndex).scroll(scroll)
+                .source(
+                    new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(1_000)        // batch size per scroll “page”
+                );
 
-        // 2) execute first search
-        SearchResponse searchResponse = client.search(searchRequest).actionGet();
-        String scrollId = searchResponse.getScrollId();
+            // 2) execute first search
+            SearchResponse searchResponse = client.search(searchRequest).actionGet();
+            String scrollId = searchResponse.getScrollId();
 
-        // 3) page through until no hits
-        while (true) {
-            SearchHit[] hits = searchResponse.getHits().getHits();
-            if (hits == null || hits.length == 0) {
-                break;
-            }
-            for (SearchHit hit : hits) {
-                JsonNode rec = Utils.toJsonNode(hit.getSourceAsString());
-                String id = hit.getId();
-                String username = rec.at(userNamePath.startsWith("/") ? userNamePath : ("/" + userNamePath)).asText(null);
+            // 3) page through until no hits
+            while (true) {
+                SearchHit[] hits = searchResponse.getHits().getHits();
+                if (hits == null || hits.length == 0) {
+                    break;
+                }
+                for (SearchHit hit : hits) {
+                    JsonNode rec = Utils.toJsonNode(hit.getSourceAsString());
+                    String id = hit.getId();
+                    String username = rec.at(userNamePath.startsWith("/") ? userNamePath : ("/" + userNamePath)).asText(null);
 
-                // backend_roles as an actual array
-                JsonNode backendRolesNode = rec.at(backendRolesPath.startsWith("/") ? backendRolesPath : ("/" + backendRolesPath));
-                List<String> backendRoles = new ArrayList<>();
-                if (backendRolesNode.isArray()) {
-                    for (JsonNode br : backendRolesNode) {
-                        backendRoles.add(br.asText());
+                    // backend_roles as an actual array
+                    JsonNode backendRolesNode = rec.at(backendRolesPath.startsWith("/") ? backendRolesPath : ("/" + backendRolesPath));
+                    List<String> backendRoles = new ArrayList<>();
+                    if (backendRolesNode.isArray()) {
+                        for (JsonNode br : backendRolesNode) {
+                            backendRoles.add(br.asText());
+                        }
                     }
-                }
 
-                String type;
-                if (typePath != null) {
-                    type = rec.at("/" + typePath.replace(".", "/")).asText(null);
-                } else {
-                    type = typeToDefaultAccessLevel.keySet().iterator().next();
-                }
+                    String type;
+                    if (typePath != null) {
+                        type = rec.at("/" + typePath.replace(".", "/")).asText(null);
+                    } else {
+                        type = typeToDefaultAccessLevel.keySet().iterator().next();
+                    }
 
-                results.add(new SourceDoc(id, username, backendRoles, type));
+                    results.add(new SourceDoc(id, username, backendRoles, type));
+                }
+                // 4) fetch next batch
+                SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
+                searchResponse = client.searchScroll(scrollRequest).actionGet();
+                scrollId = searchResponse.getScrollId();
             }
-            // 4) fetch next batch
-            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
-            searchResponse = client.searchScroll(scrollRequest).actionGet();
-            scrollId = searchResponse.getScrollId();
+
+            // 5) clear the scroll context to free resources
+            ClearScrollRequest clear = new ClearScrollRequest();
+            clear.addScrollId(scrollId);
+            client.clearScroll(clear).actionGet();
+            return ValidationResult.success(new ValidationResultArg(sourceIndex, defaultOwner, typeToDefaultAccessLevel, results));
         }
-
-        // 5) clear the scroll context to free resources
-        ClearScrollRequest clear = new ClearScrollRequest();
-        clear.addScrollId(scrollId);
-        client.clearScroll(clear).actionGet();
-
-        return ValidationResult.success(Triple.of(sourceIndex, typeToDefaultAccessLevel, results));
     }
 
     /**
@@ -247,14 +276,16 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
      *      1. Parses existing sharing info to a new ResourceSharing records
      *      2. Indexes the new record into corresponding resource-sharing index
      */
-    private ValidationResult<MigrationStats> createNewSharingRecords(Triple<String, Map<String, String>, List<SourceDoc>> sourceInfo)
-        throws IOException {
+    private ValidationResult<MigrationStats> createNewSharingRecords(ValidationResultArg sourceInfo) throws IOException {
         AtomicInteger migratedCount = new AtomicInteger();
-        AtomicReference<Set<String>> skippedNoUser = new AtomicReference<>();
-        skippedNoUser.set(new HashSet<>());
+        AtomicInteger skippedExisting = new AtomicInteger();
         AtomicInteger failureCount = new AtomicInteger();
 
-        List<SourceDoc> docs = sourceInfo.getRight();
+        // Thread-safe sets that we can mutate directly from listeners
+        Set<String> skippedNoType = ConcurrentHashMap.newKeySet();
+        Set<String> resourcesWithDefaultOwner = ConcurrentHashMap.newKeySet();
+
+        List<SourceDoc> docs = sourceInfo.sourceDocs;
         int total = docs.size();
 
         CountDownLatch migrationStatsLatch = new CountDownLatch(total);
@@ -268,20 +299,11 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 continue;
             }
 
-            // 2a) skip if no username node
-            String username = doc.username;
-            if (username == null || username.isEmpty()) {
-                LOGGER.debug("Record without associated user, skipping entirely: {}", doc.resourceId);
-                skippedNoUser.get().add(doc.resourceId);
-                migrationStatsLatch.countDown();
-                continue;
-            }
-
-            // 2b) skip if no type
+            // 2) skip if no type
             String type = doc.type;
             if (type == null || type.isEmpty()) {
                 LOGGER.debug("Record without associated type, skipping entirely: {}", doc.resourceId);
-                skippedNoUser.get().add(doc.resourceId);
+                skippedNoType.add(doc.resourceId);
                 migrationStatsLatch.countDown();
                 continue;
             }
@@ -290,6 +312,16 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
             try {
                 // 3) build CreatedBy
+                String username = doc.username;
+                if (username == null || username.isEmpty()) {
+                    LOGGER.debug(
+                        "Record {} without associated user, creating a sharing entry with default owner: {}",
+                        doc.resourceId,
+                        sourceInfo.defaultOwnerName
+                    );
+                    username = sourceInfo.defaultOwnerName;
+                    resourcesWithDefaultOwner.add(doc.resourceId);
+                }
                 CreatedBy createdBy = new CreatedBy(username);
 
                 // 4) build ShareWith
@@ -297,18 +329,27 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 ShareWith shareWith = null;
                 if (!backendRoles.isEmpty()) {
                     Recipients recipients = new Recipients(Map.of(Recipient.BACKEND_ROLES, new HashSet<>(backendRoles)));
-                    shareWith = new ShareWith(Map.of(sourceInfo.getMiddle().get(doc.type), recipients));
+                    shareWith = new ShareWith(Map.of(sourceInfo.typeToDefaultAccessLevel.get(doc.type), recipients));
                 }
 
                 // 5) index the new record
                 ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
-                    LOGGER.debug(
-                        "Successfully migrated a resource sharing entry {} for resource {} within index {}",
-                        entry,
-                        resourceId,
-                        sourceInfo.getLeft()
-                    );
-                    migratedCount.getAndIncrement();
+                    if (entry != null) {
+                        LOGGER.debug(
+                            "Successfully migrated a resource sharing entry {} for resource {} within index {}",
+                            entry,
+                            resourceId,
+                            sourceInfo.sourceIndex
+                        );
+                        migratedCount.getAndIncrement();
+                    } else {
+                        LOGGER.debug(
+                            "Skipping migration of resource sharing record for resource {} within index {} as an entry already exists",
+                            resourceId,
+                            sourceInfo.sourceIndex
+                        );
+                        skippedExisting.getAndIncrement();
+                    }
                     migrationStatsLatch.countDown();
                 }, e -> {
                     LOGGER.debug(e.getMessage());
@@ -316,15 +357,14 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     migrationStatsLatch.countDown();
                 });
                 // TODO account for hierarchy in migration as well (i.e. parent id)
-                ResourceSharing.Builder builder = ResourceSharing.builder()
+                ResourceSharing sharingInfo = ResourceSharing.builder()
                     .resourceId(resourceId)
                     .createdBy(createdBy)
-                    .shareWith(shareWith);
-                builder.resourceType(provider.resourceType());
-                // TODO uncomment when hierarchy fully supported
-                // builder.parentType(provider.parentType());
-                ResourceSharing sharingInfo = builder.build();
-                sharingIndexHandler.indexResourceSharing(sourceInfo.getLeft(), sharingInfo, listener);
+                    .shareWith(shareWith)
+                    .resourceType(provider.resourceType())
+                    .build();
+
+                sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());
                 failureCount.getAndIncrement();
@@ -341,12 +381,14 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         }
 
         String summary = String.format(
-            "Migration complete. migrated %d; skippedNoUser %d; failed %d",
+            "Migration complete. migrated %d; skippedNoType %s; skippedExisting %s; failed %d",
             migratedCount.get(),
-            skippedNoUser.get().size(),
+            skippedNoType.size(),
+            skippedExisting.get(),
             failureCount.get()
         );
-        MigrationStats stats = new MigrationStats(summary, skippedNoUser.get());
+
+        MigrationStats stats = new MigrationStats(summary, resourcesWithDefaultOwner, skippedNoType);
         return ValidationResult.success(stats);
     }
 
@@ -378,16 +420,86 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Set<String> mandatoryKeys() {
-                        return ImmutableSet.of("source_index", "username_path", "backend_roles_path", "default_access_level");
+                        return ImmutableSet.of(
+                            "source_index",
+                            "username_path",
+                            "backend_roles_path",
+                            "default_owner",
+                            "default_access_level"
+                        );
                     }
 
                     @Override
                     public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                        // Provide basic type information for backward compatibility
                         return ImmutableMap.<String, RequestContentValidator.DataType>builder()
-                            .put("source_index", RequestContentValidator.DataType.STRING) // name of the resource plugin index
-                            .put("username_path", RequestContentValidator.DataType.STRING) // path to resource creator's name
-                            .put("backend_roles_path", RequestContentValidator.DataType.STRING) // path to backend_roles
-                            .put("default_access_level", RequestContentValidator.DataType.OBJECT) // default access level by type
+                            .put("source_index", RequestContentValidator.DataType.STRING)
+                            .put("username_path", RequestContentValidator.DataType.STRING)
+                            .put("backend_roles_path", RequestContentValidator.DataType.STRING)
+                            .put("default_owner", RequestContentValidator.DataType.STRING)
+                            .put("default_access_level", RequestContentValidator.DataType.OBJECT)
+                            .build();
+                    }
+
+                    @Override
+                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
+                        Set<String> allowedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
+                        RequestContentValidator.FieldValidator sourceIndexValidator = (fieldName, value) -> {
+                            if (value instanceof String strValue) {
+                                RequestContentValidator.validateFieldValueInSet(
+                                    fieldName,
+                                    strValue,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    allowedIndices,
+                                    "indices"
+                                );
+                            }
+                        };
+
+                        return ImmutableMap.<String, RequestContentValidator.FieldConfiguration>builder()
+                            .put(
+                                "source_index",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    sourceIndexValidator
+                                )
+                            )
+                            .put(
+                                "username_path",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    RequestContentValidator.PATH_VALIDATOR
+                                )
+                            )
+                            .put(
+                                "backend_roles_path",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    RequestContentValidator.PATH_VALIDATOR
+                                )
+                            )
+                            .put(
+                                "default_owner",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.STRING,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    RequestContentValidator.principalValidator(false)
+                                )
+                            )
+                            .put(
+                                "default_access_level",
+                                RequestContentValidator.FieldConfiguration.of(
+                                    RequestContentValidator.DataType.OBJECT,
+                                    (fieldName, value) -> {
+                                        if (value instanceof JsonNode node) {
+                                            RequestContentValidator.validateNonEmptyValuesInAnObject(fieldName, node);
+                                        }
+                                    }
+                                )
+                            )
                             .build();
                     }
                 });
@@ -395,34 +507,23 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         };
     }
 
-    static class SourceDoc {
-        String resourceId;
-        String username;
-        List<String> backendRoles;
-        String type;
-
-        public SourceDoc(String id, String username, List<String> backendRoles, String type) {
-            this.resourceId = id;
-            this.username = username;
-            this.backendRoles = backendRoles;
-            this.type = type;
-        }
+    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type) {
     }
 
-    static class MigrationStats implements ToXContentObject {
-        private final String summary;
-        private final Set<String> skippedResources;
+    record ValidationResultArg(String sourceIndex, String defaultOwnerName, Map<String, String> typeToDefaultAccessLevel, List<
+        SourceDoc> sourceDocs) {
+    }
 
-        public MigrationStats(String summary, Set<String> skippedResources) {
-            this.summary = summary;
-            this.skippedResources = skippedResources;
-        }
+    record MigrationStats(String summary, Set<String> resourcesWithDefaultOwner, Set<String> skippedResourcesWitNoType)
+        implements
+            ToXContentObject {
 
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
             builder.field("summary", summary);
-            builder.array("skippedResources", skippedResources.toArray(new String[0]));
+            builder.field("resourcesWithDefaultOwner", resourcesWithDefaultOwner.toArray(new String[0]));
+            builder.array("skippedResources", skippedResourcesWitNoType.toArray(new String[0]));
             builder.endObject();
             return builder;
         }

@@ -120,17 +120,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     @Override
     public User addRoles(final User user, AuthenticationContext context) throws OpenSearchSecurityException {
-        try {
-            return AccessController.doPrivilegedChecked(() -> addRoles0(user, context));
-        } catch (Exception e) {
-            if (e instanceof OpenSearchSecurityException) {
-                throw (OpenSearchSecurityException) e;
-            } else if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        return AccessController.doPrivilegedChecked(() -> addRoles0(user, context));
     }
 
     private User addRoles0(final User user, AuthenticationContext context) throws OpenSearchSecurityException {

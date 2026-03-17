@@ -15,11 +15,9 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AuthenticationBackend;
@@ -44,8 +42,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 /**
 * Class used to run tests defined in supper class and adds tests specific for <code>extended-proxy</code> authentication.
 */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ExtendedProxyAuthenticationTest extends CommonProxyAuthenticationTests {
 
     public static final String ID_ONE_1 = "one#1";

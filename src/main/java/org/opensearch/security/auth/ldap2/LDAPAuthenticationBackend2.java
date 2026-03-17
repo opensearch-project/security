@@ -87,17 +87,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
 
     @Override
     public User authenticate(AuthenticationContext context) throws OpenSearchSecurityException {
-        try {
-            return AccessController.doPrivilegedChecked(() -> authenticate0(context));
-        } catch (Exception e) {
-            if (e instanceof OpenSearchSecurityException) {
-                throw (OpenSearchSecurityException) e;
-            } else if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        return AccessController.doPrivilegedChecked(() -> authenticate0(context));
     }
 
     private User authenticate0(AuthenticationContext context) throws OpenSearchSecurityException {
@@ -217,19 +207,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
     }
 
     private void authenticateByLdapServer(final Connection connection, final String dn, byte[] password) throws LdapException {
-        try {
-            AccessController.doPrivilegedChecked(
-                () -> connection.getProviderConnection().bind(new BindRequest(dn, new Credential(password)))
-            );
-        } catch (Exception e) {
-            if (e instanceof LdapException) {
-                throw (LdapException) e;
-            } else if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        AccessController.doPrivilegedChecked(() -> connection.getProviderConnection().bind(new BindRequest(dn, new Credential(password))));
     }
 
     private void authenticateByLdapServerWithSeparateConnection(final String dn, byte[] password) throws LdapException {

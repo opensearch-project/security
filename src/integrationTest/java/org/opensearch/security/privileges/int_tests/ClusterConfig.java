@@ -12,8 +12,11 @@
 package org.opensearch.security.privileges.int_tests;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import org.junit.rules.ExternalResource;
 
 import org.opensearch.test.framework.cluster.LocalCluster;
 
@@ -46,8 +49,6 @@ public enum ClusterConfig {
     final boolean systemIndexPrivilegeEnabled;
     final boolean allowsEmptyResultSets;
 
-    private LocalCluster cluster;
-
     ClusterConfig(
         String name,
         Function<LocalCluster.Builder, LocalCluster.Builder> clusterConfiguration,
@@ -62,25 +63,38 @@ public enum ClusterConfig {
         this.allowsEmptyResultSets = allowsEmptyResultSets;
     }
 
-    LocalCluster cluster(Supplier<LocalCluster.Builder> clusterBuilder) {
-        if (cluster == null) {
-            cluster = this.clusterConfiguration.apply(clusterBuilder.get()).build();
-            cluster.before();
-        }
-        return cluster;
-    }
-
-    void shutdown() {
-        if (cluster != null) {
-            try {
-                cluster.close();
-            } catch (Exception e) {}
-            cluster = null;
-        }
-    }
-
     @Override
     public String toString() {
         return name;
+    }
+
+    public static class ClusterInstances extends ExternalResource {
+        private final Supplier<LocalCluster.Builder> clusterBuilder;
+
+        public ClusterInstances(Supplier<LocalCluster.Builder> clusterBuilder) {
+            this.clusterBuilder = clusterBuilder;
+        }
+
+        private Map<ClusterConfig, LocalCluster> configToInstanceMap = new ConcurrentHashMap<>();
+
+        public LocalCluster get(ClusterConfig config) {
+            LocalCluster cluster = configToInstanceMap.get(config);
+            if (cluster == null) {
+                cluster = config.clusterConfiguration.apply(clusterBuilder.get()).build();
+                cluster.before();
+                configToInstanceMap.put(config, cluster);
+            }
+
+            return cluster;
+        }
+
+        @Override
+        protected void after() {
+            for (Map.Entry<ClusterConfig, LocalCluster> entry : configToInstanceMap.entrySet()) {
+                entry.getValue().stopSafe();
+            }
+            configToInstanceMap.clear();
+        };
+
     }
 }

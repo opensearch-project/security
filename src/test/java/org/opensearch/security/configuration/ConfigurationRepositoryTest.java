@@ -15,7 +15,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 
 import com.fasterxml.jackson.databind.InjectableValues;
@@ -34,18 +36,27 @@ import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateUpdateTask;
+import org.opensearch.cluster.RestoreInProgress;
 import org.opensearch.cluster.block.ClusterBlocks;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.cluster.routing.ShardRouting;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.Priority;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.index.Index;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.shard.IndexShard;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.action.configupdate.ConfigUpdateAction;
+import org.opensearch.security.action.configupdate.ConfigUpdateNodeResponse;
+import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
+import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -63,6 +74,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.OngoingStubbing;
 
@@ -581,6 +593,72 @@ public class ConfigurationRepositoryTest {
         ConfigurationMap result = configurationRepository.getConfigurationsFromIndex(CType.values(), false, false);
 
         assertThat(result.size(), is(CType.values().size()));
+    }
+
+    @Test
+    public void afterIndexShardStarted_whenSecurityIndexRestoredFromSnapshot() throws InterruptedException, TimeoutException {
+        Settings settings = Settings.builder().build();
+        IndexShard indexShard = mock(IndexShard.class);
+        ShardRouting shardRouting = mock(ShardRouting.class);
+        ShardId shardId = mock(ShardId.class);
+        Index index = mock(Index.class);
+        ClusterState mockClusterState = mock(ClusterState.class);
+        RestoreInProgress mockRestore = mock(RestoreInProgress.class);
+        RestoreInProgress.Entry mockEntry = mock(RestoreInProgress.Entry.class);
+        ExecutorService executorService = mock(ExecutorService.class);
+        ThreadPool mockThreadPool = mock(ThreadPool.class);
+        ConfigurationRepository configurationRepository = createConfigurationRepository(settings, mockThreadPool);
+
+        // Setup mock behavior
+        when(indexShard.shardId()).thenReturn(shardId);
+        when(shardId.getIndex()).thenReturn(index);
+        when(index.getName()).thenReturn(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        when(indexShard.routingEntry()).thenReturn(shardRouting);
+        when(clusterService.state()).thenReturn(mockClusterState);
+        when(mockClusterState.custom(RestoreInProgress.TYPE)).thenReturn(mockRestore);
+        when(mockThreadPool.generic()).thenReturn(executorService);
+
+        // Test 1: When replica shard updated - should NOT trigger reload
+        when(shardRouting.primary()).thenReturn(false);
+        configurationRepository.afterIndexShardStarted(indexShard);
+        verify(executorService, never()).execute(any());
+
+        // Test 2: When primary shard updated and restored from snapshot - should trigger ConfigUpdateAction
+        Mockito.reset(executorService);
+        when(shardRouting.primary()).thenReturn(true);
+        when(mockRestore.iterator()).thenReturn(Collections.singletonList(mockEntry).iterator());
+        when(mockEntry.indices()).thenReturn(Collections.singletonList(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX));
+
+        // Mock ConfigUpdateAction response
+        ConfigUpdateResponse configUpdateResponse = mock(ConfigUpdateResponse.class);
+        when(configUpdateResponse.hasFailures()).thenReturn(false);
+        when(configUpdateResponse.getNodes()).thenReturn(Collections.singletonList(mock(ConfigUpdateNodeResponse.class)));
+
+        PlainActionFuture<ConfigUpdateResponse> configUpdateFuture = new PlainActionFuture<>() {
+            @Override
+            public ConfigUpdateResponse actionGet() {
+                return configUpdateResponse;
+            }
+        };
+        when(localClient.execute(Mockito.eq(ConfigUpdateAction.INSTANCE), any(ConfigUpdateRequest.class))).thenReturn(configUpdateFuture);
+
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        configurationRepository.afterIndexShardStarted(indexShard);
+        verify(executorService).execute(runnableCaptor.capture());
+
+        // Execute the captured runnable to trigger the ConfigUpdateAction
+        runnableCaptor.getValue().run();
+        verify(localClient).execute(Mockito.eq(ConfigUpdateAction.INSTANCE), any(ConfigUpdateRequest.class));
+
+        // Test 3: When there is error in checking if restored from snapshot - should NOT trigger ConfigUpdateAction
+        Mockito.reset(executorService, localClient);
+        ArgumentCaptor<Runnable> errorRunnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        when(clusterService.state()).thenThrow(new RuntimeException("ClusterState exception"));
+        when(shardRouting.primary()).thenReturn(true);
+        configurationRepository.afterIndexShardStarted(indexShard);
+        verify(executorService).execute(errorRunnableCaptor.capture());
+        errorRunnableCaptor.getValue().run();
+        verify(localClient, never()).execute(Mockito.eq(ConfigUpdateAction.INSTANCE), any(ConfigUpdateRequest.class));
     }
 
     void assertClusterState(final ArgumentCaptor<ClusterStateUpdateTask> clusterStateUpdateTaskCaptor) throws Exception {

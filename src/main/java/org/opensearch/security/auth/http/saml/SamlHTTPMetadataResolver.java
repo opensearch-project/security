@@ -37,15 +37,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
     @Override
     protected byte[] fetchMetadata() throws ResolverException {
-        try {
-            return AccessController.doPrivilegedChecked(SamlHTTPMetadataResolver.super::fetchMetadata);
-        } catch (Exception e) {
-            if (e instanceof ResolverException) {
-                throw (ResolverException) e;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
+        return AccessController.doPrivilegedChecked(SamlHTTPMetadataResolver.super::fetchMetadata);
     }
 
     private static SettingsBasedSSLConfiguratorV4.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
