@@ -60,6 +60,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     private static final String CREATE_OBO_TOKEN_PATH = "_plugins/_security/api/obo/token";
+    private static final String DEPRECATED_OBO_TOKEN_PATH = "_plugins/_security/api/generateonbehalfoftoken";
     private static final String signingKey = Base64.getEncoder()
         .encodeToString(
             "jwt signing key for an on behalf of token authentication backend for testing of OBO authentication".getBytes(
@@ -186,6 +187,32 @@ public class OnBehalfOfJwtAuthenticationTest {
         String oboToken = generateOboToken(OBO_USER_NAME_WITH_PERM, DEFAULT_PASSWORD);
         Header oboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
         authenticateWithOboToken(oboAuthHeader, OBO_USER_NAME_WITH_PERM, HttpStatus.SC_OK);
+    }
+
+    @Test
+    public void nonAdminUserWithOboPermissionCanCreateTokenViaNewRoute() {
+        try (TestRestClient client = cluster.getRestClient(OBO_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(CREATE_OBO_TOKEN_PATH, OBO_TOKEN_REASON);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.getTextFromJsonBody("/authenticationToken"), notNullValue());
+        }
+    }
+
+    @Test
+    public void nonAdminUserWithOboPermissionCanCreateTokenViaDeprecatedRoute() {
+        try (TestRestClient client = cluster.getRestClient(OBO_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(DEPRECATED_OBO_TOKEN_PATH, OBO_TOKEN_REASON);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.getTextFromJsonBody("/authenticationToken"), notNullValue());
+        }
+    }
+
+    @Test
+    public void nonAdminUserWithoutOboPermissionIsRejectedOnDeprecatedRoute() {
+        try (TestRestClient client = cluster.getRestClient(OBO_USER_NO_PERM)) {
+            TestRestClient.HttpResponse response = client.postJson(DEPRECATED_OBO_TOKEN_PATH, OBO_TOKEN_REASON);
+            response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
+        }
     }
 
     @Test
