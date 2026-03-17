@@ -59,7 +59,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
-    private static final String CREATE_OBO_TOKEN_PATH = "_plugins/_security/api/generateonbehalfoftoken";
+    private static final String CREATE_OBO_TOKEN_PATH = "_plugins/_security/api/obo/token";
     private static final String signingKey = Base64.getEncoder()
         .encodeToString(
             "jwt signing key for an on behalf of token authentication backend for testing of OBO authentication".getBytes(
@@ -78,7 +78,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     public static final String DEFAULT_PASSWORD = "secret";
     public static final String NEW_PASSWORD = "testPassword123!!";
     public static final String OBO_TOKEN_REASON = "{\"description\":\"Test generation\"}";
-    public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/generateonbehalfoftoken";
+    public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/obo/token";
     public static final String OBO_DESCRIPTION = "{\"description\":\"Testing\", \"service\":\"self-issued\"}";
 
     public static final String OBO_DESCRIPTION_WITH_INVALID_DURATIONSECONDS =
@@ -203,7 +203,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
         Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(oboToken).getPayload();
 
-        Object er = claims.get("er");
+        Object er = claims.get("encrypted_roles");
         EncryptionDecryptionUtil encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
         String rolesClaim = encryptionDecryptionUtil.decrypt(er.toString());
         Set<String> roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
