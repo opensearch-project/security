@@ -104,18 +104,14 @@ public class PrivilegesConfiguration {
         this.staticActionGroups = buildStaticActionGroups();
 
         if (apiTokenRepository != null) {
-            // TODO Also ensure these are read on node bootstrap
             apiTokenRepository.subscribeOnChange(() -> {
                 SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
                     CType.ACTIONGROUPS
                 );
                 FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
-                for (Map.Entry<String, RoleV7> entry : apiTokenRepository.getJtis().entrySet()) {
-                    tokenIdToActionPrivileges.put(
-                        entry.getKey(),
-                        new SubjectBasedActionPrivileges(entry.getValue(), flattenedActionGroups)
-                    );
-                }
+                apiTokenRepository.forEachToken(
+                    (jti, role) -> tokenIdToActionPrivileges.put(jti, new SubjectBasedActionPrivileges(role, flattenedActionGroups))
+                );
             });
         }
 

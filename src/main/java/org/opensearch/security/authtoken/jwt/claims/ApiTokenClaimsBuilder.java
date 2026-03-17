@@ -11,9 +11,9 @@
 
 package org.opensearch.security.authtoken.jwt.claims;
 
-public class ApiJwtClaimsBuilder extends JwtClaimsBuilder {
+public class ApiTokenClaimsBuilder extends JwtClaimsBuilder {
 
-    public ApiJwtClaimsBuilder() {
+    public ApiTokenClaimsBuilder() {
         super();
     }
 }

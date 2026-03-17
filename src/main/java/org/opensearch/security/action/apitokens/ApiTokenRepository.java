@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
@@ -112,7 +113,12 @@ public class ApiTokenRepository {
         return jtis.containsKey(jti);
     }
 
-    public Map<String, RoleV7> getJtis() {
+    public void forEachToken(BiConsumer<String, RoleV7> consumer) {
+        jtis.forEach(consumer);
+    }
+
+    @VisibleForTesting
+    Map<String, RoleV7> getJtis() {
         return jtis;
     }
 
@@ -154,8 +160,13 @@ public class ApiTokenRepository {
     }
 
     public void getApiTokens(ActionListener<Map<String, ApiToken>> listener) {
-        apiTokenIndexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> { apiTokenIndexHandler.getTokenMetadatas(listener); }));
-
+        apiTokenIndexHandler.getTokenMetadatas(ActionListener.wrap(listener::onResponse, e -> {
+            if (ExceptionsHelper.unwrapCause(e) instanceof IndexNotFoundException) {
+                listener.onResponse(Map.of());
+            } else {
+                listener.onFailure(e);
+            }
+        }));
     }
 
     public void getTokenCount(ActionListener<Long> listener) {

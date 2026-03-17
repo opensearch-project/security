@@ -305,4 +305,32 @@ public class SecurityTokenManagerTest {
         verify(cs).getClusterName();
         verify(threadPool).getThreadContext();
     }
+
+    @Test
+    public void issueApiToken_failsWhenNotEnabled() {
+        doAnswer(invocation -> false).when(tokenManager).issueApiTokenAllowed();
+
+        final OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> tokenManager.issueApiToken("elmo", Long.MAX_VALUE)
+        );
+        assertThat(ex.getMessage(), is("Api token generation is not enabled."));
+    }
+
+    @Test
+    public void issueApiToken_failsWhenJwtVendorThrows() throws Exception {
+        doAnswer(invocation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+
+        createMockJwtVendorInTokenManager(false);
+        when(jwtVendor.createJwt(any(), any(), any(), any())).thenThrow(new RuntimeException("signing failure"));
+
+        final OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> tokenManager.issueApiToken("elmo", Long.MAX_VALUE)
+        );
+        assertThat(ex.getMessage(), is("Unable to generate Api Token"));
+    }
 }

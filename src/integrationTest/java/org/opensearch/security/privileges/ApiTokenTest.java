@@ -256,6 +256,34 @@ public class ApiTokenTest {
     }
 
     @Test
+    public void testApiTokenWithIndexPermissions_canWriteAllowedIndex() {
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            adminClient.putJson("test-index-write", "{\"settings\":{\"number_of_shards\":1}}").assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        String writePayload = """
+            {
+              "name": "test-token-index-write",
+              "cluster_permissions": ["indices:data/write/bulk"],
+              "index_permissions": [{
+                "index_pattern": ["test-index-write"],
+                "allowed_actions": ["indices:data/write/index", "indices:data/write/bulk*", "indices:admin/mapping/put"]
+              }]
+            }
+            """;
+        String apiToken = generateApiToken(writePayload);
+        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            TestRestClient.HttpResponse response = client.postJson("test-index-write/_doc", "{\"field\": \"value\"}");
+            response.assertStatusCode(HttpStatus.SC_CREATED);
+
+            TestRestClient.HttpResponse forbiddenResponse = client.postJson("other-index/_doc", "{\"field\": \"value\"}");
+            assertThat(forbiddenResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+    }
+
+    @Test
     public void testExpiredApiToken_isRejected() {
         // Create a token with an expiration in the past (1 ms after epoch)
         String expiredPayload = """

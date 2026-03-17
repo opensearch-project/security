@@ -41,6 +41,8 @@ import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.RoleMapper;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -177,11 +179,13 @@ public class ApiTokenAction extends BaseRestHandler {
                 }
 
                 apiTokenRepository.getTokenCount(ActionListener.wrap(tokenCount -> {
-                    if (tokenCount >= 100) {
+                    ConfigV7 config = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
+                    int maxTokens = config.dynamic.api_tokens.getMaxTokens();
+                    if (tokenCount >= maxTokens) {
                         sendErrorResponse(
                             channel,
                             RestStatus.TOO_MANY_REQUESTS,
-                            "Maximum limit of 100 API tokens reached. Please delete existing tokens before creating new ones."
+                            "Maximum limit of " + maxTokens + " API tokens reached. Please delete existing tokens before creating new ones."
                         );
                         return;
                     }

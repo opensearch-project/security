@@ -19,10 +19,8 @@ import org.opensearch.action.support.nodes.BaseNodesResponse;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
 
-public class ApiTokenUpdateResponse extends BaseNodesResponse<ApiTokenUpdateNodeResponse> implements ToXContentObject {
+public class ApiTokenUpdateResponse extends BaseNodesResponse<ApiTokenUpdateNodeResponse> {
 
     public ApiTokenUpdateResponse(StreamInput in) throws IOException {
         super(in);
@@ -46,15 +44,4 @@ public class ApiTokenUpdateResponse extends BaseNodesResponse<ApiTokenUpdateNode
         out.writeList(nodes);
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("api_token_update_response");
-        builder.field("nodes", getNodesMap());
-        builder.field("node_size", getNodes().size());
-        builder.field("has_failures", hasFailures());
-        builder.field("failures_size", failures().size());
-        builder.endObject();
-
-        return builder;
-    }
 }

@@ -150,24 +150,18 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         String jwtToken = request.header(HttpHeaders.AUTHORIZATION);
 
         if (jwtToken == null || jwtToken.isEmpty()) {
-            logDebug("No JWT token found in '{}' header", HttpHeaders.AUTHORIZATION);
+            log.debug("No JWT token found in '{}' header", HttpHeaders.AUTHORIZATION);
             return null;
         }
 
         if (!BEARER.matcher(jwtToken).matches() || !jwtToken.toLowerCase().contains(BEARER_PREFIX)) {
-            logDebug("No Bearer scheme found in header");
+            log.debug("No Bearer scheme found in header");
             return null;
         }
 
         jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
 
         return jwtToken;
-    }
-
-    private void logDebug(String message, Object... args) {
-        if (log.isDebugEnabled()) {
-            log.debug(message, args);
-        }
     }
 
     public Boolean isRequestAllowed(final SecurityRequest request) {
@@ -188,7 +182,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
     @Override
     public String getType() {
-        return "apitoken_jwt";
+        return "apitoken";
     }
 
     @Override

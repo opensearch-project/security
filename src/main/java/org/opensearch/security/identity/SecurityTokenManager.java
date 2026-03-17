@@ -33,7 +33,7 @@ import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
-import org.opensearch.security.authtoken.jwt.claims.ApiJwtClaimsBuilder;
+import org.opensearch.security.authtoken.jwt.claims.ApiTokenClaimsBuilder;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -177,7 +177,7 @@ public class SecurityTokenManager implements TokenManager {
         final long currentTimeMs = timeProvider.getAsLong();
         final Date now = new Date(currentTimeMs);
 
-        final ApiJwtClaimsBuilder claimsBuilder = new ApiJwtClaimsBuilder();
+        final ApiTokenClaimsBuilder claimsBuilder = new ApiTokenClaimsBuilder();
         claimsBuilder.issuer(cs.getClusterName().value());
         claimsBuilder.issueTime(now);
         claimsBuilder.subject(name);
