@@ -71,7 +71,7 @@ public class ApiTokenAction extends BaseRestHandler {
     private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     private static final List<Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens"), new Route(GET, "/apitokens"))
+        ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens/{id}"), new Route(GET, "/apitokens"))
     );
 
     public ApiTokenAction(
@@ -122,6 +122,7 @@ public class ApiTokenAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
+        request.param(ApiToken.ID_FIELD);
         String authError = authorizeSecurityAccess(request);
         if (authError != null) {
             return channel -> forbidden(channel, "No permission to access REST API: " + authError);
@@ -152,6 +153,7 @@ public class ApiTokenAction extends BaseRestHandler {
                     builder.startArray();
                     for (ApiToken token : tokens.values()) {
                         builder.startObject();
+                        builder.field(ApiToken.ID_FIELD, token.getId());
                         builder.field(NAME_FIELD, token.getName());
                         builder.field(ISSUED_AT_FIELD, token.getCreationTime().toEpochMilli());
                         builder.field(EXPIRATION_FIELD, token.getExpiration());
@@ -194,10 +196,10 @@ public class ApiTokenAction extends BaseRestHandler {
                         createRequest.getClusterPermissions(),
                         createRequest.getIndexPermissions(),
                         createRequest.getExpiration(),
-                        wrapWithCacheRefresh(ActionListener.wrap(token -> {
+                        wrapWithCacheRefresh(ActionListener.wrap(created -> {
                             apiTokenRepository.notifyAboutChanges();
                             XContentBuilder builder = channel.newBuilder();
-                            builder.startObject().field("token", token).endObject();
+                            builder.startObject().field(ApiToken.ID_FIELD, created.id()).field("token", created.token()).endObject();
                             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
                             builder.close();
                         },
@@ -224,13 +226,11 @@ public class ApiTokenAction extends BaseRestHandler {
     private RestChannelConsumer handleDelete(RestRequest request, NodeClient client) {
         return channel -> {
             try {
-                final ApiToken.DeleteRequest deleteRequest;
-                try (XContentParser parser = request.contentOrSourceParamParser()) {
-                    deleteRequest = ApiToken.DeleteRequest.fromXContent(parser);
-                }
-                apiTokenRepository.deleteApiToken(deleteRequest.getName(), wrapWithCacheRefresh(ActionListener.wrap(ignored -> {
+                String id = request.param("id");
+                apiTokenRepository.deleteApiToken(id, wrapWithCacheRefresh(ActionListener.wrap(ignored -> {
+                    apiTokenRepository.notifyAboutChanges();
                     XContentBuilder builder = channel.newBuilder();
-                    builder.startObject().field("message", "Token " + deleteRequest.getName() + " deleted successfully.").endObject();
+                    builder.startObject().field("message", "Token " + id + " deleted successfully.").endObject();
                     channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
                 },
                     deleteException -> sendErrorResponse(

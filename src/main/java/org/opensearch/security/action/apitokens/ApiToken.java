@@ -26,6 +26,7 @@ import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalCons
 
 public class ApiToken implements ToXContent {
     public static final String NAME_FIELD = "name";
+    public static final String ID_FIELD = "id";
     public static final String ISSUED_AT_FIELD = "iat";
     public static final String CLUSTER_PERMISSIONS_FIELD = "cluster_permissions";
     public static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
@@ -63,6 +64,7 @@ public class ApiToken implements ToXContent {
 
     private final String name;
     private final String tokenHash;
+    private String id;
     private final Instant creationTime;
     private final List<String> clusterPermissions;
     private final List<IndexPermission> indexPermissions;
@@ -136,6 +138,14 @@ public class ApiToken implements ToXContent {
 
     public String getName() {
         return name;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getTokenHash() {
@@ -236,21 +246,21 @@ public class ApiToken implements ToXContent {
         );
 
         static {
-            PARSER.declareString(constructorArg(), new ParseField(NAME_FIELD));
+            PARSER.declareString(constructorArg(), new ParseField(ID_FIELD));
         }
 
-        private final String name;
+        private final String id;
 
-        public DeleteRequest(String name) {
-            this.name = name;
+        public DeleteRequest(String id) {
+            this.id = id;
         }
 
         public static DeleteRequest fromXContent(XContentParser parser) throws IOException {
             return PARSER.parse(parser, null);
         }
 
-        public String getName() {
-            return name;
+        public String getId() {
+            return id;
         }
     }
 }

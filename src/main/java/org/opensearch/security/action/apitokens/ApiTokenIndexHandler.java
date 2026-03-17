@@ -19,8 +19,10 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest;
@@ -33,15 +35,10 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.reindex.DeleteByQueryAction;
-import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.transport.client.Client;
-
-import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 
 public class ApiTokenIndexHandler {
 
@@ -54,7 +51,7 @@ public class ApiTokenIndexHandler {
         this.clusterService = clusterService;
     }
 
-    public void indexTokenMetadata(ApiToken token, ActionListener<Void> listener) {
+    public void indexTokenMetadata(ApiToken token, ActionListener<String> listener) {
         try {
             XContentBuilder builder = XContentFactory.jsonBuilder();
             String jsonString = token.toXContent(builder, ToXContent.EMPTY_PARAMS).toString();
@@ -64,7 +61,7 @@ public class ApiTokenIndexHandler {
 
             client.index(request, ActionListener.wrap(indexResponse -> {
                 LOGGER.info("Created {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-                listener.onResponse(null);
+                listener.onResponse(indexResponse.getId());
             }, exception -> {
                 LOGGER.error(exception.getMessage());
                 LOGGER.info("Failed to create {} entry.", ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
@@ -75,25 +72,23 @@ public class ApiTokenIndexHandler {
         }
     }
 
-    public void deleteToken(String name, ActionListener<Void> listener) {
-        DeleteByQueryRequest request = new DeleteByQueryRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).setQuery(
-            QueryBuilders.matchQuery(NAME_FIELD, name)
-        ).setRefresh(true);
-
-        client.execute(DeleteByQueryAction.INSTANCE, request, ActionListener.wrap(response -> {
-            long deletedDocs = response.getDeleted();
-            if (deletedDocs == 0) {
-                listener.onFailure(new ApiTokenException("No token found with name " + name));
+    public void deleteToken(String id, ActionListener<Void> listener) {
+        DeleteRequest request = new DeleteRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX, id).setRefreshPolicy(
+            WriteRequest.RefreshPolicy.IMMEDIATE
+        );
+        client.delete(request, ActionListener.wrap(response -> {
+            if (!DocWriteResponse.Result.DELETED.equals(response.getResult())) {
+                listener.onFailure(new ApiTokenException("No token found with id " + id));
             } else {
                 listener.onResponse(null);
             }
-        }, exception -> listener.onFailure(exception)));
+        }, listener::onFailure));
     }
 
     public void getTokenMetadatas(ActionListener<Map<String, ApiToken>> listener) {
         try {
             SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
-            searchRequest.source(new SearchSourceBuilder());
+            searchRequest.source(new SearchSourceBuilder().size(10_000));
 
             client.search(searchRequest, ActionListener.wrap(response -> {
                 try {
@@ -108,6 +103,7 @@ public class ApiTokenIndexHandler {
                                 )
                         ) {
                             ApiToken token = ApiToken.fromXContent(parser);
+                            token.setId(hit.getId());
                             tokens.put(token.getTokenHash(), token);
                         }
                     }

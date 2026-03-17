@@ -13,30 +13,27 @@ package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
-import org.opensearch.action.support.nodes.TransportNodesAction;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.security.util.TransportNodesAsyncAction;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportService;
 
-public class TransportApiTokenUpdateAction extends TransportNodesAction<
+public class TransportApiTokenUpdateAction extends TransportNodesAsyncAction<
     ApiTokenUpdateRequest,
     ApiTokenUpdateResponse,
     TransportApiTokenUpdateAction.NodeApiTokenUpdateRequest,
     ApiTokenUpdateNodeResponse> {
 
     private final ApiTokenRepository apiTokenRepository;
-    private final ClusterService clusterService;
 
     @Inject
     public TransportApiTokenUpdateAction(
@@ -56,10 +53,10 @@ public class TransportApiTokenUpdateAction extends TransportNodesAction<
             ApiTokenUpdateRequest::new,
             TransportApiTokenUpdateAction.NodeApiTokenUpdateRequest::new,
             ThreadPool.Names.MANAGEMENT,
+            ThreadPool.Names.SAME,
             ApiTokenUpdateNodeResponse.class
         );
         this.apiTokenRepository = apiTokenRepository;
-        this.clusterService = clusterService;
     }
 
     public static class NodeApiTokenUpdateRequest extends TransportRequest {
@@ -101,26 +98,12 @@ public class TransportApiTokenUpdateAction extends TransportNodesAction<
     }
 
     @Override
-    protected ApiTokenUpdateNodeResponse nodeOperation(final NodeApiTokenUpdateRequest request) {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicReference<Exception> failure = new AtomicReference<>();
-
-        apiTokenRepository.reloadApiTokensFromIndex(ActionListener.wrap(unused -> latch.countDown(), e -> {
-            failure.set(e);
-            latch.countDown();
-        }));
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while reloading API tokens", e);
-        }
-
-        if (failure.get() != null) {
-            throw new RuntimeException("Failed to reload API tokens", failure.get());
-        }
-
-        return new ApiTokenUpdateNodeResponse(clusterService.localNode());
+    protected void nodeOperation(final NodeApiTokenUpdateRequest request, ActionListener<ApiTokenUpdateNodeResponse> listener) {
+        apiTokenRepository.reloadApiTokensFromIndex(
+            ActionListener.wrap(
+                unused -> listener.onResponse(new ApiTokenUpdateNodeResponse(clusterService.localNode())),
+                listener::onFailure
+            )
+        );
     }
 }

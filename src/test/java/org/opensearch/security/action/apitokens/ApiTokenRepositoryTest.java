@@ -156,8 +156,8 @@ public class ApiTokenRepositoryTest {
         Long expiration = 3600L;
 
         doAnswer(invocation -> {
-            ActionListener<Void> listener = invocation.getArgument(1);
-            listener.onResponse(null);
+            ActionListener<String> listener = invocation.getArgument(1);
+            listener.onResponse("test-doc-id");
             return null;
         }).when(apiTokenIndexHandler).indexTokenMetadata(any(ApiToken.class), any(ActionListener.class));
 
@@ -167,11 +167,12 @@ public class ApiTokenRepositoryTest {
             return null;
         }).when(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any(ActionListener.class));
 
-        TestActionListener<String> listener = new TestActionListener<>();
+        TestActionListener<ApiTokenRepository.TokenCreated> listener = new TestActionListener<>();
         repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration, listener);
-        String plaintext = listener.assertSuccess();
+        ApiTokenRepository.TokenCreated created = listener.assertSuccess();
 
-        assertTrue("Token should start with os_ prefix", plaintext.startsWith(ApiTokenRepository.TOKEN_PREFIX));
+        assertTrue("Token should start with os_ prefix", created.token().startsWith(ApiTokenRepository.TOKEN_PREFIX));
+        assertThat(created.id(), equalTo("test-doc-id"));
         verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any());
         verify(apiTokenIndexHandler).indexTokenMetadata(
             argThat(
@@ -179,7 +180,7 @@ public class ApiTokenRepositoryTest {
                     && token.getClusterPermissions().equals(clusterPermissions)
                     && token.getIndexPermissions().equals(indexPermissions)
                     && token.getExpiration().equals(expiration)
-                    && token.getTokenHash().equals(ApiTokenRepository.hashToken(plaintext))
+                    && token.getTokenHash().equals(ApiTokenRepository.hashToken(created.token()))
             ),
             any(ActionListener.class)
         );

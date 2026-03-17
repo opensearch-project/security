@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.http.ApiTokenAuthenticator;
 import org.opensearch.test.framework.ApiTokenConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -114,6 +115,7 @@ public class ApiTokenTest {
     @Before
     public void before() {
         patchApiTokenConfig(defaultApiTokenConfig());
+        deleteAllApiTokens();
     }
 
     @Test
@@ -271,6 +273,34 @@ public class ApiTokenTest {
         }
     }
 
+    @Test
+    public void testAdminCanRevokeTokenIssuedByAnotherUser() {
+        // Regular user cannot create tokens, so admin creates one on behalf of the scenario
+        // The key point is: admin lists tokens, gets the id, revokes it, token stops working
+        String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
+
+        // Token works before revocation
+        authenticateWithApiToken(authHeader, HttpStatus.SC_OK);
+
+        // Admin lists tokens and finds the id
+        String tokenId;
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse listResponse = adminClient.get(CREATE_API_TOKEN_PATH);
+            listResponse.assertStatusCode(HttpStatus.SC_OK);
+            tokenId = listResponse.getTextFromJsonBody("/0/id");
+        }
+
+        // Admin revokes by id
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse deleteResponse = adminClient.delete(CREATE_API_TOKEN_PATH + "/" + tokenId);
+            deleteResponse.assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        // Token no longer works after revocation
+        authenticateWithApiToken(authHeader, HttpStatus.SC_UNAUTHORIZED);
+    }
+
     private String generateApiToken(String payload) {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, payload);
@@ -288,6 +318,17 @@ public class ApiTokenTest {
                 String username = response.getTextFromJsonBody(POINTER_USERNAME);
                 assertThat(username, startsWith(ApiTokenAuthenticator.API_TOKEN_USER_PREFIX));
             }
+        }
+    }
+
+    private void deleteAllApiTokens() {
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse listResponse = adminClient.get(CREATE_API_TOKEN_PATH);
+            listResponse.assertStatusCode(HttpStatus.SC_OK);
+            listResponse.bodyAsJsonNode().forEach(token -> {
+                String id = token.get(ApiToken.ID_FIELD).asText();
+                adminClient.delete(CREATE_API_TOKEN_PATH + "/" + id).assertStatusCode(HttpStatus.SC_OK);
+            });
         }
     }
 

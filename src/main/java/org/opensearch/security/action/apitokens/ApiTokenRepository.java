@@ -177,27 +177,30 @@ public class ApiTokenRepository {
         return new ApiTokenRepository(apiTokenIndexHandler);
     }
 
+    public record TokenCreated(String id, String token) {
+    }
+
     public void createApiToken(
         String name,
         List<String> clusterPermissions,
         List<ApiToken.IndexPermission> indexPermissions,
         Long expiration,
-        ActionListener<String> listener
+        ActionListener<TokenCreated> listener
     ) {
         String plaintext = generateToken();
         String hash = hashToken(plaintext);
         ApiToken apiToken = new ApiToken(name, hash, clusterPermissions, indexPermissions, Instant.now(), expiration);
         apiTokenIndexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> {
-            apiTokenIndexHandler.indexTokenMetadata(apiToken, ActionListener.wrap(unused -> {
+            apiTokenIndexHandler.indexTokenMetadata(apiToken, ActionListener.wrap(id -> {
                 tokenHashToRole.put(hash, buildRole(apiToken));
                 tokenHashToExpiration.put(hash, expiration);
-                listener.onResponse(plaintext);
+                listener.onResponse(new TokenCreated(id, plaintext));
             }, listener::onFailure));
         }));
     }
 
-    public void deleteApiToken(String name, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
-        apiTokenIndexHandler.deleteToken(name, listener);
+    public void deleteApiToken(String id, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
+        apiTokenIndexHandler.deleteToken(id, listener);
     }
 
     public void getApiTokens(ActionListener<Map<String, ApiToken>> listener) {

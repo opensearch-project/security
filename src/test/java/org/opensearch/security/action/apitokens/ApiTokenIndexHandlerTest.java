@@ -21,7 +21,10 @@ import org.apache.lucene.search.TotalHits;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -35,10 +38,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.index.query.MatchQueryBuilder;
-import org.opensearch.index.reindex.BulkByScrollResponse;
-import org.opensearch.index.reindex.DeleteByQueryAction;
-import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.security.support.ConfigConstants;
@@ -54,11 +53,9 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -120,34 +117,29 @@ public class ApiTokenIndexHandlerTest {
     }
 
     @Test
-    public void testDeleteApiTokeCallsDeleteByQueryWithSuppliedName() {
+    public void testDeleteApiTokenCallsDeleteWithSuppliedId() {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
-        String tokenName = "token";
+        String tokenId = "doc-id-123";
 
         TestActionListener<Void> listener = new TestActionListener<>();
 
         doAnswer(invocation -> {
-            DeleteByQueryRequest request = invocation.getArgument(1);
-            ActionListener<BulkByScrollResponse> parentListener = invocation.getArgument(2);
-
-            BulkByScrollResponse response = mock(BulkByScrollResponse.class);
-            when(response.getDeleted()).thenReturn(1L);
-
+            ActionListener<DeleteResponse> parentListener = invocation.getArgument(1);
+            DeleteResponse response = mock(DeleteResponse.class);
+            when(response.getResult()).thenReturn(DocWriteResponse.Result.DELETED);
             parentListener.onResponse(response);
             return null;
-        }).when(client).execute(eq(DeleteByQueryAction.INSTANCE), any(DeleteByQueryRequest.class), any(ActionListener.class));
+        }).when(client).delete(any(DeleteRequest.class), any(ActionListener.class));
 
-        indexHandler.deleteToken(tokenName, listener);
+        indexHandler.deleteToken(tokenId, listener);
 
-        ArgumentCaptor<DeleteByQueryRequest> captor = ArgumentCaptor.forClass(DeleteByQueryRequest.class);
-        verify(client).execute(eq(DeleteByQueryAction.INSTANCE), captor.capture(), any(ActionListener.class));
-
+        ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(client).delete(captor.capture(), any(ActionListener.class));
         listener.assertSuccess();
 
-        DeleteByQueryRequest capturedRequest = captor.getValue();
-        MatchQueryBuilder query = (MatchQueryBuilder) capturedRequest.getSearchRequest().source().query();
-        assertThat(query.fieldName(), equalTo(NAME_FIELD));
-        assertThat(query.value(), equalTo(tokenName));
+        DeleteRequest capturedRequest = captor.getValue();
+        assertThat(capturedRequest.index(), equalTo(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX));
+        assertThat(capturedRequest.id(), equalTo(tokenId));
     }
 
     @Test
@@ -155,19 +147,19 @@ public class ApiTokenIndexHandlerTest {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
 
         doAnswer(invocation -> {
-            ActionListener<BulkByScrollResponse> listener = invocation.getArgument(2);
-            BulkByScrollResponse response = mock(BulkByScrollResponse.class);
-            when(response.getDeleted()).thenReturn(0L);
+            ActionListener<DeleteResponse> listener = invocation.getArgument(1);
+            DeleteResponse response = mock(DeleteResponse.class);
+            when(response.getResult()).thenReturn(DocWriteResponse.Result.NOT_FOUND);
             listener.onResponse(response);
             return null;
-        }).when(client).execute(eq(DeleteByQueryAction.INSTANCE), any(DeleteByQueryRequest.class), any(ActionListener.class));
+        }).when(client).delete(any(DeleteRequest.class), any(ActionListener.class));
 
-        String tokenName = "nonexistent-token";
+        String tokenId = "nonexistent-id";
         TestActionListener<Void> listener = new TestActionListener<>();
-        indexHandler.deleteToken(tokenName, listener);
+        indexHandler.deleteToken(tokenId, listener);
 
         Exception e = listener.assertException(ApiTokenException.class);
-        assertThat(e.getMessage(), containsString("No token found with name " + tokenName));
+        assertThat(e.getMessage(), containsString("No token found with id " + tokenId));
     }
 
     @Test
@@ -175,16 +167,16 @@ public class ApiTokenIndexHandlerTest {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
 
         doAnswer(invocation -> {
-            ActionListener<BulkByScrollResponse> listener = invocation.getArgument(2);
-            BulkByScrollResponse response = mock(BulkByScrollResponse.class);
-            when(response.getDeleted()).thenReturn(1L);
+            ActionListener<DeleteResponse> listener = invocation.getArgument(1);
+            DeleteResponse response = mock(DeleteResponse.class);
+            when(response.getResult()).thenReturn(DocWriteResponse.Result.DELETED);
             listener.onResponse(response);
             return null;
-        }).when(client).execute(eq(DeleteByQueryAction.INSTANCE), any(DeleteByQueryRequest.class), any(ActionListener.class));
+        }).when(client).delete(any(DeleteRequest.class), any(ActionListener.class));
 
-        String tokenName = "existing-token";
+        String tokenId = "existing-id";
         TestActionListener<Void> listener = new TestActionListener<>();
-        indexHandler.deleteToken(tokenName, listener);
+        indexHandler.deleteToken(tokenId, listener);
 
         listener.assertSuccess();
     }
@@ -212,14 +204,17 @@ public class ApiTokenIndexHandlerTest {
         // Mock the index response
         doAnswer(invocation -> {
             ActionListener<IndexResponse> listener = invocation.getArgument(1);
-            listener.onResponse(mock(IndexResponse.class));
+            IndexResponse mockResponse = mock(IndexResponse.class);
+            when(mockResponse.getId()).thenReturn("test-doc-id");
+            listener.onResponse(mockResponse);
             return null;
         }).when(client).index(any(IndexRequest.class), any(ActionListener.class));
 
-        TestActionListener<Void> listener = new TestActionListener<>();
+        TestActionListener<String> listener = new TestActionListener<>();
         indexHandler.indexTokenMetadata(token, listener);
 
-        listener.assertSuccess();
+        String id = listener.assertSuccess();
+        assertThat(id, equalTo("test-doc-id"));
 
         ArgumentCaptor<IndexRequest> requestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(client).index(requestCaptor.capture(), any(ActionListener.class));
