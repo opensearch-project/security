@@ -27,25 +27,22 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestHandler.DeprecatedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_ROUTE_PREFIX;
-import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(new NamedRoute.Builder().method(POST).path("/obo/token").uniqueName("security:obo/create").build()),
+        ImmutableList.of(
+            new NamedRoute.Builder().method(POST).path("/obo/token").uniqueName("security:obo/create").build(),
+            new NamedRoute.Builder().method(POST).path("/generateonbehalfoftoken").uniqueName("security:obo/create").build()
+        ),
         PLUGIN_API_ROUTE_PREFIX
-    );
-
-    private static final List<DeprecatedRoute> deprecatedRoutes = addDeprecatedRoutesPrefix(
-        ImmutableList.of(new DeprecatedRoute(POST, "/generateonbehalfoftoken", "Use /obo/token instead"))
     );
 
     public static final long OBO_DEFAULT_EXPIRY_SECONDS = 5 * 60;
@@ -63,11 +60,6 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
     @Override
     public String getName() {
         return getClass().getSimpleName();
-    }
-
-    @Override
-    public List<DeprecatedRoute> deprecatedRoutes() {
-        return deprecatedRoutes;
     }
 
     @Override
