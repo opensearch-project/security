@@ -67,6 +67,17 @@ public class ApiTokenTest {
         }
         """;
 
+    public static final String TEST_TOKEN_WITH_INDEX_PERMISSIONS_PAYLOAD = """
+        {
+          "name": "test-token-index",
+          "cluster_permissions": [],
+          "index_permissions": [{
+            "index_pattern": ["test-index-*"],
+            "allowed_actions": ["indices:data/read/search"]
+          }]
+        }
+        """;
+
     public static final String TEST_TOKEN_INVALID_PAYLOAD = """
         {
           "name": "test-token",
@@ -220,6 +231,46 @@ public class ApiTokenTest {
         patchApiTokenConfig(defaultApiTokenConfig());
         authenticateWithApiToken(apiTokenOriginalKey, HttpStatus.SC_OK);
         authenticateWithApiToken(apiTokenOtherKey, HttpStatus.SC_UNAUTHORIZED);
+    }
+
+    @Test
+    public void testApiTokenWithIndexPermissions_canSearchAllowedIndex() {
+        // Create the allowed index as admin
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            adminClient.putJson("test-index-allowed", "{\"settings\":{\"number_of_shards\":1}}").assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        String apiToken = generateApiToken(TEST_TOKEN_WITH_INDEX_PERMISSIONS_PAYLOAD);
+        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            // Should be able to search the allowed index pattern
+            TestRestClient.HttpResponse response = client.get("test-index-allowed/_search");
+            response.assertStatusCode(HttpStatus.SC_OK);
+
+            // Should NOT be able to search an index outside the allowed pattern
+            TestRestClient.HttpResponse forbiddenResponse = client.get("other-index/_search");
+            assertThat(forbiddenResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+    }
+
+    @Test
+    public void testExpiredApiToken_isRejected() {
+        // Create a token with an expiration in the past (1 ms after epoch)
+        String expiredPayload = """
+            {
+              "name": "expired-token",
+              "cluster_permissions": ["cluster_monitor"],
+              "expiration": 1
+            }
+            """;
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, expiredPayload);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            String expiredToken = response.getTextFromJsonBody("/token").toString();
+            Header authHeader = new BasicHeader("Authorization", "Bearer " + expiredToken);
+            authenticateWithApiToken(authHeader, HttpStatus.SC_UNAUTHORIZED);
+        }
     }
 
     private String generateApiToken(String payload) {

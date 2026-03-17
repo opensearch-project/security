@@ -92,6 +92,7 @@ import org.opensearch.common.settings.SettingsFilter;
 import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.PageCacheRecycler;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.index.Index;
@@ -2363,6 +2364,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.localNode.set(localNode);
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
+            if (apiTokenRepository != null) {
+                apiTokenRepository.reloadApiTokensFromIndex(
+                    ActionListener.wrap(
+                        unused -> log.debug("API tokens loaded on node start"),
+                        e -> log.warn("Failed to load API tokens on node start", e)
+                    )
+                );
+            }
         }
 
         // resourceSharingIndexManagementRepository will be null when sec plugin is disabled or is in SSLOnly mode, hence it will not be

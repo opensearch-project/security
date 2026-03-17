@@ -43,7 +43,7 @@ public class ApiTokenRepository {
 
     private final Map<String, RoleV7> jtis = new ConcurrentHashMap<>();
 
-    void reloadApiTokensFromIndex(ActionListener<Void> listener) {
+    public void reloadApiTokensFromIndex(ActionListener<Void> listener) {
         apiTokenIndexHandler.getTokenMetadatas(new ActionListener<Map<String, ApiToken>>() {
             @Override
             public void onResponse(Map<String, ApiToken> tokenMetadatas) {
@@ -66,6 +66,11 @@ public class ApiTokenRepository {
 
             @Override
             public void onFailure(Exception e) {
+                if (ExceptionsHelper.unwrapCause(e) instanceof IndexNotFoundException) {
+                    log.debug("API tokens index does not exist yet, skipping reload");
+                    listener.onResponse(null);
+                    return;
+                }
                 listener.onFailure(new OpenSearchSecurityException("Received error while reloading API tokens metadata from index", e));
             }
         });
