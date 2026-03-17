@@ -54,6 +54,7 @@ public class SecuritySettings {
         ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL,
         false,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 }
