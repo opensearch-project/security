@@ -85,6 +85,37 @@ public class JwtVendorTest {
     }
 
     @Test
+    public void testCreateJwtWithRolesNoEncryptionKey() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "audience_0";
+        List<String> roles = List.of("IT", "HR");
+        String expectedRoles = "IT,HR";
+        int expirySeconds = 300;
+        LongSupplier currentTime = () -> 1696413600000L;
+        // No encryption_key — roles should be written as plain 'dr' claim
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
+        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
+
+        JwtVendor OBOJwtVendor = new JwtVendor(settings);
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+            new OBOJwtClaimsBuilder(null).addRoles(roles)
+                .issuer(issuer)
+                .subject(subject)
+                .audience(audience)
+                .expirationTime(expiryTime)
+                .issueTime(new Date(currentTime.getAsLong())),
+            subject,
+            expiryTime,
+            (long) expirySeconds
+        );
+
+        SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("encrypted_roles"), nullValue());
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("roles").toString(), equalTo(expectedRoles));
+    }
+
+    @Test
     public void testCreateJwtWithRoles() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
@@ -124,8 +155,11 @@ public class JwtVendorTest {
         // 2023 oct 4, 10:05:00 AM GMT
         assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br"), nullValue());
+        assertThat(
+            encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("encrypted_roles").toString()),
+            equalTo(expectedRoles)
+        );
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("backend_roles"), nullValue());
     }
 
     @Test
@@ -169,11 +203,14 @@ public class JwtVendorTest {
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("exp"), is(notNullValue()));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br"), is(notNullValue()));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br").toString(), equalTo(expectedBackendRoles));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("backend_roles"), is(notNullValue()));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("backend_roles").toString(), equalTo(expectedBackendRoles));
 
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
+        assertThat(
+            encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("encrypted_roles").toString()),
+            equalTo(expectedRoles)
+        );
     }
 
     @Test
