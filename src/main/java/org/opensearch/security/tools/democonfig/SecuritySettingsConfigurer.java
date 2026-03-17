@@ -45,40 +45,6 @@ import static org.opensearch.security.tools.democonfig.Installer.certificateGene
 public class SecuritySettingsConfigurer {
 
     static final List<String> REST_ENABLED_ROLES = List.of("all_access", "security_rest_api_access");
-    static final List<String> SYSTEM_INDICES = List.of(
-        ".plugins-ml-agent",
-        ".plugins-ml-config",
-        ".plugins-ml-connector",
-        ".plugins-ml-controller",
-        ".plugins-ml-model-group",
-        ".plugins-ml-model",
-        ".plugins-ml-task",
-        ".plugins-ml-conversation-meta",
-        ".plugins-ml-conversation-interactions",
-        ".plugins-ml-memory-meta",
-        ".plugins-ml-memory-message",
-        ".plugins-ml-stop-words",
-        ".opendistro-alerting-config",
-        ".opendistro-alerting-alert*",
-        ".opendistro-anomaly-results*",
-        ".opendistro-anomaly-detector*",
-        ".opendistro-anomaly-checkpoints",
-        ".opendistro-anomaly-detection-state",
-        ".opendistro-reports-*",
-        ".opensearch-notifications-*",
-        ".opensearch-notebooks",
-        ".opensearch-observability",
-        ".ql-datasources",
-        ".opendistro-asynchronous-search-response*",
-        ".replication-metadata-store",
-        ".opensearch-knn-models",
-        ".geospatial-ip2geo-data*",
-        ".plugins-flow-framework-config",
-        ".plugins-flow-framework-templates",
-        ".plugins-flow-framework-state",
-        ".plugins-search-relevance-experiment",
-        ".plugins-search-relevance-judgment-cache"
-    );
     static final Integer DEFAULT_PASSWORD_MIN_LENGTH = 8;
     static String ADMIN_PASSWORD = "";
     static String ADMIN_USERNAME = "admin";
@@ -371,7 +337,6 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.restapi.roles_enabled", REST_ENABLED_ROLES);
 
         configMap.put("plugins.security.system_indices.enabled", true);
-        configMap.put("plugins.security.system_indices.indices", SYSTEM_INDICES);
 
         if (!isNetworkHostAlreadyPresent(installer.OPENSEARCH_CONF_FILE)) {
             if (installer.cluster_mode) {

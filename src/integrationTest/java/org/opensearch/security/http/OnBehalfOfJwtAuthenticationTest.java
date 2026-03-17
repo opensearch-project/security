@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
@@ -53,8 +52,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_R
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(org.junit.runners.JUnit4.class)
 public class OnBehalfOfJwtAuthenticationTest {
 
     public static final String POINTER_USERNAME = "/user_name";

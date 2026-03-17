@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLHandshakeException;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -23,7 +22,6 @@ import org.apache.hc.core5.http.NoHttpResponseException;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.test.framework.AuditCompliance;
@@ -45,8 +43,6 @@ import static org.opensearch.test.framework.audit.AuditMessagePredicate.auditPre
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class TlsTests {
 
     private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);

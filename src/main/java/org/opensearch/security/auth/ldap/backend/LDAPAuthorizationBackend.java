@@ -902,6 +902,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                         continue;
                     }
 
+                    if (connection == null) {
+                        connection = getConnection(settings, configPath);
+                    }
+
                     final Set<LdapName> nestedRoles = resolveNestedRoles(
                         roleLdapName,
                         connection,

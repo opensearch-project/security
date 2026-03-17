@@ -119,7 +119,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result) {
+    public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult) {
         // noop, intentionally left empty
     }
 

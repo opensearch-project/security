@@ -45,7 +45,7 @@ jar {
 publishing {
     publications {
         shadow(MavenPublication) { publication ->
-            project.shadow.component(publication)
+            from components.shadow
             artifact sourcesJar
             artifact javadocJar
             pom {

@@ -36,6 +36,7 @@ public abstract class AuditLogSink {
     protected final AuditLogSink fallbackSink;
     private final int retryCount;
     private final long delayMs;
+    private DateTimeZone auditTimeZone;
 
     protected AuditLogSink(String name, Settings settings, String settingsPrefix, AuditLogSink fallbackSink) {
         this.name = name.toLowerCase();
@@ -45,6 +46,19 @@ public abstract class AuditLogSink {
 
         retryCount = settings.getAsInt(ConfigConstants.SECURITY_AUDIT_RETRY_COUNT, 0);
         delayMs = settings.getAsLong(ConfigConstants.SECURITY_AUDIT_RETRY_DELAY_MS, 1000L);
+        auditTimeZone = getDateTimeZone(settings);
+    }
+
+    private DateTimeZone getDateTimeZone(Settings settings) {
+        String timezone = settings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_TIMEZONE, "UTC");
+        DateTimeZone parsedZone;
+        try {
+            parsedZone = DateTimeZone.forID(timezone);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid timezone '{}', falling back to UTC", timezone);
+            parsedZone = DateTimeZone.UTC;
+        }
+        return parsedZone;
     }
 
     public boolean isHandlingBackpressure() {
@@ -99,7 +113,7 @@ public abstract class AuditLogSink {
         if (indexPattern == null) {
             return index;
         }
-        return indexPattern.print(DateTime.now(DateTimeZone.UTC));
+        return indexPattern.print(DateTime.now(auditTimeZone));
     }
 
     protected Settings getSinkSettings(String prefix) {

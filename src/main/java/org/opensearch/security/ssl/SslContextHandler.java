@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -62,10 +63,22 @@ public class SslContextHandler {
      * Creates a SSL engine for usage as a client. In this case, we can optionally perform hostname verification.
      */
     public SSLEngine createClientSSLEngine(final String hostname, final int port) {
+        return createClientSSLEngine(hostname, port, null);
+    }
+
+    /**
+     * Creates a SSL engine for usage as a client with a specified Server Name Indication (SNI).
+     */
+    public SSLEngine createClientSSLEngine(final String hostname, final int port, final String serverName) {
         SSLEngine sslEngine = sslContext.newEngine(NettyAllocator.getAllocator(), hostname, port);
-        if (hostname != null) {
+        if (hostname != null || serverName != null) {
             SSLParameters sslParams = new SSLParameters();
-            sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+            if (hostname != null) {
+                sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+            }
+            if (serverName != null) {
+                sslParams.setServerNames(List.of(new SNIHostName(serverName)));
+            }
             sslEngine.setSSLParameters(sslParams);
         }
         return sslEngine;

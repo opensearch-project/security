@@ -74,13 +74,14 @@ public class AccessibleResourcesApiTests {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testListAccessibleResources_gibberishParams() {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + "some-type");
-            response.assertStatusCode(HttpStatus.SC_OK);
-            List<Object> types = (List<Object>) response.bodyAsMap().get("resources");
-            assertThat(types.size(), equalTo(0));
+            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+            assertThat(
+                response.getBody(),
+                containsString("Invalid resource type: some-type. Must be one of: [sample-resource, sample-resource-group]")
+            );
         }
     }
 

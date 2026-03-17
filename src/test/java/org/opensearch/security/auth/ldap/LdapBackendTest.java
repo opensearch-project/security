@@ -44,6 +44,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 
 public class LdapBackendTest {
 
@@ -660,6 +661,32 @@ public class LdapBackendTest {
         assertThat(user.getName(), is("spock"));
         assertThat(user.getRoles().size(), is(4));
         MatcherAssert.assertThat(user.getRoles(), hasItem("cn=nested1,ou=groups,o=TEST"));
+    }
+
+    @Test
+    public void testLdapAuthorizationDnNested_withLdapEntry() throws Exception {
+
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "dn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description")
+            .put("rolesearch_enabled", false)
+            .build();
+
+        LdapEntry entry = new LdapEntry("cn=Captain Spock,ou=people,o=TEST");
+        entry.addAttribute(new LdapAttribute("description", "cn=dummyempty,ou=groups,o=TEST", "cn=rolemo4,ou=groups,o=TEST"));
+        AuthenticationContext ctx = new AuthenticationContext(new AuthCredentials("spock", "spock".getBytes(StandardCharsets.UTF_8)));
+        ctx.addContextData(LdapEntry.class, entry);
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("spock"), ctx);
+
+        Assert.assertNotNull(user);
+        assertThat(user.getName(), is("spock"));
+        assertEquals(user.getRoles().toString(), 3, user.getRoles().size());
+        MatcherAssert.assertThat(user.getRoles(), hasItem("cn=nested3,ou=groups,o=TEST"));
     }
 
     @Test

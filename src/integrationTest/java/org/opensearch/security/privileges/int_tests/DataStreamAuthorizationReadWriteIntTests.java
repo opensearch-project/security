@@ -17,13 +17,13 @@ import java.util.Collection;
 import java.util.List;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.ImmutableList;
 import org.junit.After;
-import org.junit.AfterClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -63,8 +63,7 @@ import static org.junit.Assert.assertEquals;
  * To cope with the huge space of tests, this class uses test oracles to verify the result of the operations.
  * These are defined with the "indexMatcher()" method of TestSecurityConfig.User. See there and the class IndexApiMatchers.
  */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 @NotThreadSafe
 public class DataStreamAuthorizationReadWriteIntTests {
 
@@ -421,12 +420,10 @@ public class DataStreamAuthorizationReadWriteIntTests {
             .plugin(IndexAuthorizationReadOnlyIntTests.SystemIndexTestPlugin.class);
     }
 
-    @AfterClass
-    public static void stopClusters() {
-        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
-            clusterConfig.shutdown();
-        }
-    }
+    @ClassRule
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        DataStreamAuthorizationReadWriteIntTests::clusterBuilder
+    );
 
     final TestSecurityConfig.User user;
     final LocalCluster cluster;
@@ -587,7 +584,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
         cluster.getInternalNodeClient().admin().indices().refresh(new RefreshRequest("*")).actionGet();
     }
 
-    @ParametersFactory(shuffle = false, argumentFormatting = "%1$s, %3$s")
+    @Parameters(name = "{0}, {1}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 
@@ -602,7 +599,7 @@ public class DataStreamAuthorizationReadWriteIntTests {
     public DataStreamAuthorizationReadWriteIntTests(ClusterConfig clusterConfig, TestSecurityConfig.User user, String description)
         throws Exception {
         this.user = user;
-        this.cluster = clusterConfig.cluster(DataStreamAuthorizationReadWriteIntTests::clusterBuilder);
+        this.cluster = clusterInstances.get(clusterConfig);
         this.clusterConfig = clusterConfig;
     }
 

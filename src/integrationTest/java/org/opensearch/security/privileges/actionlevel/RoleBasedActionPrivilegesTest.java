@@ -30,6 +30,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
 import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.Metadata;
@@ -1033,6 +1034,30 @@ public class RoleBasedActionPrivilegesTest {
             );
             subject.updateStatefulIndexPrivileges(metadata, 1);
             assertEquals(0, subject.getEstimatedStatefulIndexByteSize());
+        }
+
+        /**
+         * Tests the behavior of hasIndexPrivilege when the resolved indices are empty.
+         * @throws Exception If failed.
+         */
+        @Test
+        public void hasIndexPrivilegeEmptyResolvedIndices() throws Exception {
+            SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml(
+                "test_role:\n"
+                    + "  index_permissions:\n"
+                    + "  - index_patterns: ['test_index*']\n"
+                    + "    allowed_actions: ['indices:monitor/recovery']",
+                CType.ROLES
+            );
+
+            RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(roles, FlattenedActionGroups.EMPTY, Settings.EMPTY);
+
+            PrivilegesEvaluatorResponse result = subject.hasIndexPrivilege(
+                ctx().clusterState(ClusterState.EMPTY_STATE).roles("test_role").get(),
+                ImmutableSet.of("indices:monitor/recovery"),
+                IndexResolverReplacer.Resolved._LOCAL_ALL
+            );
+            assertThat(result, isAllowed());
         }
     }
 

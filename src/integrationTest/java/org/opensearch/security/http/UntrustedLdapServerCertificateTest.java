@@ -11,12 +11,10 @@ package org.opensearch.security.http;
 
 import java.util.List;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
 
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -46,8 +44,6 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 * Negative test case related to LDAP server certificate. Connection between OpenSearch and LDAP server should not be established if
 * OpenSearch "does not trust" LDAP server certificate.
 */
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class UntrustedLdapServerCertificateTest {
 
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);

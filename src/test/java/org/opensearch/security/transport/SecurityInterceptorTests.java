@@ -31,6 +31,7 @@ import org.opensearch.indices.IndicesService;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -171,7 +172,9 @@ public class SecurityInterceptorTests {
             transportService,
             mock(IndicesService.class),
             mock(PitService.class),
-            mock(ExtensionsManager.class)
+            mock(ExtensionsManager.class),
+            mock(BackendRegistry.class),
+            mock(AuditLogImpl.class)
         );
 
         // Instantiate objects for tests
