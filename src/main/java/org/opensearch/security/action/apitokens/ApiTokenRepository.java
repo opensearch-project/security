@@ -60,8 +60,8 @@ public class ApiTokenRepository {
                     }
                     role.setIndex_permissions(indexPerms);
                     jtis.put(key, role);
-                    listener.onResponse(null);
                 });
+                listener.onResponse(null);
             }
 
             @Override

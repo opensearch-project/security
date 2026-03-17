@@ -17,14 +17,12 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -40,8 +38,6 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_R
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
-@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ApiTokenTest {
 
     public static final String POINTER_USERNAME = "/user_name";

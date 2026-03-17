@@ -12,6 +12,7 @@
 package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
@@ -35,6 +36,7 @@ import org.mockito.Mock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -71,6 +73,34 @@ public class ApiTokenTest {
         when(client.threadPool().getThreadContext()).thenReturn(threadContext);
 
         indexHandler = new ApiTokenIndexHandler(client, clusterService);
+    }
+
+    @Test
+    public void testApiTokenRoundTrip() throws IOException {
+        long expiration = 9999999999L;
+        Instant creationTime = Instant.ofEpochMilli(1700000000000L);
+        ApiToken original = new ApiToken(
+            "my-token",
+            List.of("cluster:monitor", "cluster:admin"),
+            List.of(new ApiToken.IndexPermission(List.of("logs-*"), List.of("read", "write"))),
+            creationTime,
+            expiration
+        );
+
+        String json = original.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString();
+
+        XContentParser parser = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, json);
+
+        ApiToken parsed = ApiToken.fromXContent(parser);
+
+        assertEquals(original.getName(), parsed.getName());
+        assertEquals(original.getClusterPermissions(), parsed.getClusterPermissions());
+        assertEquals(original.getExpiration(), parsed.getExpiration());
+        assertEquals(creationTime, parsed.getCreationTime());
+        assertEquals(1, parsed.getIndexPermissions().size());
+        assertThat(parsed.getIndexPermissions().get(0).getIndexPatterns(), equalTo(List.of("logs-*")));
+        assertThat(parsed.getIndexPermissions().get(0).getAllowedActions(), equalTo(List.of("read", "write")));
     }
 
     @Test

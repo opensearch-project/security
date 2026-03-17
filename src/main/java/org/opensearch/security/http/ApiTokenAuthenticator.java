@@ -11,8 +11,6 @@
 
 package org.opensearch.security.http;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -24,7 +22,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
@@ -50,7 +47,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
-    public Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
 
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";
@@ -61,21 +58,12 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     public static final String API_TOKEN_USER_PREFIX = "token:";
     private final ApiTokenRepository apiTokenRepository;
 
-    @SuppressWarnings("removal")
     public ApiTokenAuthenticator(Settings settings, String clusterName, ApiTokenRepository apiTokenRepository) {
         String apiTokenEnabledSetting = settings.get("enabled", "true");
         apiTokenEnabled = Boolean.parseBoolean(apiTokenEnabledSetting);
-
-        final SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-        jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
-            @Override
-            public JwtParser run() {
-                JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-                return builder.build();
-            }
+        jwtParser = org.opensearch.secure_sm.AccessController.doPrivileged(() -> {
+            JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
+            return builder.build();
         });
         this.clusterName = clusterName;
         this.apiTokenRepository = apiTokenRepository;
@@ -102,23 +90,9 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
-    @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
         throws OpenSearchSecurityException {
-        final SecurityManager sm = System.getSecurityManager();
-
-        if (sm != null) {
-            sm.checkPermission(new SpecialPermission());
-        }
-
-        AuthCredentials creds = AccessController.doPrivileged(new PrivilegedAction<AuthCredentials>() {
-            @Override
-            public AuthCredentials run() {
-                return extractCredentials0(request, context);
-            }
-        });
-
-        return creds;
+        return org.opensearch.secure_sm.AccessController.doPrivileged(() -> extractCredentials0(request, context));
     }
 
     private AuthCredentials extractCredentials0(final SecurityRequest request, final ThreadContext context) {

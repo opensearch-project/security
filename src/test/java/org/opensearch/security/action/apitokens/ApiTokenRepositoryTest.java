@@ -245,6 +245,88 @@ public class ApiTokenRepositoryTest {
     }
 
     @Test
+    public void testReloadApiTokensFromIndexWithMultipleTokens() {
+        Map<String, ApiToken> tokens = Map.of(
+            "token:alpha",
+            new ApiToken("alpha", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
+            "token:beta",
+            new ApiToken(
+                "beta",
+                List.of("cluster:admin"),
+                List.of(new ApiToken.IndexPermission(List.of("logs-*"), List.of("read"))),
+                Instant.now(),
+                Long.MAX_VALUE
+            )
+        );
+
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(tokens);
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.reloadApiTokensFromIndex(listener);
+
+        listener.assertSuccess();
+        assertEquals(2, repository.getJtis().size());
+        assertTrue(repository.getJtis().containsKey("token:alpha"));
+        assertTrue(repository.getJtis().containsKey("token:beta"));
+        assertEquals(List.of("cluster:monitor"), repository.getJtis().get("token:alpha").getCluster_permissions());
+        assertEquals(List.of("cluster:admin"), repository.getJtis().get("token:beta").getCluster_permissions());
+        assertEquals(1, repository.getJtis().get("token:beta").getIndex_permissions().size());
+    }
+
+    @Test
+    public void testReloadApiTokensFromIndexRemovesStaleTokens() {
+        RoleV7 staleRole = new RoleV7();
+        staleRole.setCluster_permissions(List.of("cluster:monitor"));
+        repository.getJtis().put("token:stale", staleRole);
+
+        Map<String, ApiToken> freshTokens = Map.of(
+            "token:fresh",
+            new ApiToken("fresh", List.of("cluster:admin"), List.of(), Instant.now(), Long.MAX_VALUE)
+        );
+
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(freshTokens);
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.reloadApiTokensFromIndex(listener);
+
+        listener.assertSuccess();
+        assertFalse("Stale token should be removed", repository.getJtis().containsKey("token:stale"));
+        assertTrue("Fresh token should be present", repository.getJtis().containsKey("token:fresh"));
+    }
+
+    @Test
+    public void testReloadApiTokensFromIndexOnlyCallsListenerOnce() {
+        Map<String, ApiToken> tokens = Map.of(
+            "token:one",
+            new ApiToken("one", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
+            "token:two",
+            new ApiToken("two", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
+            "token:three",
+            new ApiToken("three", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE)
+        );
+
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(tokens);
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        // Use a counter to verify listener is called exactly once
+        int[] callCount = { 0 };
+        repository.reloadApiTokensFromIndex(ActionListener.wrap(unused -> callCount[0]++, e -> {}));
+
+        assertEquals("Listener should be called exactly once regardless of token count", 1, callCount[0]);
+    }
+
+    @Test
     public void testReloadApiTokensFromIndexAndParse() throws IOException {
         // Setup mock response
         Map<String, ApiToken> expectedTokens = Map.of(

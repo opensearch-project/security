@@ -13,7 +13,8 @@ package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
@@ -101,25 +102,25 @@ public class TransportApiTokenUpdateAction extends TransportNodesAction<
 
     @Override
     protected ApiTokenUpdateNodeResponse nodeOperation(final NodeApiTokenUpdateRequest request) {
-        CompletableFuture<ApiTokenUpdateNodeResponse> future = new CompletableFuture<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Exception> failure = new AtomicReference<>();
 
-        ActionListener<Void> reloadListener = new ActionListener<>() {
-            @Override
-            public void onResponse(Void unused) {
-                future.complete(new ApiTokenUpdateNodeResponse(clusterService.localNode()));
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                future.completeExceptionally(e);
-            }
-        };
+        apiTokenRepository.reloadApiTokensFromIndex(ActionListener.wrap(unused -> latch.countDown(), e -> {
+            failure.set(e);
+            latch.countDown();
+        }));
 
         try {
-            apiTokenRepository.reloadApiTokensFromIndex(reloadListener);
-            return future.get(); // This will block until the future completes
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to reload API tokens", e);
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while reloading API tokens", e);
         }
+
+        if (failure.get() != null) {
+            throw new RuntimeException("Failed to reload API tokens", failure.get());
+        }
+
+        return new ApiTokenUpdateNodeResponse(clusterService.localNode());
     }
 }

@@ -69,7 +69,7 @@ import static org.opensearch.security.util.ParsingUtils.safeStringList;
 
 public class ApiTokenAction extends BaseRestHandler {
     private final ApiTokenRepository apiTokenRepository;
-    public Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final ThreadPool threadPool;
     private final ConfigurationRepository configurationRepository;
     private final PrivilegesConfiguration privilegesConfiguration;

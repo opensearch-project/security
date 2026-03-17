@@ -227,6 +227,7 @@ public class ApiToken implements ToXContent {
         xContentBuilder.field(CLUSTER_PERMISSIONS_FIELD, clusterPermissions);
         xContentBuilder.field(INDEX_PERMISSIONS_FIELD, indexPermissions);
         xContentBuilder.field(ISSUED_AT_FIELD, creationTime.toEpochMilli());
+        xContentBuilder.field(EXPIRATION_FIELD, expiration);
         xContentBuilder.endObject();
         return xContentBuilder;
     }

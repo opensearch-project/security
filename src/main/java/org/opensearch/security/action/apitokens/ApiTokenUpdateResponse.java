@@ -48,7 +48,7 @@ public class ApiTokenUpdateResponse extends BaseNodesResponse<ApiTokenUpdateNode
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("ApiTokenupdate_response");
+        builder.startObject("api_token_update_response");
         builder.field("nodes", getNodesMap());
         builder.field("node_size", getNodes().size());
         builder.field("has_failures", hasFailures());
