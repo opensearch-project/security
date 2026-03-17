@@ -117,12 +117,6 @@ public class ApiTokenRepositoryTest {
         expectedTokens.put("token1", new ApiToken("token1", Arrays.asList("perm1"), Arrays.asList(), Instant.now(), Long.MAX_VALUE));
 
         doAnswer(invocation -> {
-            ActionListener<?> listener = invocation.getArgument(0);
-            listener.onResponse(null);
-            return null;
-        }).when(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any(ActionListener.class));
-
-        doAnswer(invocation -> {
             ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
             listener.onResponse(expectedTokens);
             return null;
