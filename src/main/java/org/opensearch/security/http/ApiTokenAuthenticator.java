@@ -47,7 +47,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    public Logger log = LogManager.getLogger(this.getClass());
 
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";

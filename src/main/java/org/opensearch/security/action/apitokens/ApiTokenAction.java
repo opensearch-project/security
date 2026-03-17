@@ -13,12 +13,7 @@ package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +26,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
@@ -53,19 +49,14 @@ import org.opensearch.transport.client.node.NodeClient;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.security.action.apitokens.ApiToken.ALLOWED_ACTIONS_FIELD;
-import static org.opensearch.security.action.apitokens.ApiToken.ALLOWED_FIELDS;
 import static org.opensearch.security.action.apitokens.ApiToken.CLUSTER_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.EXPIRATION_FIELD;
-import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PATTERN_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.ISSUED_AT_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
-import static org.opensearch.security.util.ParsingUtils.safeMapList;
-import static org.opensearch.security.util.ParsingUtils.safeStringList;
 
 public class ApiTokenAction extends BaseRestHandler {
     private final ApiTokenRepository apiTokenRepository;
@@ -167,36 +158,24 @@ public class ApiTokenAction extends BaseRestHandler {
                         builder.endObject();
                     }
                     builder.endArray();
-
                     BytesRestResponse response = new BytesRestResponse(RestStatus.OK, builder);
                     builder.close();
                     channel.sendResponse(response);
                 } catch (final Exception exception) {
                     sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
                 }
-            }, exception -> {
-                sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
-
-            }));
-
+            }, exception -> sendErrorResponse(channel, RestStatus.INTERNAL_SERVER_ERROR, exception.getMessage())));
         };
     }
 
     private RestChannelConsumer handlePost(RestRequest request, NodeClient client) {
         return channel -> {
             try {
-                final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
-                validateRequestParameters(requestBody);
+                final ApiToken.CreateRequest createRequest;
+                try (XContentParser parser = request.contentOrSourceParamParser()) {
+                    createRequest = ApiToken.CreateRequest.fromXContent(parser);
+                }
 
-                List<String> clusterPermissions = extractClusterPermissions(requestBody);
-                List<ApiToken.IndexPermission> indexPermissions = extractIndexPermissions(requestBody);
-                String name = (String) requestBody.get(NAME_FIELD);
-                long expiration = (Long) requestBody.getOrDefault(
-                    EXPIRATION_FIELD,
-                    Instant.now().toEpochMilli() + TimeUnit.DAYS.toMillis(30)
-                );
-
-                // First check token count
                 apiTokenRepository.getTokenCount(ActionListener.wrap(tokenCount -> {
                     if (tokenCount >= 100) {
                         sendErrorResponse(
@@ -206,21 +185,17 @@ public class ApiTokenAction extends BaseRestHandler {
                         );
                         return;
                     }
-
                     apiTokenRepository.createApiToken(
-                        name,
-                        clusterPermissions,
-                        indexPermissions,
-                        expiration,
+                        createRequest.getName(),
+                        createRequest.getClusterPermissions(),
+                        createRequest.getIndexPermissions(),
+                        createRequest.getExpiration(),
                         wrapWithCacheRefresh(ActionListener.wrap(token -> {
                             apiTokenRepository.notifyAboutChanges();
                             XContentBuilder builder = channel.newBuilder();
-                            builder.startObject();
-                            builder.field("token", token);
-                            builder.endObject();
+                            builder.startObject().field("token", token).endObject();
                             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
                             builder.close();
-
                         },
                             createException -> sendErrorResponse(
                                 channel,
@@ -236,9 +211,33 @@ public class ApiTokenAction extends BaseRestHandler {
                         "Failed to get token count: " + countException.getMessage()
                     )
                 ));
-
             } catch (Exception e) {
                 sendErrorResponse(channel, RestStatus.BAD_REQUEST, "Invalid request: " + e.getMessage());
+            }
+        };
+    }
+
+    private RestChannelConsumer handleDelete(RestRequest request, NodeClient client) {
+        return channel -> {
+            try {
+                final ApiToken.DeleteRequest deleteRequest;
+                try (XContentParser parser = request.contentOrSourceParamParser()) {
+                    deleteRequest = ApiToken.DeleteRequest.fromXContent(parser);
+                }
+                apiTokenRepository.deleteApiToken(deleteRequest.getName(), wrapWithCacheRefresh(ActionListener.wrap(ignored -> {
+                    XContentBuilder builder = channel.newBuilder();
+                    builder.startObject().field("message", "Token " + deleteRequest.getName() + " deleted successfully.").endObject();
+                    channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+                },
+                    deleteException -> sendErrorResponse(
+                        channel,
+                        RestStatus.INTERNAL_SERVER_ERROR,
+                        "Failed to delete token: " + deleteException.getMessage()
+                    )
+                ), client));
+            } catch (final Exception exception) {
+                RestStatus status = exception instanceof ApiTokenException ? RestStatus.NOT_FOUND : RestStatus.INTERNAL_SERVER_ERROR;
+                sendErrorResponse(channel, status, exception.getMessage());
             }
         };
     }
@@ -246,151 +245,31 @@ public class ApiTokenAction extends BaseRestHandler {
     private <T> ActionListener<T> wrapWithCacheRefresh(ActionListener<T> listener, NodeClient client) {
         return ActionListener.wrap(response -> {
             try {
-                ApiTokenUpdateRequest updateRequest = new ApiTokenUpdateRequest();
                 client.execute(
                     ApiTokenUpdateAction.INSTANCE,
-                    updateRequest,
+                    new ApiTokenUpdateRequest(),
                     ActionListener.wrap(
                         updateResponse -> listener.onResponse(response),
-                        exception -> listener.onFailure(new ApiTokenException("Failed to refresh cache", exception))
+                        exception -> listener.onFailure(new ApiTokenException("Failed to update API token", exception))
                     )
                 );
             } catch (Exception e) {
-                listener.onFailure(new ApiTokenException("Failed to refresh cache after operation", e));
+                listener.onFailure(new ApiTokenException("Failed to update API token", e));
             }
         }, listener::onFailure);
-    }
-
-    /**
-     * Extracts cluster permissions from the request body
-     */
-    List<String> extractClusterPermissions(Map<String, Object> requestBody) {
-        return safeStringList(requestBody.get(CLUSTER_PERMISSIONS_FIELD), CLUSTER_PERMISSIONS_FIELD);
-    }
-
-    /**
-     * Extracts and builds index permissions from the request body
-     */
-    List<ApiToken.IndexPermission> extractIndexPermissions(Map<String, Object> requestBody) {
-        List<Map<String, Object>> indexPerms = safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
-        return indexPerms.stream().map(this::createIndexPermission).collect(Collectors.toList());
-    }
-
-    /**
-     * Creates a single index permission from a permission map
-     */
-    ApiToken.IndexPermission createIndexPermission(Map<String, Object> indexPerm) {
-        List<String> indexPatterns;
-        Object indexPatternObj = indexPerm.get(INDEX_PATTERN_FIELD);
-        if (indexPatternObj instanceof String) {
-            indexPatterns = Collections.singletonList((String) indexPatternObj);
-        } else {
-            indexPatterns = safeStringList(indexPatternObj, INDEX_PATTERN_FIELD);
-        }
-
-        List<String> allowedActions = safeStringList(indexPerm.get(ALLOWED_ACTIONS_FIELD), ALLOWED_ACTIONS_FIELD);
-
-        return new ApiToken.IndexPermission(indexPatterns, allowedActions);
-    }
-
-    /**
-     * Validates the request parameters
-     */
-    void validateRequestParameters(Map<String, Object> requestBody) {
-        // Check for unknown fields
-        for (String field : requestBody.keySet()) {
-            if (!ALLOWED_FIELDS.contains(field)) {
-                throw new IllegalArgumentException("Unknown field in request: " + field);
-            }
-        }
-        if (!requestBody.containsKey(NAME_FIELD)) {
-            throw new IllegalArgumentException("Missing required parameter: " + NAME_FIELD);
-        }
-
-        if (requestBody.containsKey(EXPIRATION_FIELD)) {
-            Object expiration = requestBody.get(EXPIRATION_FIELD);
-            if (!(expiration instanceof Long)) {
-                throw new IllegalArgumentException(EXPIRATION_FIELD + " must be a long");
-            }
-        }
-
-        if (requestBody.containsKey(CLUSTER_PERMISSIONS_FIELD)) {
-            Object permissions = requestBody.get(CLUSTER_PERMISSIONS_FIELD);
-            if (!(permissions instanceof List)) {
-                throw new IllegalArgumentException(CLUSTER_PERMISSIONS_FIELD + " must be an array");
-            }
-        }
-
-        if (requestBody.containsKey(INDEX_PERMISSIONS_FIELD)) {
-            List<Map<String, Object>> indexPermsList = safeMapList(requestBody.get(INDEX_PERMISSIONS_FIELD), INDEX_PERMISSIONS_FIELD);
-            validateIndexPermissionsList(indexPermsList);
-        }
-    }
-
-    /**
-     * Validates the index permissions list structure
-     */
-    void validateIndexPermissionsList(List<Map<String, Object>> indexPermsList) {
-        for (Map<String, Object> indexPerm : indexPermsList) {
-            if (!indexPerm.containsKey(INDEX_PATTERN_FIELD)) {
-                throw new IllegalArgumentException("Each index permission must contain " + INDEX_PATTERN_FIELD);
-            }
-            if (!indexPerm.containsKey(ALLOWED_ACTIONS_FIELD)) {
-                throw new IllegalArgumentException("Each index permission must contain " + ALLOWED_ACTIONS_FIELD);
-            }
-
-            Object indexPatternObj = indexPerm.get(INDEX_PATTERN_FIELD);
-            if (!(indexPatternObj instanceof String) && !(indexPatternObj instanceof List)) {
-                throw new IllegalArgumentException(INDEX_PATTERN_FIELD + " must be a string or array of strings");
-            }
-        }
-    }
-
-    private RestChannelConsumer handleDelete(RestRequest request, NodeClient client) {
-        return channel -> {
-            try {
-                final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
-
-                validateRequestParameters(requestBody);
-                apiTokenRepository.deleteApiToken(
-                    (String) requestBody.get(NAME_FIELD),
-                    wrapWithCacheRefresh(ActionListener.wrap(ignored -> {
-                        XContentBuilder builder = channel.newBuilder();
-                        builder.startObject();
-                        builder.field("message", "Token " + requestBody.get(NAME_FIELD) + " deleted successfully.");
-                        builder.endObject();
-                        channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
-                    },
-                        deleteException -> sendErrorResponse(
-                            channel,
-                            RestStatus.INTERNAL_SERVER_ERROR,
-                            "Failed to delete token: " + deleteException.getMessage()
-                        )
-                    ), client)
-                );
-            } catch (final Exception exception) {
-                RestStatus status = RestStatus.INTERNAL_SERVER_ERROR;
-                if (exception instanceof ApiTokenException) {
-                    status = RestStatus.NOT_FOUND;
-                }
-                sendErrorResponse(channel, status, exception.getMessage());
-            }
-        };
     }
 
     private void sendErrorResponse(RestChannel channel, RestStatus status, String errorMessage) {
         try {
             XContentBuilder builder = channel.newBuilder();
             builder.startObject().field("error", errorMessage).endObject();
-            BytesRestResponse response = new BytesRestResponse(status, builder);
-            channel.sendResponse(response);
+            channel.sendResponse(new BytesRestResponse(status, builder));
         } catch (Exception e) {
             log.error("Failed to send error response", e);
         }
     }
 
     protected String authorizeSecurityAccess(RestRequest request) throws IOException {
-        // Check if user has security API access
         if (!(securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)
             || securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, Endpoint.APITOKENS) == null)) {
             return "User does not have required security API access";

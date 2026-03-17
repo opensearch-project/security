@@ -13,13 +13,16 @@ package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
+import org.opensearch.core.ParseField;
+import org.opensearch.core.xcontent.ConstructingObjectParser;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+
+import static org.opensearch.core.xcontent.ConstructingObjectParser.constructorArg;
+import static org.opensearch.core.xcontent.ConstructingObjectParser.optionalConstructorArg;
 
 public class ApiToken implements ToXContent {
     public static final String NAME_FIELD = "name";
@@ -29,12 +32,30 @@ public class ApiToken implements ToXContent {
     public static final String INDEX_PATTERN_FIELD = "index_pattern";
     public static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
     public static final String EXPIRATION_FIELD = "expiration";
-    public static final Set<String> ALLOWED_FIELDS = Set.of(
-        NAME_FIELD,
-        EXPIRATION_FIELD,
-        CLUSTER_PERMISSIONS_FIELD,
-        INDEX_PERMISSIONS_FIELD
+    @SuppressWarnings("unchecked")
+    private static final ConstructingObjectParser<ApiToken, Void> PARSER = new ConstructingObjectParser<>(
+        "api_token",
+        false,
+        args -> new ApiToken(
+            (String) args[0],
+            args[1] != null ? (List<String>) args[1] : List.of(),
+            args[2] != null ? (List<IndexPermission>) args[2] : List.<IndexPermission>of(),
+            args[3] != null ? Instant.ofEpochMilli((Long) args[3]) : null,
+            args[4] != null ? (Long) args[4] : 0L
+        )
     );
+
+    static {
+        PARSER.declareString(constructorArg(), new ParseField(NAME_FIELD));
+        PARSER.declareStringArray(optionalConstructorArg(), new ParseField(CLUSTER_PERMISSIONS_FIELD));
+        PARSER.declareObjectArray(
+            optionalConstructorArg(),
+            (p, c) -> IndexPermission.fromXContent(p),
+            new ParseField(INDEX_PERMISSIONS_FIELD)
+        );
+        PARSER.declareLong(optionalConstructorArg(), new ParseField(ISSUED_AT_FIELD));
+        PARSER.declareLong(optionalConstructorArg(), new ParseField(EXPIRATION_FIELD));
+    }
 
     private final String name;
     private final Instant creationTime;
@@ -82,35 +103,24 @@ public class ApiToken implements ToXContent {
             return builder;
         }
 
-        public static IndexPermission fromXContent(XContentParser parser) throws IOException {
-            List<String> indexPatterns = new ArrayList<>();
-            List<String> allowedActions = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        private static final ConstructingObjectParser<IndexPermission, Void> PARSER = new ConstructingObjectParser<>(
+            "index_permission",
+            false,
+            args -> new IndexPermission(
+                args[0] != null ? (List<String>) args[0] : List.of(),
+                args[1] != null ? (List<String>) args[1] : List.of()
+            )
+        );
 
-            XContentParser.Token token;
-            String currentFieldName = null;
-
-            while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                if (token == XContentParser.Token.FIELD_NAME) {
-                    currentFieldName = parser.currentName();
-                } else if (token == XContentParser.Token.START_ARRAY) {
-                    switch (currentFieldName) {
-                        case INDEX_PATTERN_FIELD:
-                            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                                indexPatterns.add(parser.text());
-                            }
-                            break;
-                        case ALLOWED_ACTIONS_FIELD:
-                            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                                allowedActions.add(parser.text());
-                            }
-                            break;
-                    }
-                }
-            }
-
-            return new IndexPermission(indexPatterns, allowedActions);
+        static {
+            PARSER.declareStringArray(optionalConstructorArg(), new ParseField(INDEX_PATTERN_FIELD));
+            PARSER.declareStringArray(optionalConstructorArg(), new ParseField(ALLOWED_ACTIONS_FIELD));
         }
 
+        public static IndexPermission fromXContent(XContentParser parser) throws IOException {
+            return PARSER.parse(parser, null);
+        }
     }
 
     /**
@@ -131,77 +141,7 @@ public class ApiToken implements ToXContent {
      * }
      */
     public static ApiToken fromXContent(XContentParser parser) throws IOException {
-        String name = null;
-        List<String> clusterPermissions = new ArrayList<>();
-        List<IndexPermission> indexPermissions = new ArrayList<>();
-        Instant creationTime = null;
-        long expiration = 0;
-
-        XContentParser.Token token;
-        String currentFieldName = null;
-
-        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-            if (token == XContentParser.Token.FIELD_NAME) {
-                currentFieldName = parser.currentName();
-            } else if (token.isValue()) {
-                switch (currentFieldName) {
-                    case NAME_FIELD:
-                        name = parser.text();
-                        break;
-                    case ISSUED_AT_FIELD:
-                        creationTime = Instant.ofEpochMilli(parser.longValue());
-                        break;
-                    case EXPIRATION_FIELD:
-                        expiration = parser.longValue();
-                        break;
-                }
-            } else if (token == XContentParser.Token.START_ARRAY) {
-                switch (currentFieldName) {
-                    case CLUSTER_PERMISSIONS_FIELD:
-                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            clusterPermissions.add(parser.text());
-                        }
-                        break;
-                    case INDEX_PERMISSIONS_FIELD:
-                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
-                                indexPermissions.add(parseIndexPermission(parser));
-                            }
-                        }
-                        break;
-                }
-            }
-        }
-
-        return new ApiToken(name, clusterPermissions, indexPermissions, creationTime, expiration);
-    }
-
-    private static IndexPermission parseIndexPermission(XContentParser parser) throws IOException {
-        List<String> indexPatterns = new ArrayList<>();
-        List<String> allowedActions = new ArrayList<>();
-
-        String currentFieldName = null;
-        XContentParser.Token token;
-
-        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-            if (token == XContentParser.Token.FIELD_NAME) {
-                currentFieldName = parser.currentName();
-            } else if (token == XContentParser.Token.START_ARRAY) {
-                switch (currentFieldName) {
-                    case INDEX_PATTERN_FIELD:
-                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            indexPatterns.add(parser.text());
-                        }
-                        break;
-                    case ALLOWED_ACTIONS_FIELD:
-                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            allowedActions.add(parser.text());
-                        }
-                        break;
-                }
-            }
-        }
-        return new IndexPermission(indexPatterns, allowedActions);
+        return PARSER.parse(parser, null);
     }
 
     public String getName() {
@@ -234,5 +174,90 @@ public class ApiToken implements ToXContent {
 
     public List<IndexPermission> getIndexPermissions() {
         return indexPermissions;
+    }
+
+    public static class CreateRequest {
+        public static final long DEFAULT_EXPIRATION_MS = Instant.now().toEpochMilli() + java.util.concurrent.TimeUnit.DAYS.toMillis(30);
+
+        @SuppressWarnings("unchecked")
+        private static final ConstructingObjectParser<CreateRequest, Void> PARSER = new ConstructingObjectParser<>(
+            "create_api_token_request",
+            false,
+            args -> new CreateRequest(
+                (String) args[0],
+                args[1] != null ? (List<String>) args[1] : List.of(),
+                args[2] != null ? (List<IndexPermission>) args[2] : List.<IndexPermission>of(),
+                args[3] != null ? (Long) args[3] : Instant.now().toEpochMilli() + java.util.concurrent.TimeUnit.DAYS.toMillis(30)
+            )
+        );
+
+        static {
+            PARSER.declareString(constructorArg(), new ParseField(NAME_FIELD));
+            PARSER.declareStringArray(optionalConstructorArg(), new ParseField(CLUSTER_PERMISSIONS_FIELD));
+            PARSER.declareObjectArray(
+                optionalConstructorArg(),
+                (p, c) -> IndexPermission.fromXContent(p),
+                new ParseField(INDEX_PERMISSIONS_FIELD)
+            );
+            PARSER.declareLong(optionalConstructorArg(), new ParseField(EXPIRATION_FIELD));
+        }
+
+        private final String name;
+        private final List<String> clusterPermissions;
+        private final List<IndexPermission> indexPermissions;
+        private final long expiration;
+
+        public CreateRequest(String name, List<String> clusterPermissions, List<IndexPermission> indexPermissions, long expiration) {
+            this.name = name;
+            this.clusterPermissions = clusterPermissions;
+            this.indexPermissions = indexPermissions;
+            this.expiration = expiration;
+        }
+
+        public static CreateRequest fromXContent(XContentParser parser) throws IOException {
+            return PARSER.parse(parser, null);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public List<String> getClusterPermissions() {
+            return clusterPermissions;
+        }
+
+        public List<IndexPermission> getIndexPermissions() {
+            return indexPermissions;
+        }
+
+        public long getExpiration() {
+            return expiration;
+        }
+    }
+
+    public static class DeleteRequest {
+        private static final ConstructingObjectParser<DeleteRequest, Void> PARSER = new ConstructingObjectParser<>(
+            "delete_api_token_request",
+            false,
+            args -> new DeleteRequest((String) args[0])
+        );
+
+        static {
+            PARSER.declareString(constructorArg(), new ParseField(NAME_FIELD));
+        }
+
+        private final String name;
+
+        public DeleteRequest(String name) {
+            this.name = name;
+        }
+
+        public static DeleteRequest fromXContent(XContentParser parser) throws IOException {
+            return PARSER.parse(parser, null);
+        }
+
+        public String getName() {
+            return name;
+        }
     }
 }

@@ -33,6 +33,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
@@ -185,7 +186,7 @@ public class ApiTokenTest {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_INVALID_PAYLOAD);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(response.getTextFromJsonBody("/error"), equalTo("Invalid request: expiration must be a long"));
+            assertThat(response.getTextFromJsonBody("/error"), containsString("failed to parse field [expiration]"));
         }
     }
 
@@ -194,7 +195,7 @@ public class ApiTokenTest {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_INVALID_PARAMETER_IN_PAYLOAD);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(response.getTextFromJsonBody("/error"), equalTo("Invalid request: Unknown field in request: foo"));
+            assertThat(response.getTextFromJsonBody("/error"), containsString("[create_api_token_request] unknown field [foo]"));
         }
     }
 
