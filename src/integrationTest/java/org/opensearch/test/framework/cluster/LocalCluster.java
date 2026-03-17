@@ -54,6 +54,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.test.framework.ApiTokenConfig;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
@@ -661,6 +662,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
         public Builder onBehalfOf(OnBehalfOfConfig onBehalfOfConfig) {
             testSecurityConfig.onBehalfOf(onBehalfOfConfig);
+            return this;
+        }
+
+        public Builder apiToken(ApiTokenConfig apiTokenConfig) {
+            testSecurityConfig.apiToken(apiTokenConfig);
             return this;
         }
 
