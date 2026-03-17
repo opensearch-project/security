@@ -81,6 +81,7 @@ public class ApiTokenTest {
         Instant creationTime = Instant.ofEpochMilli(1700000000000L);
         ApiToken original = new ApiToken(
             "my-token",
+            ApiTokenRepository.hashToken("os_my_token"),
             List.of("cluster:monitor", "cluster:admin"),
             List.of(new ApiToken.IndexPermission(List.of("logs-*"), List.of("read", "write"))),
             creationTime,

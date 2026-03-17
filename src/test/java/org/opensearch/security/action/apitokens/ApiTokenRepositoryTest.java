@@ -26,8 +26,6 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
-import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
-import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.ActionListenerUtils.TestActionListener;
@@ -49,13 +47,29 @@ import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class ApiTokenRepositoryTest {
-    @Mock
-    private SecurityTokenManager securityTokenManager;
+    private static final String TOKEN_ALPHA = "os_alpha";
+    private static final String TOKEN_BETA = "os_beta";
+    private static final String TOKEN_FRESH = "os_fresh";
+    private static final String TOKEN_STALE = "os_stale";
+    private static final String TOKEN_ONE = "os_one";
+    private static final String TOKEN_TWO = "os_two";
+    private static final String TOKEN_THREE = "os_three";
+    private static final String TOKEN_TEST = "os_test";
+    private static final String TOKEN_EXISTS = "os_exists";
+
+    private static final String HASH_ALPHA = ApiTokenRepository.hashToken(TOKEN_ALPHA);
+    private static final String HASH_BETA = ApiTokenRepository.hashToken(TOKEN_BETA);
+    private static final String HASH_FRESH = ApiTokenRepository.hashToken(TOKEN_FRESH);
+    private static final String HASH_STALE = ApiTokenRepository.hashToken(TOKEN_STALE);
+    private static final String HASH_ONE = ApiTokenRepository.hashToken(TOKEN_ONE);
+    private static final String HASH_TWO = ApiTokenRepository.hashToken(TOKEN_TWO);
+    private static final String HASH_THREE = ApiTokenRepository.hashToken(TOKEN_THREE);
+    private static final String HASH_TEST = ApiTokenRepository.hashToken(TOKEN_TEST);
+    private static final String HASH_EXISTS = ApiTokenRepository.hashToken(TOKEN_EXISTS);
     @Mock
     private ApiTokenIndexHandler apiTokenIndexHandler;
     private ApiTokenRepository repository;
@@ -63,8 +77,7 @@ public class ApiTokenRepositoryTest {
     @Before
     public void setUp() {
         apiTokenIndexHandler = mock(ApiTokenIndexHandler.class);
-        securityTokenManager = mock(SecurityTokenManager.class);
-        repository = ApiTokenRepository.forTest(apiTokenIndexHandler, securityTokenManager);
+        repository = ApiTokenRepository.forTest(apiTokenIndexHandler);
     }
 
     @Test
@@ -88,14 +101,14 @@ public class ApiTokenRepositoryTest {
     public void testGetApiTokenPermissionsForUser() throws ApiTokenException {
         User derek = new User("derek");
         User apiTokenNotExists = new User("token:notexists");
-        User apiTokenExists = new User("token:exists");
+        User apiTokenExists = new User("token:" + HASH_EXISTS);
         RoleV7 all = new RoleV7();
         RoleV7.Index allIndices = new RoleV7.Index();
         allIndices.setAllowed_actions(List.of("*"));
         allIndices.setIndex_patterns(List.of("*"));
         all.setCluster_permissions(List.of("cluster_all"));
         all.setIndex_permissions(List.of(allIndices));
-        repository.getJtis().put("exists", all);
+        repository.getJtis().put(HASH_EXISTS, all);
 
         RoleV7 permissionsForDerek = repository.getApiTokenPermissionsForUser(derek);
         assertEquals(List.of(), permissionsForDerek.getCluster_permissions());
@@ -114,7 +127,10 @@ public class ApiTokenRepositoryTest {
     @Test
     public void testGetApiTokens() throws IndexNotFoundException {
         Map<String, ApiToken> expectedTokens = new HashMap<>();
-        expectedTokens.put("token1", new ApiToken("token1", Arrays.asList("perm1"), Arrays.asList(), Instant.now(), Long.MAX_VALUE));
+        expectedTokens.put(
+            HASH_TEST,
+            new ApiToken("token1", HASH_TEST, Arrays.asList("perm1"), Arrays.asList(), Instant.now(), Long.MAX_VALUE)
+        );
 
         doAnswer(invocation -> {
             ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
@@ -139,38 +155,11 @@ public class ApiTokenRepositoryTest {
         );
         Long expiration = 3600L;
 
-        String completeToken = "complete-token";
-        ExpiringBearerAuthToken bearerToken = mock(ExpiringBearerAuthToken.class);
-        when(bearerToken.getCompleteToken()).thenReturn(completeToken);
-        when(securityTokenManager.issueApiToken(any(), any())).thenReturn(bearerToken);
-
         doAnswer(invocation -> {
             ActionListener<Void> listener = invocation.getArgument(1);
             listener.onResponse(null);
             return null;
         }).when(apiTokenIndexHandler).indexTokenMetadata(any(ApiToken.class), any(ActionListener.class));
-
-        TestActionListener<String> listener = new TestActionListener<String>() {
-            @Override
-            public void onResponse(String result) {
-                try {
-                    assertThat(result, equalTo(completeToken));
-                    verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any());
-                    verify(securityTokenManager).issueApiToken(any(), any());
-                    verify(apiTokenIndexHandler).indexTokenMetadata(
-                        argThat(
-                            token -> token.getName().equals(tokenName)
-                                && token.getClusterPermissions().equals(clusterPermissions)
-                                && token.getIndexPermissions().equals(indexPermissions)
-                                && token.getExpiration().equals(expiration)
-                        ),
-                        any(ActionListener.class)
-                    );
-                } finally {
-                    super.onResponse(result);
-                }
-            }
-        };
 
         doAnswer(invocation -> {
             ActionListener<?> l = invocation.getArgument(0);
@@ -178,8 +167,22 @@ public class ApiTokenRepositoryTest {
             return null;
         }).when(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any(ActionListener.class));
 
+        TestActionListener<String> listener = new TestActionListener<>();
         repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration, listener);
-        listener.assertSuccess();
+        String plaintext = listener.assertSuccess();
+
+        assertTrue("Token should start with os_ prefix", plaintext.startsWith(ApiTokenRepository.TOKEN_PREFIX));
+        verify(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any());
+        verify(apiTokenIndexHandler).indexTokenMetadata(
+            argThat(
+                token -> token.getName().equals(tokenName)
+                    && token.getClusterPermissions().equals(clusterPermissions)
+                    && token.getIndexPermissions().equals(indexPermissions)
+                    && token.getExpiration().equals(expiration)
+                    && token.getTokenHash().equals(ApiTokenRepository.hashToken(plaintext))
+            ),
+            any(ActionListener.class)
+        );
     }
 
     @Test
@@ -241,11 +244,12 @@ public class ApiTokenRepositoryTest {
     @Test
     public void testReloadApiTokensFromIndexWithMultipleTokens() {
         Map<String, ApiToken> tokens = Map.of(
-            "token:alpha",
-            new ApiToken("alpha", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
-            "token:beta",
+            HASH_ALPHA,
+            new ApiToken("alpha", HASH_ALPHA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
+            HASH_BETA,
             new ApiToken(
                 "beta",
+                HASH_BETA,
                 List.of("cluster:admin"),
                 List.of(new ApiToken.IndexPermission(List.of("logs-*"), List.of("read"))),
                 Instant.now(),
@@ -264,22 +268,22 @@ public class ApiTokenRepositoryTest {
 
         listener.assertSuccess();
         assertEquals(2, repository.getJtis().size());
-        assertTrue(repository.getJtis().containsKey("token:alpha"));
-        assertTrue(repository.getJtis().containsKey("token:beta"));
-        assertEquals(List.of("cluster:monitor"), repository.getJtis().get("token:alpha").getCluster_permissions());
-        assertEquals(List.of("cluster:admin"), repository.getJtis().get("token:beta").getCluster_permissions());
-        assertEquals(1, repository.getJtis().get("token:beta").getIndex_permissions().size());
+        assertTrue(repository.getJtis().containsKey(HASH_ALPHA));
+        assertTrue(repository.getJtis().containsKey(HASH_BETA));
+        assertEquals(List.of("cluster:monitor"), repository.getJtis().get(HASH_ALPHA).getCluster_permissions());
+        assertEquals(List.of("cluster:admin"), repository.getJtis().get(HASH_BETA).getCluster_permissions());
+        assertEquals(1, repository.getJtis().get(HASH_BETA).getIndex_permissions().size());
     }
 
     @Test
     public void testReloadApiTokensFromIndexRemovesStaleTokens() {
         RoleV7 staleRole = new RoleV7();
         staleRole.setCluster_permissions(List.of("cluster:monitor"));
-        repository.getJtis().put("token:stale", staleRole);
+        repository.getJtis().put(HASH_STALE, staleRole);
 
         Map<String, ApiToken> freshTokens = Map.of(
-            "token:fresh",
-            new ApiToken("fresh", List.of("cluster:admin"), List.of(), Instant.now(), Long.MAX_VALUE)
+            HASH_FRESH,
+            new ApiToken("fresh", HASH_FRESH, List.of("cluster:admin"), List.of(), Instant.now(), Long.MAX_VALUE)
         );
 
         doAnswer(invocation -> {
@@ -292,19 +296,19 @@ public class ApiTokenRepositoryTest {
         repository.reloadApiTokensFromIndex(listener);
 
         listener.assertSuccess();
-        assertFalse("Stale token should be removed", repository.getJtis().containsKey("token:stale"));
-        assertTrue("Fresh token should be present", repository.getJtis().containsKey("token:fresh"));
+        assertFalse("Stale token should be removed", repository.getJtis().containsKey(HASH_STALE));
+        assertTrue("Fresh token should be present", repository.getJtis().containsKey(HASH_FRESH));
     }
 
     @Test
     public void testReloadApiTokensFromIndexOnlyCallsListenerOnce() {
         Map<String, ApiToken> tokens = Map.of(
-            "token:one",
-            new ApiToken("one", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
-            "token:two",
-            new ApiToken("two", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
-            "token:three",
-            new ApiToken("three", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE)
+            HASH_ONE,
+            new ApiToken("one", HASH_ONE, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
+            HASH_TWO,
+            new ApiToken("two", HASH_TWO, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE),
+            HASH_THREE,
+            new ApiToken("three", HASH_THREE, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE)
         );
 
         doAnswer(invocation -> {
@@ -325,7 +329,7 @@ public class ApiTokenRepositoryTest {
         // Setup mock response
         Map<String, ApiToken> expectedTokens = Map.of(
             "test",
-            new ApiToken("test", List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE)
+            new ApiToken("test", HASH_TEST, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE)
         );
 
         doAnswer(invocation -> {

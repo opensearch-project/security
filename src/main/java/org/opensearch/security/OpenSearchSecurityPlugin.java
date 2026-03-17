@@ -1237,7 +1237,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
         this.roleMapper = roleMapper;
         tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper);
-        apiTokenRepository = new ApiTokenRepository(localClient, clusterService, tokenManager);
+        apiTokenRepository = new ApiTokenRepository(localClient, clusterService);
 
         PrivilegesConfiguration privilegesConfiguration = new PrivilegesConfiguration(
             cr,

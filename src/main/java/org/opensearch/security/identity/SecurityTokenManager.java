@@ -11,8 +11,6 @@
 
 package org.opensearch.security.identity;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Set;
@@ -33,7 +31,6 @@ import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
-import org.opensearch.security.authtoken.jwt.claims.ApiTokenClaimsBuilder;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -59,7 +56,6 @@ public class SecurityTokenManager implements TokenManager {
     private final RoleMapper roleMapper;
 
     private Settings oboSettings = null;
-    private Settings apiTokenSettings = null;
     private final LongSupplier timeProvider = System::currentTimeMillis;
     private static final Integer OBO_MAX_EXPIRY_SECONDS = 600;
 
@@ -82,10 +78,6 @@ public class SecurityTokenManager implements TokenManager {
         if (oboEnabled) {
             oboSettings = oboSettingsFromDcm;
         }
-        final Settings apiTokenSettingsFromDcm = dcm.getDynamicApiTokenSettings();
-        if (apiTokenSettingsFromDcm.getAsBoolean("enabled", false)) {
-            apiTokenSettings = apiTokenSettingsFromDcm;
-        }
     }
 
     /** For testing */
@@ -100,10 +92,6 @@ public class SecurityTokenManager implements TokenManager {
 
     public boolean issueOnBehalfOfTokenAllowed() {
         return oboSettings != null;
-    }
-
-    public boolean issueApiTokenAllowed() {
-        return apiTokenSettings != null;
     }
 
     @Override
@@ -165,38 +153,6 @@ public class SecurityTokenManager implements TokenManager {
         } catch (final Exception ex) {
             logger.error("Error creating OnBehalfOfToken for " + user.getName(), ex);
             throw new OpenSearchSecurityException("Unable to generate OnBehalfOfToken");
-        }
-    }
-
-    public ExpiringBearerAuthToken issueApiToken(final String name, final Long expiration) {
-        if (!issueApiTokenAllowed()) {
-            throw new OpenSearchSecurityException("Api token generation is not enabled.");
-        }
-        final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-
-        final long currentTimeMs = timeProvider.getAsLong();
-        final Date now = new Date(currentTimeMs);
-
-        final ApiTokenClaimsBuilder claimsBuilder = new ApiTokenClaimsBuilder();
-        claimsBuilder.issuer(cs.getClusterName().value());
-        claimsBuilder.issueTime(now);
-        claimsBuilder.subject(name);
-        claimsBuilder.audience(name);
-        claimsBuilder.notBeforeTime(now);
-
-        final Date expiryTime = new Date(expiration);
-        claimsBuilder.expirationTime(expiryTime);
-
-        try {
-            return createJwtVendor(apiTokenSettings).createJwt(
-                claimsBuilder,
-                name,
-                expiryTime,
-                Duration.between(Instant.now(), expiryTime.toInstant()).getSeconds()
-            );
-        } catch (final Exception ex) {
-            logger.error("Error creating Api Token for " + user.getName(), ex);
-            throw new OpenSearchSecurityException("Unable to generate Api Token");
         }
     }
 

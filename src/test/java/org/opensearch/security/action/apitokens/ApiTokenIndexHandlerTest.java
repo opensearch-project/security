@@ -202,6 +202,7 @@ public class ApiTokenIndexHandlerTest {
         );
         ApiToken token = new ApiToken(
                 "test-token-description",
+                ApiTokenRepository.hashToken("os_test"),
                 clusterPermissions,
                 indexPermissions,
                 Instant.now(),
@@ -242,6 +243,7 @@ public class ApiTokenIndexHandlerTest {
         // First token
         ApiToken token1 = new ApiToken(
                 "token1-description",
+                ApiTokenRepository.hashToken("os_token1"),
                 Arrays.asList("cluster:admin/something"),
                 Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index1-*"),
@@ -254,6 +256,7 @@ public class ApiTokenIndexHandlerTest {
         // Second token
         ApiToken token2 = new ApiToken(
                 "token2-description",
+                ApiTokenRepository.hashToken("os_token2"),
                 Arrays.asList("cluster:admin/other"),
                 Arrays.asList(new ApiToken.IndexPermission(
                         Arrays.asList("index2-*"),
@@ -290,13 +293,13 @@ public class ApiTokenIndexHandlerTest {
 
         Map<String, ApiToken> resultTokens = listener.assertSuccess();
         assertThat(resultTokens.size(), equalTo(2));
-        assertThat(resultTokens.containsKey("token:token1-description"), is(true));
-        assertThat(resultTokens.containsKey("token:token2-description"), is(true));
+        assertThat(resultTokens.containsKey(ApiTokenRepository.hashToken("os_token1")), is(true));
+        assertThat(resultTokens.containsKey(ApiTokenRepository.hashToken("os_token2")), is(true));
 
-        ApiToken resultToken1 = resultTokens.get("token:token1-description");
+        ApiToken resultToken1 = resultTokens.get(ApiTokenRepository.hashToken("os_token1"));
         assertThat(resultToken1.getClusterPermissions(), contains("cluster:admin/something"));
 
-        ApiToken resultToken2 = resultTokens.get("token:token2-description");
+        ApiToken resultToken2 = resultTokens.get(ApiTokenRepository.hashToken("os_token2"));
         assertThat(resultToken2.getClusterPermissions(), contains("cluster:admin/other"));
     }
 }

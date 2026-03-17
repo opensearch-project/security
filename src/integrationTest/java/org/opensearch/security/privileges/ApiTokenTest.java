@@ -12,8 +12,6 @@
 package org.opensearch.security.privileges;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +24,7 @@ import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.security.http.ApiTokenAuthenticator;
 import org.opensearch.test.framework.ApiTokenConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -35,6 +34,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.startsWith;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -47,20 +47,10 @@ public class ApiTokenTest {
     static final TestSecurityConfig.User REGULAR_USER = new TestSecurityConfig.User("regular_user");
 
     private static final String CREATE_API_TOKEN_PATH = "_plugins/_security/api/apitokens";
-    private static final String signingKey = Base64.getEncoder()
-        .encodeToString(
-            "jwt signing key for api token authentication backend for testing of API Token authentication".getBytes(StandardCharsets.UTF_8)
-        );
-    private static final String alternativeSigningKey = Base64.getEncoder()
-        .encodeToString(
-            "alternativeSigningKeyalternativeSigningKeyalternativeSigningKeyalternativeSigningKey".getBytes(StandardCharsets.UTF_8)
-        );
-
     public static final String ADMIN_USER_NAME = "admin";
     public static final String REGULAR_USER_NAME = "regular_user";
     public static final String DEFAULT_PASSWORD = "secret";
     public static final String NEW_PASSWORD = "testPassword123!!";
-    public static final String TEST_TOKEN_SUBJECT = "token:test-token";
     public static final String TEST_TOKEN_PAYLOAD = """
         {
           "name": "test-token",
@@ -102,7 +92,7 @@ public class ApiTokenTest {
         + "\" }";
 
     private static ApiTokenConfig defaultApiTokenConfig() {
-        return new ApiTokenConfig().enabled(true).signingKey(signingKey);
+        return new ApiTokenConfig().enabled(true);
     }
 
     @ClassRule
@@ -129,14 +119,14 @@ public class ApiTokenTest {
     @Test
     public void testAuthInfoEndpoint() {
         String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
-        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
         authenticateWithApiToken(authHeader, HttpStatus.SC_OK);
     }
 
     @Test
     public void testCallingClusterHealthWithApiToken_success() {
         String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
-        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.get("_cluster/health");
             response.assertStatusCode(HttpStatus.SC_OK);
@@ -147,14 +137,14 @@ public class ApiTokenTest {
     public void shouldNotAuthenticateWithATamperedAPIToken() {
         String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
         apiToken = apiToken.substring(0, apiToken.length() - 1); // tampering the token
-        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
         authenticateWithApiToken(authHeader, HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
     public void shouldNotBeAbleToUseTokenToGenerateMoreTokens() {
         String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
-        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
 
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_PAYLOAD);
@@ -165,7 +155,7 @@ public class ApiTokenTest {
     @Test
     public void testAccountApiForbiddenWithApiToken() {
         String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
-        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
 
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.putJson("_plugins/_security/api/account", CURRENT_AND_NEW_PASSWORDS);
@@ -201,7 +191,7 @@ public class ApiTokenTest {
 
     @Test
     public void shouldNotAllowTokenWhenApiTokensAreDisabled() {
-        final Header apiTokenHeader = new BasicHeader("Authorization", "Bearer " + generateApiToken(TEST_TOKEN_PAYLOAD));
+        final Header apiTokenHeader = new BasicHeader("Authorization", "ApiKey " + generateApiToken(TEST_TOKEN_PAYLOAD));
         authenticateWithApiToken(apiTokenHeader, HttpStatus.SC_OK);
 
         // Disable API Tokens via config and see that the authenticator doesn't authorize
@@ -214,27 +204,6 @@ public class ApiTokenTest {
     }
 
     @Test
-    public void apiTokenSigningCheckChangeIsDetected() {
-        final Header apiTokenOriginalKey = new BasicHeader("Authorization", "Bearer " + generateApiToken(TEST_TOKEN_PAYLOAD));
-        authenticateWithApiToken(apiTokenOriginalKey, HttpStatus.SC_OK);
-
-        // Change the signing key
-        patchApiTokenConfig(defaultApiTokenConfig().signingKey(alternativeSigningKey));
-
-        // Original key should no longer work
-        authenticateWithApiToken(apiTokenOriginalKey, HttpStatus.SC_UNAUTHORIZED);
-
-        // Generate new key, check that it is valid
-        final Header apiTokenOtherKey = new BasicHeader("Authorization", "Bearer " + generateApiToken(TEST_TOKEN_PAYLOAD));
-        authenticateWithApiToken(apiTokenOtherKey, HttpStatus.SC_OK);
-
-        // Change back to the original signing key and the original key still works, and the new key doesn't
-        patchApiTokenConfig(defaultApiTokenConfig());
-        authenticateWithApiToken(apiTokenOriginalKey, HttpStatus.SC_OK);
-        authenticateWithApiToken(apiTokenOtherKey, HttpStatus.SC_UNAUTHORIZED);
-    }
-
-    @Test
     public void testApiTokenWithIndexPermissions_canSearchAllowedIndex() {
         // Create the allowed index as admin
         try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
@@ -242,7 +211,7 @@ public class ApiTokenTest {
         }
 
         String apiToken = generateApiToken(TEST_TOKEN_WITH_INDEX_PERMISSIONS_PAYLOAD);
-        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
 
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             // Should be able to search the allowed index pattern
@@ -272,7 +241,7 @@ public class ApiTokenTest {
             }
             """;
         String apiToken = generateApiToken(writePayload);
-        Header authHeader = new BasicHeader("Authorization", "Bearer " + apiToken);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
 
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.postJson("test-index-write/_doc", "{\"field\": \"value\"}");
@@ -297,7 +266,7 @@ public class ApiTokenTest {
             TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, expiredPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
             String expiredToken = response.getTextFromJsonBody("/token").toString();
-            Header authHeader = new BasicHeader("Authorization", "Bearer " + expiredToken);
+            Header authHeader = new BasicHeader("Authorization", "ApiKey " + expiredToken);
             authenticateWithApiToken(authHeader, HttpStatus.SC_UNAUTHORIZED);
         }
     }
@@ -317,7 +286,7 @@ public class ApiTokenTest {
             assertThat(response.getStatusCode(), equalTo(expectedStatusCode));
             if (expectedStatusCode == HttpStatus.SC_OK) {
                 String username = response.getTextFromJsonBody(POINTER_USERNAME);
-                assertThat(username, equalTo(ApiTokenTest.TEST_TOKEN_SUBJECT));
+                assertThat(username, startsWith(ApiTokenAuthenticator.API_TOKEN_USER_PREFIX));
             }
         }
     }

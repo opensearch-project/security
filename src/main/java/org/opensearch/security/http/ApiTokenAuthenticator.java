@@ -11,7 +11,6 @@
 
 package org.opensearch.security.http;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,7 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
@@ -30,79 +28,40 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.util.KeyUtils;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.security.WeakKeyException;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.action.apitokens.ApiTokenRepository.TOKEN_PREFIX;
 import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
 
 public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
-    private static final int MINIMUM_SIGNING_KEY_BIT_LENGTH = 512;
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
+    private static final Pattern API_KEY_HEADER = Pattern.compile("^\\s*ApiKey\\s.*", Pattern.CASE_INSENSITIVE);
+    private static final String API_KEY_PREFIX = "apikey ";
+
+    public static final String API_TOKEN_USER_PREFIX = "token:";
 
     public Logger log = LogManager.getLogger(this.getClass());
 
-    private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
-    private static final String BEARER_PREFIX = "bearer ";
-
-    private final JwtParser jwtParser;
-    private final Boolean apiTokenEnabled;
-    private final String clusterName;
-    public static final String API_TOKEN_USER_PREFIX = "token:";
+    private final boolean apiTokenEnabled;
     private final ApiTokenRepository apiTokenRepository;
 
     public ApiTokenAuthenticator(Settings settings, String clusterName, ApiTokenRepository apiTokenRepository) {
-        String apiTokenEnabledSetting = settings.get("enabled", "true");
-        apiTokenEnabled = Boolean.parseBoolean(apiTokenEnabledSetting);
-        jwtParser = org.opensearch.secure_sm.AccessController.doPrivileged(() -> {
-            JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-            return builder.build();
-        });
-        this.clusterName = clusterName;
+        this.apiTokenEnabled = Boolean.parseBoolean(settings.get("enabled", "true"));
         this.apiTokenRepository = apiTokenRepository;
     }
 
-    private JwtParserBuilder initParserBuilder(final String signingKey) {
-        if (signingKey == null) {
-            throw new OpenSearchSecurityException("Unable to find api token authenticator signing_key");
-        }
-
-        final int signingKeyLengthBits = signingKey.length() * 8;
-        if (signingKeyLengthBits < MINIMUM_SIGNING_KEY_BIT_LENGTH) {
-            throw new OpenSearchSecurityException(
-                "Signing key size was "
-                    + signingKeyLengthBits
-                    + " bits, which is not secure enough. Please use a signing_key with a size >= "
-                    + MINIMUM_SIGNING_KEY_BIT_LENGTH
-                    + " bits."
-            );
-        }
-        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
-
-        return jwtParserBuilder;
-    }
-
     @Override
-    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context)
-        throws OpenSearchSecurityException {
-        return org.opensearch.secure_sm.AccessController.doPrivileged(() -> extractCredentials0(request, context));
-    }
-
-    private AuthCredentials extractCredentials0(final SecurityRequest request, final ThreadContext context) {
+    public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) {
         if (!apiTokenEnabled) {
             log.error("Api token authentication is disabled");
             return null;
         }
 
-        String jwtToken = extractJwtFromHeader(request);
-        if (jwtToken == null) {
+        String token = extractTokenFromHeader(request);
+        if (token == null) {
             return null;
         }
 
@@ -110,58 +69,42 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        try {
-            final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
-
-            if (claims.getSubject() == null) {
-                log.error("Api token does not have a subject");
-                return null;
-            }
-
-            final String subject = API_TOKEN_USER_PREFIX + claims.getSubject();
-
-            if (!apiTokenRepository.isValidToken(subject)) {
-                log.error("Api token is not allowlisted");
-                return null;
-            }
-
-            final String issuer = claims.getIssuer();
-            if (!clusterName.equals(issuer)) {
-                log.error("The issuer of this api token does not match the current cluster identifier");
-                return null;
-            }
-
-            return new AuthCredentials(subject, List.of(), "").markComplete();
-
-        } catch (WeakKeyException e) {
-            log.error("Cannot authenticate api token because of ", e);
+        if (!token.startsWith(TOKEN_PREFIX)) {
+            log.debug("Token does not have expected prefix");
             return null;
-        } catch (Exception e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Invalid or expired api token.", e);
-            }
         }
 
-        // Return null for the authentication failure
-        return null;
+        String hash = ApiTokenRepository.hashToken(token);
+        if (!apiTokenRepository.isValidToken(hash)) {
+            log.error("Api token is not valid");
+            return null;
+        }
+
+        ApiTokenRepository.TokenMetadata metadata = apiTokenRepository.getTokenMetadata(hash);
+        if (metadata == null) {
+            log.error("Api token metadata not found");
+            return null;
+        }
+
+        if (metadata.isExpired()) {
+            log.debug("Api token is expired");
+            return null;
+        }
+
+        return new AuthCredentials(API_TOKEN_USER_PREFIX + hash, java.util.List.of(), "").markComplete();
     }
 
-    private String extractJwtFromHeader(SecurityRequest request) {
-        String jwtToken = request.header(HttpHeaders.AUTHORIZATION);
-
-        if (jwtToken == null || jwtToken.isEmpty()) {
-            log.debug("No JWT token found in '{}' header", HttpHeaders.AUTHORIZATION);
+    private String extractTokenFromHeader(SecurityRequest request) {
+        String header = request.header(HttpHeaders.AUTHORIZATION);
+        if (header == null || header.isEmpty()) {
+            log.debug("No token found in '{}' header", HttpHeaders.AUTHORIZATION);
             return null;
         }
-
-        if (!BEARER.matcher(jwtToken).matches() || !jwtToken.toLowerCase().contains(BEARER_PREFIX)) {
-            log.debug("No Bearer scheme found in header");
+        if (!API_KEY_HEADER.matcher(header).matches()) {
+            log.debug("No ApiKey scheme found in header");
             return null;
         }
-
-        jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
-
-        return jwtToken;
+        return header.substring(header.toLowerCase().indexOf(API_KEY_PREFIX) + API_KEY_PREFIX.length());
     }
 
     public Boolean isRequestAllowed(final SecurityRequest request) {

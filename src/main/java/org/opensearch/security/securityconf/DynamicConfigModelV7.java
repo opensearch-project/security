@@ -232,13 +232,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
             .build();
     }
 
-    @Override
-    public Settings getDynamicApiTokenSettings() {
-        return Settings.builder()
-            .put(Settings.builder().loadFromSource(config.dynamic.api_tokens.configAsJson(), XContentType.JSON).build())
-            .build();
-    }
-
     private void buildAAA() {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
@@ -381,11 +374,14 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          * Challenge: false - no need to iterate through the auth domains again when ApiToken authentication failed
          * order: -2 - prioritize the Api token authentication when it gets enabled
          */
-        Settings apiTokenSettings = getDynamicApiTokenSettings();
-        if (!isKeyNull(apiTokenSettings, "signing_key")) {
+        if (Boolean.TRUE.equals(config.dynamic.api_tokens.getEnabled())) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new ApiTokenAuthenticator(getDynamicApiTokenSettings(), this.cih.getClusterName(), apiTokenRepository),
+                new ApiTokenAuthenticator(
+                    Settings.builder().loadFromSource(config.dynamic.api_tokens.configAsJson(), XContentType.JSON).build(),
+                    this.cih.getClusterName(),
+                    apiTokenRepository
+                ),
                 false,
                 -2
             );

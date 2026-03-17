@@ -108,7 +108,7 @@ public class ApiTokenIndexHandler {
                                 )
                         ) {
                             ApiToken token = ApiToken.fromXContent(parser);
-                            tokens.put("token:" + token.getName(), token);
+                            tokens.put(token.getTokenHash(), token);
                         }
                     }
                     listener.onResponse(tokens);

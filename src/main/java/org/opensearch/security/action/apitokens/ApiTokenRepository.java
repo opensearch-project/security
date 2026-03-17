@@ -11,8 +11,13 @@
 
 package org.opensearch.security.action.apitokens;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,9 +32,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
-import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.configuration.TokenListener;
-import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.transport.client.Client;
@@ -37,30 +40,47 @@ import org.opensearch.transport.client.Client;
 import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX;
 
 public class ApiTokenRepository {
+    public static final String TOKEN_PREFIX = "os_";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final ApiTokenIndexHandler apiTokenIndexHandler;
-    private final SecurityTokenManager securityTokenManager;
     private final List<TokenListener> tokenListener = new ArrayList<>();
     private static final Logger log = LogManager.getLogger(ApiTokenRepository.class);
 
-    private final Map<String, RoleV7> jtis = new ConcurrentHashMap<>();
+    private final Map<String, RoleV7> tokenHashToRole = new ConcurrentHashMap<>();
+    private final Map<String, Long> tokenHashToExpiration = new ConcurrentHashMap<>();
+
+    public record TokenMetadata(RoleV7 role, long expiration) {
+        public boolean isExpired() {
+            return expiration > 0 && Instant.now().toEpochMilli() > expiration;
+        }
+    }
+
+    public static String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
+    }
+
+    private static String generateToken() {
+        byte[] bytes = new byte[32];
+        SECURE_RANDOM.nextBytes(bytes);
+        return TOKEN_PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
 
     public void reloadApiTokensFromIndex(ActionListener<Void> listener) {
         apiTokenIndexHandler.getTokenMetadatas(new ActionListener<Map<String, ApiToken>>() {
             @Override
             public void onResponse(Map<String, ApiToken> tokenMetadatas) {
-                jtis.keySet().removeIf(key -> !tokenMetadatas.containsKey(key));
-                tokenMetadatas.forEach((key, tokenMetadata) -> {
-                    RoleV7 role = new RoleV7();
-                    role.setCluster_permissions(tokenMetadata.getClusterPermissions());
-                    List<RoleV7.Index> indexPerms = new ArrayList<>();
-                    for (ApiToken.IndexPermission ip : tokenMetadata.getIndexPermissions()) {
-                        RoleV7.Index indexPerm = new RoleV7.Index();
-                        indexPerm.setIndex_patterns(ip.getIndexPatterns());
-                        indexPerm.setAllowed_actions(ip.getAllowedActions());
-                        indexPerms.add(indexPerm);
-                    }
-                    role.setIndex_permissions(indexPerms);
-                    jtis.put(key, role);
+                tokenHashToRole.keySet().removeIf(hash -> !tokenMetadatas.containsKey(hash));
+                tokenHashToExpiration.keySet().removeIf(hash -> !tokenMetadatas.containsKey(hash));
+                tokenMetadatas.forEach((hash, tokenMetadata) -> {
+                    tokenHashToRole.put(hash, buildRole(tokenMetadata));
+                    tokenHashToExpiration.put(hash, tokenMetadata.getExpiration());
                 });
                 listener.onResponse(null);
             }
@@ -75,6 +95,20 @@ public class ApiTokenRepository {
                 listener.onFailure(new OpenSearchSecurityException("Received error while reloading API tokens metadata from index", e));
             }
         });
+    }
+
+    private static RoleV7 buildRole(ApiToken tokenMetadata) {
+        RoleV7 role = new RoleV7();
+        role.setCluster_permissions(tokenMetadata.getClusterPermissions());
+        List<RoleV7.Index> indexPerms = new ArrayList<>();
+        for (ApiToken.IndexPermission ip : tokenMetadata.getIndexPermissions()) {
+            RoleV7.Index indexPerm = new RoleV7.Index();
+            indexPerm.setIndex_patterns(ip.getIndexPatterns());
+            indexPerm.setAllowed_actions(ip.getAllowedActions());
+            indexPerms.add(indexPerm);
+        }
+        role.setIndex_permissions(indexPerms);
+        return role;
     }
 
     public synchronized void subscribeOnChange(TokenListener listener) {
@@ -96,45 +130,51 @@ public class ApiTokenRepository {
     public RoleV7 getApiTokenPermissionsForUser(User user) {
         String name = user.getName();
         if (name.startsWith(API_TOKEN_USER_PREFIX)) {
-            String jti = user.getName().split(API_TOKEN_USER_PREFIX)[1];
-            if (isValidToken(jti)) {
-                return getPermissionsForJti(jti);
+            String hash = name.substring(API_TOKEN_USER_PREFIX.length());
+            if (isValidToken(hash)) {
+                return getPermissionsForHash(hash);
             }
         }
         return new RoleV7();
     }
 
-    public RoleV7 getPermissionsForJti(String jti) {
-        return jtis.get(jti);
+    public RoleV7 getPermissionsForHash(String hash) {
+        return tokenHashToRole.get(hash);
     }
 
-    // Method to check if a token is valid
-    public boolean isValidToken(String jti) {
-        return jtis.containsKey(jti);
+    public TokenMetadata getTokenMetadata(String hash) {
+        RoleV7 role = tokenHashToRole.get(hash);
+        Long expiration = tokenHashToExpiration.get(hash);
+        if (role == null || expiration == null) {
+            return null;
+        }
+        return new TokenMetadata(role, expiration);
+    }
+
+    public boolean isValidToken(String hash) {
+        return tokenHashToRole.containsKey(hash);
     }
 
     public void forEachToken(BiConsumer<String, RoleV7> consumer) {
-        jtis.forEach(consumer);
+        tokenHashToRole.forEach((hash, role) -> consumer.accept(API_TOKEN_USER_PREFIX + hash, role));
     }
 
     @VisibleForTesting
     Map<String, RoleV7> getJtis() {
-        return jtis;
+        return tokenHashToRole;
     }
 
-    public ApiTokenRepository(Client client, ClusterService clusterService, SecurityTokenManager tokenManager) {
+    public ApiTokenRepository(Client client, ClusterService clusterService) {
         apiTokenIndexHandler = new ApiTokenIndexHandler(client, clusterService);
-        securityTokenManager = tokenManager;
     }
 
-    private ApiTokenRepository(ApiTokenIndexHandler apiTokenIndexHandler, SecurityTokenManager securityTokenManager) {
+    private ApiTokenRepository(ApiTokenIndexHandler apiTokenIndexHandler) {
         this.apiTokenIndexHandler = apiTokenIndexHandler;
-        this.securityTokenManager = securityTokenManager;
     }
 
     @VisibleForTesting
-    static ApiTokenRepository forTest(ApiTokenIndexHandler apiTokenIndexHandler, SecurityTokenManager securityTokenManager) {
-        return new ApiTokenRepository(apiTokenIndexHandler, securityTokenManager);
+    static ApiTokenRepository forTest(ApiTokenIndexHandler apiTokenIndexHandler) {
+        return new ApiTokenRepository(apiTokenIndexHandler);
     }
 
     public void createApiToken(
@@ -144,15 +184,16 @@ public class ApiTokenRepository {
         Long expiration,
         ActionListener<String> listener
     ) {
+        String plaintext = generateToken();
+        String hash = hashToken(plaintext);
+        ApiToken apiToken = new ApiToken(name, hash, clusterPermissions, indexPermissions, Instant.now(), expiration);
         apiTokenIndexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> {
-            ExpiringBearerAuthToken token = securityTokenManager.issueApiToken(name, expiration);
-            ApiToken apiToken = new ApiToken(name, clusterPermissions, indexPermissions, Instant.now(), expiration);
-            apiTokenIndexHandler.indexTokenMetadata(
-                apiToken,
-                ActionListener.wrap(unused -> { listener.onResponse(token.getCompleteToken()); }, listener::onFailure)
-            );
+            apiTokenIndexHandler.indexTokenMetadata(apiToken, ActionListener.wrap(unused -> {
+                tokenHashToRole.put(hash, buildRole(apiToken));
+                tokenHashToExpiration.put(hash, expiration);
+                listener.onResponse(plaintext);
+            }, listener::onFailure));
         }));
-
     }
 
     public void deleteApiToken(String name, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
@@ -172,5 +213,4 @@ public class ApiTokenRepository {
     public void getTokenCount(ActionListener<Long> listener) {
         getApiTokens(ActionListener.wrap(tokens -> listener.onResponse((long) tokens.size()), listener::onFailure));
     }
-
 }

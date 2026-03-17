@@ -16,15 +16,9 @@ import org.opensearch.core.xcontent.XContentBuilder;
 
 public class ApiTokenConfig implements ToXContentObject {
     private Boolean enabled;
-    private String signing_key;
 
     public ApiTokenConfig enabled(Boolean enabled) {
         this.enabled = enabled;
-        return this;
-    }
-
-    public ApiTokenConfig signingKey(String signing_key) {
-        this.signing_key = signing_key;
         return this;
     }
 
@@ -32,7 +26,6 @@ public class ApiTokenConfig implements ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
         xContentBuilder.startObject();
         xContentBuilder.field("enabled", enabled);
-        xContentBuilder.field("signing_key", signing_key);
         xContentBuilder.endObject();
         return xContentBuilder;
     }

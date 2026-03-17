@@ -501,8 +501,6 @@ public class ConfigV7 {
     public static class ApiTokenSettings {
         @JsonProperty("enabled")
         private Boolean enabled = Boolean.FALSE;
-        @JsonProperty("signing_key")
-        private String signingKey;
         @JsonProperty("max_tokens")
         private int maxTokens = 100;
 
@@ -523,14 +521,6 @@ public class ConfigV7 {
             this.enabled = apiTokensEnabled;
         }
 
-        public String getSigningKey() {
-            return signingKey;
-        }
-
-        public void setSigningKey(String signingKey) {
-            this.signingKey = signingKey;
-        }
-
         public int getMaxTokens() {
             return Math.min(maxTokens, 1000);
         }
@@ -541,7 +531,7 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "ApiTokenSettings [ enabled=" + enabled + ", signing_key=" + signingKey + ", max_tokens=" + maxTokens + "]";
+            return "ApiTokenSettings [ enabled=" + enabled + ", max_tokens=" + maxTokens + "]";
         }
 
     }

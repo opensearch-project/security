@@ -32,21 +32,25 @@ public class ApiToken implements ToXContent {
     public static final String INDEX_PATTERN_FIELD = "index_pattern";
     public static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
     public static final String EXPIRATION_FIELD = "expiration";
+    public static final String TOKEN_HASH_FIELD = "token_hash";
+
     @SuppressWarnings("unchecked")
     private static final ConstructingObjectParser<ApiToken, Void> PARSER = new ConstructingObjectParser<>(
         "api_token",
         false,
         args -> new ApiToken(
             (String) args[0],
-            args[1] != null ? (List<String>) args[1] : List.of(),
-            args[2] != null ? (List<IndexPermission>) args[2] : List.<IndexPermission>of(),
-            args[3] != null ? Instant.ofEpochMilli((Long) args[3]) : null,
-            args[4] != null ? (Long) args[4] : 0L
+            (String) args[1],
+            args[2] != null ? (List<String>) args[2] : List.of(),
+            args[3] != null ? (List<IndexPermission>) args[3] : List.<IndexPermission>of(),
+            args[4] != null ? Instant.ofEpochMilli((Long) args[4]) : null,
+            args[5] != null ? (Long) args[5] : 0L
         )
     );
 
     static {
         PARSER.declareString(constructorArg(), new ParseField(NAME_FIELD));
+        PARSER.declareString(constructorArg(), new ParseField(TOKEN_HASH_FIELD));
         PARSER.declareStringArray(optionalConstructorArg(), new ParseField(CLUSTER_PERMISSIONS_FIELD));
         PARSER.declareObjectArray(
             optionalConstructorArg(),
@@ -58,6 +62,7 @@ public class ApiToken implements ToXContent {
     }
 
     private final String name;
+    private final String tokenHash;
     private final Instant creationTime;
     private final List<String> clusterPermissions;
     private final List<IndexPermission> indexPermissions;
@@ -65,12 +70,14 @@ public class ApiToken implements ToXContent {
 
     public ApiToken(
         String name,
+        String tokenHash,
         List<String> clusterPermissions,
         List<IndexPermission> indexPermissions,
         Instant creationTime,
         Long expiration
     ) {
         this.name = name;
+        this.tokenHash = tokenHash;
         this.clusterPermissions = clusterPermissions;
         this.indexPermissions = indexPermissions;
         this.creationTime = creationTime;
@@ -123,29 +130,16 @@ public class ApiToken implements ToXContent {
         }
     }
 
-    /**
-     * Class represents an API token.
-     * Expected class structure
-     * {
-     *   name: "token_name",
-     *   jti: "encrypted_token",
-     *   creation_time: 1234567890,
-     *   cluster_permissions: ["cluster_permission1", "cluster_permission2"],
-     *   index_permissions: [
-     *     {
-     *       index_pattern: ["index_pattern1", "index_pattern2"],
-     *       allowed_actions: ["allowed_action1", "allowed_action2"]
-     *     }
-     *   ],
-     *   expiration: 1234567890
-     * }
-     */
     public static ApiToken fromXContent(XContentParser parser) throws IOException {
         return PARSER.parse(parser, null);
     }
 
     public String getName() {
         return name;
+    }
+
+    public String getTokenHash() {
+        return tokenHash;
     }
 
     public Long getExpiration() {
@@ -164,6 +158,7 @@ public class ApiToken implements ToXContent {
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
         xContentBuilder.startObject();
         xContentBuilder.field(NAME_FIELD, name);
+        xContentBuilder.field(TOKEN_HASH_FIELD, tokenHash);
         xContentBuilder.field(CLUSTER_PERMISSIONS_FIELD, clusterPermissions);
         xContentBuilder.field(INDEX_PERMISSIONS_FIELD, indexPermissions);
         xContentBuilder.field(ISSUED_AT_FIELD, creationTime.toEpochMilli());
@@ -177,8 +172,6 @@ public class ApiToken implements ToXContent {
     }
 
     public static class CreateRequest {
-        public static final long DEFAULT_EXPIRATION_MS = Instant.now().toEpochMilli() + java.util.concurrent.TimeUnit.DAYS.toMillis(30);
-
         @SuppressWarnings("unchecked")
         private static final ConstructingObjectParser<CreateRequest, Void> PARSER = new ConstructingObjectParser<>(
             "create_api_token_request",

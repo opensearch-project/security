@@ -28,7 +28,7 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.authtoken.jwt.claims.ApiTokenClaimsBuilder;
+import org.opensearch.security.authtoken.jwt.claims.JwtClaimsBuilder;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -238,7 +238,7 @@ public class JwtVendorTest {
 
         JwtVendor apiTokenJwtVendor = new JwtVendor(settings);
         final ExpiringBearerAuthToken authToken = apiTokenJwtVendor.createJwt(
-            new ApiTokenClaimsBuilder().issuer(issuer)
+            new JwtClaimsBuilder().issuer(issuer)
                 .subject(subject)
                 .audience(audience)
                 .expirationTime(expiryTime)
