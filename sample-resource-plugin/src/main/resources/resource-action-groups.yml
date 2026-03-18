@@ -2,26 +2,26 @@ resource_types:
   sample-resource:
       sample_read_only:
         allowed_actions:
-          - "cluster:admin/sample-resource-plugin/get"
+          - "sampleresource:get"
 
       sample_read_write:
         allowed_actions:
-          - "cluster:admin/sample-resource-plugin/*"
+          - "sampleresource:*"
 
       sample_full_access:
         allowed_actions:
-          - "cluster:admin/sample-resource-plugin/*"
+          - "sampleresource:*"
           - "cluster:admin/security/resource/share"
   sample-resource-group:
     sample_group_read_only:
       allowed_actions:
-        - "cluster:admin/sample-resource-plugin/group/get"
+        - "sampleresourcegroup:get"
 
     sample_group_read_write:
       allowed_actions:
-        - "cluster:admin/sample-resource-plugin/group/*"
+        - "sampleresourcegroup:*"
 
     sample_group_full_access:
       allowed_actions:
-        - "cluster:admin/sample-resource-plugin/group/*"
+        - "sampleresourcegroup:*"
         - "cluster:admin/security/resource/share"
