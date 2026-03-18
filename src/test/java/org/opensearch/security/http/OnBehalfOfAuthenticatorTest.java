@@ -75,7 +75,7 @@ public class OnBehalfOfAuthenticatorTest {
     final static SecretKey secretKey = Keys.hmacShaKeyFor(signingKeyB64Encoded.getBytes(StandardCharsets.UTF_8));
 
     private static final String SECURITY_PREFIX = "/_plugins/_security/";
-    private static final String ON_BEHALF_OF_SUFFIX = "api/generateonbehalfoftoken";
+    private static final String ON_BEHALF_OF_SUFFIX = "api/obo/token";
     private static final String ACCOUNT_SUFFIX = "api/account";
 
     @Test
@@ -386,7 +386,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("dr", "role1,role2").setAudience("svc1"),
+            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("roles", "role1,role2").setAudience("svc1"),
             true
         );
 
@@ -403,7 +403,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Test User").setAudience("audience_0").claim("br", rolesString),
+            Jwts.builder().setIssuer(clusterName).setSubject("Test User").setAudience("audience_0").claim("backend_roles", rolesString),
             true
         );
 
@@ -416,6 +416,56 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
+    public void testRolesDecryptionFromErClaimWithNoEncryptionKeyReturnsEmpty() {
+        EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(claimsEncryptionKey);
+        String encryptedRole = util.encrypt("admin,developer");
+
+        // No encryption_key in settings
+        final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(
+            Settings.builder().put("enabled", enableOBO).put("signing_key", signingKeyB64Encoded).build(),
+            clusterName
+        );
+        final String jwsToken = Jwts.builder()
+            .setIssuer(clusterName)
+            .setSubject("Test User")
+            .setAudience("audience_0")
+            .claim("encrypted_roles", encryptedRole)
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .compact();
+        final AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(Map.of("Authorization", "Bearer " + jwsToken), new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        assertNotNull(credentials);
+        assertThat(credentials.getSecurityRoles().size(), is(0));
+    }
+
+    @Test
+    public void testPlainTextRolesFromDrClaimWithNoEncryptionKey() {
+        // No encryption_key in settings — dr claim should still be readable
+        final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(
+            Settings.builder().put("enabled", enableOBO).put("signing_key", signingKeyB64Encoded).build(),
+            clusterName
+        );
+        final String jwsToken = Jwts.builder()
+            .setIssuer(clusterName)
+            .setSubject("Test User")
+            .setAudience("audience_0")
+            .claim("roles", "role1,role2")
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .compact();
+        final AuthCredentials credentials = jwtAuth.extractCredentials(
+            new FakeRestRequest(Map.of("Authorization", "Bearer " + jwsToken), new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        assertNotNull(credentials);
+        assertThat(credentials.getSecurityRoles().size(), is(2));
+        assertTrue(credentials.getSecurityRoles().containsAll(List.of("role1", "role2")));
+    }
+
+    @Test
     public void testRolesDecryptionFromErClaim() {
         EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(claimsEncryptionKey);
         String encryptedRole = util.encrypt("admin,developer");
@@ -423,7 +473,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Test User").setAudience("audience_0").claim("er", encryptedRole),
+            Jwts.builder().setIssuer(clusterName).setSubject("Test User").setAudience("audience_0").claim("encrypted_roles", encryptedRole),
             true
         );
 
@@ -438,7 +488,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("dr", null).setAudience("svc1"),
+            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("roles", null).setAudience("svc1"),
             false
         );
 
@@ -453,7 +503,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("dr", 123L).setAudience("svc1"),
+            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("roles", 123L).setAudience("svc1"),
             true
         );
 
