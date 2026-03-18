@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Hardens input validation for resource sharing APIs ([#5831](https://github.com/opensearch-project/security/pull/5831)
 - Optimize getFieldFilter to only return a predicate when index has FLS restrictions for user ([#5777](https://github.com/opensearch-project/security/pull/5777))
 - Make encryption_key optional for obo token authenticator ([#6017](https://github.com/opensearch-project/security/pull/6017)
+- [Resource Sharing] Using custom action prefixes for sample resource plugin ([#6020](https://github.com/opensearch-project/security/pull/6020)
 
 ### Bug Fixes
 - Fix audit log writing errors for rollover-enabled alias indices ([#5878](https://github.com/opensearch-project/security/pull/5878)
