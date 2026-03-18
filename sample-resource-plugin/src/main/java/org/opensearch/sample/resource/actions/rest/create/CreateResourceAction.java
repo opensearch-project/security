@@ -21,7 +21,7 @@ public class CreateResourceAction extends ActionType<CreateResourceResponse> {
     /**
      * Create sample resource action name
      */
-    public static final String NAME = "cluster:admin/sample-resource-plugin/create";
+    public static final String NAME = "sampleresource:create";
 
     private CreateResourceAction() {
         super(NAME, CreateResourceResponse::new);
