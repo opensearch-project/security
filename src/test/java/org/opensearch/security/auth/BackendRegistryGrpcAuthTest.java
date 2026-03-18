@@ -14,10 +14,14 @@ package org.opensearch.security.auth;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import javax.crypto.SecretKey;
 
+import com.google.common.collect.ImmutableMultimap;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,7 +32,10 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.GrpcRequestChannel;
+import org.opensearch.security.http.HTTPBasicAuthenticator;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import io.grpc.Metadata;
@@ -189,6 +196,40 @@ public class BackendRegistryGrpcAuthTest {
         assertFalse("Authentication should fail with missing password", result);
         assertTrue("Should have queued error response", request.getQueuedResponse().isPresent());
         assertEquals("Should return 401 Unauthorized", 401, request.getQueuedResponse().get().getStatus());
+    }
+
+    @Test
+    public void testGrpcAuthenticateWithValidBasicAuthAndConfiguredDomain() throws Exception {
+        // Configure a Basic Auth domain with a mocked backend that accepts "admin:admin"
+        AuthenticationBackend mockBackend = mock(AuthenticationBackend.class);
+        when(mockBackend.getType()).thenReturn("internal");
+        when(mockBackend.authenticate(any())).thenReturn(new User("admin"));
+
+        HTTPBasicAuthenticator basicAuthenticator = new HTTPBasicAuthenticator(Settings.EMPTY, null);
+        AuthDomain basicAuthDomain = new AuthDomain(mockBackend, basicAuthenticator, false, 0);
+
+        DynamicConfigModel mockDcm = mock(DynamicConfigModel.class);
+        when(mockDcm.isAnonymousAuthenticationEnabled()).thenReturn(false);
+        when(mockDcm.getRestAuthDomains()).thenReturn(new TreeSet<>(List.of(basicAuthDomain)));
+        when(mockDcm.getRestAuthorizers()).thenReturn(Collections.emptySet());
+        when(mockDcm.getIpAuthFailureListeners()).thenReturn(Collections.emptyList());
+        when(mockDcm.getAuthBackendFailureListeners()).thenReturn(ImmutableMultimap.of());
+        when(mockDcm.getIpClientBlockRegistries()).thenReturn(Collections.emptyList());
+        when(mockDcm.getAuthBackendClientBlockRegistries()).thenReturn(ImmutableMultimap.of());
+        when(mockDcm.getHostsResolverMode()).thenReturn("ip-only");
+
+        backendRegistry.onDynamicConfigModelChanged(mockDcm);
+
+        String credentials = "admin:admin";
+        String base64Credentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+        Map<String, String> headers = new HashMap<>();
+        headers.put("authorization", "Basic " + base64Credentials);
+
+        GrpcRequestChannel request = createTestRequest(headers);
+        boolean result = backendRegistry.authenticate(request);
+
+        assertTrue("Authentication should succeed with valid Basic Auth and configured domain", result);
+        assertFalse("Should not have queued an error response", request.getQueuedResponse().isPresent());
     }
 
     private GrpcRequestChannel createTestRequest(Map<String, String> headerMap) {

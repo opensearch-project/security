@@ -31,6 +31,8 @@ import org.opensearch.transport.grpc.GrpcPlugin;
 import io.grpc.Channel;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER;
@@ -43,6 +45,7 @@ import static org.opensearch.security.grpc.GrpcHelpers.secureChannel;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  * Integration test for Basic Authentication over gRPC.
@@ -99,6 +102,48 @@ public class BasicAuthGrpcTest {
         String credentials = username + ":" + password;
         String base64Credentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
         return "Basic " + base64Credentials;
+    }
+
+    @Test
+    public void testBasicAuthenticationWrongPassword() throws Exception {
+        String authHeader = createBasicAuthHeader(GRPC_INDEX_USER.getName(), "wrong-password");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+
+        try {
+            ClientInterceptor authInterceptor = createHeaderInterceptor(Map.of("Authorization", authHeader));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, authInterceptor);
+
+            try {
+                doBulk(channelWithAuth, "test-grpc-basic-wrong-pass", 2);
+                fail("Expected authentication failure with wrong password");
+            } catch (StatusRuntimeException e) {
+                assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
+                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
+            }
+        } finally {
+            channel.shutdown();
+        }
+    }
+
+    @Test
+    public void testBasicAuthenticationUnknownUser() throws Exception {
+        String authHeader = createBasicAuthHeader("nonexistent-user", "any-password");
+        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+
+        try {
+            ClientInterceptor authInterceptor = createHeaderInterceptor(Map.of("Authorization", authHeader));
+            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, authInterceptor);
+
+            try {
+                doBulk(channelWithAuth, "test-grpc-basic-unknown-user", 2);
+                fail("Expected authentication failure with unknown user");
+            } catch (StatusRuntimeException e) {
+                assertEquals("Expected UNAUTHENTICATED status", Status.Code.UNAUTHENTICATED, e.getStatus().getCode());
+                assertEquals("Expected specific error message", "Authentication finally failed", e.getStatus().getDescription());
+            }
+        } finally {
+            channel.shutdown();
+        }
     }
 
     @Test
