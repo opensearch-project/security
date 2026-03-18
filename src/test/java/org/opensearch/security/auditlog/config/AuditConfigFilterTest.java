@@ -13,7 +13,9 @@ package org.opensearch.security.auditlog.config;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -113,6 +115,21 @@ public class AuditConfigFilterTest {
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
         // assert
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
+        assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
+    }
+
+    @Test
+    public void testNoneViaMap() throws Exception {
+        // "NONE" sentinel should clear disabled categories and ignored users when set via the REST/Map path
+        final Map<String, Object> properties = new HashMap<>();
+        properties.put(FilterEntries.IGNORE_USERS.getKey(), List.of("NONE"));
+        properties.put(FilterEntries.DISABLE_REST_CATEGORIES.getKey(), List.of("None"));
+        properties.put(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(), List.of("none"));
+
+        final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(properties);
+
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditUsersMatcher());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
