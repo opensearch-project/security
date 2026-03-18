@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Bug Fixes
 - Fix the issue of unprocessed X-Request-Id ([#5954](https://github.com/opensearch-project/security/pull/5954))
+- Fix audit log `NONE` sentinel not respected for `disabled_rest_categories`, `disabled_transport_categories`, and `ignore_users` in dynamic configuration ([#6021](https://github.com/opensearch-project/security/pull/6021))
 ### Refactoring
 
 ### Maintenance
