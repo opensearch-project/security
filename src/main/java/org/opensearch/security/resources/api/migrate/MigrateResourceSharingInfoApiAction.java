@@ -274,20 +274,18 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             ClearScrollRequest clear = new ClearScrollRequest();
             clear.addScrollId(scrollId);
             client.clearScroll(clear).actionGet();
-            // fail fast if any doc has backend roles but no access level can be resolved for its type
+            // fail fast if any type in the results has no resolvable access level
             for (SourceDoc doc : results) {
-                if (!doc.backendRoles().isEmpty()) {
-                    String type = doc.type();
-                    if (!typeToDefaultAccessLevel.containsKey(type) && resourcePluginInfo.getDefaultAccessLevel(type) == null) {
-                        return ValidationResult.error(
-                            RestStatus.BAD_REQUEST,
-                            badRequestMessage(
-                                "No default access level available for resource type ["
-                                    + type
-                                    + "]. Either mark a default in resource-access-levels.yml or supply default_access_level in the request."
-                            )
-                        );
-                    }
+                String type = doc.type();
+                if (!typeToDefaultAccessLevel.containsKey(type) && resourcePluginInfo.getDefaultAccessLevel(type) == null) {
+                    return ValidationResult.error(
+                        RestStatus.BAD_REQUEST,
+                        badRequestMessage(
+                            "No default access level available for resource type ["
+                                + type
+                                + "]. Either mark a default in resource-access-levels.yml or supply default_access_level in the request."
+                        )
+                    );
                 }
             }
 
