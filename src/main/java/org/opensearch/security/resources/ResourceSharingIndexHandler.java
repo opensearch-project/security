@@ -1175,10 +1175,8 @@ public class ResourceSharingIndexHandler {
 
         if (isAdmin || resourceSharingRecord.isCreatedBy(user.getName())) return true;
 
-        if (resourceSharingRecord.isSharedWithEveryone()) return true;
-
         var sw = resourceSharingRecord.getShareWith();
-        if (sw == null || sw.getSharingInfo().isEmpty()) return false;
+        if (sw == null) return false;
 
         Set<String> users = Set.of(user.getName());
         Set<String> roles = new HashSet<>(user.getSecurityRoles());

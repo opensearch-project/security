@@ -29,6 +29,7 @@ import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
+import static org.opensearch.security.api.AbstractApiIntegrationTest.badRequest;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -133,6 +134,12 @@ public class PubliclySharedDocTests {
     }
 
     @Test
+    public void generalAccess_fullAccess_doesNotGrantSharePermission() throws Exception {
+        // setting general_access to a level that includes share permission must be rejected at the API
+        badRequest(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_FULL_ACCESS));
+    }
+
+    @Test
     public void generalAccess_upgradeLevel_replacesExistingGeneralAccess() throws Exception {
         ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
         forbidden(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "updated"));
@@ -143,6 +150,44 @@ public class PubliclySharedDocTests {
         TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
         assertThat(response.getBody(), containsString("sample"));
         ok(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "updated"));
+    }
+
+    @Test
+    public void generalAccess_resourceAppearsInListAndSearch() throws Exception {
+        forbidden(() -> api.listResources(FULL_ACCESS_USER));
+        forbidden(() -> api.searchResources(FULL_ACCESS_USER));
+        forbidden(() -> api.searchResources(TestUtils.ApiHelper.searchAllPayload(), FULL_ACCESS_USER));
+
+        ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
+
+        // resource should now appear in list
+        TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+        assertThat(listResponse.getBody(), containsString("sample"));
+
+        // resource should appear in search (GET and POST)
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+        assertThat(searchResponse.getBody(), containsString("sample"));
+
+        searchResponse = ok(() -> api.searchResources(TestUtils.ApiHelper.searchAllPayload(), FULL_ACCESS_USER));
+        TestUtils.ApiHelper.assertSearchResponse(searchResponse, 1, "sample");
+
+        searchResponse = ok(() -> api.searchResources(TestUtils.ApiHelper.searchByNamePayload("sample"), FULL_ACCESS_USER));
+        TestUtils.ApiHelper.assertSearchResponse(searchResponse, 1, "sample");
+    }
+
+    @Test
+    public void revokeGeneralAccess_resourceDisappearsFromListAndSearch() throws Exception {
+        ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
+
+        // confirm visible
+        TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+        assertThat(listResponse.getBody(), containsString("sample"));
+
+        ok(() -> api.revokeGeneralAccess(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
+
+        // should no longer appear
+        forbidden(() -> api.listResources(FULL_ACCESS_USER));
+        forbidden(() -> api.searchResources(FULL_ACCESS_USER));
     }
 
     @Test

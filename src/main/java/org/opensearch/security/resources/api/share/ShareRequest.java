@@ -253,6 +253,28 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                     }
                 }
             }
+            rejectSharePermissionOnGeneralAccess(resourcePluginInfo);
+        }
+
+        /**
+         * Rejects any general_access value whose resolved actions include share permission.
+         * general_access is content access only — it must never grant policy-control (share) permission.
+         */
+        private void rejectSharePermissionOnGeneralAccess(ResourcePluginInfo resourcePluginInfo) {
+            if (resourceType == null) return;
+            var flattened = resourcePluginInfo.flattenedForType(resourceType);
+            for (ShareWith sw : new ShareWith[] { shareWith, add }) {
+                if (sw == null || sw.getGeneralAccess() == null) continue;
+                String level = sw.getGeneralAccess();
+                if (flattened.resolve(Set.of(level)).contains(ShareAction.NAME)) {
+                    throw new IllegalArgumentException(
+                        "general_access level ['"
+                            + level
+                            + "'] includes share permission, which is not allowed. "
+                            + "general_access controls content access only."
+                    );
+                }
+            }
         }
     }
 
