@@ -22,13 +22,13 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Helper class to load `resource-action-groups.yml` file for all resource sharing extensions.
+ * Helper class to load `resource-access-levels.yml` file for all resource sharing extensions.
  */
 public class ResourceActionGroupsHelper {
     public static final Logger log = LogManager.getLogger(ResourceActionGroupsHelper.class);
 
     /**
-     * Loads action-groups config from the {@code resource-action-groups.yml} file from each resource sharing extension
+     * Loads action-groups config from the {@code resource-access-levels.yml} file from each resource sharing extension
      * @param resourcePluginInfo will store the loaded action-groups config
      *
      * Sample yml file:
@@ -42,9 +42,9 @@ public class ResourceActionGroupsHelper {
     public static void loadActionGroupsConfig(ResourcePluginInfo resourcePluginInfo) {
         var exts = resourcePluginInfo.getResourceSharingExtensions();
         for (var ext : exts) {
-            URL url = ext.getClass().getClassLoader().getResource("resource-action-groups.yml");
+            URL url = ext.getClass().getClassLoader().getResource("resource-access-levels.yml");
             if (url == null) {
-                log.info("resource-action-groups.yml not found for {}", ext.getClass().getName());
+                log.info("resource-access-levels.yml not found for {}", ext.getClass().getName());
                 continue;
             }
 
@@ -53,7 +53,7 @@ public class ResourceActionGroupsHelper {
 
                 Map<String, Object> root = new Yaml().load(yaml);
                 if (root == null) {
-                    log.info("Empty resource-action-groups.yml for {}", ext.getClass().getName());
+                    log.info("Empty resource-access-levels.yml for {}", ext.getClass().getName());
                     continue;
                 }
 
@@ -73,10 +73,22 @@ public class ResourceActionGroupsHelper {
                         continue; // no fallback
                     }
 
-                    SecurityDynamicConfiguration<ActionGroupsV7> cfg = SecurityDynamicConfiguration.fromMap(
-                        (Map<String, Object>) typeMapRaw,
-                        CType.ACTIONGROUPS
-                    );
+                    // Extract default access level and strip the "default" key before passing to SecurityDynamicConfiguration
+                    String defaultAccessLevel = null;
+                    Map<String, Object> typeMap = new java.util.LinkedHashMap<>((Map<String, Object>) typeMapRaw);
+                    for (Map.Entry<String, Object> entry : typeMap.entrySet()) {
+                        if (entry.getValue() instanceof Map<?, ?> levelCfg) {
+                            Object isDefault = levelCfg.get("default");
+                            if (Boolean.TRUE.equals(isDefault)) {
+                                defaultAccessLevel = entry.getKey();
+                                // remove the "default" key so Jackson doesn't choke on it
+                                ((Map<String, Object>) levelCfg).remove("default");
+                                break;
+                            }
+                        }
+                    }
+
+                    SecurityDynamicConfiguration<ActionGroupsV7> cfg = SecurityDynamicConfiguration.fromMap(typeMap, CType.ACTIONGROUPS);
 
                     // prune groups that ended up empty after normalization
                     cfg.getCEntries()
@@ -88,13 +100,13 @@ public class ResourceActionGroupsHelper {
                         );
 
                     // Publish to ResourcePluginInfo → used by UI and authZ
-                    resourcePluginInfo.registerAccessLevels(resType, cfg);
+                    resourcePluginInfo.registerAccessLevels(resType, cfg, defaultAccessLevel);
 
                     log.info("Registered {} action-groups for {}", cfg.getCEntries().size(), resType);
                 }
 
             } catch (Exception e) {
-                log.warn("Failed loading/parsing resource-action-groups.yml for {}: {}", ext.getClass().getName(), e.toString());
+                log.warn("Failed loading/parsing resource-access-levels.yml for {}: {}", ext.getClass().getName(), e.toString());
             }
         }
     }
