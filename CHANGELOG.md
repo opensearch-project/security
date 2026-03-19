@@ -7,17 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 ### Changed
+- Copy scripts from tools to bin/ directory in assembly and make scripts agnostic to directory ([#6023](https://github.com/opensearch-project/security/pull/6023))
 
 ### Features
 
 ### Enhancements
 - Make security plugin aware of FIPS build param (-Pcrypto.standard=FIPS-140-3) ([#5952](https://github.com/opensearch-project/security/pull/5952))
-- Hardens input validation for resource sharing APIs ([#5831](https://github.com/opensearch-project/security/pull/5831)
+- Hardens input validation for resource sharing APIs ([#5831](https://github.com/opensearch-project/security/pull/5831))
 - Optimize getFieldFilter to only return a predicate when index has FLS restrictions for user ([#5777](https://github.com/opensearch-project/security/pull/5777))
-- Make encryption_key optional for obo token authenticator ([#6017](https://github.com/opensearch-project/security/pull/6017)
+- Make encryption_key optional for obo token authenticator ([#6017](https://github.com/opensearch-project/security/pull/6017))
 
 ### Bug Fixes
-- Fix audit log writing errors for rollover-enabled alias indices ([#5878](https://github.com/opensearch-project/security/pull/5878)
+- Fix audit log writing errors for rollover-enabled alias indices ([#5878](https://github.com/opensearch-project/security/pull/5878))
 - Fix the issue of unprocessed X-Request-Id ([#5954](https://github.com/opensearch-project/security/pull/5954))
 - Improve DLS error message to identify undefined user attributes when query substitution fails ([#5975](https://github.com/opensearch-project/security/pull/5975))
 
