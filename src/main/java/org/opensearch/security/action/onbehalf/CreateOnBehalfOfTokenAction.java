@@ -38,7 +38,10 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(new NamedRoute.Builder().method(POST).path("/generateonbehalfoftoken").uniqueName("security:obo/create").build()),
+        ImmutableList.of(
+            new NamedRoute.Builder().method(POST).path("/obo/token").uniqueName("security:obo/create").build(),
+            new NamedRoute.Builder().method(POST).path("/generateonbehalfoftoken").uniqueName("security:obo/create").build()
+        ),
         PLUGIN_API_ROUTE_PREFIX
     );
 

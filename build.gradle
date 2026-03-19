@@ -34,7 +34,7 @@ buildscript {
         jjwt_version = '0.13.0'
         guava_version = '33.5.0-jre'
         jaxb_version = '2.3.9'
-        spring_version = '7.0.5'
+        spring_version = '7.0.6'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -512,13 +512,13 @@ configurations {
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
-            force "org.checkerframework:checker-qual:3.53.1"
+            force "org.checkerframework:checker-qual:3.54.0"
             force "ch.qos.logback:logback-classic:1.5.32"
             force "commons-io:commons-io:2.21.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.4"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.21.0"
-            force "net.bytebuddy:byte-buddy:1.18.4"
+            force "net.bytebuddy:byte-buddy:1.18.7"
             force "org.ow2.asm:asm:9.9.1"
             force "com.google.j2objc:j2objc-annotations:3.1"
 
@@ -691,7 +691,7 @@ dependencies {
     implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
-    implementation "com.github.seancfoley:ipaddress:5.6.1"
+    implementation "com.github.seancfoley:ipaddress:5.6.2"
     compileOnly "org.opensearch.plugin:workload-management-wlm-spi:${opensearch_version}"
     compileOnly "org.opensearch.plugin:autotagging-commons-spi:${opensearch_version}"
     compileOnly "org.opensearch.plugin:transport-grpc-spi:${opensearch_version}"
@@ -750,7 +750,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.53.1'
+    runtimeOnly 'org.checkerframework:checker-qual:3.54.0'
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
@@ -820,7 +820,7 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.34.1') {
+    implementation('com.google.googlejavaformat:google-java-format:1.35.0') {
         exclude group: 'com.google.guava'
     }
 }

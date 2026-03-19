@@ -31,11 +31,11 @@ public class AuthTokenUtilsTest {
     public void testIsAccessToRestrictedEndpointsForOnBehalfOfToken() {
         NamedXContentRegistry namedXContentRegistry = new NamedXContentRegistry(Collections.emptyList());
 
-        FakeRestRequest request = new FakeRestRequest.Builder(namedXContentRegistry).withPath("/api/generateonbehalfoftoken")
+        FakeRestRequest request = new FakeRestRequest.Builder(namedXContentRegistry).withPath("/api/obo/token")
             .withMethod(RestRequest.Method.POST)
             .build();
 
-        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request), "api/generateonbehalfoftoken"));
+        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request), "api/obo/token"));
     }
 
     @Test
