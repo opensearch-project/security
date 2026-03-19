@@ -42,8 +42,9 @@ import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.impl.CType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.opensearch.security.auditlog.impl.AuditMessage.SPLIT_MESSAGE_IDENTIFIER;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
