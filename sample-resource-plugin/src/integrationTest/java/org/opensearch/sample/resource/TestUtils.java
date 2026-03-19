@@ -746,5 +746,17 @@ public final class TestUtils {
                     });
             }
         }
+
+        public void awaitResourceVisibility(String resourceId, String expectedPrincipal) {
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                Awaitility.await("Wait for all_shared_principals to contain " + expectedPrincipal + " for resource " + resourceId)
+                    .pollInterval(Duration.ofMillis(500))
+                    .untilAsserted(() -> {
+                        TestRestClient.HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+                        response.assertStatusCode(200);
+                        assertThat(response.getBody(), containsString(expectedPrincipal));
+                    });
+            }
+        }
     }
 }

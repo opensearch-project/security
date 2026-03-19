@@ -35,7 +35,7 @@ public class ResourceSharingDlsUtils {
     ) {
 
         List<String> principals = new ArrayList<>();
-        principals.add("user:*"); // Convention for publicly visible
+        principals.add("public"); // matches resources shared via general_access
         principals.add("user:" + user.getName()); // owner
 
         // Security roles (OpenSearch Security roles)

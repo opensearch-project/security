@@ -12,7 +12,6 @@
 package org.opensearch.security.resources;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -382,14 +381,10 @@ public class ResourceAccessHandler {
     private Set<String> getFlatPrincipals(User user) {
         // 1) collect all entities we’ll match against share_with arrays
         // for users:
-        Set<String> users = new HashSet<>();
-        users.add(user.getName());
-        users.add("public"); // for matching against publicly shared resources
-
         // return flattened principals to build the bool query
         return Stream.concat(
-            // users
-            users.stream().map(u -> "user:" + u),
+            // users, plus bare "public" sentinel for publicly shared resources
+            Stream.concat(Stream.of("user:" + user.getName(), "public"), Stream.empty()),
             // then roles and backend_roles
             Stream.concat(user.getSecurityRoles().stream().map(r -> "role:" + r), user.getRoles().stream().map(b -> "backend:" + b))
         ).collect(Collectors.toSet());

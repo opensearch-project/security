@@ -28,6 +28,7 @@ import static org.opensearch.sample.resource.TestUtils.LIMITED_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_WRITE;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.badRequest;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
@@ -82,10 +83,10 @@ public class PubliclySharedDocTests {
     }
 
     @Test
-    public void generalAccess_fullAccess_grantsEveryoneFullAccess() throws Exception {
+    public void generalAccess_readWrite_grantsEveryoneFullContentAccess() throws Exception {
         forbidden(() -> api.getResource(resourceId, LIMITED_ACCESS_USER));
 
-        ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_FULL_ACCESS));
+        ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_READ_WRITE));
 
         TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, LIMITED_ACCESS_USER));
         assertThat(response.getBody(), containsString("sample"));
@@ -144,8 +145,8 @@ public class PubliclySharedDocTests {
         ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
         forbidden(() -> api.updateResource(resourceId, FULL_ACCESS_USER, "updated"));
 
-        // upgrade general access to full
-        ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_FULL_ACCESS));
+        // upgrade general access to read_write (full content access, no share permission)
+        ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_READ_WRITE));
 
         TestRestClient.HttpResponse response = ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
         assertThat(response.getBody(), containsString("sample"));
@@ -154,18 +155,22 @@ public class PubliclySharedDocTests {
 
     @Test
     public void generalAccess_resourceAppearsInListAndSearch() throws Exception {
-        forbidden(() -> api.listResources(FULL_ACCESS_USER));
-        forbidden(() -> api.searchResources(FULL_ACCESS_USER));
-        forbidden(() -> api.searchResources(TestUtils.ApiHelper.searchAllPayload(), FULL_ACCESS_USER));
+        // before sharing: list and search return 200 with empty results
+        TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+        assertThat(listResponse.getBody(), not(containsString("sample")));
+
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+        assertThat(searchResponse.getBody(), not(containsString("sample")));
 
         ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
+        api.awaitResourceVisibility(resourceId, "public");
 
         // resource should now appear in list
-        TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+        listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
         assertThat(listResponse.getBody(), containsString("sample"));
 
         // resource should appear in search (GET and POST)
-        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+        searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
         assertThat(searchResponse.getBody(), containsString("sample"));
 
         searchResponse = ok(() -> api.searchResources(TestUtils.ApiHelper.searchAllPayload(), FULL_ACCESS_USER));
@@ -178,16 +183,21 @@ public class PubliclySharedDocTests {
     @Test
     public void revokeGeneralAccess_resourceDisappearsFromListAndSearch() throws Exception {
         ok(() -> api.shareResourceGenerally(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
+        api.awaitResourceVisibility(resourceId, "public");
 
         // confirm visible
         TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
         assertThat(listResponse.getBody(), containsString("sample"));
 
         ok(() -> api.revokeGeneralAccess(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
+        api.awaitResourceVisibility(resourceId, "user:admin"); // user:* sentinel removed, only creator remains
 
         // should no longer appear
-        forbidden(() -> api.listResources(FULL_ACCESS_USER));
-        forbidden(() -> api.searchResources(FULL_ACCESS_USER));
+        listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
+        assertThat(listResponse.getBody(), not(containsString("sample")));
+
+        TestRestClient.HttpResponse searchResponse = ok(() -> api.searchResources(FULL_ACCESS_USER));
+        assertThat(searchResponse.getBody(), not(containsString("sample")));
     }
 
     @Test
