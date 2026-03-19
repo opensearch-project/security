@@ -16,15 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.IntSummaryStatistics;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -135,6 +128,8 @@ public final class AuditMessage {
 
     public static final String COMPLIANCE_OPERATION = "audit_compliance_operation";
     public static final String COMPLIANCE_DOC_VERSION = "audit_compliance_doc_version";
+
+    public static final String SPLIT_MESSAGE_IDENTIFIER = "audit_split_message_id";
 
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
     private final Map<String, Object> auditInfo = new HashMap<String, Object>(50);
@@ -528,6 +523,8 @@ public final class AuditMessage {
         if (totalIndexChars < maximumIndexCharsPerMessage) {
             return List.of(toJson());
         }
+
+        auditInfo.put(SPLIT_MESSAGE_IDENTIFIER, UUID.randomUUID().toString());
 
         final int longestIndexName = Math.max(indicesCharsStats.getMax(), resolvedIndicesCharsStats.getMax());
 

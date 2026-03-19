@@ -17,8 +17,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,10 +43,12 @@ import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.impl.CType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.opensearch.security.auditlog.impl.AuditMessage.SPLIT_MESSAGE_IDENTIFIER;
 
 public class AuditMessageTest {
 
@@ -74,6 +79,8 @@ public class AuditMessageTest {
     private final ClusterName clusterNameMock = mock(ClusterName.class);
     private final AuditConfig auditConfig = mock(AuditConfig.class);
     private final AuditConfig.Filter auditFilterMock = mock(AuditConfig.Filter.class);
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private AuditMessage message;
 
@@ -229,27 +236,55 @@ public class AuditMessageTest {
         return indices.toArray(new String[0]);
     }
 
+    private static String getSplitMessageId(final String message) {
+        try {
+            return objectMapper.readTree(message).get(SPLIT_MESSAGE_IDENTIFIER).asText();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test
     public void testToJsonSplitIndices() {
         // test standard case, should be split into 4 messages
         AuditMessage auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 3));
         List<String> splitMessages = auditMessage.toJsonSplitIndices(255);
         assertThat(splitMessages.size(), is(4));
+        // all messages share the same ID
+        assertThat(splitMessages
+                .stream()
+                .map(AuditMessageTest::getSplitMessageId)
+                .distinct()
+                .count(), is(1L));
 
         // test when audit_trace_indices is not present, should be split into 3 messages
         auditMessage = dummyAuditMessage(null, getTestIndices(255, 3));
         splitMessages = auditMessage.toJsonSplitIndices(255);
         assertThat(splitMessages.size(), is(3));
+        // all messages share the same ID
+        assertThat(splitMessages
+                .stream()
+                .map(AuditMessageTest::getSplitMessageId)
+                .distinct()
+                .count(), is(1L));
 
         // test when splitting isn't required, should return a single message
         auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 2));
         splitMessages = auditMessage.toJsonSplitIndices(700);
         assertThat(splitMessages.size(), is(1));
+        // messages that aren't split don't get a split ID
+        assertThat(splitMessages.getFirst(), not(containsString(SPLIT_MESSAGE_IDENTIFIER)));
 
         // test when there aren't enough indices to fill a whole message so some resolved indices are added too.
         // Should be split into 2 messages. First with "*" and one resolved index, second with the remaining resolved indices
         auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 3));
         splitMessages = auditMessage.toJsonSplitIndices(700);
         assertThat(splitMessages.size(), is(2));
+        // all messages share the same ID
+        assertThat(splitMessages
+                .stream()
+                .map(AuditMessageTest::getSplitMessageId)
+                .distinct()
+                .count(), is(1L));
     }
 }
