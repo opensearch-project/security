@@ -312,6 +312,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             builder.put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
         builder.put("cluster.routing.allocation.disk.threshold_enabled", false);
+        builder.put(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, true);
         builder.put(other);
         return builder;
     }
