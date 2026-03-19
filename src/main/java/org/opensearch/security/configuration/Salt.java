@@ -23,6 +23,8 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 
+import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES;
+
 /**
  * Configuration class to store salt used for FLS anonymization
  */
@@ -42,11 +44,20 @@ public class Salt {
         this.salt16 = salt;
     }
 
-    private Salt(final String saltAsString) {
+    private Salt(final String saltAsString, final boolean allowUnsafeDemoCertificates) {
         this.salt16 = new byte[SALT_SIZE];
         if (saltAsString.equals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT)) {
+            if (!allowUnsafeDemoCertificates) {
+                throw new OpenSearchException(
+                    "Default compliance salt is not allowed in production. Please configure "
+                        + ConfigConstants.SECURITY_COMPLIANCE_SALT
+                        + " to a random 16-character string, or set "
+                        + SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES
+                        + " to true for demo/test environments."
+                );
+            }
             log.warn(
-                "If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes",
+                "If you plan to use field masking please configure compliance salt {} to be a random string of 16 chars length identical on all nodes",
                 saltAsString
             );
         }
@@ -83,6 +94,7 @@ public class Salt {
             ConfigConstants.SECURITY_COMPLIANCE_SALT,
             ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT
         );
-        return new Salt(saltAsString);
+        final boolean allowUnsafeDemoCertificates = settings.getAsBoolean(SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false);
+        return new Salt(saltAsString, allowUnsafeDemoCertificates);
     }
 }
