@@ -48,21 +48,37 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
      */
     private final Map<String, Recipients> sharingInfo;
 
+    /**
+     * The access level granted to everyone (general/public access).
+     * e.g. "read" means anyone can read; named recipients may hold higher levels.
+     * Null means the resource is not publicly accessible.
+     */
+    private final String generalAccess;
+
     public ShareWith(Map<String, Recipients> sharingInfo) {
+        this(sharingInfo, null);
+    }
+
+    public ShareWith(Map<String, Recipients> sharingInfo, String generalAccess) {
         this.sharingInfo = sharingInfo;
+        this.generalAccess = generalAccess;
     }
 
     public ShareWith(StreamInput in) throws IOException {
         this.sharingInfo = in.readMap(StreamInput::readString, Recipients::new);
+        this.generalAccess = in.readOptionalString();
     }
 
     public boolean isPublic() {
-        // TODO Contemplate following google doc model of link sharing which has single access level when link sharing is enabled
-        return sharingInfo.values().stream().anyMatch(Recipients::isPublic);
+        return generalAccess != null;
+    }
+
+    public String getGeneralAccess() {
+        return generalAccess;
     }
 
     public boolean isPrivate() {
-        return sharingInfo == null || sharingInfo.isEmpty();
+        return generalAccess == null && (sharingInfo == null || sharingInfo.isEmpty());
     }
 
     public Set<String> accessLevels() {
@@ -88,11 +104,14 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     @Override
     public XContentBuilder toXContent(XContentBuilder b, Params params) throws IOException {
         b.startObject();
+        if (generalAccess != null) {
+            b.field("general_access", generalAccess);
+        }
         for (Map.Entry<String, Recipients> e : this.sharingInfo.entrySet()) {
             Recipients norm = pruneRecipients(e.getValue());
             if (norm == null) continue; // skip empty level
             b.field(e.getKey());
-            norm.toXContent(b, params); // TODO ensure this skips empty arrays too
+            norm.toXContent(b, params);
         }
         return b.endObject();
     }
@@ -117,15 +136,23 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
             parser.nextToken();
         }
 
+        String generalAccess = null;
+
         XContentParser.Token token;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             // Each field in the object represents a SharedWithActionGroup
             if (token == XContentParser.Token.FIELD_NAME) {
-                String accessLevel = parser.currentName();
+                String fieldName = parser.currentName();
+
+                if ("general_access".equals(fieldName)) {
+                    parser.nextToken();
+                    generalAccess = parser.textOrNull();
+                    continue;
+                }
 
                 // Validate access level if validator is provided
                 if (accessLevelValidator != null) {
-                    accessLevelValidator.validate("access_level", accessLevel);
+                    accessLevelValidator.validate("access_level", fieldName);
                 }
 
                 parser.nextToken();
@@ -135,11 +162,11 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
                     RequestContentValidator.ARRAY_SIZE_VALIDATOR,
                     RequestContentValidator.principalValidator(false)
                 );
-                sharingInfo.put(accessLevel, recipients);
+                sharingInfo.put(fieldName, recipients);
             }
         }
 
-        return new ShareWith(sharingInfo);
+        return new ShareWith(sharingInfo, generalAccess);
     }
 
     @Override
@@ -150,6 +177,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeMap(sharingInfo, StreamOutput::writeString, (o, sw) -> sw.writeTo(o));
+        out.writeOptionalString(generalAccess);
     }
 
     @Override
@@ -161,7 +189,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
      * Returns a new ShareWith by merging this and another ShareWith (adding recipients).
      */
     public ShareWith add(ShareWith other) {
-        if (other == null || other.isPrivate()) {
+        if (other == null) {
             return this;
         }
         for (var entry : other.sharingInfo.entrySet()) {
@@ -172,14 +200,16 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
                 return orig;
             });
         }
-        return this;
+        // generalAccess in the patch overwrites the current value
+        String newGeneralAccess = other.generalAccess != null ? other.generalAccess : this.generalAccess;
+        return new ShareWith(this.sharingInfo, newGeneralAccess);
     }
 
     /**
      * Returns a new ShareWith by revoking recipients based on another ShareWith.
      */
     public ShareWith revoke(ShareWith other) {
-        if (this.sharingInfo.isEmpty() || other == null || other.isPrivate()) {
+        if (other == null) {
             return this;
         }
         for (var entry : other.sharingInfo.entrySet()) {
@@ -190,7 +220,9 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
                 return orig;
             });
         }
-        return this;
+        // clear generalAccess if the revoke patch specifies the same level
+        String newGeneralAccess = other.generalAccess != null && other.generalAccess.equals(this.generalAccess) ? null : this.generalAccess;
+        return new ShareWith(this.sharingInfo, newGeneralAccess);
     }
 
     /** Return a normalized ShareWith with no empty buckets and no empty action-groups. */
@@ -202,7 +234,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
                 cleaned.put(e.getKey(), prunedRecipients);
             }
         }
-        return new ShareWith(cleaned);
+        return new ShareWith(cleaned, generalAccess);
     }
 
     private static Recipients pruneRecipients(Recipients r) {

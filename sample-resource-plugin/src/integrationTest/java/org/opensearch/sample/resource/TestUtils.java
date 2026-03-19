@@ -263,11 +263,25 @@ public final class TestUtils {
             """.formatted(resourceId, resourceType, accessLevel, recipient.getName(), entity);
     }
 
+    public static String putGeneralAccessPayload(String resourceId, String resourceType, String accessLevel) {
+        return """
+            {
+              "resource_id": "%s",
+              "resource_type": "%s",
+              "share_with": {
+                "general_access": "%s"
+              }
+            }
+            """.formatted(resourceId, resourceType, accessLevel);
+    }
+
     public static class PatchSharingInfoPayloadBuilder {
         private String resourceId;
         private String resourceType;
         private final Map<String, Recipients> share = new HashMap<>();
         private final Map<String, Recipients> revoke = new HashMap<>();
+        private String setGeneralAccess;
+        private String revokeGeneralAccess;
 
         public PatchSharingInfoPayloadBuilder resourceId(String resourceId) {
             this.resourceId = resourceId;
@@ -287,15 +301,19 @@ public final class TestUtils {
 
         public void revoke(Recipients recipients, String accessLevel) {
             Recipients existing = revoke.getOrDefault(accessLevel, new Recipients(new HashMap<>()));
-            // intentionally share() is called here since we are building a shareWith object, this final object will be used to remove
-            // access
-            // think of it as currentShareWith.removeAll(revokeShareWith)
             existing.share(recipients);
             revoke.put(accessLevel, existing);
         }
 
-        private String buildJsonString(Map<String, Recipients> input) {
+        public void setGeneralAccess(String accessLevel) {
+            this.setGeneralAccess = accessLevel;
+        }
 
+        public void revokeGeneralAccess(String accessLevel) {
+            this.revokeGeneralAccess = accessLevel;
+        }
+
+        private String buildJsonString(Map<String, Recipients> input) {
             List<String> output = new ArrayList<>();
             for (Map.Entry<String, Recipients> entry : input.entrySet()) {
                 try {
@@ -308,16 +326,22 @@ public final class TestUtils {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-
             }
-
             return String.join(",", output);
-
         }
 
         public String build() {
-            String allShares = buildJsonString(share);
-            String allRevokes = buildJsonString(revoke);
+            String addGeneralAccess = setGeneralAccess != null ? "\"general_access\": \"" + setGeneralAccess + "\"" : "";
+            String addNamedRecipients = buildJsonString(share);
+            String addSection = String.join(",", List.of(addGeneralAccess, addNamedRecipients).stream().filter(s -> !s.isBlank()).toList());
+
+            String revokeGeneralAccessStr = revokeGeneralAccess != null ? "\"general_access\": \"" + revokeGeneralAccess + "\"" : "";
+            String revokeNamedRecipients = buildJsonString(revoke);
+            String revokeSection = String.join(
+                ",",
+                List.of(revokeGeneralAccessStr, revokeNamedRecipients).stream().filter(s -> !s.isBlank()).toList()
+            );
+
             return """
                 {
                   "resource_id": "%s",
@@ -329,7 +353,7 @@ public final class TestUtils {
                     %s
                   }
                 }
-                """.formatted(resourceId, resourceType, allShares, allRevokes);
+                """.formatted(resourceId, resourceType, addSection, revokeSection);
         }
     }
 
@@ -585,6 +609,22 @@ public final class TestUtils {
                     SECURITY_SHARE_ENDPOINT,
                     putSharingInfoPayload(resourceId, RESOURCE_TYPE, accessLevel, Recipient.USERS, target.getName())
                 );
+            }
+        }
+
+        public TestRestClient.HttpResponse shareResourceGenerally(String resourceId, TestSecurityConfig.User user, String accessLevel) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.putJson(SECURITY_SHARE_ENDPOINT, putGeneralAccessPayload(resourceId, RESOURCE_TYPE, accessLevel));
+            }
+        }
+
+        public TestRestClient.HttpResponse revokeGeneralAccess(String resourceId, TestSecurityConfig.User user, String accessLevel) {
+            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revokeGeneralAccess(accessLevel);
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
             }
         }
 

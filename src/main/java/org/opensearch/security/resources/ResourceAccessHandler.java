@@ -384,7 +384,7 @@ public class ResourceAccessHandler {
         // for users:
         Set<String> users = new HashSet<>();
         users.add(user.getName());
-        users.add("*"); // for matching against publicly shared resource
+        users.add("public"); // for matching against publicly shared resources
 
         // return flattened principals to build the bool query
         return Stream.concat(

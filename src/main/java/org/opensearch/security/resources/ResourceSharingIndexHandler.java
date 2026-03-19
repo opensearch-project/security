@@ -649,8 +649,10 @@ public class ResourceSharingIndexHandler {
             }
             for (String accessLevel : shareWith.accessLevels()) {
                 Recipients target = shareWith.atAccessLevel(accessLevel);
-
                 sharingInfo.share(accessLevel, target);
+            }
+            if (shareWith.getGeneralAccess() != null) {
+                sharingInfo.setGeneralAccess(shareWith.getGeneralAccess());
             }
 
             String resourceSharingIndex = getSharingIndex(resourceIndex);
@@ -719,10 +721,10 @@ public class ResourceSharingIndexHandler {
         // Apply patch and update the document
         sharingInfoListener.whenComplete(sharingInfo -> {
             if (add != null) {
-                sharingInfo.getShareWith().add(add);
+                sharingInfo.applyAdd(add);
             }
             if (revoke != null) {
-                sharingInfo.getShareWith().revoke(revoke);
+                sharingInfo.applyRevoke(revoke);
             }
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {

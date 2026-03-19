@@ -105,13 +105,24 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             return;
         }
         Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
-        // sharedWith will be null when sharing at a new access-level
         if (sharedWith == null) {
-            // update the ShareWith object
             shareWith = shareWith.updateSharingInfo(accessLevel, target);
         } else {
             sharedWith.share(target);
         }
+    }
+
+    public void setGeneralAccess(String generalAccess) {
+        ShareWith current = getShareWith();
+        shareWith = new ShareWith(current.getSharingInfo(), generalAccess);
+    }
+
+    public void applyAdd(ShareWith add) {
+        shareWith = getShareWith().add(add);
+    }
+
+    public void applyRevoke(ShareWith revoke) {
+        shareWith = getShareWith().revoke(revoke);
     }
 
     public void revoke(String accessLevel, Recipients target) {
@@ -292,16 +303,15 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * @return a {@link Set} of access level identifiers granted to the user, never {@code null}.
      */
     public Set<String> getAccessLevelsForUser(User user) {
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
-
-        userRoles.add("*");
-        userBackendRoles.add("*");
-
         Set<String> accessLevels = new HashSet<>();
-        accessLevels.addAll(fetchAccessLevels(Recipient.USERS, Set.of(user.getName(), "*")));
-        accessLevels.addAll(fetchAccessLevels(Recipient.ROLES, userRoles));
-        accessLevels.addAll(fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
+
+        if (shareWith != null && shareWith.getGeneralAccess() != null) {
+            accessLevels.add(shareWith.getGeneralAccess());
+        }
+
+        accessLevels.addAll(fetchAccessLevels(Recipient.USERS, Set.of(user.getName())));
+        accessLevels.addAll(fetchAccessLevels(Recipient.ROLES, user.getSecurityRoles()));
+        accessLevels.addAll(fetchAccessLevels(Recipient.BACKEND_ROLES, user.getRoles()));
         return accessLevels;
     }
 
@@ -320,14 +330,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             String accessLevel = entry.getKey();
             Recipients recipients = entry.getValue();
 
-            Set<String> sharingRecipients = new HashSet<>(recipients.getRecipients().getOrDefault(recipientType, Set.of()));
+            Set<String> sharingRecipients = recipients.getRecipients().getOrDefault(recipientType, Set.of());
 
-            // if there’s a wildcard (i.e. the document is shared publicly at this access-level), or at least one entity in common, add the
-            // level to a final list of groups
-            boolean matchesWildcard = sharingRecipients.contains("*");
-            boolean intersects = !Collections.disjoint(sharingRecipients, entities);
-
-            if (matchesWildcard || intersects) {
+            if (!Collections.disjoint(sharingRecipients, entities)) {
                 matchingGroups.add(accessLevel);
             }
         }
@@ -350,6 +355,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
         // Add shared recipients
         if (shareWith != null) {
+            if (shareWith.isPublic()) {
+                principals.add("public");
+            }
             // shared with at any access level
             for (Recipients recipients : shareWith.getSharingInfo().values()) {
                 Map<Recipient, Set<String>> recipientMap = recipients.getRecipients();
