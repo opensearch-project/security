@@ -33,8 +33,8 @@ public class SaltTest {
 
     @Test
     public void testDefault() {
-        // act - default salt is allowed when allow_unsafe_democertificates is true
-        final Salt salt = Salt.from(Settings.builder().put(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, true).build());
+        // act
+        final Salt salt = Salt.from(Settings.EMPTY);
 
         // assert
         assertThat(salt.getSalt16().length, is(SALT_SIZE));
@@ -47,8 +47,14 @@ public class SaltTest {
         thrown.expect(OpenSearchException.class);
         thrown.expectMessage("Default compliance salt is not allowed in production");
 
-        // act - default salt without allow_unsafe_democertificates should throw
-        Salt.from(Settings.EMPTY);
+        // act - validation rejects default salt when allow_unsafe_democertificates is false
+        Salt.validateSaltSettings(Settings.EMPTY);
+    }
+
+    @Test
+    public void testDefaultSaltAllowedWithDemoFlag() {
+        // should not throw
+        Salt.validateSaltSettings(Settings.builder().put(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, true).build());
     }
 
     @Test

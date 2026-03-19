@@ -111,7 +111,7 @@ public class FieldMaskingTest {
             return new FieldMasking(
                 roleConfig,
                 INDEX_METADATA.getIndicesLookup(),
-                FieldMasking.Config.DEFAULT,
+                FieldMaskingTestHelper.CONFIG_DEFAULT,
                 Settings.builder().put("plugins.security.dfm_empty_overrides_all", true).build()
             );
         }
@@ -143,7 +143,10 @@ public class FieldMaskingTest {
             assertNull(expression.getAlgoName());
             assertNull(expression.getRegexReplacements());
 
-            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(expression, FieldMasking.Config.DEFAULT);
+            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(
+                expression,
+                FieldMaskingTestHelper.CONFIG_DEFAULT
+            );
             assertEquals("c042e214a8b49561577445be44c188a8e6274006b36cd0c6fba5312253cf9293", field.apply("foobar"));
         }
 
@@ -179,7 +182,10 @@ public class FieldMaskingTest {
             assertEquals("field_*::SHA-256", expression.getSource());
             assertNull(expression.getRegexReplacements());
 
-            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(expression, FieldMasking.Config.DEFAULT);
+            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(
+                expression,
+                FieldMaskingTestHelper.CONFIG_DEFAULT
+            );
             assertEquals("c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2", field.apply("foobar"));
         }
 
@@ -202,7 +208,10 @@ public class FieldMaskingTest {
                 expression.getRegexReplacements()
             );
 
-            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(expression, FieldMasking.Config.DEFAULT);
+            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(
+                expression,
+                FieldMaskingTestHelper.CONFIG_DEFAULT
+            );
             assertEquals("foobar", field.apply("foobar"));
             assertEquals("foo+masked+bar", field.apply("foo<secret>bar"));
         }
@@ -221,7 +230,10 @@ public class FieldMaskingTest {
             assertEquals("*", expression.getRegexReplacements().get(1).getReplacement());
             assertEquals("field_*::/<secret>/::+masked+::/\\d/::*", expression.getSource());
 
-            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(expression, FieldMasking.Config.DEFAULT);
+            FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(
+                expression,
+                FieldMaskingTestHelper.CONFIG_DEFAULT
+            );
             assertEquals("foobar", field.apply("foobar"));
             assertEquals("foo**bar", field.apply("foo42bar"));
             assertEquals("foo+masked+bar**", field.apply("foo<secret>bar42"));
@@ -263,7 +275,7 @@ public class FieldMaskingTest {
 
         @Test
         public void allowAll_constructed() throws Exception {
-            FieldMasking.FieldMaskingRule rule = FieldMasking.FieldMaskingRule.of(FieldMasking.Config.DEFAULT);
+            FieldMasking.FieldMaskingRule rule = FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.CONFIG_DEFAULT);
             assertTrue("FieldMasking.FieldMaskingRule without masked fields should return true for isAllowAll()", rule.isAllowAll());
             assertFalse("FieldMasking.FieldMaskingRule without masked fields allows field", rule.isMasked("field"));
             assertEquals("FM:[]", rule.toString());
@@ -271,7 +283,7 @@ public class FieldMaskingTest {
 
         @Test
         public void simple() throws Exception {
-            FieldMasking.FieldMaskingRule rule = FieldMasking.FieldMaskingRule.of(FieldMasking.Config.DEFAULT, "field_masked_*");
+            FieldMasking.FieldMaskingRule rule = FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.CONFIG_DEFAULT, "field_masked_*");
             assertFalse("FieldMasking.FieldMaskingRule should return false for isAllowAll()", rule.isAllowAll());
             assertTrue("Rule applies to field field_masked_1", rule.isMasked("field_masked_1"));
             assertFalse("Rule does not apply to field field_other", rule.isMasked("field_other"));
@@ -285,7 +297,7 @@ public class FieldMaskingTest {
 
         @Test
         public void keyword() throws Exception {
-            FieldMasking.FieldMaskingRule rule = FieldMasking.FieldMaskingRule.of(FieldMasking.Config.DEFAULT, "field_masked");
+            FieldMasking.FieldMaskingRule rule = FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.CONFIG_DEFAULT, "field_masked");
             assertFalse("FieldMasking.FieldMaskingRule should return false for isAllowAll()", rule.isAllowAll());
             assertTrue("Rule applies to field field_masked_1", rule.isMasked("field_masked"));
             assertTrue("Rule applies to field field_masked_1.keyword", rule.isMasked("field_masked.keyword"));

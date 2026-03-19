@@ -466,8 +466,6 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             return new Config(settings.get(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT), Salt.from(settings));
         }
 
-        public static final Config DEFAULT = fromSettings(Settings.EMPTY);
-
         private final String defaultHashAlgorithm;
         private final Salt salt;
         private final boolean useLegacyDefaultAlgorithm;
