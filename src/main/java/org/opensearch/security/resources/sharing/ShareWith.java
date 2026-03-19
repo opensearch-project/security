@@ -209,7 +209,7 @@ public class ShareWith implements ToXContentFragment, NamedWriteable {
      * Returns a new ShareWith by revoking recipients based on another ShareWith.
      */
     public ShareWith revoke(ShareWith other) {
-        if (other == null) {
+        if (other == null || sharingInfo.isEmpty()) {
             return this;
         }
         for (var entry : other.sharingInfo.entrySet()) {
