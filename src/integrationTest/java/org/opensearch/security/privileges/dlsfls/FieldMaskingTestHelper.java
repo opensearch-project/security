@@ -11,9 +11,9 @@
 
 package org.opensearch.security.privileges.dlsfls;
 
-import org.opensearch.security.configuration.Salt;
+import org.opensearch.common.settings.Settings;
 
 public class FieldMaskingTestHelper {
 
-    public static final FieldMasking.Config CONFIG_DEFAULT = new FieldMasking.Config(null, new Salt(new byte[Salt.SALT_SIZE]));
+    public static final FieldMasking.Config DEFAULT = FieldMasking.Config.fromSettings(Settings.EMPTY);
 }

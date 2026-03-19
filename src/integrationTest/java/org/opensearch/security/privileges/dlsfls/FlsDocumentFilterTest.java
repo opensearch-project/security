@@ -312,7 +312,7 @@ public class FlsDocumentFilterTest {
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
             FieldPrivileges.FlsRule.ALLOW_ALL,
-            FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.CONFIG_DEFAULT, "b"),
+            FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.DEFAULT, "b"),
             ImmutableSet.of()
         );
 
@@ -343,7 +343,7 @@ public class FlsDocumentFilterTest {
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
             FieldPrivileges.FlsRule.ALLOW_ALL,
-            FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.CONFIG_DEFAULT, "b.b1"),
+            FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.DEFAULT, "b.b1"),
             ImmutableSet.of()
         );
 

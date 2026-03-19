@@ -377,7 +377,7 @@ public class DlsFlsLegacyHeadersTest {
             metadata.getIndicesLookup(),
             xContentRegistry,
             Settings.EMPTY,
-            FieldMaskingTestHelper.CONFIG_DEFAULT
+            FieldMaskingTestHelper.DEFAULT
         );
     }
 
