@@ -709,6 +709,8 @@ public class ResourceSharingIndexHandler {
         String resourceIndex,
         ShareWith add,
         ShareWith revoke,
+        boolean generalAccessPresent,
+        String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
 
@@ -725,6 +727,9 @@ public class ResourceSharingIndexHandler {
             }
             if (revoke != null) {
                 sharingInfo.applyRevoke(revoke);
+            }
+            if (generalAccessPresent) {
+                sharingInfo.setGeneralAccess(generalAccess);
             }
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {

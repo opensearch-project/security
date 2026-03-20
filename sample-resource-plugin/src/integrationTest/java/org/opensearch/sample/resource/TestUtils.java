@@ -10,7 +10,6 @@ package org.opensearch.sample.resource;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -280,8 +279,8 @@ public final class TestUtils {
         private String resourceType;
         private final Map<String, Recipients> share = new HashMap<>();
         private final Map<String, Recipients> revoke = new HashMap<>();
-        private String setGeneralAccess;
-        private String revokeGeneralAccess;
+        private boolean generalAccessPresent;
+        private String generalAccess;
 
         public PatchSharingInfoPayloadBuilder resourceId(String resourceId) {
             this.resourceId = resourceId;
@@ -306,54 +305,42 @@ public final class TestUtils {
         }
 
         public void setGeneralAccess(String accessLevel) {
-            this.setGeneralAccess = accessLevel;
+            this.generalAccessPresent = true;
+            this.generalAccess = accessLevel;
         }
 
-        public void revokeGeneralAccess(String accessLevel) {
-            this.revokeGeneralAccess = accessLevel;
-        }
-
-        private String buildJsonString(Map<String, Recipients> input) {
-            List<String> output = new ArrayList<>();
-            for (Map.Entry<String, Recipients> entry : input.entrySet()) {
-                try {
-                    XContentBuilder builder = XContentFactory.jsonBuilder();
-                    entry.getValue().toXContent(builder, ToXContent.EMPTY_PARAMS);
-                    String recipJson = builder.toString();
-                    output.add("""
-                        "%s" : %s
-                        """.formatted(entry.getKey(), recipJson));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return String.join(",", output);
+        public void revokeGeneralAccess() {
+            this.generalAccessPresent = true;
+            this.generalAccess = null;
         }
 
         public String build() {
-            String addGeneralAccess = setGeneralAccess != null ? "\"general_access\": \"" + setGeneralAccess + "\"" : "";
-            String addNamedRecipients = buildJsonString(share);
-            String addSection = String.join(",", List.of(addGeneralAccess, addNamedRecipients).stream().filter(s -> !s.isBlank()).toList());
-
-            String revokeGeneralAccessStr = revokeGeneralAccess != null ? "\"general_access\": \"" + revokeGeneralAccess + "\"" : "";
-            String revokeNamedRecipients = buildJsonString(revoke);
-            String revokeSection = String.join(
-                ",",
-                List.of(revokeGeneralAccessStr, revokeNamedRecipients).stream().filter(s -> !s.isBlank()).toList()
-            );
-
+            String generalAccessField = generalAccessPresent
+                ? (generalAccess != null ? "\"general_access\": \"" + generalAccess + "\"," : "\"general_access\": null,")
+                : "";
             return """
                 {
                   "resource_id": "%s",
                   "resource_type": "%s",
-                  "add": {
-                    %s
-                  },
-                  "revoke": {
-                    %s
-                  }
+                  %s
+                  "add": %s,
+                  "revoke": %s
                 }
-                """.formatted(resourceId, resourceType, addSection, revokeSection);
+                """.formatted(resourceId, resourceType, generalAccessField, buildSection(share), buildSection(revoke));
+        }
+
+        // Produces e.g.: {"sample_read_only":{"users":["alice"]}}
+        private String buildSection(Map<String, Recipients> named) {
+            try {
+                XContentBuilder b = XContentFactory.jsonBuilder().startObject();
+                for (Map.Entry<String, Recipients> entry : named.entrySet()) {
+                    b.field(entry.getKey());
+                    entry.getValue().toXContent(b, ToXContent.EMPTY_PARAMS);
+                }
+                return b.endObject().toString();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -618,11 +605,11 @@ public final class TestUtils {
             }
         }
 
-        public TestRestClient.HttpResponse revokeGeneralAccess(String resourceId, TestSecurityConfig.User user, String accessLevel) {
+        public TestRestClient.HttpResponse revokeGeneralAccess(String resourceId, TestSecurityConfig.User user) {
             PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
             patchBuilder.resourceType(RESOURCE_TYPE);
             patchBuilder.resourceId(resourceId);
-            patchBuilder.revokeGeneralAccess(accessLevel);
+            patchBuilder.revokeGeneralAccess();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
             }

@@ -119,7 +119,7 @@ public class PubliclySharedDocTests {
         ok(() -> api.getResource(resourceId, FULL_ACCESS_USER));
 
         // revoke general access
-        ok(() -> api.revokeGeneralAccess(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
+        ok(() -> api.revokeGeneralAccess(resourceId, USER_ADMIN));
 
         // access should be gone
         forbidden(() -> api.getResource(resourceId, FULL_ACCESS_USER));
@@ -131,7 +131,7 @@ public class PubliclySharedDocTests {
 
         // a user with only general read access cannot view or modify sharing info
         forbidden(() -> api.shareResource(resourceId, FULL_ACCESS_USER, FULL_ACCESS_USER, SAMPLE_FULL_ACCESS));
-        forbidden(() -> api.revokeGeneralAccess(resourceId, FULL_ACCESS_USER, SAMPLE_READ_ONLY));
+        forbidden(() -> api.revokeGeneralAccess(resourceId, FULL_ACCESS_USER));
     }
 
     @Test
@@ -189,7 +189,7 @@ public class PubliclySharedDocTests {
         TestRestClient.HttpResponse listResponse = ok(() -> api.listResources(FULL_ACCESS_USER));
         assertThat(listResponse.getBody(), containsString("sample"));
 
-        ok(() -> api.revokeGeneralAccess(resourceId, USER_ADMIN, SAMPLE_READ_ONLY));
+        ok(() -> api.revokeGeneralAccess(resourceId, USER_ADMIN));
         api.awaitResourceVisibility(resourceId, "user:admin"); // user:* sentinel removed, only creator remains
 
         // should no longer appear

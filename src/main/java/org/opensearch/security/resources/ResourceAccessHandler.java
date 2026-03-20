@@ -213,6 +213,8 @@ public class ResourceAccessHandler {
         @NonNull String resourceType,
         @Nullable ShareWith add,
         @Nullable ShareWith revoke,
+        boolean generalAccessPresent,
+        @Nullable String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -249,19 +251,27 @@ public class ResourceAccessHandler {
             revoke
         );
 
-        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, add, revoke, ActionListener.wrap(sharingInfo -> {
-            LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
-            listener.onResponse(sharingInfo);
-        }, e -> {
-            LOGGER.error(
-                "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
-                resourceId,
-                add,
-                revoke,
-                e.getMessage()
-            );
-            listener.onFailure(e);
-        }));
+        this.resourceSharingIndexHandler.patchSharingInfo(
+            resourceId,
+            resourceIndex,
+            add,
+            revoke,
+            generalAccessPresent,
+            generalAccess,
+            ActionListener.wrap(sharingInfo -> {
+                LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
+                listener.onResponse(sharingInfo);
+            }, e -> {
+                LOGGER.error(
+                    "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
+                    resourceId,
+                    add,
+                    revoke,
+                    e.getMessage()
+                );
+                listener.onFailure(e);
+            })
+        );
 
     }
 

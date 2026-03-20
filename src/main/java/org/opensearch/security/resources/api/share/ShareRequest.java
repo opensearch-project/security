@@ -43,6 +43,10 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     private final ShareWith add;
     @JsonProperty("revoke")
     private final ShareWith revoke;
+    /** True if general_access was explicitly present in the patch request (even if null). */
+    private final boolean generalAccessPresent;
+    @JsonProperty("general_access")
+    private final String generalAccess;
 
     private final RestRequest.Method method;
 
@@ -56,6 +60,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.shareWith = builder.shareWith;
         this.add = builder.add;
         this.revoke = builder.revoke;
+        this.generalAccessPresent = builder.generalAccessPresent;
+        this.generalAccess = builder.generalAccess;
         this.method = builder.method;
     }
 
@@ -68,6 +74,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
         this.add = in.readOptionalWriteable(ShareWith::new);
         this.revoke = in.readOptionalWriteable(ShareWith::new);
+        this.generalAccessPresent = in.readBoolean();
+        this.generalAccess = in.readOptionalString();
     }
 
     @Override
@@ -79,6 +87,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         out.writeOptionalWriteable(shareWith);
         out.writeOptionalWriteable(add);
         out.writeOptionalWriteable(revoke);
+        out.writeBoolean(generalAccessPresent);
+        out.writeOptionalString(generalAccess);
     }
 
     @Override
@@ -98,8 +108,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             arv.addValidationError("share_with is required");
             throw arv;
         }
-        if ((method == RestRequest.Method.PATCH || method == RestRequest.Method.POST) && add == null && revoke == null) {
-            arv.addValidationError("either add or revoke must be present");
+        if ((method == RestRequest.Method.PATCH || method == RestRequest.Method.POST)
+            && add == null
+            && revoke == null
+            && !generalAccessPresent) {
+            arv.addValidationError("at least one of add, revoke, or general_access must be present");
             throw arv;
         }
         return null;
@@ -115,6 +128,14 @@ public class ShareRequest extends ActionRequest implements DocRequest {
 
     public ShareWith getRevoke() {
         return revoke;
+    }
+
+    public boolean isGeneralAccessPresent() {
+        return generalAccessPresent;
+    }
+
+    public String getGeneralAccess() {
+        return generalAccess;
     }
 
     public RestRequest.Method getMethod() {
@@ -156,6 +177,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         ShareWith shareWith;
         ShareWith add;
         ShareWith revoke;
+        boolean generalAccessPresent;
+        String generalAccess;
         RestRequest.Method method;
 
         public void resourceId(String resourceId) {
@@ -247,6 +270,10 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                             case "revoke":
                                 this.revoke(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
+                            case "general_access":
+                                this.generalAccessPresent = true;
+                                this.generalAccess = parser.currentToken() == XContentParser.Token.VALUE_NULL ? null : parser.text();
+                                break;
                             default:
                                 parser.skipChildren();
                         }
@@ -262,11 +289,12 @@ public class ShareRequest extends ActionRequest implements DocRequest {
          */
         private void rejectSharePermissionOnGeneralAccess(ResourcePluginInfo resourcePluginInfo) {
             if (resourceType == null) return;
-            var flattened = resourcePluginInfo.flattenedForType(resourceType);
-            for (ShareWith sw : new ShareWith[] { shareWith, add }) {
-                if (sw == null || sw.getGeneralAccess() == null) continue;
-                String level = sw.getGeneralAccess();
-                if (flattened.resolve(Set.of(level)).contains(ShareAction.NAME)) {
+            var actionGroups = resourcePluginInfo.flattenedForType(resourceType);
+            // check top-level general_access (PATCH) and share_with.general_access (PUT)
+            String putLevel = shareWith != null ? shareWith.getGeneralAccess() : null;
+            for (String level : new String[] { generalAccess, putLevel }) {
+                if (level == null) continue;
+                if (actionGroups.resolve(Set.of(level)).contains(ShareAction.NAME)) {
                     throw new IllegalArgumentException(
                         "general_access level ['"
                             + level
