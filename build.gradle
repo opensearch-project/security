@@ -523,6 +523,7 @@ configurations {
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
+            force "org.scala-lang:scala3-library_3:3.8.2"
         }
     }
 }
