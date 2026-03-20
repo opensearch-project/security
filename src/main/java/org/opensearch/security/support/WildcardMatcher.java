@@ -187,6 +187,20 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
     }
 
+    /**
+     * Returns true if the given pattern is an exact pattern, meaning that the pattern matches only exactly one string.
+     */
+    public static boolean isExactPattern(String pattern) {
+        return pattern == null || !(pattern.contains("*") || pattern.contains("?") || (pattern.startsWith("/") && pattern.endsWith("/")));
+    }
+
+    /**
+     * Returns true if the pattern has the form "index*", meaning that it matches all strings that start with "index".
+     */
+    public static boolean isPrefixPattern(String pattern) {
+        return pattern != null && pattern.length() > 1 && pattern.indexOf('*') == pattern.length() - 1 && !pattern.contains("?");
+    }
+
     // This may in future use more optimized techniques to combine multiple WildcardMatchers in a single automaton
     public static <T> WildcardMatcher from(Stream<T> stream) {
         Collection<WildcardMatcher> matchers = stream.map(t -> {
