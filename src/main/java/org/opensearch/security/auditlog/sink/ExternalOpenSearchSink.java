@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,7 +35,7 @@ import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_
 
 public final class ExternalOpenSearchSink extends AuditLogSink {
 
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = Arrays.asList(new String[] { "TLSv1.2", "TLSv1.1" });
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = SSLConfigConstants.DEFAULT_SSL_PROTOCOLS;
     // config in opensearch.yml
     private final String index;
     private final String type;

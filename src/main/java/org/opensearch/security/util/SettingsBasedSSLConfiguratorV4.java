@@ -32,7 +32,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -79,7 +78,7 @@ public class SettingsBasedSSLConfiguratorV4 {
     public static final String VERIFY_HOSTNAMES = "verify_hostnames";
     public static final String TRUST_ALL = "trust_all";
 
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.of("TLSv1.2", "TLSv1.1");
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = SSLConfigConstants.DEFAULT_SSL_PROTOCOLS;
 
     private SSLContextBuilder sslContextBuilder;
     private final Settings settings;

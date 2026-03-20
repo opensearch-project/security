@@ -520,10 +520,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {
         for (final var tls : configuredProtocols) {
             if (tls.equalsIgnoreCase("TLSv1") || tls.equalsIgnoreCase("TLSv1.1")) {
-                deprecationLogger.deprecate(
-                    settings,
-                    "The '{}' setting contains {} protocol version which was deprecated since 2021 (RFC 8996). "
-                        + "Support for it will be removed in the next major release.",
+                throw new OpenSearchException(
+                    "The '{}' setting contains {} protocol version which has been removed in OpenSearch 3.0 (RFC 8996). "
+                        + "Please remove this protocol from your configuration.",
                     settings,
                     tls
                 );

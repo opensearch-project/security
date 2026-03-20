@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 ### Changed
+- **Breaking change:** Default TLS protocol list no longer includes TLSv1.1. New default is `["TLSv1.3", "TLSv1.2"]`, aligned with Mozilla Intermediate TLS profile. Operators connecting to legacy endpoints may still explicitly configure `enabled_protocols` ([#6003](https://github.com/opensearch-project/security/pull/6003))
+- **Breaking change:** Default TLS cipher list updated to GCM/ChaCha20 ECDHE-only suites. CBC-mode, DHE_DSS, SHA-1 MAC, and IBM `SSL_`-prefix ciphers removed from defaults. Explicitly configured cipher lists are unaffected ([#6003](https://github.com/opensearch-project/security/pull/6003))
+- All outbound TLS connectors (LDAP, external audit log, HTTP client) now share the same default protocol list as the inbound server TLS configuration ([#6003](https://github.com/opensearch-project/security/pull/6003))
+- Configuring TLSv1 or TLSv1.1 explicitly now causes a startup failure instead of a deprecation warning ([#6003](https://github.com/opensearch-project/security/pull/6003))
 
 ### Features
 
