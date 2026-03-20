@@ -26,13 +26,15 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 
 /**
  * This class contains information about whom a resource is shared with and what is the action-group associated with it.
+ * Optionally includes a {@code general_access} level that grants baseline access to all authenticated users.
  *
  * <p>Example usage:
  * <pre>
  * "share_with": {
- *   "default": {
- *     "users": [],
- *     "roles": [],
+ *   "general_access": "read_only",
+ *   "read_write": {
+ *     "users": ["alice"],
+ *     "roles": ["editors"],
  *     "backend_roles": []
  *   }
  * }

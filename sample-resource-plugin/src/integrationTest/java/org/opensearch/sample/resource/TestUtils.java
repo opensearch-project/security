@@ -304,11 +304,6 @@ public final class TestUtils {
             revoke.put(accessLevel, existing);
         }
 
-        public void setGeneralAccess(String accessLevel) {
-            this.generalAccessPresent = true;
-            this.generalAccess = accessLevel;
-        }
-
         public void revokeGeneralAccess() {
             this.generalAccessPresent = true;
             this.generalAccess = null;

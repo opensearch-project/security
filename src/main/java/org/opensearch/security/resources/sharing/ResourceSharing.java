@@ -30,11 +30,11 @@ import org.opensearch.security.user.User;
 
 /**
  * Represents a resource sharing configuration that manages access control for OpenSearch resources.
- * This class holds information about shared resources including their source, creator, and sharing permissions.
+ * This class holds information about shared resources including their creator and sharing permissions.
  * The class maintains information about:
  * <ul>
- *   <li>The source index where the resource is defined</li>
  *   <li>The unique identifier of the resource</li>
+ *   <li>The type of the resource</li>
  *   <li>The creator's information</li>
  *   <li>The sharing permissions and recipients</li>
  * </ul>
@@ -260,9 +260,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     }
 
     /**
-     * Checks if the given resource is shared with everyone, i.e. the entity list is "*"
+     * Checks if the given resource is shared with everyone via general access.
      *
-     * @return True if the resource is shared with everyone, false otherwise.
+     * @return True if the resource has general access set (i.e. publicly accessible), false otherwise.
      */
     public boolean isSharedWithEveryone() {
         return this.shareWith != null && this.shareWith.isPublic();
@@ -319,7 +319,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * Fetches all access-levels where at-least 1 recipient matches the given set of targets
      * @param recipientType the type of recipient to be matched against
      * @param entities targets to look for
-     * @return set of access-levels which contain given nay of the targets
+     * @return set of access-levels which contain any of the targets
      */
     public Set<String> fetchAccessLevels(Recipient recipientType, Set<String> entities) {
         if (shareWith == null) {
