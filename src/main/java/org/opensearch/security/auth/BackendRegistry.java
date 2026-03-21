@@ -87,7 +87,7 @@ import static org.opensearch.security.http.HTTPBasicAuthenticator.BASIC_TYPE;
 public class BackendRegistry {
 
     protected static final Logger log = LogManager.getLogger(BackendRegistry.class);
-    private static final Set<String> GRPC_SUPPORTED_AUTH = Set.of("jwt");
+    private static final Set<String> GRPC_SUPPORTED_AUTH = Set.of("jwt", "basic");
 
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
