@@ -251,6 +251,30 @@ public class ResourcePluginInfo {
         }
     }
 
+    public String getParentIdField(String resourceType) {
+        lock.readLock().lock();
+        try {
+            if (!typeToProvider.containsKey(resourceType)) {
+                return null;
+            }
+            return typeToProvider.get(resourceType).parentIdField();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public String getParentType(String resourceType) {
+        lock.readLock().lock();
+        try {
+            if (!typeToProvider.containsKey(resourceType)) {
+                return null;
+            }
+            return typeToProvider.get(resourceType).parentType();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public Set<ResourceDashboardInfo> getResourceTypes() {
         lock.readLock().lock();
         try {

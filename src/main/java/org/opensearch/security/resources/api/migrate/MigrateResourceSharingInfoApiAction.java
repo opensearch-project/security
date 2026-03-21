@@ -255,7 +255,19 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         type = typeToDefaultAccessLevel.keySet().iterator().next();
                     }
 
-                    results.add(new SourceDoc(id, username, backendRoles, type));
+                    // Extract parent ID if the provider declares a parentIdField
+                    String parentId = null;
+                    if (type != null) {
+                        ResourceProvider hitProvider = resourcePluginInfo.getResourceProvider(type);
+                        if (hitProvider != null && hitProvider.parentIdField() != null) {
+                            parentId = rec.at("/" + hitProvider.parentIdField().replace(".", "/")).asText(null);
+                            if (parentId != null && parentId.isEmpty()) {
+                                parentId = null;
+                            }
+                        }
+                    }
+
+                    results.add(new SourceDoc(id, username, backendRoles, type, parentId));
                 }
                 // 4) fetch next batch
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
@@ -356,13 +368,16 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     failureCount.getAndIncrement();
                     migrationStatsLatch.countDown();
                 });
-
-                ResourceSharing sharingInfo = ResourceSharing.builder()
+                // Build the ResourceSharing record, including parent hierarchy if the provider declares one
+                ResourceSharing.Builder sharingBuilder = ResourceSharing.builder()
                     .resourceId(resourceId)
                     .createdBy(createdBy)
                     .shareWith(shareWith)
-                    .resourceType(provider.resourceType())
-                    .build();
+                    .resourceType(provider.resourceType());
+                if (doc.parentId != null && provider.parentType() != null) {
+                    sharingBuilder.parentId(doc.parentId).parentType(provider.parentType());
+                }
+                ResourceSharing sharingInfo = sharingBuilder.build();
 
                 sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, listener);
             } catch (Exception e) {
@@ -507,7 +522,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         };
     }
 
-    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type) {
+    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId) {
     }
 
     record ValidationResultArg(String sourceIndex, String defaultOwnerName, Map<String, String> typeToDefaultAccessLevel, List<
