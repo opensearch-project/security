@@ -243,6 +243,20 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
     }
 
+    public static String migrationPayload_valid_withParent(String groupId) {
+        return """
+            {
+              "source_index": "%s",
+              "username_path": "%s",
+              "backend_roles_path": "%s",
+              "default_owner": "%s",
+              "default_access_level": {
+                "sample-resource": "%s"
+              }
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "some_user", "sample_read_only");
+    }
+
     public static String putSharingInfoPayload(
         String resourceId,
         String resourceType,

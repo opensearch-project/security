@@ -42,13 +42,17 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_MIGRATION_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GROUP_CREATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GROUP_GET_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingBackendRoles;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingDefaultAccessLevel;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingDefaultOwner;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingSourceIndex;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_missingUserName;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid;
+import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid_withParent;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid_withSpecifiedAccessLevel;
+import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
@@ -586,6 +590,82 @@ public class MigrateApiTests {
                     "Invalid access level blah for resource type [sample-resource]. Allowed: sample_read_write, sample_read_only, sample_full_access"
                 )
             );
+        }
+    }
+
+    @Test
+    public void testMigrateAPI_withParentHierarchy() {
+        // Create a resource group first, then a resource that belongs to it
+        String groupId = createSampleResourceGroup();
+        String resourceId = createSampleResourceWithGroup(groupId);
+        clearResourceSharingEntries();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            TestRestClient.HttpResponse migrateResponse = client.postJson(
+                RESOURCE_SHARING_MIGRATION_ENDPOINT,
+                migrationPayload_valid_withParent(groupId)
+            );
+            migrateResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+            );
+
+            // Verify the sharing record for the resource has parent_type and parent_id set
+            TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
+            sharingResponse.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode hitsNode = (ArrayNode) sharingResponse.bodyAsJsonNode().get("hits").get("hits");
+            assertThat(hitsNode.size(), equalTo(2));
+
+            // Find the resource hit (not the group) and verify parent fields
+            com.fasterxml.jackson.databind.JsonNode resourceSource = null;
+            for (com.fasterxml.jackson.databind.JsonNode hit : hitsNode) {
+                com.fasterxml.jackson.databind.JsonNode src = hit.get("_source");
+                if (RESOURCE_TYPE.equals(src.get("resource_type").asText())) {
+                    resourceSource = src;
+                    break;
+                }
+            }
+            assertThat("Expected a sharing record for resource type " + RESOURCE_TYPE, resourceSource != null);
+            assertThat(resourceSource.get("resource_id").asText(), equalTo(resourceId));
+            assertThat(resourceSource.get("parent_type").asText(), equalTo(RESOURCE_GROUP_TYPE));
+            assertThat(resourceSource.get("parent_id").asText(), equalTo(groupId));
+        }
+    }
+
+    private String createSampleResourceGroup() {
+        try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
+            String sampleGroup = """
+                {
+                    "name":"sample_group"
+                }
+                """;
+            TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_GROUP_CREATE_ENDPOINT, sampleGroup);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            String groupId = response.getTextFromJsonBody("/message").split(":")[1].trim();
+            Awaitility.await()
+                .alias("Wait until group is populated")
+                .until(() -> client.get(SAMPLE_RESOURCE_GROUP_GET_ENDPOINT + "/" + groupId).getStatusCode(), equalTo(200));
+            return groupId;
+        }
+    }
+
+    private String createSampleResourceWithGroup(String groupId) {
+        try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
+            String sampleResource = """
+                {
+                    "name":"sample_with_group",
+                    "group_id":"%s",
+                    "store_user": true
+                }
+                """.formatted(groupId);
+            TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            String resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
+            Awaitility.await()
+                .alias("Wait until resource is populated")
+                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
+            return resourceId;
         }
     }
 
