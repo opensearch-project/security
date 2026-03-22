@@ -11,11 +11,11 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableList;
-
 import java.util.Arrays;
 import java.util.Collections;
+
+import com.google.common.collect.ImmutableList;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

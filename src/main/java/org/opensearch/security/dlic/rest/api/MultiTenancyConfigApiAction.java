@@ -32,8 +32,8 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
-import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -50,8 +50,8 @@ import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.arraySizeValidator;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR;
+import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.arraySizeValidator;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
@@ -140,11 +140,16 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
                     public Map<String, DataType> allowedKeys() {
                         // Provide basic type information for backward compatibility
                         return ImmutableMap.of(
-                            DEFAULT_TENANT_JSON_PROPERTY, DataType.STRING,
-                            PRIVATE_TENANT_ENABLED_JSON_PROPERTY, DataType.BOOLEAN,
-                            MULTITENANCY_ENABLED_JSON_PROPERTY, DataType.BOOLEAN,
-                            SIGN_IN_OPTIONS, DataType.ARRAY,
-                            PREFERRED_TENANTS, DataType.ARRAY
+                            DEFAULT_TENANT_JSON_PROPERTY,
+                            DataType.STRING,
+                            PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
+                            DataType.BOOLEAN,
+                            MULTITENANCY_ENABLED_JSON_PROPERTY,
+                            DataType.BOOLEAN,
+                            SIGN_IN_OPTIONS,
+                            DataType.ARRAY,
+                            PREFERRED_TENANTS,
+                            DataType.ARRAY
                         );
                     }
 
@@ -162,13 +167,10 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
                             .put(PRIVATE_TENANT_ENABLED_JSON_PROPERTY, FieldConfiguration.of(DataType.BOOLEAN))
                             .put(MULTITENANCY_ENABLED_JSON_PROPERTY, FieldConfiguration.of(DataType.BOOLEAN))
                             .put(SIGN_IN_OPTIONS, FieldConfiguration.of(DataType.ARRAY))
-                            .put(
-                                PREFERRED_TENANTS,
-                                FieldConfiguration.of(DataType.ARRAY, (fieldName, value) -> {
-                                    arraySizeValidator(PREFERRED_TENANTS_MAX_SIZE).validate(fieldName, value);
-                                    ARRAY_OF_STRINGS_VALIDATOR.validate(fieldName, value);
-                                })
-                            )
+                            .put(PREFERRED_TENANTS, FieldConfiguration.of(DataType.ARRAY, (fieldName, value) -> {
+                                arraySizeValidator(PREFERRED_TENANTS_MAX_SIZE).validate(fieldName, value);
+                                ARRAY_OF_STRINGS_VALIDATOR.validate(fieldName, value);
+                            }))
                             .build();
                     }
                 });
@@ -282,8 +284,9 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     private List<String> getPreferredTenants(JsonNode preferredTenants) {
-        return IntStream.range(0, preferredTenants.size()).mapToObj(preferredTenants::get).map(tenant -> {
-            return tenant.asText();
-        }).collect(Collectors.toList());
+        return IntStream.range(0, preferredTenants.size())
+            .mapToObj(preferredTenants::get)
+            .map(tenant -> { return tenant.asText(); })
+            .collect(Collectors.toList());
     }
 }

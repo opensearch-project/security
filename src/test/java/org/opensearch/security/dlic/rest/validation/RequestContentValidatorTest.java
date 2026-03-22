@@ -665,7 +665,10 @@ public class RequestContentValidatorTest {
     public void testArrayOfStringsValidatorRejectsNonStringElement() {
         final ObjectNode node = DefaultObjectMapper.objectMapper.createObjectNode();
         node.putArray("arr").add("one").add(2);
-        expectThrows(IllegalArgumentException.class, () -> RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate("arr", node.get("arr")));
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate("arr", node.get("arr"))
+        );
     }
 
     @Test

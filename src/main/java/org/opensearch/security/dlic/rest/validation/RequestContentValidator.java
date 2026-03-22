@@ -384,9 +384,7 @@ public class RequestContentValidator implements ToXContent {
         final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
         final Map<String, DataType> allowedKeys = new HashMap<>();
         if (fieldConfigs != null) {
-            fieldConfigs.forEach((fieldName, fieldConfig) -> {
-                allowedKeys.put(fieldName, fieldConfig.dataType);
-            });
+            fieldConfigs.forEach((fieldName, fieldConfig) -> { allowedKeys.put(fieldName, fieldConfig.dataType); });
         } else {
             allowedKeys.putAll(validationContext.allowedKeys());
         }
@@ -723,9 +721,7 @@ public class RequestContentValidator implements ToXContent {
      * Validator for array entry counts with custom maxSize (works with JsonNode arrays)
      */
     public static FieldValidator arraySizeValidator(int maxSize) {
-        return (fieldName, value) -> {
-            validateArraySize(fieldName, value, maxSize);
-        };
+        return (fieldName, value) -> { validateArraySize(fieldName, value, maxSize); };
     }
 
     private static void validateArraySize(String fieldName, Object value, int maxSize) {

@@ -11,9 +11,9 @@
 
 package org.opensearch.security.privileges;
 
-import org.opensearch.security.securityconf.impl.v7.ConfigV7;
-
 import java.util.List;
+
+import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 
 /**
  * Provides access to the current configuration related to Dashboards multi-tenancy.
