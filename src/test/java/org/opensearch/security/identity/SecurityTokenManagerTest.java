@@ -267,21 +267,23 @@ public class SecurityTokenManagerTest {
     }
 
     @Test
-    public void testCreateJwtWithBadEncryptionKey() {
+    public void issueOnBehalfOfToken_successWithoutEncryptionKey() throws Exception {
+        doAnswer(invockation -> new ClusterName("cluster17")).when(cs).getClusterName();
         doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
         final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon"));
         when(threadPool.getThreadContext()).thenReturn(threadContext);
 
+        // encryption_key is absent — should still succeed, roles stored in plaintext
         createMockJwtVendorInTokenManager(false);
 
-        final Throwable exception = assertThrows(RuntimeException.class, () -> {
-            try {
-                tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 90000000L));
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        assertThat(exception.getMessage(), is("java.lang.IllegalArgumentException: encryption_key cannot be null"));
+        final ExpiringBearerAuthToken authToken = mock(ExpiringBearerAuthToken.class);
+        when(jwtVendor.createJwt(any(), any(), any(), any())).thenReturn(authToken);
+        final AuthToken returnedToken = tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 450L));
+
+        assertThat(returnedToken, equalTo(authToken));
+
+        verify(cs).getClusterName();
+        verify(threadPool).getThreadContext();
     }
 }
