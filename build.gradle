@@ -495,7 +495,7 @@ configurations {
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.8"
             force "com.google.guava:guava:${guava_version}"
-            force "at.yawk.lz4:lz4-java:1.10.3"
+            force "at.yawk.lz4:lz4-java:1.10.4"
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
