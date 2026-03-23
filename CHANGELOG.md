@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Performance optimizations for building internal authorization data structures upon config updates ([#5988](https://github.com/opensearch-project/security/pull/5988))
 - Make encryption_key optional for obo token authenticator ([#6017](https://github.com/opensearch-project/security/pull/6017)
 - Enable basic authentication for gRPC transport ([#6005](https://github.com/opensearch-project/security/pull/6005))
+- [Resource Sharing] Allow specifying default access level in resource access levels yml file ([#6018](https://github.com/opensearch-project/security/pull/6018))
 
 ### Bug Fixes
 - Fix audit log writing errors for rollover-enabled alias indices ([#5878](https://github.com/opensearch-project/security/pull/5878)
