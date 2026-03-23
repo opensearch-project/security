@@ -74,7 +74,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return builder.build();
         });
         this.clusterName = clusterName;
-        this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
+        this.encryptionUtil = encryptionKey != null ? new EncryptionDecryptionUtil(encryptionKey) : null;
     }
 
     private JwtParserBuilder initParserBuilder(final String signingKey) {
@@ -98,11 +98,21 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {
-        Object er = claims.get("er");
-        Object dr = claims.get("dr");
+        Object er = claims.get("encrypted_roles");
+        if (er == null) {
+            er = claims.get("er"); // backward compatibility
+        }
+        Object dr = claims.get("roles");
+        if (dr == null) {
+            dr = claims.get("dr"); // backward compatibility
+        }
         String rolesClaim = "";
 
         if (er != null) {
+            if (encryptionUtil == null) {
+                log.error("OBO token contains encrypted roles ('er') but no encryption_key is configured");
+                return List.of();
+            }
             rolesClaim = encryptionUtil.decrypt(er.toString());
         } else if (dr != null) {
             rolesClaim = dr.toString();
@@ -119,7 +129,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private String[] extractBackendRolesFromClaims(Claims claims) {
-        Object backendRolesObject = claims.get("br");
+        Object backendRolesObject = claims.get("backend_roles");
         String[] backendRoles;
 
         if (backendRolesObject == null) {

@@ -199,7 +199,6 @@ import org.opensearch.security.rest.SecurityInfoAction;
 import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
-import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
@@ -293,7 +292,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile SecurityFilter sf;
     private volatile IndexResolverReplacer irr;
-    private final AtomicReference<NamedXContentRegistry> namedXContentRegistry = new AtomicReference<>(NamedXContentRegistry.EMPTY);;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private final OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
@@ -775,7 +773,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ciol,
                     privilegesConfiguration,
                     roleMapper,
-                    dlsFlsValve::getCurrentConfig,
+                    dlsFlsBaseContext::config,
                     dlsFlsBaseContext
                 )
             );
@@ -831,7 +829,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onPreQueryPhase(SearchContext context) {
-                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get());
+                    dlsFlsValve.handleSearchContext(context, threadPool);
                 }
 
                 @Override
@@ -1182,7 +1180,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
-        namedXContentRegistry.set(xContentRegistry);
         if (SSLConfig.isSslOnlyMode()) {
             auditLog = new NullAuditLog();
         } else {
@@ -1226,7 +1223,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             auditLog,
             settings,
             cih::getReasonForUnavailability,
-            irr
+            irr,
+            xContentRegistry
         );
         this.privilegesConfiguration = privilegesConfiguration;
 
@@ -1247,7 +1245,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 resourcePluginInfo,
                 resourceSharingEnabledSetting
             );
-            cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, resourcePluginInfo);
@@ -2378,12 +2375,23 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public Function<String, Predicate<String>> getFieldFilter() {
         return index -> {
             if (threadPool == null || dlsFlsValve == null) {
-                return field -> true;
+                return NOOP_FIELD_PREDICATE;
             }
 
             PrivilegesEvaluationContext ctx = this.dlsFlsBaseContext != null
                 ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext()
                 : null;
+
+            boolean indexHasRestrictions = false;
+            try {
+                indexHasRestrictions = dlsFlsValve.indexHasFlsRestrictions(index, ctx);
+
+                if (!indexHasRestrictions) {
+                    return NOOP_FIELD_PREDICATE;
+                }
+            } catch (PrivilegesEvaluationException e) {
+                log.error("Error while evaluating FLS restrictions for {}", index, e);
+            }
 
             return field -> {
                 try {
