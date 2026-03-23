@@ -130,9 +130,6 @@ public class SecurityTokenManager implements TokenManager {
         if (mappedRoles == null) {
             throw new IllegalArgumentException("Roles cannot be null");
         }
-        if (isKeyNull(oboSettings, "encryption_key")) {
-            throw new IllegalArgumentException("encryption_key cannot be null");
-        }
 
         final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(oboSettings.get("encryption_key"));
 
