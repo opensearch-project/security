@@ -91,7 +91,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
 
             ctx.channel().attr(Netty4HttpRequestHeaderVerifier.UNCONSUMED_PARAMS).set(requestChannel.getUnconsumedParams());
 
-            ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false);
+            ThreadContext.StoredContext contextToRestore = threadPool.getThreadContext().newStoredContext(false, true);
             ctx.channel().attr(Netty4HttpRequestHeaderVerifier.CONTEXT_TO_RESTORE).set(contextToRestore);
 
             requestChannel.getQueuedResponse()

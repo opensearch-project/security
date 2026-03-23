@@ -36,7 +36,9 @@ import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.Base64Helper;
@@ -373,7 +375,7 @@ public class DlsFlsLegacyHeadersTest {
 
     static DlsFlsProcessedConfig dlsFlsProcessedConfig(SecurityDynamicConfiguration<RoleV7> rolesConfig, Metadata metadata) {
         return new DlsFlsProcessedConfig(
-            rolesConfig,
+            new CompiledRoles(rolesConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT),
             metadata.getIndicesLookup(),
             xContentRegistry,
             Settings.EMPTY,

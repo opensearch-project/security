@@ -495,13 +495,13 @@ configurations {
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.8"
             force "com.google.guava:guava:${guava_version}"
-            force "at.yawk.lz4:lz4-java:1.10.3"
+            force "at.yawk.lz4:lz4-java:1.10.4"
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.34.100"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.34.200"
             force "org.eclipse.platform:org.eclipse.equinox.common:3.20.300"
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
@@ -520,10 +520,10 @@ configurations {
             force "org.mockito:mockito-core:5.21.0"
             force "net.bytebuddy:byte-buddy:1.18.7"
             force "org.ow2.asm:asm:9.9.1"
-            force "com.google.j2objc:j2objc-annotations:3.1"
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
+            force "org.scala-lang:scala3-library_3:3.8.2"
         }
     }
 }
@@ -688,7 +688,7 @@ dependencies {
         implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     }
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.8'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.6.2"
@@ -735,10 +735,8 @@ dependencies {
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
-    runtimeOnly 'com.google.guava:failureaccess:1.0.3'
     runtimeOnly 'org.apache.commons:commons-text:1.15.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
-    runtimeOnly 'com.google.j2objc:j2objc-annotations:3.1'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'at.yawk.lz4:lz4-java:1.10.4'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
@@ -750,8 +748,9 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.54.0'
-    runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
+    testRuntimeOnly 'com.google.guava:failureaccess:1.0.3'
+    testRuntimeOnly 'org.checkerframework:checker-qual:3.54.0'
+    testRuntimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
@@ -787,7 +786,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.1'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.3"
+    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.4"
     testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.3'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.3'
