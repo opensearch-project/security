@@ -380,6 +380,40 @@ public class MigrateApiTests {
     }
 
     @Test
+    public void testMigrateAPIWithSuperAdmin_noDefaultAccessLevel_usesRegisteredDefault() {
+        String resourceId = createSampleResource();
+        String resourceIdNoUser = createSampleResourceNoUser();
+        clearResourceSharingEntries();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            // omit default_access_level entirely — should fall back to sample_read_only from resource-access-levels.yml
+            TestRestClient.HttpResponse migrateResponse = client.postJson(
+                RESOURCE_SHARING_MIGRATION_ENDPOINT,
+                migrationPayload_missingDefaultAccessLevel()
+            );
+            migrateResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+            );
+
+            TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
+            sharingResponse.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode hitsNode = (ArrayNode) sharingResponse.bodyAsJsonNode().get("hits").get("hits");
+            assertThat(hitsNode.size(), equalTo(2));
+
+            List<ObjectNode> actualHits = new ArrayList<>();
+            hitsNode.forEach(node -> actualHits.add((ObjectNode) node));
+
+            // registered default is sample_read_only
+            assertThat(
+                actualHits,
+                containsInAnyOrder(expectedHits(resourceId, resourceIdNoUser, "sample_read_only").toArray(new ObjectNode[0]))
+            );
+        }
+    }
+
+    @Test
     public void testMigrateAPIWithSuperAdmin_noDefaultAccessLevel() {
         createSampleResource();
 
@@ -388,7 +422,8 @@ public class MigrateApiTests {
                 RESOURCE_SHARING_MIGRATION_ENDPOINT,
                 migrationPayload_missingDefaultAccessLevel()
             );
-            assertThat(migrateResponse, RestMatchers.isBadRequest("/missing_mandatory_keys/keys", "default_access_level"));
+            // default_access_level is optional; sample plugin has sample_read_only registered as default in resource-access-levels.yml
+            migrateResponse.assertStatusCode(HttpStatus.SC_OK);
         }
     }
 

@@ -1,6 +1,7 @@
 resource_types:
   sample-resource:
       sample_read_only:
+        default: true
         allowed_actions:
           - "cluster:admin/sample-resource-plugin/get"
 
@@ -14,6 +15,7 @@ resource_types:
           - "cluster:admin/security/resource/share"
   sample-resource-group:
     sample_group_read_only:
+      default: true
       allowed_actions:
         - "cluster:admin/sample-resource-plugin/group/get"
         # TODO: can sample-resource access levels be referenced here? i.e. sample_read_only
