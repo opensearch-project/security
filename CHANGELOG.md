@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Bug Fixes
 - Fix audit log writing errors for rollover-enabled alias indices ([#5878](https://github.com/opensearch-project/security/pull/5878)
 - Fix the issue of unprocessed X-Request-Id ([#5954](https://github.com/opensearch-project/security/pull/5954))
+- Fix audit log `NONE` sentinel not respected for `disabled_rest_categories`, `disabled_transport_categories`, and `ignore_users` in dynamic configuration ([#6021](https://github.com/opensearch-project/security/pull/6021))
 - Improve DLS error message to identify undefined user attributes when query substitution fails ([#5975](https://github.com/opensearch-project/security/pull/5975))
 - Fix span propagation issue for tracing([#6006](https://github.com/opensearch-project/security/pull/6006))
 
