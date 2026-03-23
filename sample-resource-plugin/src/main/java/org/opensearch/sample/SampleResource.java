@@ -62,6 +62,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         }
         s.setName((String) a[0]);
         s.setDescription((String) a[1]);
+        // Used for parentId testing for resource hierarchy
         s.setGroupId((String) a[2]);
         // ignore a[3] as we know the type
         s.setAttributes((Map<String, String>) a[4]);

@@ -594,6 +594,43 @@ public class MigrateApiTests {
     }
 
     @Test
+    public void testMigrateAPI_withGarbageParentId() {
+        // Create a resource whose group_id points to a nonexistent parent
+        String garbageGroupId = "nonexistent-group-id-garbage";
+        String resourceId = createSampleResourceWithGroup(garbageGroupId);
+        clearResourceSharingEntries();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            // Migration should succeed — the API does not validate that parent_id exists
+            TestRestClient.HttpResponse migrateResponse = client.postJson(
+                RESOURCE_SHARING_MIGRATION_ENDPOINT,
+                migrationPayload_valid_withParent(garbageGroupId)
+            );
+            migrateResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 1; skippedNoType 0; skippedExisting 0; failed 0")
+            );
+
+            // The sharing record should be created with the garbage parent_id stored as-is
+            TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
+            sharingResponse.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode hitsNode = (ArrayNode) sharingResponse.bodyAsJsonNode().get("hits").get("hits");
+            assertThat(hitsNode.size(), equalTo(1));
+
+            com.fasterxml.jackson.databind.JsonNode source = hitsNode.get(0).get("_source");
+            assertThat(source.get("resource_id").asText(), equalTo(resourceId));
+            assertThat(source.get("parent_id").asText(), equalTo(garbageGroupId));
+            assertThat(source.get("parent_type").asText(), equalTo(RESOURCE_GROUP_TYPE));
+
+            // Access check for the owner should still work gracefully — the nonexistent parent
+            // simply contributes no additional resource IDs, so the resource remains owner-accessible
+            TestRestClient.HttpResponse getResponse = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            getResponse.assertStatusCode(HttpStatus.SC_OK);
+        }
+    }
+
+    @Test
     public void testMigrateAPI_withParentHierarchy() {
         // Create a resource group first, then a resource that belongs to it
         String groupId = createSampleResourceGroup();
