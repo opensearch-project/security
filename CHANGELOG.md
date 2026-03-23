@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Maintenance
 - Bump `commons-codec:commons-codec` from 1.20.0 to 1.21.0 ([#5937](https://github.com/opensearch-project/security/pull/5937))
-- Bump `at.yawk.lz4:lz4-java` from 1.10.2 to 1.10.4 ([#5938](https://github.com/opensearch-project/security/pull/5938), [#5994](https://github.com/opensearch-project/security/pull/5994))
+- Bump `at.yawk.lz4:lz4-java` from 1.10.2 to 1.10.4 ([#5938](https://github.com/opensearch-project/security/pull/5938), [#5994](https://github.com/opensearch-project/security/pull/5994), [#6028](https://github.com/opensearch-project/security/pull/6028))
 - Bump `open_saml_shib_version` from 9.1.6 to 9.2.1 ([#5936](https://github.com/opensearch-project/security/pull/5936), [#5982](https://github.com/opensearch-project/security/pull/5982))
 - Bump `com.google.googlejavaformat:google-java-format` from 1.33.0 to 1.35.0 ([#5947](https://github.com/opensearch-project/security/pull/5947), [#6011](https://github.com/opensearch-project/security/pull/6011))
 - Bump `aws-actions/configure-aws-credentials` from 5 to 6 ([#5946](https://github.com/opensearch-project/security/pull/5946))
@@ -41,12 +41,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `actions/upload-artifact` from 6 to 7 ([#5980](https://github.com/opensearch-project/security/pull/5980))
 - Bump `actions/download-artifact` from 7 to 8 ([#5979](https://github.com/opensearch-project/security/pull/5979))
 - Bump `jakarta.xml.bind:jakarta.xml.bind-api` from 4.0.4 to 4.0.5 ([#5978](https://github.com/opensearch-project/security/pull/5978))
-- Bump `org.springframework.kafka:spring-kafka-test` from 4.0.2 to 4.0.3 ([#5981](https://github.com/opensearch-project/security/pull/5981))
+- Bump `org.springframework.kafka:spring-kafka-test` from 4.0.2 to 4.0.4 ([#5981](https://github.com/opensearch-project/security/pull/5981), [#6026](https://github.com/opensearch-project/security/pull/6026))
 - Bump `com.carrotsearch.randomizedtesting:randomizedtesting-runner` from 2.8.3 to 2.8.4 ([#5993](https://github.com/opensearch-project/security/pull/5993))
 - Bump `gradle-wrapper` from 9.2.0 to 9.4.0 ([#5996](https://github.com/opensearch-project/security/pull/5996))
 - Bump `release-drafter/release-drafter` from 6 to 7 ([#6007](https://github.com/opensearch-project/security/pull/6007))
 - Bump `net.bytebuddy:byte-buddy` from 1.18.4 to 1.18.7 ([#6012](https://github.com/opensearch-project/security/pull/6012))
 - Bump `com.nimbusds:nimbus-jose-jwt` from 10.7 to 10.8 ([#6030](https://github.com/opensearch-project/security/pull/6030))
+- Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.34.100 to 3.34.200 ([#6027](https://github.com/opensearch-project/security/pull/6027))
+- Bump `com.autonomousapps.build-health` from 3.5.1 to 3.6.1 ([#6029](https://github.com/opensearch-project/security/pull/6029))
 
 ### Removed
 
