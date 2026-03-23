@@ -688,7 +688,7 @@ dependencies {
         implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     }
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.8'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.6.2"
