@@ -76,7 +76,7 @@ public class DfmEmptyOverridesAllDynamicSettingTest {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             HttpResponse response = client.putJson(
                 "_cluster/settings",
-                String.format("{\"transient\":{\"plugins.security.dfm_empty_overrides_all\":%b}}", enabled)
+                String.format("{\"persistent\":{\"plugins.security.dfm_empty_overrides_all\":%b}}", enabled)
             );
             assertThat("Failed to update cluster setting", response.getStatusCode(), is(200));
         }

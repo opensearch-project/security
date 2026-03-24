@@ -34,7 +34,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
  */
 public class SensitiveClusterSettingsAccessTest {
 
-    static final String DFM_SETTING_BODY = "{\"transient\":{\"plugins.security.dfm_empty_overrides_all\":true}}";
+    static final String DFM_SETTING_BODY = "{\"persistent\":{\"plugins.security.dfm_empty_overrides_all\":true}}";
 
     static final User SECURITY_ADMIN = new User("security_admin").roles(ALL_ACCESS);
 
@@ -81,7 +81,7 @@ public class SensitiveClusterSettingsAccessTest {
         try (TestRestClient client = cluster.getRestClient(SETTINGS_USER)) {
             HttpResponse response = client.putJson(
                 "_cluster/settings",
-                "{\"transient\":{\"indices.recovery.max_bytes_per_sec\":\"50mb\",\"plugins.security.dfm_empty_overrides_all\":true}}"
+                "{\"persistent\":{\"indices.recovery.max_bytes_per_sec\":\"50mb\",\"plugins.security.dfm_empty_overrides_all\":true}}"
             );
             assertThat(response.getStatusCode(), is(403));
         }
