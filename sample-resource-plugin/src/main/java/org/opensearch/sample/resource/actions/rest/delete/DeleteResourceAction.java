@@ -21,7 +21,7 @@ public class DeleteResourceAction extends ActionType<DeleteResourceResponse> {
     /**
      * Delete sample resource action name
      */
-    public static final String NAME = "cluster:admin/sample-resource-plugin/delete";
+    public static final String NAME = "sampleresource:delete";
 
     private DeleteResourceAction() {
         super(NAME, DeleteResourceResponse::new);

@@ -65,10 +65,9 @@ public final class TestUtils {
         "resource_sharing_test_user_Limited_Perms"
     ).roles(
         new TestSecurityConfig.Role("shared_role_limited_perms").clusterPermissions(
-            "cluster:admin/sample-resource-plugin/get",
-            "cluster:admin/sample-resource-plugin/search",
-            "cluster:admin/sample-resource-plugin/create",
-            "cluster:admin/security/resource/share",
+            "sampleresource:get",
+            "sampleresource:search",
+            "sampleresource:create",
             "cluster:admin/security/resource/share"
         ).indexPermissions("indices:data/read*").on(RESOURCE_INDEX_NAME)
     );

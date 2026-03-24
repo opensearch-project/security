@@ -21,7 +21,7 @@ public class UpdateResourceAction extends ActionType<CreateResourceResponse> {
     /**
      * Update sample resource action name
      */
-    public static final String NAME = "cluster:admin/sample-resource-plugin/update";
+    public static final String NAME = "sampleresource:update";
 
     private UpdateResourceAction() {
         super(NAME, CreateResourceResponse::new);
