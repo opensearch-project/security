@@ -599,7 +599,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             || (action0.startsWith(MultiSearchAction.NAME))
             || (action0.equals(MultiTermVectorsAction.NAME))
             || (action0.equals(ReindexAction.NAME))
-            || (action0.equals(RenderSearchTemplateAction.NAME)));
+            || (action0.equals(RenderSearchTemplateAction.NAME))
+            || !action0.startsWith("indices:"));
     }
 
     private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {

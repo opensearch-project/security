@@ -83,7 +83,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *          username_path: "/path/to/username/node",                // path to user-name in resource document in the plugin index
  *          backend_roles_path: "/path/to/user_backend-roles/node"  // path to backend-roles in resource document in the plugin index
  *          default_owner: "<user-name>"                            // default owner when username_path is not available
- *          default_access_level: "<some-default-access-level>"     // default access-level at which sharing records should be created
+ *          default_access_level: "<some-default-access-level>"     // optional: overrides the default access-level defined in resource-access-levels.yml
  *      }
  *   - Response:
  *      200 OK Migration Complete. migrated %d; skippedNoType %s; skippedExisting %s; failed %d // migrate -> successful migration count, skippedNoType -> records with no type, skippedExisting -> records that were already migrated, failed -> records that failed to migrate
@@ -163,7 +163,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         JsonNode defaultOwnerNode = body.get("default_owner");
         String defaultOwner = (defaultOwnerNode != null && !defaultOwnerNode.isNull()) ? defaultOwnerNode.asText() : null;
 
-        // Raw JSON for default_access_level
+        // Raw JSON for default_access_level — optional if all types have a registered default
         JsonNode defaultAccessNode = body.get("default_access_level");
 
         // Convert after structural validation
@@ -251,11 +251,30 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     String type;
                     if (typePath != null) {
                         type = rec.at("/" + typePath.replace(".", "/")).asText(null);
-                    } else {
+                    } else if (!typeToDefaultAccessLevel.isEmpty()) {
                         type = typeToDefaultAccessLevel.keySet().iterator().next();
+                    } else {
+                        // no type field and no explicit access level map — infer from the single registered type for this index
+                        type = resourcePluginInfo.currentProtectedTypes()
+                            .stream()
+                            .filter(t -> sourceIndex.equals(resourcePluginInfo.indexByType(t)))
+                            .findFirst()
+                            .orElse(null);
                     }
 
-                    results.add(new SourceDoc(id, username, backendRoles, type));
+                    // Extract parent ID if the provider declares a parentIdField
+                    String parentId = null;
+                    if (type != null) {
+                        ResourceProvider hitProvider = resourcePluginInfo.getResourceProvider(type);
+                        if (hitProvider != null && hitProvider.parentIdField() != null) {
+                            parentId = rec.at("/" + hitProvider.parentIdField().replace(".", "/")).asText(null);
+                            if (parentId != null && parentId.isEmpty()) {
+                                parentId = null;
+                            }
+                        }
+                    }
+
+                    results.add(new SourceDoc(id, username, backendRoles, type, parentId));
                 }
                 // 4) fetch next batch
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
@@ -267,6 +286,21 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             ClearScrollRequest clear = new ClearScrollRequest();
             clear.addScrollId(scrollId);
             client.clearScroll(clear).actionGet();
+            // fail fast if any type in the results has no resolvable access level
+            for (SourceDoc doc : results) {
+                String type = doc.type();
+                if (!typeToDefaultAccessLevel.containsKey(type) && resourcePluginInfo.getDefaultAccessLevel(type) == null) {
+                    return ValidationResult.error(
+                        RestStatus.BAD_REQUEST,
+                        badRequestMessage(
+                            "No default access level available for resource type ["
+                                + type
+                                + "]. Either mark a default in resource-access-levels.yml or supply default_access_level in the request."
+                        )
+                    );
+                }
+            }
+
             return ValidationResult.success(new ValidationResultArg(sourceIndex, defaultOwner, typeToDefaultAccessLevel, results));
         }
     }
@@ -328,8 +362,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 List<String> backendRoles = doc.backendRoles;
                 ShareWith shareWith = null;
                 if (!backendRoles.isEmpty()) {
+                    String accessLevel = sourceInfo.typeToDefaultAccessLevel.get(doc.type);
+                    if (accessLevel == null) {
+                        accessLevel = resourcePluginInfo.getDefaultAccessLevel(doc.type);
+                    }
                     Recipients recipients = new Recipients(Map.of(Recipient.BACKEND_ROLES, new HashSet<>(backendRoles)));
-                    shareWith = new ShareWith(Map.of(sourceInfo.typeToDefaultAccessLevel.get(doc.type), recipients));
+                    shareWith = new ShareWith(Map.of(accessLevel, recipients));
                 }
 
                 // 5) index the new record
@@ -356,13 +394,16 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     failureCount.getAndIncrement();
                     migrationStatsLatch.countDown();
                 });
-
-                ResourceSharing sharingInfo = ResourceSharing.builder()
+                // Build the ResourceSharing record, including parent hierarchy if the provider declares one
+                ResourceSharing.Builder sharingBuilder = ResourceSharing.builder()
                     .resourceId(resourceId)
                     .createdBy(createdBy)
                     .shareWith(shareWith)
-                    .resourceType(provider.resourceType())
-                    .build();
+                    .resourceType(provider.resourceType());
+                if (doc.parentId != null && provider.parentType() != null) {
+                    sharingBuilder.parentId(doc.parentId).parentType(provider.parentType());
+                }
+                ResourceSharing sharingInfo = sharingBuilder.build();
 
                 sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, listener);
             } catch (Exception e) {
@@ -420,13 +461,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     @Override
                     public Set<String> mandatoryKeys() {
-                        return ImmutableSet.of(
-                            "source_index",
-                            "username_path",
-                            "backend_roles_path",
-                            "default_owner",
-                            "default_access_level"
-                        );
+                        return ImmutableSet.of("source_index", "username_path", "backend_roles_path", "default_owner");
                     }
 
                     @Override
@@ -507,7 +542,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         };
     }
 
-    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type) {
+    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId) {
     }
 
     record ValidationResultArg(String sourceIndex, String defaultOwnerName, Map<String, String> typeToDefaultAccessLevel, List<
