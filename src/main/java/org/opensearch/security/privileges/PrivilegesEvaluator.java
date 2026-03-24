@@ -34,9 +34,7 @@ import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 
@@ -61,11 +59,7 @@ public interface PrivilegesEvaluator {
 
     boolean isClusterPermission(String action);
 
-    void updateConfiguration(
-        FlattenedActionGroups actionGroups,
-        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
-        ConfigV7 generalConfiguration
-    );
+    void updateConfiguration(FlattenedActionGroups actionGroups, CompiledRoles rolesConfiguration, ConfigV7 generalConfiguration);
 
     void updateClusterStateMetadata(ClusterService clusterService);
 
@@ -123,7 +117,7 @@ public interface PrivilegesEvaluator {
         @Override
         public void updateConfiguration(
             FlattenedActionGroups actionGroups,
-            SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
+            CompiledRoles rolesConfiguration,
             ConfigV7 generalConfiguration
         ) {
 

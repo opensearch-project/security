@@ -256,9 +256,10 @@ public class AuditConfig {
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
                 )
             );
-            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(
-                getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS)
-            );
+            final List<String> rawIgnoredUsers = getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS);
+            final Set<String> ignoredAuditUsers = rawIgnoredUsers.size() == 1 && "NONE".equalsIgnoreCase(rawIgnoredUsers.get(0))
+                ? Collections.emptySet()
+                : ImmutableSet.copyOf(rawIgnoredUsers);
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(
                 getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList())
             );
