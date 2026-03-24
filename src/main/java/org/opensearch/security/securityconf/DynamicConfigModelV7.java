@@ -395,7 +395,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          * order: -1 - prioritize the OBO authentication when it gets enabled
          */
         Settings oboSettings = getDynamicOnBehalfOfSettings();
-        if (!isKeyNull(oboSettings, "signing_key") && !isKeyNull(oboSettings, "encryption_key")) {
+        if (!isKeyNull(oboSettings, "signing_key")) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
                 new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName()),

@@ -65,10 +65,9 @@ public final class TestUtils {
         "resource_sharing_test_user_Limited_Perms"
     ).roles(
         new TestSecurityConfig.Role("shared_role_limited_perms").clusterPermissions(
-            "cluster:admin/sample-resource-plugin/get",
-            "cluster:admin/sample-resource-plugin/search",
-            "cluster:admin/sample-resource-plugin/create",
-            "cluster:admin/security/resource/share",
+            "sampleresource:get",
+            "sampleresource:search",
+            "sampleresource:create",
             "cluster:admin/security/resource/share"
         ).indexPermissions("indices:data/read*").on(RESOURCE_INDEX_NAME)
     );
@@ -243,6 +242,20 @@ public final class TestUtils {
             """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "sample_read_only");
     }
 
+    public static String migrationPayload_valid_withParent(String groupId) {
+        return """
+            {
+              "source_index": "%s",
+              "username_path": "%s",
+              "backend_roles_path": "%s",
+              "default_owner": "%s",
+              "default_access_level": {
+                "sample-resource": "%s"
+              }
+            }
+            """.formatted(RESOURCE_INDEX_NAME, "user/name", "user/backend_roles", "some_user", "sample_read_only");
+    }
+
     public static String putSharingInfoPayload(
         String resourceId,
         String resourceType,
@@ -364,6 +377,15 @@ public final class TestUtils {
         public String createSampleResourceAs(TestSecurityConfig.User user, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 String sample = "{\"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                return resp.getTextFromJsonBody("/message").split(":")[1].trim();
+            }
+        }
+
+        public String createSampleResourceWithGroupAs(TestSecurityConfig.User user, String groupId, Header... headers) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String sample = "{\"group_id\":\"" + groupId + "\", \"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
                 TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
                 resp.assertStatusCode(HttpStatus.SC_OK);
                 return resp.getTextFromJsonBody("/message").split(":")[1].trim();

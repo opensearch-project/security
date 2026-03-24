@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -52,11 +53,13 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
@@ -540,17 +543,18 @@ public class DocumentPrivilegesTest {
         }
 
         private DocumentPrivileges createSubject(SecurityDynamicConfiguration<RoleV7> roleConfig) {
+            Settings settings = Settings.builder()
+                .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                .put(
+                    RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                    statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                )
+                .build();
             return new DocumentPrivileges(
-                roleConfig,
-                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT),
+                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
-                Settings.builder()
-                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
-                    .put(
-                        RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
-                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
-                    )
-                    .build()
+                settings
             );
         }
     }
@@ -862,17 +866,18 @@ public class DocumentPrivilegesTest {
         }
 
         private DocumentPrivileges createSubject(SecurityDynamicConfiguration<RoleV7> roleConfig) {
+            Settings settings = Settings.builder()
+                .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                .put(
+                    RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                    statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                )
+                .build();
             return new DocumentPrivileges(
-                roleConfig,
-                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT),
+                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
-                Settings.builder()
-                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
-                    .put(
-                        RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
-                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
-                    )
-                    .build()
+                settings
             );
         }
     }
@@ -1120,17 +1125,18 @@ public class DocumentPrivilegesTest {
         }
 
         private DocumentPrivileges createSubject(SecurityDynamicConfiguration<RoleV7> roleConfig) {
+            Settings settings = Settings.builder()
+                .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                .put(
+                    RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                    statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                )
+                .build();
             return new DocumentPrivileges(
-                roleConfig,
-                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT),
+                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
-                Settings.builder()
-                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
-                    .put(
-                        RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
-                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
-                    )
-                    .build()
+                settings
             );
         }
 
