@@ -21,9 +21,12 @@ import org.junit.runners.Suite;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
@@ -147,7 +150,7 @@ public class FieldPrivilegesTest {
 
         static FieldPrivileges createSubject(SecurityDynamicConfiguration<RoleV7> roleConfig) {
             return new FieldPrivileges(
-                roleConfig,
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT),
                 INDEX_METADATA.getIndicesLookup(),
                 Settings.builder().put("plugins.security.dfm_empty_overrides_all", true).build()
             );
