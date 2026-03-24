@@ -148,7 +148,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             });
             clusterService.getClusterSettings()
                 .addSettingsUpdateConsumer(SecuritySettings.DFM_EMPTY_OVERRIDES_ALL_SETTING, newDfmEmptyOverridesAll -> {
-                    DlsFlsProcessedConfig config = dlsFlsProcessedConfig.get();
+                    DlsFlsProcessedConfig config = dlsFlsBaseContext.config();
                     if (config != null) {
                         config.getDocumentPrivileges().setDfmEmptyOverridesAll(newDfmEmptyOverridesAll);
                         config.getFieldPrivileges().setDfmEmptyOverridesAll(newDfmEmptyOverridesAll);
