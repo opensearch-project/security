@@ -57,6 +57,9 @@ public class ResourcePluginInfo {
     // AuthZ: resolved (flattened) groups per type
     private final Map<String, FlattenedActionGroups> typeToFlattened = new HashMap<>();
 
+    // default access level per type (for migration)
+    private final Map<String, String> typeToDefaultAccessLevel = new HashMap<>();
+
     // cache current protected types and their indices
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
 
@@ -208,7 +211,11 @@ public class ResourcePluginInfo {
         }
     }
 
-    public void registerAccessLevels(String resourceType, SecurityDynamicConfiguration<ActionGroupsV7> accessLevels) {
+    public void registerAccessLevels(
+        String resourceType,
+        SecurityDynamicConfiguration<ActionGroupsV7> accessLevels,
+        String defaultAccessLevel
+    ) {
         if (resourceType == null || accessLevels == null) return;
         lock.writeLock().lock();
         try {
@@ -216,6 +223,9 @@ public class ResourcePluginInfo {
             typeToFlattened.put(resourceType, flattened);
             typeToAccessLevels.computeIfAbsent(resourceType, k -> new LinkedHashSet<>())
                 .addAll(accessLevels.getCEntries().keySet().stream().toList());
+            if (defaultAccessLevel != null) {
+                typeToDefaultAccessLevel.put(resourceType, defaultAccessLevel);
+            }
         } finally {
             lock.writeLock().unlock();
         }
@@ -225,6 +235,15 @@ public class ResourcePluginInfo {
         lock.readLock().lock();
         try {
             return typeToFlattened.getOrDefault(resourceType, FlattenedActionGroups.EMPTY);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public String getDefaultAccessLevel(String resourceType) {
+        lock.readLock().lock();
+        try {
+            return typeToDefaultAccessLevel.get(resourceType);
         } finally {
             lock.readLock().unlock();
         }
@@ -246,6 +265,30 @@ public class ResourcePluginInfo {
                 return null;
             }
             return typeToProvider.get(type).resourceIndexName();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public String getParentIdField(String resourceType) {
+        lock.readLock().lock();
+        try {
+            if (!typeToProvider.containsKey(resourceType)) {
+                return null;
+            }
+            return typeToProvider.get(resourceType).parentIdField();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public String getParentType(String resourceType) {
+        lock.readLock().lock();
+        try {
+            if (!typeToProvider.containsKey(resourceType)) {
+                return null;
+            }
+            return typeToProvider.get(resourceType).parentType();
         } finally {
             lock.readLock().unlock();
         }

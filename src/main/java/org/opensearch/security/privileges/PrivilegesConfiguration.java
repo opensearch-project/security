@@ -22,9 +22,12 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
+import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
+import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -59,10 +62,13 @@ public class PrivilegesConfiguration {
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>(TenantPrivileges.EMPTY);
     private final AtomicReference<PrivilegesEvaluator> privilegesEvaluator;
     private final AtomicReference<FlattenedActionGroups> actionGroups = new AtomicReference<>(FlattenedActionGroups.EMPTY);
+    private final AtomicReference<CompiledRoles> compiledRoles = new AtomicReference<>();
     private final Map<String, RoleV7> pluginIdToRolePrivileges = new HashMap<>();
     private final AtomicReference<DashboardsMultiTenancyConfiguration> multiTenancyConfiguration = new AtomicReference<>(
         DashboardsMultiTenancyConfiguration.DEFAULT
     );
+    private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
+
     private final PrivilegesInterceptorImpl privilegesInterceptor;
 
     /**
@@ -72,6 +78,9 @@ public class PrivilegesConfiguration {
      * configuration updates).
      */
     private final FlattenedActionGroups staticActionGroups;
+
+    private final FieldMasking.Config fieldMaskingConfig;
+    private final NamedXContentRegistry namedXContentRegistry;
 
     public PrivilegesConfiguration(
         ConfigurationRepository configurationRepository,
@@ -84,9 +93,11 @@ public class PrivilegesConfiguration {
         AuditLog auditLog,
         Settings settings,
         Supplier<String> unavailablityReasonSupplier,
-        IndexResolverReplacer indexResolverReplacer
+        IndexResolverReplacer indexResolverReplacer,
+        NamedXContentRegistry namedXContentRegistry
     ) {
 
+        this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
         this.privilegesEvaluator = new AtomicReference<>(new PrivilegesEvaluator.NotInitialized(unavailablityReasonSupplier));
         this.privilegesInterceptor = new PrivilegesInterceptorImpl(
             resolver,
@@ -97,6 +108,7 @@ public class PrivilegesConfiguration {
             this.multiTenancyConfiguration::get
         );
         this.staticActionGroups = buildStaticActionGroups();
+        this.namedXContentRegistry = namedXContentRegistry;
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -111,6 +123,14 @@ public class PrivilegesConfiguration {
 
                 FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
                 this.actionGroups.set(flattenedActionGroups);
+
+                CompiledRoles newCompiledRoles = new CompiledRoles(
+                    rolesConfiguration.withStaticConfig(),
+                    flattenedActionGroups,
+                    namedXContentRegistry,
+                    fieldMaskingConfig
+                );
+                this.compiledRoles.set(newCompiledRoles);
 
                 PrivilegesEvaluator currentPrivilegesEvaluator = privilegesEvaluator.get();
 
@@ -134,7 +154,7 @@ public class PrivilegesConfiguration {
                             indexResolverReplacer,
                             flattenedActionGroups,
                             staticActionGroups,
-                            rolesConfiguration,
+                            newCompiledRoles,
                             generalConfiguration,
                             pluginIdToRolePrivileges
                         )
@@ -143,7 +163,21 @@ public class PrivilegesConfiguration {
                         oldInstance.shutdown();
                     }
                 } else {
-                    privilegesEvaluator.get().updateConfiguration(flattenedActionGroups, rolesConfiguration, generalConfiguration);
+                    privilegesEvaluator.get().updateConfiguration(flattenedActionGroups, newCompiledRoles, generalConfiguration);
+                }
+
+                try {
+                    this.dlsFlsProcessedConfig.set(
+                        new DlsFlsProcessedConfig(
+                            newCompiledRoles,
+                            clusterStateSupplier.get().metadata().getIndicesLookup(),
+                            namedXContentRegistry,
+                            settings,
+                            fieldMaskingConfig
+                        )
+                    );
+                } catch (Exception e) {
+                    log.error("Error while updating DlsFlsProcessedConfig", e);
                 }
 
                 try {
@@ -173,6 +207,8 @@ public class PrivilegesConfiguration {
         this.privilegesEvaluator = new AtomicReference<>(privilegesEvaluator);
         this.privilegesInterceptor = null;
         this.staticActionGroups = buildStaticActionGroups();
+        this.fieldMaskingConfig = FieldMasking.Config.DEFAULT;
+        this.namedXContentRegistry = null;
     }
 
     /**
@@ -200,11 +236,24 @@ public class PrivilegesConfiguration {
     }
 
     /**
+     * Returns the current compiled roles. These are built once per configuration update and shared between the
+     * action privilege layer and the DLS/FLS layer to avoid redundant pattern compilation.
+     * Important: Do not store the references to the instances returned here; these will change after configuration updates.
+     */
+    public CompiledRoles compiledRoles() {
+        return this.compiledRoles.get();
+    }
+
+    /**
      * Returns the current Dashboards multi tenancy configuration. Important: Do not store the references to the instances returned here; these will change
      * after configuration updates.
      */
     public DashboardsMultiTenancyConfiguration multiTenancyConfiguration() {
         return this.multiTenancyConfiguration.get();
+    }
+
+    public DlsFlsProcessedConfig dlsFlsProcessedConfig() {
+        return this.dlsFlsProcessedConfig.get();
     }
 
     public void updatePluginToActionPrivileges(String pluginIdentifier, RoleV7 pluginPermissions) {
