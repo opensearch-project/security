@@ -85,9 +85,9 @@ opensearchplugin {
     ```
     org.opensearch.sample.SampleResourceSharingExtension
     ```
-- **Declare** action-groups **per resource** in `resource-action-groups.yml` file:
+- **Declare** action-groups **per resource** in `resource-access-levels.yml` file:
   ```
-  src/main/resources/resource-action-groups.yml
+  src/main/resources/resource-access-levels.yml
   ```
   - This file must be structured in a following way:
     ```yml
@@ -116,7 +116,7 @@ opensearchplugin {
     ```
 **NOTE**: The resource-type supplied here must match the ones supplied in each of the resource-providers declared in the ResourceSharingExtension implementation.
 
-#### **Example resource-action-groups yml**
+#### **Example resource-access-levels yml**
 ```yml
 resource_types:
   sample-resource:
@@ -611,7 +611,7 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 | `username_path`        | string | yes      | JSON Pointer to the username field inside each document                                                                                             |
 | `backend_roles_path`   | string | yes      | JSON Pointer to the backend_roles field (must point to a JSON array)                                                                                |
 | `default_owner`        | string | yes      | Name of the user to be used as owner for resource without owner information                                                                         |
-| `default_access_level` | object | yes      | Default access level to assign migrated backend_roles. Must be one from the available action-groups for this type. See `resource-action-groups.yml`. |
+| `default_access_level` | object | yes      | Default access level to assign migrated backend_roles. Must be one from the available action-groups for this type. See `resource-access-levels.yml`. |
 
 **Example Request**
 `POST /_plugins/_security/api/resources/migrate`
@@ -811,7 +811,7 @@ GET /_plugins/_security/api/resource/types
   ]
 }
 ```
-NOTE: `action_groups` are fetched from `resource-action-groups.yml` supplied by resource plugin.
+NOTE: `action_groups` are fetched from `resource-access-levels.yml` supplied by resource plugin.
 
 ### 5. `GET /_plugins/_security/api/resource/list?resource_type=<type>`
 
