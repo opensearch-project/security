@@ -23,12 +23,12 @@ import org.junit.Test;
 
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -117,66 +117,66 @@ public class ApiTokenIndexHandlerTest {
     }
 
     @Test
-    public void testDeleteApiTokenCallsDeleteWithSuppliedId() {
+    public void testRevokeApiTokenCallsUpdateWithSuppliedId() {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
         String tokenId = "doc-id-123";
 
         TestActionListener<Void> listener = new TestActionListener<>();
 
         doAnswer(invocation -> {
-            ActionListener<DeleteResponse> parentListener = invocation.getArgument(1);
-            DeleteResponse response = mock(DeleteResponse.class);
-            when(response.getResult()).thenReturn(DocWriteResponse.Result.DELETED);
+            ActionListener<UpdateResponse> parentListener = invocation.getArgument(1);
+            UpdateResponse response = mock(UpdateResponse.class);
+            when(response.getResult()).thenReturn(DocWriteResponse.Result.UPDATED);
             parentListener.onResponse(response);
             return null;
-        }).when(client).delete(any(DeleteRequest.class), any(ActionListener.class));
+        }).when(client).update(any(UpdateRequest.class), any(ActionListener.class));
 
-        indexHandler.deleteToken(tokenId, listener);
+        indexHandler.revokeToken(tokenId, listener);
 
-        ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
-        verify(client).delete(captor.capture(), any(ActionListener.class));
+        ArgumentCaptor<UpdateRequest> captor = ArgumentCaptor.forClass(UpdateRequest.class);
+        verify(client).update(captor.capture(), any(ActionListener.class));
         listener.assertSuccess();
 
-        DeleteRequest capturedRequest = captor.getValue();
+        UpdateRequest capturedRequest = captor.getValue();
         assertThat(capturedRequest.index(), equalTo(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX));
         assertThat(capturedRequest.id(), equalTo(tokenId));
     }
 
     @Test
-    public void testDeleteTokenThrowsExceptionWhenNoDocumentsDeleted() {
+    public void testRevokeTokenThrowsExceptionWhenTokenNotFound() {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
 
         doAnswer(invocation -> {
-            ActionListener<DeleteResponse> listener = invocation.getArgument(1);
-            DeleteResponse response = mock(DeleteResponse.class);
+            ActionListener<UpdateResponse> listener = invocation.getArgument(1);
+            UpdateResponse response = mock(UpdateResponse.class);
             when(response.getResult()).thenReturn(DocWriteResponse.Result.NOT_FOUND);
             listener.onResponse(response);
             return null;
-        }).when(client).delete(any(DeleteRequest.class), any(ActionListener.class));
+        }).when(client).update(any(UpdateRequest.class), any(ActionListener.class));
 
         String tokenId = "nonexistent-id";
         TestActionListener<Void> listener = new TestActionListener<>();
-        indexHandler.deleteToken(tokenId, listener);
+        indexHandler.revokeToken(tokenId, listener);
 
         Exception e = listener.assertException(ApiTokenException.class);
         assertThat(e.getMessage(), containsString("No token found with id " + tokenId));
     }
 
     @Test
-    public void testDeleteTokenSucceedsWhenDocumentIsDeleted() {
+    public void testRevokeTokenSucceedsWhenDocumentIsUpdated() {
         when(metadata.hasConcreteIndex(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX)).thenReturn(true);
 
         doAnswer(invocation -> {
-            ActionListener<DeleteResponse> listener = invocation.getArgument(1);
-            DeleteResponse response = mock(DeleteResponse.class);
-            when(response.getResult()).thenReturn(DocWriteResponse.Result.DELETED);
+            ActionListener<UpdateResponse> listener = invocation.getArgument(1);
+            UpdateResponse response = mock(UpdateResponse.class);
+            when(response.getResult()).thenReturn(DocWriteResponse.Result.UPDATED);
             listener.onResponse(response);
             return null;
-        }).when(client).delete(any(DeleteRequest.class), any(ActionListener.class));
+        }).when(client).update(any(UpdateRequest.class), any(ActionListener.class));
 
         String tokenId = "existing-id";
         TestActionListener<Void> listener = new TestActionListener<>();
-        indexHandler.deleteToken(tokenId, listener);
+        indexHandler.revokeToken(tokenId, listener);
 
         listener.assertSuccess();
     }

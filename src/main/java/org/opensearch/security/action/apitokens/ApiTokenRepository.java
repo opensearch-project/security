@@ -79,6 +79,11 @@ public class ApiTokenRepository {
                 tokenHashToRole.keySet().removeIf(hash -> !tokenMetadatas.containsKey(hash));
                 tokenHashToExpiration.keySet().removeIf(hash -> !tokenMetadatas.containsKey(hash));
                 tokenMetadatas.forEach((hash, tokenMetadata) -> {
+                    if (tokenMetadata.isRevoked()) {
+                        tokenHashToRole.remove(hash);
+                        tokenHashToExpiration.remove(hash);
+                        return;
+                    }
                     tokenHashToRole.put(hash, buildRole(tokenMetadata));
                     tokenHashToExpiration.put(hash, tokenMetadata.getExpiration());
                 });
@@ -199,8 +204,8 @@ public class ApiTokenRepository {
         }));
     }
 
-    public void deleteApiToken(String id, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
-        apiTokenIndexHandler.deleteToken(id, listener);
+    public void revokeApiToken(String id, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
+        apiTokenIndexHandler.revokeToken(id, listener);
     }
 
     public void getApiTokens(ActionListener<Map<String, ApiToken>> listener) {

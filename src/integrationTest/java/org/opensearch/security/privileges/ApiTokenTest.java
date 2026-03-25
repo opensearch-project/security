@@ -275,30 +275,59 @@ public class ApiTokenTest {
 
     @Test
     public void testAdminCanRevokeTokenIssuedByAnotherUser() {
-        // Regular user cannot create tokens, so admin creates one on behalf of the scenario
-        // The key point is: admin lists tokens, gets the id, revokes it, token stops working
-        String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
+        // Create token and capture both the plaintext token and the doc id
+        String apiToken;
+        String tokenId;
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_PAYLOAD);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            apiToken = response.getTextFromJsonBody("/token");
+            tokenId = response.getTextFromJsonBody("/id");
+        }
         Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
 
         // Token works before revocation
         authenticateWithApiToken(authHeader, HttpStatus.SC_OK);
 
-        // Admin lists tokens and finds the id
-        String tokenId;
-        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
-            TestRestClient.HttpResponse listResponse = adminClient.get(CREATE_API_TOKEN_PATH);
-            listResponse.assertStatusCode(HttpStatus.SC_OK);
-            tokenId = listResponse.getTextFromJsonBody("/0/id");
-        }
-
         // Admin revokes by id
         try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
-            TestRestClient.HttpResponse deleteResponse = adminClient.delete(CREATE_API_TOKEN_PATH + "/" + tokenId);
-            deleteResponse.assertStatusCode(HttpStatus.SC_OK);
+            TestRestClient.HttpResponse revokeResponse = adminClient.delete(CREATE_API_TOKEN_PATH + "/" + tokenId);
+            revokeResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(revokeResponse.getTextFromJsonBody("/message"), containsString("revoked successfully"));
         }
 
         // Token no longer works after revocation
         authenticateWithApiToken(authHeader, HttpStatus.SC_UNAUTHORIZED);
+    }
+
+    @Test
+    public void testRevokedTokenAppearsInListWithRevokedAt() {
+        String tokenId;
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse createResponse = adminClient.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_PAYLOAD);
+            createResponse.assertStatusCode(HttpStatus.SC_OK);
+            tokenId = createResponse.getTextFromJsonBody("/id");
+        }
+
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            adminClient.delete(CREATE_API_TOKEN_PATH + "/" + tokenId).assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        final String revokedId = tokenId;
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse listResponse = adminClient.get(CREATE_API_TOKEN_PATH);
+            listResponse.assertStatusCode(HttpStatus.SC_OK);
+            // Find our specific token in the list and verify it has revoked_at
+            boolean found = false;
+            for (com.fasterxml.jackson.databind.JsonNode token : listResponse.bodyAsJsonNode()) {
+                if (revokedId.equals(token.get(ApiToken.ID_FIELD).asText())) {
+                    assertThat(token.has(ApiToken.REVOKED_AT_FIELD), equalTo(true));
+                    found = true;
+                    break;
+                }
+            }
+            assertThat("Revoked token should appear in list", found, equalTo(true));
+        }
     }
 
     private String generateApiToken(String payload) {
@@ -326,8 +355,11 @@ public class ApiTokenTest {
             TestRestClient.HttpResponse listResponse = adminClient.get(CREATE_API_TOKEN_PATH);
             listResponse.assertStatusCode(HttpStatus.SC_OK);
             listResponse.bodyAsJsonNode().forEach(token -> {
-                String id = token.get(ApiToken.ID_FIELD).asText();
-                adminClient.delete(CREATE_API_TOKEN_PATH + "/" + id).assertStatusCode(HttpStatus.SC_OK);
+                // Only revoke tokens that are not already revoked
+                if (!token.has(ApiToken.REVOKED_AT_FIELD)) {
+                    String id = token.get(ApiToken.ID_FIELD).asText();
+                    adminClient.delete(CREATE_API_TOKEN_PATH + "/" + id).assertStatusCode(HttpStatus.SC_OK);
+                }
             });
         }
     }

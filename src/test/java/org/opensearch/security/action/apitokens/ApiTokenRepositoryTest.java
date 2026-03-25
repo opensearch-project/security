@@ -81,20 +81,20 @@ public class ApiTokenRepositoryTest {
     }
 
     @Test
-    public void testDeleteApiToken() throws ApiTokenException {
+    public void testRevokeApiToken() throws ApiTokenException {
         String tokenName = "test-token";
 
         doAnswer(invocation -> {
             ActionListener<Void> listener = invocation.getArgument(1);
             listener.onResponse(null);
             return null;
-        }).when(apiTokenIndexHandler).deleteToken(eq(tokenName), any(ActionListener.class));
+        }).when(apiTokenIndexHandler).revokeToken(eq(tokenName), any(ActionListener.class));
 
         TestActionListener<Void> listener = new TestActionListener<>();
-        repository.deleteApiToken(tokenName, listener);
+        repository.revokeApiToken(tokenName, listener);
 
         listener.assertSuccess();
-        verify(apiTokenIndexHandler).deleteToken(eq(tokenName), any(ActionListener.class));
+        verify(apiTokenIndexHandler).revokeToken(eq(tokenName), any(ActionListener.class));
     }
 
     @Test
@@ -187,17 +187,17 @@ public class ApiTokenRepositoryTest {
     }
 
     @Test
-    public void testDeleteApiTokenThrowsApiTokenException() {
+    public void testRevokeApiTokenThrowsApiTokenException() {
         String tokenName = "test-token";
 
         doAnswer(invocation -> {
             ActionListener<Void> listener = invocation.getArgument(1);
             listener.onFailure(new ApiTokenException("Token not found"));
             return null;
-        }).when(apiTokenIndexHandler).deleteToken(eq(tokenName), any(ActionListener.class));
+        }).when(apiTokenIndexHandler).revokeToken(eq(tokenName), any(ActionListener.class));
 
         TestActionListener<Void> listener = new TestActionListener<>();
-        repository.deleteApiToken(tokenName, listener);
+        repository.revokeApiToken(tokenName, listener);
 
         Exception e = listener.assertException(ApiTokenException.class);
         assertThat(e.getMessage(), containsString("Token not found"));
@@ -277,8 +277,57 @@ public class ApiTokenRepositoryTest {
     }
 
     @Test
-    public void testReloadApiTokensFromIndexRemovesStaleTokens() {
-        RoleV7 staleRole = new RoleV7();
+    public void testReloadApiTokensFromIndexExcludesRevokedTokens() {
+        Map<String, ApiToken> tokens = Map.of(
+            HASH_ALPHA,
+            new ApiToken("active", HASH_ALPHA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, null),
+            HASH_BETA,
+            new ApiToken("revoked", HASH_BETA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, Instant.now())
+        );
+
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(tokens);
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.reloadApiTokensFromIndex(listener);
+
+        listener.assertSuccess();
+        assertTrue("Active token should be in cache", repository.getJtis().containsKey(HASH_ALPHA));
+        assertFalse("Revoked token should not be in cache", repository.getJtis().containsKey(HASH_BETA));
+    }
+
+    @Test
+    public void testReloadApiTokensFromIndexEvictsTokenThatBecomesRevoked() {
+        // Seed the cache with a token that is about to be revoked
+        RoleV7 role = new RoleV7();
+        role.setCluster_permissions(List.of("cluster:monitor"));
+        repository.getJtis().put(HASH_BETA, role);
+
+        // Next reload returns the same token but now with revoked_at set
+        Map<String, ApiToken> tokens = Map.of(
+            HASH_BETA,
+            new ApiToken("revoked", HASH_BETA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, Instant.now())
+        );
+
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(tokens);
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.reloadApiTokensFromIndex(listener);
+
+        listener.assertSuccess();
+        assertFalse("Token should be evicted from cache after revocation", repository.getJtis().containsKey(HASH_BETA));
+        assertFalse("Token should be evicted from expiration cache after revocation", repository.isValidToken(HASH_BETA));
+    }
+
+    @Test
+    public void testReloadApiTokensFromIndexRemovesStaleTokens() {        RoleV7 staleRole = new RoleV7();
         staleRole.setCluster_permissions(List.of("cluster:monitor"));
         repository.getJtis().put(HASH_STALE, staleRole);
 

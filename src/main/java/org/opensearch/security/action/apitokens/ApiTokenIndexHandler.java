@@ -12,6 +12,7 @@
 package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,10 +23,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -72,12 +73,12 @@ public class ApiTokenIndexHandler {
         }
     }
 
-    public void deleteToken(String id, ActionListener<Void> listener) {
-        DeleteRequest request = new DeleteRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX, id).setRefreshPolicy(
-            WriteRequest.RefreshPolicy.IMMEDIATE
-        );
-        client.delete(request, ActionListener.wrap(response -> {
-            if (!DocWriteResponse.Result.DELETED.equals(response.getResult())) {
+    public void revokeToken(String id, ActionListener<Void> listener) {
+        Map<String, Object> updateFields = Map.of(ApiToken.REVOKED_AT_FIELD, Instant.now().toEpochMilli());
+        UpdateRequest request = new UpdateRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX, id).doc(updateFields)
+            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        client.update(request, ActionListener.wrap(response -> {
+            if (DocWriteResponse.Result.NOT_FOUND.equals(response.getResult())) {
                 listener.onFailure(new ApiTokenException("No token found with id " + id));
             } else {
                 listener.onResponse(null);

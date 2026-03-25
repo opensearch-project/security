@@ -56,6 +56,7 @@ import static org.opensearch.security.action.apitokens.ApiToken.EXPIRATION_FIELD
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.ISSUED_AT_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
+import static org.opensearch.security.action.apitokens.ApiToken.REVOKED_AT_FIELD;
 import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
@@ -159,6 +160,9 @@ public class ApiTokenAction extends BaseRestHandler {
                         builder.field(EXPIRATION_FIELD, token.getExpiration());
                         builder.field(CLUSTER_PERMISSIONS_FIELD, token.getClusterPermissions());
                         builder.field(INDEX_PERMISSIONS_FIELD, token.getIndexPermissions());
+                        if (token.getRevokedAt() != null) {
+                            builder.field(REVOKED_AT_FIELD, token.getRevokedAt().toEpochMilli());
+                        }
                         builder.endObject();
                     }
                     builder.endArray();
@@ -227,10 +231,10 @@ public class ApiTokenAction extends BaseRestHandler {
         return channel -> {
             try {
                 String id = request.param("id");
-                apiTokenRepository.deleteApiToken(id, wrapWithCacheRefresh(ActionListener.wrap(ignored -> {
+                apiTokenRepository.revokeApiToken(id, wrapWithCacheRefresh(ActionListener.wrap(ignored -> {
                     apiTokenRepository.notifyAboutChanges();
                     XContentBuilder builder = channel.newBuilder();
-                    builder.startObject().field("message", "Token " + id + " deleted successfully.").endObject();
+                    builder.startObject().field("message", "Token " + id + " revoked successfully.").endObject();
                     channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
                 },
                     deleteException -> sendErrorResponse(
