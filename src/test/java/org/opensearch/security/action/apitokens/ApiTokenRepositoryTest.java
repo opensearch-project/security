@@ -327,7 +327,8 @@ public class ApiTokenRepositoryTest {
     }
 
     @Test
-    public void testReloadApiTokensFromIndexRemovesStaleTokens() {        RoleV7 staleRole = new RoleV7();
+    public void testReloadApiTokensFromIndexRemovesStaleTokens() {
+        RoleV7 staleRole = new RoleV7();
         staleRole.setCluster_permissions(List.of("cluster:monitor"));
         repository.getJtis().put(HASH_STALE, staleRole);
 

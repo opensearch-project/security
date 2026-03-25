@@ -99,11 +99,9 @@ public class TransportApiTokenUpdateAction extends TransportNodesAsyncAction<
 
     @Override
     protected void nodeOperation(final NodeApiTokenUpdateRequest request, ActionListener<ApiTokenUpdateNodeResponse> listener) {
-        apiTokenRepository.reloadApiTokensFromIndex(
-            ActionListener.wrap(unused -> {
-                apiTokenRepository.notifyAboutChanges();
-                listener.onResponse(new ApiTokenUpdateNodeResponse(clusterService.localNode()));
-            }, listener::onFailure)
-        );
+        apiTokenRepository.reloadApiTokensFromIndex(ActionListener.wrap(unused -> {
+            apiTokenRepository.notifyAboutChanges();
+            listener.onResponse(new ApiTokenUpdateNodeResponse(clusterService.localNode()));
+        }, listener::onFailure));
     }
 }
