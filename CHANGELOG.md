@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Make `plugins.security.dfm_empty_overrides_all` dynamically toggleable ([#6016](https://github.com/opensearch-project/security/pull/6016)
 - Performance optimizations for building internal authorization data structures upon config updates ([#5988](https://github.com/opensearch-project/security/pull/5988))
 - Make encryption_key optional for obo token authenticator ([#6017](https://github.com/opensearch-project/security/pull/6017)
+- [Resource Sharing] Using custom action prefixes for sample resource plugin ([#6020](https://github.com/opensearch-project/security/pull/6020)
 - Enable basic authentication for gRPC transport ([#6005](https://github.com/opensearch-project/security/pull/6005))
 - Allow specifying parentType and parentIdField in ResourceProvider ([#5735](https://github.com/opensearch-project/security/pull/5735))
 - [Resource Sharing] Allow specifying default access level in resource access levels yml file ([#6018](https://github.com/opensearch-project/security/pull/6018))
