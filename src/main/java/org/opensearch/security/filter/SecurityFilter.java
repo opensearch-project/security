@@ -441,7 +441,7 @@ public class SecurityFilter implements ActionFilter {
             }
 
             // Block cluster-settings updates that touch Sensitive settings unless the user holds a restapi-allowed role
-            if (checkSensitiveSettingsAccess(action, request, context, listener)) {
+            if (handleBlockedSensitiveSettingsUpdate(action, request, context, listener)) {
                 return;
             }
 
@@ -530,7 +530,7 @@ public class SecurityFilter implements ActionFilter {
         }
     }
 
-    private <Request extends ActionRequest, Response extends ActionResponse> boolean checkSensitiveSettingsAccess(
+    private <Request extends ActionRequest, Response extends ActionResponse> boolean handleBlockedSensitiveSettingsUpdate(
         String action,
         Request request,
         PrivilegesEvaluationContext context,
