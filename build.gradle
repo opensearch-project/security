@@ -499,6 +499,8 @@ configurations {
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
+            force "org.apache.logging.log4j:log4j-api:${versions.log4j}"
+            force "org.apache.logging.log4j:log4j-core:${versions.log4j}"
 
             // for spotless transitive dependency CVE
             force "org.eclipse.platform:org.eclipse.core.runtime:3.34.200"
