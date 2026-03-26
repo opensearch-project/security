@@ -59,30 +59,28 @@ public class InternalAuthBackendTests {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> hashingAlgorithms() {
-        return Arrays.asList(new Object[][] {
-            {
-                "BCrypt",
-                Settings.builder()
-                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT)
-                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS, 4)
-                    .build()
-            },
-            {
-                "PBKDF2",
-                Settings.builder()
-                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2)
-                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS, 1)
-                    .build()
-            },
-            {
-                "Argon2",
-                Settings.builder()
-                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.ARGON2)
-                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY, 8)
-                    .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS, 1)
-                    .build()
-            }
-        });
+        return Arrays.asList(
+            new Object[][] {
+                {
+                    "BCrypt",
+                    Settings.builder()
+                        .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT)
+                        .put(ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS, 4)
+                        .build() },
+                {
+                    "PBKDF2",
+                    Settings.builder()
+                        .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2)
+                        .put(ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS, 1)
+                        .build() },
+                {
+                    "Argon2",
+                    Settings.builder()
+                        .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.ARGON2)
+                        .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY, 8)
+                        .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS, 1)
+                        .build() } }
+        );
     }
 
     @Before

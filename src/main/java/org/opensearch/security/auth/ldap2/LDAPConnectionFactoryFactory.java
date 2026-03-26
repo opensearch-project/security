@@ -12,11 +12,13 @@
 package org.opensearch.security.auth.ldap2;
 
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -353,7 +355,7 @@ public class LDAPConnectionFactoryFactory {
             this.sslConfig.getEffectiveTruststoreAliasesArray(),
             this.sslConfig.getEffectiveKeystore(),
             this.sslConfig.getEffectiveKeyPasswordString(),
-            this.sslConfig.getEffectiveKeyAliasesArray()
+            null
         );
 
         ldaptiveSslConfig.setCredentialConfig(cc);
@@ -382,6 +384,14 @@ public class LDAPConnectionFactoryFactory {
 
         if (this.sslConfig.isTrustAllEnabled()) {
             ldaptiveSslConfig.setTrustManagers(new AllowAnyTrustManager());
+        } else {
+            try {
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
+                tmf.init(this.sslConfig.getEffectiveTruststore());
+                ldaptiveSslConfig.setTrustManagers(tmf.getTrustManagers()[0]);
+            } catch (GeneralSecurityException e) {
+                throw new IllegalStateException("Failed to initialize PKIX TrustManager for LDAPS", e);
+            }
         }
 
         config.setSslConfig(ldaptiveSslConfig);

@@ -305,7 +305,7 @@ public class SettingsBasedSSLConfigurator {
         }
 
         try {
-            effectiveKeyPassword = PemKeyReader.randomChars(12);
+            effectiveKeyPassword = SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray();
             effectiveKeyAlias = "al";
             effectiveTruststore = PemKeyReader.toTruststore(effectiveKeyAlias, trustCertificates);
             effectiveKeystore = PemKeyReader.toKeystore(
@@ -517,14 +517,6 @@ public class SettingsBasedSSLConfigurator {
                 return null;
             } else {
                 return this.effectiveTruststoreAliases.toArray(new String[this.effectiveTruststoreAliases.size()]);
-            }
-        }
-
-        public String[] getEffectiveKeyAliasesArray() {
-            if (this.effectiveKeyAlias == null) {
-                return null;
-            } else {
-                return new String[] { this.effectiveKeyAlias };
             }
         }
 

@@ -19,10 +19,10 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.NoHttpResponseException;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.test.framework.AuditCompliance;

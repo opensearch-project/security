@@ -39,8 +39,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.bouncycastle.crypto.CryptoServicesRegistrar;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
@@ -91,8 +91,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private static final String COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION =
         "com.sun.jndi.ldap.object.disableEndpointIdentification";
     private static final List<String> DEFAULT_TLS_PROTOCOLS = CryptoServicesRegistrar.isInApprovedOnlyMode()
-                                                              ? ImmutableList.of("TLSv1.2")
-                                                              : ImmutableList.of("TLSv1.2", "TLSv1.1");
+        ? ImmutableList.of("TLSv1.2")
+        : ImmutableList.of("TLSv1.2", "TLSv1.1");
     static final int ONE_PLACEHOLDER = 1;
     static final int TWO_PLACEHOLDER = 2;
     static final String DEFAULT_ROLEBASE = "";
@@ -496,7 +496,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static void configureCustomSocketFactory(DefaultConnectionFactory connFactory) {
         Map<String, Object> props = new HashMap<>();
         props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");
@@ -570,7 +570,21 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     );
                 }
 
-                cc = CredentialConfigFactory.createX509CredentialConfig(trustCertificates, authenticationCertificate, authenticationKey);
+                final KeyStore pemTruststore = PemKeyReader.toTruststore("al", trustCertificates);
+                final char[] pemInMemoryPassword = SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray();
+                final KeyStore pemKeystore = PemKeyReader.toKeystore(
+                    "al",
+                    pemInMemoryPassword,
+                    authenticationCertificate != null ? new X509Certificate[] { authenticationCertificate } : null,
+                    authenticationKey
+                );
+                cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
+                    pemTruststore,
+                    null,
+                    pemKeystore,
+                    pemKeystore != null ? new String(pemInMemoryPassword) : null,
+                    null
+                );
 
                 if (isDebugEnabled) {
                     log.debug("Use PEM to secure communication with LDAP server (client auth is {})", authenticationKey != null);

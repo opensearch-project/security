@@ -45,7 +45,6 @@ import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -190,7 +189,8 @@ public final class PemKeyReader {
         String storeType = Stream.of(JKS, PKCS12, BCFKS)
             .map(String::toUpperCase)
             .filter(it -> it.equals(type))
-            .findFirst().orElse(KeyStore.getDefaultType());
+            .findFirst()
+            .orElse(KeyStore.getDefaultType());
 
         final KeyStore store = KeyStore.getInstance(storeType);
         store.load(new FileInputStream(storePath), keyStorePassword == null ? null : keyStorePassword.toCharArray());
@@ -351,7 +351,9 @@ public final class PemKeyReader {
             storeType = detectStoreType(storePath);
         }
         if (CryptoServicesRegistrar.isInApprovedOnlyMode() && !PemKeyReader.BCFKS.equalsIgnoreCase(storeType)) {
-            throw new IllegalArgumentException(storeType.toUpperCase(Locale.ROOT) + " truststores are not supported in FIPS mode - use BCFKS.");
+            throw new IllegalArgumentException(
+                storeType.toUpperCase(Locale.ROOT) + " truststores are not supported in FIPS mode - use BCFKS."
+            );
         }
         return storeType;
     }
@@ -364,8 +366,11 @@ public final class PemKeyReader {
                 throw new IllegalArgumentException("Cannot detect keystore type: file too short: " + path);
             }
             // JKS: 0xFEEDFEED
-            if ((magic[0] & 0xFF) == 0xFE && (magic[1] & 0xFF) == 0xED
-                && (magic[2] & 0xFF) == 0xFE && (magic[3] & 0xFF) == 0xED) {
+            if ((magic[0] & 0xFF) == 0xFE //
+                && (magic[1] & 0xFF) == 0xED //
+                && (magic[2] & 0xFF) == 0xFE //
+                && (magic[3] & 0xFF) == 0xED //
+            ) {
                 return PemKeyReader.JKS;
             }
             // ASN.1: distinguish BCFKS from PKCS12 by outer structure
@@ -380,9 +385,7 @@ public final class PemKeyReader {
                     if (first instanceof ASN1Sequence) return PemKeyReader.BCFKS;
                 } catch (Exception ignored) {}
             }
-            throw new IllegalArgumentException(
-                "Cannot detect keystore type for: " + path + ". Specify explicitly with -kst/-tst."
-            );
+            throw new IllegalArgumentException("Cannot detect keystore type for: " + path + ". Specify explicitly with -kst/-tst.");
         }
     }
 
@@ -391,15 +394,6 @@ public final class PemKeyReader {
         var ks = KeyStore.getInstance(storeType);
         ks.load(null, null);
         return ks;
-    }
-
-    public static char[] randomChars(int len) {
-        final SecureRandom r = new SecureRandom();
-        final char[] ret = new char[len];
-        for (int i = 0; i < len; i++) {
-            ret[i] = (char) (r.nextInt(26) + 'a');
-        }
-        return ret;
     }
 
     private PemKeyReader() {}

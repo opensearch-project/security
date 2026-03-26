@@ -16,11 +16,11 @@ import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.security.Security;
 
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

@@ -11,11 +11,11 @@ package org.opensearch.security.http;
 
 import java.util.List;
 
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;

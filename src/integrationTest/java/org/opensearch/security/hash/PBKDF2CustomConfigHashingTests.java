@@ -18,12 +18,12 @@ import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;

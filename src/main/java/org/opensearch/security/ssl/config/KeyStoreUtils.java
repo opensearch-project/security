@@ -35,14 +35,14 @@ import javax.security.auth.x500.X500Principal;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.OpenSearchException;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.ApplicationProtocolNegotiator;
 import io.netty.handler.ssl.SslContext;
-import org.opensearch.security.support.PemKeyReader;
+
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
 final class KeyStoreUtils {
 
@@ -140,8 +140,7 @@ final class KeyStoreUtils {
     }
 
     private static KeyStore newKeyStore() throws GeneralSecurityException, IOException {
-        var storeType = CryptoServicesRegistrar.isInApprovedOnlyMode() ? PemKeyReader.BCFKS : KeyStore.getDefaultType();
-        var keyStore = KeyStore.getInstance(storeType);
+        var keyStore = KeyStore.getInstance(DEFAULT_STORE_TYPE);
         keyStore.load(null, null);
         return keyStore;
     }
