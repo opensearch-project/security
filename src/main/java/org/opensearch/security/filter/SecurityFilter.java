@@ -440,10 +440,12 @@ public class SecurityFilter implements ActionFilter {
                 return;
             }
 
-            // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
+            // Block cluster-settings updates that touch Sensitive settings unless the user holds a restapi-allowed role
             if (checkSensitiveSettingsAccess(action, request, context, listener)) {
                 return;
             }
+
+            // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
             PrivilegesEvaluatorResponse pres = eval.evaluate(context);
 
             if (log.isDebugEnabled()) {
