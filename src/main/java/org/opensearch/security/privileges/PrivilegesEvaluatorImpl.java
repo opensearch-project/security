@@ -146,6 +146,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
     private final ImmutableMap<String, ActionPrivileges> pluginIdToActionPrivileges;
+    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges;
     private final RoleMapper roleMapper;
 
     private volatile boolean dnfofEnabled = false;
@@ -167,7 +168,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         FlattenedActionGroups staticActionGroups,
         CompiledRoles rolesConfiguration,
         ConfigV7 generalConfiguration,
-        Map<String, RoleV7> pluginIdToRolePrivileges
+        Map<String, RoleV7> pluginIdToRolePrivileges,
+        Map<String, ActionPrivileges> tokenIdToActionPrivileges
     ) {
 
         super();
@@ -197,6 +199,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
 
+        this.tokenIdToActionPrivileges = tokenIdToActionPrivileges;
         this.pluginIdToActionPrivileges = createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups);
         this.updateConfiguration(actionGroups, rolesConfiguration, generalConfiguration);
     }
@@ -264,6 +267,9 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         if (user.isPluginUser()) {
             mappedRoles = ImmutableSet.of();
             actionPrivileges = this.pluginIdToActionPrivileges.getOrDefault(user.getName(), ActionPrivileges.EMPTY);
+        } else if (user.isApiTokenRequest()) {
+            mappedRoles = ImmutableSet.of();
+            actionPrivileges = this.tokenIdToActionPrivileges.getOrDefault(user.getName(), ActionPrivileges.EMPTY);
         } else {
             mappedRoles = this.roleMapper.map(user, caller);
             actionPrivileges = this.actionPrivileges.get();

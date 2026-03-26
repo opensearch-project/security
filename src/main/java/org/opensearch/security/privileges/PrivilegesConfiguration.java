@@ -23,9 +23,11 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.resolver.IndexResolverReplacer;
@@ -70,6 +72,8 @@ public class PrivilegesConfiguration {
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
 
     private final PrivilegesInterceptorImpl privilegesInterceptor;
+    private ApiTokenRepository apiTokenRepository;
+    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges = new HashMap<>();
 
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
@@ -94,7 +98,8 @@ public class PrivilegesConfiguration {
         Settings settings,
         Supplier<String> unavailablityReasonSupplier,
         IndexResolverReplacer indexResolverReplacer,
-        NamedXContentRegistry namedXContentRegistry
+        NamedXContentRegistry namedXContentRegistry,
+        ApiTokenRepository apiTokenRepository
     ) {
 
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
@@ -109,6 +114,19 @@ public class PrivilegesConfiguration {
         );
         this.staticActionGroups = buildStaticActionGroups();
         this.namedXContentRegistry = namedXContentRegistry;
+
+        if (apiTokenRepository != null) {
+            apiTokenRepository.subscribeOnChange(() -> {
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+                tokenIdToActionPrivileges.clear();
+                apiTokenRepository.forEachToken(
+                    (jti, role) -> tokenIdToActionPrivileges.put(jti, new SubjectBasedActionPrivileges(role, flattenedActionGroups))
+                );
+            });
+        }
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -156,7 +174,8 @@ public class PrivilegesConfiguration {
                             staticActionGroups,
                             newCompiledRoles,
                             generalConfiguration,
-                            pluginIdToRolePrivileges
+                            pluginIdToRolePrivileges,
+                            tokenIdToActionPrivileges
                         )
                     );
                     if (oldInstance != null) {
@@ -197,6 +216,8 @@ public class PrivilegesConfiguration {
         if (clusterService != null) {
             clusterService.addListener(event -> { this.privilegesEvaluator.get().updateClusterStateMetadata(clusterService); });
         }
+
+        this.apiTokenRepository = apiTokenRepository;
     }
 
     /**

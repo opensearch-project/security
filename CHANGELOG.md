@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Make security plugin aware of FIPS build param (-Pcrypto.standard=FIPS-140-3) ([#5952](https://github.com/opensearch-project/security/pull/5952))
 - Hardens input validation for resource sharing APIs ([#5831](https://github.com/opensearch-project/security/pull/5831)
 - Optimize getFieldFilter to only return a predicate when index has FLS restrictions for user ([#5777](https://github.com/opensearch-project/security/pull/5777))
+- Introduce API Tokens with `cluster_permissions` and `index_permissions` directly associated with the token ([#5443](https://github.com/opensearch-project/security/pull/5443))
 - Performance optimizations for building internal authorization data structures upon config updates ([#5988](https://github.com/opensearch-project/security/pull/5988))
 - Make encryption_key optional for obo token authenticator ([#6017](https://github.com/opensearch-project/security/pull/6017)
 - [Resource Sharing] Using custom action prefixes for sample resource plugin ([#6020](https://github.com/opensearch-project/security/pull/6020)

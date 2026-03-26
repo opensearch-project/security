@@ -86,6 +86,7 @@ public class ConfigV7 {
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
         public OnBehalfOfSettings on_behalf_of = new OnBehalfOfSettings();
+        public ApiTokenSettings api_tokens = new ApiTokenSettings();
 
         @Override
         public String toString() {
@@ -101,6 +102,8 @@ public class ConfigV7 {
                 + authz
                 + ", on_behalf_of="
                 + on_behalf_of
+                + ", api_tokens="
+                + api_tokens
                 + "]";
         }
     }
@@ -493,6 +496,44 @@ public class ConfigV7 {
         public String toString() {
             return "OnBehalfOfSettings [ enabled=" + enabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
         }
+    }
+
+    public static class ApiTokenSettings {
+        @JsonProperty("enabled")
+        private Boolean enabled = Boolean.FALSE;
+        @JsonProperty("max_tokens")
+        private int maxTokens = 100;
+
+        @JsonIgnore
+        public String configAsJson() {
+            try {
+                return DefaultObjectMapper.writeValueAsString(this, false);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Boolean getEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(Boolean apiTokensEnabled) {
+            this.enabled = apiTokensEnabled;
+        }
+
+        public int getMaxTokens() {
+            return Math.min(maxTokens, 1000);
+        }
+
+        public void setMaxTokens(int maxTokens) {
+            this.maxTokens = maxTokens;
+        }
+
+        @Override
+        public String toString() {
+            return "ApiTokenSettings [ enabled=" + enabled + ", max_tokens=" + maxTokens + "]";
+        }
+
     }
 
 }
