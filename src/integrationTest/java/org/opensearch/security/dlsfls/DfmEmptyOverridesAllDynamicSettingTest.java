@@ -9,6 +9,8 @@
 package org.opensearch.security.dlsfls;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -23,6 +25,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -61,6 +64,7 @@ public class DfmEmptyOverridesAllDynamicSettingTest {
         .anonymousAuth(false)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER, MIXED_ROLE_USER)
+        .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName())))
         .build();
 
     @BeforeClass
