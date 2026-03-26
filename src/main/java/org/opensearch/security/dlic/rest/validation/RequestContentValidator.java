@@ -382,14 +382,10 @@ public class RequestContentValidator implements ToXContent {
     private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
         // Use allowedKeysWithConfig if provided, otherwise fall back to allowedKeys
         final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
-        final Map<String, DataType> allowedKeys = new HashMap<>();
-        if (fieldConfigs != null) {
-            fieldConfigs.forEach((fieldName, fieldConfig) -> { allowedKeys.put(fieldName, fieldConfig.dataType); });
-        } else {
-            allowedKeys.putAll(validationContext.allowedKeys());
-        }
-        for (final Map.Entry<String, DataType> allowedKey : allowedKeys.entrySet()) {
-            JsonNode value = jsonContent.get(allowedKey.getKey());
+        final Set<String> allowedKeys = (fieldConfigs != null) ? fieldConfigs.keySet() : validationContext.allowedKeys().keySet();
+
+        for (final String key : allowedKeys) {
+            JsonNode value = jsonContent.get(key);
             if (value != null) {
                 if (hasNullOrBlankArrayElement(value)) {
                     this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
