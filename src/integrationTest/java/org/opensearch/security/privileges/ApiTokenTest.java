@@ -126,6 +126,15 @@ public class ApiTokenTest {
     }
 
     @Test
+    public void testDashboardsInfoReportsApiTokensEnabled() {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
+            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response.getTextFromJsonBody("/api_tokens_enabled"), equalTo("true"));
+        }
+    }
+
+    @Test
     public void testCallingClusterHealthWithApiToken_success() {
         String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
         Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
