@@ -181,7 +181,7 @@ import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.resources.ResourceActionGroupsHelper;
+import org.opensearch.security.resources.ResourceAccessLevelHelper;
 import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
@@ -2491,7 +2491,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         resourcePluginInfo.setResourceSharingExtensions(exts);
 
         // load action-groups in memory
-        ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
+        ResourceAccessLevelHelper.loadAccessLevelConfig(resourcePluginInfo);
     }
 
     public static class GuiceHolder implements LifecycleComponent {
