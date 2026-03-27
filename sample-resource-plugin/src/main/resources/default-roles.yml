@@ -1,0 +1,20 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+
+sample_full_access:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide full access to the sample resource plugin"
+  cluster_permissions:
+    - "cluster:admin/sample-resource-plugin/*"
+
+sample_read_access:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide read access to the sample resource plugin"
+  cluster_permissions:
+    - "cluster:admin/sample-resource-plugin/get"
