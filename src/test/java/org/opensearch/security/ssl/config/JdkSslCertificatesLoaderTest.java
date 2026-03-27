@@ -270,7 +270,7 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     }
 
     String randomKeyStoreType() {
-        return randomFrom(new String[] { "jks", "pkcs12", null });
+        return randomFrom(new String[] { "bcfks", "jks", "pkcs12", null });
     }
 
     String randomKeyStorePassword(final boolean useSecurePassword) {
@@ -282,7 +282,7 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
         for (final var alias : certificates.keySet()) {
             keyStore.setCertificateEntry(alias, certificates.get(alias));
         }
-        final var trustStorePath = path(String.format("truststore.%s", isNull(type) ? "jsk" : type));
+        final var trustStorePath = path(String.format("truststore.%s", isNull(type) ? "jks" : type));
         storeKeyStore(keyStore, trustStorePath, password);
         return trustStorePath;
     }
@@ -305,7 +305,7 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     }
 
     KeyStore keyStore(final String type) throws Exception {
-        final var keyStore = KeyStore.getInstance(isNull(type) ? KeyStore.getDefaultType() : type);
+        final var keyStore = KeyStore.getInstance(isNull(type) ? DEFAULT_STORE_TYPE : type);
         keyStore.load(null, null);
         return keyStore;
     }

@@ -98,10 +98,9 @@ import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
 public class DefaultSecurityKeyStore implements SecurityKeyStore {
-
-    private static final String DEFAULT_STORE_TYPE = "JKS";
 
     private void printJCEWarnings() {
         try {

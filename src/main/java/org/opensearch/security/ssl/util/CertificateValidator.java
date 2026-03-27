@@ -142,7 +142,7 @@ public class CertificateValidator {
             X509CertSelector certSelect = new X509CertSelector();
             certSelect.setCertificate(certList.get(0));
 
-            CertPathBuilder certPathBuilder = CertPathBuilder.getInstance("PKIX");
+            CertPathBuilder certPathBuilder = CertPathBuilder.getInstance("PKIX", "SUN");
             PKIXRevocationChecker revocationChecker = (PKIXRevocationChecker) certPathBuilder.getRevocationChecker();
 
             Set<PKIXRevocationChecker.Option> opts = new HashSet<>();
@@ -204,10 +204,10 @@ public class CertificateValidator {
             }
 
             // Build certification path
-            CertPathBuilderResult buildResult = CertPathBuilder.getInstance("PKIX").build(pbParams);
+            CertPathBuilderResult buildResult = CertPathBuilder.getInstance("PKIX", "SUN").build(pbParams);
 
             // Validate certification path
-            CertPathValidator.getInstance("PKIX").validate(buildResult.getCertPath(), pbParams);
+            CertPathValidator.getInstance("PKIX", "SUN").validate(buildResult.getCertPath(), pbParams);
         } catch (GeneralSecurityException gse) {
             throw new CertificateException("Unable to validate certificate: " + gse.getMessage(), gse);
         }

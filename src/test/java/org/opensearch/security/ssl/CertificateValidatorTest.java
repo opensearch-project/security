@@ -24,7 +24,6 @@ import java.security.cert.CertPathBuilderException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.security.cert.CertificateRevokedException;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,8 +33,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
-import org.opensearch.ExceptionsHelper;
 import org.opensearch.security.ssl.util.CertificateValidator;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -83,7 +82,10 @@ public class CertificateValidatorTest {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
             Assert.fail();
         } catch (CertificateException e) {
-            Assert.assertTrue(ExceptionUtils.getRootCause(e) instanceof CertificateRevokedException);
+            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? "Certificate revocation after 2018-05-05"
+                : "Certificate has been revoked";
+            Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
 
@@ -121,7 +123,10 @@ public class CertificateValidatorTest {
         try {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
         } catch (CertificateException e) {
-            Assert.fail(ExceptionsHelper.stackTrace(ExceptionUtils.getRootCause(e)));
+            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? "No CRLs found for issuer"
+                : "Certificate has been revoked";
+            Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
 
@@ -153,7 +158,10 @@ public class CertificateValidatorTest {
             Assert.fail();
         } catch (CertificateException e) {
             Assert.assertTrue(e.getCause() instanceof CertPathBuilderException);
-            Assert.assertTrue(e.getCause().getMessage().contains("unable to find valid certification path to requested target"));
+            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? "No CRLs found for issuer"
+                : "Certificate has been revoked";
+            Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
 
@@ -187,7 +195,10 @@ public class CertificateValidatorTest {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
             Assert.fail();
         } catch (CertificateException e) {
-            Assert.assertTrue(ExceptionUtils.getRootCause(e) instanceof CertificateRevokedException);
+            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? "No CRLs found for issuer"
+                : "Certificate has been revoked";
+            Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
 }

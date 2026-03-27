@@ -17,10 +17,13 @@
 
 package org.opensearch.security.ssl.util;
 
+import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
@@ -42,7 +45,7 @@ public final class SSLConfigConstants {
     public static final String ENABLED = "enabled";
     public static final String CLIENT_AUTH_MODE = "clientauth_mode";
     public static final String ENFORCE_CERT_RELOAD_DN_VERIFICATION = "enforce_cert_reload_dn_verification";
-    public static final String DEFAULT_STORE_TYPE = "JKS";
+    public static final String DEFAULT_STORE_TYPE = CryptoServicesRegistrar.isInApprovedOnlyMode() ? "BCFKS" : KeyStore.getDefaultType();
     public static final String SSL_PREFIX = "plugins.security.ssl.";
 
     public static final String KEYSTORE_TYPE = "keystore_type";
