@@ -14,6 +14,7 @@ package org.opensearch.security.configuration;
 import java.lang.reflect.Field;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -543,9 +544,17 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return false;
         }
 
+        Map<String, Boolean> cache = privilegesEvaluationContext.hasFlsOrFieldMaskingCache();
+        Boolean cachedResult = cache.get(index);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
         DlsFlsProcessedConfig config = this.dlsFlsBaseContext.config();
-        return !config.getFieldPrivileges().isUnrestricted(privilegesEvaluationContext, index)
+        boolean result = !config.getFieldPrivileges().isUnrestricted(privilegesEvaluationContext, index)
             || !config.getFieldMasking().isUnrestricted(privilegesEvaluationContext, index);
+        cache.put(index, result);
+        return result;
     }
 
     @Override
