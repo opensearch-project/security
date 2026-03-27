@@ -85,7 +85,9 @@ public class ApiTokenTest {
             List.of("cluster:monitor", "cluster:admin"),
             List.of(new ApiToken.IndexPermission(List.of("logs-*"), List.of("read", "write"))),
             creationTime,
-            expiration
+            expiration,
+            null,
+            "admin"
         );
 
         String json = original.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString();
@@ -99,6 +101,7 @@ public class ApiTokenTest {
         assertEquals(original.getClusterPermissions(), parsed.getClusterPermissions());
         assertEquals(original.getExpiration(), parsed.getExpiration());
         assertEquals(creationTime, parsed.getCreationTime());
+        assertEquals("admin", parsed.getCreatedBy());
         assertEquals(1, parsed.getIndexPermissions().size());
         assertThat(parsed.getIndexPermissions().get(0).getIndexPatterns(), equalTo(List.of("logs-*")));
         assertThat(parsed.getIndexPermissions().get(0).getAllowedActions(), equalTo(List.of("read", "write")));

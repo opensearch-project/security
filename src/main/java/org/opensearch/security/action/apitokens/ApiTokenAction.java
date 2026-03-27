@@ -46,6 +46,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -164,6 +165,9 @@ public class ApiTokenAction extends BaseRestHandler {
                         if (token.getRevokedAt() != null) {
                             builder.field(REVOKED_AT_FIELD, token.getRevokedAt().toEpochMilli());
                         }
+                        if (token.getCreatedBy() != null) {
+                            builder.field(ApiToken.CREATED_BY_FIELD, token.getCreatedBy());
+                        }
                         builder.endObject();
                     }
                     builder.endArray();
@@ -178,6 +182,9 @@ public class ApiTokenAction extends BaseRestHandler {
     }
 
     private RestChannelConsumer handlePost(RestRequest request, NodeClient client) {
+        final User user = (User) client.threadPool().getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final String createdBy = user != null ? user.getName() : null;
+
         return channel -> {
             try {
                 final ApiToken.CreateRequest createRequest;
@@ -230,6 +237,7 @@ public class ApiTokenAction extends BaseRestHandler {
                         createRequest.getClusterPermissions(),
                         createRequest.getIndexPermissions(),
                         absoluteExpiration,
+                        createdBy,
                         wrapWithCacheRefresh(ActionListener.wrap(created -> {
                             apiTokenRepository.notifyAboutChanges();
                             XContentBuilder builder = channel.newBuilder();

@@ -190,11 +190,12 @@ public class ApiTokenRepository {
         List<String> clusterPermissions,
         List<ApiToken.IndexPermission> indexPermissions,
         Long expiration,
+        String createdBy,
         ActionListener<TokenCreated> listener
     ) {
         String plaintext = generateToken();
         String hash = hashToken(plaintext);
-        ApiToken apiToken = new ApiToken(name, hash, clusterPermissions, indexPermissions, Instant.now(), expiration);
+        ApiToken apiToken = new ApiToken(name, hash, clusterPermissions, indexPermissions, Instant.now(), expiration, null, createdBy);
         apiTokenIndexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> {
             apiTokenIndexHandler.indexTokenMetadata(apiToken, ActionListener.wrap(id -> {
                 tokenHashToRole.put(hash, buildRole(apiToken));

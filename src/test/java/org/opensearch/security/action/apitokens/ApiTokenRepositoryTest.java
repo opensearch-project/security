@@ -168,7 +168,7 @@ public class ApiTokenRepositoryTest {
         }).when(apiTokenIndexHandler).createApiTokenIndexIfAbsent(any(ActionListener.class));
 
         TestActionListener<ApiTokenRepository.TokenCreated> listener = new TestActionListener<>();
-        repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration, listener);
+        repository.createApiToken(tokenName, clusterPermissions, indexPermissions, expiration, "admin", listener);
         ApiTokenRepository.TokenCreated created = listener.assertSuccess();
 
         assertTrue("Token should start with os_ prefix", created.token().startsWith(ApiTokenRepository.TOKEN_PREFIX));
@@ -180,6 +180,7 @@ public class ApiTokenRepositoryTest {
                     && token.getClusterPermissions().equals(clusterPermissions)
                     && token.getIndexPermissions().equals(indexPermissions)
                     && token.getExpiration().equals(expiration)
+                    && "admin".equals(token.getCreatedBy())
                     && token.getTokenHash().equals(ApiTokenRepository.hashToken(created.token()))
             ),
             any(ActionListener.class)
@@ -280,9 +281,9 @@ public class ApiTokenRepositoryTest {
     public void testReloadApiTokensFromIndexExcludesRevokedTokens() {
         Map<String, ApiToken> tokens = Map.of(
             HASH_ALPHA,
-            new ApiToken("active", HASH_ALPHA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, null),
+            new ApiToken("active", HASH_ALPHA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, null, "admin"),
             HASH_BETA,
-            new ApiToken("revoked", HASH_BETA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, Instant.now())
+            new ApiToken("revoked", HASH_BETA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, Instant.now(), "admin")
         );
 
         doAnswer(invocation -> {
@@ -309,7 +310,7 @@ public class ApiTokenRepositoryTest {
         // Next reload returns the same token but now with revoked_at set
         Map<String, ApiToken> tokens = Map.of(
             HASH_BETA,
-            new ApiToken("revoked", HASH_BETA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, Instant.now())
+            new ApiToken("revoked", HASH_BETA, List.of("cluster:monitor"), List.of(), Instant.now(), Long.MAX_VALUE, Instant.now(), "admin")
         );
 
         doAnswer(invocation -> {

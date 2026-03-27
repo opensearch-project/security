@@ -35,6 +35,7 @@ public class ApiToken implements ToXContent {
     public static final String EXPIRATION_FIELD = "expiration";
     public static final String TOKEN_HASH_FIELD = "token_hash";
     public static final String REVOKED_AT_FIELD = "revoked_at";
+    public static final String CREATED_BY_FIELD = "created_by";
 
     @SuppressWarnings("unchecked")
     private static final ConstructingObjectParser<ApiToken, Void> PARSER = new ConstructingObjectParser<>(
@@ -47,7 +48,8 @@ public class ApiToken implements ToXContent {
             args[3] != null ? (List<IndexPermission>) args[3] : List.<IndexPermission>of(),
             args[4] != null ? Instant.ofEpochMilli((Long) args[4]) : null,
             args[5] != null ? (Long) args[5] : 0L,
-            args[6] != null ? Instant.ofEpochMilli((Long) args[6]) : null
+            args[6] != null ? Instant.ofEpochMilli((Long) args[6]) : null,
+            (String) args[7]
         )
     );
 
@@ -63,6 +65,7 @@ public class ApiToken implements ToXContent {
         PARSER.declareLong(optionalConstructorArg(), new ParseField(ISSUED_AT_FIELD));
         PARSER.declareLong(optionalConstructorArg(), new ParseField(EXPIRATION_FIELD));
         PARSER.declareLong(optionalConstructorArg(), new ParseField(REVOKED_AT_FIELD));
+        PARSER.declareString(optionalConstructorArg(), new ParseField(CREATED_BY_FIELD));
     }
 
     private final String name;
@@ -73,6 +76,7 @@ public class ApiToken implements ToXContent {
     private final List<IndexPermission> indexPermissions;
     private final long expiration;
     private final Instant revokedAt;
+    private final String createdBy;
 
     public ApiToken(
         String name,
@@ -82,7 +86,7 @@ public class ApiToken implements ToXContent {
         Instant creationTime,
         Long expiration
     ) {
-        this(name, tokenHash, clusterPermissions, indexPermissions, creationTime, expiration, null);
+        this(name, tokenHash, clusterPermissions, indexPermissions, creationTime, expiration, null, null);
     }
 
     public ApiToken(
@@ -92,7 +96,8 @@ public class ApiToken implements ToXContent {
         List<IndexPermission> indexPermissions,
         Instant creationTime,
         Long expiration,
-        Instant revokedAt
+        Instant revokedAt,
+        String createdBy
     ) {
         this.name = name;
         this.tokenHash = tokenHash;
@@ -101,6 +106,7 @@ public class ApiToken implements ToXContent {
         this.creationTime = creationTime;
         this.expiration = expiration;
         this.revokedAt = revokedAt;
+        this.createdBy = createdBy;
     }
 
     public static class IndexPermission implements ToXContent {
@@ -193,6 +199,9 @@ public class ApiToken implements ToXContent {
         if (revokedAt != null) {
             xContentBuilder.field(REVOKED_AT_FIELD, revokedAt.toEpochMilli());
         }
+        if (createdBy != null) {
+            xContentBuilder.field(CREATED_BY_FIELD, createdBy);
+        }
         xContentBuilder.endObject();
         return xContentBuilder;
     }
@@ -207,6 +216,10 @@ public class ApiToken implements ToXContent {
 
     public boolean isRevoked() {
         return revokedAt != null;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
     }
 
     public static class CreateRequest {
