@@ -156,6 +156,7 @@ public class DashboardsInfoAction extends BaseRestHandler {
                         client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, DEFAULT_PASSWORD_REGEX)
                     );
                     builder.field("resource_sharing_enabled", resourceSharingEnabledSetting.getDynamicSettingValue());
+                    builder.field("api_tokens_enabled", getApiTokensEnabled());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
@@ -189,6 +190,14 @@ public class DashboardsInfoAction extends BaseRestHandler {
         } else {
             return new ConfigV7.Kibana().sign_in_options;
         }
+    }
+
+    private boolean getApiTokensEnabled() {
+        ConfigV7 generalConfig = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
+        if (generalConfig != null && generalConfig.dynamic != null && generalConfig.dynamic.api_tokens != null) {
+            return Boolean.TRUE.equals(generalConfig.dynamic.api_tokens.getEnabled());
+        }
+        return false;
     }
 
 }
