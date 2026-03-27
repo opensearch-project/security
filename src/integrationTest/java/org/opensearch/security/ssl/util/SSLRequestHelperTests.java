@@ -8,39 +8,17 @@
 
 package org.opensearch.security.ssl.util;
 
-import org.bouncycastle.asn1.x509.CRLReason;
-import org.bouncycastle.cert.jcajce.JcaX509v2CRLBuilder;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.support.PemKeyReader;
-import org.opensearch.test.framework.certificate.CertificateData;
-import org.opensearch.test.framework.certificate.TestCertificates;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.net.InetSocketAddress;
-import java.security.KeyStoreException;
-import java.security.cert.CertPathBuilderException;
-import java.security.cert.CertPathValidatorException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.PrivateKey;
+import java.security.cert.CertPathBuilderException;
+import java.security.cert.CertPathValidatorException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
@@ -48,13 +26,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.TrustManagerFactory;
+
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.bouncycastle.asn1.x509.CRLReason;
+import org.bouncycastle.cert.jcajce.JcaX509v2CRLBuilder;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.support.PemKeyReader;
+import org.opensearch.test.framework.certificate.CertificateData;
+import org.opensearch.test.framework.certificate.TestCertificates;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThrows;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_PASSWORD;
+import static org.junit.Assert.assertThrows;
 
 public class SSLRequestHelperTests {
 
@@ -89,11 +90,7 @@ public class SSLRequestHelperTests {
         Files.copy(wrongCerts.getRootCertificate().toPath(), configDir.resolve("wrong-ca.pem"));
 
         writeCrl(certs.getRootCertificateData(), configDir.resolve("empty.crl"));
-        writeCrl(
-            certs.getRootCertificateData(),
-            configDir.resolve("revoked.crl"),
-            certs.getAdminCertificateData().certificate()
-        );
+        writeCrl(certs.getRootCertificateData(), configDir.resolve("revoked.crl"), certs.getAdminCertificateData().certificate());
         writeTruststore(certs.getRootCertificateData().certificate(), configDir.resolve(STORE_NAME));
     }
 
@@ -122,7 +119,8 @@ public class SSLRequestHelperTests {
 
     /** Returns a post-handshake server engine using node-0 as server and admin cert as client. */
     private static SSLEngine handshake() throws Exception {
-        return handshake( //
+        return handshake(
+            //
             buildContext(certs.getNodeCertificateData(0), certs), //
             buildContext(certs.getAdminCertificateData(), certs) //
         );
@@ -209,28 +207,44 @@ public class SSLRequestHelperTests {
     private static SecurityRequest requestFor(SSLEngine engine) {
         return new SecurityRequest() {
             @Override
-            public SSLEngine getSSLEngine() {return engine;}
+            public SSLEngine getSSLEngine() {
+                return engine;
+            }
 
             @Override
-            public Map<String, List<String>> getHeaders() {return Collections.emptyMap();}
+            public Map<String, List<String>> getHeaders() {
+                return Collections.emptyMap();
+            }
 
             @Override
-            public String path() {return "/";}
+            public String path() {
+                return "/";
+            }
 
             @Override
-            public Method method() {return Method.GET;}
+            public Method method() {
+                return Method.GET;
+            }
 
             @Override
-            public Optional<InetSocketAddress> getRemoteAddress() {return Optional.empty();}
+            public Optional<InetSocketAddress> getRemoteAddress() {
+                return Optional.empty();
+            }
 
             @Override
-            public String uri() {return "/";}
+            public String uri() {
+                return "/";
+            }
 
             @Override
-            public Map<String, String> params() {return Collections.emptyMap();}
+            public Map<String, String> params() {
+                return Collections.emptyMap();
+            }
 
             @Override
-            public Set<String> getUnconsumedParams() {return Collections.emptySet();}
+            public Set<String> getUnconsumedParams() {
+                return Collections.emptySet();
+            }
         };
     }
 
@@ -271,8 +285,7 @@ public class SSLRequestHelperTests {
         SSLEngine serverEngine = handshake();
         Settings settings = Settings.builder().put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, false).build();
 
-        SSLRequestHelper.SSLInfo info =
-            SSLRequestHelper.getSSLInfo(settings, configDir, requestFor(serverEngine), null);
+        SSLRequestHelper.SSLInfo info = SSLRequestHelper.getSSLInfo(settings, configDir, requestFor(serverEngine), null);
 
         assertThat(info, is(notNullValue()));
         assertThat(info.getX509Certs(), is(notNullValue()));        // peer (admin) certs
