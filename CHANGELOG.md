@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix span propagation issue for tracing([#6006](https://github.com/opensearch-project/security/pull/6006))
 
 ### Refactoring
+- Certificate revocation validation for better error-handling ([#6042](https://github.com/opensearch-project/security/pull/6042)))
 
 ### Maintenance
 - Bump `commons-codec:commons-codec` from 1.20.0 to 1.21.0 ([#5937](https://github.com/opensearch-project/security/pull/5937))
