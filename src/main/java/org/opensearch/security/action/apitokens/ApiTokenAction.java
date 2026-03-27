@@ -13,6 +13,7 @@ package org.opensearch.security.action.apitokens;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -195,11 +196,40 @@ public class ApiTokenAction extends BaseRestHandler {
                         );
                         return;
                     }
+
+                    long requestedExpiration = createRequest.getExpiration();
+                    long maxExpirationSeconds = config.dynamic.api_tokens.getMaxExpirationSeconds();
+                    long absoluteExpiration = 0;
+
+                    if (requestedExpiration != 0) {
+                        if (requestedExpiration < 0) {
+                            sendErrorResponse(channel, RestStatus.BAD_REQUEST, "Token expiration duration must be positive.");
+                            return;
+                        }
+                        long requestedExpirationSeconds = requestedExpiration / 1000;
+                        if (maxExpirationSeconds > 0 && requestedExpirationSeconds > maxExpirationSeconds) {
+                            sendErrorResponse(
+                                channel,
+                                RestStatus.BAD_REQUEST,
+                                "Token expiration exceeds the maximum allowed duration of " + maxExpirationSeconds + " seconds."
+                            );
+                            return;
+                        }
+                        absoluteExpiration = Instant.now().toEpochMilli() + requestedExpiration;
+                    } else if (maxExpirationSeconds > 0) {
+                        sendErrorResponse(
+                            channel,
+                            RestStatus.BAD_REQUEST,
+                            "Non-expiring tokens are not allowed. Maximum expiration is " + maxExpirationSeconds + " seconds."
+                        );
+                        return;
+                    }
+
                     apiTokenRepository.createApiToken(
                         createRequest.getName(),
                         createRequest.getClusterPermissions(),
                         createRequest.getIndexPermissions(),
-                        createRequest.getExpiration(),
+                        absoluteExpiration,
                         wrapWithCacheRefresh(ActionListener.wrap(created -> {
                             apiTokenRepository.notifyAboutChanges();
                             XContentBuilder builder = channel.newBuilder();

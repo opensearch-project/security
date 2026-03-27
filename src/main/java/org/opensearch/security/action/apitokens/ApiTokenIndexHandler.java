@@ -28,6 +28,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
@@ -53,7 +54,9 @@ public class ApiTokenIndexHandler {
     }
 
     public void indexTokenMetadata(ApiToken token, ActionListener<String> listener) {
-        try {
+        try (ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+            client.threadPool().getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+
             XContentBuilder builder = XContentFactory.jsonBuilder();
             String jsonString = token.toXContent(builder, ToXContent.EMPTY_PARAMS).toString();
 
@@ -74,20 +77,26 @@ public class ApiTokenIndexHandler {
     }
 
     public void revokeToken(String id, ActionListener<Void> listener) {
-        Map<String, Object> updateFields = Map.of(ApiToken.REVOKED_AT_FIELD, Instant.now().toEpochMilli());
-        UpdateRequest request = new UpdateRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX, id).doc(updateFields)
-            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        client.update(request, ActionListener.wrap(response -> {
-            if (DocWriteResponse.Result.NOT_FOUND.equals(response.getResult())) {
-                listener.onFailure(new ApiTokenException("No token found with id " + id));
-            } else {
-                listener.onResponse(null);
-            }
-        }, listener::onFailure));
+        try (ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+            client.threadPool().getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+
+            Map<String, Object> updateFields = Map.of(ApiToken.REVOKED_AT_FIELD, Instant.now().toEpochMilli());
+            UpdateRequest request = new UpdateRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX, id).doc(updateFields)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+            client.update(request, ActionListener.wrap(response -> {
+                if (DocWriteResponse.Result.NOT_FOUND.equals(response.getResult())) {
+                    listener.onFailure(new ApiTokenException("No token found with id " + id));
+                } else {
+                    listener.onResponse(null);
+                }
+            }, listener::onFailure));
+        }
     }
 
     public void getTokenMetadatas(ActionListener<Map<String, ApiToken>> listener) {
-        try {
+        try (ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+            client.threadPool().getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+
             SearchRequest searchRequest = new SearchRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
             searchRequest.source(new SearchSourceBuilder().size(10_000));
 
@@ -124,11 +133,20 @@ public class ApiTokenIndexHandler {
 
     public void createApiTokenIndexIfAbsent(ActionListener<CreateIndexResponse> listener) {
         if (!apiTokenIndexExists()) {
-            final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).settings(
-                indexSettings
-            );
-            client.admin().indices().create(createIndexRequest, listener);
+            try (ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
+                client.threadPool().getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+
+                final Map<String, Object> indexSettings = ImmutableMap.of(
+                    "index.number_of_shards",
+                    1,
+                    "index.auto_expand_replicas",
+                    "0-all"
+                );
+                final CreateIndexRequest createIndexRequest = new CreateIndexRequest(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX).settings(
+                    indexSettings
+                );
+                client.admin().indices().create(createIndexRequest, listener);
+            }
         } else {
             listener.onResponse(null);
         }

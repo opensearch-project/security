@@ -503,6 +503,8 @@ public class ConfigV7 {
         private Boolean enabled = Boolean.FALSE;
         @JsonProperty("max_tokens")
         private int maxTokens = 100;
+        @JsonProperty("max_expiration_seconds")
+        private long maxExpirationSeconds = 0;
 
         @JsonIgnore
         public String configAsJson() {
@@ -529,9 +531,27 @@ public class ConfigV7 {
             this.maxTokens = maxTokens;
         }
 
+        /**
+         * Returns the maximum allowed expiration duration in seconds.
+         * A value of 0 means no limit on expiration (tokens can be non-expiring).
+         */
+        public long getMaxExpirationSeconds() {
+            return maxExpirationSeconds;
+        }
+
+        public void setMaxExpirationSeconds(long maxExpirationSeconds) {
+            this.maxExpirationSeconds = maxExpirationSeconds;
+        }
+
         @Override
         public String toString() {
-            return "ApiTokenSettings [ enabled=" + enabled + ", max_tokens=" + maxTokens + "]";
+            return "ApiTokenSettings [ enabled="
+                + enabled
+                + ", max_tokens="
+                + maxTokens
+                + ", max_expiration_seconds="
+                + maxExpirationSeconds
+                + "]";
         }
 
     }

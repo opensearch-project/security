@@ -131,6 +131,7 @@ public class ApiTokenTest {
             TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getTextFromJsonBody("/api_tokens_enabled"), equalTo("true"));
+            assertThat(response.getTextFromJsonBody("/max_token_expiration_seconds"), equalTo("0"));
         }
     }
 

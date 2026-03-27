@@ -218,7 +218,7 @@ public class ApiToken implements ToXContent {
                 (String) args[0],
                 args[1] != null ? (List<String>) args[1] : List.of(),
                 args[2] != null ? (List<IndexPermission>) args[2] : List.<IndexPermission>of(),
-                args[3] != null ? (Long) args[3] : Instant.now().toEpochMilli() + java.util.concurrent.TimeUnit.DAYS.toMillis(30)
+                args[3] != null ? (Long) args[3] : 0L
             )
         );
 
