@@ -19,9 +19,8 @@ package org.opensearch.security.ssl;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.security.cert.CRL;
 import java.security.GeneralSecurityException;
-import static org.hamcrest.MatcherAssert.assertThat;
+import java.security.cert.CRL;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
@@ -34,15 +33,16 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.junit.Assert;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.security.ssl.util.CertificateValidator;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
