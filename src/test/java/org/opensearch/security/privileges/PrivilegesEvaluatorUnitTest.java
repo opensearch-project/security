@@ -14,12 +14,15 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.securityconf.impl.v7.ConfigV7;
+
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.DNFOF_MATCHER;
 import static org.opensearch.security.privileges.PrivilegesEvaluatorImpl.isClusterPerm;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -133,4 +136,80 @@ public class PrivilegesEvaluatorUnitTest {
         }
     }
 
+    @Test
+    public void testFromConfigV7_defaultValues() {
+        ConfigV7 cfg = new ConfigV7();
+        // dynamic defaults are present by the constructor
+        PrivilegesEvaluator.GlobalDynamicSettings settings = PrivilegesEvaluator.GlobalDynamicSettings.fromConfigV7(cfg);
+
+        // do_not_fail_on_forbidden default is false
+        assertFalse(settings.dnfofEnabled);
+        // do_not_fail_on_forbidden_empty default is false
+        assertFalse(settings.dnfofForEmptyResultsEnabled);
+    }
+
+    @Test
+    public void testFromConfigV7_customValues() {
+        ConfigV7 cfg = new ConfigV7();
+        cfg.dynamic = new ConfigV7.Dynamic();
+        cfg.dynamic.do_not_fail_on_forbidden = true;
+        cfg.dynamic.do_not_fail_on_forbidden_empty = true;
+        cfg.dynamic.filtered_alias_mode = "none";
+
+        PrivilegesEvaluator.GlobalDynamicSettings settings = PrivilegesEvaluator.GlobalDynamicSettings.fromConfigV7(cfg);
+
+        assertTrue(settings.dnfofEnabled);
+        assertTrue(settings.dnfofForEmptyResultsEnabled);
+        assertEquals("none", settings.filteredAliasMode);
+    }
+
+    @Test
+    public void testFromConfigV7_nullDynamic() {
+        ConfigV7 cfg = new ConfigV7();
+        cfg.dynamic = null;
+
+        PrivilegesEvaluator.GlobalDynamicSettings settings = PrivilegesEvaluator.GlobalDynamicSettings.fromConfigV7(cfg);
+
+        // when dynamic is null, defaults: dnfof false, dnfof empty false, filtered_alias_mode -> "none"
+        assertFalse(settings.dnfofEnabled);
+        assertFalse(settings.dnfofForEmptyResultsEnabled);
+        assertEquals("none", settings.filteredAliasMode);
+    }
+
+    @Test
+    public void testEqualsAndHashCode() {
+        ConfigV7 cfg1 = new ConfigV7();
+        cfg1.dynamic = new ConfigV7.Dynamic();
+        cfg1.dynamic.do_not_fail_on_forbidden = true;
+        cfg1.dynamic.do_not_fail_on_forbidden_empty = false;
+        cfg1.dynamic.filtered_alias_mode = "warn";
+
+        ConfigV7 cfg2 = new ConfigV7();
+        cfg2.dynamic = new ConfigV7.Dynamic();
+        cfg2.dynamic.do_not_fail_on_forbidden = true;
+        cfg2.dynamic.do_not_fail_on_forbidden_empty = false;
+        cfg2.dynamic.filtered_alias_mode = "warn";
+
+        PrivilegesEvaluator.GlobalDynamicSettings s1 = PrivilegesEvaluator.GlobalDynamicSettings.fromConfigV7(cfg1);
+        PrivilegesEvaluator.GlobalDynamicSettings s2 = PrivilegesEvaluator.GlobalDynamicSettings.fromConfigV7(cfg2);
+
+        // reflexive
+        assertTrue(s1.equals(s1));
+        // symmetric and equal
+        assertTrue(s1.equals(s2));
+        assertTrue(s2.equals(s1));
+        // hashCode equal when equals
+        assertEquals(s1.hashCode(), s2.hashCode());
+
+        // change one field
+        cfg2.dynamic.filtered_alias_mode = "none";
+        PrivilegesEvaluator.GlobalDynamicSettings s3 = PrivilegesEvaluator.GlobalDynamicSettings.fromConfigV7(cfg2);
+
+        // now they should not be equal
+        assertFalse(s1.equals(s3));
+
+        // null and different type comparisons
+        assertFalse(s1.equals(null));
+        assertFalse(s1.equals("some string"));
+    }
 }
