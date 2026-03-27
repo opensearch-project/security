@@ -8,18 +8,6 @@
 
 package org.opensearch.security.ssl.util;
 
-import org.junit.Test;
-import org.opensearch.OpenSearchException;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.env.Environment;
-import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.util.FakeRestRequest;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.security.KeyStore;
@@ -33,6 +21,19 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+
+import org.junit.Test;
+
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.env.Environment;
+import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.util.FakeRestRequest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -96,9 +97,7 @@ public class SSLRequestHelperTest {
     @Test
     public void trustAnchorsFromKeyStore_returnsAnchorForEachCertificateEntry() throws Exception {
         KeyStore ts = KeyStore.getInstance("JKS");
-        try (FileInputStream fis = new FileInputStream(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore_valid.jks").toFile()
-        )) {
+        try (FileInputStream fis = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore_valid.jks").toFile())) {
             ts.load(fis, null);
         }
 
@@ -119,7 +118,7 @@ public class SSLRequestHelperTest {
 
         SSLRequestHelper.configureValidator(validator, Settings.EMPTY);
 
-        // !disable_crldp(false) → true;  !disable_ocsp(false) → true
+        // !disable_crldp(false) → true; !disable_ocsp(false) → true
         assertThat(validator.isEnableCRLDP(), is(true));
         assertThat(validator.isEnableOCSP(), is(true));
         assertThat(validator.isCheckOnlyEndEntities(), is(true));
@@ -215,8 +214,12 @@ public class SSLRequestHelperTest {
         // truststore_valid.jks has no password — null is passed to KeyStore.load()
         Settings settings = Settings.builder().put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, "JKS").build();
 
-        CertificateValidator validator =
-            SSLRequestHelper.buildValidatorFromTruststore(settings, env(sslDir()), null, "truststore_valid.jks");
+        CertificateValidator validator = SSLRequestHelper.buildValidatorFromTruststore(
+            settings,
+            env(sslDir()),
+            null,
+            "truststore_valid.jks"
+        );
 
         assertThat(validator, is(notNullValue()));
     }

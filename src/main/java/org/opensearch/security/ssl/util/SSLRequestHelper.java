@@ -24,10 +24,11 @@ import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.CRL;
-import java.security.cert.Certificate;
 import java.security.cert.CertPathValidatorException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,16 +37,14 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.security.cert.TrustAnchor;
-
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.bouncycastle.crypto.CryptoServicesRegistrar;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -156,22 +155,24 @@ public class SSLRequestHelper {
                     );
                     throw new SSLPeerUnverifiedException(e.getMessage(), e);
                 } catch (CertificateException e) {
-                    // Log the full cause chain so the root reason from BC FIPS is visible
                     log.error(
-                        "Certificate revocation check failed for '{}'",
-                        x509Certs[0].getSubjectX500Principal(),
+                        //
+                        "Certificate revocation check failed for '{}'", //
+                        x509Certs[0].getSubjectX500Principal(), //
                         e
                     );
                     throw new SSLPeerUnverifiedException(e.getMessage(), e);
                 } catch (IOException e) {
                     log.warn(
-                        "CRL/OCSP infrastructure unreachable (check CRL file path or OCSP/CRLDP network access): {}",
-                        e.getMessage()
+                        //
+                        "CRL/OCSP infrastructure unreachable (check CRL file path or OCSP/CRLDP network access): {}", //
+                        e.getMessage() //
                     );
                     throw new SSLPeerUnverifiedException(e.getMessage(), e);
                 } catch (GeneralSecurityException e) {
                     log.error(
-                        "Certificate revocation check configuration error",
+                        //
+                        "Certificate revocation check configuration error", //
                         e
                     );
                     throw new SSLPeerUnverifiedException(e.getMessage(), e);
@@ -188,13 +189,7 @@ public class SSLRequestHelper {
             localCerts = Arrays.stream(session.getLocalCertificates()).map(X509Certificate.class::cast).toArray(X509Certificate[]::new);
         }
 
-        return new SSLInfo(
-            x509Certs,
-            principal,
-            protocol,
-            cipher,
-            localCerts
-        );
+        return new SSLInfo(x509Certs, principal, protocol, cipher, localCerts);
     }
 
     public static boolean containsBadHeader(final ThreadContext context, String prefix) {
@@ -209,8 +204,8 @@ public class SSLRequestHelper {
         return false;
     }
 
-    static void validate(X509Certificate[] x509Certs, final Settings settings, final Path configPath)
-        throws IOException, GeneralSecurityException {
+    static void validate(X509Certificate[] x509Certs, final Settings settings, final Path configPath) throws IOException,
+        GeneralSecurityException {
 
         final boolean validateCrl = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, false);
         log.trace("validateCrl: {}", validateCrl);
@@ -226,8 +221,7 @@ public class SSLRequestHelper {
         validator.validate(x509Certs);
     }
 
-    static Collection<? extends CRL> loadCrls(final Settings settings, final Environment env) throws IOException,
-        GeneralSecurityException {
+    static Collection<? extends CRL> loadCrls(final Settings settings, final Environment env) throws IOException, GeneralSecurityException {
         final String crlFile = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE);
         if (crlFile == null) {
             log.trace("no crl file configured");
@@ -242,11 +236,8 @@ public class SSLRequestHelper {
         }
     }
 
-    static CertificateValidator buildValidator(
-        final Settings settings,
-        final Environment env,
-        final Collection<? extends CRL> crls
-    ) throws IOException, GeneralSecurityException {
+    static CertificateValidator buildValidator(final Settings settings, final Environment env, final Collection<? extends CRL> crls)
+        throws IOException, GeneralSecurityException {
         final String truststore = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH);
         if (truststore != null) {
             return buildValidatorFromTruststore(settings, env, crls, truststore);
@@ -271,11 +262,8 @@ public class SSLRequestHelper {
         return new CertificateValidator(trustAnchorsFrom(ts), crls);
     }
 
-    static CertificateValidator buildValidatorFromPem(
-        final Settings settings,
-        final Environment env,
-        final Collection<? extends CRL> crls
-    ) throws IOException, GeneralSecurityException {
+    static CertificateValidator buildValidatorFromPem(final Settings settings, final Environment env, final Collection<? extends CRL> crls)
+        throws IOException, GeneralSecurityException {
         final File trustedCas = env.configDir()
             .resolve(settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, ""))
             .toAbsolutePath()
@@ -299,9 +287,7 @@ public class SSLRequestHelper {
     }
 
     public static Set<TrustAnchor> trustAnchorsFrom(final X509Certificate... certs) {
-        return Arrays.stream(certs)
-            .map(cert -> new TrustAnchor(cert, null))
-            .collect(Collectors.toSet());
+        return Arrays.stream(certs).map(cert -> new TrustAnchor(cert, null)).collect(Collectors.toSet());
     }
 
     static void configureValidator(final CertificateValidator validator, final Settings settings) {
