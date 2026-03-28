@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 ### Changed
+- Add salt generation to demo security configuration ([#6022](https://github.com/opensearch-project/security/pull/6022)
 
 ### Features
 
