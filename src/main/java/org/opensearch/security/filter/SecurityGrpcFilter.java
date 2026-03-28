@@ -69,7 +69,7 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
 
             @Override
             public int order() {
-                return 0;
+                return Integer.MIN_VALUE;
             }
 
             @Override
