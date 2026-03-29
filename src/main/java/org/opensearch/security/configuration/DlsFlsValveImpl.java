@@ -146,6 +146,15 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             clusterService.getClusterSettings().addSettingsUpdateConsumer(SecuritySettings.DLS_WRITE_BLOCKED, newDlsWriteBlockedEnabled -> {
                 dlsWriteBlockedEnabled = newDlsWriteBlockedEnabled;
             });
+            clusterService.getClusterSettings()
+                .addSettingsUpdateConsumer(SecuritySettings.DFM_EMPTY_OVERRIDES_ALL_SETTING, newDfmEmptyOverridesAll -> {
+                    DlsFlsProcessedConfig config = dlsFlsBaseContext.config();
+                    if (config != null) {
+                        config.getDocumentPrivileges().setDfmEmptyOverridesAll(newDfmEmptyOverridesAll);
+                        config.getFieldPrivileges().setDfmEmptyOverridesAll(newDfmEmptyOverridesAll);
+                        config.getFieldMasking().setDfmEmptyOverridesAll(newDfmEmptyOverridesAll);
+                    }
+                });
         }
         this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
     }
