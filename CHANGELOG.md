@@ -56,6 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.34.100 to 3.34.200 ([#6027](https://github.com/opensearch-project/security/pull/6027))
 - Bump `com.autonomousapps.build-health` from 3.5.1 to 3.6.1 ([#6029](https://github.com/opensearch-project/security/pull/6029))
 - Bump `io.projectreactor:reactor-core` from 3.8.2 to 3.8.4 ([#6046](https://github.com/opensearch-project/security/pull/6046))
+- Bump `org.mockito:mockito-core` from 5.21.0 to 5.23.0 ([#6048](https://github.com/opensearch-project/security/pull/6048))
 
 ### Removed
 
