@@ -141,7 +141,7 @@ public class PrivilegesConfiguration {
                     || !oldRawConfiguration.equals(rawConfiguration)
                     || currentType != targetType;
                 if (privilegesChanged) {
-                    log.debug("Privileges for PrivilegesEvaluator and DLS/FLS did not change; updating.");
+                    log.debug("Privileges for PrivilegesEvaluator or DLS/FLS changed; updating.");
 
                     FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
 
