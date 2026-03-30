@@ -33,4 +33,13 @@ public interface PasswordHasher {
      * @return true if the password matches the hashed password, false otherwise
      */
     boolean check(char[] password, String hashedPassword);
+
+    /**
+     * Returns a dummy hash used for constant-time comparison when a user is not found,
+     * preventing timing-based user enumeration attacks. The hash is in the same format
+     * and uses the same parameters as hashes produced by this hasher.
+     *
+     * @return a valid dummy hash string for this hasher's algorithm
+     */
+    String getDummyHash();
 }

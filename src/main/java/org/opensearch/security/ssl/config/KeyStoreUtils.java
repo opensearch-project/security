@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyException;
 import java.security.KeyStore;
@@ -40,6 +41,8 @@ import org.opensearch.OpenSearchException;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.ApplicationProtocolNegotiator;
 import io.netty.handler.ssl.SslContext;
+
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
 final class KeyStoreUtils {
 
@@ -136,8 +139,8 @@ final class KeyStoreUtils {
         }
     }
 
-    private static KeyStore newKeyStore() throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
-        final var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+    private static KeyStore newKeyStore() throws GeneralSecurityException, IOException {
+        var keyStore = KeyStore.getInstance(DEFAULT_STORE_TYPE);
         keyStore.load(null, null);
         return keyStore;
     }
