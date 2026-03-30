@@ -12,6 +12,7 @@ package org.opensearch.security.privileges;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableSet;
@@ -45,6 +46,13 @@ public class PrivilegesEvaluationContext {
     private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
+
+    /**
+     * Maps index names to a boolean reflecting the return value of DlsFlsValve.hasFlsOrFieldMasking().
+     * We do not have to care about cache invalidation here as the life cycle of PrivilegesEvaluationContext is limited
+     * to a single request on a single node.
+     */
+    private final ConcurrentHashMap<String, Boolean> hasFlsOrFieldMaskingCache = new ConcurrentHashMap<>();
 
     /**
      * Stores the ActionPrivileges instance to be used for this request. Plugin system users or users created from
@@ -187,5 +195,9 @@ public class PrivilegesEvaluationContext {
             + ", mappedRoles="
             + mappedRoles
             + '}';
+    }
+
+    public ConcurrentHashMap<String, Boolean> hasFlsOrFieldMaskingCache() {
+        return hasFlsOrFieldMaskingCache;
     }
 }
