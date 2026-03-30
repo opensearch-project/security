@@ -55,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `com.nimbusds:nimbus-jose-jwt` from 10.7 to 10.8 ([#6030](https://github.com/opensearch-project/security/pull/6030))
 - Bump `org.eclipse.platform:org.eclipse.core.runtime` from 3.34.100 to 3.34.200 ([#6027](https://github.com/opensearch-project/security/pull/6027))
 - Bump `com.autonomousapps.build-health` from 3.5.1 to 3.6.1 ([#6029](https://github.com/opensearch-project/security/pull/6029))
+- Bump `1password/load-secrets-action` from 3 to 4 ([#6047](https://github.com/opensearch-project/security/pull/6047))
 
 ### Removed
 
