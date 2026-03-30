@@ -91,7 +91,6 @@ import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileg
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
@@ -166,7 +165,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         final IndexResolverReplacer irr,
         FlattenedActionGroups actionGroups,
         FlattenedActionGroups staticActionGroups,
-        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
+        CompiledRoles rolesConfiguration,
         ConfigV7 generalConfiguration,
         Map<String, RoleV7> pluginIdToRolePrivileges
     ) {
@@ -208,17 +207,13 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     }
 
     @Override
-    public void updateConfiguration(
-        FlattenedActionGroups flattenedActionGroups,
-        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
-        ConfigV7 generalConfiguration
-    ) {
+    public void updateConfiguration(FlattenedActionGroups flattenedActionGroups, CompiledRoles roles, ConfigV7 generalConfiguration) {
         this.dnfofEnabled = isDnfofEnabled(generalConfiguration);
         this.dnfofForEmptyResultsEnabled = isDnfofEmptyEnabled(generalConfiguration);
         this.filteredAliasMode = getFilteredAliasMode(generalConfiguration);
 
         try {
-            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(rolesConfiguration, flattenedActionGroups, settings);
+            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(roles, settings);
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
             RoleBasedActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);
@@ -604,7 +599,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             || (action0.startsWith(MultiSearchAction.NAME))
             || (action0.equals(MultiTermVectorsAction.NAME))
             || (action0.equals(ReindexAction.NAME))
-            || (action0.equals(RenderSearchTemplateAction.NAME)));
+            || (action0.equals(RenderSearchTemplateAction.NAME))
+            || !action0.startsWith("indices:"));
     }
 
     private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {

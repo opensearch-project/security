@@ -10,14 +10,17 @@ package org.opensearch.security.spi.resources;
 
 import java.util.Set;
 
+import org.opensearch.security.spi.SecurityConfigExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 /**
  * This interface should be implemented by all the plugins that define one or more resources and need access control over those resources.
+ * Extends {@link SecurityConfigExtension} so resource-sharing plugins can also contribute static security configuration
+ * (e.g. default roles via {@code default-roles.yml}).
  *
  * @opensearch.experimental
  */
-public interface ResourceSharingExtension {
+public interface ResourceSharingExtension extends SecurityConfigExtension {
 
     /**
      * Returns the set of {@link ResourceProvider} instances for the resources defined by the plugin.

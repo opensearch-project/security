@@ -179,6 +179,7 @@ import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.PluginDefaultRolesHelper;
 import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourceActionGroupsHelper;
@@ -199,10 +200,11 @@ import org.opensearch.security.rest.SecurityInfoAction;
 import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
-import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.spi.SecurityConfigExtension;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.ssl.ExternalSecurityKeyStore;
@@ -293,7 +295,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile SecurityFilter sf;
     private volatile IndexResolverReplacer irr;
-    private final AtomicReference<NamedXContentRegistry> namedXContentRegistry = new AtomicReference<>(NamedXContentRegistry.EMPTY);;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private final OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
@@ -775,7 +776,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ciol,
                     privilegesConfiguration,
                     roleMapper,
-                    dlsFlsValve::getCurrentConfig,
+                    dlsFlsBaseContext::config,
                     dlsFlsBaseContext
                 )
             );
@@ -831,7 +832,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onPreQueryPhase(SearchContext context) {
-                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get());
+                    dlsFlsValve.handleSearchContext(context, threadPool);
                 }
 
                 @Override
@@ -1182,7 +1183,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
-        namedXContentRegistry.set(xContentRegistry);
         if (SSLConfig.isSslOnlyMode()) {
             auditLog = new NullAuditLog();
         } else {
@@ -1226,7 +1226,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             auditLog,
             settings,
             cih::getReasonForUnavailability,
-            irr
+            irr,
+            xContentRegistry
         );
         this.privilegesConfiguration = privilegesConfiguration;
 
@@ -1247,7 +1248,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 resourcePluginInfo,
                 resourceSharingEnabledSetting
             );
-            cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, resourcePluginInfo);
@@ -1646,9 +1646,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.DFM_EMPTY_OVERRIDES_ALL_SETTING);
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".", Property.NodeScope)); // not
                                                                                                                                     // filtered
                                                                                                                                     // here
@@ -2388,12 +2386,23 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public Function<String, Predicate<String>> getFieldFilter() {
         return index -> {
             if (threadPool == null || dlsFlsValve == null) {
-                return field -> true;
+                return NOOP_FIELD_PREDICATE;
             }
 
             PrivilegesEvaluationContext ctx = this.dlsFlsBaseContext != null
                 ? this.dlsFlsBaseContext.getPrivilegesEvaluationContext()
                 : null;
+
+            boolean indexHasRestrictions = false;
+            try {
+                indexHasRestrictions = dlsFlsValve.indexHasFlsRestrictions(index, ctx);
+
+                if (!indexHasRestrictions) {
+                    return NOOP_FIELD_PREDICATE;
+                }
+            } catch (PrivilegesEvaluationException e) {
+                log.error("Error while evaluating FLS restrictions for {}", index, e);
+            }
 
             return field -> {
                 try {
@@ -2488,12 +2497,26 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public void loadExtensions(ExtensionLoader loader) {
-        // discover & register extensions and their types
+        // discover & register resource-sharing extensions and their types
         Set<ResourceSharingExtension> exts = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
         resourcePluginInfo.setResourceSharingExtensions(exts);
 
         // load action-groups in memory
         ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
+
+        // ResourceSharingExtension extends SecurityConfigExtension, so all resource-sharing
+        // plugins are also config extensions. Collect them along with any standalone
+        // SecurityConfigExtension implementations (plugins that only bring roles, not resources).
+        Set<SecurityConfigExtension> configExts = new HashSet<>(exts);
+        try {
+            configExts.addAll(loader.loadExtensions(SecurityConfigExtension.class));
+        } catch (Exception e) {
+            // No standalone SecurityConfigExtension implementations found — that's fine
+        }
+
+        // load plugin-provided default roles into the static roles pool
+        SecurityDynamicConfiguration<RoleV7> pluginRoles = PluginDefaultRolesHelper.loadDefaultRoles(configExts);
+        DynamicConfigFactory.setPluginDefaultRoles(pluginRoles);
     }
 
     public static class GuiceHolder implements LifecycleComponent {

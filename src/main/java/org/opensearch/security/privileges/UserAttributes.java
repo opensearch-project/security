@@ -10,8 +10,13 @@
  */
 package org.opensearch.security.privileges;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
@@ -25,8 +30,23 @@ import org.opensearch.security.user.User;
  * This code was moved over from ConfigModelV7.
  */
 public class UserAttributes {
+    private static final Pattern UNRESOLVED_ATTRIBUTE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
+
     public static boolean needsAttributeSubstitution(String patternString) {
         return patternString.contains("${");
+    }
+
+    /**
+     * Returns the names of all unresolved ${...} attribute references remaining
+     * in {@code s} after substitution has been performed.
+     */
+    public static List<String> findUnresolvedAttributes(String s) {
+        List<String> result = new ArrayList<>();
+        Matcher matcher = UNRESOLVED_ATTRIBUTE_PATTERN.matcher(s);
+        while (matcher.find()) {
+            result.add(matcher.group(1));
+        }
+        return Collections.unmodifiableList(result);
     }
 
     public static String replaceProperties(String orig, PrivilegesEvaluationContext context) {
