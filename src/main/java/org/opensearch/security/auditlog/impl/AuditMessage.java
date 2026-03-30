@@ -518,6 +518,11 @@ public final class AuditMessage {
     }
 
     public List<String> toJsonSplitIndices(final int maximumIndexCharsPerMessage) {
+        // early-exit and don't split if the maximum is set to the default value
+        if (maximumIndexCharsPerMessage == Integer.MAX_VALUE) {
+            return List.of(toJson());
+        }
+
         final List<String> indices = Arrays.asList((String[]) auditInfo.getOrDefault(INDICES, new String[0]));
         final List<String> resolvedIndices = Arrays.asList((String[]) auditInfo.getOrDefault(RESOLVED_INDICES, new String[0]));
 
