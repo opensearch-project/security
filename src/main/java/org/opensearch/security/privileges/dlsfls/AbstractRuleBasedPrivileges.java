@@ -90,7 +90,7 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
     /**
      * Corresponds to the settings flag plugins.security.dfm_empty_overrides_all.
      */
-    private final boolean dfmEmptyOverridesAll;
+    private volatile boolean dfmEmptyOverridesAll;
 
     /**
      * Corresponds to the setting plugins.security.privileges_evaluation.precomputed_privileges.enabled
@@ -109,6 +109,10 @@ abstract class AbstractRuleBasedPrivileges<SingleRule, JoinedRule extends Abstra
         this.dfmEmptyOverridesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
         this.statefulIndexEnabled = RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.get(settings);
         this.statefulRules = this.statefulIndexEnabled ? new StatefulRules<>(compiledRoles, indexMetadata, roleToRuleFunction) : null;
+    }
+
+    public void setDfmEmptyOverridesAll(boolean dfmEmptyOverridesAll) {
+        this.dfmEmptyOverridesAll = dfmEmptyOverridesAll;
     }
 
     /**
