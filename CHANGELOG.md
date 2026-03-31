@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Enable basic authentication for gRPC transport ([#6005](https://github.com/opensearch-project/security/pull/6005))
 - Allow specifying parentType and parentIdField in ResourceProvider ([#5735](https://github.com/opensearch-project/security/pull/5735))
 - [Resource Sharing] Allow specifying default access level in resource access levels yml file ([#6018](https://github.com/opensearch-project/security/pull/6018))
+- Only update internal compiled privileges configuration when the base config objects have actually changed ([#6037](https://github.com/opensearch-project/security/pull/6037))
 - Cache FLS status information when processing index query cache on a node ([#6044](https://github.com/opensearch-project/security/pull/6044))
 
 ### Bug Fixes
