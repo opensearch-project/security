@@ -26,6 +26,7 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -59,7 +60,11 @@ public interface PrivilegesEvaluator {
 
     boolean isClusterPermission(String action);
 
-    void updateConfiguration(FlattenedActionGroups actionGroups, CompiledRoles rolesConfiguration, ConfigV7 generalConfiguration);
+    void updateConfiguration(
+        FlattenedActionGroups actionGroups,
+        CompiledRoles rolesConfiguration,
+        GlobalDynamicSettings globalDynamicSettings
+    );
 
     void updateClusterStateMetadata(ClusterService clusterService);
 
@@ -118,7 +123,7 @@ public interface PrivilegesEvaluator {
         public void updateConfiguration(
             FlattenedActionGroups actionGroups,
             CompiledRoles rolesConfiguration,
-            ConfigV7 generalConfiguration
+            GlobalDynamicSettings globalDynamicSettings
         ) {
 
         }
@@ -152,4 +157,50 @@ public interface PrivilegesEvaluator {
         }
     };
 
+    /**
+     * Configuration that is sourced from the "general purpose mixed bag" configuration type called config.
+     * The purpose of this class is to provide a focused view to the needed settings.
+     */
+    class GlobalDynamicSettings {
+        final boolean dnfofEnabled;
+        final boolean dnfofForEmptyResultsEnabled;
+        final String filteredAliasMode;
+
+        GlobalDynamicSettings(boolean dnfofEnabled, boolean dnfofForEmptyResultsEnabled, String filteredAliasMode) {
+            this.dnfofEnabled = dnfofEnabled;
+            this.dnfofForEmptyResultsEnabled = dnfofForEmptyResultsEnabled;
+            this.filteredAliasMode = filteredAliasMode;
+        }
+
+        public static GlobalDynamicSettings fromConfigV7(ConfigV7 configV7) {
+            return new GlobalDynamicSettings(isDnfofEnabled(configV7), isDnfofEmptyEnabled(configV7), getFilteredAliasMode(configV7));
+        }
+
+        private static boolean isDnfofEnabled(ConfigV7 generalConfiguration) {
+            return generalConfiguration.dynamic != null && generalConfiguration.dynamic.do_not_fail_on_forbidden;
+        }
+
+        private static boolean isDnfofEmptyEnabled(ConfigV7 generalConfiguration) {
+            return generalConfiguration.dynamic != null && generalConfiguration.dynamic.do_not_fail_on_forbidden_empty;
+        }
+
+        private static String getFilteredAliasMode(ConfigV7 generalConfiguration) {
+            return generalConfiguration.dynamic != null ? generalConfiguration.dynamic.filtered_alias_mode : "none";
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof GlobalDynamicSettings that)) {
+                return false;
+            }
+            return dnfofEnabled == that.dnfofEnabled
+                && dnfofForEmptyResultsEnabled == that.dnfofForEmptyResultsEnabled
+                && Objects.equals(filteredAliasMode, that.filteredAliasMode);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dnfofEnabled, dnfofForEmptyResultsEnabled, filteredAliasMode);
+        }
+    }
 }

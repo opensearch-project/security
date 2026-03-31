@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Enhancements
 - Make `plugins.security.dfm_empty_overrides_all` dynamically toggleable ([#6016](https://github.com/opensearch-project/security/pull/6016)
 - Cache FLS status information when processing index query cache on a node ([#6044](https://github.com/opensearch-project/security/pull/6044))
+- Only update internal compiled privileges configuration when the base config objects have actually changed ([#6037](https://github.com/opensearch-project/security/pull/6037))
 
 ### Bug Fixes
 
