@@ -72,8 +72,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
             .build();
         setup(Settings.EMPTY, null, settings, false);
         final RestHelper rh = restHelper(); // ssl resthelper
@@ -90,7 +90,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             is(rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode())
         );
 
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
         assertThat(
             HttpStatus.SC_CREATED,
             is(rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode())
@@ -130,8 +130,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testWhoAmI() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
             .build();
         setup(
             Settings.EMPTY,
@@ -157,8 +157,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testWhoAmIForceHttp1() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
             .build();
         setup(
             Settings.EMPTY,

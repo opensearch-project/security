@@ -57,7 +57,7 @@ public class HttpClientTest extends SingleClusterTest {
 
         try (
             final HttpClient httpClient = HttpClient.builder("unknownhost:6654", clusterInfo.httpHost + ":" + clusterInfo.httpPort)
-                .enableSsl(FileHelper.getKeystoreFromClassPath("auditlog/truststore.jks", "changeit"), false)
+                .enableSsl(FileHelper.getKeystoreFromClassPath("auditlog/truststore", "changeit"), false)
                 .setBasicCredentials("admin", "admin")
                 .build()
         ) {
@@ -84,8 +84,8 @@ public class HttpClientTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("auditlog/node-0-keystore"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("auditlog/truststore"))
             .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_valid.yml"))
             .build();
 
@@ -95,7 +95,7 @@ public class HttpClientTest extends SingleClusterTest {
 
         try (
             final HttpClient httpClient = HttpClient.builder(clusterInfo.httpHost + ":" + clusterInfo.httpPort)
-                .enableSsl(FileHelper.getKeystoreFromClassPath("auditlog/truststore.jks", "changeit"), false)
+                .enableSsl(FileHelper.getKeystoreFromClassPath("auditlog/truststore", "changeit"), false)
                 .setBasicCredentials("admin", "admin")
                 .build()
         ) {
@@ -123,8 +123,8 @@ public class HttpClientTest extends SingleClusterTest {
             .put("plugins.security.ssl.http.enabled", true)
             .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("auditlog/node-0-keystore"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("auditlog/truststore"))
             .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_valid.yml"))
             .build();
 
@@ -134,9 +134,9 @@ public class HttpClientTest extends SingleClusterTest {
 
         try (
             final HttpClient httpClient = HttpClient.builder(clusterInfo.httpHost + ":" + clusterInfo.httpPort)
-                .enableSsl(FileHelper.getKeystoreFromClassPath("auditlog/truststore.jks", "changeit"), false)
+                .enableSsl(FileHelper.getKeystoreFromClassPath("auditlog/truststore", "changeit"), false)
                 .setPkiCredentials(
-                    FileHelper.getKeystoreFromClassPath("auditlog/spock-keystore.jks", "changeit"),
+                    FileHelper.getKeystoreFromClassPath("auditlog/spock-keystore", "changeit"),
                     "changeit".toCharArray(),
                     null
                 )

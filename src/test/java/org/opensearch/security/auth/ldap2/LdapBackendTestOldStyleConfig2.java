@@ -220,7 +220,7 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
+                FileHelper.resolveStorePath("ldap/truststore")
             )
             .put("verify_hostnames", false)
             .put("path.home", ".")
@@ -240,7 +240,7 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAP_POOL_ENABLED, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
+                FileHelper.resolveStorePath("ldap/truststore")
             )
             .put("verify_hostnames", false)
             .put("path.home", ".")
@@ -290,7 +290,7 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
+                FileHelper.resolveStorePath("ldap/truststore")
             )
             .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "SSLv3")
@@ -315,7 +315,7 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
+                FileHelper.resolveStorePath("ldap/truststore")
             )
             .put("verify_hostnames", false)
             .putList("enabled_ssl_ciphers", "AAA")
@@ -340,7 +340,7 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
+                FileHelper.resolveStorePath("ldap/truststore")
             )
             .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "TLSv1.2")
@@ -362,7 +362,7 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
+                FileHelper.resolveStorePath("ldap/truststore")
             )
             .put("verify_hostnames", false)
             .put("path.home", ".")
@@ -665,7 +665,7 @@ public class LdapBackendTestOldStyleConfig2 {
             .put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
+                FileHelper.resolveStorePath("ldap/truststore")
             )
             .put("verify_hostnames", false)
             .put("path.home", ".")

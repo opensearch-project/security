@@ -91,11 +91,11 @@ public class SSLTest extends SingleClusterTest {
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .build();
 
@@ -105,7 +105,7 @@ public class SSLTest extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "node-untspec5-keystore.p12";
+        rh.keystore = "node-untspec5-keystore";
 
         String res = rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true");
         Assert.assertTrue(res.contains("EMAILADDRESS=unt@tst.com"));
@@ -131,11 +131,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore_valid.jks")
+                FileHelper.resolveStorePath("ssl/truststore_valid")
             )
             .build();
 
@@ -145,7 +145,7 @@ public class SSLTest extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "node-untspec5-keystore.p12";
+        rh.keystore = "node-untspec5-keystore";
 
         String res = rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true");
         Assert.assertTrue(res.contains("EMAILADDRESS=unt@tst.com"));
@@ -168,11 +168,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore_invalid.jks")
+                FileHelper.resolveStorePath("ssl/truststore_invalid")
             )
             .build();
 
@@ -182,7 +182,7 @@ public class SSLTest extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "node-untspec5-keystore.p12";
+        rh.keystore = "node-untspec5-keystore";
 
         String res = rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty&show_dn=true");
         Assert.assertTrue(res.contains("EMAILADDRESS=unt@tst.com"));
@@ -211,11 +211,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             // WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
@@ -239,11 +239,11 @@ public class SSLTest extends SingleClusterTest {
                 .put(ConfigConstants.SECURITY_SSL_ONLY, true)
                 .put(
                     SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                    FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                    FileHelper.resolveStorePath("ssl/node-0-keystore")
                 )
                 .put(
                     SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                    FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                    FileHelper.resolveStorePath("ssl/truststore")
                 )
                 // WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
@@ -292,11 +292,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .build();
 
@@ -326,11 +326,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
@@ -339,11 +339,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
 
             .build();
@@ -569,11 +569,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
@@ -582,11 +582,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
 
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "INVALID_CIPHER")
@@ -614,11 +614,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "OPTIONAL")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .build();
 
@@ -646,11 +646,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "NONE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .build();
 
@@ -678,11 +678,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .build();
 
@@ -715,11 +715,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "NONE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .build();
 
@@ -743,11 +743,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
@@ -829,11 +829,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
@@ -842,11 +842,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .build();
 
@@ -950,11 +950,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE, FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl"))
@@ -981,11 +981,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
@@ -1038,19 +1038,19 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
@@ -1080,11 +1080,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
@@ -1093,11 +1093,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .setSecureSettings(mockSecureSettings)
 
@@ -1142,11 +1142,11 @@ public class SSLTest extends SingleClusterTest {
 
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/extended_key_usage/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks")
+                FileHelper.resolveStorePath("ssl/extended_key_usage/truststore")
             )
 
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
@@ -1157,11 +1157,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .setSecureSettings(mockSecureSettings)
 
@@ -1200,11 +1200,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
@@ -1213,11 +1213,11 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+                FileHelper.resolveStorePath("ssl/node-0-keystore")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+                FileHelper.resolveStorePath("ssl/truststore")
             )
             .setSecureSettings(mockSecureSettings)
 
