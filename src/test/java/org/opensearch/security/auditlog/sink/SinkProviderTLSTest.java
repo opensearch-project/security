@@ -15,6 +15,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -128,14 +129,16 @@ public class SinkProviderTLSTest {
     // for TLS support on our in-memory server
     private SSLContext createSSLContext() throws Exception {
         final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        final KeyStore trustStore = KeyStore.getInstance("JKS");
-        InputStream trustStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks").toFile());
+        Path trustStorePath = FileHelper.resolveStorePath("auditlog/truststore");
+        final KeyStore trustStore = KeyStore.getInstance(FileHelper.inferStoreType(trustStorePath));
+        InputStream trustStream = new FileInputStream(trustStorePath.toFile());
         trustStore.load(trustStream, "changeit".toCharArray());
         tmf.init(trustStore);
 
         final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        final KeyStore keyStore = KeyStore.getInstance("JKS");
-        InputStream keyStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks").toFile());
+        Path keyStorePath = FileHelper.resolveStorePath("auditlog/node-0-keystore");
+        final KeyStore keyStore = KeyStore.getInstance(FileHelper.inferStoreType(keyStorePath));
+        InputStream keyStream = new FileInputStream(keyStorePath.toFile());
 
         keyStore.load(keyStream, "changeit".toCharArray());
         kmf.init(keyStore, "changeit".toCharArray());

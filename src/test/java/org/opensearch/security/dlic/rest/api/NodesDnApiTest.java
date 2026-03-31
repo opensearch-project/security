@@ -130,7 +130,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testNodesDnApiWithDynamicConfigDisabled() throws Exception {
         setup();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
 
         testCrudScenarios(HttpStatus.SC_BAD_REQUEST);
@@ -149,34 +149,34 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
         {
             // No creds, no admin certificate - UNAUTHORIZED
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = false;
             testCrudScenarios(HttpStatus.SC_UNAUTHORIZED);
         }
 
         {
             // admin creds, no admin certificate - FORBIDDEN
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = false;
             testCrudScenarios(HttpStatus.SC_FORBIDDEN, adminCredsHeader);
         }
 
         {
             // any creds, admin certificate - OK
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = true;
             testCrudScenarios(HttpStatus.SC_OK, nonAdminCredsHeader);
         }
 
         {
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = true;
             checkNullElementsInArray(nonAdminCredsHeader);
         }
 
         {
             // any creds, admin certificate, disallowed key - FORBIDDEN
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = true;
 
             final int expectedStatus = HttpStatus.SC_FORBIDDEN;
@@ -298,7 +298,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
         {
             // any creds, admin certificate - OK
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = true;
             testCrudScenarios(HttpStatus.SC_OK, nonAdminCredsHeader);
         }

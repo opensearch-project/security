@@ -83,8 +83,8 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node1-keystore.jks",
+                "sslConfigurator/pem/truststore",
+                "sslConfigurator/pem/node1-keystore",
                 "secret",
                 false
             )
@@ -121,8 +121,8 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node1-keystore.jks",
+                "sslConfigurator/pem/truststore",
+                "sslConfigurator/pem/node1-keystore",
                 "secret",
                 false
             )
@@ -159,8 +159,8 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node1-keystore.jks",
+                "sslConfigurator/pem/truststore",
+                "sslConfigurator/pem/node1-keystore",
                 "secret",
                 true
             )
@@ -199,8 +199,8 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node1-keystore.jks",
+                "sslConfigurator/pem/truststore",
+                "sslConfigurator/pem/node1-keystore",
                 "secret",
                 true
             )
@@ -249,7 +249,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
         try (
             TestServer testServer = new TestServer(
                 "sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node-wrong-hostname-keystore.jks",
+                "sslConfigurator/pem/node-wrong-hostname-keystore",
                 "secret",
                 false
             )
@@ -287,7 +287,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
         try (
             TestServer testServer = new TestServer(
                 "sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node-wrong-hostname-keystore.jks",
+                "sslConfigurator/pem/node-wrong-hostname-keystore",
                 "secret",
                 false
             )
@@ -322,13 +322,13 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/jks/truststore.jks",
-                "sslConfigurator/jks/node1-keystore.jks",
+                "sslConfigurator/jks/truststore",
+                "sslConfigurator/jks/node1-keystore",
                 "secret",
                 false
             )
         ) {
-            Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/truststore.jks");
+            Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/truststore");
 
             MockSecureSettings mockSecureSettings = new MockSecureSettings();
             mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "secret");
@@ -361,13 +361,13 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/jks/truststore.jks",
-                "sslConfigurator/jks/node1-keystore.jks",
+                "sslConfigurator/jks/truststore",
+                "sslConfigurator/jks/node1-keystore",
                 "secret",
                 false
             )
         ) {
-            Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/other-root-ca.jks");
+            Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/other-root-ca");
 
             MockSecureSettings mockSecureSettings = new MockSecureSettings();
             mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "secret");
@@ -400,13 +400,13 @@ public class SettingsBasedSSLConfiguratorV4Test {
     public void testTrustAll() throws Exception {
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/jks/truststore.jks",
-                "sslConfigurator/jks/node1-keystore.jks",
+                "sslConfigurator/jks/truststore",
+                "sslConfigurator/jks/node1-keystore",
                 "secret",
                 false
             )
         ) {
-            Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/other-root-ca.jks");
+            Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/other-root-ca");
 
             Settings settings = Settings.builder()
                 .put("prefix.enable_ssl", "true")
@@ -503,19 +503,15 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             try {
                 TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                KeyStore trustStore = KeyStore.getInstance("JKS");
-                InputStream trustStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(trustStorePath).toFile());
+                Path resolvedTrustStorePath = FileHelper.resolveStorePath(trustStorePath);
+                KeyStore trustStore = KeyStore.getInstance(FileHelper.inferStoreType(resolvedTrustStorePath));
+                InputStream trustStream = new FileInputStream(resolvedTrustStorePath.toFile());
                 trustStore.load(trustStream, password.toCharArray());
                 tmf.init(trustStore);
 
                 KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                KeyStore keyStore = KeyStore.getInstance("JKS");
-
-                Path path = FileHelper.getAbsoluteFilePathFromClassPath(keyStorePath);
-
-                if (path == null) {
-                    throw new RuntimeException("Could not find " + keyStorePath);
-                }
+                Path path = FileHelper.resolveStorePath(keyStorePath);
+                KeyStore keyStore = KeyStore.getInstance(FileHelper.inferStoreType(path));
 
                 InputStream keyStream = new FileInputStream(path.toFile());
 

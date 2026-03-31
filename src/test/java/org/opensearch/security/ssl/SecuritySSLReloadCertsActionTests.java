@@ -406,7 +406,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "ssl/reload/kirk-keystore.jks";
+        rh.keystore = "ssl/reload/kirk-keystore";
         return rh;
     }
 
@@ -419,7 +419,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "ssl/reload/spock-keystore.jks";
+        rh.keystore = "ssl/reload/spock-keystore";
         return rh;
     }
 
@@ -486,12 +486,12 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         final Settings initTransportClientSettings = Settings.builder()
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/truststore.jks")
+                FileHelper.resolveStorePath("ssl/reload/truststore")
             )
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/kirk-keystore.jks")
+                FileHelper.resolveStorePath("ssl/reload/kirk-keystore")
             )
             .build();
 
