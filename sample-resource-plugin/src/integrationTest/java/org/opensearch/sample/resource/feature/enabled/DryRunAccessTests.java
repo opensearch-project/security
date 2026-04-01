@@ -100,12 +100,12 @@ public class DryRunAccessTests {
             HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT + "?perform_permission_check=true", sample);
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
-            assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/create")));
+            assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("sampleresource:create")));
 
             resp = client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + adminResId + "?perform_permission_check=true");
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
-            assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/get")));
+            assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("sampleresource:get")));
         }
 
         // share resource at readonly level with no_access_user
@@ -123,7 +123,7 @@ public class DryRunAccessTests {
             resp = client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true", updatePayload);
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
-            assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/update")));
+            assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("sampleresource:update")));
 
             // cannot share resource
             resp = client.putJson(
@@ -148,7 +148,7 @@ public class DryRunAccessTests {
             resp = client.delete(SAMPLE_RESOURCE_DELETE_ENDPOINT + "/" + adminResId + "?perform_permission_check=true");
             resp.assertStatusCode(HttpStatus.SC_OK);
             assertThat(resp.bodyAsMap().get("accessAllowed"), equalTo(false));
-            assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("cluster:admin/sample-resource-plugin/delete")));
+            assertThat(resp.bodyAsMap().get("missingPrivileges"), equalTo(List.of("sampleresource:delete")));
         }
 
         // share resource at full-access level with no_access_user

@@ -84,6 +84,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE;
@@ -340,7 +341,7 @@ public class ConfigurationRepositoryTest {
         assertThat(config.getVersion(), is(equalTo(emptyConfig.getVersion())));
         assertThat(config.getCType(), is(equalTo(emptyConfig.getCType())));
         assertThat(config.getSeqNo(), is(equalTo(emptyConfig.getSeqNo())));
-        assertThat(config, is(not(equalTo(emptyConfig))));
+        assertThat(config, is(not(sameInstance(emptyConfig))));
     }
 
     @Test

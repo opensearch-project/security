@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -433,5 +434,18 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public SecurityDynamicConfiguration<T> withStaticConfig() {
         return DynamicConfigFactory.addStatics(this.clone());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof SecurityDynamicConfiguration<?> that)) {
+            return false;
+        }
+        return Objects.equals(ctype, that.ctype) && Objects.equals(centries, that.centries);
+    }
+
+    @Override
+    public int hashCode() {
+        return centries.hashCode();
     }
 }
