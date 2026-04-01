@@ -152,7 +152,7 @@ public class DynamicSecurityConfig {
             );
         }
 
-        if (null != FileHelper.getAbsoluteFilePathFromClassPath(prefix + securityNodesDn)) {
+        if (DynamicSecurityConfig.class.getClassLoader().getResource(prefix + securityNodesDn) != null) {
             ret.add(
                 new IndexRequest(securityIndexName).id(CType.NODESDN.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
@@ -162,7 +162,7 @@ public class DynamicSecurityConfig {
         }
 
         final String allowlistYmlFile = prefix + securityAllowlist;
-        if (null != FileHelper.getAbsoluteFilePathFromClassPath(allowlistYmlFile)) {
+        if (DynamicSecurityConfig.class.getClassLoader().getResource(allowlistYmlFile) != null) {
             ret.add(
                 new IndexRequest(securityIndexName).id(CType.ALLOWLIST.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
@@ -171,7 +171,7 @@ public class DynamicSecurityConfig {
         }
 
         final String auditYmlFile = prefix + securityAudit;
-        if (null != FileHelper.getAbsoluteFilePathFromClassPath(auditYmlFile)) {
+        if (DynamicSecurityConfig.class.getClassLoader().getResource(auditYmlFile) != null) {
             ret.add(
                 new IndexRequest(securityIndexName).id(CType.AUDIT.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)

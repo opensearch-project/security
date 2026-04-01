@@ -278,7 +278,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogUnitTest {
             "audit"
         );
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
-            try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "kirk-keystore.jks", "truststore.jks")) {
+            try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "kirk-keystore", "truststore")) {
                 for (IndexRequest ir : new DynamicSecurityConfig().setSecurityRoles("roles_2.yml").getDynamicConfig(getResourceFolder())) {
                     restHighLevelClient.index(ir, RequestOptions.DEFAULT);
                     GetResponse getDocumentResponse = restHighLevelClient.get(new GetRequest(ir.index(), ir.id()), RequestOptions.DEFAULT);
