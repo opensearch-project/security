@@ -89,14 +89,8 @@ public class SSLTest extends SingleClusterTest {
             .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -129,14 +123,8 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore_valid")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore_valid"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -166,14 +154,8 @@ public class SSLTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore_invalid")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore_invalid"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -209,14 +191,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             // WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
             // WEAK and insecure protocol, do NOT use this, its here for unittesting only!!!
@@ -237,14 +213,8 @@ public class SSLTest extends SingleClusterTest {
             settings = Settings.builder()
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
                 .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-                .put(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                    FileHelper.resolveStorePath("ssl/node-0-keystore")
-                )
-                .put(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                    FileHelper.resolveStorePath("ssl/truststore")
-                )
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
                 // WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
                 // WEAK and insecure protocol, do NOT use this, its here for unittesting only!!!
@@ -290,14 +260,8 @@ public class SSLTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -324,27 +288,15 @@ public class SSLTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
 
             .build();
 
@@ -567,27 +519,15 @@ public class SSLTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
 
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "INVALID_CIPHER")
 
@@ -612,14 +552,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "OPTIONAL")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -644,14 +578,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "NONE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -676,14 +604,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -713,14 +635,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "NONE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -741,14 +657,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
             .build();
@@ -827,27 +737,15 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, "org.opensearch.security.ssl.TestPrincipalExtractor")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .build();
 
         setupSslOnlyMode(settings);
@@ -948,14 +846,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE, FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, CertificateValidatorTest.CRL_DATE.getTime())
@@ -979,14 +871,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")
@@ -1036,22 +922,10 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.2")
@@ -1078,27 +952,15 @@ public class SSLTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .setSecureSettings(mockSecureSettings)
 
             .build();
@@ -1155,14 +1017,8 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .setSecureSettings(mockSecureSettings)
 
             .build();
@@ -1198,27 +1054,15 @@ public class SSLTest extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
             .setSecureSettings(mockSecureSettings)
 
             .build();

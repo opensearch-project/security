@@ -82,12 +82,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
     public void testPemTrust() throws Exception {
 
         try (
-            TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore",
-                "sslConfigurator/pem/node1-keystore",
-                "secret",
-                false
-            )
+            TestServer testServer = new TestServer("sslConfigurator/pem/truststore", "sslConfigurator/pem/node1-keystore", "secret", false)
         ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/root-ca.pem");
 
@@ -120,12 +115,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
     public void testPemWrongTrust() throws Exception {
 
         try (
-            TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore",
-                "sslConfigurator/pem/node1-keystore",
-                "secret",
-                false
-            )
+            TestServer testServer = new TestServer("sslConfigurator/pem/truststore", "sslConfigurator/pem/node1-keystore", "secret", false)
         ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/other-root-ca.pem");
 
@@ -158,12 +148,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
     public void testPemClientAuth() throws Exception {
 
         try (
-            TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore",
-                "sslConfigurator/pem/node1-keystore",
-                "secret",
-                true
-            )
+            TestServer testServer = new TestServer("sslConfigurator/pem/truststore", "sslConfigurator/pem/node1-keystore", "secret", true)
         ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/root-ca.pem");
 
@@ -198,12 +183,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
     public void testPemClientAuthFailure() throws Exception {
 
         try (
-            TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore",
-                "sslConfigurator/pem/node1-keystore",
-                "secret",
-                true
-            )
+            TestServer testServer = new TestServer("sslConfigurator/pem/truststore", "sslConfigurator/pem/node1-keystore", "secret", true)
         ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/root-ca.pem");
 
@@ -321,12 +301,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
     public void testJksTrust() throws Exception {
 
         try (
-            TestServer testServer = new TestServer(
-                "sslConfigurator/jks/truststore",
-                "sslConfigurator/jks/node1-keystore",
-                "secret",
-                false
-            )
+            TestServer testServer = new TestServer("sslConfigurator/jks/truststore", "sslConfigurator/jks/node1-keystore", "secret", false)
         ) {
             Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/truststore");
 
@@ -360,12 +335,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
     public void testJksWrongTrust() throws Exception {
 
         try (
-            TestServer testServer = new TestServer(
-                "sslConfigurator/jks/truststore",
-                "sslConfigurator/jks/node1-keystore",
-                "secret",
-                false
-            )
+            TestServer testServer = new TestServer("sslConfigurator/jks/truststore", "sslConfigurator/jks/node1-keystore", "secret", false)
         ) {
             Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/other-root-ca");
 
@@ -399,12 +369,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testTrustAll() throws Exception {
         try (
-            TestServer testServer = new TestServer(
-                "sslConfigurator/jks/truststore",
-                "sslConfigurator/jks/node1-keystore",
-                "secret",
-                false
-            )
+            TestServer testServer = new TestServer("sslConfigurator/jks/truststore", "sslConfigurator/jks/node1-keystore", "secret", false)
         ) {
             Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/other-root-ca");
 

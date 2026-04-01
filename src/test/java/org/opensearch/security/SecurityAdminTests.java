@@ -59,13 +59,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -176,13 +172,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -199,13 +191,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "spock-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "spock-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -221,13 +209,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "node-0-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "node-0-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -254,13 +238,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -293,13 +273,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -315,13 +291,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -337,13 +309,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -379,13 +347,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -435,13 +399,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -543,13 +503,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "truststore")).toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(
-            Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath()
-        );
+        argsAsList.add(Objects.requireNonNull(FileHelper.resolveStorePath(prefix + "kirk-keystore")).toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
