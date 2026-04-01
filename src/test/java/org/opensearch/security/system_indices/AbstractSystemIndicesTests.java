@@ -152,7 +152,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
 
     RestHelper superAdminRestHelper() {
         RestHelper restHelper = restHelper();
-        restHelper.keystore = "kirk-keystore.jks";
+        restHelper.keystore = "kirk-keystore";
         restHelper.enableHTTPClientSSL = true;
         restHelper.trustHTTPServerCertificate = true;
         restHelper.sendAdminCertificate = true;

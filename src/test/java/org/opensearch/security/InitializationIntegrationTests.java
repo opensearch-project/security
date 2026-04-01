@@ -140,7 +140,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             true
         );
 
-        try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "spock-keystore.jks", "truststore.jks")) {
+        try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "spock-keystore", "truststore")) {
             Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
             assertThat(200, is(whoAmIRes.getStatusLine().getStatusCode()));
             // Should be using HTTP/2 by default
@@ -170,8 +170,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         try (
             RestHighLevelClient restHighLevelClient = getRestClient(
                 clusterInfo,
-                "spock-keystore.jks",
-                "truststore.jks",
+                "spock-keystore",
+                "truststore",
                 HttpVersionPolicy.FORCE_HTTP_1
             )
         ) {

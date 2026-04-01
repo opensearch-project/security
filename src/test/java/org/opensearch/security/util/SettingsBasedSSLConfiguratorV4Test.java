@@ -228,7 +228,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore.jks",
+                "sslConfigurator/pem/truststore",
                 "sslConfigurator/pem/node-wrong-hostname-keystore",
                 "secret",
                 false
@@ -266,7 +266,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
         try (
             TestServer testServer = new TestServer(
-                "sslConfigurator/pem/truststore.jks",
+                "sslConfigurator/pem/truststore",
                 "sslConfigurator/pem/node-wrong-hostname-keystore",
                 "secret",
                 false
