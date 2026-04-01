@@ -65,22 +65,10 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
         osPathHome = FileHelper.resolveStorePath("ssl/kirk-keystore").getParent().getParent();
         settings = Settings.builder()
             .put(Environment.PATH_HOME_SETTING.getKey(), osPathHome)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/kirk-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/truststore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/kirk-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("ssl/node-0-keystore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/kirk-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/truststore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/kirk-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/node-0-keystore"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(OpenSearchSecuritySSLPlugin.CLIENT_TYPE, "node")
             .build();

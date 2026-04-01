@@ -31,11 +31,7 @@ public class CertFromTruststoreTests {
     public void testLoadSameCertForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
         IOException {
         Path truststorePath = FileHelper.resolveStorePath("ssl/extended_key_usage/truststore");
-        KeystoreProps props = new KeystoreProps(
-            truststorePath.toString(),
-            FileHelper.inferStoreType(truststorePath),
-            "changeit"
-        );
+        KeystoreProps props = new KeystoreProps(truststorePath.toString(), FileHelper.inferStoreType(truststorePath), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca");
 
@@ -46,11 +42,7 @@ public class CertFromTruststoreTests {
     @Test
     public void testLoadSameCertWithoutAlias() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
         Path truststorePath = FileHelper.resolveStorePath("ssl/extended_key_usage/truststore");
-        KeystoreProps props = new KeystoreProps(
-            truststorePath.toString(),
-            FileHelper.inferStoreType(truststorePath),
-            "changeit"
-        );
+        KeystoreProps props = new KeystoreProps(truststorePath.toString(), FileHelper.inferStoreType(truststorePath), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, null);
 
@@ -60,11 +52,7 @@ public class CertFromTruststoreTests {
     public void testLoadDifferentCertsForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
         IOException {
         Path truststorePath = FileHelper.resolveStorePath("ssl/extended_key_usage/truststore");
-        KeystoreProps props = new KeystoreProps(
-            truststorePath.toString(),
-            FileHelper.inferStoreType(truststorePath),
-            "changeit"
-        );
+        KeystoreProps props = new KeystoreProps(truststorePath.toString(), FileHelper.inferStoreType(truststorePath), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca", "root-ca");
 

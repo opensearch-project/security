@@ -299,14 +299,8 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         // If custom transport settings are not defined use defaults
         if (!hasCustomTransportSettings(other)) {
             builder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                    FileHelper.resolveStorePath(prefix + "node-0-keystore")
-                )
-                .put(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                    FileHelper.resolveStorePath(prefix + "truststore")
-                )
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath(prefix + "node-0-keystore"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath(prefix + "truststore"))
                 .put("transport.ssl.enforce_hostname_verification", false);
         }
 

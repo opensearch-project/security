@@ -1288,14 +1288,8 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Path ccsTransportKsPath = FileHelper.resolveStorePath("node-untspec5-keystore");
         Settings cluster = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("restapi/node-0-keystore")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.resolveStorePath("restapi/truststore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("restapi/node-0-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("restapi/truststore"))
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ccsTransportKsPath)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
             .put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
@@ -1312,10 +1306,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             .put(ConfigConstants.SECURITY_CERT_OID, "1.2.3.4.5.6")
             .build();
         Settings transport = Settings.builder()
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.resolveStorePath("node-untspec6-keystore")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("node-untspec6-keystore"))
             .build();
         return new ClusterTransportClientSettings(cluster, transport);
     }
