@@ -207,6 +207,17 @@ public class RequestContentValidator implements ToXContent {
         this.validationContext = validationContext;
     }
 
+    private JsonNode originalContent;
+
+    /**
+     * Sets the original content for patch-aware validation.
+     * When set, the null/blank array element check will only validate fields that changed.
+     */
+    public RequestContentValidator withOriginalContent(final JsonNode originalContent) {
+        this.originalContent = originalContent;
+        return this;
+    }
+
     public ValidationResult<JsonNode> validate(final RestRequest request) throws IOException {
         return parseRequestContent(request).map(this::validateContentSize).map(jsonContent -> validate(request, jsonContent));
     }
@@ -379,6 +390,10 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
+        if (originalContent != null) {
+            final JsonNode patch = JsonDiff.asJson(originalContent, jsonContent);
+            return nullValuesInArrayValidator(jsonContent, patch);
+        }
         for (final Map.Entry<String, DataType> allowedKey : validationContext.allowedKeys().entrySet()) {
             JsonNode value = jsonContent.get(allowedKey.getKey());
             if (value != null) {
