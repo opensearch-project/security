@@ -26,6 +26,7 @@
 
 package org.opensearch.security;
 
+import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -308,13 +309,11 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testDNSpecials() throws Exception {
 
+        Path ksPathSpec5 = FileHelper.resolveStorePath("node-untspec5-keystore");
         final Settings settings = Settings.builder()
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ksPathSpec5)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, FileHelper.inferStoreType(ksPathSpec5))
             .putList(
                 ConfigConstants.SECURITY_NODES_DN,
                 "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE"
@@ -326,12 +325,10 @@ public class IntegrationTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_CERT_OID, "1.2.3.4.5.6")
             .build();
 
+        Path ksPathSpec6a = FileHelper.resolveStorePath("node-untspec6-keystore");
         Settings tcSettings = Settings.builder()
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12")
-            )
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ksPathSpec6a)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, FileHelper.inferStoreType(ksPathSpec6a))
             .build();
 
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);
@@ -345,13 +342,11 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testDNSpecials1() throws Exception {
 
+        Path ksPathSpec5b = FileHelper.resolveStorePath("node-untspec5-keystore");
         final Settings settings = Settings.builder()
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ksPathSpec5b)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, FileHelper.inferStoreType(ksPathSpec5b))
             .putList("plugins.security.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
             .putList(
                 "plugins.security.authcz.admin_dn",
@@ -360,12 +355,10 @@ public class IntegrationTests extends SingleClusterTest {
             .put("plugins.security.cert.oid", "1.2.3.4.5.6")
             .build();
 
+        Path ksPathSpec6b = FileHelper.resolveStorePath("node-untspec6-keystore");
         Settings tcSettings = Settings.builder()
-            .put(
-                "plugins.security.ssl.transport.keystore_filepath",
-                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12")
-            )
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .put("plugins.security.ssl.transport.keystore_filepath", ksPathSpec6b)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, FileHelper.inferStoreType(ksPathSpec6b))
             .build();
 
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);

@@ -81,7 +81,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     public void testInvalidPath() throws Exception {
         setup();
 
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response;
 
@@ -377,7 +377,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     @Test
     public void testBadRequest() throws Exception {
         setupWithRestRoles();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
 
         // test bad patch request
@@ -408,7 +408,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     @Test
     public void testApi() throws Exception {
         setupWithRestRoles();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
 
         // No creds, no admin certificate - UNAUTHORIZED
         testActions(HttpStatus.SC_UNAUTHORIZED, false);
@@ -623,7 +623,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     @Test
     public void testPatchRequest() throws Exception {
         setupWithRestRoles();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
 
         // update with non-default configuration

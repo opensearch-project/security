@@ -14,6 +14,7 @@ package org.opensearch.security.auth.http.jwt.keybyoidc;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
@@ -113,12 +114,14 @@ public class KeySetRetrieverTest {
         }) {
             SSLContextBuilder sslContextBuilder = SSLContexts.custom();
 
-            KeyStore trustStore = KeyStore.getInstance("JKS");
-            InputStream trustStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("jwt/truststore.jks").toFile());
+            Path trustStorePath = FileHelper.resolveStorePath("jwt/truststore");
+            KeyStore trustStore = KeyStore.getInstance(FileHelper.inferStoreType(trustStorePath));
+            InputStream trustStream = new FileInputStream(trustStorePath.toFile());
             trustStore.load(trustStream, "changeit".toCharArray());
 
-            KeyStore keyStore = KeyStore.getInstance("JKS");
-            InputStream keyStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("jwt/spock-keystore.jks").toFile());
+            Path keyStorePath = FileHelper.resolveStorePath("jwt/spock-keystore");
+            KeyStore keyStore = KeyStore.getInstance(FileHelper.inferStoreType(keyStorePath));
+            InputStream keyStream = new FileInputStream(keyStorePath.toFile());
 
             keyStore.load(keyStream, "changeit".toCharArray());
 

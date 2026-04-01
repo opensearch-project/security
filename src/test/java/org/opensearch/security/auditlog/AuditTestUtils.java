@@ -39,7 +39,7 @@ public class AuditTestUtils {
         final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
-        rh.keystore = "auditlog/kirk-keystore.jks";
+        rh.keystore = "auditlog/kirk-keystore";
         RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/audit/config", payload);
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         rh.sendAdminCertificate = sendAdminCertificate;
