@@ -226,7 +226,7 @@ public class RequestContentValidator implements ToXContent {
         }
         return validateContentSize(patchedContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
-            .map(this::nullValuesInArrayValidator)
+            .map(content -> nullValuesInArrayValidator(content, patch))
             .map(ignored -> validatePassword(request, patchedContent));
     }
 
@@ -380,6 +380,40 @@ public class RequestContentValidator implements ToXContent {
 
     private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
         for (final Map.Entry<String, DataType> allowedKey : validationContext.allowedKeys().entrySet()) {
+            JsonNode value = jsonContent.get(allowedKey.getKey());
+            if (value != null) {
+                if (hasNullOrBlankArrayElement(value)) {
+                    this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
+                    return ValidationResult.error(RestStatus.BAD_REQUEST, this);
+                }
+            }
+        }
+        return ValidationResult.success(jsonContent);
+    }
+
+    /**
+     * Validates only the fields that were modified by a PATCH operation.
+     * This allows existing documents with legacy empty-string values in unchanged fields
+     * to be updated without triggering validation errors on those untouched fields.
+     */
+    private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent, final JsonNode patch) {
+        final Set<String> changedFields = new HashSet<>();
+        for (final JsonNode op : patch) {
+            final String path = op.get("path").asText();
+            // path is like "/fieldName" or "/entityName/fieldName" — extract the top-level field
+            final String[] parts = path.split("/");
+            if (parts.length >= 2) {
+                changedFields.add(parts[1]);
+            }
+        }
+        for (final Map.Entry<String, DataType> allowedKey : validationContext.allowedKeys().entrySet()) {
+            if (!changedFields.contains(allowedKey.getKey())) {
+                continue;
+            }
+            final DataType dataType = allowedKey.getValue();
+            if (dataType != DataType.ARRAY) {
+                continue;
+            }
             JsonNode value = jsonContent.get(allowedKey.getKey());
             if (value != null) {
                 if (hasNullOrBlankArrayElement(value)) {
