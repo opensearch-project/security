@@ -18,6 +18,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -324,6 +325,7 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.ssl.http.pemkey_filepath", Certificates.NODE_KEY.getFileName());
         configMap.put("plugins.security.ssl.http.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
         configMap.put("plugins.security.allow_unsafe_democertificates", true);
+        configMap.put(ConfigConstants.SECURITY_COMPLIANCE_SALT, generateRandomSalt());
 
         if (installer.initsecurity) {
             configMap.put("plugins.security.allow_default_init_securityindex", true);
@@ -351,6 +353,16 @@ public class SecuritySettingsConfigurer {
         }
 
         return configMap;
+    }
+
+    static String generateRandomSalt() {
+        final String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(16);
+        for (int i = 0; i < 16; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
     /**

@@ -518,6 +518,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
 
         }
+
+        // TODO: Uncomment for 4.0 - enforce that the default compliance salt is not used outside of demo configuration
+        // Salt.validateSaltSettings(settings);
     }
 
     private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {
