@@ -4,14 +4,14 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.6.0
 
 ### Features
 
-* Enable Basic Authentication for gRPC transport ([#6005](https://github.com/opensearch-project/security/pull/6005))
-* Allow specifying parentType and parentIdField in ResourceProvider for parent-child resource authorization ([#5735](https://github.com/opensearch-project/security/pull/5735))
+* Enable basic authentication for gRPC transport ([#6005](https://github.com/opensearch-project/security/pull/6005))
+* Allow specifying parent type and parent ID field in ResourceProvider for parent-child resource authorization ([#5735](https://github.com/opensearch-project/security/pull/5735))
 
 ### Enhancements
 
 * Optimize getFieldFilter to only return a predicate when an index has FLS restrictions for the user ([#5777](https://github.com/opensearch-project/security/pull/5777))
 * Optimize string matching for RoleBasedActionPrivileges with prefix and exact pattern matching ([#5988](https://github.com/opensearch-project/security/pull/5988))
-* Harden input validation for resource sharing APIs by introducing parameter limits ([#5831](https://github.com/opensearch-project/security/pull/5831))
+* Harden input validation for resource sharing APIs ([#5831](https://github.com/opensearch-project/security/pull/5831))
 * Make encryption_key optional for on-behalf-of token authenticator ([#6017](https://github.com/opensearch-project/security/pull/6017))
 * Allow specifying default access level in resource access levels YAML file ([#6018](https://github.com/opensearch-project/security/pull/6018))
 * Use custom action prefixes for sample resource plugin ([#6020](https://github.com/opensearch-project/security/pull/6020))
@@ -21,7 +21,7 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.6.0
 
 * Fix propagation issue for security context ([#6006](https://github.com/opensearch-project/security/pull/6006))
 * Fix audit log writing errors for rollover-enabled alias indices ([#5900](https://github.com/opensearch-project/security/pull/5900))
-* Fix unprocessed X-Request-Id header in requests ([#5954](https://github.com/opensearch-project/security/pull/5954))
+* Fix unprocessed X-Request-Id header in security plugin ([#5954](https://github.com/opensearch-project/security/pull/5954))
 * Fix audit log NONE sentinel value not respected in dynamic configuration and misleading unknown setting error ([#6021](https://github.com/opensearch-project/security/pull/6021))
 * Improve error message for DLS queries referencing undefined user attributes ([#5975](https://github.com/opensearch-project/security/pull/5975))
 
