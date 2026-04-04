@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add `plugins.security.audit.config.log4j.maximum_index_characters_per_message` setting to allow splitting of Log4j audit log messages to keep the `audit_trace_indices` and `audit_trace_resolved_indices` fields below the maximum characters specified. ([5977](https://github.com/opensearch-project/security/pull/5977))
 
 ### Changed
+- Copy scripts from tools to bin/ directory in assembly and make scripts agnostic to directory ([#6023](https://github.com/opensearch-project/security/pull/6023))
 
 ### Features
 
