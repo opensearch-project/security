@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Only update internal compiled privileges configuration when the base config objects have actually changed ([#6037](https://github.com/opensearch-project/security/pull/6037))
 
 ### Bug Fixes
+- Fix JWT attribute parsing of lists in JSON Web Token and OpenID Connect authentication backends ([#6058](https://github.com/opensearch-project/security/pull/6058))
 
 ### Refactoring
 
