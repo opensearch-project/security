@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Only update internal compiled privileges configuration when the base config objects have actually changed ([#6037](https://github.com/opensearch-project/security/pull/6037))
 
 ### Bug Fixes
+- Update RequestContentValidator to only validate fields from request payload and not pre-existing values stored in security index ([#6061](https://github.com/opensearch-project/security/pull/6061))
 
 ### Refactoring
 

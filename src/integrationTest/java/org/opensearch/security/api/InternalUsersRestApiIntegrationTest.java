@@ -65,12 +65,15 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
 
     private final static String SOME_ROLE = "some-role";
 
+    private final static String LEGACY_EMPTY_BACKEND_ROLES_USER = "legacy_empty_backend_roles_user";
+
     @ClassRule
     public static LocalCluster localCluster = clusterBuilder().users(
         new TestSecurityConfig.User(SERVICE_ACCOUNT_USER).attr("service", "true").attr("enabled", "true"),
         new TestSecurityConfig.User(REST_API_ADMIN_INTERNAL_USERS_ONLY).referencedRoles(
             new TestSecurityConfig.Role(REST_API_ADMIN_INTERNAL_USERS_ONLY)
-        ).roles(new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.INTERNALUSERS)))
+        ).roles(new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.INTERNALUSERS))),
+        new TestSecurityConfig.User(LEGACY_EMPTY_BACKEND_ROLES_USER).backendRoles("", "admin")
     )
         .roles(
             new TestSecurityConfig.Role(HIDDEN_ROLE).hidden(true),
@@ -863,6 +866,31 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 client.putJson(
                     apiPath(randomAsciiAlphanumOfLength(10)),
                     serviceUser(true, password, passwordHasher.hash(password.toCharArray()))
+                ),
+                isBadRequest()
+            );
+        }
+    }
+
+    @Test
+    public void bulkPatchChangingHashDoesNotRevalidateUnchangedBackendRoles() throws Exception {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            // Bulk PATCH only the hash on a user with legacy empty-string backend_roles —
+            // should succeed without revalidating the unchanged backend_roles
+            assertThat(
+                client.patch(
+                    apiPath(),
+                    patch(
+                        replaceOp(LEGACY_EMPTY_BACKEND_ROLES_USER + "/hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
+                    )
+                ),
+                isOk()
+            );
+            // Bulk PATCH that changes backend_roles with blank values — should still be rejected
+            assertThat(
+                client.patch(
+                    apiPath(),
+                    patch(replaceOp(LEGACY_EMPTY_BACKEND_ROLES_USER + "/backend_roles", configJsonArray("", "new_role")))
                 ),
                 isBadRequest()
             );
