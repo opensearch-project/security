@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Bug Fixes
 
 ### Refactoring
+- Certificate revocation validation for better error-handling ([#6042](https://github.com/opensearch-project/security/pull/6042)))
 
 ### Maintenance
 - Bump `gradle-wrapper` from 9.4.0 to 9.4.1 ([#6049](https://github.com/opensearch-project/security/pull/6049))
