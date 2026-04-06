@@ -435,6 +435,12 @@ public class ConfigConstants {
     public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
                                                                                                       // protected
 
+    // Super admin secret
+    public static final String SECURITY_SUPERADMIN_SECRET_USER = "superadmin_secret_user";
+    public static final String SECURITY_SUPERADMIN_SECRET = SECURITY_SETTINGS_PREFIX + "superadmin.secret";
+    public static final String SECURITY_SUPERADMIN_SECRET_SECURE = SECURITY_SUPERADMIN_SECRET + "_secure";
+    public static final String SECURITY_SUPERADMIN_SECRET_HEADER = "X-OpenSearch-Superadmin-Secret";
+
     public static Set<String> getSettingAsSet(
         final Settings settings,
         final String key,

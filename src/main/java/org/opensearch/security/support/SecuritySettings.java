@@ -11,7 +11,13 @@
 
 package org.opensearch.security.support;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.settings.SecureString;
 
 public class SecuritySettings {
     public static final Setting<Boolean> LEGACY_OPENDISTRO_SSL_DUAL_MODE_SETTING = Setting.boolSetting(
@@ -57,4 +63,40 @@ public class SecuritySettings {
         Setting.Property.Dynamic,
         Setting.Property.Sensitive
     );
+
+    public static final Setting<SecureString> SECURITY_SUPERADMIN_SECRET_INSECURE_SETTING = new InsecureFallbackStringSetting(
+        ConfigConstants.SECURITY_SUPERADMIN_SECRET
+    );
+
+    public static final Setting<SecureString> SECURITY_SUPERADMIN_SECRET_SETTING = SecureSetting.secureString(
+        ConfigConstants.SECURITY_SUPERADMIN_SECRET_SECURE,
+        SECURITY_SUPERADMIN_SECRET_INSECURE_SETTING
+    );
+
+    /**
+     * Alternative to InsecureStringSetting, which doesn't raise an exception if allow_insecure_settings is false, but
+     * instead logs a warning. This is to allow insecure settings for container-based deployments while recommending
+     * secure keystore usage.
+     */
+    private static class InsecureFallbackStringSetting extends Setting<SecureString> {
+        private static final Logger LOG = LogManager.getLogger(InsecureFallbackStringSetting.class);
+        private final String name;
+
+        private InsecureFallbackStringSetting(String name) {
+            super(name, "", s -> new SecureString(s.toCharArray()), Property.NodeScope, Property.Deprecated, Property.Filtered);
+            this.name = name;
+        }
+
+        public SecureString get(Settings settings) {
+            if (this.exists(settings)) {
+                LOG.warn(
+                    "Setting [{}] has a secure counterpart [{}] which should be used instead - allowing for container-based deployments",
+                    this.name,
+                    ConfigConstants.SECURITY_SUPERADMIN_SECRET_SECURE
+                );
+            }
+
+            return super.get(settings);
+        }
+    }
 }

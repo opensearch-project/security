@@ -28,6 +28,8 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,6 +48,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -108,6 +111,7 @@ public class BackendRegistry {
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
     private final ClusterInfoHolder clusterInfoHolder;
+    private final String superadminSecret;
     private int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
@@ -169,6 +173,7 @@ public class BackendRegistry {
         this.threadPool = threadPool;
         this.clusterInfoHolder = clusterInfoHolder;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        this.superadminSecret = SecuritySettings.SECURITY_SUPERADMIN_SECRET_SETTING.get(settings).toString();
         this.restAuthDomains = Collections.emptySortedSet();
         this.ipAuthFailureListeners = Collections.emptyList();
 
@@ -276,6 +281,24 @@ public class BackendRegistry {
             threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
             return true;
+        }
+
+        /*
+        Authenticates superuser based on superadmin secret. The secret is read from thread context
+        and compared against the configured superadmin secret. If superuser is authenticated here we skip the remaining
+        authentication flow. This mechanism is independent of the security index and serves as an out-of-band recovery
+        path for HTTP deployments.
+         */
+        if (!gRPC) {
+            final String providedSecret = request.header(ConfigConstants.SECURITY_SUPERADMIN_SECRET_HEADER);
+            if (isSuperadminSecretValid(providedSecret)) {
+                log.debug("Superadmin authentication successful via secret");
+                User superuser = new User(ConfigConstants.SECURITY_SUPERADMIN_SECRET_USER);
+                UserSubject subject = new UserSubjectImpl(threadPool, superuser);
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
+                return true;
+            }
         }
 
         /*
@@ -611,6 +634,27 @@ public class BackendRegistry {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Validates given superadmin secret against configured secret.
+     * @param providedSecret the secret from the request header
+     * @return true if valid, false otherwise
+     */
+    private boolean isSuperadminSecretValid(String providedSecret) {
+        if (ObjectUtils.isEmpty(superadminSecret) || ObjectUtils.isEmpty(providedSecret)) {
+            return false;
+        }
+
+        try {
+            return MessageDigest.isEqual(
+                superadminSecret.getBytes(StandardCharsets.UTF_8),
+                providedSecret.getBytes(StandardCharsets.UTF_8)
+            );
+        } catch (Exception e) {
+            log.debug("Error comparing superadmin secret", e);
+            return false;
+        }
     }
 
     /**
