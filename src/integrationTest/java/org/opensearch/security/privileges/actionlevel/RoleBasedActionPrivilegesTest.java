@@ -673,7 +673,7 @@ public class RoleBasedActionPrivilegesTest {
                     new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
                     RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
                     settings,
-                    false
+                    breakDownAliases
                 );
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
                     result.updateStatefulIndexPrivileges(INDEX_METADATA.getIndicesLookup(), 1);
