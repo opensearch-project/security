@@ -31,5 +31,3 @@ Visit the following link(s) for more information on specific practices:
 * We operate through transparent collaboration. We believe a secure product is built through diverse perspectives, knowledge sharing, candid discussions, and doing our work in the open when and where it’s safe to do so.
 * We are relationship builders who create safe, respectful, and accessible spaces for everyone so we can engage and work towards the common goal of building secure solutions.
 * When circumstances do require privacy, we make every effort to quickly resolve those requirements and return circumstances to a state of full visibility with our community and collaborators.
-
-
