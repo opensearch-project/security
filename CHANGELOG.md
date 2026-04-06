@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `io.projectreactor:reactor-core` from 3.8.2 to 3.8.4 ([#6046](https://github.com/opensearch-project/security/pull/6046))
 - Bump `commons-logging:commons-logging` from 1.3.5 to 1.3.6 ([#6050](https://github.com/opensearch-project/security/pull/6050))
 - Bump `org.mockito:mockito-core` from 5.21.0 to 5.23.0 ([#6048](https://github.com/opensearch-project/security/pull/6048))
+- Bump `net.bytebuddy:byte-buddy` from 1.18.7 to 1.18.8 ([#6068](https://github.com/opensearch-project/security/pull/6068))
 
 ### Removed
 
