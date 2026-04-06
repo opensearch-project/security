@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Bump `org.mockito:mockito-core` from 5.21.0 to 5.23.0 ([#6048](https://github.com/opensearch-project/security/pull/6048))
 - Bump `net.bytebuddy:byte-buddy` from 1.18.7 to 1.18.8 ([#6068](https://github.com/opensearch-project/security/pull/6068))
 - Bump `org.scala-lang:scala3-library_3` from 3.8.2 to 3.8.3 ([#6070](https://github.com/opensearch-project/security/pull/6070))
+- Bump `org.codehaus.woodstox:stax2-api` from 4.2.2 to 4.3.0 ([#6069](https://github.com/opensearch-project/security/pull/6069))
 
 ### Removed
 
