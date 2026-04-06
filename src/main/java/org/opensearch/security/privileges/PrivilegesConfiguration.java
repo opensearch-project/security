@@ -21,10 +21,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
-import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.identity.SecurePluginSubject;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
+import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
+import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -56,7 +56,6 @@ public class PrivilegesConfiguration {
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>(TenantPrivileges.EMPTY);
     private final AtomicReference<PrivilegesEvaluator> privilegesEvaluator;
     private final AtomicReference<RawConfiguration> rawConfiguration = new AtomicReference<>();
-    private final Map<String, RoleV7> pluginIdToRolePrivileges = new HashMap<>();
     private final Map<String, SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToRolePrivileges = new HashMap<>();
     private final AtomicReference<DashboardsMultiTenancyConfiguration> multiTenancyConfiguration = new AtomicReference<>(
         DashboardsMultiTenancyConfiguration.DEFAULT
@@ -107,7 +106,9 @@ public class PrivilegesConfiguration {
 
                 // We are targeting an initialized PrivilegesEvaluator; this might seem a bit redundant, but gives us
                 // in the future the flexibility to introduce different implementations of PrivilegesEvaluator
-                PrivilegesEvaluator.PrivilegesEvaluatorType targetType = PrivilegesEvaluator.PrivilegesEvaluatorType.STANDARD;
+                PrivilegesEvaluator.PrivilegesEvaluatorType targetType = PrivilegesEvaluator.PrivilegesEvaluatorType.getFrom(
+                    configurationRepository.getConfiguration(CType.CONFIG)
+                );
                 PrivilegesEvaluator.PrivilegesEvaluatorType currentType = currentPrivilegesEvaluator.type();
 
                 boolean privilegesChanged = oldRawConfiguration == null
@@ -118,63 +119,66 @@ public class PrivilegesConfiguration {
 
                     FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
 
-                PrivilegesEvaluator currentPrivilegesEvaluator = privilegesEvaluator.get();
+                    boolean memberIndexPrivilegesYieldAliasPrivileges = currentType != PrivilegesEvaluator.PrivilegesEvaluatorType.V4;
 
-                // We are targeting an initialized PrivilegesEvaluator; this might seem a bit redundant, but gives us
-                // in the future the flexibility to introduce different implementations of PrivilegesEvaluator
-                PrivilegesEvaluator.PrivilegesEvaluatorType targetType = PrivilegesEvaluator.PrivilegesEvaluatorType.getFrom(
-                    configurationRepository.getConfiguration(CType.CONFIG)
-                );
-                PrivilegesEvaluator.PrivilegesEvaluatorType currentType = currentPrivilegesEvaluator.type();
-                boolean memberIndexPrivilegesYieldAliasPrivileges = currentType != PrivilegesEvaluator.PrivilegesEvaluatorType.NEXT_GEN;
-
-                CompiledRoles newCompiledRoles = new CompiledRoles(
+                    CompiledRoles newCompiledRoles = new CompiledRoles(
                         rolesConfiguration.withStaticConfig(),
                         flattenedActionGroups,
                         coreDependencies.namedXContentRegistry(),
                         fieldMaskingConfig,
                         memberIndexPrivilegesYieldAliasPrivileges
-                );
-                this.compiledRoles.set(newCompiledRoles);
+                    );
 
-                PrivilegesEvaluator.DynamicDependencies dynamicDependencies = new PrivilegesEvaluator.DynamicDependencies(
-                    flattenedActionGroups,
-                    staticActionGroups,
+                    PrivilegesEvaluator.DynamicDependencies dynamicDependencies = new PrivilegesEvaluator.DynamicDependencies(
+                        flattenedActionGroups,
+                        staticActionGroups,
                         newCompiledRoles,
-                    generalConfiguration,
-                    specialIndices,
-                    this.tenantPrivileges::get,
-                    this.multiTenancyConfiguration::get,
-                    this.pluginIdToRolePrivileges
-                );
-
-                if (currentType != targetType) {
-                    PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
-                        targetType.factory.create(coreDependencies, dynamicDependencies)
+                        rawConfiguration.privilegesEvaluatorGlobalSettings,
+                        specialIndices,
+                        this.tenantPrivileges::get,
+                        this.multiTenancyConfiguration::get,
+                        this.pluginIdToRolePrivileges
                     );
-                    if (oldInstance != null) {
-                        oldInstance.shutdown();
+
+                    if (currentType != targetType) {
+                        PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
+                            targetType.factory.create(coreDependencies, dynamicDependencies)
+                        );
+                        if (oldInstance != null) {
+                            oldInstance.shutdown();
+                        }
+                    } else {
+                        privilegesEvaluator.get()
+                            .updateConfiguration(
+                                flattenedActionGroups,
+                                newCompiledRoles,
+                                rawConfiguration.privilegesEvaluatorGlobalSettings
+                            );
                     }
-                } else {
-                    privilegesEvaluator.get().updateConfiguration(flattenedActionGroups, newCompiledRoles, generalConfiguration);
-                }
-
-                try {
-                    this.dlsFlsProcessedConfig.set(
-                        new DlsFlsProcessedConfig(
-                            newCompiledRoles,
-                            coreDependencies.clusterStateSupplier().get().metadata().getIndicesLookup(),
-                            coreDependencies.namedXContentRegistry(),
-                            coreDependencies.settings(),
-                            fieldMaskingConfig
-                        )
-                    );
-                } catch (Exception e) {
-                    log.error("Error while updating DlsFlsProcessedConfig", e);
-                }
 
                     try {
-                        this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
+                        this.dlsFlsProcessedConfig.set(
+                            new DlsFlsProcessedConfig(
+                                newCompiledRoles,
+                                coreDependencies.clusterStateSupplier().get().metadata().getIndicesLookup(),
+                                coreDependencies.namedXContentRegistry(),
+                                coreDependencies.settings(),
+                                fieldMaskingConfig
+                            )
+                        );
+                    } catch (Exception e) {
+                        log.error("Error while updating DlsFlsProcessedConfig", e);
+                    }
+
+                    try {
+                        this.tenantPrivileges.set(
+                            new TenantPrivileges(
+                                rolesConfiguration,
+                                tenantConfiguration,
+                                flattenedActionGroups,
+                                targetType == PrivilegesEvaluator.PrivilegesEvaluatorType.LEGACY
+                            )
+                        );
                     } catch (Exception e) {
                         log.error("Error while updating TenantPrivileges", e);
                     }
@@ -188,18 +192,6 @@ public class PrivilegesConfiguration {
                     log.error("Error while updating DashboardsMultiTenancyConfiguration", e);
                 }
 
-                try {
-                    this.tenantPrivileges.set(
-                        new TenantPrivileges(
-                            rolesConfiguration,
-                            tenantConfiguration,
-                            flattenedActionGroups,
-                            targetType == PrivilegesEvaluator.PrivilegesEvaluatorType.LEGACY
-                        )
-                    );
-                } catch (Exception e) {
-                    log.error("Error while updating TenantPrivileges", e);
-                }
             });
         }
 

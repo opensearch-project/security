@@ -121,8 +121,16 @@ public class RestEndpointPermissionTests {
 
     public RestEndpointPermissionTests() throws IOException {
         this.actionPrivileges = new RoleBasedActionPrivileges(
-            new CompiledRoles(createRolesConfig(), FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT),
-            Settings.EMPTY
+            new CompiledRoles(
+                createRolesConfig(),
+                FlattenedActionGroups.EMPTY,
+                NamedXContentRegistry.EMPTY,
+                FieldMasking.Config.DEFAULT,
+                false
+            ),
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+            Settings.EMPTY,
+            false
         );
     }
 

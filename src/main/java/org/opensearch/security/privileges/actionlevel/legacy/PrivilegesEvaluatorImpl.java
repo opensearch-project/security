@@ -98,7 +98,6 @@ import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPriv
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -227,10 +226,15 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         this.dnfofEnabled = globalDynamicSettings.dnfofEnabled;
         this.dnfofForEmptyResultsEnabled = globalDynamicSettings.dnfofForEmptyResultsEnabled;
         this.filteredAliasMode = globalDynamicSettings.filteredAliasMode;
-            this.irr.updateConfig(generalConfiguration);
+        this.irr.updateConfig(globalDynamicSettings);
 
         try {
-            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(roles, settings);
+            RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(
+                roles,
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                settings,
+                true
+            );
             Metadata metadata = clusterStateSupplier.get().metadata();
             actionPrivileges.updateStatefulIndexPrivileges(metadata.getIndicesLookup(), metadata.version());
             RoleBasedActionPrivileges oldInstance = this.actionPrivileges.getAndSet(actionPrivileges);

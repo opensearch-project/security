@@ -31,13 +31,17 @@ import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.logging.Loggers;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.auditlog.NullAuditLog;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
+import org.opensearch.security.privileges.dlsfls.FieldMasking;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -256,6 +260,13 @@ public class PrivilegesEvaluatorImplTest {
 
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(threadContext);
+        CompiledRoles compiledRoles = new CompiledRoles(
+            roles,
+            FlattenedActionGroups.EMPTY,
+            NamedXContentRegistry.EMPTY,
+            FieldMasking.Config.DEFAULT,
+            false
+        );
 
         return new PrivilegesEvaluatorImpl(
             new PrivilegesEvaluator.CoreDependencies(
@@ -268,9 +279,10 @@ public class PrivilegesEvaluatorImplTest {
                 new NullAuditLog(),
                 settings,
                 indexNameExpressionResolver,
-                () -> "unavailable"
+                () -> "unavailable",
+                NamedXContentRegistry.EMPTY
             ),
-            dynamicDependencies.with(roles)
+            dynamicDependencies.with(compiledRoles)
         );
     }
 }

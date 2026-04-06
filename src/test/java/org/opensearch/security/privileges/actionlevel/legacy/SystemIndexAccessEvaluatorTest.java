@@ -40,6 +40,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.IndicesRequestResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
@@ -144,8 +145,16 @@ public class SystemIndexAccessEvaluatorTest {
             );
 
             this.actionPrivileges = new RoleBasedActionPrivileges(
-                new CompiledRoles(rolesConfig, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT),
-                Settings.EMPTY
+                new CompiledRoles(
+                    rolesConfig,
+                    FlattenedActionGroups.EMPTY,
+                    NamedXContentRegistry.EMPTY,
+                    FieldMasking.Config.DEFAULT,
+                    false
+                ),
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                true
             );
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);

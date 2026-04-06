@@ -47,7 +47,7 @@ public class CompiledRoles {
         FlattenedActionGroups.EMPTY,
         new NamedXContentRegistry(List.of()),
         FieldMasking.Config.DEFAULT,
-            false
+        false
     );
 
     private static final Logger log = LogManager.getLogger(CompiledRoles.class);
@@ -76,7 +76,14 @@ public class CompiledRoles {
             try {
                 rolesBuilder.put(
                     entry.getKey(),
-                    new Role(entry.getKey(), entry.getValue(), actionGroups, xContentRegistry, fieldMaskingConfig, memberIndexPrivilegesYieldAliasPrivileges)
+                    new Role(
+                        entry.getKey(),
+                        entry.getValue(),
+                        actionGroups,
+                        xContentRegistry,
+                        fieldMaskingConfig,
+                        memberIndexPrivilegesYieldAliasPrivileges
+                    )
                 );
             } catch (Exception e) {
                 log.error("Unexpected exception while compiling role: {}\nIgnoring role.", entry.getKey(), e);
@@ -120,7 +127,7 @@ public class CompiledRoles {
             FlattenedActionGroups actionGroups,
             NamedXContentRegistry xContentRegistry,
             FieldMasking.Config fieldMaskingConfig,
-           boolean memberIndexPrivilegesYieldAliasPrivileges
+            boolean memberIndexPrivilegesYieldAliasPrivileges
         ) {
             this.base = base;
             this.clusterPermissions = actionGroups.resolve(base.getCluster_permissions());
@@ -130,7 +137,16 @@ public class CompiledRoles {
                 base.getIndex_permissions().size()
             );
             for (RoleV7.Index rawIndex : base.getIndex_permissions()) {
-                compiledIndexPermissions.add(new Index(roleName, rawIndex, actionGroups, xContentRegistry, fieldMaskingConfig, memberIndexPrivilegesYieldAliasPrivileges));
+                compiledIndexPermissions.add(
+                    new Index(
+                        roleName,
+                        rawIndex,
+                        actionGroups,
+                        xContentRegistry,
+                        fieldMaskingConfig,
+                        memberIndexPrivilegesYieldAliasPrivileges
+                    )
+                );
             }
             this.indexPermissions = compiledIndexPermissions.build();
         }

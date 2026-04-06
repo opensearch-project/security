@@ -45,8 +45,8 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -87,8 +87,10 @@ public class RoleBasedActionPrivilegesTest {
         Settings settings
     ) {
         return new RoleBasedActionPrivileges(
-            new CompiledRoles(roles, actionGroups, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT),
-            settings
+            new CompiledRoles(roles, actionGroups, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+            settings,
+            false
         );
     }
 
@@ -667,8 +669,12 @@ public class RoleBasedActionPrivilegesTest {
                         .build();
                 }
 
-                this.subject = createSubject(roles, FlattenedActionGroups.EMPTY, settings);
-
+                RoleBasedActionPrivileges result = new RoleBasedActionPrivileges(
+                    new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+                    RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                    settings,
+                    false
+                );
                 if (statefulness == Statefulness.STATEFUL || statefulness == Statefulness.STATEFUL_LIMITED) {
                     result.updateStatefulIndexPrivileges(INDEX_METADATA.getIndicesLookup(), 1);
                 }
@@ -1031,9 +1037,7 @@ public class RoleBasedActionPrivilegesTest {
             RoleBasedActionPrivileges subject = createSubject(
                 roles,
                 FlattenedActionGroups.EMPTY,
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.builder().put(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(), false).build(),
-                false
+                Settings.builder().put(RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(), false).build()
             );
             subject.updateStatefulIndexPrivileges(metadata, 1);
             assertEquals(0, subject.getEstimatedStatefulIndexByteSize());
@@ -1070,8 +1074,8 @@ public class RoleBasedActionPrivilegesTest {
             );
 
             RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
-                roles,
-                FlattenedActionGroups.EMPTY,
+                new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+
                 new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
                     null,
                     null,
@@ -1102,8 +1106,8 @@ public class RoleBasedActionPrivilegesTest {
             Metadata metadata = indices("test_index").alias("alias_with_protected_index").of("test_index_protected_1").build();
 
             RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
-                roles,
-                FlattenedActionGroups.EMPTY,
+                new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+
                 new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
                     null,
                     null,
@@ -1134,8 +1138,8 @@ public class RoleBasedActionPrivilegesTest {
                     allowed_actions: ['indices:data/write/index']""", CType.ROLES);
 
             RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
-                roles,
-                FlattenedActionGroups.EMPTY,
+                new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
                 Settings.EMPTY,
                 false
@@ -1157,8 +1161,8 @@ public class RoleBasedActionPrivilegesTest {
                     allowed_actions: ['indices:data/write/*']""", CType.ROLES);
 
             RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
-                roles,
-                FlattenedActionGroups.EMPTY,
+                new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
                 Settings.EMPTY,
                 false
@@ -1180,8 +1184,8 @@ public class RoleBasedActionPrivilegesTest {
                     allowed_actions: ['indices:data/write/index']""", CType.ROLES);
 
             RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
-                roles,
-                FlattenedActionGroups.EMPTY,
+                new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
                 Settings.EMPTY,
                 false
@@ -1203,8 +1207,8 @@ public class RoleBasedActionPrivilegesTest {
                     allowed_actions: ['indices:data/write/*']""", CType.ROLES);
 
             RoleBasedActionPrivileges subject = new RoleBasedActionPrivileges(
-                roles,
-                FlattenedActionGroups.EMPTY,
+                new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+
                 RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
                 Settings.EMPTY,
                 false

@@ -110,7 +110,7 @@ public class FieldMaskingTest {
 
         static FieldMasking createSubject(SecurityDynamicConfiguration<RoleV7> roleConfig) {
             return new FieldMasking(
-                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
                 INDEX_METADATA.getIndicesLookup(),
                 FieldMasking.Config.DEFAULT,
                 Settings.builder().put("plugins.security.dfm_empty_overrides_all", true).build()

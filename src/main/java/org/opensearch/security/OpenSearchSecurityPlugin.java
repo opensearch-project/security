@@ -1227,7 +1227,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 settings,
                 resolver,
                 cih::getReasonForUnavailability,
-                    xContentRegistry
+                xContentRegistry
             )
         );
         this.privilegesConfiguration = privilegesConfiguration;

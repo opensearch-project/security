@@ -551,7 +551,7 @@ public class DocumentPrivilegesTest {
                 )
                 .build();
             return new DocumentPrivileges(
-                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT, false),
                 statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
                 settings
@@ -854,7 +854,7 @@ public class DocumentPrivilegesTest {
                 )
                 .build();
             return new DocumentPrivileges(
-                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT, false),
                 statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
                 settings
@@ -1113,7 +1113,7 @@ public class DocumentPrivilegesTest {
                 )
                 .build();
             return new DocumentPrivileges(
-                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT, false),
                 statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
                 settings

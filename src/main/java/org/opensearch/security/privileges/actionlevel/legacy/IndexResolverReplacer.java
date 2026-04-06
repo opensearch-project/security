@@ -94,7 +94,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
-import org.opensearch.security.securityconf.impl.v7.ConfigV7;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.snapshots.SnapshotInfo;
@@ -890,7 +890,7 @@ public class IndexResolverReplacer {
         }
     }
 
-    public void updateConfig(ConfigV7 configV7) {
-        respectRequestIndicesOptions = configV7.dynamic != null && configV7.dynamic.respect_request_indices_options;
+    public void updateConfig(PrivilegesEvaluator.GlobalDynamicSettings generalConfig) {
+        respectRequestIndicesOptions = generalConfig.respectRequestIndicesOptions;
     }
 }

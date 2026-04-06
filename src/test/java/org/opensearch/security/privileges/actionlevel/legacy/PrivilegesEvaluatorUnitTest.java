@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 
 import org.mockito.junit.MockitoJUnitRunner;

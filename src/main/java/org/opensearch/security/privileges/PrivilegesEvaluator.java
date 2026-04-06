@@ -26,6 +26,8 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -45,7 +47,6 @@ import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -200,20 +201,64 @@ public interface PrivilegesEvaluator {
     /**
      * Configuration that is sourced from the "general purpose mixed bag" configuration type called config.
      * The purpose of this class is to provide a focused view to the needed settings.
+     * <p>
+     * Most of the options are only supported by the legacy privileges evaluator. This is on purpose
+     * as these configuration options are just for providing backwards compatibility without breaking changes.
+     * The new privilege evaluation does breaking changes to shed off old baggage.
      */
     class GlobalDynamicSettings {
-        final boolean dnfofEnabled;
-        final boolean dnfofForEmptyResultsEnabled;
-        final String filteredAliasMode;
+        /**
+         * This is a successor to the do_not_fail_on_forbidden property; it is only evaluated if
+         * privilegesEvaluationType is set to "v4"; we cannot reuse the old property as it we cannot change
+         * the default value of it based on privileges_evaluation_type.
+         * This should be only very rarely set to "false"; if it is false, users must make sure that they
+         * are not hitting any unauthorized indices in their patterns, including system indices, as otherwise these requests
+         * will just fail.
+         */
+        public final boolean ignoreUnauthorizedIndices;
 
-        GlobalDynamicSettings(boolean dnfofEnabled, boolean dnfofForEmptyResultsEnabled, String filteredAliasMode) {
+        /**
+         * Only supported by legacy privilege evaluation. See ignoreUnauthorizedIndices for replacement.
+         */
+        public final boolean dnfofEnabled;
+
+        /**
+         * Only supported by legacy privilege evaluation..
+         */
+        public final boolean dnfofForEmptyResultsEnabled;
+
+        /**
+         * Only supported by legacy privilege evaluation..
+         */
+        public final String filteredAliasMode;
+
+        /**
+         * Only supported by legacy privilege evaluation..
+         */
+        public final boolean respectRequestIndicesOptions;
+
+        GlobalDynamicSettings(
+            boolean ignoreUnauthorizedIndices,
+            boolean dnfofEnabled,
+            boolean dnfofForEmptyResultsEnabled,
+            String filteredAliasMode,
+            boolean respectRequestIndicesOptions
+        ) {
+            this.ignoreUnauthorizedIndices = ignoreUnauthorizedIndices;
             this.dnfofEnabled = dnfofEnabled;
             this.dnfofForEmptyResultsEnabled = dnfofForEmptyResultsEnabled;
             this.filteredAliasMode = filteredAliasMode;
+            this.respectRequestIndicesOptions = respectRequestIndicesOptions;
         }
 
         public static GlobalDynamicSettings fromConfigV7(ConfigV7 configV7) {
-            return new GlobalDynamicSettings(isDnfofEnabled(configV7), isDnfofEmptyEnabled(configV7), getFilteredAliasMode(configV7));
+            return new GlobalDynamicSettings(
+                isIndexReductionEnabled(configV7),
+                isDnfofEnabled(configV7),
+                isDnfofEmptyEnabled(configV7),
+                getFilteredAliasMode(configV7),
+                isRespectRequestIndicesOptionsEnabled(configV7)
+            );
         }
 
         private static boolean isDnfofEnabled(ConfigV7 generalConfiguration) {
@@ -226,6 +271,14 @@ public interface PrivilegesEvaluator {
 
         private static String getFilteredAliasMode(ConfigV7 generalConfiguration) {
             return generalConfiguration.dynamic != null ? generalConfiguration.dynamic.filtered_alias_mode : "none";
+        }
+
+        private static boolean isRespectRequestIndicesOptionsEnabled(ConfigV7 generalConfiguration) {
+            return generalConfiguration.dynamic != null && generalConfiguration.dynamic.respect_request_indices_options;
+        }
+
+        private static boolean isIndexReductionEnabled(ConfigV7 generalConfiguration) {
+            return generalConfiguration.dynamic == null || generalConfiguration.dynamic.privilegesEvaluationIgnoreUnauthorizedIndices;
         }
 
         @Override
@@ -243,6 +296,7 @@ public interface PrivilegesEvaluator {
             return Objects.hash(dnfofEnabled, dnfofForEmptyResultsEnabled, filteredAliasMode);
         }
     }
+
     /**
      * Dependencies for PrivilegeEvaluator implementations that are cluster global and never change during the
      * cluster lifecycle.
@@ -250,23 +304,25 @@ public interface PrivilegesEvaluator {
     record CoreDependencies(ClusterService clusterService, Supplier<ClusterState> clusterStateSupplier, Client client,
         RoleMapper roleMapper, ThreadPool threadPool, ThreadContext threadContext, AuditLog auditLog, Settings settings,
         IndexNameExpressionResolver indexNameExpressionResolver, Supplier<String> unavailablityReasonSupplier,
-                            NamedXContentRegistry namedXContentRegistry
-    ) {
+        NamedXContentRegistry namedXContentRegistry) {
     }
 
     /**
      * Dependencies for PrivilegeEvaluator implementations that can change during the cluster lifecycle or which are
      * not cluster global, but rather scoped to the PrivilegeConfiguration instance.
      */
-    record DynamicDependencies(FlattenedActionGroups actionGroups, FlattenedActionGroups staticActionGroups, CompiledRoles rolesConfiguration, ConfigV7 generalConfiguration, SpecialIndices specialIndices, Supplier<
-            TenantPrivileges> tenantPrivilegesSupplier, Supplier<DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier,
-        Map<String, SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToPrivileges) {
+    record DynamicDependencies(FlattenedActionGroups actionGroups, FlattenedActionGroups staticActionGroups,
+        CompiledRoles rolesConfiguration, PrivilegesEvaluator.GlobalDynamicSettings generalConfiguration, SpecialIndices specialIndices,
+        Supplier<TenantPrivileges> tenantPrivilegesSupplier, Supplier<
+            DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier, Map<
+                String,
+                SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToPrivileges) {
 
         public static final DynamicDependencies EMPTY = new PrivilegesEvaluator.DynamicDependencies(
             FlattenedActionGroups.EMPTY,
             FlattenedActionGroups.EMPTY,
             CompiledRoles.EMPTY,
-            new ConfigV7(),
+            new GlobalDynamicSettings(true, false, false, "none", false),
             new SpecialIndices(Settings.EMPTY),
             () -> TenantPrivileges.EMPTY,
             () -> DashboardsMultiTenancyConfiguration.DEFAULT,

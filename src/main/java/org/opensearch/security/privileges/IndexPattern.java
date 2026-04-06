@@ -48,7 +48,7 @@ public class IndexPattern {
         ImmutableSet.of(),
         ImmutableList.of(),
         ImmutableList.of(),
-            false
+        false
     );
 
     /**
@@ -372,7 +372,7 @@ public class IndexPattern {
                 ImmutableSet.of(),
                 this.patternTemplates,
                 this.dateMathExpressions,
-                    this.memberIndexPrivilegesYieldAliasPrivileges
+                this.memberIndexPrivilegesYieldAliasPrivileges
 
             );
         }

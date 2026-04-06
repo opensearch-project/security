@@ -353,7 +353,7 @@ public class DlsFlsLegacyHeadersTest {
 
     static DlsFlsProcessedConfig dlsFlsProcessedConfig(SecurityDynamicConfiguration<RoleV7> rolesConfig, Metadata metadata) {
         return new DlsFlsProcessedConfig(
-            new CompiledRoles(rolesConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT),
+            new CompiledRoles(rolesConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT, false),
             metadata.getIndicesLookup(),
             xContentRegistry,
             Settings.EMPTY,

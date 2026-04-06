@@ -65,9 +65,7 @@ import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.security.support.WildcardMatcher;
@@ -175,9 +173,9 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
 
     @Override
     public void updateConfiguration(
-            FlattenedActionGroups flattenedActionGroups,
-            CompiledRoles roles,
-            GlobalDynamicSettings globalDynamicSettings
+        FlattenedActionGroups flattenedActionGroups,
+        CompiledRoles roles,
+        GlobalDynamicSettings globalDynamicSettings
     ) {
 
         try {
@@ -198,7 +196,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             log.error("Error while updating ActionPrivileges", e);
         }
 
-        this.indexReductionEnabled = isIndexReductionEnabled(generalConfiguration);
+        this.indexReductionEnabled = globalDynamicSettings.ignoreUnauthorizedIndices;
     }
 
     @Override

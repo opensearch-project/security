@@ -44,9 +44,6 @@ import org.opensearch.security.privileges.IndexPattern;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
 
 import com.selectivem.collections.CheckTable;
@@ -109,8 +106,17 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
      * @param breakDownAliases if true, this class is allowed to break down aliases into member indices to see whether a subset of the member indices have the necessary privileges. This is used for the legacy privilege evaluation.
      *                         It has the issue that filtered aliases are lost in the process. Thus, the new privilege evaluation does not use this any more.
      */
-    public RoleBasedActionPrivileges(CompiledRoles compiledRoles, SpecialIndexProtection specialIndexProtection, Settings settings, boolean breakDownAliases) {
-        super(new ClusterPrivileges(compiledRoles), new IndexPrivileges(compiledRoles, specialIndexProtection, breakDownAliases), breakDownAliases);
+    public RoleBasedActionPrivileges(
+        CompiledRoles compiledRoles,
+        SpecialIndexProtection specialIndexProtection,
+        Settings settings,
+        boolean breakDownAliases
+    ) {
+        super(
+            new ClusterPrivileges(compiledRoles),
+            new IndexPrivileges(compiledRoles, specialIndexProtection, breakDownAliases),
+            breakDownAliases
+        );
         this.compiledRoles = compiledRoles;
         this.statefulIndexMaxHeapSize = PRECOMPUTED_PRIVILEGES_MAX_HEAP_SIZE.get(settings);
         this.statefulIndexEnabled = PRECOMPUTED_PRIVILEGES_ENABLED.get(settings);
@@ -357,13 +363,15 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
          * just results in fewer available privileges. However, having a proper error reporting mechanism would be
          * kind of nice.
          */
-        IndexPrivileges(CompiledRoles compiledRoles,     SpecialIndexProtection specialIndexProtection,
-                        boolean memberIndexPrivilegesYieldAliasPrivileges
+        IndexPrivileges(
+            CompiledRoles compiledRoles,
+            SpecialIndexProtection specialIndexProtection,
+            boolean memberIndexPrivilegesYieldAliasPrivileges
         ) {
             super(specialIndexProtection);
 
             Function<Object, IndexPattern.Builder> indexPatternBuilder = k -> new IndexPattern.Builder(
-                    memberIndexPrivilegesYieldAliasPrivileges
+                memberIndexPrivilegesYieldAliasPrivileges
             );
 
             Map<String, Map<String, IndexPattern.Builder>> rolesToActionToIndexPattern = new HashMap<>();
@@ -395,12 +403,12 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                             if (WildcardMatcher.isExact(permission)) {
                                 rolesToActionToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
                                     .computeIfAbsent(permission, indexPatternBuilder)
-                                        .add(indexPermissions.indexPattern.source());
+                                    .add(indexPermissions.indexPattern.source());
 
                                 if (WellKnownActions.EXPLICITLY_REQUIRED_INDEX_ACTIONS.contains(permission)) {
                                     rolesToExplicitActionToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
                                         .computeIfAbsent(permission, indexPatternBuilder)
-                                            .add(indexPermissions.indexPattern.source());
+                                        .add(indexPermissions.indexPattern.source());
                                 }
 
                                 if (indexPermissions.indexPattern.isMatchAll()) {
@@ -415,7 +423,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                                 for (String action : actionMatcher.iterateMatching(WellKnownActions.INDEX_ACTIONS)) {
                                     rolesToActionToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
                                         .computeIfAbsent(action, indexPatternBuilder)
-                                            .add(indexPermissions.indexPattern.source());
+                                        .add(indexPermissions.indexPattern.source());
 
                                     if (indexPermissions.indexPattern.isMatchAll()) {
                                         actionToRolesWithWildcardIndexPrivileges.computeIfAbsent(
@@ -427,7 +435,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
 
                                 rolesToActionPatternToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
                                     .computeIfAbsent(actionMatcher, indexPatternBuilder)
-                                        .add(indexPermissions.indexPattern.source());
+                                    .add(indexPermissions.indexPattern.source());
 
                                 if (actionMatcher != WildcardMatcher.ANY) {
                                     for (String action : actionMatcher.iterateMatching(
@@ -435,7 +443,7 @@ public class RoleBasedActionPrivileges extends RuntimeOptimizedActionPrivileges 
                                     )) {
                                         rolesToExplicitActionToIndexPattern.computeIfAbsent(roleName, k -> new HashMap<>())
                                             .computeIfAbsent(action, indexPatternBuilder)
-                                                .add(indexPermissions.indexPattern.source());
+                                            .add(indexPermissions.indexPattern.source());
                                     }
                                 }
                             }
