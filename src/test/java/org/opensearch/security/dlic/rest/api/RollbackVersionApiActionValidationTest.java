@@ -39,8 +39,7 @@ public class RollbackVersionApiActionValidationTest extends AbstractApiActionVal
             null,
             configurationRepository,
             null,
-            null,
-            restApiAdminPrivilegesEvaluator,
+            restApiAuthorizationEvaluator,
             null,
             settings
         );
