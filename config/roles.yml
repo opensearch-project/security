@@ -333,6 +333,7 @@ ml_full_access:
         - '*'
       allowed_actions:
         - 'indices_monitor'
+        - 'indices:admin/mappings/get'
 
 # Allows users to use all Notifications functionality
 notifications_full_access:
