@@ -316,6 +316,16 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
+     * If this user is a plugin user, returns the plugin Java class name. Otherwise, returns null.
+     */
+    public String getPluginName() {
+        if (isPluginUser()) {
+            return name.substring("plugin:".length());
+        }
+        return null;
+    }
+
+    /**
      * Returns a String containing serialized form of this User object. Never returns null.
      */
     public String toSerializedBase64() {

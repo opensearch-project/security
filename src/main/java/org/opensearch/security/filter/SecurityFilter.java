@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +44,8 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest.OpType;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -63,6 +66,8 @@ import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -82,7 +87,6 @@ import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
@@ -91,7 +95,6 @@ import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -115,14 +118,13 @@ public class SecurityFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final ClusterService cs;
-    private final ClusterInfoHolder clusterInfoHolder;
     private final CompatConfig compatConfig;
-    private final IndexResolverReplacer indexResolverReplacer;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
     private final ResourceAccessEvaluator resourceAccessEvaluator;
     private final ThreadContextUserInfo threadContextUserInfo;
+    private final Set<String> restApiAllowedRoles;
 
     public SecurityFilter(
         final Settings settings,
@@ -132,9 +134,7 @@ public class SecurityFilter implements ActionFilter {
         AuditLog auditLog,
         ThreadPool threadPool,
         ClusterService cs,
-        final ClusterInfoHolder clusterInfoHolder,
         final CompatConfig compatConfig,
-        final IndexResolverReplacer indexResolverReplacer,
         final XFFResolver xffResolver,
         ResourceAccessEvaluator resourceAccessEvaluator
     ) {
@@ -144,15 +144,14 @@ public class SecurityFilter implements ActionFilter {
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.cs = cs;
-        this.clusterInfoHolder = clusterInfoHolder;
         this.compatConfig = compatConfig;
-        this.indexResolverReplacer = indexResolverReplacer;
         this.immutableIndicesMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList())
         );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         this.resourceAccessEvaluator = resourceAccessEvaluator;
+        this.restApiAllowedRoles = Set.copyOf(settings.getAsList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED));
         this.threadContextUserInfo = new ThreadContextUserInfo(
             threadPool.getThreadContext(),
             privilegesConfiguration,
@@ -321,13 +320,13 @@ public class SecurityFilter implements ActionFilter {
 
                 if (request instanceof BulkShardRequest) {
                     for (BulkItemRequest bsr : ((BulkShardRequest) request).items()) {
-                        isImmutable = checkImmutableIndices(bsr.request(), listener);
+                        isImmutable = checkImmutableIndices(bsr.request(), actionRequestMetadata, listener);
                         if (isImmutable) {
                             break;
                         }
                     }
                 } else {
-                    isImmutable = checkImmutableIndices(request, listener);
+                    isImmutable = checkImmutableIndices(request, actionRequestMetadata, listener);
                 }
 
                 if (isImmutable) {
@@ -435,6 +434,11 @@ public class SecurityFilter implements ActionFilter {
                 return;
             }
 
+            // Block cluster-settings updates that touch Sensitive settings unless the user holds a restapi-allowed role
+            if (handleBlockedSensitiveSettingsUpdate(action, request, context, listener)) {
+                return;
+            }
+
             // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
             PrivilegesEvaluatorResponse pres = eval.evaluate(context);
 
@@ -520,6 +524,37 @@ public class SecurityFilter implements ActionFilter {
         }
     }
 
+    private <Request extends ActionRequest, Response extends ActionResponse> boolean handleBlockedSensitiveSettingsUpdate(
+        String action,
+        Request request,
+        PrivilegesEvaluationContext context,
+        ActionListener<Response> listener
+    ) {
+        if (!ClusterUpdateSettingsAction.NAME.equals(action)) {
+            return false;
+        }
+        ClusterUpdateSettingsRequest settingsRequest = (ClusterUpdateSettingsRequest) request;
+        boolean touchesSensitiveSetting = Stream.concat(
+            settingsRequest.transientSettings().keySet().stream(),
+            settingsRequest.persistentSettings().keySet().stream()
+        ).anyMatch(key -> cs.getClusterSettings().isSensitiveSetting(key));
+
+        if (!touchesSensitiveSetting) {
+            return false;
+        }
+        if (Collections.disjoint(restApiAllowedRoles, context.getMappedRoles())) {
+            log.debug("User {} does not have a role permitted to update sensitive cluster settings", context.getUser().getName());
+            listener.onFailure(
+                new OpenSearchSecurityException(
+                    "User " + context.getUser().getName() + " does not have permission to update sensitive cluster settings",
+                    RestStatus.FORBIDDEN
+                )
+            );
+            return true;
+        }
+        return false;
+    }
+
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
         return user != null && adminDns.isAdmin(user);
     }
@@ -564,7 +599,7 @@ public class SecurityFilter implements ActionFilter {
     }
 
     @SuppressWarnings("rawtypes")
-    private boolean checkImmutableIndices(Object request, ActionListener listener) {
+    private boolean checkImmutableIndices(Object request, ActionRequestMetadata<?, ?> actionRequestMetadata, ActionListener listener) {
         final boolean isModifyIndexRequest = request instanceof DeleteRequest
             || request instanceof UpdateRequest
             || request instanceof UpdateByQueryRequest
@@ -574,24 +609,24 @@ public class SecurityFilter implements ActionFilter {
             || request instanceof CloseIndexRequest
             || request instanceof IndicesAliasesRequest;
 
-        if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
+        if (isModifyIndexRequest && isRequestIndexImmutable(request, actionRequestMetadata)) {
             listener.onFailure(new OpenSearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }
 
-        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request)) {
+        if ((request instanceof IndexRequest) && isRequestIndexImmutable(request, actionRequestMetadata)) {
             ((IndexRequest) request).opType(OpType.CREATE);
         }
 
         return false;
     }
 
-    private boolean isRequestIndexImmutable(Object request) {
-        final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
-        if (resolved.isLocalAll()) {
+    private boolean isRequestIndexImmutable(Object request, ActionRequestMetadata<?, ?> actionRequestMetadata) {
+        OptionallyResolvedIndices optionalResolvedIndices = actionRequestMetadata.resolvedIndices();
+        if (optionalResolvedIndices instanceof ResolvedIndices resolvedIndices) {
+            return immutableIndicesMatcher.matchAny(resolvedIndices.local().namesOfIndices(cs.state()));
+        } else {
             return true;
         }
-        final Set<String> allIndices = resolved.getAllIndices();
-        return immutableIndicesMatcher.matchAny(allIndices);
     }
 }
