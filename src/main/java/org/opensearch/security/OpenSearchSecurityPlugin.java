@@ -173,12 +173,12 @@ import org.opensearch.security.privileges.ConfigurableRoleMapper;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resources.PluginDefaultRolesHelper;
 import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
@@ -294,7 +294,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile DynamicConfigFactory dcf;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile SecurityFilter sf;
-    private volatile IndexResolverReplacer irr;
+    private final AtomicReference<NamedXContentRegistry> namedXContentRegistry = new AtomicReference<>(NamedXContentRegistry.EMPTY);;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private final OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
@@ -1167,7 +1167,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.cs.addListener(cih);
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
-        irr = new IndexResolverReplacer(resolver, clusterService::state, cih);
 
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
@@ -1217,17 +1216,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         PrivilegesConfiguration privilegesConfiguration = new PrivilegesConfiguration(
             cr,
-            clusterService,
-            clusterService::state,
-            localClient,
-            roleMapper,
-            threadPool,
-            resolver,
-            auditLog,
-            settings,
-            cih::getReasonForUnavailability,
-            irr,
-            xContentRegistry
+            new PrivilegesEvaluator.CoreDependencies(
+                clusterService,
+                clusterService::state,
+                localClient,
+                roleMapper,
+                threadPool,
+                threadPool.getThreadContext(),
+                auditLog,
+                settings,
+                resolver,
+                cih::getReasonForUnavailability,
+                xContentRegistry
+            )
         );
         this.privilegesConfiguration = privilegesConfiguration;
 
@@ -1240,7 +1241,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 settings,
                 localClient,
                 clusterService,
-                resolver,
                 xContentRegistry,
                 threadPool,
                 dlsFlsBaseContext,
@@ -1281,9 +1281,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             auditLog,
             threadPool,
             cs,
-            cih,
             compatConfig,
-            irr,
             xffResolver,
             resourceAccessEvaluator
         );
@@ -1311,7 +1309,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
-        dcf.registerDCFListener(irr);
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(securityRestHandler);
         dcf.registerDCFListener(tokenManager);

@@ -8,7 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +26,9 @@ import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 
 /**
  * This class evaluates privileges for point in time (Delete and List all) operations.
@@ -82,7 +84,11 @@ public class PitPrivilegesEvaluator {
         String[] indicesArr = new String[pitIndices.size()];
         CreatePitRequest req = new CreatePitRequest(new TimeValue(1, TimeUnit.DAYS), true, pitIndices.toArray(indicesArr));
         final IndexResolverReplacer.Resolved pitResolved = irr.resolveRequest(req);
-        PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(context, ImmutableSet.of(action), pitResolved);
+        PrivilegesEvaluatorResponse subResponse = actionPrivileges.hasIndexPrivilege(
+            context,
+            ImmutableSet.of(action),
+            pitResolved.toResolvedIndices(context::clusterState, context.getIndexNameExpressionResolver())
+        );
         // Only if user has access to all PIT's indices, allow operation, otherwise continue evaluation in PrivilegesEvaluator.
         if (subResponse.isAllowed()) {
             return PrivilegesEvaluatorResponse.ok();
