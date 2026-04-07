@@ -22,9 +22,9 @@ import org.junit.Test;
 import org.opensearch.security.DefaultObjectMapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 
 public class SecurityDynamicConfigurationTest {
 
@@ -47,6 +47,6 @@ public class SecurityDynamicConfigurationTest {
     @Test
     public void deepClone_shouldReturnNewObject() {
         SecurityDynamicConfiguration<?> securityDeepClone = securityDynamicConfiguration.deepClone();
-        assertThat(securityDeepClone, is(not(equalTo(securityDynamicConfiguration))));
+        assertThat(securityDeepClone, is(not(sameInstance(securityDynamicConfiguration))));
     }
 }

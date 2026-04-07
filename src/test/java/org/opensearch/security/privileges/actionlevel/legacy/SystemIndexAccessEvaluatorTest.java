@@ -9,10 +9,11 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.privileges;
+package org.opensearch.security.privileges.actionlevel.legacy;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -28,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
@@ -38,10 +40,14 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.privileges.CompiledRoles;
+import org.opensearch.security.privileges.IndicesRequestResolver;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -139,8 +145,16 @@ public class SystemIndexAccessEvaluatorTest {
             );
 
             this.actionPrivileges = new RoleBasedActionPrivileges(
-                new CompiledRoles(rolesConfig, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT),
-                Settings.EMPTY
+                new CompiledRoles(
+                    rolesConfig,
+                    FlattenedActionGroups.EMPTY,
+                    NamedXContentRegistry.EMPTY,
+                    FieldMasking.Config.DEFAULT,
+                    false
+                ),
+                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                Settings.EMPTY,
+                true
             );
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -174,9 +188,10 @@ public class SystemIndexAccessEvaluatorTest {
             ImmutableSet.of("role_a"),
             action,
             request,
-            null,
+            ActionRequestMetadata.empty(),
             null,
             indexNameExpressionResolver,
+            new IndicesRequestResolver(indexNameExpressionResolver),
             () -> clusterState,
             actionPrivileges
         );
@@ -744,6 +759,7 @@ public class SystemIndexAccessEvaluatorTest {
             ImmutableSet.copyOf(indexes),
             ImmutableSet.copyOf(indexes),
             ImmutableSet.of(),
+            Map.of(),
             IndicesOptions.STRICT_EXPAND_OPEN
         );
     }
