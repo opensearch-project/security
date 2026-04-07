@@ -1064,12 +1064,16 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         }
         try (final ASN1InputStream in = new ASN1InputStream((byte[]) altName.get(1))) {
             final ASN1Primitive asn1Primitive = in.readObject();
-            final ASN1Sequence sequence = ASN1Sequence.getInstance(asn1Primitive);
+            // BC X.509 (used in FIPS mode) returns the GeneralName [0] IMPLICIT encoding;
+            // JDK X.509 returns just the OtherName SEQUENCE body. Handle both.
+            final ASN1Sequence sequence = asn1Primitive instanceof ASN1TaggedObject
+                ? ASN1Sequence.getInstance((ASN1TaggedObject) asn1Primitive, false)
+                : ASN1Sequence.getInstance(asn1Primitive);
             final ASN1ObjectIdentifier asn1ObjectIdentifier = ASN1ObjectIdentifier.getInstance(sequence.getObjectAt(0));
-            final ASN1TaggedObject asn1TaggedObject = ASN1TaggedObject.getInstance(sequence.getObjectAt(1));
+            final ASN1TaggedObject asn1TaggedObject = (ASN1TaggedObject) sequence.getObjectAt(1).toASN1Primitive();
             ASN1Object maybeTaggedAsn1Primitive = asn1TaggedObject.getObject();
             if (maybeTaggedAsn1Primitive instanceof ASN1TaggedObject) {
-                maybeTaggedAsn1Primitive = ASN1TaggedObject.getInstance(maybeTaggedAsn1Primitive).getObject();
+                maybeTaggedAsn1Primitive = ((ASN1TaggedObject) maybeTaggedAsn1Primitive).getObject();
             }
             if (maybeTaggedAsn1Primitive instanceof ASN1String) {
                 return ImmutableList.of(asn1ObjectIdentifier.getId(), maybeTaggedAsn1Primitive.toString());

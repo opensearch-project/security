@@ -26,12 +26,14 @@
 
 package org.opensearch.security.support;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -51,6 +53,7 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
+import java.util.Locale;
 import javax.crypto.Cipher;
 import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.NoSuchPaddingException;
@@ -60,6 +63,11 @@ import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
@@ -67,11 +75,15 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
+
 public final class PemKeyReader {
 
     private static final Logger log = LogManager.getLogger(PemKeyReader.class);
-    static final String JKS = "JKS";
-    static final String PKCS12 = "PKCS12";
+
+    public static final String JKS = "JKS";
+    public static final String PKCS12 = "PKCS12";
+    public static final String BCFKS = "BCFKS";
 
     private static byte[] readPrivateKey(File file) throws KeyException {
         try (final InputStream in = new FileInputStream(file)) {
@@ -173,16 +185,13 @@ public final class PemKeyReader {
         return (X509Certificate) fact.generateCertificate(in);
     }
 
-    public static KeyStore loadKeyStore(String storePath, String keyStorePassword, String type) throws Exception {
+    public static KeyStore loadKeyStore(final String storePath, final String keyStorePassword, final String type) throws Exception {
         if (storePath == null) {
             return null;
         }
+        String storeType = extractStoreType(storePath, type);
 
-        if (type == null || !type.toUpperCase().equals(JKS) || !type.toUpperCase().equals(PKCS12)) {
-            type = JKS;
-        }
-
-        final KeyStore store = KeyStore.getInstance(type.toUpperCase());
+        final KeyStore store = KeyStore.getInstance(storeType);
         store.load(new FileInputStream(storePath), keyStorePassword == null ? null : keyStorePassword.toCharArray());
         return store;
     }
@@ -308,8 +317,7 @@ public final class PemKeyReader {
             return null;
         }
 
-        KeyStore ks = KeyStore.getInstance(JKS);
-        ks.load(null);
+        KeyStore ks = newEmptyStore();
 
         if (trustCertificates != null && trustCertificates.length > 0) {
             for (int i = 0; i < trustCertificates.length; i++) {
@@ -328,8 +336,7 @@ public final class PemKeyReader {
     ) throws Exception {
 
         if (authenticationCertificateAlias != null && authenticationCertificate != null && authenticationKey != null) {
-            KeyStore ks = KeyStore.getInstance(JKS);
-            ks.load(null, null);
+            KeyStore ks = newEmptyStore();
             ks.setKeyEntry(authenticationCertificateAlias, authenticationKey, password, authenticationCertificate);
             return ks;
         } else {
@@ -345,6 +352,58 @@ public final class PemKeyReader {
             ret[i] = (char) (r.nextInt(26) + 'a');
         }
         return ret;
+    }
+
+    public static String extractStoreType(String storePath, String storeType) {
+        if (null == storeType) {
+            storeType = detectStoreType(storePath);
+        }
+        if (CryptoServicesRegistrar.isInApprovedOnlyMode() && !PemKeyReader.BCFKS.equalsIgnoreCase(storeType)) {
+            throw new IllegalArgumentException(
+                storeType.toUpperCase(Locale.ROOT) + " truststores are not supported in FIPS mode - use BCFKS."
+            );
+        }
+        return storeType;
+    }
+
+    private static String detectStoreType(String path) {
+
+        try (InputStream raw = new BufferedInputStream(new FileInputStream(path))) {
+            raw.mark(32);
+            byte[] magic = new byte[4];
+            if (raw.read(magic) < 4) {
+                throw new IllegalArgumentException("Cannot detect keystore type: file too short: " + path);
+            }
+            // JKS: 0xFEEDFEED
+            if ((magic[0] & 0xFF) == 0xFE //
+                && (magic[1] & 0xFF) == 0xED //
+                && (magic[2] & 0xFF) == 0xFE //
+                && (magic[3] & 0xFF) == 0xED //
+            ) {
+                return PemKeyReader.JKS;
+            }
+            // ASN.1: distinguish BCFKS from PKCS12 by outer structure
+            // PKCS12 (RFC 7292): outer SEQUENCE starts with INTEGER (version = 3)
+            // BCFKS: outer SEQUENCE starts with SEQUENCE (encrypted content envelope)
+            if ((magic[0] & 0xFF) == 0x30) {
+                raw.reset();
+                try (ASN1InputStream asn1In = new ASN1InputStream(raw)) {
+                    ASN1Sequence outer = (ASN1Sequence) asn1In.readObject();
+                    ASN1Encodable first = outer.getObjectAt(0);
+                    if (first instanceof ASN1Integer) return PemKeyReader.PKCS12;
+                    if (first instanceof ASN1Sequence) return PemKeyReader.BCFKS;
+                } catch (Exception ignored) {}
+            }
+            throw new IllegalArgumentException("Cannot detect keystore type for: " + path + ". Specify explicitly with -kst/-tst.");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static KeyStore newEmptyStore() throws Exception {
+        var ks = KeyStore.getInstance(DEFAULT_STORE_TYPE);
+        ks.load(null, null);
+        return ks;
     }
 
     private PemKeyReader() {}
