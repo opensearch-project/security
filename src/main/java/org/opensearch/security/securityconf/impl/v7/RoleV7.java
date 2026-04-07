@@ -36,6 +36,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -100,6 +101,21 @@ public class RoleV7 implements Hideable, StaticDefinable {
         }
 
         return role;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof RoleV7 roleV7)) {
+            return false;
+        }
+        return Objects.equals(cluster_permissions, roleV7.cluster_permissions)
+            && Objects.equals(index_permissions, roleV7.index_permissions)
+            && Objects.equals(tenant_permissions, roleV7.tenant_permissions);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(cluster_permissions, index_permissions, tenant_permissions);
     }
 
     public static class Index {
@@ -168,25 +184,29 @@ public class RoleV7 implements Hideable, StaticDefinable {
                 + allowed_actions
                 + "]";
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof Index index)) {
+                return false;
+            }
+            return Objects.equals(index_patterns, index.index_patterns)
+                && Objects.equals(dls, index.dls)
+                && Objects.equals(fls, index.fls)
+                && Objects.equals(masked_fields, index.masked_fields)
+                && Objects.equals(allowed_actions, index.allowed_actions);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(index_patterns, dls, fls, masked_fields, allowed_actions);
+        }
     }
 
     public static class Tenant {
 
         private List<String> tenant_patterns = Collections.emptyList();
         private List<String> allowed_actions = Collections.emptyList();
-
-        /*public Index(String pattern, RoleV6.Index v6Index) {
-            super();
-            index_patterns = Collections.singletonList(pattern);
-            dls = v6Index.get_dls_();
-            fls = v6Index.get_fls_();
-            masked_fields = v6Index.get_masked_fields_();
-            Set<String> tmpActions = new HashSet<>();
-            for(Entry<String, List<String>> type: v6Index.getTypes().entrySet()) {
-                tmpActions.addAll(type.getValue());
-            }
-            allowed_actions = new ArrayList<>(tmpActions);
-        }*/
 
         public Tenant() {
             super();
@@ -213,6 +233,18 @@ public class RoleV7 implements Hideable, StaticDefinable {
             return "Tenant [tenant_patterns=" + tenant_patterns + ", allowed_actions=" + allowed_actions + "]";
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof Tenant tenant)) {
+                return false;
+            }
+            return Objects.equals(tenant_patterns, tenant.tenant_patterns) && Objects.equals(allowed_actions, tenant.allowed_actions);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(tenant_patterns, allowed_actions);
+        }
     }
 
     public boolean isHidden() {

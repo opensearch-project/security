@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +44,8 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest.OpType;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -123,6 +126,7 @@ public class SecurityFilter implements ActionFilter {
     private final UserInjector userInjector;
     private final ResourceAccessEvaluator resourceAccessEvaluator;
     private final ThreadContextUserInfo threadContextUserInfo;
+    private final Set<String> restApiAllowedRoles;
 
     public SecurityFilter(
         final Settings settings,
@@ -153,6 +157,7 @@ public class SecurityFilter implements ActionFilter {
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         this.resourceAccessEvaluator = resourceAccessEvaluator;
+        this.restApiAllowedRoles = Set.copyOf(settings.getAsList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED));
         this.threadContextUserInfo = new ThreadContextUserInfo(
             threadPool.getThreadContext(),
             privilegesConfiguration,
@@ -435,6 +440,11 @@ public class SecurityFilter implements ActionFilter {
                 return;
             }
 
+            // Block cluster-settings updates that touch Sensitive settings unless the user holds a restapi-allowed role
+            if (handleBlockedSensitiveSettingsUpdate(action, request, context, listener)) {
+                return;
+            }
+
             // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
             PrivilegesEvaluatorResponse pres = eval.evaluate(context);
 
@@ -518,6 +528,37 @@ public class SecurityFilter implements ActionFilter {
             log.error("Unexpected exception {}", e, e);
             listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
         }
+    }
+
+    private <Request extends ActionRequest, Response extends ActionResponse> boolean handleBlockedSensitiveSettingsUpdate(
+        String action,
+        Request request,
+        PrivilegesEvaluationContext context,
+        ActionListener<Response> listener
+    ) {
+        if (!ClusterUpdateSettingsAction.NAME.equals(action)) {
+            return false;
+        }
+        ClusterUpdateSettingsRequest settingsRequest = (ClusterUpdateSettingsRequest) request;
+        boolean touchesSensitiveSetting = Stream.concat(
+            settingsRequest.transientSettings().keySet().stream(),
+            settingsRequest.persistentSettings().keySet().stream()
+        ).anyMatch(key -> cs.getClusterSettings().isSensitiveSetting(key));
+
+        if (!touchesSensitiveSetting) {
+            return false;
+        }
+        if (Collections.disjoint(restApiAllowedRoles, context.getMappedRoles())) {
+            log.debug("User {} does not have a role permitted to update sensitive cluster settings", context.getUser().getName());
+            listener.onFailure(
+                new OpenSearchSecurityException(
+                    "User " + context.getUser().getName() + " does not have permission to update sensitive cluster settings",
+                    RestStatus.FORBIDDEN
+                )
+            );
+            return true;
+        }
+        return false;
     }
 
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {

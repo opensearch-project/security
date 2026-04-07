@@ -1672,9 +1672,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.DFM_EMPTY_OVERRIDES_ALL_SETTING);
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".", Property.NodeScope)); // not
                                                                                                                                     // filtered
                                                                                                                                     // here
@@ -2059,6 +2057,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings.add(
                 Setting.simpleString(
                     ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_LEVEL,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                        + ConfigConstants.SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE,
+                    Integer.MAX_VALUE,
+                    255,
                     Property.NodeScope,
                     Property.Filtered
                 )

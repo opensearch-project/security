@@ -31,6 +31,7 @@ configurations.all {
         force "org.bouncycastle:bcpkix-jdk18on:1.83"
         force "org.bouncycastle:bcprov-jdk18on:1.83"
         force "org.apache.commons:commons-lang3:${versions.commonslang}"
+        force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     }
 }
 
@@ -82,5 +83,6 @@ tasks.shadowJar {
     exclude 'META-INF/maven/commons-io/commons-io/**'
     exclude 'META-INF/maven/org.apache.commons/commons-lang3/**'
     exclude 'META-INF/versions/**/org/bouncycastle/**'
+    exclude 'META-INF/versions/**/com/fasterxml/**'
     exclude 'META-INF/services/org.opensaml.security.crypto.ec.NamedCurve'
 }

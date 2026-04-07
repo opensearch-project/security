@@ -91,7 +91,6 @@ import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileg
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
-import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
@@ -167,7 +166,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         FlattenedActionGroups actionGroups,
         FlattenedActionGroups staticActionGroups,
         CompiledRoles rolesConfiguration,
-        ConfigV7 generalConfiguration,
+        GlobalDynamicSettings globalDynamicSettings,
         Map<String, RoleV7> pluginIdToRolePrivileges,
         Map<String, ActionPrivileges> tokenIdToActionPrivileges
     ) {
@@ -201,7 +200,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
 
         this.tokenIdToActionPrivileges = tokenIdToActionPrivileges;
         this.pluginIdToActionPrivileges = createActionPrivileges(pluginIdToRolePrivileges, staticActionGroups);
-        this.updateConfiguration(actionGroups, rolesConfiguration, generalConfiguration);
+        this.updateConfiguration(actionGroups, rolesConfiguration, globalDynamicSettings);
     }
 
     @Override
@@ -210,10 +209,14 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     }
 
     @Override
-    public void updateConfiguration(FlattenedActionGroups flattenedActionGroups, CompiledRoles roles, ConfigV7 generalConfiguration) {
-        this.dnfofEnabled = isDnfofEnabled(generalConfiguration);
-        this.dnfofForEmptyResultsEnabled = isDnfofEmptyEnabled(generalConfiguration);
-        this.filteredAliasMode = getFilteredAliasMode(generalConfiguration);
+    public void updateConfiguration(
+        FlattenedActionGroups flattenedActionGroups,
+        CompiledRoles roles,
+        GlobalDynamicSettings globalDynamicSettings
+    ) {
+        this.dnfofEnabled = globalDynamicSettings.dnfofEnabled;
+        this.dnfofForEmptyResultsEnabled = globalDynamicSettings.dnfofForEmptyResultsEnabled;
+        this.filteredAliasMode = globalDynamicSettings.filteredAliasMode;
 
         try {
             RoleBasedActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(roles, settings);
@@ -741,15 +744,4 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         return ImmutableMap.copyOf(result);
     }
 
-    private static boolean isDnfofEnabled(ConfigV7 generalConfiguration) {
-        return generalConfiguration.dynamic != null && generalConfiguration.dynamic.do_not_fail_on_forbidden;
-    }
-
-    private static boolean isDnfofEmptyEnabled(ConfigV7 generalConfiguration) {
-        return generalConfiguration.dynamic != null && generalConfiguration.dynamic.do_not_fail_on_forbidden_empty;
-    }
-
-    private static String getFilteredAliasMode(ConfigV7 generalConfiguration) {
-        return generalConfiguration.dynamic != null ? generalConfiguration.dynamic.filtered_alias_mode : "none";
-    }
 }
