@@ -33,7 +33,6 @@ import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -177,7 +176,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             public void updateConfiguration(
                 FlattenedActionGroups actionGroups,
                 CompiledRoles rolesConfiguration,
-                ConfigV7 generalConfiguration
+                PrivilegesEvaluator.GlobalDynamicSettings generalConfiguration
             ) {
 
             }

@@ -29,6 +29,7 @@ package org.opensearch.security.securityconf.impl.v7;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -122,4 +123,16 @@ public class ActionGroupsV7 implements Hideable, StaticDefinable {
             + "]";
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof ActionGroupsV7 that)) {
+            return false;
+        }
+        return Objects.equals(allowed_actions, that.allowed_actions) && Objects.equals(type, that.type);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(allowed_actions, type);
+    }
 }
