@@ -12,6 +12,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -25,10 +26,11 @@ import org.junit.runner.RunWith;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionRequestMetadata;
-import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -135,8 +137,10 @@ public class RestLayerPrivilegesEvaluatorTest {
 
     PrivilegesEvaluator createPrivilegesEvaluator(SecurityDynamicConfiguration<RoleV7> roles) {
         ActionPrivileges actionPrivileges = new RoleBasedActionPrivileges(
-            new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT),
-            Settings.EMPTY
+            new CompiledRoles(roles, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+            Settings.EMPTY,
+            false
         );
 
         return new PrivilegesEvaluator() {
@@ -154,6 +158,7 @@ public class RestLayerPrivilegesEvaluatorTest {
                     user.getSecurityRoles(),
                     action,
                     actionRequest,
+                    ActionRequestMetadata.empty(),
                     task,
                     null,
                     null,
@@ -182,7 +187,7 @@ public class RestLayerPrivilegesEvaluatorTest {
             }
 
             @Override
-            public void updateClusterStateMetadata(ClusterService clusterService) {
+            public void updateClusterStateMetadata(Supplier<ClusterState> clusterStateSupplier) {
 
             }
 
@@ -198,7 +203,7 @@ public class RestLayerPrivilegesEvaluatorTest {
 
             @Override
             public PrivilegesEvaluatorType type() {
-                return PrivilegesEvaluatorType.STANDARD;
+                return PrivilegesEvaluatorType.LEGACY;
             }
         };
 
