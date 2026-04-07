@@ -520,12 +520,12 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.4"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.23.0"
-            force "net.bytebuddy:byte-buddy:1.18.7"
+            force "net.bytebuddy:byte-buddy:1.18.8"
             force "org.ow2.asm:asm:9.9.1"
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
-            force "org.scala-lang:scala3-library_3:3.8.2"
+            force "org.scala-lang:scala3-library_3:3.8.3"
         }
     }
 }
