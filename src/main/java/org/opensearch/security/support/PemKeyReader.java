@@ -367,7 +367,6 @@ public final class PemKeyReader {
     }
 
     private static String detectStoreType(String path) {
-
         try (InputStream raw = new BufferedInputStream(new FileInputStream(path))) {
             raw.mark(32);
             byte[] magic = new byte[4];
@@ -400,7 +399,7 @@ public final class PemKeyReader {
         }
     }
 
-    private static KeyStore newEmptyStore() throws Exception {
+    static KeyStore newEmptyStore() throws Exception {
         var ks = KeyStore.getInstance(DEFAULT_STORE_TYPE);
         ks.load(null, null);
         return ks;
