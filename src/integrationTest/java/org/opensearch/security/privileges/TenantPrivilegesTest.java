@@ -157,7 +157,7 @@ public class TenantPrivilegesTest {
                 tenant_b1: {}
                 tenant_b2: {}
                 """, CType.TENANTS);
-            this.subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+            this.subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY, false);
         }
 
         public static class TenantPrivilegeSpec {
@@ -249,7 +249,7 @@ public class TenantPrivilegesTest {
                 tenant_b2: {}
                 """, CType.TENANTS);
 
-            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY, false);
             assertEquals(Map.of("test_user", true, "tenant_a1", true, "tenant_a2", false), subject.tenantMap(ctx("test_role")));
         }
 
@@ -265,7 +265,8 @@ public class TenantPrivilegesTest {
             TenantPrivileges subject = new TenantPrivileges(
                 SecurityDynamicConfiguration.empty(CType.ROLES),
                 tenants,
-                FlattenedActionGroups.EMPTY
+                FlattenedActionGroups.EMPTY,
+                false
             );
             assertEquals(Set.of("tenant_a1", "tenant_a2", "tenant_b1", "tenant_b2"), subject.allTenantNames());
         }
@@ -285,7 +286,7 @@ public class TenantPrivilegesTest {
                 CType.ACTIONGROUPS
             );
 
-            TenantPrivileges subject = new TenantPrivileges(roles, tenants, new FlattenedActionGroups(actionGroups));
+            TenantPrivileges subject = new TenantPrivileges(roles, tenants, new FlattenedActionGroups(actionGroups), false);
             assertTrue(subject.hasTenantPrivilege(ctx("all_access"), "global_tenant", TenantPrivileges.ActionType.WRITE));
         }
 
@@ -303,7 +304,7 @@ public class TenantPrivilegesTest {
                 tenant_a1: {}
                 """, CType.TENANTS);
 
-            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY, false);
             assertFalse(subject.hasTenantPrivilege(ctx("test_role"), "tenant_a1", TenantPrivileges.ActionType.READ));
         }
 
@@ -321,7 +322,7 @@ public class TenantPrivilegesTest {
                 global_tenant: {}
                 """, CType.TENANTS);
 
-            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY, true);
 
             assertTrue(subject.hasTenantPrivilege(ctx("kibana_user"), "global_tenant", TenantPrivileges.ActionType.WRITE));
             assertTrue(subject.hasTenantPrivilege(ctx("kibana_user"), "global_tenant", TenantPrivileges.ActionType.READ));
@@ -338,7 +339,7 @@ public class TenantPrivilegesTest {
                      - "kibana:saved_objects/*/read"
                 """, CType.ROLES);
 
-            subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+            subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY, true);
 
             assertTrue(subject.hasTenantPrivilege(ctx("kibana_user"), "global_tenant", TenantPrivileges.ActionType.WRITE));
             assertTrue(subject.hasTenantPrivilege(ctx("kibana_user"), "global_tenant", TenantPrivileges.ActionType.READ));
@@ -364,7 +365,7 @@ public class TenantPrivilegesTest {
                 global_tenant: {}
                 """, CType.TENANTS);
 
-            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY);
+            TenantPrivileges subject = new TenantPrivileges(roles, tenants, FlattenedActionGroups.EMPTY, false);
 
             assertFalse(subject.hasTenantPrivilege(ctx("test_role", "kibana_user"), "global_tenant", TenantPrivileges.ActionType.WRITE));
             assertTrue(subject.hasTenantPrivilege(ctx("test_role", "kibana_user"), "global_tenant", TenantPrivileges.ActionType.READ));

@@ -818,8 +818,8 @@ public class IntegrationTests extends SingleClusterTest {
         // mget
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
         assertThat(resc.getStatusCode(), is(200));
-        Assert.assertFalse(resc.getBody(), resc.getBody().contains("\"content\" : \"indexa\""));
-        Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"content\" : \"indexb\""));
+        Assert.assertFalse(resc.getBody(), resc.getBody().contains("\"content\":\"indexa\""));
+        Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"content\":\"indexb\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("permission"));
 
@@ -1049,7 +1049,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         resc = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("user_b", "user_b"));
         assertThat(resc.getStatusCode(), is(200));
-        Assert.assertFalse(resc.getBody(), resc.getBody().contains("\"content\" : \"indexa\""));
+        Assert.assertFalse(resc.getBody(), resc.getBody().contains("\"content\":\"indexa\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexb"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("exception"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("permission"));

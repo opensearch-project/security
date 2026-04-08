@@ -17,6 +17,8 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -45,6 +47,37 @@ public class DocumentAllowList {
         }
     }
 
+    public static boolean isAllowed(ActionRequest request, ThreadContext threadContext) {
+        String docAllowListHeader = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
+
+        if (docAllowListHeader == null) {
+            return false;
+        }
+
+        if (!(request instanceof GetRequest)) {
+            return false;
+        }
+
+        try {
+            DocumentAllowList documentAllowList = DocumentAllowList.parse(docAllowListHeader);
+            GetRequest getRequest = (GetRequest) request;
+
+            if (documentAllowList.isAllowed(getRequest.index(), getRequest.id())) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Request " + request + " is allowed by " + documentAllowList);
+                }
+
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (Exception e) {
+            log.error("Error while handling document allow list: " + docAllowListHeader, e);
+            return false;
+        }
+    }
+
     private static final DocumentAllowList EMPTY = new DocumentAllowList();
 
     private final Set<Entry> entries = new HashSet<>();
@@ -65,7 +98,20 @@ public class DocumentAllowList {
 
     public void applyTo(ThreadContext threadContext) {
         if (!isEmpty()) {
-            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER, toString());
+            String value = toString();
+            String existing = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
+
+            if (existing != null) {
+                if (existing.equals(value)) {
+                    // Already applied
+                    return;
+                } else {
+                    log.warn("Document allow list header is already present in thread context: {}", existing);
+                    return;
+                }
+            }
+
+            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER, value);
         }
     }
 
