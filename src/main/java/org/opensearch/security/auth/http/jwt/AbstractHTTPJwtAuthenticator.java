@@ -32,6 +32,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.secure_sm.AccessController;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
 import org.opensearch.security.auth.http.jwt.keybyoidc.BadCredentialsException;
@@ -136,10 +137,36 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
         for (Entry<String, Object> claim : claimsSet.getClaims().entrySet()) {
-            ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
+            String key = "attr.jwt." + claim.getKey();
+            Object value = claim.getValue();
+
+            flattenClaimsToAttributes(key, value, ac);
         }
 
         return ac;
+    }
+
+    private void flattenClaimsToAttributes(String prefix, Object value, AuthCredentials ac) {
+        log.warn("flattenClaimsToAttributes: " + prefix);
+        if (value instanceof Map<?, ?> mapValue) {
+            // Recursively traverse nested maps
+            for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
+                String key = entry.getKey().toString();
+                Object subValue = entry.getValue();
+                flattenClaimsToAttributes(prefix + "." + key, subValue, ac);
+            }
+        } else if (value instanceof Collection<?> collection) {
+            // Serialize lists as JSON
+            try {
+                String jsonValue = DefaultObjectMapper.writeValueAsString(value, false);
+                ac.addAttribute(prefix, jsonValue);
+            } catch (Exception e) {
+                log.warn("Failed to convert claim to JSON for key: " + prefix, e);
+                ac.addAttribute(prefix, String.valueOf(value));
+            }
+        } else {
+            ac.addAttribute(prefix, String.valueOf(value));
+        }
     }
 
     protected String getJwtTokenString(SecurityRequest request) {
