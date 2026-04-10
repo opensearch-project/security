@@ -2310,6 +2310,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING);
             settings.add(SecuritySettings.DLS_WRITE_BLOCKED);
+            settings.add(SecuritySettings.SECURITY_SUPERADMIN_SECRET_SETTING);
+            settings.add(SecuritySettings.SECURITY_SUPERADMIN_SECRET_INSECURE_SETTING);
         }
 
         return settings;
