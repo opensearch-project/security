@@ -84,11 +84,11 @@ public final class YamlConfigReader {
     }
 
     public static String emptyYamlConfigFor(final CType<?> cType) throws IOException {
-        return DefaultObjectMapper.YAML_MAPPER.writeValueAsString(emptyConfigFor(cType));
+        return DefaultObjectMapper.yamlMapper().writeValueAsString(emptyConfigFor(cType));
     }
 
     private static void validateYamlContent(final CType<?> cType, final InputStream in) throws IOException {
-        SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(in), cType, DEFAULT_CONFIG_VERSION, -1, -1);
+        SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.yamlMapper().readTree(in), cType, DEFAULT_CONFIG_VERSION, -1, -1);
     }
 
 }

@@ -31,7 +31,7 @@ configurations.all {
         force "org.bouncycastle:bcpkix-jdk18on:1.83"
         force "org.bouncycastle:bcprov-jdk18on:1.83"
         force "org.apache.commons:commons-lang3:${versions.commonslang}"
-        force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+        force "tools.jackson.core:jackson-core:${versions.jackson3}"
     }
 }
 

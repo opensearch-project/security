@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -64,6 +63,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;

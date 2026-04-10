@@ -41,8 +41,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
@@ -87,6 +85,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -456,8 +456,8 @@ public class RestHelper {
             }
         }
 
-        private JsonNode toJsonNode() throws JsonProcessingException, IOException {
-            return DefaultObjectMapper.objectMapper.readTree(getBody());
+        private JsonNode toJsonNode() throws IOException {
+            return DefaultObjectMapper.objectMapper().readTree(getBody());
         }
 
         public SimpleHttpResponse getInner() {

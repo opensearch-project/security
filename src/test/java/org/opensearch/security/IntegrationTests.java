@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
@@ -62,6 +61,7 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.transport.client.Client;
 
 import org.mockito.Mockito;
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

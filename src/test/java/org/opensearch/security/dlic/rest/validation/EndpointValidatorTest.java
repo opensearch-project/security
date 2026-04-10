@@ -348,7 +348,7 @@ public class EndpointValidatorTest {
         final var role = new RoleV7();
         role.setCluster_permissions(restAdminPermissions());
 
-        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var objectMapper = DefaultObjectMapper.objectMapper();
         final var array = objectMapper.createArrayNode();
         restAdminPermissions().forEach(array::add);
 
@@ -383,7 +383,7 @@ public class EndpointValidatorTest {
         when(configuration.exists("some_ag")).thenReturn(false);
         when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
 
-        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var objectMapper = DefaultObjectMapper.objectMapper();
         final var array = objectMapper.createArrayNode();
         restAdminPermissions().forEach(array::add);
 

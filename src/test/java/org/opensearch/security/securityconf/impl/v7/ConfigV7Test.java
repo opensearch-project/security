@@ -15,13 +15,14 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import com.google.common.collect.ImmutableList;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import org.opensearch.security.DefaultObjectMapper;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;

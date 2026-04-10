@@ -14,8 +14,6 @@ package org.opensearch.security.auditlog;
 import java.util.Arrays;
 import java.util.Collection;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -25,6 +23,8 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.auditlog.config.AuditConfig.DEPRECATED_KEYS;
 
@@ -106,10 +106,10 @@ public abstract class AbstractAuditlogUnitTest extends SingleClusterTest {
             throw new IllegalArgumentException("json is either null or empty");
         }
 
-        JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
+        JsonNode node = DefaultObjectMapper.objectMapper().readTree(json);
 
         if (node.get("audit_request_body") != null) {
-            DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
+            DefaultObjectMapper.objectMapper().readTree(node.get("audit_request_body").asText());
         }
     }
 

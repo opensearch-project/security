@@ -15,9 +15,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
@@ -31,6 +28,9 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -247,14 +247,14 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()));
     }
 
-    String createRestAdminPermissionsPayload(String... additionPerms) throws JsonProcessingException {
-        final ObjectNode rootNode = DefaultObjectMapper.objectMapper.createObjectNode();
+    String createRestAdminPermissionsPayload(String... additionPerms) {
+        final ObjectNode rootNode = DefaultObjectMapper.objectMapper().createObjectNode();
         rootNode.set("cluster_permissions", clusterPermissionsForRestAdmin(additionPerms));
-        return DefaultObjectMapper.objectMapper.writeValueAsString(rootNode);
+        return DefaultObjectMapper.objectMapper().writeValueAsString(rootNode);
     }
 
     ArrayNode clusterPermissionsForRestAdmin(String... additionPerms) {
-        final ArrayNode permissionsArray = DefaultObjectMapper.objectMapper.createArrayNode();
+        final ArrayNode permissionsArray = DefaultObjectMapper.objectMapper().createArrayNode();
         for (final Map.Entry<
             Endpoint,
             RestApiAdminPrivilegesEvaluator.PermissionBuilder> entry : RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS
