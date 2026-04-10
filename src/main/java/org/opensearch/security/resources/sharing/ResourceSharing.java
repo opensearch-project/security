@@ -30,11 +30,11 @@ import org.opensearch.security.user.User;
 
 /**
  * Represents a resource sharing configuration that manages access control for OpenSearch resources.
- * This class holds information about shared resources including their source, creator, and sharing permissions.
+ * This class holds information about shared resources including their creator and sharing permissions.
  * The class maintains information about:
  * <ul>
- *   <li>The source index where the resource is defined</li>
  *   <li>The unique identifier of the resource</li>
+ *   <li>The type of the resource</li>
  *   <li>The creator's information</li>
  *   <li>The sharing permissions and recipients</li>
  * </ul>
@@ -129,13 +129,24 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             return;
         }
         Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
-        // sharedWith will be null when sharing at a new access-level
         if (sharedWith == null) {
-            // update the ShareWith object
             shareWith = shareWith.updateSharingInfo(accessLevel, target);
         } else {
             sharedWith.share(target);
         }
+    }
+
+    public void setGeneralAccess(String generalAccess) {
+        ShareWith current = getShareWith();
+        shareWith = new ShareWith(current.getSharingInfo(), generalAccess);
+    }
+
+    public void applyAdd(ShareWith add) {
+        shareWith = getShareWith().add(add);
+    }
+
+    public void applyRevoke(ShareWith revoke) {
+        shareWith = getShareWith().revoke(revoke);
     }
 
     public void revoke(String accessLevel, Recipients target) {
@@ -302,9 +313,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     }
 
     /**
-     * Checks if the given resource is shared with everyone, i.e. the entity list is "*"
+     * Checks if the given resource is shared with everyone via general access.
      *
-     * @return True if the resource is shared with everyone, false otherwise.
+     * @return True if the resource has general access set (i.e. publicly accessible), false otherwise.
      */
     public boolean isSharedWithEveryone() {
         return this.shareWith != null && this.shareWith.isPublic();
@@ -345,16 +356,15 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * @return a {@link Set} of access level identifiers granted to the user, never {@code null}.
      */
     public Set<String> getAccessLevelsForUser(User user) {
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
-
-        userRoles.add("*");
-        userBackendRoles.add("*");
-
         Set<String> accessLevels = new HashSet<>();
-        accessLevels.addAll(fetchAccessLevels(Recipient.USERS, Set.of(user.getName(), "*")));
-        accessLevels.addAll(fetchAccessLevels(Recipient.ROLES, userRoles));
-        accessLevels.addAll(fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
+
+        if (shareWith != null && shareWith.getGeneralAccess() != null) {
+            accessLevels.add(shareWith.getGeneralAccess());
+        }
+
+        accessLevels.addAll(fetchAccessLevels(Recipient.USERS, Set.of(user.getName())));
+        accessLevels.addAll(fetchAccessLevels(Recipient.ROLES, user.getSecurityRoles()));
+        accessLevels.addAll(fetchAccessLevels(Recipient.BACKEND_ROLES, user.getRoles()));
         return accessLevels;
     }
 
@@ -362,7 +372,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * Fetches all access-levels where at-least 1 recipient matches the given set of targets
      * @param recipientType the type of recipient to be matched against
      * @param entities targets to look for
-     * @return set of access-levels which contain given nay of the targets
+     * @return set of access-levels which contain any of the targets
      */
     public Set<String> fetchAccessLevels(Recipient recipientType, Set<String> entities) {
         if (shareWith == null) {
@@ -373,14 +383,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             String accessLevel = entry.getKey();
             Recipients recipients = entry.getValue();
 
-            Set<String> sharingRecipients = new HashSet<>(recipients.getRecipients().getOrDefault(recipientType, Set.of()));
+            Set<String> sharingRecipients = recipients.getRecipients().getOrDefault(recipientType, Set.of());
 
-            // if there’s a wildcard (i.e. the document is shared publicly at this access-level), or at least one entity in common, add the
-            // level to a final list of groups
-            boolean matchesWildcard = sharingRecipients.contains("*");
-            boolean intersects = !Collections.disjoint(sharingRecipients, entities);
-
-            if (matchesWildcard || intersects) {
+            if (!Collections.disjoint(sharingRecipients, entities)) {
                 matchingGroups.add(accessLevel);
             }
         }
@@ -403,6 +408,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
         // Add shared recipients
         if (shareWith != null) {
+            if (shareWith.isPublic()) {
+                principals.add("public");
+            }
             // shared with at any access level
             for (Recipients recipients : shareWith.getSharingInfo().values()) {
                 Map<Recipient, Set<String>> recipientMap = recipients.getRecipients();

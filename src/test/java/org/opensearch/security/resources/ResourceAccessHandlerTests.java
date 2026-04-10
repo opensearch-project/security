@@ -280,13 +280,13 @@ public class ResourceAccessHandlerTests {
 
         ResourceSharing doc = mock(ResourceSharing.class);
         doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(4);
+            ActionListener<ResourceSharing> l = inv.getArgument(6);
             l.onResponse(doc);
             return null;
-        }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(add), eq(revoke), any());
+        }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(add), eq(revoke), eq(false), eq(null), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, TYPE, add, revoke, listener);
+        handler.patchSharingInfo(RESOURCE_ID, TYPE, add, revoke, false, null, listener);
 
         verify(listener).onResponse(doc);
     }
@@ -295,7 +295,7 @@ public class ResourceAccessHandlerTests {
     public void testPatchSharingInfoFailsIfNoUser() {
         ShareWith x = new ShareWith(ImmutableMap.of());
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, TYPE, x, x, listener);
+        handler.patchSharingInfo(RESOURCE_ID, TYPE, x, x, false, null, listener);
 
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }

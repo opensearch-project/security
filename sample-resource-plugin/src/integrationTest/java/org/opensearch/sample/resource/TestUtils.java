@@ -10,7 +10,6 @@ package org.opensearch.sample.resource;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -276,11 +275,25 @@ public final class TestUtils {
             """.formatted(resourceId, resourceType, accessLevel, recipient.getName(), entity);
     }
 
+    public static String putGeneralAccessPayload(String resourceId, String resourceType, String accessLevel) {
+        return """
+            {
+              "resource_id": "%s",
+              "resource_type": "%s",
+              "share_with": {
+                "general_access": "%s"
+              }
+            }
+            """.formatted(resourceId, resourceType, accessLevel);
+    }
+
     public static class PatchSharingInfoPayloadBuilder {
         private String resourceId;
         private String resourceType;
         private final Map<String, Recipients> share = new HashMap<>();
         private final Map<String, Recipients> revoke = new HashMap<>();
+        private boolean generalAccessPresent;
+        private String generalAccess;
 
         public PatchSharingInfoPayloadBuilder resourceId(String resourceId) {
             this.resourceId = resourceId;
@@ -300,49 +313,42 @@ public final class TestUtils {
 
         public void revoke(Recipients recipients, String accessLevel) {
             Recipients existing = revoke.getOrDefault(accessLevel, new Recipients(new HashMap<>()));
-            // intentionally share() is called here since we are building a shareWith object, this final object will be used to remove
-            // access
-            // think of it as currentShareWith.removeAll(revokeShareWith)
             existing.share(recipients);
             revoke.put(accessLevel, existing);
         }
 
-        private String buildJsonString(Map<String, Recipients> input) {
-
-            List<String> output = new ArrayList<>();
-            for (Map.Entry<String, Recipients> entry : input.entrySet()) {
-                try {
-                    XContentBuilder builder = XContentFactory.jsonBuilder();
-                    entry.getValue().toXContent(builder, ToXContent.EMPTY_PARAMS);
-                    String recipJson = builder.toString();
-                    output.add("""
-                        "%s" : %s
-                        """.formatted(entry.getKey(), recipJson));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-            }
-
-            return String.join(",", output);
-
+        public void revokeGeneralAccess() {
+            this.generalAccessPresent = true;
+            this.generalAccess = null;
         }
 
         public String build() {
-            String allShares = buildJsonString(share);
-            String allRevokes = buildJsonString(revoke);
+            String generalAccessField = generalAccessPresent
+                ? (generalAccess != null ? "\"general_access\": \"" + generalAccess + "\"," : "\"general_access\": null,")
+                : "";
             return """
                 {
                   "resource_id": "%s",
                   "resource_type": "%s",
-                  "add": {
-                    %s
-                  },
-                  "revoke": {
-                    %s
-                  }
+                  %s
+                  "add": %s,
+                  "revoke": %s
                 }
-                """.formatted(resourceId, resourceType, allShares, allRevokes);
+                """.formatted(resourceId, resourceType, generalAccessField, buildSection(share), buildSection(revoke));
+        }
+
+        // Produces e.g.: {"sample_read_only":{"users":["alice"]}}
+        private String buildSection(Map<String, Recipients> named) {
+            try {
+                XContentBuilder b = XContentFactory.jsonBuilder().startObject();
+                for (Map.Entry<String, Recipients> entry : named.entrySet()) {
+                    b.field(entry.getKey());
+                    entry.getValue().toXContent(b, ToXContent.EMPTY_PARAMS);
+                }
+                return b.endObject().toString();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -610,6 +616,22 @@ public final class TestUtils {
             }
         }
 
+        public TestRestClient.HttpResponse shareResourceGenerally(String resourceId, TestSecurityConfig.User user, String accessLevel) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.putJson(SECURITY_SHARE_ENDPOINT, putGeneralAccessPayload(resourceId, RESOURCE_TYPE, accessLevel));
+            }
+        }
+
+        public TestRestClient.HttpResponse revokeGeneralAccess(String resourceId, TestSecurityConfig.User user) {
+            PatchSharingInfoPayloadBuilder patchBuilder = new PatchSharingInfoPayloadBuilder();
+            patchBuilder.resourceType(RESOURCE_TYPE);
+            patchBuilder.resourceId(resourceId);
+            patchBuilder.revokeGeneralAccess();
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.patch(SECURITY_SHARE_ENDPOINT, patchBuilder.build());
+            }
+        }
+
         public TestRestClient.HttpResponse shareResourceGroup(
             String resourceId,
             TestSecurityConfig.User user,
@@ -725,6 +747,18 @@ public final class TestUtils {
                         assert resourceType != null : "resource_type cannot be null";
                         assertThat(body, containsString(expectedString));
                         assertThat(body, containsString(resourceId));
+                    });
+            }
+        }
+
+        public void awaitResourceVisibility(String resourceId, String expectedPrincipal) {
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                Awaitility.await("Wait for all_shared_principals to contain " + expectedPrincipal + " for resource " + resourceId)
+                    .pollInterval(Duration.ofMillis(500))
+                    .untilAsserted(() -> {
+                        TestRestClient.HttpResponse response = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+                        response.assertStatusCode(200);
+                        assertThat(response.getBody(), containsString(expectedPrincipal));
                     });
             }
         }
