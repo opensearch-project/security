@@ -511,7 +511,7 @@ configurations {
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
             force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
-            force "org.codehaus.plexus:plexus-utils:3.6.0"
+            force "org.codehaus.plexus:plexus-utils:3.6.1"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
@@ -523,12 +523,12 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.4"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.23.0"
-            force "net.bytebuddy:byte-buddy:1.18.7"
+            force "net.bytebuddy:byte-buddy:1.18.8"
             force "org.ow2.asm:asm:9.9.1"
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
-            force "org.scala-lang:scala3-library_3:3.8.2"
+            force "org.scala-lang:scala3-library_3:3.8.3"
         }
     }
 }
@@ -693,7 +693,7 @@ dependencies {
         implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     }
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:10.8'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.9'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.6.2"
@@ -747,7 +747,7 @@ dependencies {
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.8'
-    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
+    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.3.0'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'

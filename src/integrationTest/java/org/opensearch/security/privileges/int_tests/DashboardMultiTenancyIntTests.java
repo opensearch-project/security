@@ -158,6 +158,11 @@ public class DashboardMultiTenancyIntTests {
         RestIndexMatchers.IndexMatcher.class
     );
 
+    /**
+     * Finance tenant index; not initially created
+     */
+    static final TestIndex dashboards_index_finance = TestIndex.name(".kibana_-853258278_finance_1").build();
+
     // -------------------------------------------------------------------------------------------------------
     // Test users
     // -------------------------------------------------------------------------------------------------------
@@ -214,7 +219,8 @@ public class DashboardMultiTenancyIntTests {
                 dashboards_alias_private_bi,
                 dashboards_index_private_bi,
                 dashboards_alias_business_intelligence,
-                dashboards_index_business_intelligence
+                dashboards_index_business_intelligence,
+                dashboards_index_finance
             )
         )
         .reference(
@@ -223,7 +229,8 @@ public class DashboardMultiTenancyIntTests {
                 dashboards_alias_private_bi,
                 dashboards_index_private_bi,
                 dashboards_alias_business_intelligence,
-                dashboards_index_business_intelligence
+                dashboards_index_business_intelligence,
+                dashboards_index_finance
             )
         );
 
@@ -306,7 +313,9 @@ public class DashboardMultiTenancyIntTests {
                 dashboards_alias_business_intelligence,
                 dashboards_index_business_intelligence,
                 dashboards_alias_human_resources,
-                dashboards_index_human_resources
+                dashboards_index_human_resources,
+                dashboards_index_finance
+
             )
         )
         .reference(
@@ -319,7 +328,9 @@ public class DashboardMultiTenancyIntTests {
                 dashboards_alias_business_intelligence,
                 dashboards_index_business_intelligence,
                 dashboards_alias_human_resources,
-                dashboards_index_human_resources
+                dashboards_index_human_resources,
+                dashboards_index_finance
+
             )
         );
 
@@ -435,10 +446,85 @@ public class DashboardMultiTenancyIntTests {
         }
     }
 
+    /**
+     * This is a search request that goes directly against the alias for the tenant, bypassing the tenant resolution.
+     * Still, the user's tenant permissions must be checked and enforced.
+     */
+    @Test
+    public void search_withTenantHeader_direct_alias() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                ".kibana_1592542611_humanresources/_search/?pretty",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_human_resources).at("hits.hits[*]._index")
+                        .butForbiddenIfIncomplete(user.reference(READ))
+                );
+            }
+        }
+    }
+
+    /**
+     * This is a search request that goes directly against the index for the tenant, bypassing the tenant resolution.
+     * Still, the user's tenant permissions must be checked and enforced.
+     */
+    @Test
+    public void search_withTenantHeader_direct_index() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                ".kibana_1592542611_humanresources_1/_search/?pretty",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_human_resources).at("hits.hits[*]._index")
+                        .butForbiddenIfIncomplete(user.reference(READ))
+                );
+            }
+        }
+    }
+
+    /**
+     * This is a search request that goes directly against the index for a tenant, that is different from the one specified in the tenant header.
+     * Thus, these requests must be always forbidden.
+     */
+    @Test
+    public void search_withTenantHeader_direct_wrongIndex() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                ".kibana_1592542612_businessintelligence/_search/?pretty",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(response, isForbidden());
+            }
+        }
+    }
+
+    @Test
+    public void search_withoutTenantHeader_direct_wrongIndex() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(".kibana_1592542612_businessintelligence_1/_search/?pretty");
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(response, isForbidden());
+            }
+        }
+    }
+
     @Test
     public void msearch_withTenantHeader_humanResources() {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse response = restClient.postJson("_msearch/?pretty", """
+                {"index":".kibana", "ignore_unavailable": false}
+                {"size":10, "query":{"bool":{"must":{"match_all":{}}}}}
                 {"index":".kibana", "ignore_unavailable": false}
                 {"size":10, "query":{"bool":{"must":{"match_all":{}}}}}
                 """, new BasicHeader("securitytenant", "human_resources"));
@@ -489,7 +575,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("docs[?(@.found == true)]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(isOk())
+                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
             );
         }
     }
@@ -520,6 +606,31 @@ public class DashboardMultiTenancyIntTests {
     }
 
     @Test
+    public void index_withTenantHeader_nonExistingIndexOrAlias() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String indexDoc = """
+                {
+                  "foo": "bar"
+                }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.putJson(
+                ".kibana/_doc/test_mt_write_1?pretty",
+                indexDoc,
+                new BasicHeader("securitytenant", "finance")
+            );
+
+            if (user.reference(WRITE).covers(dashboards_index_finance)) {
+                assertThat(response, isCreated());
+            } else {
+                assertThat(response, isForbidden());
+            }
+        } finally {
+            delete(".kibana_-853258278_finance_1");
+        }
+    }
+
+    @Test
     public void bulk_withTenantHeader_humanResources() {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             String bulkBody = """
@@ -539,13 +650,97 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
                     .reducedBy(user.reference(WRITE))
-                    .whenEmpty(isOk())
+                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
             );
         } finally {
             delete(
                 dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_1",
                 dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_2"
             );
+        }
+    }
+
+    @Test
+    public void bulk_withTenantHeader_direct_humanResources_alias() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String bulkBody = """
+                { "index" : { "_index" : ".kibana_1592542611_humanresources", "_id" : "mt_bulk_doc_1" } }
+                { "type": "config", "config": { "buildNum": 12345 } }
+                { "index" : { "_index" : ".kibana_1592542611_humanresources", "_id" : "mt_bulk_doc_2" } }
+                { "type": "index-pattern", "index-pattern": { "title": "logs*" } }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.postJson(
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
+                        .reducedBy(user.reference(WRITE))
+                        .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
+                );
+            }
+        } finally {
+            delete(
+                dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_1",
+                dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_2"
+            );
+        }
+    }
+
+    @Test
+    public void bulk_withTenantHeader_direct_global_index() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String bulkBody = """
+                { "index" : { "_index" : ".kibana_1", "_id" : "mt_bulk_doc_1" } }
+                { "type": "config", "config": { "buildNum": 12345 } }
+                { "index" : { "_index" : ".kibana_1", "_id" : "mt_bulk_doc_2" } }
+                { "type": "index-pattern", "index-pattern": { "title": "logs*" } }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.postJson("_bulk?pretty", bulkBody);
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_global).at("items[*].index[?(@.result == 'created')]._index")
+                        .reducedBy(user.reference(WRITE))
+                        .whenEmpty(isOk())
+                );
+            }
+        } finally {
+            delete(dashboards_index_global.name() + "/_doc/mt_bulk_doc_1", dashboards_index_global.name() + "/_doc/mt_bulk_doc_2");
+        }
+    }
+
+    @Test
+    public void bulk_withTenantHeader_nonExistingIndexOrAlias() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String bulkBody = """
+                { "index" : { "_index" : ".kibana", "_id" : "mt_bulk_doc_1" } }
+                { "type": "config", "config": { "buildNum": 12345 } }
+                { "index" : { "_index" : ".kibana", "_id" : "mt_bulk_doc_2" } }
+                { "type": "index-pattern", "index-pattern": { "title": "logs*" } }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.postJson(
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "finance")
+            );
+
+            assertThat(
+                response,
+                containsExactly(dashboards_index_finance).at("items[*].index[?(@.result == 'created')]._index")
+                    .reducedBy(user.reference(WRITE))
+                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
+            );
+        } finally {
+            delete(".kibana_-853258278_finance_1");
         }
     }
 
@@ -613,7 +808,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("items[*].delete[?(@.result == 'deleted')]._index")
                     .reducedBy(user.reference(WRITE))
-                    .whenEmpty(isOk())
+                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
             );
         } finally {
             delete(
@@ -663,13 +858,12 @@ public class DashboardMultiTenancyIntTests {
                         .reducedBy(user.reference(WRITE))
                         .whenEmpty(isOk())
                 );
+            } else if (clusterConfig.legacyPrivilegeEvaluation) {
+                // In the legacy mode, the requests on the items fail
+                assertThat(response, containsExactly().at("items[*].update[?(@.result == 'updated')]._index").whenEmpty(isOk()));
             } else {
-                assertThat(
-                    response,
-                    containsExactly(dashboards_index_human_resources).at("items[*].update[?(@.result == 'updated')]._index")
-                        .reducedBy(user.reference(WRITE))
-                        .whenEmpty(isOk())
-                );
+                // In the new privilege evaluation mode, the whole bulk request fails
+                assertThat(response, isForbidden());
             }
         } finally {
             delete(
@@ -700,7 +894,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("docs[?(@.found == true)]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(isOk())
+                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
             );
         }
     }

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -379,8 +380,12 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
-        for (final Map.Entry<String, DataType> allowedKey : validationContext.allowedKeys().entrySet()) {
-            JsonNode value = jsonContent.get(allowedKey.getKey());
+        // Use allowedKeysWithConfig if provided, otherwise fall back to allowedKeys
+        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
+        final Set<String> allowedKeys = (fieldConfigs != null) ? fieldConfigs.keySet() : validationContext.allowedKeys().keySet();
+
+        for (final String key : allowedKeys) {
+            JsonNode value = jsonContent.get(key);
             if (value != null) {
                 if (hasNullOrBlankArrayElement(value)) {
                     this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
@@ -702,18 +707,39 @@ public class RequestContentValidator implements ToXContent {
     };
 
     /**
-     * Validator for array entry counts (works with JsonNode arrays)
+     * Validator for array entry counts with default MAX_ARRAY_SIZE (works with JsonNode arrays)
      */
     public static final FieldValidator ARRAY_SIZE_VALIDATOR = (fieldName, value) -> {
+        validateArraySize(fieldName, value, MAX_ARRAY_SIZE);
+    };
+
+    /**
+     * Validator for array entry counts with custom maxSize (works with JsonNode arrays)
+     */
+    public static FieldValidator arraySizeValidator(int maxSize) {
+        return (fieldName, value) -> { validateArraySize(fieldName, value, maxSize); };
+    }
+
+    private static void validateArraySize(String fieldName, Object value, int maxSize) {
         if (value instanceof JsonNode node) {
-            if (node.isArray() && node.size() > MAX_ARRAY_SIZE) {
-                throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + MAX_ARRAY_SIZE);
+            if (node.isArray() && node.size() > maxSize) {
+                throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + maxSize);
             }
         } else if (value instanceof Integer) {
             int count = (Integer) value;
-            if (count > MAX_ARRAY_SIZE) {
-                throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + MAX_ARRAY_SIZE);
+            if (count > maxSize) {
+                throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + maxSize);
             }
+        }
+    }
+
+    public static final FieldValidator ARRAY_OF_STRINGS_VALIDATOR = (fieldName, value) -> {
+        if (value instanceof JsonNode node) {
+            IntStream.range(0, node.size()).mapToObj(node::get).forEach(element -> {
+                if (!element.isTextual()) {
+                    throw new IllegalArgumentException(fieldName + " should only contain string values.");
+                }
+            });
         }
     };
 
