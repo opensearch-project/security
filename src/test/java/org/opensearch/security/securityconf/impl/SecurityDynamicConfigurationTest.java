@@ -13,13 +13,13 @@ package org.opensearch.security.securityconf.impl;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.security.DefaultObjectMapper;
+
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -33,7 +33,7 @@ public class SecurityDynamicConfigurationTest {
     private ObjectNode objectNode = objectMapper.createObjectNode();
 
     @Before
-    public void setUp() throws JsonProcessingException, IOException {
+    public void setUp() throws IOException {
         objectNode.set("_meta", objectMapper.createObjectNode().put("type", CType.ROLES.toLCString()).put("config_version", 2));
         securityDynamicConfiguration = SecurityDynamicConfiguration.fromJson(
             objectMapper.writeValueAsString(objectNode),

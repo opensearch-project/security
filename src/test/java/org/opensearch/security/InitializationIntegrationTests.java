@@ -29,7 +29,6 @@ package org.opensearch.security;
 import java.io.File;
 import java.util.Iterator;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpVersion;
@@ -60,6 +59,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.transport.client.Client;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

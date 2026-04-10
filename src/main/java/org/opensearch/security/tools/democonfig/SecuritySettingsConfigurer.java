@@ -22,9 +22,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
@@ -35,6 +32,9 @@ import org.opensearch.security.support.ConfigConstants;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.DefaultObjectMapper.YAML_MAPPER;
 import static org.opensearch.security.tools.democonfig.Installer.certificateGenerator;
@@ -247,7 +247,7 @@ public class SecuritySettingsConfigurer {
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
         JsonNode internalUsers = YAML_MAPPER.readTree(new FileInputStream(internalUsersFile));
         return internalUsers.has("admin")
-            && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asText());
+            && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asString());
     }
 
     /**
@@ -275,7 +275,7 @@ public class SecuritySettingsConfigurer {
 
             // Write the updated map back to the internal_users.yml file
             YAML_MAPPER.writeValue(new File(internalUsersFile), map);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new IOException("Unable to update the internal users file with the hashed password.");
         }
     }
@@ -389,13 +389,7 @@ public class SecuritySettingsConfigurer {
      * @throws IOException if there was exception reading the file
      */
     static boolean isKeyPresentInYMLFile(String filePath, String key) throws IOException {
-        JsonNode node;
-        try {
-            node = YAML_MAPPER.readTree(new File(filePath));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
+        final JsonNode node = YAML_MAPPER.readTree(new File(filePath));
         return node.has(key);
     }
 

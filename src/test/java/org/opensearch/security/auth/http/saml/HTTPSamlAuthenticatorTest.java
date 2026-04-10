@@ -32,7 +32,6 @@ import java.util.regex.Pattern;
 import javax.net.ssl.KeyManagerFactory;
 
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -60,6 +59,7 @@ import org.opensearch.security.util.FakeRestRequest;
 
 import com.nimbusds.jwt.SignedJWT;
 import org.opensaml.saml.saml2.core.NameIDType;
+import tools.jackson.core.type.TypeReference;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

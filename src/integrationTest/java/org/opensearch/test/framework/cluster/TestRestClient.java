@@ -44,9 +44,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.net.ssl.SSLContext;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -75,6 +72,8 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 
 import com.nimbusds.jose.shaded.gson.Gson;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -442,7 +441,7 @@ public class TestRestClient implements AutoCloseable {
             }
         }
 
-        private JsonNode toJsonNode() throws JsonProcessingException, IOException {
+        private JsonNode toJsonNode() throws IOException {
             return DefaultObjectMapper.objectMapper.readTree(getBody());
         }
 

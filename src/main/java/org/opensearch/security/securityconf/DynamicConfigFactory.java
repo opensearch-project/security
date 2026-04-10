@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -69,6 +68,7 @@ import org.opensearch.transport.client.Client;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.EventBusBuilder;
 import org.greenrobot.eventbus.Logger.JavaLogger;
+import tools.jackson.databind.JsonNode;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 

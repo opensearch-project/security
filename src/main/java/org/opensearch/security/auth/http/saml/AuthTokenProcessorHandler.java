@@ -24,10 +24,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.xml.xpath.XPathExpressionException;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
@@ -45,6 +41,7 @@ import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
 import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.tools.jackson.core.JsonParseException;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -59,6 +56,9 @@ import com.onelogin.saml2.exception.ValidationError;
 import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.util.Util;
 import org.joda.time.DateTime;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.security.authtoken.jwt.KeyPaddingUtil.padSecret;
 
@@ -179,7 +179,7 @@ class AuthTokenProcessorHandler {
             JsonNode jsonRoot = DefaultObjectMapper.objectMapper.readTree(BytesReference.toBytes(bytesReference));
 
             if (!(jsonRoot instanceof ObjectNode)) {
-                throw new JsonParseException(null, "Unexpected json format: " + jsonRoot);
+                throw new JsonParseException("Unexpected json format: " + jsonRoot);
             }
 
             if (((ObjectNode) jsonRoot).get("SAMLResponse") == null) {
@@ -189,14 +189,14 @@ class AuthTokenProcessorHandler {
 
             }
 
-            String samlResponseBase64 = ((ObjectNode) jsonRoot).get("SAMLResponse").asText();
+            String samlResponseBase64 = ((ObjectNode) jsonRoot).get("SAMLResponse").asString();
             String samlRequestId = ((ObjectNode) jsonRoot).get("RequestId") != null
-                ? ((ObjectNode) jsonRoot).get("RequestId").textValue()
+                ? ((ObjectNode) jsonRoot).get("RequestId").stringValue()
                 : null;
             String acsEndpoint = saml2Settings.getSpAssertionConsumerServiceUrl().toString();
 
-            if (((ObjectNode) jsonRoot).get("acsEndpoint") != null && ((ObjectNode) jsonRoot).get("acsEndpoint").textValue() != null) {
-                acsEndpoint = getAbsoluteAcsEndpoint(((ObjectNode) jsonRoot).get("acsEndpoint").textValue());
+            if (((ObjectNode) jsonRoot).get("acsEndpoint") != null && ((ObjectNode) jsonRoot).get("acsEndpoint").stringValue() != null) {
+                acsEndpoint = getAbsoluteAcsEndpoint(((ObjectNode) jsonRoot).get("acsEndpoint").stringValue());
             }
 
             AuthTokenProcessorAction.Response responseBody = this.handleImpl(
@@ -214,7 +214,7 @@ class AuthTokenProcessorHandler {
             String responseBodyString = DefaultObjectMapper.objectMapper.writeValueAsString(responseBody);
 
             return Optional.of(new SecurityResponse(HttpStatus.SC_OK, null, responseBodyString, XContentType.JSON.mediaType()));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.warn("Error while parsing JSON for {}", restRequest.path(), e);
             return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, "JSON could not be parsed"));
         }

@@ -39,14 +39,13 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.setting.DeprecatedSettings;
+
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 public class ConfigV7 {
 
@@ -221,11 +220,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String asJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(this, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(this, false);
         }
     }
 
@@ -302,7 +297,7 @@ public class ConfigV7 {
         }
 
         @JsonAnySetter
-        public void unknownPropertiesHandler(String name, Object value) throws JsonMappingException {
+        public void unknownPropertiesHandler(String name, Object value) {
             switch (name) {
                 case "transport_enabled":
                     DeprecatedSettings.logCustomDeprecationMessage(
@@ -340,11 +335,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(config, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(config, false);
         }
 
         @Override
@@ -364,11 +355,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(config, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(config, false);
         }
 
         @Override
@@ -388,11 +375,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(config, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(config, false);
         }
 
         @Override
@@ -445,7 +428,7 @@ public class ConfigV7 {
         }
 
         @JsonAnySetter
-        public void unknownPropertiesHandler(String name, Object value) throws JsonMappingException {
+        public void unknownPropertiesHandler(String name, Object value) {
             switch (name) {
                 case "transport_enabled":
                     DeprecatedSettings.logCustomDeprecationMessage(
@@ -476,11 +459,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(this, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(this, false);
         }
 
         public Boolean isEnabled() {
