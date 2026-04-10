@@ -87,8 +87,8 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY, isSystemIndexPermissionEnabled)
             .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, SYSTEM_INDICES)
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
             .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
             .build();
         setup(
@@ -152,7 +152,7 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
 
     RestHelper superAdminRestHelper() {
         RestHelper restHelper = restHelper();
-        restHelper.keystore = "kirk-keystore.jks";
+        restHelper.keystore = "kirk-keystore";
         restHelper.enableHTTPClientSSL = true;
         restHelper.trustHTTPServerCertificate = true;
         restHelper.sendAdminCertificate = true;

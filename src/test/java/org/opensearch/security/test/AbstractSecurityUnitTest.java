@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.Base64;
 import java.util.List;
@@ -164,13 +165,15 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
         try {
             SSLContextBuilder sslContextBuilder = SSLContexts.custom();
-            File keyStoreFile = FileHelper.getAbsoluteFilePathFromClassPath(prefix + keyStoreName).toFile();
-            KeyStore keyStore = KeyStore.getInstance(keyStoreName.endsWith(".jks") ? "JKS" : "PKCS12");
+            Path keyStorePath = FileHelper.resolveStorePath(prefix + keyStoreName);
+            File keyStoreFile = keyStorePath.toFile();
+            KeyStore keyStore = KeyStore.getInstance(FileHelper.inferStoreType(keyStorePath));
             keyStore.load(new FileInputStream(keyStoreFile), null);
             sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
 
-            KeyStore trustStore = KeyStore.getInstance(trustStoreName.endsWith(".jks") ? "JKS" : "PKCS12");
-            File trustStoreFile = FileHelper.getAbsoluteFilePathFromClassPath(prefix + trustStoreName).toFile();
+            Path trustStorePath = FileHelper.resolveStorePath(prefix + trustStoreName);
+            File trustStoreFile = trustStorePath.toFile();
+            KeyStore trustStore = KeyStore.getInstance(FileHelper.inferStoreType(trustStorePath));
             trustStore.load(new FileInputStream(trustStoreFile), "changeit".toCharArray());
 
             sslContextBuilder.loadTrustMaterial(trustStore, null);
@@ -296,14 +299,8 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         // If custom transport settings are not defined use defaults
         if (!hasCustomTransportSettings(other)) {
             builder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                    FileHelper.getAbsoluteFilePathFromClassPath(prefix + "node-0-keystore.jks")
-                )
-                .put(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                    FileHelper.getAbsoluteFilePathFromClassPath(prefix + "truststore.jks")
-                )
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath(prefix + "node-0-keystore"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath(prefix + "truststore"))
                 .put("transport.ssl.enforce_hostname_verification", false);
         }
 

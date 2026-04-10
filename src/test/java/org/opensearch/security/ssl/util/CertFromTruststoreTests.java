@@ -12,6 +12,7 @@
 package org.opensearch.security.ssl.util;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -29,11 +30,8 @@ public class CertFromTruststoreTests {
     @Test
     public void testLoadSameCertForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
         IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        Path truststorePath = FileHelper.resolveStorePath("ssl/extended_key_usage/truststore");
+        KeystoreProps props = new KeystoreProps(truststorePath.toString(), FileHelper.inferStoreType(truststorePath), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca");
 
@@ -43,11 +41,8 @@ public class CertFromTruststoreTests {
 
     @Test
     public void testLoadSameCertWithoutAlias() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        Path truststorePath = FileHelper.resolveStorePath("ssl/extended_key_usage/truststore");
+        KeystoreProps props = new KeystoreProps(truststorePath.toString(), FileHelper.inferStoreType(truststorePath), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, null);
 
@@ -56,11 +51,8 @@ public class CertFromTruststoreTests {
 
     public void testLoadDifferentCertsForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
         IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        Path truststorePath = FileHelper.resolveStorePath("ssl/extended_key_usage/truststore");
+        KeystoreProps props = new KeystoreProps(truststorePath.toString(), FileHelper.inferStoreType(truststorePath), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca", "root-ca");
 
