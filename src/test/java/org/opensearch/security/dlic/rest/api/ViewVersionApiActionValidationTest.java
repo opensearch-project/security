@@ -41,8 +41,7 @@ public class ViewVersionApiActionValidationTest extends AbstractApiActionValidat
             null,
             configurationRepository,
             null,
-            null,
-            restApiAdminPrivilegesEvaluator,
+            restApiAuthorizationEvaluator,
             null,
             settings
         );

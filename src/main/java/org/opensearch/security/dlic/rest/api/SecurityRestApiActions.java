@@ -37,8 +37,6 @@ import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
-
 public class SecurityRestApiActions {
 
     public static Collection<RestHandler> getHandler(
@@ -61,17 +59,20 @@ public class SecurityRestApiActions {
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         final ResourcePluginInfo resourcePluginInfo
     ) {
+        final var restApiAuthorizationEvaluator = new RestApiAuthorizationEvaluator(
+            settings,
+            adminDns,
+            roleMapper,
+            principalExtractor,
+            configPath,
+            threadPool,
+            privilegesConfiguration
+        );
         final var securityApiDependencies = new SecurityApiDependencies(
             adminDns,
             configurationRepository,
             privilegesConfiguration,
-            new RestApiPrivilegesEvaluator(settings, adminDns, roleMapper, principalExtractor, configPath, threadPool),
-            new RestApiAdminPrivilegesEvaluator(
-                threadPool.getThreadContext(),
-                privilegesConfiguration,
-                adminDns,
-                settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
-            ),
+            restApiAuthorizationEvaluator,
             auditLog,
             settings
         );
@@ -94,6 +95,7 @@ public class SecurityRestApiActions {
                     clusterService,
                     principalExtractor,
                     roleMapper,
+                    privilegesConfiguration,
                     threadPool,
                     auditLog
                 ),
