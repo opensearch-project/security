@@ -9,6 +9,7 @@
              "multitenancy_enabled":true,
              "private_tenant_enabled" : true,
              "default_tenant" : "",
+             "preferred_tenants" : [],
              "server_username":"kibanaserver",
              "index":".kibana"
           },

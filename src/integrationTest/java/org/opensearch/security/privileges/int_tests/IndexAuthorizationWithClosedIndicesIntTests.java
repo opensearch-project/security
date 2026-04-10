@@ -36,6 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.IndexMatcher;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
+import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 /**
@@ -57,10 +58,10 @@ public class IndexAuthorizationWithClosedIndicesIntTests {
     // Test indices used by this test suite
     // -------------------------------------------------------------------------------------------------------
 
-    static final TestIndex index_a1 = TestIndex.name("index_a1").documentCount(100).seed(1).build();
-    static final TestIndex index_a2 = TestIndex.name("index_a2").documentCount(110).seed(2).build();
-    static final TestIndex index_b1 = TestIndex.name("index_b1").documentCount(51).seed(3).build();
-    static final TestIndex index_b2 = TestIndex.name("index_b2").documentCount(52).seed(4).build();
+    static final TestIndex index_a1 = TestIndex.name("index_a1").documentCount(10).seed(1).build();
+    static final TestIndex index_a2 = TestIndex.name("index_a2").documentCount(11).seed(2).build();
+    static final TestIndex index_b1 = TestIndex.name("index_b1").documentCount(3).seed(3).build();
+    static final TestIndex index_b2 = TestIndex.name("index_b2").documentCount(4).seed(4).build();
 
     /**
      * This key identifies assertion reference data for index search/read permissions of individual users.
@@ -148,6 +149,7 @@ public class IndexAuthorizationWithClosedIndicesIntTests {
 
     private final TestSecurityConfig.User user;
     private final LocalCluster cluster;
+    private final ClusterConfig clusterConfig;
 
     @Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
@@ -165,6 +167,7 @@ public class IndexAuthorizationWithClosedIndicesIntTests {
         throws Exception {
         this.user = user;
         this.cluster = clusterInstances.get(clusterConfig);
+        this.clusterConfig = clusterConfig;
     }
 
     @Before
@@ -209,7 +212,12 @@ public class IndexAuthorizationWithClosedIndicesIntTests {
                 assertThat(httpResponse, isOk());
             } else if (user == LIMITED_USER_NONE) {
                 // This user has no permission at the same time as all indices are closed.
-                assertThat(httpResponse, isOk());
+                if (clusterConfig.legacyPrivilegeEvaluation) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    // New privilege evaluation should deny access
+                    assertThat(httpResponse, isForbidden());
+                }
             } else {
                 assertThat(httpResponse, isOk());
             }
