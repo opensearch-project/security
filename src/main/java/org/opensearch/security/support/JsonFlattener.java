@@ -10,14 +10,14 @@
 
 package org.opensearch.security.support;
 
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.DefaultObjectMapper;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
 
 public class JsonFlattener {
 
@@ -29,7 +29,7 @@ public class JsonFlattener {
             final Map<String, Object> flattenMap = new LinkedHashMap<>();
             flattenEntries("", jsonMap.entrySet(), flattenMap);
             return flattenMap;
-        } catch (final IOException ioe) {
+        } catch (final JacksonException ioe) {
             throw new IllegalArgumentException("Unparseable json", ioe);
         }
     }

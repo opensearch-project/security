@@ -31,25 +31,32 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import org.opensearch.secure_sm.AccessController;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.InjectableValues;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.exc.InvalidFormatException;
+import tools.jackson.databind.exc.MismatchedInputException;
+import tools.jackson.databind.introspect.AnnotatedClass;
+import tools.jackson.databind.introspect.BeanPropertyDefinition;
+import tools.jackson.databind.introspect.ClassIntrospector;
+import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ser.std.StdSerializer;
+import tools.jackson.databind.type.TypeFactory;
+import tools.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 class ConfigMapSerializer extends StdSerializer<Map<String, Object>> {
     private static final Set<String> SENSITIVE_CONFIG_KEYS = Set.of("password");
@@ -61,13 +68,13 @@ class ConfigMapSerializer extends StdSerializer<Map<String, Object>> {
     }
 
     @Override
-    public void serialize(Map<String, Object> value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    public void serialize(Map<String, Object> value, JsonGenerator gen, SerializationContext serializers) {
         gen.writeStartObject();
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             if (SENSITIVE_CONFIG_KEYS.contains(entry.getKey())) {
-                gen.writeStringField(entry.getKey(), "******"); // Redact
+                gen.writeStringProperty(entry.getKey(), "******"); // Redact
             } else {
-                gen.writeObjectField(entry.getKey(), entry.getValue());
+                gen.writeName(entry.getKey()).writePOJO(entry.getValue());
             }
         }
         gen.writeEndObject();
@@ -75,34 +82,54 @@ class ConfigMapSerializer extends StdSerializer<Map<String, Object>> {
 }
 
 public class DefaultObjectMapper {
-    public static final ObjectMapper objectMapper = new ObjectMapper();
-    public final static ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
-    private static final ObjectMapper defaulOmittingObjectMapper = new ObjectMapper();
+    public static volatile ObjectMapper objectMapper;
+    public static volatile ObjectMapper YAML_MAPPER;
+    private static volatile ObjectMapper defaulOmittingObjectMapper;
 
     static {
-        objectMapper.setSerializationInclusion(Include.NON_NULL);
         // exclude sensitive information from the request body,
         // if jackson cant parse the entity, e.g. passwords, hashes and so on,
         // but provides which property is unknown
-        objectMapper.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
-        defaulOmittingObjectMapper.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
-        YAML_MAPPER.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
-        // objectMapper.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-        objectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
-        defaulOmittingObjectMapper.setSerializationInclusion(Include.NON_DEFAULT);
-        defaulOmittingObjectMapper.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
-        YAML_MAPPER.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+
+        objectMapper = JsonMapper.builder()
+            .accessorNaming(new DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
+            .disable(StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION)
+            .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
+            .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+            .changeDefaultPropertyInclusion(incl -> incl.withContentInclusion(JsonInclude.Include.NON_NULL))
+            .configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, false)
+            .build();
+
+        defaulOmittingObjectMapper = JsonMapper.builder()
+            .accessorNaming(new DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
+            .disable(StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION)
+            .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
+            .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_DEFAULT))
+            .changeDefaultPropertyInclusion(incl -> incl.withContentInclusion(JsonInclude.Include.NON_DEFAULT))
+            .configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, false)
+            .build();
+
+        YAML_MAPPER = YAMLMapper.builder(
+            YAMLFactory.builder()
+                .disable(StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION)
+                .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
+                .build()
+        )
+            .accessorNaming(new DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true)
+            .configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, false)
+            .build();
     }
 
     private DefaultObjectMapper() {}
 
     public static void inject(final InjectableValues.Std injectableValues) {
-        objectMapper.setInjectableValues(injectableValues);
-        YAML_MAPPER.setInjectableValues(injectableValues);
-        defaulOmittingObjectMapper.setInjectableValues(injectableValues);
+        objectMapper = objectMapper.rebuild().injectableValues(injectableValues).build();
+        YAML_MAPPER = YAML_MAPPER.rebuild().injectableValues(injectableValues).build();
+        defaulOmittingObjectMapper = defaulOmittingObjectMapper.rebuild().injectableValues(injectableValues).build();
     }
 
-    public static boolean getOrDefault(Map<String, Object> properties, String key, boolean defaultValue) throws JsonProcessingException {
+    public static boolean getOrDefault(Map<String, Object> properties, String key, boolean defaultValue) {
         Object value = properties.get(key);
         if (value == null) {
             return defaultValue;
@@ -140,7 +167,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.treeToValue(node, clazz));
         } catch (final Exception e) {
-            throw (IOException) e;
+            throw new IOException((JacksonException) e);
         }
     }
 
@@ -148,7 +175,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, clazz));
         } catch (final Exception e) {
-            throw (IOException) e;
+            throw new IOException((JacksonException) e);
         }
     }
 
@@ -156,32 +183,34 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.readTree(string));
         } catch (final Exception e) {
-            throw (IOException) e;
+            throw new IOException((JacksonException) e);
         }
     }
 
-    public static String writeValueAsString(Object value, boolean omitDefaults) throws JsonProcessingException {
+    public static String writeValueAsString(Object value, boolean omitDefaults) {
         try {
             return AccessController.doPrivilegedChecked(
                 () -> (omitDefaults ? defaulOmittingObjectMapper : objectMapper).writeValueAsString(value)
             );
         } catch (final Exception e) {
-            throw (JsonProcessingException) e;
+            throw (JacksonException) e;
         }
 
     }
 
-    public static String writeValueAsStringAndRedactSensitive(Object value) throws JsonProcessingException {
+    public static String writeValueAsStringAndRedactSensitive(Object value) {
 
         SimpleModule module = new SimpleModule();
         module.addSerializer(new ConfigMapSerializer());
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(module);
+        ObjectMapper mapper = JsonMapper.builder()
+            .accessorNaming(new DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
+            .addModule(module)
+            .build();
 
         try {
             return AccessController.doPrivilegedChecked(() -> mapper.writeValueAsString(value));
         } catch (final Exception e) {
-            throw (JsonProcessingException) e;
+            throw (JacksonException) e;
         }
 
     }
@@ -190,7 +219,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, tr));
         } catch (final Exception e) {
-            throw (IOException) e;
+            throw new IOException((JacksonException) e);
         }
 
     }
@@ -200,7 +229,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.readValue(string, jt));
         } catch (final Exception e) {
-            throw (IOException) e;
+            throw new IOException((JacksonException) e);
         }
     }
 
@@ -208,7 +237,7 @@ public class DefaultObjectMapper {
         try {
             return AccessController.doPrivilegedChecked(() -> objectMapper.convertValue(jsonNode, jt));
         } catch (final Exception e) {
-            throw (IOException) e;
+            throw new IOException((JacksonException) e);
         }
     }
 
@@ -217,8 +246,10 @@ public class DefaultObjectMapper {
     }
 
     public static Set<String> getFields(Class<?> cls) {
-        return objectMapper.getSerializationConfig()
-            .introspect(getTypeFactory().constructType(cls))
+        final ClassIntrospector introspector = objectMapper.serializationConfig().classIntrospectorInstance();
+        final JavaType javaType = getTypeFactory().constructType(cls);
+        final AnnotatedClass annotatedClass = introspector.introspectClassAnnotations(javaType);
+        return introspector.introspectForSerialization(javaType, annotatedClass)
             .findProperties()
             .stream()
             .map(BeanPropertyDefinition::getName)

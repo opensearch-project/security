@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,6 +54,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;

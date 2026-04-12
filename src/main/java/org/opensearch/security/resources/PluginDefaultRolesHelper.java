@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,6 +22,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.spi.SecurityConfigExtension;
+
+import tools.jackson.databind.JsonNode;
 
 /**
  * Loads {@code default-roles.yml} from each plugin that implements {@link SecurityConfigExtension}.

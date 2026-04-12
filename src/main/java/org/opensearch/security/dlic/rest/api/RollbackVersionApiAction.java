@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import com.google.common.collect.ImmutableList;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -46,7 +45,8 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
-import com.flipkart.zjsonpatch.JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.NOT_FOUND;
@@ -343,7 +343,7 @@ public class RollbackVersionApiAction extends AbstractApiAction {
             JsonNode currentJson = DefaultObjectMapper.objectMapper.valueToTree(currentConfig.getCEntries());
             JsonNode targetJson = DefaultObjectMapper.objectMapper.valueToTree(targetConfig.getCEntries());
 
-            JsonNode diff = JsonDiff.asJson(currentJson, targetJson);
+            JsonNode diff = Jackson3JsonDiff.asJson(currentJson, targetJson);
 
             if (!diff.isEmpty()) {
                 log.debug("Config difference detected: {}", diff.toString());

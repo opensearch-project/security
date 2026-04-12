@@ -22,9 +22,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,7 +33,11 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 
-import com.flipkart.zjsonpatch.JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
@@ -221,7 +222,7 @@ public class RequestContentValidator implements ToXContent {
 
     public ValidationResult<JsonNode> validate(final RestRequest request, final JsonNode patchedContent, final JsonNode originalContent)
         throws IOException {
-        JsonNode patch = JsonDiff.asJson(originalContent, patchedContent);
+        JsonNode patch = Jackson3JsonDiff.asJson(originalContent, patchedContent);
         if (patch.isEmpty()) {
             return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
         }
@@ -251,7 +252,7 @@ public class RequestContentValidator implements ToXContent {
 
     protected ValidationResult<JsonNode> validateJsonKeys(final JsonNode jsonContent) {
         final Set<String> requestedKeys = new HashSet<>();
-        jsonContent.fieldNames().forEachRemaining(requestedKeys::add);
+        jsonContent.propertyNames().spliterator().forEachRemaining(requestedKeys::add);
         // mandatory settings, one of ...
         if (Collections.disjoint(requestedKeys, validationContext.mandatoryOrKeys())) {
             missingMandatoryOrKeys.addAll(validationContext.mandatoryOrKeys());
@@ -286,7 +287,7 @@ public class RequestContentValidator implements ToXContent {
         try (final JsonParser parser = DefaultObjectMapper.objectMapper.treeAsTokens(jsonContent)) {
             JsonToken token;
             while ((token = parser.nextToken()) != null) {
-                if (token.equals(JsonToken.FIELD_NAME)) {
+                if (token.equals(JsonToken.PROPERTY_NAME)) {
                     String currentName = parser.currentName();
 
                     // Get data type from either FieldConfiguration or simple DataType map
@@ -367,7 +368,7 @@ public class RequestContentValidator implements ToXContent {
                     }
                 }
             }
-        } catch (final IOException ioe) {
+        } catch (final JacksonException ioe) {
             LOGGER.error("Couldn't create JSON for payload {}", jsonContent, ioe);
             this.validationError = ValidationError.BODY_NOT_PARSEABLE;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
@@ -402,7 +403,7 @@ public class RequestContentValidator implements ToXContent {
                 if (node.isArray()) {
                     return true;
                 }
-            } else if (element.isContainerNode()) {
+            } else if (element.isContainer()) {
                 if (hasNullOrBlankArrayElement(element)) {
                     return true;
                 }
@@ -414,7 +415,7 @@ public class RequestContentValidator implements ToXContent {
     private ValidationResult<JsonNode> validatePassword(final RestRequest request, final JsonNode jsonContent) {
         if (jsonContent.has("password")) {
             final PasswordValidator passwordValidator = PasswordValidator.of(validationContext.settings());
-            final String password = jsonContent.get("password").asText();
+            final String password = jsonContent.get("password").asString();
             if (Strings.isNullOrEmpty(password)) {
                 this.validationError = ValidationError.INVALID_PASSWORD_TOO_SHORT;
                 return ValidationResult.error(RestStatus.BAD_REQUEST, this);
@@ -669,13 +670,13 @@ public class RequestContentValidator implements ToXContent {
             throw new IllegalArgumentException(fieldName + " must be an object");
         }
 
-        if (!node.fieldNames().hasNext()) {
+        if (!node.propertyNames().iterator().hasNext()) {
             throw new IllegalArgumentException(fieldName + " cannot be empty");
         }
 
-        node.fields().forEachRemaining(entry -> {
+        node.properties().spliterator().forEachRemaining(entry -> {
             JsonNode val = entry.getValue();
-            if (!val.isTextual() || val.asText().isEmpty()) {
+            if (!val.isString() || val.asString().isEmpty()) {
                 throw new IllegalArgumentException(fieldName + " for key [" + entry.getKey() + "] must be a non-empty string");
             }
         });

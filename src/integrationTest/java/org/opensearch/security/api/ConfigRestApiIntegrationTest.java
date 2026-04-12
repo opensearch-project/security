@@ -12,7 +12,6 @@ package org.opensearch.security.api;
 
 import java.util.StringJoiner;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -21,6 +20,8 @@ import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;

@@ -60,8 +60,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
-import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -129,6 +127,9 @@ import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.transport.client.transport.NoNodeAvailableException;
+
+import tools.jackson.databind.InjectableValues;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
@@ -1261,15 +1262,17 @@ public class SecurityAdmin {
 
             Version maxVersion = Version.fromString(
                 Arrays.stream(nodeVersions)
-                    .max((n1, n2) -> Version.fromString(n1.asText()).compareTo(Version.fromString(n2.asText())))
+                    .map(n -> n.at("/version"))
+                    .max((n1, n2) -> Version.fromString(n1.asString()).compareTo(Version.fromString(n2.asString())))
                     .get()
-                    .asText()
+                    .asString()
             );
             Version minVersion = Version.fromString(
                 Arrays.stream(nodeVersions)
-                    .min((n1, n2) -> Version.fromString(n1.asText()).compareTo(Version.fromString(n2.asText())))
+                    .map(n -> n.at("/version"))
+                    .min((n1, n2) -> Version.fromString(n1.asString()).compareTo(Version.fromString(n2.asString())))
                     .get()
-                    .asText()
+                    .asString()
             );
 
             if (!maxVersion.equals(minVersion)) {

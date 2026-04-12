@@ -28,29 +28,37 @@ package org.opensearch.security;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import org.opensearch.secure_sm.AccessController;
 
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.InjectableValues;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.type.TypeFactory;
+
 public class NonValidatingObjectMapper {
-    private static final ObjectMapper nonValidatingObjectMapper = new ObjectMapper();
+    private static volatile ObjectMapper nonValidatingObjectMapper;
 
     static {
-        nonValidatingObjectMapper.disable(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION);
-        nonValidatingObjectMapper.setSerializationInclusion(Include.NON_NULL);
-        nonValidatingObjectMapper.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, false);
-        nonValidatingObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        nonValidatingObjectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+        nonValidatingObjectMapper = JsonMapper.builder()
+            .accessorNaming(new DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
+            .disable(StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION)
+            .changeDefaultPropertyInclusion(incl -> incl.withValueInclusion(JsonInclude.Include.NON_NULL))
+            .changeDefaultPropertyInclusion(incl -> incl.withContentInclusion(JsonInclude.Include.NON_NULL))
+            .configure(StreamReadFeature.STRICT_DUPLICATE_DETECTION, false)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
+            .configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, false)
+            .build();
     }
 
     public static void inject(final InjectableValues.Std injectableValues) {
-        nonValidatingObjectMapper.setInjectableValues(injectableValues);
+        nonValidatingObjectMapper = nonValidatingObjectMapper.rebuild().injectableValues(injectableValues).build();
     }
 
     public static <T> T readValue(String string, JavaType jt) throws IOException {

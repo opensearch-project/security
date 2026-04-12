@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
@@ -54,6 +53,8 @@ import org.opensearch.common.xcontent.support.XContentMapValues;
 import org.opensearch.commons.rest.SecureRestClientBuilder;
 import org.opensearch.security.bwc.helper.RestHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
+
+import tools.jackson.databind.ObjectMapper;
 
 import static org.apache.hc.core5.http.ContentType.APPLICATION_NDJSON;
 import static org.hamcrest.MatcherAssert.assertThat;
