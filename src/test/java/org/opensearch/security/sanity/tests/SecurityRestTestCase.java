@@ -66,7 +66,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
             .put(SECURITY_SSL_HTTP_ENABLED, isHttps())
             // this is incorrect on common-utils side. It should be using `pemtrustedcas_filepath`
             .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "root-ca.pem")
-            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath(CERT_FILE_DIRECTORY + "kirk-keystore"))
+            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStore(CERT_FILE_DIRECTORY + "kirk-keystore").path())
             .put(SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.insecurePropertyName, "changeit")
             .put(SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.insecurePropertyName, "changeit")
             .build();

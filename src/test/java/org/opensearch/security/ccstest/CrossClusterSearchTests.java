@@ -26,8 +26,6 @@
 
 package org.opensearch.security.ccstest;
 
-import java.nio.file.Path;
-
 import com.google.common.collect.Lists;
 import org.apache.http.HttpStatus;
 import org.junit.After;
@@ -1285,15 +1283,15 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     }
 
     private ClusterTransportClientSettings getBaseSettingsWithDifferentCert() {
-        Path ccsTransportKsPath = FileHelper.resolveStorePath("node-untspec5-keystore");
+        var ccsTransportKs = FileHelper.resolveStore("node-untspec5-keystore");
         Settings cluster = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("restapi/node-0-keystore"))
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("restapi/truststore"))
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ccsTransportKsPath)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStore("restapi/node-0-keystore").path())
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("restapi/truststore").path())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ccsTransportKs.path())
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
             .put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, FileHelper.inferStoreType(ccsTransportKsPath))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, ccsTransportKs.type())
             .putList(
                 ConfigConstants.SECURITY_NODES_DN,
                 "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE"
@@ -1306,7 +1304,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             .put(ConfigConstants.SECURITY_CERT_OID, "1.2.3.4.5.6")
             .build();
         Settings transport = Settings.builder()
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("node-untspec6-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStore("node-untspec6-keystore").path())
             .build();
         return new ClusterTransportClientSettings(cluster, transport);
     }

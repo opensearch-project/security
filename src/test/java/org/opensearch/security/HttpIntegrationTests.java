@@ -413,8 +413,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
     public void testHTTPSCompressionEnabled() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .put("http.compression", true)
             .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
@@ -434,8 +434,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
     public void testHTTPSCompression() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); // ssl resthelper
@@ -504,8 +504,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
             .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
@@ -547,8 +547,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         try {
             final Settings settings = Settings.builder()
-                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
                 .put("plugins.security.ssl.http.enabled", true)
                 .build();
             setup(settings);

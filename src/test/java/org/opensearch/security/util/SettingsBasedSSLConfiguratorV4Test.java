@@ -303,7 +303,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
         try (
             TestServer testServer = new TestServer("sslConfigurator/jks/truststore", "sslConfigurator/jks/node1-keystore", "secret", false)
         ) {
-            Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/truststore");
+            Path rootCaJksPath = FileHelper.resolveStore("sslConfigurator/jks/truststore").path();
 
             MockSecureSettings mockSecureSettings = new MockSecureSettings();
             mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "secret");
@@ -337,7 +337,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
         try (
             TestServer testServer = new TestServer("sslConfigurator/jks/truststore", "sslConfigurator/jks/node1-keystore", "secret", false)
         ) {
-            Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/other-root-ca");
+            Path rootCaJksPath = FileHelper.resolveStore("sslConfigurator/jks/other-root-ca").path();
 
             MockSecureSettings mockSecureSettings = new MockSecureSettings();
             mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "secret");
@@ -371,7 +371,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
         try (
             TestServer testServer = new TestServer("sslConfigurator/jks/truststore", "sslConfigurator/jks/node1-keystore", "secret", false)
         ) {
-            Path rootCaJksPath = FileHelper.resolveStorePath("sslConfigurator/jks/other-root-ca");
+            Path rootCaJksPath = FileHelper.resolveStore("sslConfigurator/jks/other-root-ca").path();
 
             Settings settings = Settings.builder()
                 .put("prefix.enable_ssl", "true")
@@ -468,17 +468,17 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             try {
                 TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                Path resolvedTrustStorePath = FileHelper.resolveStorePath(trustStorePath);
-                KeyStore trustStore = KeyStore.getInstance(FileHelper.inferStoreType(resolvedTrustStorePath));
-                InputStream trustStream = new FileInputStream(resolvedTrustStorePath.toFile());
+                var typedTrustStore = FileHelper.resolveStore(trustStorePath);
+                KeyStore trustStore = KeyStore.getInstance(typedTrustStore.type());
+                InputStream trustStream = new FileInputStream(typedTrustStore.path().toFile());
                 trustStore.load(trustStream, password.toCharArray());
                 tmf.init(trustStore);
 
                 KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                Path path = FileHelper.resolveStorePath(keyStorePath);
-                KeyStore keyStore = KeyStore.getInstance(FileHelper.inferStoreType(path));
+                var typedKeyStore = FileHelper.resolveStore(keyStorePath);
+                KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
 
-                InputStream keyStream = new FileInputStream(path.toFile());
+                InputStream keyStream = new FileInputStream(typedKeyStore.path().toFile());
 
                 keyStore.load(keyStream, password.toCharArray());
                 kmf.init(keyStore, password.toCharArray());

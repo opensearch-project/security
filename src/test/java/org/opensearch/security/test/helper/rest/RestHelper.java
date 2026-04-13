@@ -333,17 +333,17 @@ public class RestHelper {
                 keystore = prefix + "/" + keystore;
             }
 
-            Path resolvedKeyStorePath = FileHelper.resolveStorePath(keystore);
+            var resolvedKeyStore = FileHelper.resolveStore(keystore);
 
             Path ksParent = Path.of(keystore).getParent();
             String keystoreDir = ksParent != null ? ksParent + "/" : "";
-            Path resolvedTrustStorePath = FileHelper.resolveStorePath(keystoreDir + "truststore");
+            var resolvedTrustStore = FileHelper.resolveStore(keystoreDir + "truststore");
 
-            final KeyStore myTrustStore = KeyStore.getInstance(FileHelper.inferStoreType(resolvedTrustStorePath));
-            myTrustStore.load(new FileInputStream(resolvedTrustStorePath.toFile()), "changeit".toCharArray());
+            final KeyStore myTrustStore = KeyStore.getInstance(resolvedTrustStore.type());
+            myTrustStore.load(new FileInputStream(resolvedTrustStore.path().toFile()), "changeit".toCharArray());
 
-            final KeyStore keyStore = KeyStore.getInstance(FileHelper.inferStoreType(resolvedKeyStorePath));
-            keyStore.load(new FileInputStream(resolvedKeyStorePath.toFile()), "changeit".toCharArray());
+            final KeyStore keyStore = KeyStore.getInstance(resolvedKeyStore.type());
+            keyStore.load(new FileInputStream(resolvedKeyStore.path().toFile()), "changeit".toCharArray());
 
             final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
 

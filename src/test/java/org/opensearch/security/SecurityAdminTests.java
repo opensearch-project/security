@@ -49,8 +49,8 @@ public class SecurityAdminTests extends SingleClusterTest {
     public void testSecurityAdmin() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, null, settings, false);
 
@@ -58,9 +58,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -150,8 +150,8 @@ public class SecurityAdminTests extends SingleClusterTest {
     public void testSecurityAdminInvalidCert() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, null, settings, false);
 
@@ -159,9 +159,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -178,9 +178,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "spock-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "spock-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -196,9 +196,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "node-0-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "node-0-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -216,8 +216,8 @@ public class SecurityAdminTests extends SingleClusterTest {
     public void testSecurityAdminRegularUpdate() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, null, settings, true);
 
@@ -225,9 +225,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -251,8 +251,8 @@ public class SecurityAdminTests extends SingleClusterTest {
     public void testSecurityAdminSingularV7Updates() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
 
@@ -260,9 +260,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -278,9 +278,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -296,9 +296,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -325,8 +325,8 @@ public class SecurityAdminTests extends SingleClusterTest {
     public void testSecurityAdminInvalidYml() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
 
@@ -334,9 +334,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -364,8 +364,8 @@ public class SecurityAdminTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); // ssl resthelper
@@ -382,9 +382,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
@@ -477,8 +477,8 @@ public class SecurityAdminTests extends SingleClusterTest {
     public void testIsLegacySecurityIndexOnV7Index() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, null, settings, false);
 
@@ -486,9 +486,9 @@ public class SecurityAdminTests extends SingleClusterTest {
 
         List<String> argsAsList = new ArrayList<>();
         argsAsList.add("-ts");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "truststore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "truststore").path().toFile().getAbsolutePath());
         argsAsList.add("-ks");
-        argsAsList.add(FileHelper.resolveStorePath(prefix + "kirk-keystore").toFile().getAbsolutePath());
+        argsAsList.add(FileHelper.resolveStore(prefix + "kirk-keystore").path().toFile().getAbsolutePath());
         argsAsList.add("-p");
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");

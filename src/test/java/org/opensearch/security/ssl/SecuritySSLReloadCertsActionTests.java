@@ -484,9 +484,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         );
 
         final Settings initTransportClientSettings = Settings.builder()
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/reload/truststore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ssl/reload/truststore").path())
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStorePath("ssl/reload/kirk-keystore"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStore("ssl/reload/kirk-keystore").path())
             .build();
 
         setup(initTransportClientSettings, new DynamicSecurityConfig(), settingsBuilder.build(), true, clusterConfiguration);

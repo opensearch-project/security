@@ -52,8 +52,8 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
         builder.put("plugins.security.ssl.http.enabled", true)
             .put(SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, PasswordValidator.ScoreStrength.FAIR.name())
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("restapi/node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("restapi/truststore"));
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("restapi/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("restapi/truststore").path());
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
         rh = restHelper();
@@ -65,8 +65,8 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         Settings.Builder builder = Settings.builder();
 
         builder.put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("restapi/node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("restapi/truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("restapi/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("restapi/truststore").path())
             .put(nodeOverride);
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
@@ -83,8 +83,8 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
         builder.put("plugins.security.ssl.http.enabled", true)
             .put(SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, PasswordValidator.ScoreStrength.FAIR.name())
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("restapi/node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("restapi/truststore"));
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("restapi/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("restapi/truststore").path());
 
         builder.put(rolesSettings());
 

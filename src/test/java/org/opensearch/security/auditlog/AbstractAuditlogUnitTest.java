@@ -69,8 +69,8 @@ public abstract class AbstractAuditlogUnitTest extends SingleClusterTest {
         Settings.Builder builder = Settings.builder();
 
         builder.put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("auditlog/node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("auditlog/truststore"));
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("auditlog/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("auditlog/truststore").path());
 
         return builder.put(additionalSettings).build();
     }

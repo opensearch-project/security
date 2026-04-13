@@ -87,8 +87,8 @@ public abstract class AbstractSystemIndicesTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY, isSystemIndexPermissionEnabled)
             .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, SYSTEM_INDICES)
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
             .build();
         setup(

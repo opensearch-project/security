@@ -52,8 +52,8 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
     public void testEndpoints() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .putList("plugins.security.nodes_dn", "CN=node-*.example.com,OU=SSL,O=Test,L=Test,C=DE")
             .build();
         setup(settings);

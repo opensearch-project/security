@@ -12,7 +12,6 @@
 package org.opensearch.security.ssl.util;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
@@ -31,8 +30,8 @@ public class CertFromKeystoreTests {
     @Test
     public void testLoadSameCertForClientServerUsage() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException,
         KeyStoreException, IOException {
-        Path keystorePath0 = FileHelper.resolveStorePath("ssl/node-0-keystore");
-        KeystoreProps props = new KeystoreProps(keystorePath0.toString(), FileHelper.inferStoreType(keystorePath0), "changeit");
+        var ks0 = FileHelper.resolveStore("ssl/node-0-keystore");
+        KeystoreProps props = new KeystoreProps(ks0.path().toString(), ks0.type(), "changeit");
 
         CertFromKeystore cert = new CertFromKeystore(props, "node-0", "changeit");
 
@@ -47,8 +46,8 @@ public class CertFromKeystoreTests {
     @Test
     public void testLoadSameCertWithoutAlias() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException,
         KeyStoreException, IOException {
-        Path keystorePath1 = FileHelper.resolveStorePath("ssl/node-0-keystore");
-        KeystoreProps props = new KeystoreProps(keystorePath1.toString(), FileHelper.inferStoreType(keystorePath1), "changeit");
+        var ks1 = FileHelper.resolveStore("ssl/node-0-keystore");
+        KeystoreProps props = new KeystoreProps(ks1.path().toString(), ks1.type(), "changeit");
 
         CertFromKeystore cert = new CertFromKeystore(props, null, "changeit");
 
@@ -60,8 +59,8 @@ public class CertFromKeystoreTests {
     @Test
     public void testLoadDifferentCertsForClientServerUsage() throws UnrecoverableKeyException, CertificateException,
         NoSuchAlgorithmException, KeyStoreException, IOException {
-        Path keystorePath2 = FileHelper.resolveStorePath("ssl/extended_key_usage/node-0-keystore");
-        KeystoreProps props = new KeystoreProps(keystorePath2.toString(), FileHelper.inferStoreType(keystorePath2), "changeit");
+        var ks2 = FileHelper.resolveStore("ssl/extended_key_usage/node-0-keystore");
+        KeystoreProps props = new KeystoreProps(ks2.path().toString(), ks2.type(), "changeit");
 
         CertFromKeystore cert = new CertFromKeystore(props, "node-0-server", "node-0-client", "changeit", "changeit");
 

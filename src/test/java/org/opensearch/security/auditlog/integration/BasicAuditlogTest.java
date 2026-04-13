@@ -129,8 +129,8 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
 
         Settings additionalSettings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("auditlog/node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("auditlog/truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("auditlog/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("auditlog/truststore").path())
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")

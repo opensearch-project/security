@@ -84,8 +84,8 @@ public class HttpClientTest extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("auditlog/node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("auditlog/truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("auditlog/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("auditlog/truststore").path())
             .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_valid.yml"))
             .build();
 
@@ -123,8 +123,8 @@ public class HttpClientTest extends SingleClusterTest {
             .put("plugins.security.ssl.http.enabled", true)
             .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStorePath("auditlog/node-0-keystore"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStorePath("auditlog/truststore"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("auditlog/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("auditlog/truststore").path())
             .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/configuration_valid.yml"))
             .build();
 

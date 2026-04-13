@@ -89,39 +89,43 @@ public class FileHelper {
             .orElseThrow(() -> new IllegalArgumentException("Unknown keystore type for file path: " + filePath));
     }
 
+    public record TypedStore(Path path, String type) {
+    }
+
     public static KeyStore getKeystoreFromClassPath(final String baseName, String password) throws Exception {
-        Path path = resolveStorePath(baseName);
-        KeyStore ks = KeyStore.getInstance(inferStoreType(path));
-        try (FileInputStream fin = new FileInputStream(path.toFile())) {
+        TypedStore store = resolveStore(baseName);
+        KeyStore ks = KeyStore.getInstance(store.type());
+        try (FileInputStream fin = new FileInputStream(store.path().toFile())) {
             ks.load(fin, password == null || password.isEmpty() ? null : password.toCharArray());
         }
         return ks;
     }
 
     /**
-     * Resolves a keystore/truststore classpath resource by base name (without extension).
+     * Resolves a keystore/truststore classpath resource by base name (without extension),
+     * returning both the path and the inferred keystore type.
      * <p>
      * The format is chosen based on the runtime environment:
      * <ul>
      *   <li>FIPS approved-only mode ({@link CryptoServicesRegistrar#isInApprovedOnlyMode()}) →
-     *       {@code .bcfks} (Bouncy Castle FIPS keystore)</li>
-     *   <li>Non-FIPS → {@code .jks} if a JKS variant exists on the classpath,
-     *       otherwise {@code .p12}</li>
+     *       {@code .bcfks} / {@code "BCFKS"}</li>
+     *   <li>Non-FIPS → {@code .jks} / {@code "JKS"} if a JKS variant exists on the classpath,
+     *       otherwise {@code .p12} / {@code "PKCS12"}</li>
      * </ul>
      *
      * @param baseName classpath-relative base name without extension, e.g. {@code "ssl/truststore"}
-     * @return absolute path to the resolved keystore file
+     * @return a {@link TypedStore} holding the absolute path and the store type string
      * @throws IllegalStateException if no matching file is found on the classpath
      */
-    public static Path resolveStorePath(final String baseName) {
+    public static TypedStore resolveStore(final String baseName) {
         if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
-            return getAbsoluteFilePathFromClassPath(baseName + ".bcfks");
+            return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".bcfks"), "BCFKS");
         }
         URL jksUrl = FileHelper.class.getClassLoader().getResource(baseName + ".jks");
         if (jksUrl != null) {
-            return getAbsoluteFilePathFromClassPath(baseName + ".jks");
+            return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".jks"), "JKS");
         }
-        return getAbsoluteFilePathFromClassPath(baseName + ".p12");
+        return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".p12"), "PKCS12");
     }
 
     public static Path getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
