@@ -121,11 +121,14 @@ public class FileHelper {
         if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
             return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".bcfks"), "BCFKS");
         }
-        URL jksUrl = FileHelper.class.getClassLoader().getResource(baseName + ".jks");
-        if (jksUrl != null) {
+        if (classpathResourceExists(baseName + ".jks")) {
             return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".jks"), "JKS");
         }
         return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".p12"), "PKCS12");
+    }
+
+    public static boolean classpathResourceExists(final String name) {
+        return FileHelper.class.getClassLoader().getResource(name) != null;
     }
 
     public static Path getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
