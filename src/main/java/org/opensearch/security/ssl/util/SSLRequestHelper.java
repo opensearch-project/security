@@ -49,6 +49,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.env.Environment;
+import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
@@ -144,40 +145,7 @@ public class SSLRequestHelper {
 
             if (certs != null && certs.length > 0 && certs[0] instanceof X509Certificate) {
                 x509Certs = Arrays.copyOf(certs, certs.length, X509Certificate[].class);
-
-                try {
-                    validate(x509Certs, settings, configPath);
-                } catch (CertPathValidatorException e) {
-                    log.error(
-                        "Certificate is revoked or path invalid for '{}' (reason: {})",
-                        x509Certs[0].getSubjectX500Principal(),
-                        e.getReason()
-                    );
-                    throw new SSLPeerUnverifiedException(e.getMessage(), e);
-                } catch (CertificateException e) {
-                    log.error(
-                        //
-                        "Certificate revocation check failed for '{}'", //
-                        x509Certs[0].getSubjectX500Principal(), //
-                        e
-                    );
-                    throw new SSLPeerUnverifiedException(e.getMessage(), e);
-                } catch (IOException e) {
-                    log.warn(
-                        //
-                        "CRL/OCSP infrastructure unreachable (check CRL file path or OCSP/CRLDP network access): {}", //
-                        e.getMessage() //
-                    );
-                    throw new SSLPeerUnverifiedException(e.getMessage(), e);
-                } catch (GeneralSecurityException e) {
-                    log.error(
-                        //
-                        "Certificate revocation check configuration error", //
-                        e
-                    );
-                    throw new SSLPeerUnverifiedException(e.getMessage(), e);
-                }
-
+                validatePeerCerts(x509Certs, settings, configPath);
                 principal = principalExtractor == null ? null : principalExtractor.extractPrincipal(x509Certs[0], Type.HTTP);
             } else if (engine.getNeedClientAuth()) {
                 throw new OpenSearchException("No client certificates found but such are needed (SG 9).");
@@ -190,6 +158,31 @@ public class SSLRequestHelper {
         }
 
         return new SSLInfo(x509Certs, principal, protocol, cipher, localCerts);
+    }
+
+    private static void validatePeerCerts(final X509Certificate[] x509Certs, final Settings settings, final Path configPath)
+        throws SSLPeerUnverifiedException {
+        AccessController.doPrivilegedChecked(() -> {
+            try {
+                validate(x509Certs, settings, configPath);
+            } catch (CertPathValidatorException e) {
+                log.error(
+                    "Certificate is revoked or path invalid for '{}' (reason: {})",
+                    x509Certs[0].getSubjectX500Principal(),
+                    e.getReason()
+                );
+                throw new SSLPeerUnverifiedException(e.getMessage(), e);
+            } catch (CertificateException e) {
+                log.error("Certificate revocation check failed for '{}'", x509Certs[0].getSubjectX500Principal(), e);
+                throw new SSLPeerUnverifiedException(e.getMessage(), e);
+            } catch (IOException e) {
+                log.warn("CRL/OCSP infrastructure unreachable (check CRL file path or OCSP/CRLDP network access): {}", e.getMessage());
+                throw new SSLPeerUnverifiedException(e.getMessage(), e);
+            } catch (GeneralSecurityException e) {
+                log.error("Certificate revocation check configuration error", e);
+                throw new SSLPeerUnverifiedException(e.getMessage(), e);
+            }
+        });
     }
 
     public static boolean containsBadHeader(final ThreadContext context, String prefix) {
