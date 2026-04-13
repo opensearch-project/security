@@ -360,7 +360,7 @@ public final class PemKeyReader {
         }
         if (CryptoServicesRegistrar.isInApprovedOnlyMode() && !PemKeyReader.BCFKS.equalsIgnoreCase(storeType)) {
             throw new IllegalArgumentException(
-                storeType.toUpperCase(Locale.ROOT) + " truststores are not supported in FIPS mode - use BCFKS."
+                storeType.toUpperCase(Locale.ROOT) + " keystores / truststores are not supported in FIPS mode - use BCFKS."
             );
         }
         return storeType;
