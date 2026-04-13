@@ -129,8 +129,8 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
 
         Settings additionalSettings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("auditlog/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("auditlog/truststore").path())
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
@@ -544,7 +544,7 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
         final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
-        rh.keystore = "auditlog/kirk-keystore.jks";
+        rh.keystore = "auditlog/kirk-keystore";
         HttpResponse res = rh.executeGetRequest("_cat/indices", new Header[0]);
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
