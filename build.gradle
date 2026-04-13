@@ -495,7 +495,7 @@ configurations {
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.8"
             force "com.google.guava:guava:${guava_version}"
-            force "at.yawk.lz4:lz4-java:1.10.4"
+            force "at.yawk.lz4:lz4-java:1.11.0"
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
@@ -740,7 +740,7 @@ dependencies {
     runtimeOnly 'org.apache.commons:commons-text:1.15.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
-    runtimeOnly 'at.yawk.lz4:lz4-java:1.10.4'
+    runtimeOnly 'at.yawk.lz4:lz4-java:1.11.0'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.8'
