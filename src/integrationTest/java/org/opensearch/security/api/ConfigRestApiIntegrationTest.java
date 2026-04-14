@@ -25,7 +25,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;

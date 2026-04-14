@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityConfiguration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -48,7 +48,7 @@ public class EndpointValidatorTest {
     SecurityDynamicConfiguration<?> configuration;
 
     @Mock
-    RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
+    RestApiAuthorizationEvaluator restApiAuthorizationEvaluator;
 
     private EndpointValidator endpointValidator;
 
@@ -61,8 +61,8 @@ public class EndpointValidatorTest {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return restApiAdminPrivilegesEvaluator;
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return restApiAuthorizationEvaluator;
             }
 
             @Override
@@ -251,7 +251,7 @@ public class EndpointValidatorTest {
     }
 
     private void configImmutableEntities(final boolean isAdmin) {
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(any(Endpoint.class))).thenReturn(isAdmin);
+        when(restApiAuthorizationEvaluator.isCurrentUserAdminFor(any(Endpoint.class))).thenReturn(isAdmin);
         when(configuration.isHidden("just_entity")).thenReturn(false);
         when(configuration.isStatic("just_entity")).thenReturn(false);
         when(configuration.isReserved("just_entity")).thenReturn(false);
@@ -311,7 +311,7 @@ public class EndpointValidatorTest {
     }
 
     private void configureRoles(final boolean isAdmin) {
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(any(Endpoint.class))).thenReturn(isAdmin);
+        when(restApiAuthorizationEvaluator.isCurrentUserAdminFor(any(Endpoint.class))).thenReturn(isAdmin);
 
         when(configuration.exists("non_existing_role")).thenReturn(false);
 
@@ -334,7 +334,7 @@ public class EndpointValidatorTest {
         role.setCluster_permissions(restAdminPermissions());
 
         when(configuration.exists("some_role")).thenReturn(true);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
         Mockito.<Object>when(configuration.getCEntry("some_role")).thenReturn(role);
         final var roleCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
             SecurityConfiguration.of("some_role", configuration)
@@ -355,7 +355,7 @@ public class EndpointValidatorTest {
         doReturn(CType.ROLES).when(configuration).getCType();
         when(configuration.getImplementingClass()).thenCallRealMethod();
         when(configuration.exists("some_role")).thenReturn(false);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
         final var roleCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
             SecurityConfiguration.of(objectMapper.createObjectNode().set("cluster_permissions", array), "some_role", configuration)
         );
@@ -367,7 +367,7 @@ public class EndpointValidatorTest {
     public void regularUserCanNotChangeObjectWithRestAdminPermissionsForExitingActionGroups() throws Exception {
         final var actionGroups = new ActionGroupsV7("some_ag", restAdminPermissions());
         when(configuration.exists("some_ag")).thenReturn(true);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
         Mockito.<Object>when(configuration.getCEntry("some_ag")).thenReturn(actionGroups);
         var agCheckResult = endpointValidator.isAllowedToChangeEntityWithRestAdminPermissions(
             SecurityConfiguration.of("some_ag", configuration)
@@ -381,7 +381,7 @@ public class EndpointValidatorTest {
         doReturn(CType.ACTIONGROUPS).when(configuration).getCType();
         when(configuration.getImplementingClass()).thenCallRealMethod();
         when(configuration.exists("some_ag")).thenReturn(false);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
 
         final var objectMapper = DefaultObjectMapper.objectMapper;
         final var array = objectMapper.createArrayNode();

@@ -47,7 +47,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.dlic.rest.api.AbstractApiAction;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RequestHandler;
-import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
@@ -69,7 +69,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RESOURCE_MIGRATE_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.RESOURCE_MIGRATE_ACTION;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -126,7 +126,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
     boolean accessHandler(final RestRequest request) {
         if (request.method() == POST) {
-            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, RESOURCE_MIGRATE_ACTION);
+            return securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint, RESOURCE_MIGRATE_ACTION);
         } else {
             return false;
         }
@@ -442,8 +442,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
