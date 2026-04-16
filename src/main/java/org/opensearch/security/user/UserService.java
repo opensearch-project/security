@@ -25,9 +25,6 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -57,6 +54,9 @@ import org.opensearch.transport.client.Client;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * This class handles user registration and operations on behalf of the Security Plugin.
@@ -301,7 +301,7 @@ public class UserService {
             authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
             return new BasicAuthToken("Basic " + authToken);
 
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
         } catch (Exception e) {
             throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);

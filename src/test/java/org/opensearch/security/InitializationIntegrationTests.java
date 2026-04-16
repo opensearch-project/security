@@ -29,7 +29,6 @@ package org.opensearch.security;
 import java.io.File;
 import java.util.Iterator;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpVersion;
@@ -60,6 +59,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.transport.client.Client;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -145,7 +146,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             assertThat(200, is(whoAmIRes.getStatusLine().getStatusCode()));
             // Should be using HTTP/2 by default
             assertThat(HttpVersion.HTTP_2, is(whoAmIRes.getStatusLine().getProtocolVersion()));
-            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper().readTree(whoAmIRes.getEntity().getContent());
             String whoAmIResponsePayload = whoAmIResNode.toPrettyString();
             assertThat(whoAmIResponsePayload, whoAmIResNode.get("dn").asText(), is("CN=spock,OU=client,O=client,L=Test,C=DE"));
             Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_admin").asBoolean());
@@ -179,7 +180,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             assertThat(200, is(whoAmIRes.getStatusLine().getStatusCode()));
             // The HTTP/1.1 is forced and should be used instead
             assertThat(whoAmIRes.getStatusLine().getProtocolVersion(), is(HttpVersion.HTTP_1_1));
-            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper().readTree(whoAmIRes.getEntity().getContent());
             String whoAmIResponsePayload = whoAmIResNode.toPrettyString();
             assertThat(whoAmIResponsePayload, whoAmIResNode.get("dn").asText(), is("CN=spock,OU=client,O=client,L=Test,C=DE"));
             Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_admin").asBoolean());

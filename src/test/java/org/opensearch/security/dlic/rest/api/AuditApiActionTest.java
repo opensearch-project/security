@@ -20,10 +20,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.After;
@@ -38,6 +34,11 @@ import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
@@ -112,7 +113,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             AuditConfig.Filter.from(ImmutableMap.of("disabled_rest_categories", testCategories)),
             ComplianceConfig.DEFAULT
         );
-        final ObjectNode json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        final ObjectNode json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
 
         testPutRequest(json, HttpStatus.SC_OK, true);
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
@@ -133,7 +134,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             AuditConfig.Filter.from(ImmutableMap.of("disabled_rest_categories", ImmutableList.of("INDEX_EVENT", "COMPLIANCE_DOC_READ"))),
             ComplianceConfig.DEFAULT
         );
-        ObjectNode json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        ObjectNode json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
         RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
@@ -155,7 +156,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             ),
             ComplianceConfig.DEFAULT
         );
-        json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
         response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
@@ -167,7 +168,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             ),
             ComplianceConfig.DEFAULT
         );
-        json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
         response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
@@ -191,7 +192,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
             ),
             ComplianceConfig.DEFAULT
         );
-        json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
+        json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
         response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
     }
@@ -207,7 +208,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         updateStaticResourceReadonly(readonlyFields);
 
         setupWithRestRoles(null);
-        final ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
+        final ObjectMapper objectMapper = DefaultObjectMapper.objectMapper();
 
         // test get
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
@@ -251,10 +252,8 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     private void updateStaticResourceReadonly(List<String> readonly) throws IOException {
         // create audit config
         final Map<String, Object> result = ImmutableMap.of(AuditApiAction.READONLY_FIELD, readonly);
-        DefaultObjectMapper.YAML_MAPPER.writeValue(
-            FileHelper.getAbsoluteFilePathFromClassPath(AuditApiAction.STATIC_RESOURCE.substring(1)).toFile(),
-            result
-        );
+        DefaultObjectMapper.yamlMapper()
+            .writeValue(FileHelper.getAbsoluteFilePathFromClassPath(AuditApiAction.STATIC_RESOURCE.substring(1)).toFile(), result);
     }
 
     private void testPutRequest(final JsonNode json, final int expectedStatus, final boolean sendAdminCertificate, final Header... header)

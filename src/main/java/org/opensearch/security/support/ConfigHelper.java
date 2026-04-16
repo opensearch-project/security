@@ -132,7 +132,7 @@ public class ConfigHelper {
     }
 
     public static String createEmptySdcYaml(CType<?> cType, int configVersion) throws Exception {
-        return DefaultObjectMapper.YAML_MAPPER.writeValueAsString(createEmptySdc(cType, configVersion));
+        return DefaultObjectMapper.yamlMapper().writeValueAsString(createEmptySdc(cType, configVersion));
     }
 
     public static BytesReference readXContent(final Reader reader, final MediaType mediaType) throws IOException {
@@ -161,7 +161,7 @@ public class ConfigHelper {
     ) throws IOException {
         try {
             return SecurityDynamicConfiguration.fromNode(
-                DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader),
+                DefaultObjectMapper.yamlMapper().readTree(yamlReader),
                 ctype,
                 version,
                 seqNo,
