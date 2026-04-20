@@ -17,9 +17,6 @@ import java.nio.file.Files;
 import java.util.Optional;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,6 +39,9 @@ import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;
 import org.passay.PasswordData;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLFactory;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;

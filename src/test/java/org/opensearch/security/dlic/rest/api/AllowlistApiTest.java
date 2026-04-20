@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
@@ -31,6 +30,8 @@ import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

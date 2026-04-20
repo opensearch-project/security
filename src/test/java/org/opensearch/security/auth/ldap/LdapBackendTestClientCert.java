@@ -11,10 +11,6 @@
 
 package org.opensearch.security.auth.ldap;
 
-import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 import org.junit.Assert;
@@ -272,28 +268,6 @@ public class LdapBackendTestClientCert {
         final User user = new LDAPAuthenticationBackend(settings, null).authenticate(ctx("ldap_hr_employee", "ldap_hr_employee"));
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("ldap_hr_employee"));
-    }
-
-    public static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
-        File file = null;
-        final URL fileUrl = LdapBackendTestClientCert.class.getClassLoader().getResource(fileNameFromClasspath);
-        if (fileUrl != null) {
-            try {
-                file = new File(URLDecoder.decode(fileUrl.getFile(), "UTF-8"));
-            } catch (final UnsupportedEncodingException e) {
-                return null;
-            }
-
-            if (file.exists() && file.canRead()) {
-                return file;
-            } else {
-                System.err.println("Cannot read from {}, maybe the file does not exists? " + file.getAbsolutePath());
-            }
-
-        } else {
-            System.err.println("Failed to load " + fileNameFromClasspath);
-        }
-        return null;
     }
 
     static AuthenticationContext ctx(String userName, String password) {
