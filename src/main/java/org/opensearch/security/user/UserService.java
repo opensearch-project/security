@@ -155,17 +155,23 @@ public class UserService {
             throw new UserServiceException(NO_ACCOUNT_NAME_MESSAGE);
         }
 
-        SecurityJsonNode attributeNode = securityJsonNode.get("attributes");
+        // Read service flag from top level (boolean)
+        SecurityJsonNode serviceNode = securityJsonNode.get("service");
+        boolean isServiceAccount = !serviceNode.isNull() && Boolean.parseBoolean(serviceNode.asString());
 
-        if (!attributeNode.get("service").isNull() && attributeNode.get("service").asString().equalsIgnoreCase("true")) { // If this is a
-                                                                                                                          // service account
+        if (isServiceAccount) {
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
             contentAsNode.put("hash", passwordHasher.hash(password.toCharArray()));
-            contentAsNode.put("service", "true");
+            contentAsNode.put("service", true);
         } else {
-            contentAsNode.put("service", "false");
+            contentAsNode.put("service", false);
         }
+
+        // Read enabled flag from top level (boolean), default to true
+        SecurityJsonNode enabledNode = securityJsonNode.get("enabled");
+        boolean isEnabled = enabledNode.isNull() || Boolean.parseBoolean(enabledNode.asString());
+        contentAsNode.put("enabled", isEnabled);
 
         securityJsonNode = new SecurityJsonNode(contentAsNode);
         final var foundRestrictedContents = restrictedFromUsername(accountName);
@@ -183,10 +189,6 @@ public class UserService {
             contentAsNode.remove("password");
         } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
             contentAsNode.remove("password");
-        }
-
-        if (!attributeNode.get("enabled").isNull()) {
-            contentAsNode.put("enabled", securityJsonNode.get("enabled").asString());
         }
 
         final boolean userExisted = internalUsersConfiguration.exists(accountName);
@@ -273,21 +275,23 @@ public class UserService {
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-            Optional.ofNullable(securityJsonNode.get("attributes").get("service"))
-                .map(SecurityJsonNode::asString)
-                .filter("true"::equalsIgnoreCase)
-                .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
+            var serviceNode = securityJsonNode.get("service");
+            boolean isService = !serviceNode.isNull() && Boolean.parseBoolean(serviceNode.asString());
+            if (!isService) {
+                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+            }
 
-            Optional.ofNullable(securityJsonNode.get("attributes").get("enabled"))
-                .map(SecurityJsonNode::asString)
-                .filter("true"::equalsIgnoreCase)
-                .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
+            var enabledNode = securityJsonNode.get("enabled");
+            boolean isEnabled = enabledNode.isNull() || Boolean.parseBoolean(enabledNode.asString());
+            if (!isEnabled) {
+                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+            }
 
             // Generate a new password for the account and store the hash of it
             String plainTextPassword = generatePassword();
             contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
-            contentAsNode.put("enabled", "true");
-            contentAsNode.put("service", "true");
+            contentAsNode.put("enabled", true);
+            contentAsNode.put("service", true);
 
             // Update the internal user associated with the auth token
             internalUsersConfiguration.remove(accountName);
@@ -296,7 +300,8 @@ public class UserService {
                 accountName,
                 DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
             );
-            saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
+            saveAndUpdateConfigs(securityIndex, client, CType.INTERNALUSERS, internalUsersConfiguration);
+            configurationRepository.reloadConfiguration(java.util.Set.of(CType.INTERNALUSERS), null);
 
             authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
             return new BasicAuthToken("Basic " + authToken);
