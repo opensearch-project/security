@@ -12,7 +12,6 @@
 package org.opensearch.security.resources;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -228,6 +227,8 @@ public class ResourceAccessHandler {
         @NonNull String resourceType,
         @Nullable ShareWith add,
         @Nullable ShareWith revoke,
+        boolean generalAccessPresent,
+        @Nullable String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -264,19 +265,27 @@ public class ResourceAccessHandler {
             revoke
         );
 
-        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, add, revoke, ActionListener.wrap(sharingInfo -> {
-            LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
-            listener.onResponse(sharingInfo);
-        }, e -> {
-            LOGGER.error(
-                "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
-                resourceId,
-                add,
-                revoke,
-                e.getMessage()
-            );
-            listener.onFailure(e);
-        }));
+        this.resourceSharingIndexHandler.patchSharingInfo(
+            resourceId,
+            resourceIndex,
+            add,
+            revoke,
+            generalAccessPresent,
+            generalAccess,
+            ActionListener.wrap(sharingInfo -> {
+                LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
+                listener.onResponse(sharingInfo);
+            }, e -> {
+                LOGGER.error(
+                    "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
+                    resourceId,
+                    add,
+                    revoke,
+                    e.getMessage()
+                );
+                listener.onFailure(e);
+            })
+        );
 
     }
 
@@ -396,14 +405,10 @@ public class ResourceAccessHandler {
     private Set<String> getFlatPrincipals(User user) {
         // 1) collect all entities we’ll match against share_with arrays
         // for users:
-        Set<String> users = new HashSet<>();
-        users.add(user.getName());
-        users.add("*"); // for matching against publicly shared resource
-
         // return flattened principals to build the bool query
         return Stream.concat(
-            // users
-            users.stream().map(u -> "user:" + u),
+            // users, plus bare "public" sentinel for publicly shared resources
+            Stream.concat(Stream.of("user:" + user.getName(), "public"), Stream.empty()),
             // then roles and backend_roles
             Stream.concat(user.getSecurityRoles().stream().map(r -> "role:" + r), user.getRoles().stream().map(b -> "backend:" + b))
         ).collect(Collectors.toSet());

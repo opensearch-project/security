@@ -25,8 +25,6 @@ import com.google.common.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
@@ -36,6 +34,8 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
+
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT;
@@ -95,7 +95,7 @@ public class AuditConfig {
     private final boolean auditLogEnabled;
     @JsonProperty("audit")
     private final Filter filter;
-
+    @JsonProperty("compliance")
     private final ComplianceConfig compliance;
 
     public boolean isEnabled() {
@@ -224,7 +224,7 @@ public class AuditConfig {
 
         @JsonCreator
         @VisibleForTesting
-        public static Filter from(Map<String, Object> properties) throws JsonProcessingException {
+        public static Filter from(Map<String, Object> properties) {
             if (!FIELDS.containsAll(properties.keySet())) {
                 throw new UnrecognizedPropertyException(
                     null,

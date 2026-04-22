@@ -69,6 +69,7 @@ import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
 
 /**
@@ -273,7 +274,7 @@ public interface OpenSearchClientProvider {
             trustCertificates = PemKeyReader.loadCertificatesFromFile(getTestCertificates().getRootCertificate());
 
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            KeyStore ks = KeyStore.getInstance(DEFAULT_STORE_TYPE);
 
             ks.load(null);
 
