@@ -16,6 +16,9 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.xcontent.XContentParser;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -315,5 +318,26 @@ public class ResourceSharingTests {
         List<String> principals = rs.getAllPrincipals();
         assertEquals(1, principals.size());
         assertEquals("user:owner", principals.get(0));
+    }
+
+    @Test
+    public void fromXContent_parsesTopLevelTenant() throws Exception {
+        String json = """
+            {
+              "resource_id": "r1",
+              "resource_type": "sample-resource",
+              "tenant": "customtenant",
+              "created_by": {
+                "user": "owner"
+              }
+            }
+            """;
+
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing sharing = ResourceSharing.fromXContent(parser);
+            assertEquals("customtenant", sharing.getTenant());
+            assertEquals("owner", sharing.getCreatedBy().getUsername());
+        }
     }
 }
