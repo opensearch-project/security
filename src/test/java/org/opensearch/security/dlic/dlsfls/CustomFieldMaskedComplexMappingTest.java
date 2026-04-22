@@ -190,7 +190,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains("69ce5643cf2abe2dec163330161e669"));
         Assert.assertFalse(res.getBody().contains("0b50856e97a54df444ff8f7c73c67fc3109aa234"));
         Assert.assertTrue(res.getBody().contains("win xp"));
-        Assert.assertTrue(res.getBody().contains("\"timestamp\" : \"2018-07-22T20:45:16.163Z"));
+        Assert.assertTrue(res.getBody().contains("\"timestamp\":\"2018-07-22T20:45:16.163Z"));
 
         for (int i = 0; i < 10; i++) {
 
@@ -223,7 +223,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
             Assert.assertTrue(res.getBody().contains("69ce5643cf2abe2dec163330161e669"));
             Assert.assertTrue(res.getBody().contains("0b50856e97a54df444ff8f7c73c67fc3109aa234"));
             Assert.assertFalse(res.getBody().contains("win xp"));
-            Assert.assertFalse(res.getBody().contains("\"timestamp\" : \"2018-07-22T20:45:16.163Z"));
+            Assert.assertFalse(res.getBody().contains("\"timestamp\":\"2018-07-22T20:45:16.163Z"));
         }
 
         assertThat(
@@ -252,6 +252,6 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains("69ce5643cf2abe2dec163330161e669"));
         Assert.assertFalse(res.getBody().contains("0b50856e97a54df444ff8f7c73c67fc3109aa234"));
         Assert.assertTrue(res.getBody().contains("win xp"));
-        Assert.assertTrue(res.getBody().contains("\"timestamp\" : \"2018-07-22T20:45:16.163Z"));
+        Assert.assertTrue(res.getBody().contains("\"timestamp\":\"2018-07-22T20:45:16.163Z"));
     }
 }

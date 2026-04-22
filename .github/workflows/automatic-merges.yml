@@ -14,15 +14,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: GitHub App token
+        id: github_app_token
+        uses: tibdex/github-app-token@v2.1.0
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          installation_id: 22958780
+
       - id: find-triggering-pr
         uses: peternied/find-triggering-pr@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.github_app_token.outputs.token }}
 
       - uses: peternied/discerning-merger@v3
         if: steps.find-triggering-pr.outputs.pr-number != null
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.github_app_token.outputs.token }}
           pull-request-number: ${{ steps.find-triggering-pr.outputs.pr-number }}
           allowed-authors: |
             dependabot[bot]

@@ -76,7 +76,7 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest {
                     .getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 3,"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1710.0"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
@@ -84,7 +84,7 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest {
             HttpStatus.SC_OK,
             is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 4,"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 21711.0"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
     }
@@ -111,14 +111,14 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest {
                     .getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 3,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         assertThat(
             HttpStatus.SC_OK,
             is((res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 4,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         String query =
@@ -142,7 +142,7 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest {
                     .getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 1,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         query =
@@ -166,14 +166,14 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest {
                     .getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 2,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         assertThat(
             HttpStatus.SC_OK,
             is((res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 2,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         assertThat(
@@ -183,7 +183,7 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest {
                     .getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 1,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         res = rh.executeGetRequest("/deals/_doc/3?pretty", encodeBasicHeader("dept_manager_multi", "password"));
@@ -225,13 +225,13 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest {
                     .getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody(), res.getBody().contains("\"value\" : 3,\n          \"relation"));
+        Assert.assertTrue(res.getBody(), res.getBody().contains("\"value\" : 3,"));
         Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
         Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 1500"));
-        Assert.assertFalse(res.getBody().contains("\"amount\" : 20001"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 200"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 20"));
+        Assert.assertTrue(res.getBody().contains("\"amount\":1500"));
+        Assert.assertFalse(res.getBody().contains("\"amount\":20001"));
+        Assert.assertTrue(res.getBody().contains("\"amount\":200"));
+        Assert.assertTrue(res.getBody().contains("\"amount\":10"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         String mgetBody = "{"
@@ -261,10 +261,10 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest {
         );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
         Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 1500"));
-        Assert.assertFalse(res.getBody().contains("\"amount\" : 20001"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 200"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 20"));
+        Assert.assertTrue(res.getBody().contains("\"amount\":1500"));
+        Assert.assertFalse(res.getBody().contains("\"amount\":20001"));
+        Assert.assertTrue(res.getBody().contains("\"amount\":200"));
+        Assert.assertTrue(res.getBody().contains("\"amount\":10"));
         Assert.assertTrue(res.getBody().contains("\"found\" : false"));
     }
 

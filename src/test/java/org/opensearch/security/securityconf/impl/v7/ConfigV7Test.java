@@ -11,14 +11,18 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 import com.google.common.collect.ImmutableList;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import org.opensearch.security.DefaultObjectMapper;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -37,6 +41,13 @@ public class ConfigV7Test {
         assertThat(node.get("multitenancy_enabled").asBoolean(), is(expected.multitenancy_enabled));
         assertThat(node.get("sign_in_options").isArray(), is(true));
         assertThat(node.get("sign_in_options").toString(), containsString(expected.sign_in_options.get(0).toString()));
+        JsonNode preferredTenantsNode = node.get("preferred_tenants");
+        if (omitDefaults && expected.preferred_tenants.isEmpty()) {
+            Assert.assertNull(preferredTenantsNode);
+        } else {
+            assertThat(preferredTenantsNode.isArray(), is(true));
+            assertThat(preferredTenantsNode.size(), is(expected.preferred_tenants.size()));
+        }
 
         if (expected.server_username == null) {
             Assert.assertNull(node.get("server_username"));
@@ -59,6 +70,7 @@ public class ConfigV7Test {
     private void assertEquals(ConfigV7.Kibana expected, ConfigV7.Kibana actual) {
         assertThat(actual.multitenancy_enabled, is(expected.multitenancy_enabled));
         assertThat(expected.sign_in_options, is(actual.sign_in_options));
+        assertThat(expected.preferred_tenants, is(actual.preferred_tenants));
         if (expected.server_username == null) {
             // null is restored to default instead of null
             assertThat(actual.server_username, is(new ConfigV7.Kibana().server_username));
@@ -85,6 +97,7 @@ public class ConfigV7Test {
         String json;
 
         kibana = new ConfigV7.Kibana();
+        assertThat(kibana.preferred_tenants, is(Collections.emptyList()));
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
         assertEquals(kibana, DefaultObjectMapper.readTree(json));
         assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
@@ -101,6 +114,7 @@ public class ConfigV7Test {
         kibana.server_username = "user";
         kibana.opendistro_role = "role";
         kibana.index = "index";
+        kibana.preferred_tenants = Arrays.asList("Private", "Global");
         json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
         assertEquals(kibana, DefaultObjectMapper.readTree(json));
         assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));

@@ -123,7 +123,8 @@ public class ResourceIndexListener implements IndexingOperationListener {
             ResourceSharing.Builder builder = ResourceSharing.builder()
                 .resourceId(resourceId)
                 .resourceType(resourceType)
-                .createdBy(new CreatedBy(user.getName(), user.getRequestedTenant()));
+                .tenant(user.getRequestedTenant())
+                .createdBy(new CreatedBy(user.getName()));
             if (provider.parentType() != null) {
                 builder.parentType(provider.parentType())
                     .parentId(ResourcePluginInfo.extractFieldFromIndexOp(provider.parentIdField(), index));

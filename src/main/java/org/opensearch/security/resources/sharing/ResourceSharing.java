@@ -57,6 +57,13 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private String resourceType;
 
     /**
+     * The tenant where the resource lives.
+     *
+     * Nullable when multi-tenancy is disabled.
+     */
+    private String tenant;
+
+    /**
      * The type of the parent resource
      *
      * Nullable
@@ -83,6 +90,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private ResourceSharing(Builder b) {
         this.resourceId = b.resourceId;
         this.resourceType = b.resourceType;
+        this.tenant = b.tenant;
         this.parentType = b.parentType;
         this.parentId = b.parentId;
         this.createdBy = b.createdBy;
@@ -99,6 +107,10 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public void setResourceId(String resourceId) {
         this.resourceId = resourceId;
+    }
+
+    public String getTenant() {
+        return tenant;
     }
 
     public CreatedBy getCreatedBy() {
@@ -176,6 +188,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         ResourceSharing that = (ResourceSharing) o;
         return Objects.equals(resourceId, that.resourceId)
             && Objects.equals(resourceType, that.resourceType)
+            && Objects.equals(tenant, that.tenant)
             && Objects.equals(parentType, that.parentType)
             && Objects.equals(parentId, that.parentId)
             && Objects.equals(createdBy, that.createdBy)
@@ -184,7 +197,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourceId, resourceType, parentType, parentId, createdBy, shareWith);
+        return Objects.hash(resourceId, resourceType, tenant, parentType, parentId, createdBy, shareWith);
     }
 
     @Override
@@ -195,6 +208,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             + '\''
             + ", resourceType='"
             + resourceType
+            + '\''
+            + ", tenant='"
+            + tenant
             + '\''
             + ", parentType='"
             + parentType
@@ -218,6 +234,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(resourceId);
         out.writeString(resourceType);
+        out.writeOptionalString(tenant);
         out.writeOptionalString(parentType);
         out.writeOptionalString(parentId);
         createdBy.writeTo(out);
@@ -231,7 +248,11 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject().field("resource_id", resourceId).field("resource_type", resourceType).field("created_by");
+        builder.startObject().field("resource_id", resourceId).field("resource_type", resourceType);
+        if (tenant != null) {
+            builder.field("tenant", tenant);
+        }
+        builder.field("created_by");
         createdBy.toXContent(builder, params);
         if (parentType != null) {
             builder.field("parent_type", parentType);
@@ -264,6 +285,13 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
                             b.resourceType(null);
                         } else {
                             b.resourceType(parser.text());
+                        }
+                        break;
+                    case "tenant":
+                        if (token == XContentParser.Token.VALUE_NULL) {
+                            b.tenant(null);
+                        } else {
+                            b.tenant(parser.text());
                         }
                         break;
                     case "parent_type":
@@ -441,6 +469,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     public static final class Builder {
         private String resourceId;
         private String resourceType;
+        private String tenant;
         private String parentType;
         private String parentId;
         private CreatedBy createdBy;
@@ -453,6 +482,11 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
         public Builder resourceType(String resourceType) {
             this.resourceType = resourceType;
+            return this;
+        }
+
+        public Builder tenant(String tenant) {
+            this.tenant = tenant;
             return this;
         }
 

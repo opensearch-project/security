@@ -19,28 +19,31 @@ package org.opensearch.security.ssl;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.security.GeneralSecurityException;
 import java.security.cert.CRL;
-import java.security.cert.CertPathBuilderException;
+import java.security.cert.CertPathValidatorException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.security.cert.CertificateRevokedException;
+import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
-import org.opensearch.ExceptionsHelper;
 import org.opensearch.security.ssl.util.CertificateValidator;
 import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class CertificateValidatorTest {
@@ -77,13 +80,17 @@ public class CertificateValidatorTest {
 
         assertThat(2, is(certsToValidate.size()));
 
-        CertificateValidator validator = new CertificateValidator(rootCas.toArray(new X509Certificate[0]), crls);
+        Set<TrustAnchor> trustAnchors = SSLRequestHelper.trustAnchorsFrom(rootCas.toArray(new X509Certificate[0]));
+        CertificateValidator validator = new CertificateValidator(trustAnchors, crls);
         validator.setDate(CRL_DATE);
         try {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
             Assert.fail();
-        } catch (CertificateException e) {
-            Assert.assertTrue(ExceptionUtils.getRootCause(e) instanceof CertificateRevokedException);
+        } catch (GeneralSecurityException e) {
+            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? "Certificate revocation after 2018-05-05"
+                : "Certificate has been revoked";
+            Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
 
@@ -116,12 +123,16 @@ public class CertificateValidatorTest {
 
         assertThat(3, is(certsToValidate.size()));
 
-        CertificateValidator validator = new CertificateValidator(rootCas.toArray(new X509Certificate[0]), crls);
+        Set<TrustAnchor> trustAnchors = SSLRequestHelper.trustAnchorsFrom(rootCas.toArray(new X509Certificate[0]));
+        CertificateValidator validator = new CertificateValidator(trustAnchors, crls);
         validator.setDate(CRL_DATE);
         try {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
-        } catch (CertificateException e) {
-            Assert.fail(ExceptionsHelper.stackTrace(ExceptionUtils.getRootCause(e)));
+        } catch (GeneralSecurityException e) {
+            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? "No CRLs found for issuer"
+                : "Certificate has been revoked";
+            Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
 
@@ -146,14 +157,18 @@ public class CertificateValidatorTest {
 
         assertThat(2, is(certsToValidate.size()));
 
-        CertificateValidator validator = new CertificateValidator(rootCas.toArray(new X509Certificate[0]), Collections.emptyList());
+        Set<TrustAnchor> trustAnchors = SSLRequestHelper.trustAnchorsFrom(rootCas.toArray(new X509Certificate[0]));
+        CertificateValidator validator = new CertificateValidator(trustAnchors, Collections.emptyList());
         validator.setDate(CRL_DATE);
         try {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
             Assert.fail();
-        } catch (CertificateException e) {
-            Assert.assertTrue(e.getCause() instanceof CertPathBuilderException);
-            Assert.assertTrue(e.getCause().getMessage().contains("unable to find valid certification path to requested target"));
+        } catch (GeneralSecurityException e) {
+            assertThat(e, instanceOf(CertPathValidatorException.class));
+            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? "No CRLs found for issuer"
+                : "Certificate has been revoked";
+            Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
 
@@ -179,15 +194,19 @@ public class CertificateValidatorTest {
 
         assertThat(2, is(certsToValidate.size()));
 
-        CertificateValidator validator = new CertificateValidator(rootCas.toArray(new X509Certificate[0]), Collections.emptyList());
+        Set<TrustAnchor> trustAnchors = SSLRequestHelper.trustAnchorsFrom(rootCas.toArray(new X509Certificate[0]));
+        CertificateValidator validator = new CertificateValidator(trustAnchors, Collections.emptyList());
         validator.setEnableCRLDP(true);
         validator.setEnableOCSP(true);
         validator.setDate(CRL_DATE);
         try {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
             Assert.fail();
-        } catch (CertificateException e) {
-            Assert.assertTrue(ExceptionUtils.getRootCause(e) instanceof CertificateRevokedException);
+        } catch (GeneralSecurityException e) {
+            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? "No CRLs found for issuer"
+                : "Certificate has been revoked";
+            Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
 }

@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,6 +54,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -386,7 +386,7 @@ public class SecurityIndexHandlerTest {
         );
         doAnswer(invocation -> {
 
-            final var objectMapper = DefaultObjectMapper.objectMapper;
+            final var objectMapper = DefaultObjectMapper.objectMapper();
 
             ActionListener<MultiGetResponse> actionListener = invocation.getArgument(1);
             final var getResult = mock(GetResult.class);
@@ -421,7 +421,7 @@ public class SecurityIndexHandlerTest {
             }
         }, e -> fail("Unexpected behave")));
         doAnswer(invocation -> {
-            final var objectMapper = DefaultObjectMapper.objectMapper;
+            final var objectMapper = DefaultObjectMapper.objectMapper();
             ActionListener<MultiGetResponse> actionListener = invocation.getArgument(1);
 
             final var responses = new MultiGetItemResponse[CType.values().size()];
@@ -462,7 +462,7 @@ public class SecurityIndexHandlerTest {
     }
 
     private ObjectNode minimumRequiredConfig(final CType<?> cType) {
-        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var objectMapper = DefaultObjectMapper.objectMapper();
         return objectMapper.createObjectNode()
             .set("_meta", objectMapper.createObjectNode().put("type", cType.toLCString()).put("config_version", DEFAULT_CONFIG_VERSION));
     }
