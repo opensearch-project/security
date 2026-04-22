@@ -23,6 +23,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.http.HttpServerTransport;
+import org.opensearch.http.netty4.Netty4Http3ServerTransport;
 import org.opensearch.http.netty4.ssl.SecureNetty4HttpServerTransport;
 import org.opensearch.plugins.SecureAuxTransportSettingsProvider;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
@@ -199,12 +200,15 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                     @SuppressWarnings("unchecked")
                     @Override
                     public <C> Optional<C> create(Settings settings, HttpServerTransport transport, Class<C> adapterClass) {
-                        if (transport instanceof SecureNetty4HttpServerTransport
-                            && ChannelInboundHandlerAdapter.class.isAssignableFrom(adapterClass)) {
+                        if (transportSupported(transport) && ChannelInboundHandlerAdapter.class.isAssignableFrom(adapterClass)) {
                             return Optional.of((C) new Netty4ConditionalDecompressor());
                         } else {
                             return Optional.empty();
                         }
+                    }
+
+                    private boolean transportSupported(HttpServerTransport transport) {
+                        return transport instanceof SecureNetty4HttpServerTransport || transport instanceof Netty4Http3ServerTransport;
                     }
                 }, new TransportAdapterProvider<HttpServerTransport>() {
                     @Override
@@ -215,12 +219,15 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                     @SuppressWarnings("unchecked")
                     @Override
                     public <C> Optional<C> create(Settings settings, HttpServerTransport transport, Class<C> adapterClass) {
-                        if (transport instanceof SecureNetty4HttpServerTransport
-                            && ChannelInboundHandlerAdapter.class.isAssignableFrom(adapterClass)) {
+                        if (transportSupported(transport) && ChannelInboundHandlerAdapter.class.isAssignableFrom(adapterClass)) {
                             return Optional.of((C) new Netty4HttpRequestHeaderVerifier(restFilter, threadPool, settings));
                         } else {
                             return Optional.empty();
                         }
+                    }
+
+                    private boolean transportSupported(HttpServerTransport transport) {
+                        return transport instanceof SecureNetty4HttpServerTransport || transport instanceof Netty4Http3ServerTransport;
                     }
                 });
             }
