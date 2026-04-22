@@ -20,6 +20,8 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.util.Base64URL;
 
 class TestJwk {
@@ -47,6 +49,10 @@ class TestJwk {
         "hMSoV74FRtoaU7xpp0llsXbHE4oUseKoSNga-C_YIXuoGc3pajHh1WtJppZQNYM1Xy07nHchLJAdgqL2_q_Lk8cFHmmL1KTjwPflK9zZ9C0-8QTOrrqU9vkp3gT00jWWJ0HJbUvXIGxPGPnxoJoI--ToE0EWsYEWqWyx1TqYol--oUUPlY5r7vXRKIn5UZNz6VGkW8nI4fXaqDUpXH9uVM9A-nJX2B0Xjwu3VOn2zrgkCZeGTHjNgfLISOTFe9m8lHWLKcuxOWPuCZyCN0C6ZdWB1YP2NhxYFQwQfGV8yfnTImgL-DuV4WPSRVj7W_GJr213-oXBrBR0CnQEPbi_3w";
     static final String RSA_1_E = "AQAB";
 
+    static final String EC_1_X = "K9a34L6QkEkWggKi700OyBCRghR2Xt-0Wym8qz0GdsM";
+    static final String EC_1_Y = "NaINav68UqRb9D9MWkUJZN6acnuOYSb2iWAVI05iKpw";
+    static final String EC_1_D = "lkTOA6MmmMDUg44V0coRAHbB5Zw-0748N8l8EOK8-5A";
+
     static final String RSA_2_D =
         "QQ18k_buZHOSVYzkXL1FaqdodZVNZ_hrBtDcmCVUYjm3dfDVQYt70h8LUdLUCSUA2-_VEwqVdQ-L2FTg7NZVvZJXIyQXp3yrdY1vGKebs3oaIB_VQT8jt-64s12r_8V2ksK2myRrvfm2Fgqi32H5QkspuaQYb9s4NJwKSk7mVAz5dRWQdCx9JNVWknWDJxgHzh3Uku1tNwUOyvSYcRnSZ9X7oWNHaHkSGLEYE_mxD7YXs6HEdCDwc3WuvR5AiVKg2OGec0lL1hY_AWX5UxnR00mhAa0qPytFfaPe-Sc5tQ5regQRqRNDyDESVGIvqXsY8ePjZPOFyoxrcJ2wN3bt4Q";
     static final String RSA_2_N =
@@ -61,6 +67,9 @@ class TestJwk {
 
     static final JWK RSA_1 = createRsa("kid/1", "RS256", RSA_1_E, RSA_1_N, RSA_1_D);
 
+    static final JWK EC_1 = createEc("kid/ec1", "ES256", EC_1_X, EC_1_Y, EC_1_D);
+    static final JWK EC_1_PUBLIC = createEc("kid/ec1", "ES256", EC_1_X, EC_1_Y, null);
+
     static final JWK RSA_1_PUBLIC = createRsaPublic("kid/1", "RS256", RSA_1_E, RSA_1_N);
     static final JWK RSA_1_PUBLIC_NO_ALG = createRsaPublic("kid/1", null, RSA_1_E, RSA_1_N);
     static final JWK RSA_1_PUBLIC_WRONG_ALG = createRsaPublic("kid/1", "HS256", RSA_1_E, RSA_1_N);
@@ -74,9 +83,10 @@ class TestJwk {
     static final JWKSet RSA_1_2_PUBLIC = createJwks(RSA_1_PUBLIC, RSA_2_PUBLIC);
 
     static class Jwks {
-        static final JWKSet ALL = createJwks(OCT_1, OCT_2, OCT_3, FORWARD_SLASH_KID_OCT_1, RSA_1_PUBLIC, RSA_2_PUBLIC);
+        static final JWKSet ALL = createJwks(OCT_1, OCT_2, OCT_3, FORWARD_SLASH_KID_OCT_1, RSA_1_PUBLIC, RSA_2_PUBLIC, EC_1_PUBLIC);
         static final JWKSet RSA_1 = createJwks(RSA_1_PUBLIC);
         static final JWKSet RSA_2 = createJwks(RSA_2_PUBLIC);
+        static final JWKSet EC_1 = createJwks(EC_1_PUBLIC);
         static final JWKSet RSA_1_NO_ALG = createJwks(RSA_1_PUBLIC_NO_ALG);
         static final JWKSet RSA_1_WRONG_ALG = createJwks(RSA_1_PUBLIC_WRONG_ALG);
     }
@@ -102,6 +112,23 @@ class TestJwk {
 
     private static JWK createRsaPublic(String keyId, String algorithm, String e, String n) {
         return createRsa(keyId, algorithm, e, n, null);
+    }
+
+    private static JWK createEc(String keyId, String algorithm, String x, String y, String d) {
+        ECKey.Builder builder = new ECKey.Builder(
+                Curve.P_256,
+                Base64URL.from(x),
+                Base64URL.from(y)
+        )
+                .keyUse(KeyUse.SIGNATURE)
+                .algorithm(algorithm == null ? null : JWSAlgorithm.parse(algorithm))
+                .keyID(keyId);
+
+        if (d != null) {
+            builder.d(Base64URL.from(d));
+        }
+
+        return builder.build();
     }
 
     private static JWKSet createJwks(JWK... array) {

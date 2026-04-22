@@ -27,6 +27,8 @@ import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.proc.SimpleSecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -52,7 +54,6 @@ public class JwtVerifier {
     public SignedJWT getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
         try {
             SignedJWT jwt = SignedJWT.parse(encodedJwt);
-
             String escapedKid = jwt.getHeader().getKeyID();
             String kid = escapedKid;
             if (!Strings.isNullOrEmpty(kid)) {
@@ -61,7 +62,6 @@ public class JwtVerifier {
                 log.debug("JWT token is missing 'kid' (Key ID) claim in header. This may cause key selection issues.");
             }
             JWK key = keyProvider.getKey(kid);
-
             JWSVerifier signatureVerifier = getInitializedSignatureVerifier(key, jwt);
             boolean signatureValid = jwt.verify(signatureVerifier);
 
@@ -104,10 +104,16 @@ public class JwtVerifier {
 
         validateSignatureAlgorithm(key, jwt);
         final JWSVerifier result;
-        if (key.getClass() == OctetSequenceKey.class) {
+        if (key instanceof OctetSequenceKey) {
             result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toOctetSequenceKey().toSecretKey());
+        } else if (key instanceof RSAKey) {
+            result = new DefaultJWSVerifierFactory()
+                    .createJWSVerifier(jwt.getHeader(), key.toRSAKey().toRSAPublicKey());
+        } else if (key instanceof ECKey) {
+            result = new DefaultJWSVerifierFactory()
+                    .createJWSVerifier(jwt.getHeader(), key.toECKey().toECPublicKey());
         } else {
-            result = new DefaultJWSVerifierFactory().createJWSVerifier(jwt.getHeader(), key.toRSAKey().toRSAPublicKey());
+            throw new IllegalArgumentException("Unsupported JWK key type: " + key.getClass());
         }
 
         if (result == null) {
