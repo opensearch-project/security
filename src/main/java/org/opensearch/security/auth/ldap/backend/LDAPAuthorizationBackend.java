@@ -936,6 +936,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             } else {
                 // DN roles, extract rolename according to config
+                if (connection == null) {
+                    connection = getConnection(settings, configPath);
+                }
+
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
