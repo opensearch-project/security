@@ -56,7 +56,7 @@ public class UserAttributes {
         final var replacements = new HashMap<>(replacementsWithDots);
         replacementsWithDots.forEach((k, v) -> replacements.put(k.replace(".", "_"), v));
 
-        final var stringSubstitutor = new StringSubstitutor(replacements);
+        final var stringSubstitutor = new StringSubstitutor(replacements).setEnableSubstitutionInVariables(true);
         orig = stringSubstitutor.replace(orig);
         return orig;
     }
