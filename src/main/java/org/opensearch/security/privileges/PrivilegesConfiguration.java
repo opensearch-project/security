@@ -20,8 +20,10 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.identity.SecurePluginSubject;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
@@ -63,6 +65,8 @@ public class PrivilegesConfiguration {
     private final SpecialIndices specialIndices;
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
 
+    private ApiTokenRepository apiTokenRepository;
+    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges = new HashMap<>();
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
      * not have knowledge of any action groups defined in the dynamic configuration. All other functionality should
@@ -81,6 +85,30 @@ public class PrivilegesConfiguration {
         this.staticActionGroups = buildStaticActionGroups();
         this.specialIndices = new SpecialIndices(coreDependencies.settings());
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(coreDependencies.settings());
+
+        ApiTokenRepository apiTokenRepository = coreDependencies.apiTokenRepository();
+        this.apiTokenRepository = apiTokenRepository;
+
+        if (apiTokenRepository != null) {
+            apiTokenRepository.subscribeOnChange(() -> {
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+                tokenIdToActionPrivileges.clear();
+                apiTokenRepository.forEachToken(
+                    (jti, role) -> tokenIdToActionPrivileges.put(
+                        jti,
+                        new SubjectBasedActionPrivileges(
+                            role,
+                            flattenedActionGroups,
+                            RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                            false
+                        )
+                    )
+                );
+            });
+        }
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -137,7 +165,8 @@ public class PrivilegesConfiguration {
                         specialIndices,
                         this.tenantPrivileges::get,
                         this.multiTenancyConfiguration::get,
-                        this.pluginIdToRolePrivileges
+                        this.pluginIdToRolePrivileges,
+                        this.tokenIdToActionPrivileges
                     );
 
                     if (currentType != targetType) {
