@@ -25,11 +25,18 @@ else
     DIR="$( cd "$( dirname "$(realpath "$SCRIPT_PATH")" )" && pwd -P)"
 fi
 
-
 if [ -z "$OPENSEARCH_HOME" ]; then
-  # move to opensearch root folder and set the variable
-  OPENSEARCH_HOME=`cd "$DIR/../../.."; pwd`
+  OPENSEARCH_HOME="$DIR"
+  while [ "$OPENSEARCH_HOME" != "/" ] && [ -z "$(ls "$OPENSEARCH_HOME/lib/opensearch-"*.jar 2>/dev/null)" ]; do
+    OPENSEARCH_HOME="$(dirname "$OPENSEARCH_HOME")"
+  done
+  if [ "$OPENSEARCH_HOME" = "/" ]; then
+    echo "Could not locate OpenSearch home. Set OPENSEARCH_HOME manually." >&2
+    exit 1
+  fi
 fi
+
+PLUGIN_DIR="$OPENSEARCH_HOME/plugins/opensearch-security"
 
 # now set the path to java: OPENSEARCH_JAVA_HOME -> JAVA_HOME -> bundled JRE -> bundled JDK
 if [ -n "$OPENSEARCH_JAVA_HOME" ]; then
@@ -61,4 +68,4 @@ if [ ! -x "$JAVA" ]; then
     exit 1
 fi
 
-"$JAVA" -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$DIR/../*:$DIR/../../../lib/*:$DIR/../deps/*" org.opensearch.security.tools.democonfig.Installer "$DIR" "$@" 2>/dev/null
+"$JAVA" -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$PLUGIN_DIR/*:$PLUGIN_DIR/deps/*:$OPENSEARCH_HOME/lib/*" org.opensearch.security.tools.democonfig.Installer "$OPENSEARCH_HOME" "$@" 2>/dev/null
