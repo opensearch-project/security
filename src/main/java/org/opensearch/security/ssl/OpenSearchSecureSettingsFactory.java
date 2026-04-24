@@ -207,9 +207,6 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                         }
                     }
 
-                    private boolean transportSupported(HttpServerTransport transport) {
-                        return transport instanceof SecureNetty4HttpServerTransport || transport instanceof Netty4Http3ServerTransport;
-                    }
                 }, new TransportAdapterProvider<HttpServerTransport>() {
                     @Override
                     public String name() {
@@ -224,10 +221,6 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                         } else {
                             return Optional.empty();
                         }
-                    }
-
-                    private boolean transportSupported(HttpServerTransport transport) {
-                        return transport instanceof SecureNetty4HttpServerTransport || transport instanceof Netty4Http3ServerTransport;
                     }
                 });
             }
@@ -245,6 +238,10 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             @Override
             public Optional<SSLEngine> buildSecureHttpServerEngine(Settings settings, HttpServerTransport transport) throws SSLException {
                 return sslSettingsManager.sslContextHandler(CertType.HTTP).map(SslContextHandler::createSSLEngine);
+            }
+
+            private static boolean transportSupported(HttpServerTransport transport) {
+                return transport instanceof SecureNetty4HttpServerTransport || transport instanceof Netty4Http3ServerTransport;
             }
         });
     }
