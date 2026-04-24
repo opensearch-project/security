@@ -1,24 +1,31 @@
-# Security properties for FIPS test runs.
-# Used with == (complete override): only the providers listed here are available.
-# SunJCE is intentionally absent — this removes DES, MD5-based PBE, and other
-# non-FIPS algorithms without requiring programmatic Security.removeProvider() calls.
+# Security properties for non-FIPS test runs.
+# Used with == (complete override) so all desired providers must be listed explicitly.
+# Standard JDK providers are preserved in their default order; BCFIPS is appended last
+# so it is available for tests that rely on BC-specific features without displacing JDK providers.
 
-security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider C:HYBRID;ENABLE{All};
-security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS
-security.provider.3=SunPKCS11
-security.provider.4=SUN
-security.provider.5=SunJGSS
-security.provider.6=JdkLDAP
+security.provider.1=SUN
+security.provider.2=SunRsaSign
+security.provider.3=SunEC
+security.provider.4=SunJSSE
+security.provider.5=SunJCE
+security.provider.6=SunJGSS
+security.provider.7=SunSASL
+security.provider.8=XMLDSig
+security.provider.9=SunPCSC
+security.provider.10=JdkLDAP
+security.provider.11=JdkSASL
+security.provider.12=SunPKCS11
+security.provider.13=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider C:HYBRID;ENABLE{All};
 
 login.configuration.provider=sun.security.provider.ConfigFile
 
 policy.expandProperties=true
 policy.allowSystemProperty=true
 
-keystore.type=BCFKS
+keystore.type=pkcs12
 keystore.type.compat=true
 
-ssl.KeyManagerFactory.algorithm=PKIX
+ssl.KeyManagerFactory.algorithm=SunX509
 ssl.TrustManagerFactory.algorithm=PKIX
 
 jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1 jdkCA & usage TLSServer, \
@@ -46,13 +53,3 @@ crypto.policy=unlimited
 jdk.security.caDistrustPolicies=SYMANTEC_TLS,ENTRUST_TLS,CAMERFIRMA_TLS
 
 jdk.tls.alpnCharset=ISO_8859_1
-
-# Revocation via BCTLS TrustManager (covers all TLS including LDAPS)
-com.sun.net.ssl.checkRevocation=true
-
-# BC FIPS CertPath revocation mechanisms
-ocsp.enable=true
-org.bouncycastle.x509.enableCRLDP=true
-
-# OCSP stapling — request stapled response from server
-jdk.tls.client.enableStatusRequestExtension=true

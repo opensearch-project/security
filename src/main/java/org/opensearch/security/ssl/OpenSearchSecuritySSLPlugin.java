@@ -33,8 +33,6 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
-
 import org.opensearch.OpenSearchException;
 import org.opensearch.Version;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -224,10 +222,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         if (!httpSSLEnabled && !transportSSLEnabled) {
             log.error("SSL not activated for http and/or transport.");
         }
-
-         if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
-             Security.removeProvider("SunJCE");
-         }
 
         this.sslSettingsManager = new SslSettingsManager(new Environment(settings, configPath));
     }
