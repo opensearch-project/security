@@ -12,15 +12,20 @@ package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.SortedMap;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -35,13 +40,45 @@ public class IndexPattern {
     /**
      * An IndexPattern which does not match any index.
      */
-    public static final IndexPattern EMPTY = new IndexPattern(WildcardMatcher.NONE, ImmutableList.of(), ImmutableList.of());
+    public static final IndexPattern EMPTY = new IndexPattern(
+        ImmutableList.of(),
+        WildcardMatcher.NONE,
+        WildcardMatcher.NONE,
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableList.of(),
+        ImmutableList.of(),
+        false
+    );
 
     /**
-     * Plain index patterns without any dynamic expressions like user attributes and date math.
+     * The original strings used to compile this index pattern.
+     */
+    private final ImmutableList<String> source;
+
+    /**
+     * Plain index patterns without any dynamic expressions like user attributes.
      * This can be not null. If this instance cannot match any static pattern, this will be WildcardMatcher.NONE.
      */
     private final WildcardMatcher staticPattern;
+
+    /**
+     * Plain index patterns without any dynamic expressions like user attributes and date math AND which are NOT
+     * staticConstantValuePatterns and NOT staticPrefixPatterns.
+     * This can be not null. If this instance cannot match any static pattern, this will be WildcardMatcher.NONE.
+     */
+    private final WildcardMatcher staticPatternWithoutConstantAndPrefixPatterns;
+
+    /**
+     * Plain index patterns without any dynamic expressions like user attributes which are static constant values (like "index-2023-01-01").
+     */
+    private final ImmutableSet<String> staticExactValues;
+
+    /**
+     * Plain index patterns without any dynamic expressions like user attributes which are static prefix patterns (like "index-*").
+     * The strings in this set are the prefix patterns without the trailing wildcard (like "index-").
+     */
+    private final ImmutableSet<String> staticPrefixPatterns;
 
     /**
      * Index patterns which contain user attributes (like ${user.name})
@@ -52,18 +89,94 @@ public class IndexPattern {
      * Index patterns which contain date math (like <index_{now}>)
      */
     private final ImmutableList<String> dateMathExpressions;
+
+    /**
+     * If this is true, this pattern will also match an alias or data stream if it actually matches ALL child indices of
+     * of the alias or data stream.
+     */
+    private final boolean memberIndexPrivilegesYieldAliasPrivileges;
+
     private final int hashCode;
 
-    private IndexPattern(WildcardMatcher staticPattern, ImmutableList<String> patternTemplates, ImmutableList<String> dateMathExpressions) {
+    private IndexPattern(
+        ImmutableList<String> source,
+        WildcardMatcher staticPattern,
+        WildcardMatcher staticPatternWithoutConstantAndPrefixPattern,
+        ImmutableSet<String> staticExactValues,
+        ImmutableSet<String> staticPrefixPatterns,
+        ImmutableList<String> patternTemplates,
+        ImmutableList<String> dateMathExpressions,
+        boolean memberIndexPrivilegesYieldAliasPrivileges
+    ) {
+        this.source = source;
         this.staticPattern = staticPattern;
         this.patternTemplates = patternTemplates;
         this.dateMathExpressions = dateMathExpressions;
+        this.staticExactValues = staticExactValues;
+        this.staticPatternWithoutConstantAndPrefixPatterns = staticPatternWithoutConstantAndPrefixPattern;
+        this.staticPrefixPatterns = staticPrefixPatterns;
         this.hashCode = staticPattern.hashCode() + patternTemplates.hashCode() + dateMathExpressions.hashCode();
+        this.memberIndexPrivilegesYieldAliasPrivileges = memberIndexPrivilegesYieldAliasPrivileges;
     }
 
-    public boolean matches(String index, PrivilegesEvaluationContext context, Map<String, IndexAbstraction> indexMetadata)
+    public ImmutableList<String> source() {
+        return source;
+    }
+
+    public boolean isMatchAll() {
+        return staticPattern == WildcardMatcher.ANY;
+    }
+
+    public boolean matches(
+        String indexOrAliasOrDatastream,
+        PrivilegesEvaluationContext context,
+        Map<String, IndexAbstraction> indexMetadata
+    ) throws PrivilegesEvaluationException {
+
+        if (matchesDirectly(indexOrAliasOrDatastream, context)) {
+            return true;
+        }
+
+        IndexAbstraction indexAbstraction = indexMetadata.get(indexOrAliasOrDatastream);
+
+        if (indexAbstraction instanceof IndexAbstraction.Index) {
+            // Check for the privilege for aliases or data streams containing this index
+
+            if (indexAbstraction.getParentDataStream() != null) {
+                if (matchesDirectly(indexAbstraction.getParentDataStream().getName(), context)) {
+                    return true;
+                }
+            }
+
+            // Retrieve aliases: The use of getWriteIndex() is a bit messy, but it is the only way to access
+            // alias metadata from here.
+            for (String alias : indexAbstraction.getWriteIndex().getAliases().keySet()) {
+                if (matchesDirectly(alias, context)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } else if (this.memberIndexPrivilegesYieldAliasPrivileges
+            && (indexAbstraction instanceof IndexAbstraction.Alias || indexAbstraction instanceof IndexAbstraction.DataStream)) {
+                // We have a data stream or alias: If we have no match so far, let's also check whether we have privileges for all members.
+
+                for (IndexMetadata memberIndex : indexAbstraction.getIndices()) {
+                    if (!matchesDirectly(memberIndex.getIndex().getName(), context)) {
+                        return false;
+                    }
+                }
+
+                // If we could match all members, we have a match
+                return true;
+            } else {
+                return false;
+            }
+    }
+
+    private boolean matchesDirectly(String indexOrAliasOrDatastream, PrivilegesEvaluationContext context)
         throws PrivilegesEvaluationException {
-        if (staticPattern != WildcardMatcher.NONE && staticPattern.test(index)) {
+        if (staticPattern != WildcardMatcher.NONE && staticPattern.test(indexOrAliasOrDatastream)) {
             return true;
         }
 
@@ -72,7 +185,7 @@ public class IndexPattern {
                 try {
                     WildcardMatcher matcher = context.getRenderedMatcher(patternTemplate);
 
-                    if (matcher.test(index)) {
+                    if (matcher.test(indexOrAliasOrDatastream)) {
                         return true;
                     }
                 } catch (ExpressionEvaluationException e) {
@@ -93,7 +206,7 @@ public class IndexPattern {
 
                     WildcardMatcher matcher = WildcardMatcher.from(resolvedExpression);
 
-                    if (matcher.test(index)) {
+                    if (matcher.test(indexOrAliasOrDatastream)) {
                         return true;
                     }
                 } catch (Exception e) {
@@ -102,27 +215,95 @@ public class IndexPattern {
             }
         }
 
-        IndexAbstraction indexAbstraction = indexMetadata.get(index);
+        return false;
+    }
 
-        if (indexAbstraction instanceof IndexAbstraction.Index) {
-            // Check for the privilege for aliases or data streams containing this index
-
-            if (indexAbstraction.getParentDataStream() != null) {
-                if (matches(indexAbstraction.getParentDataStream().getName(), context, indexMetadata)) {
-                    return true;
-                }
-            }
-
-            // Retrieve aliases: The use of getWriteIndex() is a bit messy, but it is the only way to access
-            // alias metadata from here.
-            for (String alias : indexAbstraction.getWriteIndex().getAliases().keySet()) {
-                if (matches(alias, context, indexMetadata)) {
-                    return true;
-                }
-            }
+    /**
+     * Returns the indices matching the non-dynamic patterns in this object as a lazy {@link Iterable}.
+     * The results are computed on-the-fly during iteration without storing them in an intermediate list.
+     * Doing so instead of returning a List<> avoids unnecessary copying; this might be relevant because of
+     * the complex pattern structure the number of matches is not known in advance.
+     */
+    public Iterable<IndexAbstraction> matchingNonDynamic(SortedMap<String, IndexAbstraction> indices) {
+        if (this.staticPatternWithoutConstantAndPrefixPatterns == WildcardMatcher.ANY) {
+            return indices.values();
         }
 
-        return false;
+        return () -> new Iterator<IndexAbstraction>() {
+
+            // --- Phase 1: exact value lookups ---
+            private final Iterator<String> exactValuesIter = staticExactValues.iterator();
+
+            // --- Phase 2: prefix sub-map iterators ---
+            private final Iterator<String> prefixPatternsIter = staticPrefixPatterns.iterator();
+            private Iterator<IndexAbstraction> currentPrefixSubIter = null;
+
+            // --- Phase 3: full scan with wildcard matcher ---
+            private final Iterator<Map.Entry<String, IndexAbstraction>> fullScanIter =
+                staticPatternWithoutConstantAndPrefixPatterns != WildcardMatcher.NONE ? indices.entrySet().iterator() : null;
+
+            private IndexAbstraction next = null;
+            private boolean done = false;
+
+            @Override
+            public boolean hasNext() {
+                if (next != null) {
+                    return true;
+                }
+                if (done) {
+                    return false;
+                }
+                next = advance();
+                if (next == null) {
+                    done = true;
+                }
+                return next != null;
+            }
+
+            @Override
+            public IndexAbstraction next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                IndexAbstraction result = next;
+                next = null;
+                return result;
+            }
+
+            private IndexAbstraction advance() {
+                // Phase 1: exact values
+                while (exactValuesIter.hasNext()) {
+                    IndexAbstraction ia = indices.get(exactValuesIter.next());
+                    if (ia != null) {
+                        return ia;
+                    }
+                }
+
+                // Phase 2: prefix patterns
+                while (true) {
+                    if (currentPrefixSubIter != null && currentPrefixSubIter.hasNext()) {
+                        return currentPrefixSubIter.next();
+                    }
+                    if (!prefixPatternsIter.hasNext()) {
+                        break;
+                    }
+                    String prefix = prefixPatternsIter.next();
+                    currentPrefixSubIter = indices.subMap(prefix, prefix + Character.MAX_VALUE).values().iterator();
+                }
+
+                // Phase 3: full scan for remaining wildcard patterns
+                if (fullScanIter != null) {
+                    while (fullScanIter.hasNext()) {
+                        Map.Entry<String, IndexAbstraction> entry = fullScanIter.next();
+                        if (staticPatternWithoutConstantAndPrefixPatterns.test(entry.getKey())) {
+                            return entry.getValue();
+                        }
+                    }
+                }
+
+                return null;
+            }
+        };
     }
 
     @Override
@@ -183,7 +364,17 @@ public class IndexPattern {
         if (patternTemplates.isEmpty() && dateMathExpressions.isEmpty()) {
             return EMPTY;
         } else {
-            return new IndexPattern(WildcardMatcher.NONE, this.patternTemplates, this.dateMathExpressions);
+            return new IndexPattern(
+                this.source,
+                WildcardMatcher.NONE,
+                WildcardMatcher.NONE,
+                ImmutableSet.of(),
+                ImmutableSet.of(),
+                this.patternTemplates,
+                this.dateMathExpressions,
+                this.memberIndexPrivilegesYieldAliasPrivileges
+
+            );
         }
     }
 
@@ -209,11 +400,21 @@ public class IndexPattern {
     }
 
     public static class Builder {
-        private List<WildcardMatcher> constantPatterns = new ArrayList<>();
+        private List<String> source = new ArrayList<>();
+        private List<WildcardMatcher> nonDynamicPatterns = new ArrayList<>();
         private List<String> patternTemplates = new ArrayList<>();
         private List<String> dateMathExpressions = new ArrayList<>();
+        private List<String> nonDynamicExactPatterns = new ArrayList<>();
+        private List<String> nonDynamicPrefixPatterns = new ArrayList<>();
+        private List<String> nonDynamicPatternsWithoutExactAndPrefixPatterns = new ArrayList<>();
+        private boolean memberIndexPrivilegesYieldAliasPrivileges;
+
+        public Builder(boolean memberIndexPrivilegesYieldAliasPrivileges) {
+            this.memberIndexPrivilegesYieldAliasPrivileges = memberIndexPrivilegesYieldAliasPrivileges;
+        }
 
         public void add(List<String> source) {
+            this.source.addAll(source);
             for (int i = 0; i < source.size(); i++) {
                 try {
                     String indexPattern = source.get(i);
@@ -221,7 +422,15 @@ public class IndexPattern {
                     if (indexPattern.startsWith("<") && indexPattern.endsWith(">")) {
                         this.dateMathExpressions.add(indexPattern);
                     } else if (!UserAttributes.needsAttributeSubstitution(indexPattern)) {
-                        this.constantPatterns.add(WildcardMatcher.from(indexPattern));
+                        this.nonDynamicPatterns.add(WildcardMatcher.from(indexPattern));
+
+                        if (WildcardMatcher.isExactPattern(indexPattern)) {
+                            this.nonDynamicExactPatterns.add(indexPattern);
+                        } else if (WildcardMatcher.isPrefixPattern(indexPattern)) {
+                            this.nonDynamicPrefixPatterns.add(indexPattern.substring(0, indexPattern.length() - 1));
+                        } else {
+                            this.nonDynamicPatternsWithoutExactAndPrefixPatterns.add(indexPattern);
+                        }
                     } else {
                         this.patternTemplates.add(indexPattern);
                     }
@@ -234,20 +443,30 @@ public class IndexPattern {
 
         public IndexPattern build() {
             return new IndexPattern(
-                constantPatterns.size() != 0 ? WildcardMatcher.from(constantPatterns) : WildcardMatcher.NONE,
+                ImmutableList.copyOf(source),
+                nonDynamicPatterns.size() != 0 ? WildcardMatcher.from(nonDynamicPatterns) : WildcardMatcher.NONE,
+                nonDynamicPatternsWithoutExactAndPrefixPatterns.size() != 0
+                    ? WildcardMatcher.from(nonDynamicPatternsWithoutExactAndPrefixPatterns)
+                    : WildcardMatcher.NONE,
+                ImmutableSet.copyOf(nonDynamicExactPatterns),
+                ImmutableSet.copyOf(nonDynamicPrefixPatterns),
                 ImmutableList.copyOf(patternTemplates),
-                ImmutableList.copyOf(dateMathExpressions)
+                ImmutableList.copyOf(dateMathExpressions),
+                this.memberIndexPrivilegesYieldAliasPrivileges
             );
         }
     }
 
-    public static IndexPattern from(List<String> source) {
-        Builder builder = new Builder();
+    public static IndexPattern from(List<String> source, boolean memberIndexPrivilegesYieldAliasPrivileges) {
+        Builder builder = new Builder(memberIndexPrivilegesYieldAliasPrivileges);
         builder.add(source);
         return builder.build();
     }
 
-    public static IndexPattern from(String... source) {
-        return from(Arrays.asList(source));
+    /**
+     * Only for testing.
+     */
+    static IndexPattern from(String... source) {
+        return from(Arrays.asList(source), true);
     }
 }

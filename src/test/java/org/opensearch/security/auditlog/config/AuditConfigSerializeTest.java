@@ -17,10 +17,6 @@ import java.util.EnumSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,6 +28,11 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
+import tools.jackson.databind.InjectableValues;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
@@ -42,14 +43,14 @@ import static org.junit.Assert.assertTrue;
 
 public class AuditConfigSerializeTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private ObjectMapper objectMapper;
     private final WildcardMatcher DEFAULT_IGNORED_USER = WildcardMatcher.from(AuditConfig.DEFAULT_IGNORED_USERS);
 
     @Before
     public void setUp() {
         InjectableValues.Std iv = new InjectableValues.Std();
         iv.addValue(Settings.class, Settings.EMPTY);
-        objectMapper.setInjectableValues(iv);
+        objectMapper = JsonMapper.builder().injectableValues(iv).build();
     }
 
     @Test
@@ -336,10 +337,9 @@ public class AuditConfigSerializeTest {
                 "test-auditlog-index"
             )
             .build();
-        final ObjectMapper customObjectMapper = new ObjectMapper();
         InjectableValues.Std iv = new InjectableValues.Std();
         iv.addValue(Settings.class, settings);
-        customObjectMapper.setInjectableValues(iv);
+        final ObjectMapper customObjectMapper = JsonMapper.builder().injectableValues(iv).build();
 
         final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
             .startObject()
@@ -381,7 +381,7 @@ public class AuditConfigSerializeTest {
         assertThat(configCompliance.getAuditLogIndex(), is("test-auditlog-index"));
     }
 
-    private boolean compareJson(final String json1, final String json2) throws JsonProcessingException {
+    private boolean compareJson(final String json1, final String json2) {
         ObjectNode objectNode1 = objectMapper.readValue(json1, ObjectNode.class);
         ObjectNode objectNode2 = objectMapper.readValue(json2, ObjectNode.class);
         return objectNode1.equals(objectNode2);

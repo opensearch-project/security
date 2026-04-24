@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -30,6 +28,9 @@ import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -331,16 +332,16 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
             is(expectedObjectNode.get("cluster_permissions"))
         );
         // TODO related to issue #4426
-        for (Iterator<JsonNode> it = expectedObjectNode.get("index_permissions").elements(); it.hasNext();) {
+        for (Iterator<JsonNode> it = expectedObjectNode.get("index_permissions").values().iterator(); it.hasNext();) {
             final var indexPermission = (ObjectNode) it.next();
             if (indexPermission.has("dls") && indexPermission.get("dls").isNull()) {
                 indexPermission.remove("dls");
             }
             if (indexPermission.has("fls") && indexPermission.get("fls").isNull()) {
-                indexPermission.set("fls", DefaultObjectMapper.objectMapper.createArrayNode());
+                indexPermission.set("fls", DefaultObjectMapper.objectMapper().createArrayNode());
             }
             if (indexPermission.has("masked_fields") && indexPermission.get("masked_fields").isNull()) {
-                indexPermission.set("masked_fields", DefaultObjectMapper.objectMapper.createArrayNode());
+                indexPermission.set("masked_fields", DefaultObjectMapper.objectMapper().createArrayNode());
             }
         }
 

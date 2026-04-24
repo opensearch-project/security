@@ -51,6 +51,10 @@ public class DlsFlsBaseContext {
         return ctx;
     }
 
+    public DlsFlsProcessedConfig config() {
+        return this.privilegesConfiguration.dlsFlsProcessedConfig();
+    }
+
     public boolean isDlsDoneOnFilterLevel() {
         if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
             return true;

@@ -36,16 +36,18 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.common.io.Streams;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -61,39 +63,84 @@ public class FileHelper {
 
     protected final static Logger log = LogManager.getLogger(FileHelper.class);
 
-    public static KeyStore getKeystoreFromClassPath(final String fileNameFromClasspath, String password) throws Exception {
-        Path path = getAbsoluteFilePathFromClassPath(fileNameFromClasspath);
-        if (path == null) {
-            return null;
-        }
+    public static final Map<String, List<String>> TYPE_TO_EXTENSION_MAP = Map.of(
+        "JKS",
+        List.of(".jks", ".ks"),
+        "PKCS12",
+        List.of(".p12", ".pkcs12", ".pfx"),
+        "BCFKS", // Bouncy Castle FIPS Keystore
+        List.of(".bcfks")
+    );
 
-        KeyStore ks = KeyStore.getInstance("JKS");
-        try (FileInputStream fin = new FileInputStream(path.toFile())) {
+    public static String inferStoreType(Path filePath) {
+        return inferStoreType(filePath.getFileName().toString());
+    }
+
+    /**
+     * Make a best guess about the "type" (see {@link KeyStore#getType()}) of the keystore file located at the given {@code Path}.
+     * This method only references the <em>file name</em> of the keystore, it does not look at its contents.
+     */
+    public static String inferStoreType(String filePath) {
+        return TYPE_TO_EXTENSION_MAP.entrySet()
+            .stream()
+            .filter(entry -> entry.getValue().stream().anyMatch(filePath::endsWith))
+            .map(Map.Entry::getKey)
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Unknown keystore type for file path: " + filePath));
+    }
+
+    public record TypedStore(Path path, String type) {
+    }
+
+    public static KeyStore getKeystoreFromClassPath(final String baseName, String password) throws Exception {
+        TypedStore store = resolveStore(baseName);
+        KeyStore ks = KeyStore.getInstance(store.type());
+        try (FileInputStream fin = new FileInputStream(store.path().toFile())) {
             ks.load(fin, password == null || password.isEmpty() ? null : password.toCharArray());
         }
         return ks;
     }
 
+    /**
+     * Resolves a keystore/truststore classpath resource by base name (without extension),
+     * returning both the path and the inferred keystore type.
+     * <p>
+     * The format is chosen based on the runtime environment:
+     * <ul>
+     *   <li>FIPS approved-only mode ({@link CryptoServicesRegistrar#isInApprovedOnlyMode()}) →
+     *       {@code .bcfks} / {@code "BCFKS"}</li>
+     *   <li>Non-FIPS → {@code .jks} / {@code "JKS"} if a JKS variant exists on the classpath,
+     *       otherwise {@code .p12} / {@code "PKCS12"}</li>
+     * </ul>
+     *
+     * @param baseName classpath-relative base name without extension, e.g. {@code "ssl/truststore"}
+     * @return a {@link TypedStore} holding the absolute path and the store type string
+     * @throws IllegalStateException if no matching file is found on the classpath
+     */
+    public static TypedStore resolveStore(final String baseName) {
+        if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+            return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".bcfks"), "BCFKS");
+        }
+        if (classpathResourceExists(baseName + ".jks")) {
+            return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".jks"), "JKS");
+        }
+        return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".p12"), "PKCS12");
+    }
+
+    public static boolean classpathResourceExists(final String name) {
+        return FileHelper.class.getClassLoader().getResource(name) != null;
+    }
+
     public static Path getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
-        File file = null;
         final URL fileUrl = FileHelper.class.getClassLoader().getResource(fileNameFromClasspath);
         if (fileUrl != null) {
-            try {
-                file = new File(URLDecoder.decode(fileUrl.getFile(), "UTF-8"));
-            } catch (final UnsupportedEncodingException e) {
-                return null;
-            }
-
+            File file = new File(URLDecoder.decode(fileUrl.getFile(), StandardCharsets.UTF_8));
             if (file.exists() && file.canRead()) {
                 return Paths.get(file.getAbsolutePath());
-            } else {
-                log.error("Cannot read from {}, maybe the file does not exists? ", file.getAbsolutePath());
             }
-
-        } else {
-            log.error("Failed to load {}", fileNameFromClasspath);
+            throw new IllegalStateException("Classpath resource exists but cannot be read: " + file.getAbsolutePath());
         }
-        return null;
+        throw new IllegalStateException("Classpath resource not found: " + fileNameFromClasspath);
     }
 
     public static String loadFile(final String file) throws IOException {

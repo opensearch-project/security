@@ -34,6 +34,9 @@ public enum AuditCategory {
 
     public static Set<AuditCategory> parse(final Collection<String> categories) {
         if (categories.isEmpty()) return Collections.emptySet();
+        if (categories.size() == 1 && "NONE".equalsIgnoreCase(categories.iterator().next())) {
+            return Collections.emptySet();
+        }
 
         return categories.stream().map(String::toUpperCase).map(AuditCategory::valueOf).collect(ImmutableSet.toImmutableSet());
     }

@@ -85,9 +85,9 @@ opensearchplugin {
     ```
     org.opensearch.sample.SampleResourceSharingExtension
     ```
-- **Declare** action-groups **per resource** in `resource-action-groups.yml` file:
+- **Declare** action-groups **per resource** in `resource-access-levels.yml` file:
   ```
-  src/main/resources/resource-action-groups.yml
+  src/main/resources/resource-access-levels.yml
   ```
   - This file must be structured in a following way:
     ```yml
@@ -116,7 +116,7 @@ opensearchplugin {
     ```
 **NOTE**: The resource-type supplied here must match the ones supplied in each of the resource-providers declared in the ResourceSharingExtension implementation.
 
-#### **Example resource-action-groups yml**
+#### **Example resource-access-levels yml**
 ```yml
 resource_types:
   sample-resource:
@@ -159,6 +159,7 @@ Each plugin receives its own sharing index, centrally managed by security plugin
 |**Field**  |**Type** | Description                                                                            |
 |---  |---  |----------------------------------------------------------------------------------------|
 |`resource_id`  |String | Unique ID of the resource within resource index.                                      |
+|`tenant` |String | Tenant where the resource lives, if multi-tenancy is enabled.                          |
 |`created_by` |Object | Information about the user or backend role that created the resource.                  |
 |`share_with` |Object | Contains multiple objects with **access-levels** as keys and access details as values. |
 
@@ -171,14 +172,12 @@ NOTE: **action-groups** and **access-levels** are used inter-changeably througho
 | **Field** |**Type** | Description                                                  |
 |-----------|---  |--------------------------------------------------------------|
 | user      |String | The username of the creator.                                 |
-| tenant    |String | The tenant where resource sits. If multi-tenancy is enabled. |
 
 **Example:**
 
 ```
 "created_by": {
-   "user": "darshit",
-   "tenant": "some_tenant"
+   "user": "darshit"
 }
 ```
 
@@ -234,9 +233,9 @@ Each **action-group** entry contains the following access definitions:
 ```
 {
    "resource_id": "model-group-123",
+   "tenant": "some-tenant",
    "created_by": {
-      "user": "darshit",
-      "tenant": "some-tenant"
+      "user": "darshit"
    },
    "share_with": {
       "action-group1": {
@@ -611,7 +610,7 @@ Read documents from a plugin’s index and migrate ownership and backend role-ba
 | `username_path`        | string | yes      | JSON Pointer to the username field inside each document                                                                                             |
 | `backend_roles_path`   | string | yes      | JSON Pointer to the backend_roles field (must point to a JSON array)                                                                                |
 | `default_owner`        | string | yes      | Name of the user to be used as owner for resource without owner information                                                                         |
-| `default_access_level` | object | yes      | Default access level to assign migrated backend_roles. Must be one from the available action-groups for this type. See `resource-action-groups.yml`. |
+| `default_access_level` | object | yes      | Default access level to assign migrated backend_roles. Must be one from the available action-groups for this type. See `resource-access-levels.yml`. |
 
 **Example Request**
 `POST /_plugins/_security/api/resources/migrate`
@@ -687,7 +686,8 @@ Creates or replaces sharing settings for a resource.
 {
   "sharing_info": {
     "resource_id": "resource-123",
-    "created_by": { "username": "admin" },
+    "tenant": "some-tenant",
+    "created_by": { "user": "admin" },
     "share_with": {
       "read_only": {
         "users": ["alice"],
@@ -740,7 +740,8 @@ Can be used alternatively. POST version supports calls from dashboards.
 {
   "sharing_info": {
     "resource_id": "resource-123",
-    "created_by": { "username": "admin" },
+    "tenant": "some-tenant",
+    "created_by": { "user": "admin" },
     "share_with": {
       "read_only": {
         "users": ["charlie"],
@@ -775,7 +776,8 @@ GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_typ
 {
   "sharing_info": {
     "resource_id": "resource-123",
-    "created_by": { "username": "admin" },
+    "tenant": "some-tenant",
+    "created_by": { "user": "admin" },
     "share_with": {
       "read_only": {
         "users": ["charlie"],
@@ -811,7 +813,7 @@ GET /_plugins/_security/api/resource/types
   ]
 }
 ```
-NOTE: `action_groups` are fetched from `resource-action-groups.yml` supplied by resource plugin.
+NOTE: `action_groups` are fetched from `resource-access-levels.yml` supplied by resource plugin.
 
 ### 5. `GET /_plugins/_security/api/resource/list?resource_type=<type>`
 
@@ -831,9 +833,9 @@ GET /_plugins/_security/api/resource/list?resource_type=sample-resource
   "resources": [
     {
       "resource_id": "1",
+      "tenant": "some-tenant",
       "created_by":  {
-        "user": "darshit",
-        "tenant": "some-tenant"
+        "user": "darshit"
       },
       "share_with": {
         "sample_read_only": {

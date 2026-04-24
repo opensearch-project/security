@@ -270,6 +270,7 @@ public class ConfigConstants {
     // Log4j
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
+    public static final String SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE = "log4j.maximum_index_characters_per_message";
 
     // retry
     public static final String SECURITY_AUDIT_RETRY_COUNT = SECURITY_SETTINGS_PREFIX + "audit.config.retry_count";
@@ -331,12 +332,6 @@ public class ConfigConstants {
         + "ssl.certificates_hot_reload.enabled";
     public static final String SECURITY_DISABLE_ENVVAR_REPLACEMENT = SECURITY_SETTINGS_PREFIX + "disable_envvar_replacement";
     public static final String SECURITY_DFM_EMPTY_OVERRIDES_ALL = SECURITY_SETTINGS_PREFIX + "dfm_empty_overrides_all";
-
-    public enum RolesMappingResolution {
-        MAPPING_ONLY,
-        BACKENDROLES_ONLY,
-        BOTH
-    }
 
     public static final String SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = SECURITY_SETTINGS_PREFIX
         + "filter_securityindex_from_all_requests";

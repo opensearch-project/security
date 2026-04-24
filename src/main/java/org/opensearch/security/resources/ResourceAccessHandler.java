@@ -12,7 +12,6 @@
 package org.opensearch.security.resources;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -180,8 +179,13 @@ public class ResourceAccessHandler {
 
             Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
 
+            // no matching access level, either recurse up or fail fast
             if (accessLevels.isEmpty()) {
-                listener.onResponse(false);
+                if (sharingInfo.getParentId() != null) {
+                    hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
+                } else {
+                    listener.onResponse(false);
+                }
                 return;
             }
 
@@ -190,7 +194,16 @@ public class ResourceAccessHandler {
             final Set<String> allowedActions = agForType.resolve(accessLevels);
             final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
 
-            listener.onResponse(matcher.test(action));
+            if (matcher.test(action)) {
+                listener.onResponse(true);
+                return;
+            }
+
+            if (sharingInfo.getParentId() != null) {
+                hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
+            } else {
+                listener.onResponse(false);
+            }
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
@@ -214,6 +227,8 @@ public class ResourceAccessHandler {
         @NonNull String resourceType,
         @Nullable ShareWith add,
         @Nullable ShareWith revoke,
+        boolean generalAccessPresent,
+        @Nullable String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
@@ -250,19 +265,27 @@ public class ResourceAccessHandler {
             revoke
         );
 
-        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, add, revoke, ActionListener.wrap(sharingInfo -> {
-            LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
-            listener.onResponse(sharingInfo);
-        }, e -> {
-            LOGGER.error(
-                "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
-                resourceId,
-                add,
-                revoke,
-                e.getMessage()
-            );
-            listener.onFailure(e);
-        }));
+        this.resourceSharingIndexHandler.patchSharingInfo(
+            resourceId,
+            resourceIndex,
+            add,
+            revoke,
+            generalAccessPresent,
+            generalAccess,
+            ActionListener.wrap(sharingInfo -> {
+                LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
+                listener.onResponse(sharingInfo);
+            }, e -> {
+                LOGGER.error(
+                    "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
+                    resourceId,
+                    add,
+                    revoke,
+                    e.getMessage()
+                );
+                listener.onFailure(e);
+            })
+        );
 
     }
 
@@ -382,14 +405,10 @@ public class ResourceAccessHandler {
     private Set<String> getFlatPrincipals(User user) {
         // 1) collect all entities we’ll match against share_with arrays
         // for users:
-        Set<String> users = new HashSet<>();
-        users.add(user.getName());
-        users.add("*"); // for matching against publicly shared resource
-
         // return flattened principals to build the bool query
         return Stream.concat(
-            // users
-            users.stream().map(u -> "user:" + u),
+            // users, plus bare "public" sentinel for publicly shared resources
+            Stream.concat(Stream.of("user:" + user.getName(), "public"), Stream.empty()),
             // then roles and backend_roles
             Stream.concat(user.getSecurityRoles().stream().map(r -> "role:" + r), user.getRoles().stream().map(b -> "backend:" + b))
         ).collect(Collectors.toSet());

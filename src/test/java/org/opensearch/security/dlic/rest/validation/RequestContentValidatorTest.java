@@ -21,9 +21,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,6 +37,9 @@ import org.opensearch.security.DefaultObjectMapper;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.NullNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -153,7 +153,8 @@ public class RequestContentValidatorTest {
             }
         });
 
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode()
+        final JsonNode payload = DefaultObjectMapper.objectMapper()
+            .createObjectNode()
             .put("a", 1)
             .put("b", "[]")
             .put("c", "{}")
@@ -195,7 +196,7 @@ public class RequestContentValidatorTest {
             }
         });
 
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("c", "aaa").put("d", "aaa");
+        final JsonNode payload = DefaultObjectMapper.objectMapper().createObjectNode().put("c", "aaa").put("d", "aaa");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
         final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
@@ -228,7 +229,7 @@ public class RequestContentValidatorTest {
                 return ImmutableMap.of("a", RequestContentValidator.DataType.ARRAY);
             }
         });
-        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode().putObject("a");
+        final ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode().putObject("a");
         payload.putArray("a").add(NullNode.getInstance()).add("b").add("c");
         when(request.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
@@ -253,7 +254,7 @@ public class RequestContentValidatorTest {
                 return Map.of("a", RequestContentValidator.DataType.ARRAY);
             }
         });
-        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode();
         payload.putArray("a").add("  ").add("b");
         when(request.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
@@ -283,7 +284,7 @@ public class RequestContentValidatorTest {
                 return Map.of("a", RequestContentValidator.DataType.STRING, "b", RequestContentValidator.DataType.STRING);
             }
         });
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value");
+        final JsonNode payload = DefaultObjectMapper.objectMapper().createObjectNode().put("a", "value");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertTrue(validationResult.isValid());
@@ -319,7 +320,7 @@ public class RequestContentValidatorTest {
                 );
             }
         });
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("c", "value");
+        final JsonNode payload = DefaultObjectMapper.objectMapper().createObjectNode().put("c", "value");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertFalse(validationResult.isValid());
@@ -350,7 +351,7 @@ public class RequestContentValidatorTest {
                 return Map.of("a", RequestContentValidator.FieldConfiguration.of(RequestContentValidator.DataType.STRING, 5));
             }
         });
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "toolong");
+        final JsonNode payload = DefaultObjectMapper.objectMapper().createObjectNode().put("a", "toolong");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertFalse(validationResult.isValid());
@@ -388,7 +389,7 @@ public class RequestContentValidatorTest {
                 );
             }
         });
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "bad_value");
+        final JsonNode payload = DefaultObjectMapper.objectMapper().createObjectNode().put("a", "bad_value");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertFalse(validationResult.isValid());
@@ -426,7 +427,7 @@ public class RequestContentValidatorTest {
                 );
             }
         });
-        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode();
         payload.putArray("a").add("1").add("2").add("3");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
@@ -465,7 +466,7 @@ public class RequestContentValidatorTest {
                 );
             }
         });
-        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode();
         payload.putObject("a").put("other", "value");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
@@ -492,8 +493,8 @@ public class RequestContentValidatorTest {
                 return Map.of("a", RequestContentValidator.DataType.STRING);
             }
         });
-        final JsonNode original = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value");
-        final JsonNode patched = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value");
+        final JsonNode original = DefaultObjectMapper.objectMapper().createObjectNode().put("a", "value");
+        final JsonNode patched = DefaultObjectMapper.objectMapper().createObjectNode().put("a", "value");
         final ValidationResult<JsonNode> validationResult = validator.validate(request, patched, original);
         assertFalse(validationResult.isValid());
     }
@@ -516,8 +517,8 @@ public class RequestContentValidatorTest {
                 return Map.of("a", RequestContentValidator.DataType.STRING);
             }
         });
-        final JsonNode original = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value1");
-        final JsonNode patched = DefaultObjectMapper.objectMapper.createObjectNode().put("a", "value2");
+        final JsonNode original = DefaultObjectMapper.objectMapper().createObjectNode().put("a", "value1");
+        final JsonNode patched = DefaultObjectMapper.objectMapper().createObjectNode().put("a", "value2");
         final ValidationResult<JsonNode> validationResult = validator.validate(request, patched, original);
         assertTrue(validationResult.isValid());
     }
@@ -530,7 +531,7 @@ public class RequestContentValidatorTest {
 
     @Test
     public void testNoopValidatorWithJsonNode() throws Exception {
-        final JsonNode jsonNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        final JsonNode jsonNode = DefaultObjectMapper.objectMapper().createObjectNode();
         final ValidationResult<JsonNode> validationResult = RequestContentValidator.NOOP_VALIDATOR.validate(request, jsonNode);
         assertTrue(validationResult.isValid());
     }
@@ -553,7 +554,7 @@ public class RequestContentValidatorTest {
                 return Map.of("password", RequestContentValidator.DataType.STRING);
             }
         });
-        final JsonNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("password", "");
+        final JsonNode payload = DefaultObjectMapper.objectMapper().createObjectNode().put("password", "");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT);
@@ -577,7 +578,7 @@ public class RequestContentValidatorTest {
                 return Map.of("a", RequestContentValidator.DataType.OBJECT);
             }
         });
-        final ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode();
         final ObjectNode nested = payload.putObject("a");
         nested.putArray("inner").add(NullNode.getInstance());
         when(request.content()).thenReturn(new BytesArray(payload.toString()));
@@ -618,14 +619,14 @@ public class RequestContentValidatorTest {
 
     @Test
     public void testArraySizeValidatorWithJsonNode() {
-        final ObjectNode node = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode node = DefaultObjectMapper.objectMapper().createObjectNode();
         node.putArray("arr").add("1").add("2");
         RequestContentValidator.ARRAY_SIZE_VALIDATOR.validate("arr", node.get("arr"));
     }
 
     @Test
     public void testArraySizeValidatorRejectsLargeArray() {
-        final ObjectNode node = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode node = DefaultObjectMapper.objectMapper().createObjectNode();
         final var arr = node.putArray("arr");
         for (int i = 0; i <= RequestContentValidator.MAX_ARRAY_SIZE; i++) {
             arr.add(String.valueOf(i));
@@ -643,6 +644,31 @@ public class RequestContentValidatorTest {
         expectThrows(
             IllegalArgumentException.class,
             () -> RequestContentValidator.ARRAY_SIZE_VALIDATOR.validate("count", RequestContentValidator.MAX_ARRAY_SIZE + 1)
+        );
+    }
+
+    @Test
+    public void testArraySizeValidatorFactoryUsesCustomLimit() {
+        final RequestContentValidator.FieldValidator validator = RequestContentValidator.arraySizeValidator(2);
+        final ObjectNode node = DefaultObjectMapper.objectMapper().createObjectNode();
+        node.putArray("arr").add("1").add("2").add("3");
+        expectThrows(IllegalArgumentException.class, () -> validator.validate("arr", node.get("arr")));
+    }
+
+    @Test
+    public void testArrayOfStringsValidatorAcceptsStringArray() {
+        final ObjectNode node = DefaultObjectMapper.objectMapper().createObjectNode();
+        node.putArray("arr").add("one").add("two");
+        RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate("arr", node.get("arr"));
+    }
+
+    @Test
+    public void testArrayOfStringsValidatorRejectsNonStringElement() {
+        final ObjectNode node = DefaultObjectMapper.objectMapper().createObjectNode();
+        node.putArray("arr").add("one").add(2);
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate("arr", node.get("arr"))
         );
     }
 
@@ -697,7 +723,7 @@ public class RequestContentValidatorTest {
                 return ImmutableMap.of("password", RequestContentValidator.DataType.STRING);
             }
         });
-        ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode().put("password", "a");
+        ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode().put("password", "a");
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.NO_USERNAME);
@@ -740,7 +766,7 @@ public class RequestContentValidatorTest {
             }
         });
 
-        ObjectNode payload = DefaultObjectMapper.objectMapper.createObjectNode().putObject("a");
+        ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode().putObject("a");
         payload.putArray("a").add("arrray");
         payload.put("b", true).put("d", "some_string").put("e", false).put("f", 1);
         payload.putObject("c");

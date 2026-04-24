@@ -173,15 +173,16 @@ import org.opensearch.security.privileges.ConfigurableRoleMapper;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resources.PluginDefaultRolesHelper;
 import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
-import org.opensearch.security.resources.ResourceActionGroupsHelper;
+import org.opensearch.security.resources.ResourceAccessLevelHelper;
 import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
@@ -199,10 +200,11 @@ import org.opensearch.security.rest.SecurityInfoAction;
 import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
-import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.spi.SecurityConfigExtension;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.ssl.ExternalSecurityKeyStore;
@@ -292,7 +294,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile DynamicConfigFactory dcf;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile SecurityFilter sf;
-    private volatile IndexResolverReplacer irr;
     private final AtomicReference<NamedXContentRegistry> namedXContentRegistry = new AtomicReference<>(NamedXContentRegistry.EMPTY);;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private final OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
@@ -778,7 +779,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     ciol,
                     privilegesConfiguration,
                     roleMapper,
-                    dlsFlsValve::getCurrentConfig,
+                    dlsFlsBaseContext::config,
                     dlsFlsBaseContext
                 )
             );
@@ -834,7 +835,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onPreQueryPhase(SearchContext context) {
-                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get());
+                    dlsFlsValve.handleSearchContext(context, threadPool);
                 }
 
                 @Override
@@ -1169,7 +1170,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.cs.addListener(cih);
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
-        irr = new IndexResolverReplacer(resolver, clusterService::state, cih);
 
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
@@ -1185,7 +1185,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
-        namedXContentRegistry.set(xContentRegistry);
         if (SSLConfig.isSslOnlyMode()) {
             auditLog = new NullAuditLog();
         } else {
@@ -1220,16 +1219,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         PrivilegesConfiguration privilegesConfiguration = new PrivilegesConfiguration(
             cr,
-            clusterService,
-            clusterService::state,
-            localClient,
-            roleMapper,
-            threadPool,
-            resolver,
-            auditLog,
-            settings,
-            cih::getReasonForUnavailability,
-            irr
+            new PrivilegesEvaluator.CoreDependencies(
+                clusterService,
+                clusterService::state,
+                localClient,
+                roleMapper,
+                threadPool,
+                threadPool.getThreadContext(),
+                auditLog,
+                settings,
+                resolver,
+                cih::getReasonForUnavailability,
+                xContentRegistry
+            )
         );
         this.privilegesConfiguration = privilegesConfiguration;
 
@@ -1242,7 +1244,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 settings,
                 localClient,
                 clusterService,
-                resolver,
                 xContentRegistry,
                 threadPool,
                 dlsFlsBaseContext,
@@ -1250,7 +1251,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 resourcePluginInfo,
                 resourceSharingEnabledSetting
             );
-            cr.subscribeOnChange(configMap -> { ((DlsFlsValveImpl) dlsFlsValve).updateConfiguration(cr.getConfiguration(CType.ROLES)); });
         }
 
         resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, resourcePluginInfo);
@@ -1284,9 +1284,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             auditLog,
             threadPool,
             cs,
-            cih,
             compatConfig,
-            irr,
             xffResolver,
             resourceAccessEvaluator
         );
@@ -1314,7 +1312,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
-        dcf.registerDCFListener(irr);
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(securityRestHandler);
         dcf.registerDCFListener(tokenManager);
@@ -1649,9 +1646,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.DFM_EMPTY_OVERRIDES_ALL_SETTING);
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".", Property.NodeScope)); // not
                                                                                                                                     // filtered
                                                                                                                                     // here
@@ -2036,6 +2031,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings.add(
                 Setting.simpleString(
                     ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_LEVEL,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                        + ConfigConstants.SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE,
+                    Integer.MAX_VALUE,
+                    255,
                     Property.NodeScope,
                     Property.Filtered
                 )
@@ -2492,12 +2497,26 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public void loadExtensions(ExtensionLoader loader) {
-        // discover & register extensions and their types
+        // discover & register resource-sharing extensions and their types
         Set<ResourceSharingExtension> exts = new HashSet<>(loader.loadExtensions(ResourceSharingExtension.class));
         resourcePluginInfo.setResourceSharingExtensions(exts);
 
         // load action-groups in memory
-        ResourceActionGroupsHelper.loadActionGroupsConfig(resourcePluginInfo);
+        ResourceAccessLevelHelper.loadAccessLevelConfig(resourcePluginInfo);
+
+        // ResourceSharingExtension extends SecurityConfigExtension, so all resource-sharing
+        // plugins are also config extensions. Collect them along with any standalone
+        // SecurityConfigExtension implementations (plugins that only bring roles, not resources).
+        Set<SecurityConfigExtension> configExts = new HashSet<>(exts);
+        try {
+            configExts.addAll(loader.loadExtensions(SecurityConfigExtension.class));
+        } catch (Exception e) {
+            // No standalone SecurityConfigExtension implementations found — that's fine
+        }
+
+        // load plugin-provided default roles into the static roles pool
+        SecurityDynamicConfiguration<RoleV7> pluginRoles = PluginDefaultRolesHelper.loadDefaultRoles(configExts);
+        DynamicConfigFactory.setPluginDefaultRoles(pluginRoles);
     }
 
     public static class GuiceHolder implements LifecycleComponent {
