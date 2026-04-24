@@ -42,4 +42,15 @@ public interface PasswordHasher {
      * @return a valid dummy hash string for this hasher's algorithm
      */
     String getDummyHash();
+
+    /**
+     * Returns the default admin password used to detect whether the shipped
+     * internal_users.yml has been left unmodified. Each implementation declares
+     * a password appropriate for its algorithm's security requirements.
+     *
+     * @return the default admin password for this hasher
+     */
+    default String defaultAdminPassword() {
+        return "admin";
+    }
 }

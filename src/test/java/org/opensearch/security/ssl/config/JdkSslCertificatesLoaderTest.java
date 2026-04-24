@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.MockSecureSettings;
@@ -270,7 +271,9 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     }
 
     String randomKeyStoreType() {
-        return randomFrom(new String[] { "bcfks", "jks", "pkcs12", null });
+        return CryptoServicesRegistrar.isInApprovedOnlyMode()
+            ? randomFrom(new String[] { "bcfks", null })
+            : randomFrom(new String[] { "bcfks", "jks", "pkcs12", null });
     }
 
     String randomKeyStorePassword(final boolean useSecurePassword) {

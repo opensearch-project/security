@@ -168,7 +168,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             var typedKeyStore = FileHelper.resolveStore(prefix + keyStoreName);
             File keyStoreFile = typedKeyStore.path().toFile();
             KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
-            keyStore.load(new FileInputStream(keyStoreFile), null);
+            keyStore.load(new FileInputStream(keyStoreFile), "changeit".toCharArray());
             sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
 
             var typedTrustStore = FileHelper.resolveStore(prefix + trustStoreName);
