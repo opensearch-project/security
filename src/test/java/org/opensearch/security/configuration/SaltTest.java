@@ -42,6 +42,22 @@ public class SaltTest {
     }
 
     @Test
+    public void testDefaultSaltRejectedInProduction() {
+        // assert
+        thrown.expect(OpenSearchException.class);
+        thrown.expectMessage("Default compliance salt is not allowed in production");
+
+        // act - validation rejects default salt when allow_unsafe_democertificates is false
+        Salt.validateSaltSettings(Settings.EMPTY);
+    }
+
+    @Test
+    public void testDefaultSaltAllowedWithDemoFlag() {
+        // should not throw
+        Salt.validateSaltSettings(Settings.builder().put(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, true).build());
+    }
+
+    @Test
     public void testConfig() {
         // arrange
         final String testSalt = "abcdefghijklmnop";
