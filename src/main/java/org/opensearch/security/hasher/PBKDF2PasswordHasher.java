@@ -19,6 +19,8 @@ import com.password4j.Password;
 
 class PBKDF2PasswordHasher extends AbstractPasswordHasher {
 
+    static final String DEFAULT_ADMIN_PASSWORD = "admin@OpenSearch";
+
     private static final int DEFAULT_SALT_LENGTH = 128;
 
     PBKDF2PasswordHasher(String function, int iterations, int length) {
@@ -40,12 +42,20 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
     public boolean check(char[] password, String hash) {
         checkPasswordNotNullOrEmpty(password);
         checkHashNotNullOrEmpty(hash);
+
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
             return Password.check(passwordBuffer, hash).with(getPBKDF2FunctionFromHash(hash));
+        } catch (Exception e) {
+            return false;
         } finally {
             cleanup(passwordBuffer);
         }
+    }
+
+    @Override
+    public String defaultAdminPassword() {
+        return DEFAULT_ADMIN_PASSWORD;
     }
 
     private HashingFunction getPBKDF2FunctionFromHash(String hash) {

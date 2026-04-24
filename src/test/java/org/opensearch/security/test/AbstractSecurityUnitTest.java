@@ -64,6 +64,7 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -167,7 +168,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             var typedKeyStore = FileHelper.resolveStore(prefix + keyStoreName);
             File keyStoreFile = typedKeyStore.path().toFile();
             KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
-            keyStore.load(new FileInputStream(keyStoreFile), null);
+            keyStore.load(new FileInputStream(keyStoreFile), "changeit".toCharArray());
             sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
 
             var typedTrustStore = FileHelper.resolveStore(prefix + trustStoreName);
@@ -179,11 +180,13 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             SSLContext sslContext = sslContextBuilder.build();
 
             HttpHost httpHost = new HttpHost("https", info.httpHost, info.httpPort);
-
+            String[] tlsVersions = CryptoServicesRegistrar.isInApprovedOnlyMode()
+                ? new String[] { "TLSv1.2", "TLSv1.3" }
+                : new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" };
             RestClientBuilder restClientBuilder = RestClient.builder(httpHost).setHttpClientConfigCallback(builder -> {
                 TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
                     .setSslContext(sslContext)
-                    .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
+                    .setTlsVersions(tlsVersions)
                     .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
                     // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
                     .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {

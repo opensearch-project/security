@@ -101,7 +101,7 @@ public class CertificateValidator {
 
         CertStore chainStore = CertStore.getInstance("Collection", new CollectionCertStoreParameters(List.of(certChain)));
 
-        CertPathBuilder certPathBuilder = CertPathBuilder.getInstance("PKIX");
+        CertPathBuilder certPathBuilder = CertPathBuilder.getInstance("PKIX", "SUN");
         PKIXRevocationChecker revocationChecker = (PKIXRevocationChecker) certPathBuilder.getRevocationChecker();
         PKIXBuilderParameters params = new PKIXBuilderParameters(_trustAnchors, certSelect);
         params.setDate(date);
@@ -138,7 +138,7 @@ public class CertificateValidator {
             System.setProperty("com.sun.security.enableCRLDP", "true");
         }
 
-        CertPathValidator.getInstance("PKIX").validate(buildResult.getCertPath(), params);
+        CertPathValidator.getInstance("PKIX", "SUN").validate(buildResult.getCertPath(), params);
     }
 
     public Collection<? extends CRL> getCrls() {

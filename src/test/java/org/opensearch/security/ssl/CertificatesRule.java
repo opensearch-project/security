@@ -13,9 +13,11 @@ package org.opensearch.security.ssl;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -50,8 +52,16 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.security.test.helper.file.FileHelper;
+
+import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
+import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
 public class CertificatesRule extends ExternalResource {
+
+    /** BC FIPS requires at least 14 characters for PKCS8 key-encryption passwords in approved-only mode. */
+    public static final int FIPS_MIN_PASSWORD_LENGTH = 14;
 
     private final static BouncyCastleFipsProvider BOUNCY_CASTLE_FIPS_PROVIDER = new BouncyCastleFipsProvider();
 
@@ -61,7 +71,7 @@ public class CertificatesRule extends ExternalResource {
 
     private Path configRootFolder;
 
-    private final String privateKeyPassword = RandomStringUtils.randomAlphabetic(10);
+    private final String privateKeyPassword = RandomStringUtils.secure().nextAlphanumeric(FIPS_MIN_PASSWORD_LENGTH);
 
     private X509CertificateHolder caCertificateHolder;
 
@@ -283,7 +293,38 @@ public class CertificatesRule extends ExternalResource {
         final Instant endDate,
         final List<ASN1Encodable> sans
     ) throws NoSuchAlgorithmException, IOException, OperatorCreationException {
+        return generateCertificate(subject, issuer, parentKeyPair, serialNumber, startDate, endDate, sans, false);
+    }
+
+    public Tuple<PrivateKey, X509CertificateHolder> generateNodeCertificate(final KeyPair parentKeyPair, final String subject)
+        throws NoSuchAlgorithmException, IOException, OperatorCreationException {
+        final var startAndEndDate = generateStartAndEndDate();
+        return generateCertificate(
+            subject,
+            DEFAULT_SUBJECT_NAME,
+            parentKeyPair,
+            generateSerialNumber(),
+            startAndEndDate.v1(),
+            startAndEndDate.v2(),
+            defaultSubjectAlternativeNames(),
+            true
+        );
+    }
+
+    private Tuple<PrivateKey, X509CertificateHolder> generateCertificate(
+        final String subject,
+        final String issuer,
+        final KeyPair parentKeyPair,
+        final BigInteger serialNumber,
+        final Instant startDate,
+        final Instant endDate,
+        final List<ASN1Encodable> sans,
+        final boolean includeServerAuth
+    ) throws NoSuchAlgorithmException, IOException, OperatorCreationException {
         final var keyPair = generateKeyPair();
+        final KeyPurposeId[] ekuOids = includeServerAuth
+            ? new KeyPurposeId[] { KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth }
+            : new KeyPurposeId[] { KeyPurposeId.id_kp_clientAuth };
         final var certificate = createCertificateBuilder(
             subject,
             issuer,
@@ -298,7 +339,7 @@ public class CertificatesRule extends ExternalResource {
                 true,
                 new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation | KeyUsage.keyEncipherment)
             )
-            .addExtension(Extension.extendedKeyUsage, true, new ExtendedKeyUsage(KeyPurposeId.id_kp_clientAuth))
+            .addExtension(Extension.extendedKeyUsage, true, new ExtendedKeyUsage(ekuOids))
             .addExtension(Extension.subjectAlternativeName, false, new DERSequence(sans.toArray(sans.toArray(new ASN1Encodable[0]))))
             .build(new JcaContentSignerBuilder("SHA256withRSA").setProvider(BOUNCY_CASTLE_FIPS_PROVIDER).build(parentKeyPair.getPrivate()));
         return Tuple.tuple(keyPair.getPrivate(), certificate);
@@ -347,6 +388,30 @@ public class CertificatesRule extends ExternalResource {
 
     public BigInteger generateSerialNumber() {
         return BigInteger.valueOf(Instant.now().plusMillis(100).getEpochSecond());
+    }
+
+    public record PemFiles(Path cert, Path key, Path trustedCasPem, FileHelper.TypedStore trustStore, String trustStorePassword) {
+    }
+
+    public PemFiles generatePemFiles(final String subject, final String password) throws Exception {
+        final var keyPair = generateKeyPair();
+        final X509CertificateHolder caCert = generateCaCertificate(keyPair);
+        final var nodeKeyAndCert = generateNodeCertificate(keyPair, subject);
+        final var cert = configRootFolder.resolve("test-node.crt.pem");
+        final var key = configRootFolder.resolve("test-node.key.pem");
+        final var trustedCasPem = configRootFolder.resolve("test-ca.pem");
+        writePemContent(cert, nodeKeyAndCert.v2(), caCert);
+        writePemContent(key, privateKeyToPemObject(nodeKeyAndCert.v1(), password));
+        writePemContent(trustedCasPem, caCert);
+        final String tsExt = FileHelper.TYPE_TO_EXTENSION_MAP.get(DEFAULT_STORE_TYPE).getFirst();
+        final var tsFile = new FileHelper.TypedStore(configRootFolder.resolve("test-ca-truststore" + tsExt), DEFAULT_STORE_TYPE);
+        final var ts = KeyStore.getInstance(tsFile.type());
+        ts.load(null, null);
+        ts.setCertificateEntry("ca", toX509Certificate(caCert));
+        try (var out = Files.newOutputStream(tsFile.path())) {
+            ts.store(out, password.toCharArray());
+        }
+        return new PemFiles(cert, key, trustedCasPem, tsFile, password);
     }
 
 }

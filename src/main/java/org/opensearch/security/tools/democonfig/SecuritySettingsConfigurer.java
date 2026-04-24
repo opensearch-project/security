@@ -22,6 +22,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
@@ -55,8 +57,9 @@ public class SecuritySettingsConfigurer {
 
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
+        String hashingAlgorithm = CryptoServicesRegistrar.isInApprovedOnlyMode() ? ConfigConstants.PBKDF2 : ConfigConstants.BCRYPT;
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(
-            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, hashingAlgorithm).build()
         );
     }
 
@@ -246,8 +249,9 @@ public class SecuritySettingsConfigurer {
      */
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
         JsonNode internalUsers = yamlMapper().readTree(new FileInputStream(internalUsersFile));
-        return internalUsers.has("admin")
-            && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asString());
+        if (!internalUsers.has("admin")) return false;
+        String hash = internalUsers.get("admin").get("hash").asString();
+        return passwordHasher.check(passwordHasher.defaultAdminPassword().toCharArray(), hash);
     }
 
     /**

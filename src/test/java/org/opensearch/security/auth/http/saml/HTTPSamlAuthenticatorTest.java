@@ -18,6 +18,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -35,9 +36,11 @@ import com.google.common.collect.ImmutableMap;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.settings.Settings;
@@ -106,6 +109,14 @@ public class HTTPSamlAuthenticatorTest {
 
     private static X509Certificate spSigningCertificate;
     private static PrivateKey spSigningPrivateKey;
+
+    @BeforeClass
+    public static void skipInFipsMode() {
+        Assume.assumeTrue(
+            "Skipping SAML tests: SAML frameworks are not FIPS-compliant",
+            Security.getProvider("BCFIPS") == null && !CryptoServicesRegistrar.isInApprovedOnlyMode()
+        );
+    }
 
     @Before
     public void setUp() throws Exception {
