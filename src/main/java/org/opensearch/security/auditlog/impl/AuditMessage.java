@@ -137,6 +137,8 @@ public final class AuditMessage {
     public static final String COMPLIANCE_OPERATION = "audit_compliance_operation";
     public static final String COMPLIANCE_DOC_VERSION = "audit_compliance_doc_version";
 
+    public static final String SETTINGS_CHANGES = "audit_settings_changes";
+
     public static final String SPLIT_MESSAGE_IDENTIFIER = "audit_split_message_id";
 
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
@@ -458,6 +460,12 @@ public final class AuditMessage {
 
     public void addComplianceDocVersion(long version) {
         auditInfo.put(COMPLIANCE_DOC_VERSION, version);
+    }
+
+    public void addSettingsChanges(List<Map<String, Object>> changes) {
+        if (changes != null && !changes.isEmpty()) {
+            auditInfo.put(SETTINGS_CHANGES, changes);
+        }
     }
 
     public Map<String, Object> getAsMap() {
