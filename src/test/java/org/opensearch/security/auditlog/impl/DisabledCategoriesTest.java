@@ -23,6 +23,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
@@ -224,6 +226,9 @@ public class DisabledCategoriesTest {
         logTransportBadHeaders(auditLog);
 
         logIndexEvent(auditLog);
+
+        logClusterSettingsChange(auditLog);
+        logIndexSettingsChange(auditLog);
     }
 
     protected void logRestSucceededLogin(AuditLog auditLog) {
@@ -269,6 +274,18 @@ public class DisabledCategoriesTest {
 
     protected void logIndexEvent(AuditLog auditLog) {
         auditLog.logIndexEvent("indices:admin/test/action", new TransportRequest.Empty(), null);
+    }
+
+    protected void logClusterSettingsChange(AuditLog auditLog) {
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+        request.persistentSettings(Settings.builder().put("cluster.max_shards_per_node", "2000").build());
+        auditLog.logSettingsChange("cluster:admin/settings/update", request, null);
+    }
+
+    protected void logIndexSettingsChange(AuditLog auditLog) {
+        UpdateSettingsRequest request = new UpdateSettingsRequest();
+        request.settings(Settings.builder().put("index.number_of_replicas", "2").build());
+        auditLog.logSettingsChange("indices:admin/settings/update", request, null);
     }
 
     private static final AuditCategory[] filterComplianceCategories(AuditCategory[] cats) {

@@ -74,6 +74,11 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
+    public void logSettingsChange(String action, TransportRequest request, Task task) {
+        // noop, intentionally left empty
+    }
+
+    @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
         // noop, intentionally left empty
     }
