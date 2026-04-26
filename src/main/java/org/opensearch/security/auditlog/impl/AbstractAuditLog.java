@@ -348,13 +348,23 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         final Settings persistentSettings = request.persistentSettings();
         if (!persistentSettings.isEmpty()) {
-            final Settings currentPersistent = clusterService.state().metadata().persistentSettings();
+            Settings currentPersistent = Settings.EMPTY;
+            try {
+                currentPersistent = clusterService.state().metadata().persistentSettings();
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current persistent settings for audit", e);
+            }
             changes.addAll(buildSettingsChanges(persistentSettings, currentPersistent, "persistent"));
         }
 
         final Settings transientSettings = request.transientSettings();
         if (!transientSettings.isEmpty()) {
-            final Settings currentTransient = clusterService.state().metadata().transientSettings();
+            Settings currentTransient = Settings.EMPTY;
+            try {
+                currentTransient = clusterService.state().metadata().transientSettings();
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current transient settings for audit", e);
+            }
             changes.addAll(buildSettingsChanges(transientSettings, currentTransient, "transient"));
         }
 
@@ -390,9 +400,13 @@ public abstract class AbstractAuditLog implements AuditLog {
         // Use settings from the first resolved index as representative current state
         Settings currentSettings = Settings.EMPTY;
         if (resolvedIndices.length > 0) {
-            final var indexMetadata = clusterService.state().metadata().index(resolvedIndices[0]);
-            if (indexMetadata != null) {
-                currentSettings = indexMetadata.getSettings();
+            try {
+                final var indexMetadata = clusterService.state().metadata().index(resolvedIndices[0]);
+                if (indexMetadata != null) {
+                    currentSettings = indexMetadata.getSettings();
+                }
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current index settings for audit", e);
             }
         }
 
