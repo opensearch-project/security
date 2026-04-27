@@ -885,6 +885,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 log.trace("roles count total {}", ldapRoles.size());
             }
 
+            if (connection == null) {
+                connection = getConnection(settings, configPath);
+            }
+
             // nested roles, makes only sense for DN style role names
             if (nestedRoleMatcher != null) {
 
@@ -900,10 +904,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     if (nameRoleSearchBaseKeys == null) {
                         log.error("Could not find roleSearchBaseKeys for " + roleLdapName + "; existing: " + resultRoleSearchBaseKeys);
                         continue;
-                    }
-
-                    if (connection == null) {
-                        connection = getConnection(settings, configPath);
                     }
 
                     final Set<LdapName> nestedRoles = resolveNestedRoles(
@@ -936,10 +936,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             } else {
                 // DN roles, extract rolename according to config
-                if (connection == null) {
-                    connection = getConnection(settings, configPath);
-                }
-
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
