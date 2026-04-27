@@ -468,12 +468,15 @@ public abstract class AbstractAuditLog implements AuditLog {
         try {
             // Looks up the Setting object by key and checks setting.isSensitive(),
             // which returns true for SecureSetting instances — the proper way to identify secrets
-            return clusterService.getClusterSettings().isSensitiveSetting(key);
+            if (clusterService.getClusterSettings().isSensitiveSetting(key)) {
+                return true;
+            }
         } catch (Exception e) {
-            // Fallback for unregistered settings
-            final String lowerKey = key.toLowerCase();
-            return lowerKey.contains("password") || lowerKey.contains("key") || lowerKey.contains("secret") || lowerKey.contains("token");
+            // Setting not registered in cluster settings — fall through to pattern match
         }
+        // Pattern fallback for settings not registered as SecureSetting (e.g., plugin SSL settings)
+        final String lowerKey = key.toLowerCase();
+        return lowerKey.contains("password") || lowerKey.contains("secret") || lowerKey.contains("token");
     }
 
     // Resolves index patterns to concrete index names
