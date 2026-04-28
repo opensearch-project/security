@@ -67,7 +67,10 @@ public class AuditConfigSerializeTest {
             .field("enable_rest", true)
             .field("disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
-            .field("disabled_transport_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED"))
+            .field(
+                "disabled_transport_categories",
+                ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
+            )
             .field("resolve_bulk_requests", false)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -106,12 +109,14 @@ public class AuditConfigSerializeTest {
         assertTrue(audit.isTransportApiAuditEnabled());
         assertThat(
             audit.getDisabledTransportCategories(),
-            is(EnumSet.of(
-                AuditCategory.AUTHENTICATED,
-                AuditCategory.GRANTED_PRIVILEGES,
-                AuditCategory.CLUSTER_SETTINGS_CHANGED,
-                AuditCategory.INDEX_SETTINGS_CHANGED
-            ))
+            is(
+                EnumSet.of(
+                    AuditCategory.AUTHENTICATED,
+                    AuditCategory.GRANTED_PRIVILEGES,
+                    AuditCategory.CLUSTER_SETTINGS_CHANGED,
+                    AuditCategory.INDEX_SETTINGS_CHANGED
+                )
+            )
         );
         assertFalse(audit.shouldResolveBulkRequests());
         assertTrue(audit.shouldLogRequestBody());
@@ -282,7 +287,10 @@ public class AuditConfigSerializeTest {
             .field("enable_rest", true)
             .field("disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
-            .field("disabled_transport_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED"))
+            .field(
+                "disabled_transport_categories",
+                ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
+            )
             .field("resolve_bulk_requests", false)
             .field("log_request_body", true)
             .field("resolve_indices", true)

@@ -49,7 +49,10 @@ public class AuditConfigFilterTest {
         final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
         final EnumSet<AuditCategory> defaultDisabledRestCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
         final EnumSet<AuditCategory> defaultDisabledTransportCategories = EnumSet.of(
-            AUTHENTICATED, GRANTED_PRIVILEGES, AuditCategory.CLUSTER_SETTINGS_CHANGED, AuditCategory.INDEX_SETTINGS_CHANGED
+            AUTHENTICATED,
+            GRANTED_PRIVILEGES,
+            AuditCategory.CLUSTER_SETTINGS_CHANGED,
+            AuditCategory.INDEX_SETTINGS_CHANGED
         );
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(Settings.EMPTY);
@@ -208,7 +211,11 @@ public class AuditConfigFilterTest {
     public void fromSettingParseAuditCategory() {
         final FilterEntries entry = FilterEntries.DISABLE_REST_CATEGORIES;
         final Function<Settings, Set<AuditCategory>> parse = (settings) -> AuditCategory.parse(
-            AuditConfig.Filter.fromSettingStringSet(settings, entry, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT)
+            AuditConfig.Filter.fromSettingStringSet(
+                settings,
+                entry,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
+            )
         );
 
         final Settings noValues = Settings.builder().build();
