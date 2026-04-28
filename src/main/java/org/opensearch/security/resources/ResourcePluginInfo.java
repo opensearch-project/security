@@ -249,6 +249,15 @@ public class ResourcePluginInfo {
         }
     }
 
+    public List<String> getAccessLevelsForType(String resourceType) {
+        lock.readLock().lock();
+        try {
+            return List.copyOf(typeToAccessLevels.getOrDefault(resourceType, new LinkedHashSet<>()));
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public ResourceProvider getResourceProvider(String type) {
         lock.readLock().lock();
         try {

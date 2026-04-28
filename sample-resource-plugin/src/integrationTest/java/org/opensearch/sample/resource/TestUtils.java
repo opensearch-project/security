@@ -98,6 +98,7 @@ public final class TestUtils {
     public static final String SECURITY_SHARE_ENDPOINT = "_plugins/_security/api/resource/share";
     public static final String SECURITY_TYPES_ENDPOINT = "_plugins/_security/api/resource/types";
     public static final String SECURITY_LIST_ENDPOINT = "_plugins/_security/api/resource/list";
+    public static final String SECURITY_ACCESS_ENDPOINT = "_plugins/_security/api/resource/access";
 
     public static LocalCluster newCluster(boolean featureEnabled, boolean systemIndexEnabled) {
         return newCluster(featureEnabled, systemIndexEnabled, List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE));
@@ -619,6 +620,12 @@ public final class TestUtils {
         public TestRestClient.HttpResponse shareResourceGenerally(String resourceId, TestSecurityConfig.User user, String accessLevel) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.putJson(SECURITY_SHARE_ENDPOINT, putGeneralAccessPayload(resourceId, RESOURCE_TYPE, accessLevel));
+            }
+        }
+
+        public TestRestClient.HttpResponse getResourceAccess(String resourceId, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SECURITY_ACCESS_ENDPOINT + "?resource_type=" + RESOURCE_TYPE + "&resource_id=" + resourceId);
             }
         }
 
