@@ -832,15 +832,15 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 userRoleAttributeValue = Utils.getSingleStringValue(userRoleAttribute);
             }
 
+            if (connection == null) {
+                connection = getConnection(settings, configPath);
+            }
+
             if (rolesearchEnabled) {
                 String escapedDn = dn;
 
                 if (isDebugEnabled) {
                     log.debug("DBGTRACE (8): escapedDn" + escapedDn);
-                }
-
-                if (connection == null) {
-                    connection = getConnection(settings, configPath);
                 }
 
                 for (Map.Entry<String, Settings> roleSearchSettingsEntry : roleBaseSettings) {
@@ -883,10 +883,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             if (isTraceEnabled) {
                 log.trace("roles count total {}", ldapRoles.size());
-            }
-
-            if (connection == null) {
-                connection = getConnection(settings, configPath);
             }
 
             // nested roles, makes only sense for DN style role names
