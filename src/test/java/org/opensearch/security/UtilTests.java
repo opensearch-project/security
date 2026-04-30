@@ -29,6 +29,7 @@ package org.opensearch.security;
 import java.util.Map;
 
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
@@ -41,6 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 public class UtilTests {
 
@@ -156,6 +158,7 @@ public class UtilTests {
 
     @Test
     public void testEnvReplacePBKDF2() {
+        assumeFalse("BCFIPS requires password to be at least 14 chars long", CryptoServicesRegistrar.isInApprovedOnlyMode());
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2).build();
         final PasswordHasher passwordHasherPBKDF2 = PasswordHasherFactory.createPasswordHasher(settings);
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
@@ -190,6 +193,52 @@ public class UtilTests {
         }
 
         assertTrue(checked);
+    }
+
+    @Test
+    public void testEnvReplacePBKDF2BCFips() {
+        // BCFIPS approved-only mode requires passwords of at least 14 characters (>= 112 bits of entropy).
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2).build();
+        final PasswordHasher passwordHasherPBKDF2 = PasswordHasherFactory.createPasswordHasher(settings);
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings), is("abv${envbc.MYENV}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTtFipsPassword}xyz", settings), is("abvtTtFipsPasswordxyz"));
+        assertTrue(
+            passwordHasherPBKDF2.check(
+                "tTtFipsPassword".toCharArray(),
+                SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTtFipsPassword}", settings)
+            )
+        );
+        assertThat(
+            SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTtFipsPassword}xyz${env.MYENV:-xxxFipsPassword}", settings),
+            is("abvtTtFipsPasswordxyzxxxFipsPassword")
+        );
+        assertTrue(
+            SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTtFipsPassword}xyz${envbc.MYENV:-xxxFipsPassword}", settings)
+                .startsWith("abvtTtFipsPasswordxyz$3$")
+        );
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:tTtFipsPassword}xyz", settings), is("abv${env.MYENV:tTtFipsPassword}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV-tTtFipsPassword}xyz", settings), is("abv${env.MYENV-tTtFipsPassword}xyz"));
+
+        Map.Entry<String, String> envEntry = System.getenv()
+            .entrySet()
+            .stream()
+            .filter(it -> it.getValue() != null)
+            .filter(it -> it.getValue().length() >= 14)
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No env var with value >= 14 chars found"));
+
+        String k = envEntry.getKey();
+        String val = envEntry.getValue();
+        assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings), is("abv" + val + "xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${" + k + "}xyz", settings), is("abv${" + k + "}xyz"));
+        assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765gghFipsX}xyz", settings), is("abv" + val + "xyz"));
+        assertThat(
+            SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings),
+            is("abv" + val + "xyzabv" + val + "xyz")
+        );
+        assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765gghFipsX}xyz", settings), is("abv" + val + "xyz"));
+        assertTrue(passwordHasherPBKDF2.check(val.toCharArray(), SecurityUtils.replaceEnvVars("${envbc." + k + "}", settings)));
     }
 
     @Test

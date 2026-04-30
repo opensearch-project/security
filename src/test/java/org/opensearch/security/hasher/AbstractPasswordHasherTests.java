@@ -14,6 +14,7 @@ package org.opensearch.security.hasher;
 import java.nio.CharBuffer;
 
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.OpenSearchSecurityException;
 
@@ -26,7 +27,7 @@ public abstract class AbstractPasswordHasherTests {
 
     PasswordHasher passwordHasher;
 
-    final String password = "testPassword";
+    final String password = CryptoServicesRegistrar.isInApprovedOnlyMode() ? "notarealpassword" : "testPassword";
     final String wrongPassword = "wrongTestPassword";
 
     @Test
@@ -75,18 +76,18 @@ public abstract class AbstractPasswordHasherTests {
 
     @Test
     public void shouldCleanupPasswordCharArray() {
-        char[] password = new char[] { 'p', 'a', 's', 's', 'w', 'o', 'r', 'd' };
-        passwordHasher.hash(password);
-        assertThat("\0\0\0\0\0\0\0\0", is(new String(password)));
+        char[] passwordAsChar = password.toCharArray();
+        passwordHasher.hash(passwordAsChar);
+        assertThat("\0".repeat(password.length()), is(new String(passwordAsChar)));
     }
 
     @Test
     public void shouldCleanupPasswordCharBuffer() {
-        char[] password = new char[] { 'p', 'a', 's', 's', 'w', 'o', 'r', 'd' };
-        CharBuffer passwordBuffer = CharBuffer.wrap(password);
-        passwordHasher.hash(password);
-        assertThat("\0\0\0\0\0\0\0\0", is(new String(password)));
-        assertThat("\0\0\0\0\0\0\0\0", is(passwordBuffer.toString()));
+        char[] passwordAsChar = password.toCharArray();
+        CharBuffer passwordBuffer = CharBuffer.wrap(passwordAsChar);
+        passwordHasher.hash(passwordAsChar);
+        assertThat("\0".repeat(password.length()), is(new String(passwordAsChar)));
+        assertThat("\0".repeat(password.length()), is(passwordBuffer.toString()));
     }
 
 }
