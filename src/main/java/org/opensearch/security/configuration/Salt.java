@@ -98,7 +98,7 @@ public class Salt {
             ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT
         );
         final boolean allowUnsafeDemoCertificates = settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false);
-        if (saltAsString.equals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT) && !allowUnsafeDemoCertificates) {
+        if (ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.equals(saltAsString) && !allowUnsafeDemoCertificates) {
             throw new OpenSearchException(
                 "Default compliance salt is not allowed in production. Please configure "
                     + ConfigConstants.SECURITY_COMPLIANCE_SALT

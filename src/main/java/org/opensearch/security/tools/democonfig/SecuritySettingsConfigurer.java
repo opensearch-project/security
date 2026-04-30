@@ -47,6 +47,7 @@ public class SecuritySettingsConfigurer {
 
     static final List<String> REST_ENABLED_ROLES = List.of("all_access", "security_rest_api_access");
     static final Integer DEFAULT_PASSWORD_MIN_LENGTH = 8;
+    static final String SALT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
     static String ADMIN_PASSWORD = "";
     static String ADMIN_USERNAME = "admin";
 
@@ -356,11 +357,10 @@ public class SecuritySettingsConfigurer {
     }
 
     static String generateRandomSalt() {
-        final String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
         SecureRandom random = new SecureRandom();
         StringBuilder sb = new StringBuilder(16);
         for (int i = 0; i < 16; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
+            sb.append(SALT_CHARS.charAt(random.nextInt(SALT_CHARS.length())));
         }
         return sb.toString();
     }
