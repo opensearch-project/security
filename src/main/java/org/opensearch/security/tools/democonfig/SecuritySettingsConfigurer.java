@@ -18,6 +18,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ public class SecuritySettingsConfigurer {
 
     static final List<String> REST_ENABLED_ROLES = List.of("all_access", "security_rest_api_access");
     static final Integer DEFAULT_PASSWORD_MIN_LENGTH = 8;
+    static final String SALT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
     static String ADMIN_PASSWORD = "";
     static String ADMIN_USERNAME = "admin";
 
@@ -324,6 +326,7 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.ssl.http.pemkey_filepath", Certificates.NODE_KEY.getFileName());
         configMap.put("plugins.security.ssl.http.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
         configMap.put("plugins.security.allow_unsafe_democertificates", true);
+        configMap.put(ConfigConstants.SECURITY_COMPLIANCE_SALT, generateRandomSalt());
 
         if (installer.initsecurity) {
             configMap.put("plugins.security.allow_default_init_securityindex", true);
@@ -351,6 +354,15 @@ public class SecuritySettingsConfigurer {
         }
 
         return configMap;
+    }
+
+    static String generateRandomSalt() {
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(16);
+        for (int i = 0; i < 16; i++) {
+            sb.append(SALT_CHARS.charAt(random.nextInt(SALT_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     /**
