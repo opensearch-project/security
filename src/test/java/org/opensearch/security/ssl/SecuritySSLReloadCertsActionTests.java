@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -31,6 +30,8 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -216,7 +217,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_HTTP_CERTS_ENDPOINT, null);
 
         assertThat(reloadCertsResponse.getStatusCode(), is(200));
-        final var expectedJsonResponse = DefaultObjectMapper.objectMapper.createObjectNode();
+        final var expectedJsonResponse = DefaultObjectMapper.objectMapper().createObjectNode();
         expectedJsonResponse.put("message", "updated http certs");
         assertThat(reloadCertsResponse.getBody(), is(expectedJsonResponse.toString()));
 
@@ -289,7 +290,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
 
         assertThat(reloadCertsResponse.getStatusCode(), is(200));
-        final var expectedJsonResponse = DefaultObjectMapper.objectMapper.createObjectNode();
+        final var expectedJsonResponse = DefaultObjectMapper.objectMapper().createObjectNode();
         expectedJsonResponse.put("message", "updated transport certs");
         assertThat(reloadCertsResponse.getBody(), is(expectedJsonResponse.toString()));
 
@@ -361,7 +362,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(reloadEndpoint, null);
         assertThat(reloadCertsResponse.getStatusCode(), is(200));
-        final var expectedJsonResponse = DefaultObjectMapper.objectMapper.createObjectNode();
+        final var expectedJsonResponse = DefaultObjectMapper.objectMapper().createObjectNode();
         expectedJsonResponse.put("message", String.format("updated %s certs", updateChannel));
         assertThat(reloadCertsResponse.getBody(), is(expectedJsonResponse.toString()));
 
@@ -377,7 +378,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         List<Map<String, String>> httpCertDetails,
         List<Map<String, String>> transportCertDetails
     ) {
-        final var updatedCertDetailsResponse = DefaultObjectMapper.objectMapper.createObjectNode();
+        final var updatedCertDetailsResponse = DefaultObjectMapper.objectMapper().createObjectNode();
         updatedCertDetailsResponse.set("http_certificates_list", buildCertsInfoNode(httpCertDetails));
         updatedCertDetailsResponse.set("transport_certificates_list", buildCertsInfoNode(transportCertDetails));
         return updatedCertDetailsResponse;
@@ -388,9 +389,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
     }
 
     private JsonNode buildCertsInfoNode(final List<Map<String, String>> certsInfo) {
-        final var nodeCertDetailsArray = DefaultObjectMapper.objectMapper.createArrayNode();
+        final var nodeCertDetailsArray = DefaultObjectMapper.objectMapper().createArrayNode();
         certsInfo.forEach(m -> {
-            final var o = DefaultObjectMapper.objectMapper.createObjectNode();
+            final var o = DefaultObjectMapper.objectMapper().createObjectNode();
             m.forEach(o::put);
             nodeCertDetailsArray.add(o);
         });
@@ -406,7 +407,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "ssl/reload/kirk-keystore.jks";
+        rh.keystore = "ssl/reload/kirk-keystore";
         return rh;
     }
 
@@ -419,7 +420,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "ssl/reload/spock-keystore.jks";
+        rh.keystore = "ssl/reload/spock-keystore";
         return rh;
     }
 
@@ -484,15 +485,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         );
 
         final Settings initTransportClientSettings = Settings.builder()
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/truststore.jks")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ssl/reload/truststore").path())
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/kirk-keystore.jks")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStore("ssl/reload/kirk-keystore").path())
             .build();
 
         setup(initTransportClientSettings, new DynamicSecurityConfig(), settingsBuilder.build(), true, clusterConfiguration);

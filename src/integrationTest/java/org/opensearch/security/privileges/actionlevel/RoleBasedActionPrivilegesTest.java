@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -753,22 +752,16 @@ public class RoleBasedActionPrivilegesTest {
             }
 
             SecurityDynamicConfiguration<RoleV7> toRolesConfig(ActionSpec actionSpec) {
-                try {
-                    return SecurityDynamicConfiguration.fromMap(
+                return SecurityDynamicConfiguration.fromMap(
+                    ImmutableMap.of(
+                        "test_role",
                         ImmutableMap.of(
-                            "test_role",
-                            ImmutableMap.of(
-                                "index_permissions",
-                                Arrays.asList(
-                                    ImmutableMap.of("index_patterns", this.givenIndexPrivs, "allowed_actions", actionSpec.givenPrivs)
-                                )
-                            )
-                        ),
-                        CType.ROLES
-                    );
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
+                            "index_permissions",
+                            Arrays.asList(ImmutableMap.of("index_patterns", this.givenIndexPrivs, "allowed_actions", actionSpec.givenPrivs))
+                        )
+                    ),
+                    CType.ROLES
+                );
             }
 
             @Override
@@ -1285,48 +1278,44 @@ public class RoleBasedActionPrivilegesTest {
         }
 
         static SecurityDynamicConfiguration<RoleV7> createRoles(int numberOfRoles, int numberOfIndices) {
-            try {
-                Random random = new Random(1);
-                Map<String, Object> rolesDocument = new HashMap<>();
-                List<String> allowedActions = Arrays.asList(
-                    "indices:data/read*",
-                    "indices:admin/mappings/fields/get*",
-                    "indices:admin/resolve/index",
-                    "indices:data/write*",
-                    "indices:admin/mapping/put"
+            Random random = new Random(1);
+            Map<String, Object> rolesDocument = new HashMap<>();
+            List<String> allowedActions = Arrays.asList(
+                "indices:data/read*",
+                "indices:admin/mappings/fields/get*",
+                "indices:admin/resolve/index",
+                "indices:data/write*",
+                "indices:admin/mapping/put"
+            );
+
+            for (int i = 0; i < numberOfRoles; i++) {
+                List<String> indexPatterns = new ArrayList<>();
+                int numberOfIndexPatterns = Math.min(
+                    (int) ((Math.abs(random.nextGaussian() + 0.3)) * 0.5 * numberOfIndices),
+                    numberOfIndices
                 );
 
-                for (int i = 0; i < numberOfRoles; i++) {
-                    List<String> indexPatterns = new ArrayList<>();
-                    int numberOfIndexPatterns = Math.min(
-                        (int) ((Math.abs(random.nextGaussian() + 0.3)) * 0.5 * numberOfIndices),
-                        numberOfIndices
-                    );
+                int numberOfIndexPatterns10th = numberOfIndexPatterns / 10;
 
-                    int numberOfIndexPatterns10th = numberOfIndexPatterns / 10;
-
-                    if (numberOfIndexPatterns10th > 0) {
-                        for (int k = 0; k < numberOfIndexPatterns10th; k++) {
-                            indexPatterns.add("index_" + random.nextInt(numberOfIndices / 10) + "*");
-                        }
-                    } else {
-                        for (int k = 0; k < numberOfIndexPatterns; k++) {
-                            indexPatterns.add("index_" + random.nextInt(numberOfIndices));
-                        }
+                if (numberOfIndexPatterns10th > 0) {
+                    for (int k = 0; k < numberOfIndexPatterns10th; k++) {
+                        indexPatterns.add("index_" + random.nextInt(numberOfIndices / 10) + "*");
                     }
-
-                    Map<String, Object> roleDocument = ImmutableMap.of(
-                        "index_permissions",
-                        Arrays.asList(ImmutableMap.of("index_patterns", indexPatterns, "allowed_actions", allowedActions))
-                    );
-
-                    rolesDocument.put("role_" + i, roleDocument);
+                } else {
+                    for (int k = 0; k < numberOfIndexPatterns; k++) {
+                        indexPatterns.add("index_" + random.nextInt(numberOfIndices));
+                    }
                 }
 
-                return SecurityDynamicConfiguration.fromMap(rolesDocument, CType.ROLES);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                Map<String, Object> roleDocument = ImmutableMap.of(
+                    "index_permissions",
+                    Arrays.asList(ImmutableMap.of("index_patterns", indexPatterns, "allowed_actions", allowedActions))
+                );
+
+                rolesDocument.put("role_" + i, roleDocument);
             }
+
+            return SecurityDynamicConfiguration.fromMap(rolesDocument, CType.ROLES);
         }
     }
 }

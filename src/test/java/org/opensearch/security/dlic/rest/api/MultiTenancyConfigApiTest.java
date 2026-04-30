@@ -119,7 +119,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testUpdateSuperAdmin() throws Exception {
         setupWithRestRoles();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         verifyTenantUpdate();
     }
@@ -258,7 +258,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testDefaultTenantUpdateFailedSuperAdmin() throws Exception {
         setupWithRestRoles();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         verifyTenantUpdateFailed();
     }

@@ -48,7 +48,7 @@ public class ConfigReaderTest {
 
     @Test
     public void testCreateReaderForNonMandatoryCTypes() throws IOException {
-        final var yamlMapper = DefaultObjectMapper.YAML_MAPPER;
+        final var yamlMapper = DefaultObjectMapper.yamlMapper();
         for (final var cType : CType.notRequiredConfigTypes()) {
             try (final var reader = new BufferedReader(YamlConfigReader.newReader(cType, configDir.toPath()))) {
                 final var emptyYaml = yamlMapper.readTree(reader);

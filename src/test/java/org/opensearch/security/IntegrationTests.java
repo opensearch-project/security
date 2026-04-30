@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
@@ -62,6 +61,7 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.transport.client.Client;
 
 import org.mockito.Mockito;
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -308,13 +308,11 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testDNSpecials() throws Exception {
 
+        var ksPathSpec5 = FileHelper.resolveStore("node-untspec5-keystore");
         final Settings settings = Settings.builder()
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ksPathSpec5.path())
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, ksPathSpec5.type())
             .putList(
                 ConfigConstants.SECURITY_NODES_DN,
                 "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE"
@@ -326,12 +324,10 @@ public class IntegrationTests extends SingleClusterTest {
             .put(ConfigConstants.SECURITY_CERT_OID, "1.2.3.4.5.6")
             .build();
 
+        var ksPathSpec6a = FileHelper.resolveStore("node-untspec6-keystore");
         Settings tcSettings = Settings.builder()
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12")
-            )
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ksPathSpec6a.path())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, ksPathSpec6a.type())
             .build();
 
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);
@@ -345,13 +341,11 @@ public class IntegrationTests extends SingleClusterTest {
     @Test
     public void testDNSpecials1() throws Exception {
 
+        var ksPathSpec5b = FileHelper.resolveStore("node-untspec5-keystore");
         final Settings settings = Settings.builder()
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ksPathSpec5b.path())
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, ksPathSpec5b.type())
             .putList("plugins.security.nodes_dn", "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
             .putList(
                 "plugins.security.authcz.admin_dn",
@@ -360,12 +354,10 @@ public class IntegrationTests extends SingleClusterTest {
             .put("plugins.security.cert.oid", "1.2.3.4.5.6")
             .build();
 
+        var ksPathSpec6b = FileHelper.resolveStore("node-untspec6-keystore");
         Settings tcSettings = Settings.builder()
-            .put(
-                "plugins.security.ssl.transport.keystore_filepath",
-                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12")
-            )
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .put("plugins.security.ssl.transport.keystore_filepath", ksPathSpec6b.path())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, ksPathSpec6b.type())
             .build();
 
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);

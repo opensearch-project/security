@@ -13,9 +13,10 @@ package org.opensearch.security.securityconf.impl.v7;
 
 import java.net.URL;
 
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.junit.Before;
 import org.junit.Test;
+
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

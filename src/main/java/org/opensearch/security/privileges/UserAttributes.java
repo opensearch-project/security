@@ -10,12 +10,9 @@
  */
 package org.opensearch.security.privileges;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
@@ -41,12 +38,7 @@ public class UserAttributes {
      * in {@code s} after substitution has been performed.
      */
     public static List<String> findUnresolvedAttributes(String s) {
-        List<String> result = new ArrayList<>();
-        Matcher matcher = UNRESOLVED_ATTRIBUTE_PATTERN.matcher(s);
-        while (matcher.find()) {
-            result.add(matcher.group(1));
-        }
-        return Collections.unmodifiableList(result);
+        return UNRESOLVED_ATTRIBUTE_PATTERN.matcher(s).results().map(m -> m.group(1)).toList();
     }
 
     public static String replaceProperties(String orig, PrivilegesEvaluationContext context) {

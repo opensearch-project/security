@@ -30,7 +30,6 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
@@ -56,6 +55,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.transport.client.Client;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -413,8 +414,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
     public void testHTTPSCompressionEnabled() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .put("http.compression", true)
             .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
@@ -434,8 +435,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
     public void testHTTPSCompression() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); // ssl resthelper
@@ -504,8 +505,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
             .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
@@ -532,11 +533,11 @@ public class HttpIntegrationTests extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "spock-keystore.jks";
+        rh.keystore = "spock-keystore";
         assertThat(rh.executeGetRequest("_search").getStatusCode(), is(HttpStatus.SC_OK));
         assertThat(rh.executePutRequest(".opendistro_security/_doc/x", "{}").getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
         assertThat(rh.executePutRequest(".opendistro_security/_doc/y", "{}").getStatusCode(), is(HttpStatus.SC_CREATED));
         assertThat(rh.executeGetRequest("_opendistro/_security/authinfo").getStatusCode(), is(HttpStatus.SC_OK));
     }
@@ -547,8 +548,8 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         try {
             final Settings settings = Settings.builder()
-                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
                 .put("plugins.security.ssl.http.enabled", true)
                 .build();
             setup(settings);
