@@ -726,6 +726,29 @@ public class LdapBackendTestNewStyleConfig {
     }
 
     @Test
+    public void testLdapAuthorizationRolesearchDisabledWithLdapAuthContext() throws Exception {
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put("users.u1.search", "(uid={0})")
+            .put("users.u1.base", "ou=people,o=TEST")
+            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, false)
+            .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description")
+            .build();
+
+        AuthenticationContext context = ctx("spock", "spocksecret");
+        User user = new LDAPAuthenticationBackend(settings, null).authenticate(context);
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(user, context);
+
+        Assert.assertNotNull(user);
+        assertThat(user.getName(), is("cn=Captain Spock,ou=people,o=TEST"));
+        assertThat(user.getRoles().size(), is(2));
+        Assert.assertTrue(user.getRoles().contains("dummyempty"));
+        Assert.assertTrue(user.getRoles().contains("rolemo4"));
+    }
+
+    @Test
     public void testCustomAttributes() throws Exception {
 
         Settings settings = Settings.builder()
