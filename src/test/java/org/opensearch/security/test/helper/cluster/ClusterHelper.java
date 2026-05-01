@@ -271,6 +271,7 @@ public final class ClusterHelper {
         latch.await();
 
         if (err.get() != null) {
+            closeAllNodes();
             throw new RuntimeException("Could not start all nodes " + err.get(), err.get());
         }
 
@@ -342,7 +343,7 @@ public final class ClusterHelper {
     private static void closeNode(Node node) {
         try {
             node.close();
-            node.awaitClose(250, TimeUnit.MILLISECONDS);
+            node.awaitClose(5, TimeUnit.SECONDS);
         } catch (Throwable e) {
             // ignore
         }
