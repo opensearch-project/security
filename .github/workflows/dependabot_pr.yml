@@ -23,7 +23,7 @@ jobs:
 
       - name: Fetch Dependabot metadata
         id: dependabot-metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
         with:
           github-token: ${{ steps.github_app_token.outputs.token }}
 
@@ -63,25 +63,7 @@ jobs:
           commit_user_email: support@github.com
           commit_options: '--signoff'
 
-      - name: Add skip-changelog label for GitHub Actions bumps
-        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'github-actions' }}
+      - name: Add skip-changelog label
         run: gh pr edit "${{ github.event.pull_request.html_url }}" --add-label "skip-changelog"
         env:
           GITHUB_TOKEN: ${{ steps.github_app_token.outputs.token }}
-
-      - name: Update the changelog
-        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem != 'github-actions' }}
-        uses: dangoslen/dependabot-changelog-helper@v4
-        with:
-          version: 'Unreleased 3.x'
-          sectionHeader: "Maintenance"
-
-      - name: Commit changelog changes
-        if: ${{ steps.dependabot-metadata.outputs.package-ecosystem != 'github-actions' }}
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: "Update changelog"
-          branch: ${{ github.head_ref }}
-          commit_user_name: dependabot[bot]
-          commit_user_email: support@github.com
-          commit_options: '--signoff'

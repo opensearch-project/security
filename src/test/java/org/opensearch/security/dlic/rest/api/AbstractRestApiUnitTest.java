@@ -15,9 +15,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
@@ -31,6 +28,9 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -52,12 +52,12 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
         builder.put("plugins.security.ssl.http.enabled", true)
             .put(SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, PasswordValidator.ScoreStrength.FAIR.name())
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("restapi/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("restapi/truststore").path());
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
         rh = restHelper();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
     }
 
     @Override
@@ -65,13 +65,13 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         Settings.Builder builder = Settings.builder();
 
         builder.put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("restapi/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("restapi/truststore").path())
             .put(nodeOverride);
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
         rh = restHelper();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
     }
 
     protected final void setupWithRestRoles() throws Exception {
@@ -83,8 +83,8 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
         builder.put("plugins.security.ssl.http.enabled", true)
             .put(SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, PasswordValidator.ScoreStrength.FAIR.name())
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("restapi/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("restapi/truststore").path());
 
         builder.put(rolesSettings());
 
@@ -94,7 +94,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
         rh = restHelper();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
 
         AuditTestUtils.updateAuditConfig(rh, nodeOverride != null ? nodeOverride : Settings.EMPTY);
     }
@@ -247,14 +247,14 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         assertThat(HttpStatus.SC_OK, is(rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("admin", "admin")).getStatusCode()));
     }
 
-    String createRestAdminPermissionsPayload(String... additionPerms) throws JsonProcessingException {
-        final ObjectNode rootNode = DefaultObjectMapper.objectMapper.createObjectNode();
+    String createRestAdminPermissionsPayload(String... additionPerms) {
+        final ObjectNode rootNode = DefaultObjectMapper.objectMapper().createObjectNode();
         rootNode.set("cluster_permissions", clusterPermissionsForRestAdmin(additionPerms));
-        return DefaultObjectMapper.objectMapper.writeValueAsString(rootNode);
+        return DefaultObjectMapper.objectMapper().writeValueAsString(rootNode);
     }
 
     ArrayNode clusterPermissionsForRestAdmin(String... additionPerms) {
-        final ArrayNode permissionsArray = DefaultObjectMapper.objectMapper.createArrayNode();
+        final ArrayNode permissionsArray = DefaultObjectMapper.objectMapper().createArrayNode();
         for (final Map.Entry<
             Endpoint,
             RestApiAuthorizationEvaluator.PermissionBuilder> entry : RestApiAuthorizationEvaluator.ENDPOINTS_WITH_PERMISSIONS.entrySet()) {

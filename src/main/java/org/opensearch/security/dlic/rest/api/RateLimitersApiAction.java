@@ -18,7 +18,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.service.ClusterService;
@@ -35,6 +34,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.threadpool.ThreadPool;
+
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;

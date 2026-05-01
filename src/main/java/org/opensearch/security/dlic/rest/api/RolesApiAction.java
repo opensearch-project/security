@@ -19,8 +19,6 @@ import java.util.stream.StreamSupport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.core.JsonPointer;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.opensearch.cluster.service.ClusterService;
@@ -37,6 +35,9 @@ import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
+
+import tools.jackson.core.JsonPointer;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;

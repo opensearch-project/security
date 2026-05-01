@@ -41,6 +41,8 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.ApplicationProtocolNegotiator;
 import io.netty.handler.ssl.SslContext;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
+
 final class KeyStoreUtils {
 
     private final static Logger log = LogManager.getLogger(KeyStoreUtils.class);
@@ -113,7 +115,7 @@ final class KeyStoreUtils {
                 if (aliasCertificate == null) {
                     throw new OpenSearchException("Couldn't find SSL certificate for alias " + alias);
                 }
-                keyStore = newKeyStore();
+                keyStore = newKeyStore(type);
                 keyStore.setCertificateEntry(alias, aliasCertificate);
             }
             return keyStore;
@@ -137,7 +139,11 @@ final class KeyStoreUtils {
     }
 
     private static KeyStore newKeyStore() throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
-        final var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        return newKeyStore(DEFAULT_STORE_TYPE);
+    }
+
+    private static KeyStore newKeyStore(String type) throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
+        final var keyStore = KeyStore.getInstance(type);
         keyStore.load(null, null);
         return keyStore;
     }
@@ -235,7 +241,7 @@ final class KeyStoreUtils {
                     throw new CertificateException("Couldn't find certificate chain for alias " + alias);
                 }
                 final var key = keyStore.getKey(alias, keyPassword);
-                keyStore = newKeyStore();
+                keyStore = newKeyStore(type);
                 keyStore.setKeyEntry(alias, key, keyPassword, certificateChain);
             }
             return keyStore;

@@ -16,9 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -35,6 +32,10 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.matcher.RestMatchers;
+
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -653,10 +654,10 @@ public class MigrateApiTests {
             ArrayNode hitsNode = (ArrayNode) sharingResponse.bodyAsJsonNode().get("hits").get("hits");
             assertThat(hitsNode.size(), equalTo(1));
 
-            com.fasterxml.jackson.databind.JsonNode source = hitsNode.get(0).get("_source");
-            assertThat(source.get("resource_id").asText(), equalTo(resourceId));
-            assertThat(source.get("parent_id").asText(), equalTo(garbageGroupId));
-            assertThat(source.get("parent_type").asText(), equalTo(RESOURCE_GROUP_TYPE));
+            tools.jackson.databind.JsonNode source = hitsNode.get(0).get("_source");
+            assertThat(source.get("resource_id").asString(), equalTo(resourceId));
+            assertThat(source.get("parent_id").asString(), equalTo(garbageGroupId));
+            assertThat(source.get("parent_type").asString(), equalTo(RESOURCE_GROUP_TYPE));
 
             // Access check for the owner should still work gracefully — the nonexistent parent
             // simply contributes no additional resource IDs, so the resource remains owner-accessible
@@ -690,18 +691,18 @@ public class MigrateApiTests {
             assertThat(hitsNode.size(), equalTo(2));
 
             // Find the resource hit (not the group) and verify parent fields
-            com.fasterxml.jackson.databind.JsonNode resourceSource = null;
-            for (com.fasterxml.jackson.databind.JsonNode hit : hitsNode) {
-                com.fasterxml.jackson.databind.JsonNode src = hit.get("_source");
-                if (RESOURCE_TYPE.equals(src.get("resource_type").asText())) {
+            tools.jackson.databind.JsonNode resourceSource = null;
+            for (tools.jackson.databind.JsonNode hit : hitsNode) {
+                tools.jackson.databind.JsonNode src = hit.get("_source");
+                if (RESOURCE_TYPE.equals(src.get("resource_type").asString())) {
                     resourceSource = src;
                     break;
                 }
             }
             assertThat("Expected a sharing record for resource type " + RESOURCE_TYPE, resourceSource != null);
-            assertThat(resourceSource.get("resource_id").asText(), equalTo(resourceId));
-            assertThat(resourceSource.get("parent_type").asText(), equalTo(RESOURCE_GROUP_TYPE));
-            assertThat(resourceSource.get("parent_id").asText(), equalTo(groupId));
+            assertThat(resourceSource.get("resource_id").asString(), equalTo(resourceId));
+            assertThat(resourceSource.get("parent_type").asString(), equalTo(RESOURCE_GROUP_TYPE));
+            assertThat(resourceSource.get("parent_id").asString(), equalTo(groupId));
         }
     }
 

@@ -19,8 +19,6 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,6 +38,8 @@ import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.impl.CType;
+
+import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -237,11 +237,7 @@ public class AuditMessageTest {
     }
 
     private static String getSplitMessageId(final String message) {
-        try {
-            return objectMapper.readTree(message).get(SPLIT_MESSAGE_IDENTIFIER).asText();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        return objectMapper.readTree(message).get(SPLIT_MESSAGE_IDENTIFIER).asText();
     }
 
     @Test
