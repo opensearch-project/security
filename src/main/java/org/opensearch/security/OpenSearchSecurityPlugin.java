@@ -357,6 +357,24 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return settings.getAsBoolean(SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED, false);
     }
 
+    static void validateFipsMode(final String fipsModeEnvValue, final Settings settings) {
+        if ("true".equalsIgnoreCase(fipsModeEnvValue)) {
+            String hashingAlgorithm = settings.get(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT
+            );
+            if (!ConfigConstants.PBKDF2.equalsIgnoreCase(hashingAlgorithm)) {
+                throw new IllegalStateException(
+                    "FIPS mode is enabled (OPENSEARCH_FIPS_MODE=true) but password hashing algorithm is set to '"
+                        + hashingAlgorithm
+                        + "'. Only PBKDF2 is allowed in FIPS mode. Set '"
+                        + ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM
+                        + "' to 'pbkdf2'. Note: changing the hashing algorithm requires all existing passwords to be rehashed."
+                );
+            }
+        }
+    }
+
     public OpenSearchSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
 
@@ -488,6 +506,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT
             );
         }
+
+        validateFipsMode(System.getenv("OPENSEARCH_FIPS_MODE"), settings);
 
         if (!client && !settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
             // check for demo certificates
