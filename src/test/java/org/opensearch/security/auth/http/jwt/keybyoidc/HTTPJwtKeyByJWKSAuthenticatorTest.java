@@ -54,6 +54,28 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
     }
 
     @Test
+    public void testJwksAuthenticationWithEC() throws Exception {
+        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
+
+        try {
+            Settings settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).build();
+
+            HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
+
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_EC_1), new HashMap<>()).asSecurityRequest(),
+                null
+            );
+
+            Assert.assertNotNull(creds);
+            assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+
+        } finally {
+            mockJwksServer.close();
+        }
+    }
+
+    @Test
     public void testJwksAuthenticationWithBearerPrefix() throws Exception {
         MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
 
