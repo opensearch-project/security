@@ -35,10 +35,13 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -323,6 +326,170 @@ public abstract class AbstractAuditLog implements AuditLog {
         );
 
         msgs.forEach(this::save);
+    }
+
+    // Routes settings change audit to the appropriate handler
+    @Override
+    public void logSettingsChange(String action, TransportRequest request, Task task) {
+        if (request instanceof ClusterUpdateSettingsRequest) {
+            logClusterSettingsChange(action, (ClusterUpdateSettingsRequest) request, task);
+        } else if (request instanceof UpdateSettingsRequest) {
+            logIndexSettingsChange(action, (UpdateSettingsRequest) request, task);
+        }
+    }
+
+    // Audits cluster settings changes (persistent and transient)
+    private void logClusterSettingsChange(String action, ClusterUpdateSettingsRequest request, Task task) {
+        if (!checkTransportFilter(AuditCategory.CLUSTER_SETTINGS_CHANGED, action, getUser(), request)) {
+            return;
+        }
+
+        final List<Map<String, Object>> changes = new ArrayList<>();
+
+        final Settings persistentSettings = request.persistentSettings();
+        if (!persistentSettings.isEmpty()) {
+            Settings currentPersistent = Settings.EMPTY;
+            try {
+                currentPersistent = clusterService.state().metadata().persistentSettings();
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current persistent settings for audit", e);
+            }
+            changes.addAll(buildSettingsChanges(persistentSettings, currentPersistent, "persistent"));
+        }
+
+        final Settings transientSettings = request.transientSettings();
+        if (!transientSettings.isEmpty()) {
+            Settings currentTransient = Settings.EMPTY;
+            try {
+                currentTransient = clusterService.state().metadata().transientSettings();
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current transient settings for audit", e);
+            }
+            changes.addAll(buildSettingsChanges(transientSettings, currentTransient, "transient"));
+        }
+
+        if (changes.isEmpty()) {
+            return;
+        }
+
+        final AuditMessage msg = new AuditMessage(AuditCategory.CLUSTER_SETTINGS_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
+        TransportAddress remoteAddress = getRemoteAddress();
+        msg.addRemoteAddress(remoteAddress);
+        msg.addEffectiveUser(getUser());
+        msg.addAction(action);
+        msg.addRequestType(request.getClass().getSimpleName());
+        msg.addSettingsChanges(changes);
+
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+
+        save(msg);
+    }
+
+    // Audits index-level settings changes
+    private void logIndexSettingsChange(String action, UpdateSettingsRequest request, Task task) {
+        if (!checkTransportFilter(AuditCategory.INDEX_SETTINGS_CHANGED, action, getUser(), request)) {
+            return;
+        }
+
+        final Settings newSettings = request.settings();
+        final String[] indices = request.indices();
+        final String[] resolvedIndices = resolveIndices(indices);
+
+        // Use settings from the first resolved index as representative current state
+        Settings currentSettings = Settings.EMPTY;
+        if (resolvedIndices.length > 0) {
+            try {
+                final var indexMetadata = clusterService.state().metadata().index(resolvedIndices[0]);
+                if (indexMetadata != null) {
+                    currentSettings = indexMetadata.getSettings();
+                }
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current index settings for audit", e);
+            }
+        }
+
+        final List<Map<String, Object>> changes = buildSettingsChanges(newSettings, currentSettings, "index");
+        if (changes.isEmpty()) {
+            return;
+        }
+
+        final AuditMessage msg = new AuditMessage(AuditCategory.INDEX_SETTINGS_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
+        TransportAddress remoteAddress = getRemoteAddress();
+        msg.addRemoteAddress(remoteAddress);
+        msg.addEffectiveUser(getUser());
+        msg.addAction(action);
+        msg.addRequestType(request.getClass().getSimpleName());
+        msg.addIndices(indices);
+        msg.addResolvedIndices(resolvedIndices);
+        msg.addSettingsChanges(changes);
+
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+
+        save(msg);
+    }
+
+    // Compares old vs new values for each setting and builds change entries
+    private List<Map<String, Object>> buildSettingsChanges(Settings newSettings, Settings currentSettings, String scope) {
+        final List<Map<String, Object>> changes = new ArrayList<>();
+        for (String key : newSettings.keySet()) {
+            final String newValue = newSettings.get(key);
+            final String oldValue = currentSettings.get(key);
+            final boolean isSensitive = isSensitiveSetting(key);
+
+            final Map<String, Object> change = new HashMap<>();
+            change.put("setting", key);
+            change.put("old_value", isSensitive && oldValue != null ? "***REDACTED***" : oldValue);
+            change.put("scope", scope);
+
+            if (newValue == null) {
+                change.put("new_value", null);
+                change.put("operation", "removed");
+            } else {
+                change.put("new_value", isSensitive ? "***REDACTED***" : newValue);
+                change.put("operation", "set");
+            }
+
+            changes.add(change);
+        }
+        return changes;
+    }
+
+    /**
+     * Checks if a setting should have its value redacted in audit logs.
+     * Uses ClusterSettings.isSensitiveSetting() to detect SecureSetting instances (e.g., keystore passwords,
+     * TLS keys). Falls back to pattern matching for plugin-specific settings
+     * that may not be registered in the cluster settings registry.
+     */
+    private boolean isSensitiveSetting(String key) {
+        try {
+            // Looks up the Setting object by key and checks setting.isSensitive(),
+            // which returns true for SecureSetting instances — the proper way to identify secrets
+            if (clusterService.getClusterSettings().isSensitiveSetting(key)) {
+                return true;
+            }
+        } catch (Exception e) {
+            // Setting not registered in cluster settings — fall through to pattern match
+        }
+        // Pattern fallback for settings not registered as SecureSetting (e.g., plugin SSL settings)
+        final String lowerKey = key.toLowerCase();
+        return lowerKey.contains("password") || lowerKey.contains("secret") || lowerKey.contains("token");
+    }
+
+    // Resolves index patterns to concrete index names
+    private String[] resolveIndices(String[] indices) {
+        if (indices == null || indices.length == 0) {
+            return new String[0];
+        }
+        try {
+            return resolver.concreteIndexNames(clusterService.state(), IndicesOptions.lenientExpandOpen(), indices);
+        } catch (Exception e) {
+            log.debug("Unable to resolve indices for settings change audit", e);
+            return indices;
+        }
     }
 
     @Override
