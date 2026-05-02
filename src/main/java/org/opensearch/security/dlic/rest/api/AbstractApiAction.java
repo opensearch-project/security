@@ -119,7 +119,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
     }
 
     private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
-        builder.withAccessHandler(request -> securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint))
+        builder.withAccessHandler(request -> securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint))
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
             .add(Method.POST, methodNotImplementedHandler)
             .add(Method.PATCH, methodNotImplementedHandler)
@@ -397,7 +397,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             );
         }
         if (omitSensitiveData) {
-            if (!securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint)) {
+            if (!securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint)) {
                 configuration.removeHidden();
             }
             configuration.clearHashes();
@@ -423,8 +423,8 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
@@ -594,7 +594,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         }
 
         // check if request is authorized
-        final String authError = securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, endpoint);
+        final String authError = securityApiDependencies.restApiAuthorizationEvaluator().checkAccessPermissions(request, endpoint);
 
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String userName = user == null ? null : user.getName();
