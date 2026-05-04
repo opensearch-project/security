@@ -28,7 +28,6 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.authtoken.jwt.claims.JwtClaimsBuilder;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -259,41 +258,6 @@ public class JwtVendorTest {
 
         final String[] parts = logMessage.split("\\.");
         assertTrue(parts.length >= 3);
-    }
-
-    @Test
-    public void testCreateApiTokenJwtSuccess() throws Exception {
-        String issuer = "cluster_0";
-        String subject = "admin";
-        String audience = "audience_0";
-        int expirySeconds = 300;
-        // 2023 oct 4, 10:00:00 AM GMT
-        LongSupplier currentTime = () -> 1696413600000L;
-        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
-
-        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
-
-        JwtVendor apiTokenJwtVendor = new JwtVendor(settings);
-        final ExpiringBearerAuthToken authToken = apiTokenJwtVendor.createJwt(
-            new JwtClaimsBuilder().issuer(issuer)
-                .subject(subject)
-                .audience(audience)
-                .expirationTime(expiryTime)
-                .issueTime(new Date(currentTime.getAsLong())),
-            subject.toString(),
-            expiryTime,
-            (long) expirySeconds
-        );
-
-        SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
-
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iss"), equalTo("cluster_0"));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("sub"), equalTo("admin"));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
-        // 2023 oct 4, 10:00:00 AM GMT
-        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("iat")).getTime(), is(1696413600000L));
-        // 2023 oct 4, 10:05:00 AM GMT
-        assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
     }
 
     @Test

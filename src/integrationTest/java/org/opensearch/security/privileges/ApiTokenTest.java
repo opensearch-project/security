@@ -39,6 +39,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 public class ApiTokenTest {
 
@@ -55,7 +56,8 @@ public class ApiTokenTest {
     public static final String TEST_TOKEN_PAYLOAD = """
         {
           "name": "test-token",
-          "cluster_permissions": ["cluster_monitor"]
+          "cluster_permissions": ["cluster_monitor"],
+          "expiration": 3600000
         }
         """;
 
@@ -66,7 +68,8 @@ public class ApiTokenTest {
           "index_permissions": [{
             "index_pattern": ["test-index-*"],
             "allowed_actions": ["indices:data/read/search"]
-          }]
+          }],
+          "expiration": 3600000
         }
         """;
 
@@ -82,6 +85,7 @@ public class ApiTokenTest {
         {
           "name": "test-token",
           "cluster_permissions": ["cluster_monitor"],
+          "expiration": 3600000,
           "foo": "bar"
         }
         """;
@@ -129,9 +133,9 @@ public class ApiTokenTest {
     public void testDashboardsInfoReportsApiTokensEnabled() {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
-            response.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(response, isOk());
             assertThat(response.getTextFromJsonBody("/api_tokens_enabled"), equalTo("true"));
-            assertThat(response.getTextFromJsonBody("/max_token_expiration_seconds"), equalTo("0"));
+            assertThat(response.getTextFromJsonBody("/max_token_expiration_seconds"), equalTo("7776000"));
         }
     }
 
@@ -249,7 +253,8 @@ public class ApiTokenTest {
               "index_permissions": [{
                 "index_pattern": ["test-index-write"],
                 "allowed_actions": ["indices:data/write/index", "indices:data/write/bulk*", "indices:admin/mapping/put"]
-              }]
+              }],
+              "expiration": 3600000
             }
             """;
         String apiToken = generateApiToken(writePayload);
@@ -329,7 +334,7 @@ public class ApiTokenTest {
             listResponse.assertStatusCode(HttpStatus.SC_OK);
             // Find our specific token in the list and verify it has revoked_at
             boolean found = false;
-            for (com.fasterxml.jackson.databind.JsonNode token : listResponse.bodyAsJsonNode()) {
+            for (tools.jackson.databind.JsonNode token : listResponse.bodyAsJsonNode()) {
                 if (revokedId.equals(token.get(ApiToken.ID_FIELD).asText())) {
                     assertThat(token.has(ApiToken.REVOKED_AT_FIELD), equalTo(true));
                     found = true;

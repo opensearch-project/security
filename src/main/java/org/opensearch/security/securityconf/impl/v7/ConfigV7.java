@@ -501,15 +501,11 @@ public class ConfigV7 {
         @JsonProperty("max_tokens")
         private int maxTokens = 100;
         @JsonProperty("max_expiration_seconds")
-        private long maxExpirationSeconds = 0;
+        private long maxExpirationSeconds = 7776000;
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(this, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(this, false);
         }
 
         public Boolean getEnabled() {

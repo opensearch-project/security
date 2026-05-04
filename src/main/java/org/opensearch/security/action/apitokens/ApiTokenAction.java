@@ -70,12 +70,6 @@ public class ApiTokenAction extends BaseRestHandler {
     private final ConfigurationRepository configurationRepository;
     private final PrivilegesConfiguration privilegesConfiguration;
     private final SecurityApiDependencies securityApiDependencies;
-    private final ClusterService clusterService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
-
-    private static final List<Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens/{id}"), new Route(GET, "/apitokens"))
-    );
 
     public ApiTokenAction(
         ThreadPool threadpool,
@@ -109,8 +103,6 @@ public class ApiTokenAction extends BaseRestHandler {
             auditLog,
             settings
         );
-        this.clusterService = clusterService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override
@@ -120,7 +112,9 @@ public class ApiTokenAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return ROUTES;
+        return addRoutesPrefix(
+            ImmutableList.of(new Route(POST, "/apitokens"), new Route(DELETE, "/apitokens/{id}"), new Route(GET, "/apitokens"))
+        );
     }
 
     @Override
