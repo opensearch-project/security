@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -196,26 +195,22 @@ public class TenantPrivilegesTest {
             }
 
             SecurityDynamicConfiguration<RoleV7> toRolesConfig() {
-                try {
-                    if (!isEmpty()) {
-                        return SecurityDynamicConfiguration.fromMap(
+                if (!isEmpty()) {
+                    return SecurityDynamicConfiguration.fromMap(
+                        ImmutableMap.of(
+                            "test_role",
                             ImmutableMap.of(
-                                "test_role",
-                                ImmutableMap.of(
-                                    "tenant_permissions",
-                                    List.of(ImmutableMap.of("tenant_patterns", this.tenantPatterns, "allowed_actions", this.allowedActions))
-                                )
-                            ),
-                            CType.ROLES
-                        );
-                    } else {
-                        return SecurityDynamicConfiguration.fromMap(
-                            ImmutableMap.of("test_role", ImmutableMap.of("description", "empty role")),
-                            CType.ROLES
-                        );
-                    }
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
+                                "tenant_permissions",
+                                List.of(ImmutableMap.of("tenant_patterns", this.tenantPatterns, "allowed_actions", this.allowedActions))
+                            )
+                        ),
+                        CType.ROLES
+                    );
+                } else {
+                    return SecurityDynamicConfiguration.fromMap(
+                        ImmutableMap.of("test_role", ImmutableMap.of("description", "empty role")),
+                        CType.ROLES
+                    );
                 }
             }
 

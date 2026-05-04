@@ -143,6 +143,7 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     builder.field("opensearch_dashboards_index", multiTenancyConfiguration.dashboardsIndex());
                     builder.field("opensearch_dashboards_server_user", multiTenancyConfiguration.dashboardsServerUsername());
                     builder.field("multitenancy_enabled", multiTenancyConfiguration.multitenancyEnabled());
+                    builder.field("preferred_tenants", multiTenancyConfiguration.preferredTenants());
                     builder.field("private_tenant_enabled", multiTenancyConfiguration.privateTenantEnabled());
                     builder.field("default_tenant", multiTenancyConfiguration.dashboardsDefaultTenant());
                     builder.field("sign_in_options", getSignInOptions());

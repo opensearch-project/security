@@ -24,8 +24,8 @@ import org.yaml.snakeyaml.Yaml;
 /**
  * Helper class to load `resource-access-levels.yml` file for all resource sharing extensions.
  */
-public class ResourceActionGroupsHelper {
-    public static final Logger log = LogManager.getLogger(ResourceActionGroupsHelper.class);
+public class ResourceAccessLevelHelper {
+    public static final Logger log = LogManager.getLogger(ResourceAccessLevelHelper.class);
 
     /**
      * Loads action-groups config from the {@code resource-access-levels.yml} file from each resource sharing extension
@@ -36,10 +36,10 @@ public class ResourceActionGroupsHelper {
      *      sample-resource:
      *          sample_read_only:
      *              allowed_actions:
-     *                  - "cluster:admin/sample-resource-plugin/get"
+     *                  - "sampleresource:get"
      */
     @SuppressWarnings("unchecked")
-    public static void loadActionGroupsConfig(ResourcePluginInfo resourcePluginInfo) {
+    public static void loadAccessLevelConfig(ResourcePluginInfo resourcePluginInfo) {
         var exts = resourcePluginInfo.getResourceSharingExtensions();
         for (var ext : exts) {
             URL url = ext.getClass().getClassLoader().getResource("resource-access-levels.yml");

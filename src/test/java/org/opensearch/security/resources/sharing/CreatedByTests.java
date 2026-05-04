@@ -45,16 +45,6 @@ public class CreatedByTests {
     }
 
     @Test
-    public void testCreatedByConstructorWithValidUserAndTenant() {
-        String expectedUser = "testUser";
-        String expectedTenant = "customTenant";
-        CreatedBy createdBy = new CreatedBy(expectedUser, expectedTenant);
-
-        MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getUsername())));
-        MatcherAssert.assertThat(expectedTenant, is(equalTo(createdBy.getTenant())));
-    }
-
-    @Test
     public void testCreatedByFromStreamInput() throws IOException {
         CreatedBy expectedUser = new CreatedBy("testUser");
 

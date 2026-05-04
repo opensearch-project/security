@@ -14,8 +14,6 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,6 +36,8 @@ import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -65,7 +65,7 @@ public abstract class AbstractApiActionValidationTest {
 
     SecurityDynamicConfiguration<RoleV7> rolesConfiguration;
 
-    ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
+    ObjectMapper objectMapper = DefaultObjectMapper.objectMapper();
 
     PasswordHasher passwordHasher;
 
@@ -87,7 +87,7 @@ public abstract class AbstractApiActionValidationTest {
     }
 
     void setupRolesConfiguration() throws IOException {
-        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var objectMapper = DefaultObjectMapper.objectMapper();
         final var config = objectMapper.createObjectNode();
         config.set("_meta", objectMapper.createObjectNode().put("type", CType.ROLES.toLCString()).put("config_version", 2));
         config.set("kibana_read_only", objectMapper.createObjectNode().put("reserved", true));

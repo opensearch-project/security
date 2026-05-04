@@ -18,12 +18,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
@@ -35,8 +33,11 @@ import org.opensearch.security.support.ConfigConstants;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 
-import static org.opensearch.security.DefaultObjectMapper.YAML_MAPPER;
+import static org.opensearch.security.DefaultObjectMapper.yamlMapper;
 import static org.opensearch.security.tools.democonfig.Installer.certificateGenerator;
 
 /**
@@ -46,6 +47,7 @@ public class SecuritySettingsConfigurer {
 
     static final List<String> REST_ENABLED_ROLES = List.of("all_access", "security_rest_api_access");
     static final Integer DEFAULT_PASSWORD_MIN_LENGTH = 8;
+    static final String SALT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
     static String ADMIN_PASSWORD = "";
     static String ADMIN_USERNAME = "admin";
 
@@ -245,9 +247,9 @@ public class SecuritySettingsConfigurer {
      * @throws IOException if there was an error while reading the file
      */
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
-        JsonNode internalUsers = YAML_MAPPER.readTree(new FileInputStream(internalUsersFile));
+        JsonNode internalUsers = yamlMapper().readTree(new FileInputStream(internalUsersFile));
         return internalUsers.has("admin")
-            && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asText());
+            && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asString());
     }
 
     /**
@@ -265,7 +267,7 @@ public class SecuritySettingsConfigurer {
         }
 
         try {
-            var map = YAML_MAPPER.readValue(new File(internalUsersFile), new TypeReference<Map<String, LinkedHashMap<String, Object>>>() {
+            var map = yamlMapper().readValue(new File(internalUsersFile), new TypeReference<Map<String, LinkedHashMap<String, Object>>>() {
             });
             var admin = map.get("admin");
             if (admin != null) {
@@ -274,8 +276,8 @@ public class SecuritySettingsConfigurer {
             }
 
             // Write the updated map back to the internal_users.yml file
-            YAML_MAPPER.writeValue(new File(internalUsersFile), map);
-        } catch (IOException e) {
+            yamlMapper().writeValue(new File(internalUsersFile), map);
+        } catch (JacksonException e) {
             throw new IOException("Unable to update the internal users file with the hashed password.");
         }
     }
@@ -324,6 +326,7 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.ssl.http.pemkey_filepath", Certificates.NODE_KEY.getFileName());
         configMap.put("plugins.security.ssl.http.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
         configMap.put("plugins.security.allow_unsafe_democertificates", true);
+        configMap.put(ConfigConstants.SECURITY_COMPLIANCE_SALT, generateRandomSalt());
 
         if (installer.initsecurity) {
             configMap.put("plugins.security.allow_default_init_securityindex", true);
@@ -351,6 +354,15 @@ public class SecuritySettingsConfigurer {
         }
 
         return configMap;
+    }
+
+    static String generateRandomSalt() {
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(16);
+        for (int i = 0; i < 16; i++) {
+            sb.append(SALT_CHARS.charAt(random.nextInt(SALT_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     /**
@@ -389,13 +401,7 @@ public class SecuritySettingsConfigurer {
      * @throws IOException if there was exception reading the file
      */
     static boolean isKeyPresentInYMLFile(String filePath, String key) throws IOException {
-        JsonNode node;
-        try {
-            node = YAML_MAPPER.readTree(new File(filePath));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
+        final JsonNode node = yamlMapper().readTree(new File(filePath));
         return node.has(key);
     }
 

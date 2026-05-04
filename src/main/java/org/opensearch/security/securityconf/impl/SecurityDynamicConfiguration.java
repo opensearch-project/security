@@ -39,9 +39,6 @@ import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.core.xcontent.ToXContent;
@@ -51,6 +48,9 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
+
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
 
@@ -122,11 +122,12 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     /**
      * For testing only
      */
-    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType<T> ctype) throws JsonProcessingException {
-        SecurityDynamicConfiguration<T> result = DefaultObjectMapper.objectMapper.convertValue(
-            map,
-            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
-        );
+    public static <T> SecurityDynamicConfiguration<T> fromMap(Map<String, Object> map, CType<T> ctype) {
+        SecurityDynamicConfiguration<T> result = DefaultObjectMapper.objectMapper()
+            .convertValue(
+                map,
+                DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, ctype.getConfigClass())
+            );
         result.ctype = ctype;
         return result;
     }
@@ -160,12 +161,13 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     /**
      * For testing only
      */
-    public static <T> SecurityDynamicConfiguration<T> fromYaml(String yaml, CType<T> ctype) throws JsonProcessingException {
+    public static <T> SecurityDynamicConfiguration<T> fromYaml(String yaml, CType<T> ctype) {
         Class<T> implementationClass = ctype.getConfigClass();
-        SecurityDynamicConfiguration<T> result = DefaultObjectMapper.YAML_MAPPER.readValue(
-            yaml,
-            DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
-        );
+        SecurityDynamicConfiguration<T> result = DefaultObjectMapper.yamlMapper()
+            .readValue(
+                yaml,
+                DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
+            );
         result.ctype = ctype;
         result.version = 2;
         return result;

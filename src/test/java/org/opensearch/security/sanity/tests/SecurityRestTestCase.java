@@ -26,6 +26,7 @@ import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.io.PathUtils;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.commons.rest.SecureRestClientBuilder;
+import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
@@ -65,7 +66,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
             .put(SECURITY_SSL_HTTP_ENABLED, isHttps())
             // this is incorrect on common-utils side. It should be using `pemtrustedcas_filepath`
             .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "root-ca.pem")
-            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, CERT_FILE_DIRECTORY + "kirk-keystore.jks")
+            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStore(CERT_FILE_DIRECTORY + "kirk-keystore").path())
             .put(SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.insecurePropertyName, "changeit")
             .put(SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.insecurePropertyName, "changeit")
             .build();

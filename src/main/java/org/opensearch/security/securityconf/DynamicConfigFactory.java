@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -70,6 +69,7 @@ import org.opensearch.transport.client.Client;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.EventBusBuilder;
 import org.greenrobot.eventbus.Logger.JavaLogger;
+import tools.jackson.databind.JsonNode;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 
@@ -89,19 +89,16 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     }
 
     private void loadStaticConfig() throws IOException {
-        JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml")
-        );
+        JsonNode staticRolesJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
         staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
 
-        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml")
-        );
+        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
         staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
 
-        JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml")
-        );
+        JsonNode staticTenantsJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
         staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
     }
 

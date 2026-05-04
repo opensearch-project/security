@@ -47,8 +47,6 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -63,6 +61,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 
@@ -230,7 +229,7 @@ public class ComplianceConfig {
 
     @VisibleForTesting
     @JsonCreator
-    public static ComplianceConfig from(Map<String, Object> properties, @JacksonInject Settings settings) throws JsonProcessingException {
+    public static ComplianceConfig from(Map<String, Object> properties, @JacksonInject Settings settings) {
         if (!FIELDS.containsAll(properties.keySet())) {
             throw new UnrecognizedPropertyException(
                 null,
