@@ -79,7 +79,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        ApiTokenRepository.TokenMetadata metadata = apiTokenRepository.getTokenMetadata(hash);
+        ApiTokenRepository.TokenEntry metadata = apiTokenRepository.getTokenMetadata(hash);
         if (metadata == null) {
             log.error("Api token metadata not found");
             return null;
@@ -90,7 +90,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
-        return new AuthCredentials(API_TOKEN_USER_PREFIX + hash, java.util.List.of(), "").markComplete();
+        return new AuthCredentials(API_TOKEN_USER_PREFIX + apiTokenRepository.getTokenName(hash), java.util.List.of(), "").markComplete();
     }
 
     private String extractTokenFromHeader(SecurityRequest request) {

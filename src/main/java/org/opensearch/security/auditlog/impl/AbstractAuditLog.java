@@ -587,6 +587,8 @@ public abstract class AbstractAuditLog implements AuditLog {
                     originalSource = "{}";
                 }
                 if (securityIndicesMatcher.test(shardId.getIndexName())) {
+                    boolean isApiTokenIndex = shardId.getIndexName().equals(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+
                     if (originalSource == null) {
                         try (
                             XContentParser parser = XContentHelper.createParser(
@@ -596,11 +598,19 @@ public abstract class AbstractAuditLog implements AuditLog {
                                 XContentType.JSON
                             )
                         ) {
-                            Object base64 = parser.map().values().iterator().next();
-                            if (base64 instanceof String) {
-                                originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
-                            } else {
+                            if (isApiTokenIndex) {
                                 originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                            } else {
+                                Object base64 = parser.map().values().iterator().next();
+                                if (base64 instanceof String) {
+                                    originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
+                                } else {
+                                    originalSource = XContentHelper.convertToJson(
+                                        originalResult.internalSourceRef(),
+                                        false,
+                                        XContentType.JSON
+                                    );
+                                }
                             }
                         } catch (Exception e) {
                             log.error(e.toString());
@@ -615,11 +625,15 @@ public abstract class AbstractAuditLog implements AuditLog {
                             XContentType.JSON
                         )
                     ) {
-                        Object base64 = parser.map().values().iterator().next();
-                        if (base64 instanceof String) {
-                            currentSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
-                        } else {
+                        if (isApiTokenIndex) {
                             currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                        } else {
+                            Object base64 = parser.map().values().iterator().next();
+                            if (base64 instanceof String) {
+                                currentSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
+                            } else {
+                                currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                            }
                         }
                     } catch (Exception e) {
                         log.error(e.toString());

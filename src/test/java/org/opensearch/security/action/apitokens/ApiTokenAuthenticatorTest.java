@@ -57,7 +57,7 @@ public class ApiTokenAuthenticatorTest {
     public void testExtractCredentialsPassWhenTokenInCache() {
         when(apiTokenRepository.isValidToken(tokenHash)).thenReturn(true);
         when(apiTokenRepository.getTokenMetadata(tokenHash)).thenReturn(
-            new ApiTokenRepository.TokenMetadata(new org.opensearch.security.securityconf.impl.v7.RoleV7(), Long.MAX_VALUE)
+            new ApiTokenRepository.TokenEntry(new org.opensearch.security.securityconf.impl.v7.RoleV7(), Long.MAX_VALUE, "test-token")
         );
 
         SecurityRequest request = mock(SecurityRequest.class);
@@ -86,7 +86,7 @@ public class ApiTokenAuthenticatorTest {
     public void testExtractCredentialsFailWhenTokenIsExpired() {
         when(apiTokenRepository.isValidToken(tokenHash)).thenReturn(true);
         when(apiTokenRepository.getTokenMetadata(tokenHash)).thenReturn(
-            new ApiTokenRepository.TokenMetadata(new org.opensearch.security.securityconf.impl.v7.RoleV7(), 1L)
+            new ApiTokenRepository.TokenEntry(new org.opensearch.security.securityconf.impl.v7.RoleV7(), 1L, "expired-token")
         );
 
         SecurityRequest request = mock(SecurityRequest.class);

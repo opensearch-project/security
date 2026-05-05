@@ -354,6 +354,33 @@ public class ApiTokenTest {
     }
 
     @Test
+    public void testTokenNameMustBeValidFormat() {
+        String payload = """
+            {
+              "name": "invalid name with spaces!",
+              "cluster_permissions": ["cluster_monitor"],
+              "expiration": 3600000
+            }
+            """;
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, payload);
+            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+            assertThat(response.getTextFromJsonBody("/error"), containsString("alphanumeric"));
+        }
+    }
+
+    @Test
+    public void testTokenNameMustBeUnique() {
+        generateApiToken(TEST_TOKEN_PAYLOAD);
+        // Try to create another token with the same name
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_PAYLOAD);
+            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+            assertThat(response.getTextFromJsonBody("/error"), containsString("already exists"));
+        }
+    }
+
+    @Test
     public void testTokenExceedingMaxExpirationIsRejected() {
         // 90 days in ms = 7776000000, try 91 days
         String payload = """

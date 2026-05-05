@@ -101,7 +101,18 @@ public class ApiTokenV4Test {
 
     @Test
     public void testIndexPermissionDeniedWithV4() {
-        String token = createToken(INDEX_TOKEN_PAYLOAD);
+        String payload = """
+            {
+              "name": "v4-index-token-denied",
+              "cluster_permissions": [],
+              "index_permissions": [{
+                "index_pattern": ["v4-test-*"],
+                "allowed_actions": ["indices:data/read/search"]
+              }],
+              "expiration": 3600000
+            }
+            """;
+        String token = createToken(payload);
         Header authHeader = new BasicHeader("Authorization", "ApiKey " + token);
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.get("other-index/_search");

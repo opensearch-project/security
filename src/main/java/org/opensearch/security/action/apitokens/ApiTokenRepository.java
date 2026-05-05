@@ -47,10 +47,9 @@ public class ApiTokenRepository {
     private final List<TokenListener> tokenListener = new ArrayList<>();
     private static final Logger log = LogManager.getLogger(ApiTokenRepository.class);
 
-    private final Map<String, RoleV7> tokenHashToRole = new ConcurrentHashMap<>();
-    private final Map<String, Long> tokenHashToExpiration = new ConcurrentHashMap<>();
+    private final Map<String, TokenEntry> tokenCache = new ConcurrentHashMap<>();
 
-    public record TokenMetadata(RoleV7 role, long expiration) {
+    public record TokenEntry(RoleV7 role, long expiration, String name) {
         public boolean isExpired() {
             return expiration > 0 && Instant.now().toEpochMilli() > expiration;
         }
@@ -76,16 +75,13 @@ public class ApiTokenRepository {
         apiTokenIndexHandler.getTokenMetadatas(new ActionListener<Map<String, ApiToken>>() {
             @Override
             public void onResponse(Map<String, ApiToken> tokenMetadatas) {
-                tokenHashToRole.keySet().removeIf(hash -> !tokenMetadatas.containsKey(hash));
-                tokenHashToExpiration.keySet().removeIf(hash -> !tokenMetadatas.containsKey(hash));
+                tokenCache.keySet().removeIf(hash -> !tokenMetadatas.containsKey(hash));
                 tokenMetadatas.forEach((hash, tokenMetadata) -> {
                     if (tokenMetadata.isRevoked()) {
-                        tokenHashToRole.remove(hash);
-                        tokenHashToExpiration.remove(hash);
+                        tokenCache.remove(hash);
                         return;
                     }
-                    tokenHashToRole.put(hash, buildRole(tokenMetadata));
-                    tokenHashToExpiration.put(hash, tokenMetadata.getExpiration());
+                    tokenCache.put(hash, new TokenEntry(buildRole(tokenMetadata), tokenMetadata.getExpiration(), tokenMetadata.getName()));
                 });
                 listener.onResponse(null);
             }
@@ -144,29 +140,38 @@ public class ApiTokenRepository {
     }
 
     public RoleV7 getPermissionsForHash(String hash) {
-        return tokenHashToRole.get(hash);
+        TokenEntry entry = tokenCache.get(hash);
+        return entry != null ? entry.role() : null;
     }
 
-    public TokenMetadata getTokenMetadata(String hash) {
-        RoleV7 role = tokenHashToRole.get(hash);
-        Long expiration = tokenHashToExpiration.get(hash);
-        if (role == null || expiration == null) {
-            return null;
-        }
-        return new TokenMetadata(role, expiration);
+    public TokenEntry getTokenMetadata(String hash) {
+        return tokenCache.get(hash);
     }
 
     public boolean isValidToken(String hash) {
-        return tokenHashToRole.containsKey(hash);
+        return tokenCache.containsKey(hash);
+    }
+
+    public String getTokenName(String hash) {
+        TokenEntry entry = tokenCache.get(hash);
+        return entry != null ? entry.name() : null;
+    }
+
+    public boolean tokenNameExists(String name) {
+        return tokenCache.values().stream().anyMatch(entry -> name.equals(entry.name()));
     }
 
     public void forEachToken(BiConsumer<String, RoleV7> consumer) {
-        tokenHashToRole.forEach((hash, role) -> consumer.accept(API_TOKEN_USER_PREFIX + hash, role));
+        tokenCache.forEach((hash, entry) -> {
+            if (entry.name() != null) {
+                consumer.accept(API_TOKEN_USER_PREFIX + entry.name(), entry.role());
+            }
+        });
     }
 
     @VisibleForTesting
-    Map<String, RoleV7> getTokenHashToRole() {
-        return tokenHashToRole;
+    Map<String, TokenEntry> getTokenCache() {
+        return tokenCache;
     }
 
     public ApiTokenRepository(Client client, ClusterService clusterService) {
@@ -198,8 +203,7 @@ public class ApiTokenRepository {
         ApiToken apiToken = new ApiToken(name, hash, clusterPermissions, indexPermissions, Instant.now(), expiration, null, createdBy);
         apiTokenIndexHandler.createApiTokenIndexIfAbsent(ActionListener.wrap(() -> {
             apiTokenIndexHandler.indexTokenMetadata(apiToken, ActionListener.wrap(id -> {
-                tokenHashToRole.put(hash, buildRole(apiToken));
-                tokenHashToExpiration.put(hash, expiration);
+                tokenCache.put(hash, new TokenEntry(buildRole(apiToken), expiration, name));
                 listener.onResponse(new TokenCreated(id, plaintext));
             }, listener::onFailure));
         }));

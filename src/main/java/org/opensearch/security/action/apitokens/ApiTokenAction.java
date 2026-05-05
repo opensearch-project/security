@@ -187,6 +187,24 @@ public class ApiTokenAction extends BaseRestHandler {
                     createRequest = ApiToken.CreateRequest.fromXContent(parser);
                 }
 
+                String tokenName = createRequest.getName();
+                if (tokenName == null || tokenName.isEmpty()) {
+                    sendErrorResponse(channel, RestStatus.BAD_REQUEST, "Token name is required.");
+                    return;
+                }
+                if (!tokenName.matches("[a-zA-Z0-9_-]+")) {
+                    sendErrorResponse(
+                        channel,
+                        RestStatus.BAD_REQUEST,
+                        "Token name must contain only alphanumeric characters, hyphens, and underscores."
+                    );
+                    return;
+                }
+                if (apiTokenRepository.tokenNameExists(tokenName)) {
+                    sendErrorResponse(channel, RestStatus.BAD_REQUEST, "A token with name '" + tokenName + "' already exists.");
+                    return;
+                }
+
                 apiTokenRepository.getTokenCount(ActionListener.wrap(tokenCount -> {
                     ConfigV7 config = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
                     int maxTokens = config.dynamic.api_tokens.getMaxTokens();
