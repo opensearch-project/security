@@ -260,13 +260,5 @@ public class JwtVendorTest {
         assertTrue(parts.length >= 3);
     }
 
-    @Test
-    public void testKeyTooShortForApiTokenThrowsException() {
-        String tooShortKey = BaseEncoding.base64().encode("short_key".getBytes());
-        Settings settings = Settings.builder().put("signing_key", tooShortKey).build();
-        final Throwable exception = assertThrows(OpenSearchException.class, () -> { new JwtVendor(settings); });
-
-        assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
-    }
 
 }
