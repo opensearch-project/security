@@ -353,6 +353,23 @@ public class ApiTokenTest {
         }
     }
 
+    @Test
+    public void testTokenExceedingMaxExpirationIsRejected() {
+        // 90 days in ms = 7776000000, try 91 days
+        String payload = """
+            {
+              "name": "too-long-token",
+              "cluster_permissions": ["cluster_monitor"],
+              "expiration": 7862400000
+            }
+            """;
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, payload);
+            response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+            assertThat(response.getTextFromJsonBody("/error"), containsString("exceeds the maximum allowed duration"));
+        }
+    }
+
     private void authenticateWithApiToken(Header authHeader, int expectedStatusCode) {
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.getAuthInfo();

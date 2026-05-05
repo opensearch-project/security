@@ -102,7 +102,11 @@ public class PrivilegesConfiguration {
                         new SubjectBasedActionPrivileges(
                             role,
                             flattenedActionGroups,
-                            RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+                            new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
+                                specialIndices::isSystemIndex,
+                                specialIndices::isSystemIndex,
+                                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles.DISABLED
+                            ),
                             false
                         )
                     )
