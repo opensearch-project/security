@@ -42,6 +42,7 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
@@ -110,16 +111,21 @@ public class AccountApiAction extends AbstractApiAction {
                     userAccount(channel, user, remoteAddress, configuration);
                 }).error((status, toXContent) -> response(channel, status, toXContent))
             )
-            .onChangeRequest(
-                Method.PUT,
-                request -> withUserAndRemoteAddress().map(
-                    userAndRemoteAddress -> loadConfigurationWithRequestContent(userAndRemoteAddress.getLeft().getName(), request)
-                )
-                    .map(endpointValidator::entityExists)
-                    .map(endpointValidator::onConfigChange)
-                    .map(this::validCurrentPassword)
-                    .map(this::updatePassword)
-            );
+            .onChangeRequest(Method.PUT, request -> withUserAndRemoteAddress().map(userAndRemoteAddress -> {
+                final User user = userAndRemoteAddress.getLeft();
+                if ("onbehalfof_jwt".equals(user.getAuthenticatedBy())) {
+                    return ValidationResult.error(
+                        RestStatus.FORBIDDEN,
+                        forbiddenMessage("Token-authenticated users cannot change passwords")
+                    );
+                }
+                return ValidationResult.success(userAndRemoteAddress);
+            })
+                .map(userAndRemoteAddress -> loadConfigurationWithRequestContent(userAndRemoteAddress.getLeft().getName(), request))
+                .map(endpointValidator::entityExists)
+                .map(endpointValidator::onConfigChange)
+                .map(this::validCurrentPassword)
+                .map(this::updatePassword));
     }
 
     private void userAccount(
