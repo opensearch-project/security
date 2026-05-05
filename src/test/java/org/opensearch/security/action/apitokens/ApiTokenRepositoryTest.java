@@ -24,6 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -81,7 +82,7 @@ public class ApiTokenRepositoryTest {
     }
 
     @Test
-    public void testRevokeApiToken() throws ApiTokenException {
+    public void testRevokeApiToken() throws OpenSearchSecurityException {
         String tokenName = "test-token";
 
         doAnswer(invocation -> {
@@ -98,7 +99,7 @@ public class ApiTokenRepositoryTest {
     }
 
     @Test
-    public void testGetApiTokenPermissionsForUser() throws ApiTokenException {
+    public void testGetApiTokenPermissionsForUser() throws OpenSearchSecurityException {
         User derek = new User("derek");
         User apiTokenNotExists = new User("token:notexists");
         User apiTokenExists = new User("token:" + HASH_EXISTS);
@@ -193,14 +194,14 @@ public class ApiTokenRepositoryTest {
 
         doAnswer(invocation -> {
             ActionListener<Void> listener = invocation.getArgument(1);
-            listener.onFailure(new ApiTokenException("Token not found"));
+            listener.onFailure(new OpenSearchSecurityException("Token not found"));
             return null;
         }).when(apiTokenIndexHandler).revokeToken(eq(tokenName), any(ActionListener.class));
 
         TestActionListener<Void> listener = new TestActionListener<>();
         repository.revokeApiToken(tokenName, listener);
 
-        Exception e = listener.assertException(ApiTokenException.class);
+        Exception e = listener.assertException(OpenSearchSecurityException.class);
         assertThat(e.getMessage(), containsString("Token not found"));
     }
 

@@ -38,7 +38,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
-    private static final Pattern API_KEY_HEADER = Pattern.compile("^\\s*ApiKey\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String API_KEY_PREFIX = "apikey ";
 
     public static final String API_TOKEN_USER_PREFIX = "token:";
@@ -100,11 +99,12 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             log.debug("No token found in '{}' header", HttpHeaders.AUTHORIZATION);
             return null;
         }
-        if (!API_KEY_HEADER.matcher(header).matches()) {
+        String normalizedHeader = header.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!normalizedHeader.startsWith(API_KEY_PREFIX)) {
             log.debug("No ApiKey scheme found in header");
             return null;
         }
-        return header.substring(header.toLowerCase().indexOf(API_KEY_PREFIX) + API_KEY_PREFIX.length());
+        return header.substring(header.toLowerCase(java.util.Locale.ROOT).indexOf(API_KEY_PREFIX) + API_KEY_PREFIX.length()).trim();
     }
 
     public Boolean isRequestAllowed(final SecurityRequest request) {

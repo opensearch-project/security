@@ -13,6 +13,7 @@ package org.opensearch.security.privileges;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
@@ -66,7 +67,7 @@ public class PrivilegesConfiguration {
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
 
     private ApiTokenRepository apiTokenRepository;
-    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges = new HashMap<>();
+    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges = new ConcurrentHashMap<>();
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
      * not have knowledge of any action groups defined in the dynamic configuration. All other functionality should

@@ -509,7 +509,6 @@ public class ComplianceConfig {
             return false;
         }
         // if security index (internal index) check if internal config logging is enabled
-        // TODO: Add support for custom api token index?
         if (this.securityIndicesMatcher.test(index)) {
             return logInternalConfig;
         }

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -85,7 +86,7 @@ public class ApiTokenIndexHandler {
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
             client.update(request, ActionListener.wrap(response -> {
                 if (DocWriteResponse.Result.NOT_FOUND.equals(response.getResult())) {
-                    listener.onFailure(new ApiTokenException("No token found with id " + id));
+                    listener.onFailure(new OpenSearchSecurityException("No token found with id " + id));
                 } else {
                     listener.onResponse(null);
                 }

@@ -205,7 +205,7 @@ public class ApiTokenRepository {
         }));
     }
 
-    public void revokeApiToken(String id, ActionListener<Void> listener) throws ApiTokenException, IndexNotFoundException {
+    public void revokeApiToken(String id, ActionListener<Void> listener) throws OpenSearchSecurityException, IndexNotFoundException {
         apiTokenIndexHandler.revokeToken(id, listener);
     }
 

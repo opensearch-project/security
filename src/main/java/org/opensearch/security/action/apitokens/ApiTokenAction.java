@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -276,7 +277,9 @@ public class ApiTokenAction extends BaseRestHandler {
                     )
                 ), client));
             } catch (final Exception exception) {
-                RestStatus status = exception instanceof ApiTokenException ? RestStatus.NOT_FOUND : RestStatus.INTERNAL_SERVER_ERROR;
+                RestStatus status = exception instanceof OpenSearchSecurityException
+                    ? RestStatus.NOT_FOUND
+                    : RestStatus.INTERNAL_SERVER_ERROR;
                 sendErrorResponse(channel, status, exception.getMessage());
             }
         };
@@ -287,14 +290,14 @@ public class ApiTokenAction extends BaseRestHandler {
             try {
                 client.execute(
                     ApiTokenUpdateAction.INSTANCE,
-                    new ApiTokenUpdateRequest(),
+                    new ApiTokenUpdateAction.Request(),
                     ActionListener.wrap(
                         updateResponse -> listener.onResponse(response),
-                        exception -> listener.onFailure(new ApiTokenException("Failed to update API token", exception))
+                        exception -> listener.onFailure(new OpenSearchSecurityException("Failed to update API token", exception))
                     )
                 );
             } catch (Exception e) {
-                listener.onFailure(new ApiTokenException("Failed to update API token", e));
+                listener.onFailure(new OpenSearchSecurityException("Failed to update API token", e));
             }
         }, listener::onFailure);
     }
