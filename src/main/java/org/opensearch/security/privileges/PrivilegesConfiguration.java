@@ -97,8 +97,8 @@ public class PrivilegesConfiguration {
                 FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
                 tokenIdToActionPrivileges.clear();
                 apiTokenRepository.forEachToken(
-                    (jti, role) -> tokenIdToActionPrivileges.put(
-                        jti,
+                    (tokenId, role) -> tokenIdToActionPrivileges.put(
+                        tokenId,
                         new SubjectBasedActionPrivileges(
                             role,
                             flattenedActionGroups,

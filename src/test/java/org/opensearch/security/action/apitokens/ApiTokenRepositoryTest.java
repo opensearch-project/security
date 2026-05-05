@@ -108,7 +108,7 @@ public class ApiTokenRepositoryTest {
         allIndices.setIndex_patterns(List.of("*"));
         all.setCluster_permissions(List.of("cluster_all"));
         all.setIndex_permissions(List.of(allIndices));
-        repository.getJtis().put(HASH_EXISTS, all);
+        repository.getTokenHashToRole().put(HASH_EXISTS, all);
 
         RoleV7 permissionsForDerek = repository.getApiTokenPermissionsForUser(derek);
         assertEquals(List.of(), permissionsForDerek.getCluster_permissions());
@@ -205,8 +205,8 @@ public class ApiTokenRepositoryTest {
     }
 
     @Test
-    public void testJtisOperations() {
-        String jti = "testJti";
+    public void testTokenHashToRoleOperations() {
+        String tokenHash = "testTokenHash";
         RoleV7 testRole = new RoleV7();
         RoleV7.Index none = new RoleV7.Index();
         none.setAllowed_actions(List.of(""));
@@ -214,11 +214,11 @@ public class ApiTokenRepositoryTest {
         testRole.setCluster_permissions(List.of("read"));
         testRole.setIndex_permissions(List.of(none));
 
-        repository.getJtis().put(jti, testRole);
-        assertEquals("Should retrieve correct permissions", testRole, repository.getJtis().get(jti));
+        repository.getTokenHashToRole().put(tokenHash, testRole);
+        assertEquals("Should retrieve correct permissions", testRole, repository.getTokenHashToRole().get(tokenHash));
 
-        repository.getJtis().remove(jti);
-        assertNull("Should return null after removal", repository.getJtis().get(jti));
+        repository.getTokenHashToRole().remove(tokenHash);
+        assertNull("Should return null after removal", repository.getTokenHashToRole().get(tokenHash));
     }
 
     @Test
@@ -229,7 +229,7 @@ public class ApiTokenRepositoryTest {
         none.setIndex_patterns(List.of(""));
         testRole.setCluster_permissions(List.of("read"));
         testRole.setIndex_permissions(List.of(none));
-        repository.getJtis().put("testJti", testRole);
+        repository.getTokenHashToRole().put("testJti", testRole);
 
         doAnswer(invocation -> {
             ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
@@ -239,7 +239,7 @@ public class ApiTokenRepositoryTest {
 
         repository.reloadApiTokensFromIndex(ActionListener.wrap(() -> {
             await().atMost(5, TimeUnit.SECONDS)
-                .untilAsserted(() -> assertTrue("Jtis should be empty after clear", repository.getJtis().isEmpty()));
+                .untilAsserted(() -> assertTrue("Jtis should be empty after clear", repository.getTokenHashToRole().isEmpty()));
         }));
     }
 
@@ -269,12 +269,12 @@ public class ApiTokenRepositoryTest {
         repository.reloadApiTokensFromIndex(listener);
 
         listener.assertSuccess();
-        assertEquals(2, repository.getJtis().size());
-        assertTrue(repository.getJtis().containsKey(HASH_ALPHA));
-        assertTrue(repository.getJtis().containsKey(HASH_BETA));
-        assertEquals(List.of("cluster:monitor"), repository.getJtis().get(HASH_ALPHA).getCluster_permissions());
-        assertEquals(List.of("cluster:admin"), repository.getJtis().get(HASH_BETA).getCluster_permissions());
-        assertEquals(1, repository.getJtis().get(HASH_BETA).getIndex_permissions().size());
+        assertEquals(2, repository.getTokenHashToRole().size());
+        assertTrue(repository.getTokenHashToRole().containsKey(HASH_ALPHA));
+        assertTrue(repository.getTokenHashToRole().containsKey(HASH_BETA));
+        assertEquals(List.of("cluster:monitor"), repository.getTokenHashToRole().get(HASH_ALPHA).getCluster_permissions());
+        assertEquals(List.of("cluster:admin"), repository.getTokenHashToRole().get(HASH_BETA).getCluster_permissions());
+        assertEquals(1, repository.getTokenHashToRole().get(HASH_BETA).getIndex_permissions().size());
     }
 
     @Test
@@ -296,8 +296,8 @@ public class ApiTokenRepositoryTest {
         repository.reloadApiTokensFromIndex(listener);
 
         listener.assertSuccess();
-        assertTrue("Active token should be in cache", repository.getJtis().containsKey(HASH_ALPHA));
-        assertFalse("Revoked token should not be in cache", repository.getJtis().containsKey(HASH_BETA));
+        assertTrue("Active token should be in cache", repository.getTokenHashToRole().containsKey(HASH_ALPHA));
+        assertFalse("Revoked token should not be in cache", repository.getTokenHashToRole().containsKey(HASH_BETA));
     }
 
     @Test
@@ -305,7 +305,7 @@ public class ApiTokenRepositoryTest {
         // Seed the cache with a token that is about to be revoked
         RoleV7 role = new RoleV7();
         role.setCluster_permissions(List.of("cluster:monitor"));
-        repository.getJtis().put(HASH_BETA, role);
+        repository.getTokenHashToRole().put(HASH_BETA, role);
 
         // Next reload returns the same token but now with revoked_at set
         Map<String, ApiToken> tokens = Map.of(
@@ -323,7 +323,7 @@ public class ApiTokenRepositoryTest {
         repository.reloadApiTokensFromIndex(listener);
 
         listener.assertSuccess();
-        assertFalse("Token should be evicted from cache after revocation", repository.getJtis().containsKey(HASH_BETA));
+        assertFalse("Token should be evicted from cache after revocation", repository.getTokenHashToRole().containsKey(HASH_BETA));
         assertFalse("Token should be evicted from expiration cache after revocation", repository.isValidToken(HASH_BETA));
     }
 
@@ -331,7 +331,7 @@ public class ApiTokenRepositoryTest {
     public void testReloadApiTokensFromIndexRemovesStaleTokens() {
         RoleV7 staleRole = new RoleV7();
         staleRole.setCluster_permissions(List.of("cluster:monitor"));
-        repository.getJtis().put(HASH_STALE, staleRole);
+        repository.getTokenHashToRole().put(HASH_STALE, staleRole);
 
         Map<String, ApiToken> freshTokens = Map.of(
             HASH_FRESH,
@@ -348,8 +348,8 @@ public class ApiTokenRepositoryTest {
         repository.reloadApiTokensFromIndex(listener);
 
         listener.assertSuccess();
-        assertFalse("Stale token should be removed", repository.getJtis().containsKey(HASH_STALE));
-        assertTrue("Fresh token should be present", repository.getJtis().containsKey(HASH_FRESH));
+        assertFalse("Stale token should be removed", repository.getTokenHashToRole().containsKey(HASH_STALE));
+        assertTrue("Fresh token should be present", repository.getTokenHashToRole().containsKey(HASH_FRESH));
     }
 
     @Test
@@ -394,15 +394,15 @@ public class ApiTokenRepositoryTest {
         repository.reloadApiTokensFromIndex(ActionListener.wrap(() -> {
             // Wait for and verify the async updates
             await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
-                assertFalse("Jtis should not be empty after reload", repository.getJtis().isEmpty());
-                assertEquals("Should have one JTI entry", 1, repository.getJtis().size());
-                assertTrue("Should contain testJti", repository.getJtis().containsKey("test"));
+                assertFalse("Jtis should not be empty after reload", repository.getTokenHashToRole().isEmpty());
+                assertEquals("Should have one JTI entry", 1, repository.getTokenHashToRole().size());
+                assertTrue("Should contain testJti", repository.getTokenHashToRole().containsKey("test"));
                 assertEquals(
                     "Should have one cluster action",
                     List.of("cluster:monitor"),
-                    repository.getJtis().get("test").getCluster_permissions()
+                    repository.getTokenHashToRole().get("test").getCluster_permissions()
                 );
-                assertEquals("Should have no index actions", List.of(), repository.getJtis().get("test").getIndex_permissions());
+                assertEquals("Should have no index actions", List.of(), repository.getTokenHashToRole().get("test").getIndex_permissions());
             });
         }));
     }

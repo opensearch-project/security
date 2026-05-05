@@ -165,7 +165,7 @@ public class ApiTokenRepository {
     }
 
     @VisibleForTesting
-    Map<String, RoleV7> getJtis() {
+    Map<String, RoleV7> getTokenHashToRole() {
         return tokenHashToRole;
     }
 
