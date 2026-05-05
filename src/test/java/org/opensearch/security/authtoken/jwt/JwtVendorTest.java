@@ -260,5 +260,4 @@ public class JwtVendorTest {
         assertTrue(parts.length >= 3);
     }
 
-
 }

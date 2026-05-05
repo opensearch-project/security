@@ -55,9 +55,12 @@ public class ApiTokenRepository {
         }
     }
 
+    // SHA-256 is sufficient for hashing high-entropy random tokens. Consider making configurable if algorithm rotation is needed.
+    private static final String HASH_ALGORITHM = "SHA-256";
+
     public static String hashToken(String token) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
             byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
