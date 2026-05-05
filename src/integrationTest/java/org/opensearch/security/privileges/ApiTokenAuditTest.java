@@ -22,7 +22,6 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import org.opensearch.security.auditlog.impl.AuditMessage;
-import org.opensearch.security.http.ApiTokenAuthenticator;
 import org.opensearch.test.framework.ApiTokenConfig;
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
@@ -90,14 +89,10 @@ public class ApiTokenAuditTest {
         }
 
         auditLogsRule.assertExactlyOne(
-            (AuditMessage msg) -> msg.getCategory() == AUTHENTICATED
-                && msg.getInitiatingUser() != null
-                && msg.getInitiatingUser().startsWith(ApiTokenAuthenticator.API_TOKEN_USER_PREFIX)
+            (AuditMessage msg) -> msg.getCategory() == AUTHENTICATED && "token:audit-test-token".equals(msg.getInitiatingUser())
         );
         auditLogsRule.assertExactlyOne(
-            (AuditMessage msg) -> msg.getCategory() == GRANTED_PRIVILEGES
-                && msg.getEffectiveUser() != null
-                && msg.getEffectiveUser().startsWith(ApiTokenAuthenticator.API_TOKEN_USER_PREFIX)
+            (AuditMessage msg) -> msg.getCategory() == GRANTED_PRIVILEGES && "token:audit-test-token".equals(msg.getEffectiveUser())
         );
     }
 }
