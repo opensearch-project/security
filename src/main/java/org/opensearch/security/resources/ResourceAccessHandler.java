@@ -12,6 +12,8 @@
 package org.opensearch.security.resources;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,6 +29,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.resources.api.share.ShareAction;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -330,6 +333,101 @@ public class ResourceAccessHandler {
             listener.onFailure(e);
         }));
 
+    }
+
+    /**
+     * Resolves the current user's access information for a single resource.
+     *
+     * This API is intentionally UI-focused: it returns the matching access-level names for the current
+     * resource type plus the fully resolved allowed actions that the UI can reason about directly.
+     */
+    public void resolveAccessForCurrentUser(
+        @NonNull String resourceId,
+        @NonNull String resourceType,
+        ActionListener<ResolvedResourceAccess> listener
+    ) {
+        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
+            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
+        );
+        final User user = (userSubject == null) ? null : userSubject.getUser();
+
+        if (user == null) {
+            listener.onFailure(new OpenSearchStatusException("No authenticated user found.", RestStatus.UNAUTHORIZED));
+            return;
+        }
+
+        final String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+        if (resourceIndex == null) {
+            listener.onFailure(
+                new OpenSearchStatusException("No resourceIndex mapping found for type " + resourceType, RestStatus.BAD_REQUEST)
+            );
+            return;
+        }
+
+        resourceSharingIndexHandler.fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
+            if (sharingInfo == null) {
+                listener.onFailure(new OpenSearchStatusException("Resource [" + resourceId + "] does not exist.", RestStatus.NOT_FOUND));
+                return;
+            }
+
+            boolean isAdmin = adminDNs.isAdmin(user);
+            boolean isOwner = sharingInfo.isCreatedBy(user.getName());
+            Set<String> directAccessLevels = new LinkedHashSet<>();
+            Set<String> allowedActions = new LinkedHashSet<>();
+
+            if (isAdmin || isOwner) {
+                directAccessLevels.addAll(resourcePluginInfo.getAccessLevelsForType(resourceType));
+                allowedActions.addAll(resourcePluginInfo.flattenedForType(resourceType).resolve(directAccessLevels));
+            } else {
+                directAccessLevels.addAll(sharingInfo.getAccessLevelsForUser(user));
+                allowedActions.addAll(resourcePluginInfo.flattenedForType(resourceType).resolve(directAccessLevels));
+            }
+
+            if (allowedActions.isEmpty() && !isAdmin && !isOwner) {
+                listener.onFailure(
+                    new OpenSearchStatusException("Not authorized to access resource [" + resourceId + "].", RestStatus.FORBIDDEN)
+                );
+                return;
+            }
+
+            String effectiveAccessLevel = resolveEffectiveAccessLevel(resourceType, directAccessLevels);
+            boolean canShare = isAdmin
+                || isOwner
+                || allowedActions.contains(ShareAction.NAME)
+                || resourceSharingIndexHandler.canUserShare(user, false, sharingInfo, resourceType);
+
+            listener.onResponse(
+                new ResolvedResourceAccess(
+                    resourceId,
+                    resourceType,
+                    isOwner,
+                    isAdmin,
+                    effectiveAccessLevel,
+                    Set.copyOf(directAccessLevels),
+                    Set.copyOf(allowedActions),
+                    canShare
+                )
+            );
+        }, listener::onFailure));
+    }
+
+    private String resolveEffectiveAccessLevel(String resourceType, Set<String> directAccessLevels) {
+        if (directAccessLevels == null || directAccessLevels.isEmpty()) {
+            return null;
+        }
+
+        List<String> orderedLevels = resourcePluginInfo.getAccessLevelsForType(resourceType);
+        String effectiveLevel = null;
+        for (String accessLevel : orderedLevels) {
+            if (directAccessLevels.contains(accessLevel)) {
+                effectiveLevel = accessLevel;
+            }
+        }
+        if (effectiveLevel != null) {
+            return effectiveLevel;
+        }
+
+        return directAccessLevels.iterator().next();
     }
 
     /**

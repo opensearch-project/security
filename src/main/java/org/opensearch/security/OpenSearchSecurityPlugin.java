@@ -186,6 +186,7 @@ import org.opensearch.security.resources.ResourceAccessLevelHelper;
 import org.opensearch.security.resources.ResourceIndexListener;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.api.access.ResourceAccessRestAction;
 import org.opensearch.security.resources.api.list.AccessibleResourcesRestAction;
 import org.opensearch.security.resources.api.list.ResourceTypesRestAction;
 import org.opensearch.security.resources.api.share.ShareAction;
@@ -736,6 +737,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     new ShareRestAction(resourcePluginInfo, resourceSharingEnabledSetting, resourceSharingProtectedResourceTypesSetting)
                 );
                 handlers.add(new ResourceTypesRestAction(resourcePluginInfo, resourceSharingEnabledSetting));
+                handlers.add(
+                    new ResourceAccessRestAction(
+                        resourceAccessHandler,
+                        resourcePluginInfo,
+                        resourceSharingEnabledSetting,
+                        resourceSharingProtectedResourceTypesSetting
+                    )
+                );
                 handlers.add(
                     new AccessibleResourcesRestAction(
                         resourceAccessHandler,
