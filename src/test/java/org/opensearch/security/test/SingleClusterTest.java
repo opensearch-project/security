@@ -167,26 +167,28 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
     @After
     public void tearDown() {
+        Exception firstFailure = null;
 
         if (remoteClusterInfo != null) {
             try {
                 remoteClusterHelper.stopCluster();
             } catch (Exception e) {
                 log.error("Failed to stop remote cluster {}.", remoteClusterInfo.clustername, e);
-                Assert.fail("Failed to stop remote cluster " + remoteClusterInfo.clustername + ".");
+                firstFailure = e;
             }
             remoteClusterInfo = null;
         }
 
-        if (clusterInfo != null) {
-            try {
-                clusterHelper.stopCluster();
-            } catch (Exception e) {
-                log.error("Failed to stop cluster {}.", clusterInfo.clustername, e);
-                Assert.fail("Failed to stop cluster " + clusterInfo.clustername + ".");
-            }
-            clusterInfo = null;
+        try {
+            clusterHelper.stopCluster();
+        } catch (Exception e) {
+            log.error("Failed to stop cluster.", e);
+            if (firstFailure == null) firstFailure = e;
         }
+        clusterInfo = null;
 
+        if (firstFailure != null) {
+            Assert.fail("Cluster cleanup failed: " + firstFailure.getMessage());
+        }
     }
 }

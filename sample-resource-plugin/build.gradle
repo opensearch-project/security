@@ -83,6 +83,18 @@ configurations {
             force "com.google.guava:failureaccess:1.0.3"
             force "io.projectreactor:reactor-core:3.8.5"
 
+            // Netty version alignment with OpenSearch core
+            force "io.netty:netty-buffer:${versions.netty}"
+            force "io.netty:netty-codec-base:${versions.netty}"
+            force "io.netty:netty-codec-http:${versions.netty}"
+            force "io.netty:netty-codec-http2:${versions.netty}"
+            force "io.netty:netty-codec-http3:${versions.netty}"
+            force "io.netty:netty-common:${versions.netty}"
+            force "io.netty:netty-handler:${versions.netty}"
+            force "io.netty:netty-resolver:${versions.netty}"
+            force "io.netty:netty-transport:${versions.netty}"
+            force "io.netty:netty-transport-native-unix-common:${versions.netty}"
+
         }
     }
 }
