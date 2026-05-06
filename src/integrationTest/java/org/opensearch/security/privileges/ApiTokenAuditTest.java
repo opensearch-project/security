@@ -21,6 +21,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
+import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.test.framework.ApiTokenConfig;
 import org.opensearch.test.framework.AuditCompliance;
@@ -65,7 +66,7 @@ public class ApiTokenAuditTest {
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .apiToken(new ApiTokenConfig().enabled(true))
         .audit(
-            new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
+            new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true).internalConfig(true))
                 .filters(new AuditFilters().enabledRest(true).enabledTransport(true))
         )
         .build();
@@ -94,5 +95,22 @@ public class ApiTokenAuditTest {
         auditLogsRule.assertExactlyOne(
             (AuditMessage msg) -> msg.getCategory() == GRANTED_PRIVILEGES && "token:audit-test-token".equals(msg.getEffectiveUser())
         );
+    }
+
+    @Test
+    public void testApiTokenCreationIsAuditedWithTokenWriteCategory() {
+        String createPayload = """
+            {
+              "name": "audit-write-test-token",
+              "cluster_permissions": ["cluster_monitor"],
+              "expiration": 3600000
+            }
+            """;
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(API_TOKEN_PATH, createPayload);
+            response.assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        auditLogsRule.assertExactlyOne((AuditMessage msg) -> msg.getCategory() == AuditCategory.API_TOKEN_WRITE);
     }
 }

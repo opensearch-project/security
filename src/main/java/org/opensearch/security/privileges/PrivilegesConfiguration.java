@@ -36,6 +36,8 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 
 /**
  * This class manages and gives access to various additional classes which are derived from privileges related configuration in
@@ -91,27 +93,29 @@ public class PrivilegesConfiguration {
         this.apiTokenRepository = apiTokenRepository;
 
         if (apiTokenRepository != null) {
+            Settings settings = coreDependencies.settings();
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection tokenIndexProtection =
+                new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
+                    specialIndices::isSystemIndex,
+                    specialIndices::isSystemIndex,
+                    indicesNeedingSpecialRoles(settings)
+                );
+
             apiTokenRepository.subscribeOnChange(() -> {
                 SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
                     CType.ACTIONGROUPS
                 );
                 FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
-                tokenIdToActionPrivileges.clear();
+                Map<String, ActionPrivileges> newTokenPrivileges = new java.util.HashMap<>();
                 apiTokenRepository.forEachToken(
-                    (tokenId, role) -> tokenIdToActionPrivileges.put(
+                    (tokenId, role) -> newTokenPrivileges.put(
                         tokenId,
-                        new SubjectBasedActionPrivileges(
-                            role,
-                            flattenedActionGroups,
-                            new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
-                                specialIndices::isSystemIndex,
-                                specialIndices::isSystemIndex,
-                                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles.DISABLED
-                            ),
-                            false
-                        )
+                        new SubjectBasedActionPrivileges(role, flattenedActionGroups, tokenIndexProtection, false)
                     )
                 );
+                // Atomic swap: add/update new entries, then remove stale ones
+                tokenIdToActionPrivileges.putAll(newTokenPrivileges);
+                tokenIdToActionPrivileges.keySet().retainAll(newTokenPrivileges.keySet());
             });
         }
 
@@ -293,6 +297,31 @@ public class PrivilegesConfiguration {
 
     private static FlattenedActionGroups buildStaticActionGroups() {
         return new FlattenedActionGroups(DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS)));
+    }
+
+    private static RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles indicesNeedingSpecialRoles(
+        Settings settings
+    ) {
+        if (!settings.getAsBoolean(
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY,
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT
+        )) {
+            return RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles.DISABLED;
+        }
+        WildcardMatcher indexMatcher = WildcardMatcher.from(
+            settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_DEFAULT)
+        );
+        WildcardMatcher allowedRolesMatcher = WildcardMatcher.from(
+            settings.getAsList(
+                ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY,
+                ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_DEFAULT
+            )
+        );
+        return new RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles(
+            true,
+            indexMatcher,
+            allowedRolesMatcher
+        );
     }
 
     private static class RawConfiguration {

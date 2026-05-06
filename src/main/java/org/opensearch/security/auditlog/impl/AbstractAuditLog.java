@@ -556,9 +556,14 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndicesMatcher.test(shardId.getIndexName())
-            ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE
-            : AuditCategory.COMPLIANCE_DOC_WRITE;
+        AuditCategory category;
+        if (ConfigConstants.OPENSEARCH_API_TOKENS_INDEX.equals(shardId.getIndexName())) {
+            category = AuditCategory.API_TOKEN_WRITE;
+        } else if (securityIndicesMatcher.test(shardId.getIndexName())) {
+            category = AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE;
+        } else {
+            category = AuditCategory.COMPLIANCE_DOC_WRITE;
+        }
 
         String effectiveUser = getUser();
 
@@ -808,6 +813,22 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
         }
 
+        save(msg);
+    }
+
+    @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
+        msg.addEffectiveUser(createdBy);
+        msg.addSecurityConfigWriteDiffSource("{\"action\":\"created\",\"token_name\":\"" + tokenName + "\"}", tokenName);
+        save(msg);
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
+        msg.addEffectiveUser(revokedBy);
+        msg.addSecurityConfigWriteDiffSource("{\"action\":\"revoked\",\"token_id\":\"" + tokenId + "\"}", tokenId);
         save(msg);
     }
 

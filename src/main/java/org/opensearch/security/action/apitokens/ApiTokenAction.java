@@ -66,6 +66,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_A
 
 public class ApiTokenAction extends BaseRestHandler {
     private final ApiTokenRepository apiTokenRepository;
+    private final AuditLog auditLog;
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ThreadPool threadPool;
     private final ConfigurationRepository configurationRepository;
@@ -87,6 +88,7 @@ public class ApiTokenAction extends BaseRestHandler {
         RoleMapper roleMapper
     ) {
         this.apiTokenRepository = apiTokenRepository;
+        this.auditLog = auditLog;
         this.threadPool = threadpool;
         this.configurationRepository = configurationRepository;
         this.privilegesConfiguration = privilegesConfiguration;
@@ -253,6 +255,7 @@ public class ApiTokenAction extends BaseRestHandler {
                         createdBy,
                         wrapWithCacheRefresh(ActionListener.wrap(created -> {
                             apiTokenRepository.notifyAboutChanges();
+                            auditLog.logApiTokenCreated(createRequest.getName(), createdBy);
                             XContentBuilder builder = channel.newBuilder();
                             builder.startObject().field(ApiToken.ID_FIELD, created.id()).field("token", created.token()).endObject();
                             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
@@ -282,8 +285,12 @@ public class ApiTokenAction extends BaseRestHandler {
         return channel -> {
             try {
                 String id = request.param("id");
+                final User revokeUser = (User) client.threadPool()
+                    .getThreadContext()
+                    .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 apiTokenRepository.revokeApiToken(id, wrapWithCacheRefresh(ActionListener.wrap(ignored -> {
                     apiTokenRepository.notifyAboutChanges();
+                    auditLog.logApiTokenRevoked(id, revokeUser != null ? revokeUser.getName() : null);
                     XContentBuilder builder = channel.newBuilder();
                     builder.startObject().field("message", "Token " + id + " revoked successfully.").endObject();
                     channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));

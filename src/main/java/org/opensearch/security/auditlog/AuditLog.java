@@ -77,6 +77,11 @@ public interface AuditLog extends Closeable {
 
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult);
 
+    // API token events
+    void logApiTokenCreated(String tokenName, String createdBy);
+
+    void logApiTokenRevoked(String tokenId, String revokedBy);
+
     // compliance config
     ComplianceConfig getComplianceConfig();
 
