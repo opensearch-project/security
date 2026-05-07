@@ -38,13 +38,8 @@ public class DefaultInterClusterRequestEvaluatorTest {
 
     @Test
     public void testIsInterClusterRequest_upnOtherNameInSan_doesNotThrow() throws Exception {
-        // Reproduces issue #6090: certs issued by Windows CA contain a UPN otherName SAN entry
-        // (OID 1.3.6.1.4.1.311.20.2.3). Java surfaces such entries as a List with size > 2, where
-        // the third element is the OID String. The previous iterator-based parser tried to cast
-        // the OID String to int on the next loop iteration, throwing ClassCastException.
         X509Certificate cert = mock(X509Certificate.class);
         List<List<?>> sanList = new ArrayList<>();
-        // otherName SAN: [typeId=0, value (parsed), oid (String)]
         sanList.add(Arrays.asList(0, "user@example.com", "1.3.6.1.4.1.311.20.2.3"));
         when(cert.getSubjectAlternativeNames()).thenReturn(sanList);
 
@@ -63,7 +58,6 @@ public class DefaultInterClusterRequestEvaluatorTest {
     public void testIsInterClusterRequest_oidSanMatchesNodeOid_returnsTrue() throws Exception {
         X509Certificate cert = mock(X509Certificate.class);
         List<List<?>> sanList = new ArrayList<>();
-        // registeredID SAN (typeId=8) — value is the OID as String
         sanList.add(Arrays.asList(8, NODE_OID));
         when(cert.getSubjectAlternativeNames()).thenReturn(sanList);
 
@@ -80,7 +74,6 @@ public class DefaultInterClusterRequestEvaluatorTest {
 
     @Test
     public void testIsInterClusterRequest_oidSanAlongsideUpn_returnsTrue() throws Exception {
-        // Mixed SAN list: UPN otherName + matching node OID. Must not throw and must still match.
         X509Certificate cert = mock(X509Certificate.class);
         List<List<?>> sanList = new ArrayList<>();
         sanList.add(Arrays.asList(0, "user@example.com", "1.3.6.1.4.1.311.20.2.3"));
