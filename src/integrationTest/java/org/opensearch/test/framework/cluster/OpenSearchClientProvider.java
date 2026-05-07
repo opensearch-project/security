@@ -65,9 +65,12 @@ import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
+
+import reactor.netty.http.HttpProtocol;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
@@ -227,13 +230,19 @@ public interface OpenSearchClientProvider {
         return getRestClient(Arrays.asList(headers), useCertificateData);
     }
 
+    /**
+     * Returns a generic HTTP/1.1/HTTP 2.0/HTTP 3.0 client.
+     */
+    default ReactorHttpClient getGenericClient(HttpProtocol protocol, boolean secure, Settings settings) {
+        return new ReactorHttpClient(true, true, settings, getHttpAddress());
+    }
+
     default TestRestClient getRestClient(Header... headers) {
         return getRestClient((CertificateData) null, headers);
     }
 
     default TestRestClient getRestClient(List<Header> headers) {
         return createGenericClientRestClient(new TestRestClientConfiguration().headers(headers));
-
     }
 
     default TestRestClient getRestClient(List<Header> headers, CertificateData useCertificateData) {

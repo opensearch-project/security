@@ -14,6 +14,7 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.http.netty4.Netty4Http3ServerTransport;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -31,6 +32,7 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.quic.QuicStreamChannel;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 
@@ -79,7 +81,7 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
         ctx.channel().attr(Netty4HttpRequestHeaderVerifier.SHOULD_DECOMPRESS).set(Boolean.FALSE);
         ctx.channel().attr(Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED).set(Boolean.FALSE);
 
-        final Netty4HttpChannel httpChannel = ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
+        final Netty4HttpChannel httpChannel = getHttpChannel(ctx);
 
         final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(msg, httpChannel);
         ThreadContext threadContext = threadPool.getThreadContext();
@@ -112,6 +114,14 @@ public class Netty4HttpRequestHeaderVerifier extends SimpleChannelInboundHandler
             // Use defaults for unsupported channels
         } finally {
             ctx.fireChannelRead(msg);
+        }
+    }
+
+    private Netty4HttpChannel getHttpChannel(ChannelHandlerContext ctx) {
+        if (ctx.channel() instanceof QuicStreamChannel /* HTTP/3 */) {
+            return ctx.channel().attr(Netty4Http3ServerTransport.HTTP_CHANNEL_KEY).get();
+        } else {
+            return ctx.channel().attr(Netty4HttpServerTransport.HTTP_CHANNEL_KEY).get();
         }
     }
 

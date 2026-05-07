@@ -357,6 +357,24 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return settings.getAsBoolean(SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED, false);
     }
 
+    static void validateFipsMode(final String fipsModeEnvValue, final Settings settings) {
+        if ("true".equalsIgnoreCase(fipsModeEnvValue)) {
+            String hashingAlgorithm = settings.get(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT
+            );
+            if (!ConfigConstants.PBKDF2.equalsIgnoreCase(hashingAlgorithm)) {
+                throw new IllegalStateException(
+                    "FIPS mode is enabled (OPENSEARCH_FIPS_MODE=true) but password hashing algorithm is set to '"
+                        + hashingAlgorithm
+                        + "'. Only PBKDF2 is allowed in FIPS mode. Set '"
+                        + ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM
+                        + "' to 'pbkdf2'. Note: changing the hashing algorithm requires all existing passwords to be rehashed."
+                );
+            }
+        }
+    }
+
     public OpenSearchSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
 
@@ -489,6 +507,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
         }
 
+        validateFipsMode(System.getenv("OPENSEARCH_FIPS_MODE"), settings);
+
         if (!client && !settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
             // check for demo certificates
             final List<String> files = AccessController.doPrivileged(() -> {
@@ -518,6 +538,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
 
         }
+
+        // TODO: Uncomment for 4.0 - enforce that the default compliance salt is not used outside of demo configuration
+        // Salt.validateSaltSettings(settings);
     }
 
     private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {

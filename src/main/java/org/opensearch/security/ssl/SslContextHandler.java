@@ -141,7 +141,7 @@ public class SslContextHandler {
         if (notSameCertificates(loadedAuthorityCertificates, newAuthorityCertificates)) {
             LOGGER.debug("Certification authority has changed");
             hasChanges = true;
-            validateDates(newAuthorityCertificates);
+            sslConfiguration.trustStoreFactory();
         }
 
         if (notSameCertificates(loadedKeyMaterialCertificates, newKeyMaterialCertificates)) {
