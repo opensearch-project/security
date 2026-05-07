@@ -5,13 +5,23 @@ BCFKS (Bouncy Castle FIPS Keystore) files are required when running tests in FIP
 
 ## Prerequisites
 
-- `bc-fips-*.jar` — set `BC_FIPS_JAR` to its path before running
+- Java on `PATH`
+- `bc-fips-*.jar` — set `BC_FIPS_JAR` to its path before running (see Usage)
 
 ## Usage
+
+### Linux / macOS
 
 ```bash
 export BC_FIPS_JAR=/path/to/bc-fips-2.1.2.jar
 ./src/test/resources/bcfks-generation/generate_bcfks_keystores.sh
+```
+
+### Windows
+
+```bat
+set BC_FIPS_JAR=C:\path\to\bc-fips-2.1.2.jar
+src\test\resources\bcfks-generation\generate_bcfks_keystores.bat
 ```
 
 Each `.bcfks` file is written alongside its source keystore. Re-run whenever a source JKS or PKCS12 file is added or regenerated.
