@@ -56,7 +56,7 @@ public class RequestContentValidator implements ToXContent {
         }
 
         @Override
-        public Map<String, DataType> allowedKeys() {
+        public Map<String, FieldConfiguration> allowedKeys() {
             return Collections.emptyMap();
         }
     }) {
@@ -178,16 +178,7 @@ public class RequestContentValidator implements ToXContent {
 
         Settings settings();
 
-        Map<String, DataType> allowedKeys();
-
-        /**
-         * Optional: Returns field configurations with validation rules.
-         * If not overridden, returns null and the validator will use allowedKeys() instead.
-         * This is an opt-in enhancement for more flexible validation.
-         */
-        default Map<String, FieldConfiguration> allowedKeysWithConfig() {
-            return null;
-        }
+        Map<String, FieldConfiguration> allowedKeys();
 
     }
 
@@ -273,14 +264,7 @@ public class RequestContentValidator implements ToXContent {
         mandatory.removeAll(requestedKeys);
         missingMandatoryKeys.addAll(mandatory);
 
-        // Use allowedKeysWithConfig if provided, otherwise fall back to allowedKeys
-        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
-        final Set<String> allowed;
-        if (fieldConfigs != null) {
-            allowed = new HashSet<>(fieldConfigs.keySet());
-        } else {
-            allowed = new HashSet<>(validationContext.allowedKeys().keySet());
-        }
+        final Set<String> allowed = new HashSet<>(validationContext.allowedKeys().keySet());
         requestedKeys.removeAll(allowed);
         invalidKeys.addAll(requestedKeys);
 
@@ -292,9 +276,7 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> validateDataType(final JsonNode jsonContent) {
-        // Check if enhanced validation is available
-        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
-        final boolean useEnhancedValidation = (fieldConfigs != null);
+        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeys();
 
         try (final JsonParser parser = DefaultObjectMapper.objectMapper().treeAsTokens(jsonContent)) {
             JsonToken token;
@@ -302,17 +284,8 @@ public class RequestContentValidator implements ToXContent {
                 if (token.equals(JsonToken.PROPERTY_NAME)) {
                     String currentName = parser.currentName();
 
-                    // Get data type from either FieldConfiguration or simple DataType map
-                    final DataType dataType;
-                    final FieldConfiguration fieldConfig;
-
-                    if (useEnhancedValidation && fieldConfigs != null) {
-                        fieldConfig = fieldConfigs.get(currentName);
-                        dataType = (fieldConfig != null) ? fieldConfig.getDataType() : null;
-                    } else {
-                        fieldConfig = null;
-                        dataType = validationContext.allowedKeys().get(currentName);
-                    }
+                    final FieldConfiguration fieldConfig = fieldConfigs.get(currentName);
+                    final DataType dataType = (fieldConfig != null) ? fieldConfig.getDataType() : null;
 
                     if (dataType != null) {
                         JsonToken valueToken = parser.nextToken();
@@ -393,9 +366,7 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
-        // Use allowedKeysWithConfig if provided, otherwise fall back to allowedKeys
-        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
-        final Set<String> allowedKeys = (fieldConfigs != null) ? fieldConfigs.keySet() : validationContext.allowedKeys().keySet();
+        final Set<String> allowedKeys = validationContext.allowedKeys().keySet();
 
         for (final String key : allowedKeys) {
             final JsonNode value = jsonContent.get(key);
@@ -504,8 +475,7 @@ public class RequestContentValidator implements ToXContent {
 
             private final Set<String> mandatoryOrKeys = validationContext.mandatoryOrKeys();
 
-            private final Map<String, DataType> allowedKeys = validationContext.allowedKeys();
-            private final Map<String, FieldConfiguration> allowedKeysWithConfig = validationContext.allowedKeysWithConfig();
+            private final Map<String, FieldConfiguration> allowedKeys = validationContext.allowedKeys();
 
             @Override
             public Settings settings() {
@@ -528,13 +498,8 @@ public class RequestContentValidator implements ToXContent {
             }
 
             @Override
-            public Map<String, DataType> allowedKeys() {
+            public Map<String, FieldConfiguration> allowedKeys() {
                 return allowedKeys;
-            }
-
-            @Override
-            public Map<String, FieldConfiguration> allowedKeysWithConfig() {
-                return allowedKeysWithConfig;
             }
         });
     }

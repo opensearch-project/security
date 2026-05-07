@@ -25,6 +25,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -142,8 +143,8 @@ public class SecurityConfigApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                        return ImmutableMap.of("dynamic", DataType.OBJECT);
+                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeys() {
+                        return ImmutableMap.of("dynamic", FieldConfiguration.of(DataType.OBJECT));
                     }
                 });
             }
