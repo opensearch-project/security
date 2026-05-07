@@ -46,6 +46,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
             getDashboardsinfoResponse.findValueInJson("default_tenant"),
             equalTo(ConfigConstants.TENANCY_GLOBAL_TENANT_DEFAULT_NAME)
         );
+        assertThat(getDashboardsinfoResponse.findArrayInJson("preferred_tenants").size(), equalTo(0));
 
         final HttpResponse setPrivateTenantAsDefaultResponse = rh.executePutRequest(
             "/_plugins/_security/api/tenancy/config",
@@ -68,12 +69,31 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         );
         assertThat(updateDashboardSignInOptions.getBody(), updateDashboardSignInOptions.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
+        final HttpResponse updatePreferredTenants = rh.executePutRequest(
+            "/_plugins/_security/api/tenancy/config",
+            "{\"preferred_tenants\": [\"Private\", \"Global\"]}",
+            header
+        );
+        assertThat(updatePreferredTenants.getBody(), updatePreferredTenants.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
         getDashboardsinfoResponse = rh.executeGetRequest("/_plugins/_security/dashboardsinfo", ADMIN_FULL_ACCESS_USER);
         assertThat(getDashboardsinfoResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(getDashboardsinfoResponse.findValueInJson("default_tenant"), equalTo("Private"));
 
         assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem((DashboardSignInOption.BASIC.toString())));
         assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem((DashboardSignInOption.OPENID.toString())));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("preferred_tenants"), hasItem("Private"));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("preferred_tenants"), hasItem("Global"));
+
+        final HttpResponse clearPreferredTenants = rh.executePutRequest(
+            "/_plugins/_security/api/tenancy/config",
+            "{\"preferred_tenants\": []}",
+            header
+        );
+        assertThat(clearPreferredTenants.getBody(), clearPreferredTenants.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+        getDashboardsinfoResponse = rh.executeGetRequest("/_plugins/_security/dashboardsinfo", ADMIN_FULL_ACCESS_USER);
+        assertThat(getDashboardsinfoResponse.findArrayInJson("preferred_tenants").size(), equalTo(0));
 
         final HttpResponse updateUnavailableSignInOption = rh.executePutRequest(
             "/_plugins/_security/api/tenancy/config",
@@ -99,7 +119,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testUpdateSuperAdmin() throws Exception {
         setupWithRestRoles();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         verifyTenantUpdate();
     }
@@ -209,12 +229,36 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
             invalidSignInOption.findValueInJson("error.reason"),
             containsString("authentication provider is not available for this cluster")
         );
+
+        final HttpResponse preferredTenantsNonArrayValue = rh.executePutRequest(
+            "/_plugins/_security/api/tenancy/config",
+            "{\"preferred_tenants\": \"Private\"}",
+            header
+        );
+        assertThat(preferredTenantsNonArrayValue.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
+        assertThat(
+            preferredTenantsNonArrayValue.getBody(),
+            preferredTenantsNonArrayValue.findValueInJson("reason"),
+            containsString("Wrong datatype")
+        );
+
+        final HttpResponse preferredTenantsContainInvalidType = rh.executePutRequest(
+            "/_plugins/_security/api/tenancy/config",
+            "{\"preferred_tenants\": [\"Private\", 1]}",
+            header
+        );
+        assertThat(preferredTenantsContainInvalidType.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
+        assertThat(
+            preferredTenantsContainInvalidType.getBody(),
+            preferredTenantsContainInvalidType.findValueInJson("preferred_tenants"),
+            containsString("preferred_tenants should only contain string values")
+        );
     }
 
     @Test
     public void testDefaultTenantUpdateFailedSuperAdmin() throws Exception {
         setupWithRestRoles();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         verifyTenantUpdateFailed();
     }

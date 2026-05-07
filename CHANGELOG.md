@@ -1,7 +1,7 @@
 # CHANGELOG
-All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to the [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See the [CONTRIBUTING guide](./CONTRIBUTING.md#Changelog) for instructions on how to add changelog entries.
+As of the 3.6 release [the CHANGELOG is no longer used](https://github.com/opensearch-project/OpenSearch/issues/21071) to generate release notes.
+[Use this PR search](https://github.com/opensearch-project/security/pulls?q=sort%3Amerged-desc+is%3Apr+-label%3Askip-changelog+is%3Amerged+base%3Amain+) to browse unreleased changes.
 
 ## [Unreleased 3.x]
 ### Added
@@ -33,3 +33,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Documentation
 
 [Unreleased 3.x]: https://github.com/opensearch-project/security/compare/3.6...main
+Release notes are now auto-generated from PR metadata at release time using an LLM-based pipeline in [opensearch-build](https://github.com/opensearch-project/opensearch-build).
+See the [release notes script](https://github.com/opensearch-project/opensearch-build/blob/main/src/release_notes_workflow/release_notes.py) and [LLM prompt](https://github.com/opensearch-project/opensearch-build/blob/main/src/release_notes_workflow/release_notes_prompt.txt) for details.

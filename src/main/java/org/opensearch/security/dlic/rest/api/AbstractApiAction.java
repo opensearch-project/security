@@ -19,10 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.JsonPointer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -67,9 +63,13 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
-import com.flipkart.zjsonpatch.JsonDiff;
-import com.flipkart.zjsonpatch.JsonPatch;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonPatch;
 import com.flipkart.zjsonpatch.JsonPatchApplicationException;
+import tools.jackson.core.JsonPointer;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
@@ -205,7 +205,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                     final var entityAsJson = (ObjectNode) configurationAsJson.get(entityName);
                     return withJsonPatchException(
                         () -> endpointValidator.createRequestContentValidator(entityName)
-                            .validate(request, JsonPatch.apply(patchContent, entityAsJson), configurationAsJson.get(entityName))
+                            .validate(request, Jackson3JsonPatch.apply(patchContent, entityAsJson), configurationAsJson.get(entityName))
                             .map(
                                 patchedEntity -> endpointValidator.onConfigChange(
                                     SecurityConfiguration.of(patchedEntity, entityName, configuration)
@@ -239,8 +239,8 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         final var configuration = securityConfiguration.configuration();
         final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
         return withIOException(() -> withJsonPatchException(() -> {
-            final var patchedConfigurationAsJson = JsonPatch.apply(patchContent, configurationAsJson);
-            JsonNode patch = JsonDiff.asJson(configurationAsJson, patchedConfigurationAsJson);
+            final var patchedConfigurationAsJson = Jackson3JsonPatch.apply(patchContent, configurationAsJson);
+            JsonNode patch = Jackson3JsonDiff.asJson(configurationAsJson, patchedConfigurationAsJson);
             if (patch.isEmpty()) {
                 return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
             }

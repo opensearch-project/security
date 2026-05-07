@@ -58,6 +58,11 @@ public class ProtectedIndexAuthorizationIntTests {
     static final TestIndex protected_index2 = TestIndex.name("protected_index2").documentCount(10).seed(2).build();
     static final TestIndex unprotected_index = TestIndex.name("unprotected_index").documentCount(10).seed(4).build();
 
+    /**
+     * This index is initially not created. Used for index creation tests.
+     */
+    static final TestIndex protected_index_x = TestIndex.name("protected_index_x").build();
+
     static final TestAlias alias_protected = new TestAlias("alias_protected").on(protected_index1);
 
     static final TestSecurityConfig.User.MetadataKey<IndexMatcher> ALLOWED = new TestSecurityConfig.User.MetadataKey<>(
@@ -187,9 +192,12 @@ public class ProtectedIndexAuthorizationIntTests {
             if (user == PROTECTED_INDEX_USER) {
                 assertThat(response, isOk());
                 assertThat(response, containsExactly(protected_index1).at("hits.hits[*]._index"));
-            } else {
+            } else if (clusterConfig.legacyPrivilegeEvaluation) {
                 assertThat(response, isOk());
                 assertThat(response, containsExactly().at("hits.hits[*]._index"));
+            } else {
+                // The new privilege evaluation just forbids this request; this follows the normal index reduction semantics
+                assertThat(response, isForbidden());
             }
         }
     }
