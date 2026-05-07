@@ -11,6 +11,8 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.List;
+
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 
 /**
@@ -24,6 +26,7 @@ public class DashboardsMultiTenancyConfiguration {
     private final boolean multitenancyEnabled;
     private final boolean privateTenantEnabled;
     private final String defaultTenant;
+    private final List<String> preferredTenants;
     private final String index;
     private final String serverUsername;
     private final String role;
@@ -32,6 +35,7 @@ public class DashboardsMultiTenancyConfiguration {
         this.multitenancyEnabled = dashboardsConfig.multitenancy_enabled;
         this.privateTenantEnabled = dashboardsConfig.private_tenant_enabled;
         this.defaultTenant = dashboardsConfig.default_tenant;
+        this.preferredTenants = dashboardsConfig.preferred_tenants;
         this.index = dashboardsConfig.index;
         this.serverUsername = dashboardsConfig.server_username;
         this.role = dashboardsConfig.opendistro_role;
@@ -63,6 +67,10 @@ public class DashboardsMultiTenancyConfiguration {
 
     public String dashboardsOpenSearchRole() {
         return role;
+    }
+
+    public List<String> preferredTenants() {
+        return preferredTenants;
     }
 
     private static ConfigV7.Kibana dashboardsConfig(ConfigV7 generalConfig) {

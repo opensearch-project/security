@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.fasterxml.jackson.databind.InjectableValues;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -27,6 +26,8 @@ import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.util.FakeRestRequest;
+
+import tools.jackson.databind.InjectableValues;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

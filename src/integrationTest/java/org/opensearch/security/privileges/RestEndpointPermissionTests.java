@@ -37,8 +37,6 @@ import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -48,12 +46,16 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.PermissionBuilder;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
+
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ENDPOINTS_WITH_PERMISSIONS;
@@ -97,9 +99,10 @@ public class RestEndpointPermissionTests {
     }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     static ObjectNode role(final String... clusterPermissions) {
-        final ArrayNode clusterPermissionsArrayNode = DefaultObjectMapper.objectMapper.createArrayNode();
+        final ArrayNode clusterPermissionsArrayNode = DefaultObjectMapper.objectMapper().createArrayNode();
         Arrays.stream(clusterPermissions).forEach(clusterPermissionsArrayNode::add);
-        return DefaultObjectMapper.objectMapper.createObjectNode()
+        return DefaultObjectMapper.objectMapper()
+            .createObjectNode()
             .put("reserved", true)
             .set("cluster_permissions", clusterPermissionsArrayNode);
     }
@@ -120,8 +123,16 @@ public class RestEndpointPermissionTests {
 
     public RestEndpointPermissionTests() throws IOException {
         this.actionPrivileges = new RoleBasedActionPrivileges(
-            new CompiledRoles(createRolesConfig(), FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT),
-            Settings.EMPTY
+            new CompiledRoles(
+                createRolesConfig(),
+                FlattenedActionGroups.EMPTY,
+                NamedXContentRegistry.EMPTY,
+                FieldMasking.Config.DEFAULT,
+                false
+            ),
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+            Settings.EMPTY,
+            false
         );
     }
 
@@ -244,11 +255,11 @@ public class RestEndpointPermissionTests {
     }
 
     static ObjectNode meta(final String type) {
-        return DefaultObjectMapper.objectMapper.createObjectNode().put("type", type).put("config_version", 2);
+        return DefaultObjectMapper.objectMapper().createObjectNode().put("type", type).put("config_version", 2);
     }
 
     static SecurityDynamicConfiguration<RoleV7> createRolesConfig() throws IOException {
-        final ObjectNode rolesNode = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode rolesNode = DefaultObjectMapper.objectMapper().createObjectNode();
         rolesNode.set("_meta", meta("roles"));
         NO_REST_ADMIN_PERMISSIONS_ROLES.forEach(rolesNode::set);
         REST_ADMIN_PERMISSIONS_FULL_ACCESS_ROLES.forEach(rolesNode::set);

@@ -25,6 +25,9 @@ public record SharingRecord(ResourceSharing resourceSharing, boolean canShare) i
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.field("resource_id", resourceSharing.getResourceId());
+        if (resourceSharing.getTenant() != null) {
+            builder.field("tenant", resourceSharing.getTenant());
+        }
 
         builder.field("created_by");
         resourceSharing.getCreatedBy().toXContent(builder, params);
