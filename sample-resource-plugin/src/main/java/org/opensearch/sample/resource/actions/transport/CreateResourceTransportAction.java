@@ -16,6 +16,9 @@ import java.nio.charset.StandardCharsets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.action.DocRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -26,22 +29,25 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.commons.ConfigConstants;
 import org.opensearch.commons.authuser.User;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.SampleResource;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceAction;
-import org.opensearch.sample.resource.actions.rest.create.CreateResourceRequest;
-import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
 import org.opensearch.sample.utils.PluginClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Transport action for creating a new resource.
  */
-public class CreateResourceTransportAction extends HandledTransportAction<CreateResourceRequest, CreateResourceResponse> {
+public class CreateResourceTransportAction extends HandledTransportAction<CreateResourceTransportAction.Request, CreateResourceTransportAction.Response> {
     private static final Logger log = LogManager.getLogger(CreateResourceTransportAction.class);
 
     private final TransportService transportService;
@@ -49,24 +55,23 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
 
     @Inject
     public CreateResourceTransportAction(TransportService transportService, ActionFilters actionFilters, PluginClient pluginClient) {
-        super(CreateResourceAction.NAME, transportService, actionFilters, CreateResourceRequest::new);
+        super(CreateResourceAction.NAME, transportService, actionFilters, Request::new);
         this.transportService = transportService;
         this.pluginClient = pluginClient;
     }
 
     @Override
-    protected void doExecute(Task task, CreateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
+    protected void doExecute(Task task, Request request, ActionListener<Response> listener) {
         ThreadContext threadContext = transportService.getThreadPool().getThreadContext();
         String userStr = threadContext.getTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
         User user = User.parse(userStr);
         createResource(request, user, listener);
     }
 
-    private void createResource(CreateResourceRequest request, User user, ActionListener<CreateResourceResponse> listener) {
+    private void createResource(Request request, User user, ActionListener<Response> listener) {
         SampleResource sample = request.getResource();
         if (request.shouldStoreUser()) sample.setUser(user);
 
-        // 1. Read mapping JSON from the config file
         final String mappingJson;
         try {
             URL url = CreateResourceTransportAction.class.getClassLoader().getResource("mappings.json");
@@ -82,7 +87,6 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
             return;
         }
 
-        // 2. Ensure index exists with mapping, then index the doc
         ensureIndexWithMapping(pluginClient, mappingJson, ActionListener.wrap(v -> {
             try (XContentBuilder builder = org.opensearch.common.xcontent.XContentFactory.jsonBuilder()) {
                 IndexRequest ir = pluginClient.prepareIndex(RESOURCE_INDEX_NAME)
@@ -95,7 +99,7 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
 
                 pluginClient.index(ir, ActionListener.wrap(idxResponse -> {
                     log.debug("Created resource: {}", idxResponse.getId());
-                    listener.onResponse(new CreateResourceResponse("Created resource: " + idxResponse.getId()));
+                    listener.onResponse(new Response("Created resource: " + idxResponse.getId()));
                 }, listener::onFailure));
             } catch (IOException e) {
                 listener.onFailure(new RuntimeException(e));
@@ -103,16 +107,10 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
         }, listener::onFailure));
     }
 
-    /**
-     * Ensures the index exists with the provided mapping.
-     * - If the index does not exist: creates it with the mapping.
-     * - If the index exists: updates (puts) the mapping.
-     */
     private void ensureIndexWithMapping(PluginClient pluginClient, String mappingJson, ActionListener<Void> listener) {
         String indexName = RESOURCE_INDEX_NAME;
         pluginClient.admin().indices().prepareExists(indexName).execute(ActionListener.wrap(existsResp -> {
             if (!existsResp.isExists()) {
-                // Create index with mapping
                 pluginClient.admin().indices().prepareCreate(indexName).setMapping(mappingJson).execute(ActionListener.wrap(createResp -> {
                     if (!createResp.isAcknowledged()) {
                         listener.onFailure(new IllegalStateException("CreateIndex not acknowledged for " + indexName));
@@ -121,7 +119,6 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
                     listener.onResponse(null);
                 }, listener::onFailure));
             } else {
-                // Update mapping on existing index
                 pluginClient.admin()
                     .indices()
                     .preparePutMapping(indexName)
@@ -137,4 +134,84 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
         }, listener::onFailure));
     }
 
+    /**
+     * Request object for CreateSampleResource transport action
+     */
+    public static class Request extends ActionRequest implements DocRequest {
+
+        private final SampleResource resource;
+        private final boolean shouldStoreUser;
+
+        public Request(SampleResource resource, boolean shouldStoreUser) {
+            this.resource = resource;
+            this.shouldStoreUser = shouldStoreUser;
+        }
+
+        public Request(StreamInput in) throws IOException {
+            this.resource = in.readNamedWriteable(SampleResource.class);
+            this.shouldStoreUser = in.readBoolean();
+        }
+
+        @Override
+        public void writeTo(final StreamOutput out) throws IOException {
+            resource.writeTo(out);
+            out.writeBoolean(shouldStoreUser);
+        }
+
+        @Override
+        public ActionRequestValidationException validate() {
+            return null;
+        }
+
+        public SampleResource getResource() {
+            return this.resource;
+        }
+
+        public boolean shouldStoreUser() {
+            return this.shouldStoreUser;
+        }
+
+        @Override
+        public String type() {
+            return RESOURCE_TYPE;
+        }
+
+        @Override
+        public String index() {
+            return RESOURCE_INDEX_NAME;
+        }
+
+        @Override
+        public String id() {
+            return null;
+        }
+    }
+
+    /**
+     * Response to a CreateSampleResourceRequest
+     */
+    public static class Response extends ActionResponse implements ToXContentObject {
+        private final String message;
+
+        public Response(String message) {
+            this.message = message;
+        }
+
+        public Response(final StreamInput in) throws IOException {
+            message = in.readString();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(message);
+        }
+
+        @Override
+        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+            builder.startObject();
+            builder.field("message", message);
+            builder.endObject();
+            return builder;
+        }
+    }
 }

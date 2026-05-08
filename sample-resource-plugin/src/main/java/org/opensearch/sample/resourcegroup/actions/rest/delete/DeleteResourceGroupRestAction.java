@@ -14,6 +14,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
+import org.opensearch.sample.resourcegroup.actions.transport.DeleteResourceGroupTransportAction;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static java.util.Collections.singletonList;
@@ -43,10 +44,10 @@ public class DeleteResourceGroupRestAction extends BaseRestHandler {
         if (Strings.isNullOrEmpty(resourceId)) {
             throw new IllegalArgumentException("resource_id parameter is required");
         }
-        final DeleteResourceGroupRequest createSampleResourceRequest = new DeleteResourceGroupRequest(resourceId);
+        final DeleteResourceGroupTransportAction.Request deleteRequest = new DeleteResourceGroupTransportAction.Request(resourceId);
         return channel -> client.executeLocally(
             DeleteResourceGroupAction.INSTANCE,
-            createSampleResourceRequest,
+            deleteRequest,
             new RestToXContentListener<>(channel)
         );
     }

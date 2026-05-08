@@ -8,32 +8,38 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.action.DocRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sample.SampleResource;
-import org.opensearch.sample.resource.actions.rest.create.CreateResourceResponse;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
-import org.opensearch.sample.resource.actions.rest.create.UpdateResourceRequest;
 import org.opensearch.sample.utils.PluginClient;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
+import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 
 /**
  * Transport action for updating a resource.
  */
-public class UpdateResourceTransportAction extends HandledTransportAction<UpdateResourceRequest, CreateResourceResponse> {
+public class UpdateResourceTransportAction extends HandledTransportAction<UpdateResourceTransportAction.Request, CreateResourceTransportAction.Response> {
     private static final Logger log = LogManager.getLogger(UpdateResourceTransportAction.class);
 
     private final TransportService transportService;
@@ -41,39 +47,36 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
 
     @Inject
     public UpdateResourceTransportAction(TransportService transportService, ActionFilters actionFilters, PluginClient pluginClient) {
-        super(UpdateResourceAction.NAME, transportService, actionFilters, UpdateResourceRequest::new);
+        super(UpdateResourceAction.NAME, transportService, actionFilters, Request::new);
         this.transportService = transportService;
         this.pluginClient = pluginClient;
     }
 
     @Override
-    protected void doExecute(Task task, UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
+    protected void doExecute(Task task, Request request, ActionListener<CreateResourceTransportAction.Response> listener) {
         if (request.getResourceId() == null || request.getResourceId().isEmpty()) {
             listener.onFailure(new IllegalArgumentException("Resource ID cannot be null or empty"));
             return;
         }
-        // Check permission to resource
         updateResource(request, listener);
     }
 
-    private void updateResource(UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
+    private void updateResource(Request request, ActionListener<CreateResourceTransportAction.Response> listener) {
         try {
             String resourceId = request.getResourceId();
             SampleResource sample = request.getResource();
             try (XContentBuilder builder = jsonBuilder()) {
                 sample.toXContent(builder, ToXContent.EMPTY_PARAMS);
 
-                // because some plugins seem to treat update API calls as index request
                 IndexRequest ir = new IndexRequest(RESOURCE_INDEX_NAME).id(resourceId)
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // WAIT_UNTIL because we don't want tests to fail, as they
-                                                                             // execute search right after update
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL)
                     .source(builder);
 
                 log.debug("Update Request: {}", ir.toString());
 
                 pluginClient.index(ir, ActionListener.wrap(updateResponse -> {
                     listener.onResponse(
-                        new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully.")
+                        new CreateResourceTransportAction.Response("Resource " + request.getResource().getName() + " updated successfully.")
                     );
                 }, listener::onFailure));
             }
@@ -81,6 +84,58 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
             log.error("Failed to update resource: {}", request.getResourceId(), e);
             listener.onFailure(e);
         }
+    }
 
+    /**
+     * Request object for UpdateResource transport action
+     */
+    public static class Request extends ActionRequest implements DocRequest {
+
+        private final String resourceId;
+        private final SampleResource resource;
+
+        public Request(String resourceId, SampleResource resource) {
+            this.resourceId = resourceId;
+            this.resource = resource;
+        }
+
+        public Request(StreamInput in) throws IOException {
+            this.resourceId = in.readString();
+            this.resource = in.readNamedWriteable(SampleResource.class);
+        }
+
+        @Override
+        public void writeTo(final StreamOutput out) throws IOException {
+            out.writeString(resourceId);
+            resource.writeTo(out);
+        }
+
+        @Override
+        public ActionRequestValidationException validate() {
+            return null;
+        }
+
+        public SampleResource getResource() {
+            return this.resource;
+        }
+
+        public String getResourceId() {
+            return this.resourceId;
+        }
+
+        @Override
+        public String type() {
+            return RESOURCE_TYPE;
+        }
+
+        @Override
+        public String index() {
+            return RESOURCE_INDEX_NAME;
+        }
+
+        @Override
+        public String id() {
+            return resourceId;
+        }
     }
 }

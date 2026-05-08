@@ -13,6 +13,7 @@ import java.util.List;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
+import org.opensearch.sample.resourcegroup.actions.transport.GetResourceGroupTransportAction;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -42,7 +43,7 @@ public class GetResourceGroupRestAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         String resourceId = request.param("resource_id");
 
-        final GetResourceGroupRequest getResourceRequest = new GetResourceGroupRequest(resourceId);
+        final GetResourceGroupTransportAction.Request getResourceRequest = new GetResourceGroupTransportAction.Request(resourceId);
         return channel -> client.executeLocally(GetResourceGroupAction.INSTANCE, getResourceRequest, new RestToXContentListener<>(channel));
     }
 }

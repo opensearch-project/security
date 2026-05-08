@@ -9,21 +9,16 @@
 package org.opensearch.sample.resourcegroup.actions.rest.delete;
 
 import org.opensearch.action.ActionType;
+import org.opensearch.sample.resourcegroup.actions.transport.DeleteResourceGroupTransportAction;
 
 /**
  * Action to delete a sample resource group
  */
-public class DeleteResourceGroupAction extends ActionType<DeleteResourceGroupResponse> {
-    /**
-     * Delete sample resource group action instance
-     */
+public class DeleteResourceGroupAction extends ActionType<DeleteResourceGroupTransportAction.Response> {
     public static final DeleteResourceGroupAction INSTANCE = new DeleteResourceGroupAction();
-    /**
-     * Delete sample resource group action name
-     */
     public static final String NAME = "sampleresourcegroup:delete";
 
     private DeleteResourceGroupAction() {
-        super(NAME, DeleteResourceGroupResponse::new);
+        super(NAME, DeleteResourceGroupTransportAction.Response::new);
     }
 }

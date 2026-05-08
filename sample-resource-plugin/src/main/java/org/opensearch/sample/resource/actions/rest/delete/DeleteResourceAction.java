@@ -9,21 +9,16 @@
 package org.opensearch.sample.resource.actions.rest.delete;
 
 import org.opensearch.action.ActionType;
+import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
 
 /**
  * Action to delete a sample resource
  */
-public class DeleteResourceAction extends ActionType<DeleteResourceResponse> {
-    /**
-     * Delete sample resource action instance
-     */
+public class DeleteResourceAction extends ActionType<DeleteResourceTransportAction.Response> {
     public static final DeleteResourceAction INSTANCE = new DeleteResourceAction();
-    /**
-     * Delete sample resource action name
-     */
     public static final String NAME = "sampleresource:delete";
 
     private DeleteResourceAction() {
-        super(NAME, DeleteResourceResponse::new);
+        super(NAME, DeleteResourceTransportAction.Response::new);
     }
 }

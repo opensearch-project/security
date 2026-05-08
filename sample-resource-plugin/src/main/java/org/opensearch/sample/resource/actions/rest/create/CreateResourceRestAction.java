@@ -17,6 +17,8 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.sample.SampleResource;
+import org.opensearch.sample.resource.actions.transport.CreateResourceTransportAction;
+import org.opensearch.sample.resource.actions.transport.UpdateResourceTransportAction;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -67,7 +69,7 @@ public class CreateResourceRestAction extends BaseRestHandler {
         resource.setDescription(description);
         resource.setGroupId(groupId);
         resource.setAttributes(attributes);
-        final UpdateResourceRequest updateResourceRequest = new UpdateResourceRequest(resourceId, resource);
+        final UpdateResourceTransportAction.Request updateResourceRequest = new UpdateResourceTransportAction.Request(resourceId, resource);
         return channel -> client.executeLocally(
             UpdateResourceAction.INSTANCE,
             updateResourceRequest,
@@ -86,7 +88,7 @@ public class CreateResourceRestAction extends BaseRestHandler {
         resource.setName(name);
         resource.setDescription(description);
         resource.setAttributes(attributes);
-        final CreateResourceRequest createSampleResourceRequest = new CreateResourceRequest(resource, shouldStoreUser);
+        final CreateResourceTransportAction.Request createSampleResourceRequest = new CreateResourceTransportAction.Request(resource, shouldStoreUser);
         return channel -> client.executeLocally(
             CreateResourceAction.INSTANCE,
             createSampleResourceRequest,

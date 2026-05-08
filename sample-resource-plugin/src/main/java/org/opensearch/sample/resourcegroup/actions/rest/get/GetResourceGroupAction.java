@@ -9,21 +9,16 @@
 package org.opensearch.sample.resourcegroup.actions.rest.get;
 
 import org.opensearch.action.ActionType;
+import org.opensearch.sample.resourcegroup.actions.transport.GetResourceGroupTransportAction;
 
 /**
  * Action to get a sample resource group
  */
-public class GetResourceGroupAction extends ActionType<GetResourceGroupResponse> {
-    /**
-     * Get sample resource group action instance
-     */
+public class GetResourceGroupAction extends ActionType<GetResourceGroupTransportAction.Response> {
     public static final GetResourceGroupAction INSTANCE = new GetResourceGroupAction();
-    /**
-     * Get sample resource group action name
-     */
     public static final String NAME = "sampleresourcegroup:get";
 
     private GetResourceGroupAction() {
-        super(NAME, GetResourceGroupResponse::new);
+        super(NAME, GetResourceGroupTransportAction.Response::new);
     }
 }
