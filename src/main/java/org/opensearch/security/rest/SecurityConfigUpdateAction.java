@@ -28,6 +28,7 @@ import org.opensearch.rest.action.RestActions.NodesResponseRestListener;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -51,7 +52,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
     );
 
     private final ThreadContext threadContext;
-    private final AdminDNs adminDns;
+    private final SuperAdminAuthority superAdminAuthority;
     private final Settings settings;
     private final Path configPath;
     private final PrincipalExtractor principalExtractor;
@@ -60,13 +61,13 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
         final Settings settings,
         final RestController controller,
         final ThreadPool threadPool,
-        final AdminDNs adminDns,
+        final SuperAdminAuthority superAdminAuthority,
         Path configPath,
         PrincipalExtractor principalExtractor
     ) {
         super();
         this.threadContext = threadPool.getThreadContext();
-        this.adminDns = adminDns;
+        this.superAdminAuthority = superAdminAuthority;
         this.settings = settings;
         this.configPath = configPath;
         this.principalExtractor = principalExtractor;
@@ -92,15 +93,16 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
             SecurityRequestFactory.from(request),
             principalExtractor
         );
+        final boolean isSecretAdmin = superAdminAuthority.isAdminViaSecret(SecurityRequestFactory.from(request));
 
-        if (sslInfo == null) {
+        if (sslInfo == null && !isSecretAdmin) {
             return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
         }
 
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         // only allowed for admins
-        if (user == null || !adminDns.isAdmin(user)) {
+        if (user == null || !superAdminAuthority.isSuperAdmin(user)) {
             return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
         } else {
             ConfigUpdateRequest configUpdateRequest = new ConfigUpdateRequest(configTypes);

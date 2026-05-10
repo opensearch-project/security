@@ -30,7 +30,7 @@ import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -60,7 +60,7 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());
-    private final AdminDNs adminDns;
+    private final SuperAdminAuthority superAdminAuthority;
     private final Settings settings;
     private final Path configPath;
     private final PrincipalExtractor principalExtractor;
@@ -70,12 +70,12 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
         final Settings settings,
         final RestController controller,
         final ThreadPool threadPool,
-        final AdminDNs adminDns,
+        final SuperAdminAuthority superAdminAuthority,
         Path configPath,
         PrincipalExtractor principalExtractor
     ) {
         super();
-        this.adminDns = adminDns;
+        this.superAdminAuthority = superAdminAuthority;
         this.settings = settings;
         this.configPath = configPath;
         this.principalExtractor = principalExtractor;
@@ -96,8 +96,8 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
             public void accept(RestChannel channel) throws Exception {
                 XContentBuilder builder = channel.newBuilder();
                 BytesRestResponse response = null;
-
                 try {
+                    final boolean isSecretAdmin = superAdminAuthority.isAdminViaSecret(SecurityRequestFactory.from(request));
                     SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(
                         settings,
                         configPath,
@@ -105,14 +105,13 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
                         principalExtractor
                     );
 
-                    if (sslInfo == null) {
+                    if (sslInfo == null && !isSecretAdmin) {
                         response = new BytesRestResponse(RestStatus.FORBIDDEN, "No security data");
                     } else {
-
-                        final String dn = sslInfo.getPrincipal();
-                        final boolean isAdmin = adminDns.isAdminDN(dn);
+                        final String dn = sslInfo == null ? null : sslInfo.getPrincipal();
+                        final boolean isAdmin = isSecretAdmin || superAdminAuthority.getAdminDns().isAdminDN(dn);
                         final boolean isNodeCertificateRequest = dn != null && WildcardMatcher.from(nodesDn).ignoreCase().matchAny(dn);
-
+                        
                         builder.startObject();
                         builder.field("dn", dn);
                         builder.field("is_admin", isAdmin);
@@ -120,7 +119,6 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
                         builder.endObject();
 
                         response = new BytesRestResponse(RestStatus.OK, builder);
-
                     }
                 } catch (final Exception e1) {
                     log.error(e1.toString(), e1);

@@ -28,8 +28,6 @@ package org.opensearch.security.auth;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,7 +46,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,6 +62,7 @@ import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.filter.GrpcRequestChannel;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -104,6 +102,7 @@ public class BackendRegistry {
     private volatile boolean initialized;
     private volatile boolean injectedUserEnabled = false;
     private final AdminDNs adminDns;
+    private final SuperAdminAuthority superAdminAuthority;
     private final XFFResolver xffResolver;
     private volatile boolean anonymousAuthEnabled = false;
     private final Settings opensearchSettings;
@@ -111,7 +110,6 @@ public class BackendRegistry {
     private final ThreadPool threadPool;
     private final UserInjector userInjector;
     private final ClusterInfoHolder clusterInfoHolder;
-    private final String superadminSecret;
     private int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
@@ -160,20 +158,20 @@ public class BackendRegistry {
 
     public BackendRegistry(
         final Settings settings,
-        final AdminDNs adminDns,
+        final SuperAdminAuthority superAdminAuthority,
         final XFFResolver xffResolver,
         final AuditLog auditLog,
         final ThreadPool threadPool,
         final ClusterInfoHolder clusterInfoHolder
     ) {
-        this.adminDns = adminDns;
+        this.superAdminAuthority = superAdminAuthority;
+        this.adminDns = superAdminAuthority.getAdminDns();
         this.opensearchSettings = settings;
         this.xffResolver = xffResolver;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.clusterInfoHolder = clusterInfoHolder;
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.superadminSecret = SecuritySettings.SECURITY_SUPERADMIN_SECRET_SETTING.get(settings).toString();
         this.restAuthDomains = Collections.emptySortedSet();
         this.ipAuthFailureListeners = Collections.emptyList();
 
@@ -267,38 +265,32 @@ public class BackendRegistry {
         }
 
         /*
-        Authenticates superuser based on client certificate auth. The certificate DN is read from thread context and
-        compared against adminDNs. If superuser is authenticated here we skip the remaining authentication flow.
-        Note that non superuser client/cert authentication is handled separately by the HTTPClientCertAuthenticator
-        auth backend.
+        Authenticates superadmin based on either certificate or superadmin secret.
+        Uses SuperAdminAuthority to coordinate authentication methods.
+        If superadmin is authenticated here, skip the remaining auth flow.
          */
-        ThreadContext threadContext = this.threadPool.getThreadContext();
-        final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-        if (adminDns.isAdminDN(sslPrincipal)) {
-            // PKI authenticated REST call
-            User superuser = new User(sslPrincipal);
-            UserSubject subject = new UserSubjectImpl(threadPool, superuser);
-            threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
-            return true;
-        }
-
-        /*
-        Authenticates superuser based on superadmin secret. The secret is read from thread context
-        and compared against the configured superadmin secret. If superuser is authenticated here we skip the remaining
-        authentication flow. This mechanism is independent of the security index and serves as an out-of-band recovery
-        path for HTTP deployments.
-         */
-        if (!gRPC) {
-            final String providedSecret = request.header(ConfigConstants.SECURITY_SUPERADMIN_SECRET_HEADER);
-            if (isSuperadminSecretValid(providedSecret)) {
-                log.debug("Superadmin authentication successful via secret");
-                User superuser = new User(ConfigConstants.SECURITY_SUPERADMIN_SECRET_USER);
+        if (!gRPC && superAdminAuthority.isRequestFromSuperAdmin(request)) {
+            // Determine which type of superadmin authentication succeeded
+            ThreadContext threadContext = this.threadPool.getThreadContext();
+            final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
+            if (adminDns.isAdminDN(sslPrincipal)) {
+                // Certificate-based admin
+                User superuser = new User(sslPrincipal);
+                UserSubject subject = new UserSubjectImpl(threadPool, superuser);
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
+                return true;
+            } else {
+                // Secret-based superadmin
+                User superuser = new User(superAdminAuthority.getSuperadminSecretUserName());
                 UserSubject subject = new UserSubjectImpl(threadPool, superuser);
                 threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
                 return true;
             }
+        } else if (!gRPC && superAdminAuthority.hasSecretHeader(request)) {
+            // Failed superadmin secret authentication attempt
+            auditLog.logFailedLogin("superadmin", false, null, request);
         }
 
         /*
@@ -634,27 +626,6 @@ public class BackendRegistry {
             return true;
         }
         return false;
-    }
-
-    /**
-     * Validates given superadmin secret against configured secret.
-     * @param providedSecret the secret from the request header
-     * @return true if valid, false otherwise
-     */
-    private boolean isSuperadminSecretValid(String providedSecret) {
-        if (ObjectUtils.isEmpty(superadminSecret) || ObjectUtils.isEmpty(providedSecret)) {
-            return false;
-        }
-
-        try {
-            return MessageDigest.isEqual(
-                superadminSecret.getBytes(StandardCharsets.UTF_8),
-                providedSecret.getBytes(StandardCharsets.UTF_8)
-            );
-        } catch (Exception e) {
-            log.debug("Error comparing superadmin secret", e);
-            return false;
-        }
     }
 
     /**

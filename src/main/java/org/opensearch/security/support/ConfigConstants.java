@@ -436,7 +436,7 @@ public class ConfigConstants {
                                                                                                       // protected
 
     // Super admin secret
-    public static final String SECURITY_SUPERADMIN_SECRET_USER = "superadmin_secret_user";
+    public static final String SECURITY_SUPERADMIN_SECRET_USER = "_opendistro_security_superadmin_secret_user_";
     public static final String SECURITY_SUPERADMIN_SECRET = SECURITY_SETTINGS_PREFIX + "superadmin.secret";
     public static final String SECURITY_SUPERADMIN_SECRET_SECURE = SECURITY_SUPERADMIN_SECRET + "_secure";
     public static final String SECURITY_SUPERADMIN_SECRET_HEADER = "X-OpenSearch-Superadmin-Secret";

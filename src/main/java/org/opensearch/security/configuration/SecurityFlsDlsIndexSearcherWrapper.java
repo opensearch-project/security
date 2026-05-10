@@ -66,7 +66,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
     public SecurityFlsDlsIndexSearcherWrapper(
         final IndexService indexService,
         final Settings settings,
-        final AdminDNs adminDNs,
+        final SuperAdminAuthority superAdminAuthority,
         final ClusterService clusterService,
         final AuditLog auditlog,
         final ComplianceIndexingOperationListener ciol,
@@ -75,7 +75,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         final Supplier<DlsFlsProcessedConfig> dlsFlsProcessedConfigSupplier,
         final DlsFlsBaseContext dlsFlsBaseContext
     ) {
-        super(indexService, settings, adminDNs, privilegesConfiguration, roleMapper);
+        super(indexService, settings, superAdminAuthority, privilegesConfiguration, roleMapper);
         Set<String> metadataFieldsCopy;
         if (indexService.getMetadata().getState() == IndexMetadata.State.CLOSE) {
             if (log.isDebugEnabled()) {

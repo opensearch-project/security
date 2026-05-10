@@ -49,6 +49,7 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.privileges.DashboardsMultiTenancyConfiguration;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.TenantPrivileges;
@@ -87,7 +88,7 @@ public class TenantInfoAction extends BaseRestHandler {
     private final PrivilegesConfiguration privilegesConfiguration;
     private final ThreadContext threadContext;
     private final ClusterService clusterService;
-    private final AdminDNs adminDns;
+    private final SuperAdminAuthority superAdminAuthority;
     private final ConfigurationRepository configurationRepository;
 
     public TenantInfoAction(
@@ -96,14 +97,14 @@ public class TenantInfoAction extends BaseRestHandler {
         final PrivilegesConfiguration privilegesConfiguration,
         final ThreadPool threadPool,
         final ClusterService clusterService,
-        final AdminDNs adminDns,
+        final SuperAdminAuthority superAdminAuthority,
         final ConfigurationRepository configurationRepository
     ) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.privilegesConfiguration = privilegesConfiguration;
         this.clusterService = clusterService;
-        this.adminDns = adminDns;
+        this.superAdminAuthority = superAdminAuthority;
         this.configurationRepository = configurationRepository;
     }
 
@@ -179,7 +180,7 @@ public class TenantInfoAction extends BaseRestHandler {
         DashboardsMultiTenancyConfiguration multiTenancyConfiguration = privilegesConfiguration.multiTenancyConfiguration();
 
         // check if the user is a kibanauser or super admin
-        if (user.getName().equals(multiTenancyConfiguration.dashboardsServerUsername()) || adminDns.isAdmin(user)) {
+        if (user.getName().equals(multiTenancyConfiguration.dashboardsServerUsername()) || superAdminAuthority.isSuperAdmin(user)) {
             return true;
         }
 

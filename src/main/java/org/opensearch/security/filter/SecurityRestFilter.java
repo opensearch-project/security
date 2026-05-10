@@ -57,7 +57,7 @@ import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
@@ -125,12 +125,12 @@ public class SecurityRestFilter {
     }
 
     class AuthczRestHandler extends DelegatingRestHandler {
-        private final AdminDNs adminDNs;
+        private final SuperAdminAuthority superAdminAuthority;
         private final Set<RestHeaderDefinition> headersToCopy;
 
-        public AuthczRestHandler(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
+        public AuthczRestHandler(RestHandler original, SuperAdminAuthority superAdminAuthority, Set<RestHeaderDefinition> headersToCopy) {
             super(original);
-            this.adminDNs = adminDNs;
+            this.superAdminAuthority = superAdminAuthority;
             this.headersToCopy = headersToCopy;
         }
 
@@ -199,7 +199,7 @@ public class SecurityRestFilter {
             // Authorize Request
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             String intiatingUser = threadContext.getTransient(OPENDISTRO_SECURITY_INITIATING_USER);
-            if (userIsSuperAdmin(user, adminDNs)) {
+            if (superAdminAuthority.isSuperAdmin(user)) {
                 // Super admins are always authorized
                 auditLog.logSucceededLogin(user.getName(), true, intiatingUser, filteredRequestChannel);
                 if (performPermissionCheck) {
@@ -256,22 +256,15 @@ public class SecurityRestFilter {
      * The allowlisting check works as follows:
      * If allowlisting is not enabled, then requests are handled normally.
      * If allowlisting is enabled, then SuperAdmin is allowed access to all APIs, regardless of what is currently allowlisted.
-     * If allowlisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are allowlisted in {@link #requests}
+     * If allowlisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are allowlisted in
      * For example: if allowlisting is enabled and requests = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
      * can only access "/_cat/nodes"
      * Further note: Some APIs are only accessible by SuperAdmin, regardless of allowlisting. For example: /_opendistro/_security/api/allowlist is only accessible by SuperAdmin.
      * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
-    public RestHandler wrap(RestHandler original, AdminDNs adminDNs, Set<RestHeaderDefinition> headersToCopy) {
-        return new AuthczRestHandler(original, adminDNs, headersToCopy);
-    }
-
-    /**
-     * Checks if a given user is a SuperAdmin
-     */
-    boolean userIsSuperAdmin(User user, AdminDNs adminDNs) {
-        return user != null && (adminDNs.isAdmin(user) || ConfigConstants.SECURITY_SUPERADMIN_SECRET_USER.equals(user.getName()));
+    public RestHandler wrap(RestHandler original, SuperAdminAuthority superAdminAuthority, Set<RestHeaderDefinition> headersToCopy) {
+        return new AuthczRestHandler(original, superAdminAuthority, headersToCopy);
     }
 
     /**

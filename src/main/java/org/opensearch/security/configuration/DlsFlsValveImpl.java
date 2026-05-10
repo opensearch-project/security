@@ -105,7 +105,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final DlsFlsBaseContext dlsFlsBaseContext;
     private final FieldMasking.Config fieldMaskingConfig;
     private final Settings settings;
-    private final AdminDNs adminDNs;
+    private final SuperAdminAuthority superAdminAuthority;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
     private final ResourcePluginInfo resourcePluginInfo;
     private volatile boolean dlsWriteBlockedEnabled;
@@ -118,7 +118,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         NamedXContentRegistry namedXContentRegistry,
         ThreadPool threadPool,
         DlsFlsBaseContext dlsFlsBaseContext,
-        AdminDNs adminDNs,
+        SuperAdminAuthority superAdminAuthority,
         ResourcePluginInfo resourcePluginInfo,
         OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting
     ) {
@@ -132,7 +132,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(settings);
         this.dlsFlsBaseContext = dlsFlsBaseContext;
         this.settings = settings;
-        this.adminDNs = adminDNs;
+        this.superAdminAuthority = superAdminAuthority;
         this.resourcePluginInfo = resourcePluginInfo;
 
         clusterService.addListener(event -> {
@@ -171,7 +171,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         if (isClusterPerm(context.getAction()) && !MultiGetAction.NAME.equals(context.getAction())) {
             return true;
         }
-        if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
+        if (userSubject != null && superAdminAuthority.isSuperAdmin(userSubject.getUser())) {
             return true;
         }
         ActionRequest request = context.getRequest();
