@@ -170,7 +170,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return true;
         }
 
-
         UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
         if (userSubject != null && superAdminAuthority.isSuperAdmin(userSubject.getUser())) {
             return true;

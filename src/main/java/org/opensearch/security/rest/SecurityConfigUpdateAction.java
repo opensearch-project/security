@@ -27,7 +27,6 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestActions.NodesResponseRestListener;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;

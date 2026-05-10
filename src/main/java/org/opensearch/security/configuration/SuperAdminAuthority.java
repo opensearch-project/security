@@ -1,3 +1,14 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
 package org.opensearch.security.configuration;
 
 import java.nio.charset.StandardCharsets;
@@ -14,7 +25,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-
 
 public class SuperAdminAuthority {
     private static final Logger log = LogManager.getLogger(SuperAdminAuthority.class);
@@ -39,7 +49,7 @@ public class SuperAdminAuthority {
 
     public boolean isAdminViaDn(final SecurityRequest request) {
         final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-        if(adminDns.isAdminDN(sslPrincipal)) {
+        if (adminDns.isAdminDN(sslPrincipal)) {
             return true;
         }
         return false;

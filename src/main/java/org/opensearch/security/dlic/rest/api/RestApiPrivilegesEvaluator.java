@@ -75,12 +75,12 @@ public class RestApiPrivilegesEvaluator {
     private final Boolean roleBasedAccessEnabled;
 
     public RestApiPrivilegesEvaluator(
-            final Settings settings,
-            SuperAdminAuthority superAdminAuthority,
-            final RoleMapper roleMapper,
-            final PrincipalExtractor principalExtractor,
-            final Path configPath,
-            ThreadPool threadPool
+        final Settings settings,
+        SuperAdminAuthority superAdminAuthority,
+        final RoleMapper roleMapper,
+        final PrincipalExtractor principalExtractor,
+        final Path configPath,
+        ThreadPool threadPool
     ) {
         this.superAdminAuthority = superAdminAuthority;
         this.roleMapper = roleMapper;
@@ -449,7 +449,7 @@ public class RestApiPrivilegesEvaluator {
         // Check if superadmin secret is present
         final SecurityRequest securityRequest = SecurityRequestFactory.from(request);
         final boolean isSecretAdmin = superAdminAuthority.isAdminViaSecret(securityRequest);
-        if(isSecretAdmin) {
+        if (isSecretAdmin) {
             return null;
         }
 

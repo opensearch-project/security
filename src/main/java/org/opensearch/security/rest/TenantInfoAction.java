@@ -47,7 +47,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.privileges.DashboardsMultiTenancyConfiguration;
