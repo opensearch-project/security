@@ -101,7 +101,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         // only allowed for admins
-        if (user == null || !superAdminAuthority.isSuperAdmin(user)) {
+        if (!isSecretAdmin && (user == null || !superAdminAuthority.isSuperAdmin(user))) {
             return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
         } else {
             ConfigUpdateRequest configUpdateRequest = new ConfigUpdateRequest(configTypes);

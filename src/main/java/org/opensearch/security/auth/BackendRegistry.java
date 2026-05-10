@@ -290,7 +290,7 @@ public class BackendRegistry {
             }
         } else if (!gRPC && superAdminAuthority.hasSecretHeader(request)) {
             // Failed superadmin secret authentication attempt
-            auditLog.logFailedLogin("superadmin", false, null, request);
+            auditLog.logFailedLogin("superadmin", true, null, request);
         }
 
         /*

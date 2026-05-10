@@ -20,23 +20,26 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import static java.util.Arrays.fill;
+
 public class SuperAdminAuthority {
     private static final Logger log = LogManager.getLogger(SuperAdminAuthority.class);
 
     private final AdminDNs adminDns;
     private final ThreadContext threadContext;
-    private final String superadminSecret;
+    private final SecureString superadminSecret;
 
     public SuperAdminAuthority(final AdminDNs adminDns, final Settings settings, final ThreadPool threadPool) {
         this.adminDns = adminDns;
         this.threadContext = threadPool.getThreadContext();
-        this.superadminSecret = SecuritySettings.SECURITY_SUPERADMIN_SECRET_SETTING.get(settings).toString();
+        this.superadminSecret = SecuritySettings.SECURITY_SUPERADMIN_SECRET_SETTING.get(settings);
     }
 
     public boolean isRequestFromSuperAdmin(final SecurityRequest request) {
@@ -48,7 +51,7 @@ public class SuperAdminAuthority {
     }
 
     public boolean isAdminViaDn(final SecurityRequest request) {
-        final String sslPrincipal = (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
+        final String sslPrincipal = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
         if (adminDns.isAdminDN(sslPrincipal)) {
             return true;
         }
@@ -72,18 +75,21 @@ public class SuperAdminAuthority {
     }
 
     private boolean isSuperadminSecretValid(final String providedSecret) {
-        if (ObjectUtils.isEmpty(superadminSecret) || ObjectUtils.isEmpty(providedSecret)) {
+        if ((superadminSecret == null || superadminSecret.isEmpty()) || ObjectUtils.isEmpty(providedSecret)) {
             return false;
         }
 
+        byte[] expectedAsBytes = new String(superadminSecret.getChars()).getBytes(StandardCharsets.UTF_8);
+        byte[] providedAsBytes = providedSecret.getBytes(StandardCharsets.UTF_8);
+
         try {
-            return MessageDigest.isEqual(
-                superadminSecret.getBytes(StandardCharsets.UTF_8),
-                providedSecret.getBytes(StandardCharsets.UTF_8)
-            );
+            return MessageDigest.isEqual(expectedAsBytes, providedAsBytes);
         } catch (Exception e) {
-            log.debug("Error comparing superadmin secret", e);
+            log.error("Failed to validate superadmin secret", e);
             return false;
+        } finally {
+            fill(providedAsBytes, (byte) 0);
+            fill(expectedAsBytes, (byte) 0);
         }
     }
 }
