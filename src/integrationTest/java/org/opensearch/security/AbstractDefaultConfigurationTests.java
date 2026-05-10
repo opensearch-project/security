@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.Test;
@@ -22,6 +21,8 @@ import org.junit.Test;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
@@ -226,7 +227,7 @@ public abstract class AbstractDefaultConfigurationTests {
 
     private Set<String> extractFieldNames(final JsonNode json) {
         final var set = new HashSet<String>();
-        json.fieldNames().forEachRemaining(set::add);
+        json.propertyNames().spliterator().forEachRemaining(set::add);
         return set;
     }
 

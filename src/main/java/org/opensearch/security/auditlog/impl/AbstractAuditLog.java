@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.BaseEncoding;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -79,8 +78,9 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 
 import com.flipkart.zjsonpatch.DiffFlags;
-import com.flipkart.zjsonpatch.JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
 import org.greenrobot.eventbus.Subscribe;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -619,9 +619,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                     } catch (Exception e) {
                         log.error(e.toString());
                     }
-                    final JsonNode diffnode = JsonDiff.asJson(
-                        DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource)
+                    final JsonNode diffnode = Jackson3JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper().readTree(originalSource),
+                        DefaultObjectMapper.objectMapper().readTree(currentSource)
                     );
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
@@ -629,9 +629,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                         originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                     }
                     currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
-                    final JsonNode diffnode = JsonDiff.asJson(
-                        DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource)
+                    final JsonNode diffnode = Jackson3JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper().readTree(originalSource),
+                        DefaultObjectMapper.objectMapper().readTree(currentSource)
                     );
                     msg.addComplianceWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString());
                 }
@@ -733,9 +733,9 @@ public abstract class AbstractAuditLog implements AuditLog {
 
                     // For delete, the "current" state is empty
                     String currentSource = "{}";
-                    final JsonNode diffnode = JsonDiff.asJson(
-                        DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource),
+                    final JsonNode diffnode = Jackson3JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper().readTree(originalSource),
+                        DefaultObjectMapper.objectMapper().readTree(currentSource),
                         EnumSet.noneOf(DiffFlags.class)
                     );
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
@@ -744,9 +744,9 @@ public abstract class AbstractAuditLog implements AuditLog {
 
                     // For delete, the "current" state is empty
                     String currentSource = "{}";
-                    final JsonNode diffnode = JsonDiff.asJson(
-                        DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource),
+                    final JsonNode diffnode = Jackson3JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper().readTree(originalSource),
+                        DefaultObjectMapper.objectMapper().readTree(currentSource),
                         EnumSet.noneOf(DiffFlags.class)
                     );
                     msg.addComplianceWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString());

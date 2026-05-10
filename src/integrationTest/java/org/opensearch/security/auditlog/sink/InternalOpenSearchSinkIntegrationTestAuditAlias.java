@@ -12,7 +12,6 @@ package org.opensearch.security.auditlog.sink;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -24,6 +23,8 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.data.TestAlias;
 import org.opensearch.test.framework.data.TestIndex;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
@@ -94,7 +95,7 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
             JsonNode aliasBody = aliasResponse.bodyAsJsonNode();
             assertThat("Write alias must exist in cluster metadata", aliasBody.isEmpty(), is(false));
 
-            String concreteIndex = aliasBody.fieldNames().next();
+            String concreteIndex = aliasBody.propertyNames().iterator().next();
             assertThat(
                 "Alias must resolve to a backing index, not a concrete index with the alias name",
                 concreteIndex,

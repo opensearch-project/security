@@ -12,7 +12,6 @@ package org.opensearch.security.api;
 
 import java.util.StringJoiner;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -21,6 +20,8 @@ import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
@@ -107,10 +108,11 @@ public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
         TestRestClient.HttpResponse resp = client.get(securityConfigPath());
         assertThat(resp, isOk());
         final var configJson = resp.bodyAsJsonNode();
-        final var authFailureListeners = DefaultObjectMapper.objectMapper.createObjectNode();
+        final var authFailureListeners = DefaultObjectMapper.objectMapper().createObjectNode();
         authFailureListeners.set(
             "ip_rate_limiting",
-            DefaultObjectMapper.objectMapper.createObjectNode()
+            DefaultObjectMapper.objectMapper()
+                .createObjectNode()
                 .put("type", "ip")
                 .put("allowed_tries", 10)
                 .put("time_window_seconds", 3_600)
@@ -120,7 +122,8 @@ public class ConfigRestApiIntegrationTest extends AbstractApiIntegrationTest {
         );
         authFailureListeners.set(
             "internal_authentication_backend_limiting",
-            DefaultObjectMapper.objectMapper.createObjectNode()
+            DefaultObjectMapper.objectMapper()
+                .createObjectNode()
                 .put("type", "username")
                 .put("authentication_backend", "intern")
                 .put("allowed_tries", 10)

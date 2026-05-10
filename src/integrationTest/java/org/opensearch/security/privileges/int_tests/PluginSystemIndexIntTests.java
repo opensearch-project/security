@@ -35,6 +35,7 @@ import static org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin
 import static org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin2.SYSTEM_INDEX_2;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 /*
  * This class serves as a single source of truth for the privilege rules governing plugin users'
@@ -87,7 +88,7 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1);
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response, isOk());
             assertThat(response.getBody(), containsString("{\"acknowledged\":true}"));
         }
     }
@@ -97,13 +98,24 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_2);
 
-            assertThat(
-                response,
-                RestMatchers.isForbidden(
-                    "/error/root_cause/0/reason",
-                    "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
-                )
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    RestMatchers.isForbidden(
+                        "/error/root_cause/0/reason",
+                        "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                    )
+                );
+            } else {
+                // non-legacy privilege evaluation reports specific index admin permission when trying to create/index
+                assertThat(
+                    response,
+                    RestMatchers.isForbidden(
+                        "/error/root_cause/0/reason",
+                        "no permissions for [indices:admin/create] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                    )
+                );
+            }
         }
     }
 
@@ -127,7 +139,18 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-index/" + SYSTEM_INDEX_1 + "?runAs=user");
 
-            assertThat(response, RestMatchers.isForbidden("/error/root_cause/0/reason", "no permissions for [] and User [name=admin"));
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(response, RestMatchers.isForbidden("/error/root_cause/0/reason", "no permissions for [] and User [name=admin"));
+            } else {
+                // non-legacy reports the concrete index admin permission and plugin user as the actor
+                assertThat(
+                    response,
+                    RestMatchers.isForbidden(
+                        "/error/root_cause/0/reason",
+                        "no permissions for [indices:data/write/index] and User [name=admin"
+                    )
+                );
+            }
         }
     }
 
@@ -136,7 +159,7 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response, isOk());
         }
     }
 
@@ -145,7 +168,7 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response, isOk());
 
             HttpResponse searchResponse = client.get("search-on-system-index/" + SYSTEM_INDEX_1);
 
@@ -159,7 +182,7 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response, isOk());
 
             HttpResponse searchResponse = client.get("search-on-system-index/" + SYSTEM_INDEX_1);
 
@@ -179,7 +202,7 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-bulk-index/" + SYSTEM_INDEX_1);
 
-            assertThat(response.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(response, isOk());
 
             HttpResponse searchResponse = client.get("search-on-system-index/" + SYSTEM_INDEX_1);
 
@@ -203,12 +226,22 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.put("try-create-and-bulk-mixed-index");
 
-            assertThat(
-                response.getBody(),
-                containsString(
-                    "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
-                )
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response.getBody(),
+                    containsString(
+                        "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                    )
+                );
+            } else {
+                // non-legacy reports specific bulk/index write permissions per index
+                assertThat(
+                    response.getBody(),
+                    containsString(
+                        "no permissions for [indices:data/write/bulk[s], indices:data/write/index] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                    )
+                );
+            }
         }
     }
 
@@ -221,12 +254,21 @@ public class PluginSystemIndexIntTests {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             HttpResponse response = client.get("search-on-mixed-system-index");
 
-            assertThat(
-                response.getBody(),
-                containsString(
-                    "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
-                )
-            );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response.getBody(),
+                    containsString(
+                        "no permissions for [] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                    )
+                );
+            } else {
+                assertThat(
+                    response.getBody(),
+                    containsString(
+                        "no permissions for [indices:data/read/search] and User [name=plugin:org.opensearch.security.systemindex.sampleplugin.SystemIndexPlugin1"
+                    )
+                );
+            }
         }
     }
 }

@@ -28,6 +28,7 @@ package org.opensearch.security.test.helper.rest;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,8 +41,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
@@ -87,6 +86,8 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import tools.jackson.databind.JsonNode;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -100,7 +101,7 @@ public class RestHelper {
     public boolean sendAdminCertificate = false;
     public boolean trustHTTPServerCertificate = true;
     public boolean sendHTTPClientCredentials = false;
-    public String keystore = "node-0-keystore.jks";
+    public String keystore = "node-0-keystore";
     public final String prefix;
     // public String truststore = "truststore.jks";
     private ClusterInfo clusterInfo;
@@ -332,13 +333,17 @@ public class RestHelper {
                 keystore = prefix + "/" + keystore;
             }
 
-            final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
+            var resolvedKeyStore = FileHelper.resolveStore(keystore);
 
-            final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-            myTrustStore.load(new FileInputStream(keyStorePath + "/truststore.jks"), "changeit".toCharArray());
+            Path ksParent = Path.of(keystore).getParent();
+            String keystoreDir = ksParent != null ? ksParent + "/" : "";
+            var resolvedTrustStore = FileHelper.resolveStore(keystoreDir + "truststore");
 
-            final KeyStore keyStore = KeyStore.getInstance("JKS");
-            keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
+            final KeyStore myTrustStore = KeyStore.getInstance(resolvedTrustStore.type());
+            myTrustStore.load(new FileInputStream(resolvedTrustStore.path().toFile()), "changeit".toCharArray());
+
+            final KeyStore keyStore = KeyStore.getInstance(resolvedKeyStore.type());
+            keyStore.load(new FileInputStream(resolvedKeyStore.path().toFile()), "changeit".toCharArray());
 
             final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
 
@@ -451,8 +456,8 @@ public class RestHelper {
             }
         }
 
-        private JsonNode toJsonNode() throws JsonProcessingException, IOException {
-            return DefaultObjectMapper.objectMapper.readTree(getBody());
+        private JsonNode toJsonNode() throws IOException {
+            return DefaultObjectMapper.objectMapper().readTree(getBody());
         }
 
         public SimpleHttpResponse getInner() {

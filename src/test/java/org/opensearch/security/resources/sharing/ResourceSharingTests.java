@@ -16,6 +16,9 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.xcontent.XContentParser;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -195,11 +198,11 @@ public class ResourceSharingTests {
     }
 
     @Test
-    public void fetchAccessLevels_returnsLevelsWithWildcardOrIntersection() {
+    public void fetchAccessLevels_returnsLevelsWithIntersection() {
         CreatedBy cb = mockCreatedBy("o");
 
-        // level:read has users {"u1", "*"} -> wildcard = match
-        Recipients rRead = mockRecipients(Map.of(Recipient.USERS, new HashSet<>(Set.of("u1", "*"))));
+        // level:read has users {"u1", "u2"} -> intersection with {"u2"} = match
+        Recipients rRead = mockRecipients(Map.of(Recipient.USERS, new HashSet<>(Set.of("u1", "u2"))));
         // level:write has roles {"roleA"} -> no match for {"roleB"} unless overlap
         Recipients rWrite = mockRecipients(Map.of(Recipient.ROLES, new HashSet<>(Set.of("roleA"))));
         // level:admin has backend {"br1","br2"} -> intersection with {"br2"} = match
@@ -214,9 +217,12 @@ public class ResourceSharingTests {
 
         ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
 
-        // users, looking for anything in {"any"} -> wildcard on read makes it match
-        Set<String> levelsUsers = rs.fetchAccessLevels(Recipient.USERS, Set.of("any"));
+        // users, looking for {"u2"} -> intersection with read makes it match
+        Set<String> levelsUsers = rs.fetchAccessLevels(Recipient.USERS, Set.of("u2"));
         assertEquals(Set.of("read"), levelsUsers);
+
+        // users, looking for {"unknown"} -> no match
+        assertTrue(rs.fetchAccessLevels(Recipient.USERS, Set.of("unknown")).isEmpty());
 
         // roles, looking for {"roleB"} -> no match; {"roleA"} -> match write
         assertTrue(rs.fetchAccessLevels(Recipient.ROLES, Set.of("roleB")).isEmpty());
@@ -260,10 +266,78 @@ public class ResourceSharingTests {
     }
 
     @Test
+    public void getAccessLevelsForUser_includesNamedRecipientsAndGeneralAccess() {
+        CreatedBy cb = mockCreatedBy("owner");
+
+        Recipients readRecipients = mockRecipients(Map.of(Recipient.USERS, new HashSet<>(Set.of("alice"))));
+        Recipients writeRecipients = mockRecipients(Map.of(Recipient.ROLES, new HashSet<>(Set.of("editor"))));
+
+        Map<String, Recipients> info = new HashMap<>();
+        info.put("read", readRecipients);
+        info.put("write", writeRecipients);
+
+        ShareWith sw = mock(ShareWith.class);
+        when(sw.getSharingInfo()).thenReturn(info);
+        when(sw.getGeneralAccess()).thenReturn("read");
+        info.forEach((level, r) -> when(sw.atAccessLevel(level)).thenReturn(r));
+
+        org.opensearch.security.user.User user = new org.opensearch.security.user.User("bob").withSecurityRoles(Set.of("editor"));
+
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
+        Set<String> levels = rs.getAccessLevelsForUser(user);
+
+        // general_access contributes "read"; role "editor" contributes "write"
+        assertEquals(Set.of("read", "write"), levels);
+    }
+
+    @Test
+    public void getAccessLevelsForUser_noGeneralAccess_onlyNamedRecipients() {
+        CreatedBy cb = mockCreatedBy("owner");
+
+        Recipients readRecipients = mockRecipients(Map.of(Recipient.USERS, new HashSet<>(Set.of("alice"))));
+
+        Map<String, Recipients> info = new HashMap<>();
+        info.put("read", readRecipients);
+
+        ShareWith sw = mock(ShareWith.class);
+        when(sw.getSharingInfo()).thenReturn(info);
+        when(sw.getGeneralAccess()).thenReturn(null);
+        when(sw.atAccessLevel("read")).thenReturn(readRecipients);
+
+        org.opensearch.security.user.User user = new org.opensearch.security.user.User("alice");
+
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
+        Set<String> levels = rs.getAccessLevelsForUser(user);
+
+        assertEquals(Set.of("read"), levels);
+    }
+
+    @Test
     public void getAllPrincipals_handlesNullShareWith() {
         ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(mockCreatedBy("owner")).build();
         List<String> principals = rs.getAllPrincipals();
         assertEquals(1, principals.size());
         assertEquals("user:owner", principals.get(0));
+    }
+
+    @Test
+    public void fromXContent_parsesTopLevelTenant() throws Exception {
+        String json = """
+            {
+              "resource_id": "r1",
+              "resource_type": "sample-resource",
+              "tenant": "customtenant",
+              "created_by": {
+                "user": "owner"
+              }
+            }
+            """;
+
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing sharing = ResourceSharing.fromXContent(parser);
+            assertEquals("customtenant", sharing.getTenant());
+            assertEquals("owner", sharing.getCreatedBy().getUsername());
+        }
     }
 }

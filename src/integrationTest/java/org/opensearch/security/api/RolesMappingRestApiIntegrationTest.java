@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -31,6 +30,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import com.nimbusds.jose.util.Pair;
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;

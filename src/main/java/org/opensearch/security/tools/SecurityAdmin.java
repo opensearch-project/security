@@ -60,8 +60,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
-import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -132,6 +130,9 @@ import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.transport.client.transport.NoNodeAvailableException;
+
+import tools.jackson.databind.InjectableValues;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
@@ -516,14 +517,14 @@ public class SecurityAdmin {
         System.out.println(" ... done");
 
         if (ks != null) {
-            kst = kst == null ? (ks.endsWith(".jks") ? "JKS" : "PKCS12") : kst;
+            kst = PemKeyReader.extractStoreType(ks, kst);
             if (kspass == null && promptForPassword) {
                 kspass = promptForPassword("Keystore", "kspass", OPENDISTRO_SECURITY_KS_PASS);
             }
         }
 
         if (ts != null) {
-            tst = tst == null ? (ts.endsWith(".jks") ? "JKS" : "PKCS12") : tst;
+            tst = PemKeyReader.extractStoreType(ts, tst);
             if (tspass == null && promptForPassword) {
                 tspass = promptForPassword("Truststore", "tspass", OPENDISTRO_SECURITY_TS_PASS);
             }
@@ -557,7 +558,7 @@ public class SecurityAdmin {
                 return (-1);
             }
 
-            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper().readTree(whoAmIRes.getEntity().getContent());
             System.out.println("Connected as " + whoAmIResNode.get("dn"));
 
             if (!whoAmIResNode.get("is_admin").asBoolean()) {
@@ -605,7 +606,7 @@ public class SecurityAdmin {
                     return (-1);
                 }
 
-                JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(res.getEntity().getContent());
+                JsonNode resNode = DefaultObjectMapper.objectMapper().readTree(res.getEntity().getContent());
 
                 if (resNode.get("configupdate_response").get("has_failures").asBoolean()) {
                     System.out.println("ERR: Unable to reload config due to " + responseToString(res, false) + "/" + resNode);
@@ -626,7 +627,7 @@ public class SecurityAdmin {
                     return (-1);
                 }
 
-                JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(res.getEntity().getContent());
+                JsonNode resNode = DefaultObjectMapper.objectMapper().readTree(res.getEntity().getContent());
                 if (resNode.get("configupdate_response").get("has_failures").asBoolean()) {
                     System.out.println("ERR: Unable to reload config due to " + responseToString(res, false) + "/" + resNode);
                     return -1;
@@ -656,7 +657,7 @@ public class SecurityAdmin {
                     return (-1);
                 }
 
-                JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(res.getEntity().getContent());
+                JsonNode resNode = DefaultObjectMapper.objectMapper().readTree(res.getEntity().getContent());
 
                 if (resNode.get("configupdate_response").get("has_failures").asBoolean()) {
                     System.out.println("ERR: Unable to reload config due to " + responseToString(res, false) + "/" + resNode);
@@ -912,7 +913,7 @@ public class SecurityAdmin {
             System.out.println("Unable to check configupdate response because return code was " + response.getStatusLine());
         }
 
-        JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(response.getEntity().getContent());
+        JsonNode resNode = DefaultObjectMapper.objectMapper().readTree(response.getEntity().getContent());
 
         if (resNode.at("/configupdate_response/has_failures").asBoolean()) {
             System.out.println(
@@ -1266,7 +1267,7 @@ public class SecurityAdmin {
             return -1;
         }
 
-        JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(res.getEntity().getContent());
+        JsonNode resNode = DefaultObjectMapper.objectMapper().readTree(res.getEntity().getContent());
 
         int nodeCount = Iterators.size(resNode.at("/nodes").iterator());
 
@@ -1276,15 +1277,17 @@ public class SecurityAdmin {
 
             Version maxVersion = Version.fromString(
                 Arrays.stream(nodeVersions)
-                    .max((n1, n2) -> Version.fromString(n1.asText()).compareTo(Version.fromString(n2.asText())))
+                    .map(n -> n.at("/version"))
+                    .max((n1, n2) -> Version.fromString(n1.asString()).compareTo(Version.fromString(n2.asString())))
                     .get()
-                    .asText()
+                    .asString()
             );
             Version minVersion = Version.fromString(
                 Arrays.stream(nodeVersions)
-                    .min((n1, n2) -> Version.fromString(n1.asText()).compareTo(Version.fromString(n2.asText())))
+                    .map(n -> n.at("/version"))
+                    .min((n1, n2) -> Version.fromString(n1.asString()).compareTo(Version.fromString(n2.asString())))
                     .get()
-                    .asText()
+                    .asString()
             );
 
             if (!maxVersion.equals(minVersion)) {
@@ -1412,7 +1415,7 @@ public class SecurityAdmin {
             System.out.println("ERR: No such file " + file.getAbsolutePath());
             return null;
         }
-        final JsonNode jsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(file);
+        final JsonNode jsonNode = DefaultObjectMapper.yamlMapper().readTree(file);
         return new SecurityJsonNode(jsonNode).get("_meta").get("type").asString();
     }
 
@@ -1616,7 +1619,7 @@ public class SecurityAdmin {
             String value = byteSource.asCharSource(Charsets.UTF_8).read();
 
             if (prettyJson) {
-                return DefaultObjectMapper.objectMapper.readTree(value).toPrettyString();
+                return DefaultObjectMapper.objectMapper().readTree(value).toPrettyString();
             }
 
             return value;
