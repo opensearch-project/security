@@ -30,7 +30,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.support.Utils.PLUGIN_API_ROUTE_PREFIX;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
@@ -118,7 +118,7 @@ public class CertificatesApiAction extends AbstractApiAction {
 
     boolean accessHandler(final RestRequest request) {
         if (request.method() == RestRequest.Method.GET) {
-            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
+            return securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
         } else {
             return false;
         }

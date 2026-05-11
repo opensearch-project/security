@@ -257,8 +257,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
         final ArrayNode permissionsArray = DefaultObjectMapper.objectMapper().createArrayNode();
         for (final Map.Entry<
             Endpoint,
-            RestApiAdminPrivilegesEvaluator.PermissionBuilder> entry : RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS
-                .entrySet()) {
+            RestApiAuthorizationEvaluator.PermissionBuilder> entry : RestApiAuthorizationEvaluator.ENDPOINTS_WITH_PERMISSIONS.entrySet()) {
             if (entry.getKey() == Endpoint.SSL) {
                 permissionsArray.add(entry.getValue().build("certs")).add(entry.getValue().build("reloadcerts"));
             } else {

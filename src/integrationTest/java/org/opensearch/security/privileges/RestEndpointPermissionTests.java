@@ -44,7 +44,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.PermissionBuilder;
+import org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.PermissionBuilder;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
@@ -57,10 +57,10 @@ import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ENDPOINTS_WITH_PERMISSIONS;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.RELOAD_CERTS_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.SECURITY_CONFIG_UPDATE;
 
 /**
  * Moved from https://github.com/opensearch-project/security/blob/54361468f5c4b3a57f3ecffaf1bbe8dccee562be/src/test/java/org/opensearch/security/securityconf/SecurityRolesPermissionsTest.java
