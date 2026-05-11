@@ -158,7 +158,7 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     );
                     builder.field("resource_sharing_enabled", resourceSharingEnabledSetting.getDynamicSettingValue());
                     builder.field("api_tokens_enabled", getApiTokensEnabled());
-                    builder.field("max_token_expiration_seconds", getMaxTokenExpirationSeconds());
+                    builder.field("max_duration_seconds", getMaxDurationSeconds());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
@@ -202,10 +202,10 @@ public class DashboardsInfoAction extends BaseRestHandler {
         return false;
     }
 
-    private long getMaxTokenExpirationSeconds() {
+    private long getMaxDurationSeconds() {
         ConfigV7 generalConfig = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
         if (generalConfig != null && generalConfig.dynamic != null && generalConfig.dynamic.api_tokens != null) {
-            return generalConfig.dynamic.api_tokens.getMaxExpirationSeconds();
+            return generalConfig.dynamic.api_tokens.getMaxDurationSeconds();
         }
         return 0;
     }

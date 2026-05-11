@@ -57,7 +57,7 @@ public class ApiTokenTest {
         {
           "name": "test-token",
           "cluster_permissions": ["cluster_monitor"],
-          "expiration": 3600000
+          "duration_seconds": 3600
         }
         """;
 
@@ -69,7 +69,7 @@ public class ApiTokenTest {
             "index_pattern": ["test-index-*"],
             "allowed_actions": ["indices:data/read/search"]
           }],
-          "expiration": 3600000
+          "duration_seconds": 3600
         }
         """;
 
@@ -77,7 +77,7 @@ public class ApiTokenTest {
         {
           "name": "test-token",
           "cluster_permissions": ["cluster_monitor"],
-          "expiration": "wrong"
+          "duration_seconds": "wrong"
         }
         """;
 
@@ -85,7 +85,7 @@ public class ApiTokenTest {
         {
           "name": "test-token",
           "cluster_permissions": ["cluster_monitor"],
-          "expiration": 3600000,
+          "duration_seconds": 3600,
           "foo": "bar"
         }
         """;
@@ -135,7 +135,7 @@ public class ApiTokenTest {
             TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
             assertThat(response, isOk());
             assertThat(response.getTextFromJsonBody("/api_tokens_enabled"), equalTo("true"));
-            assertThat(response.getTextFromJsonBody("/max_token_expiration_seconds"), equalTo("7776000"));
+            assertThat(response.getTextFromJsonBody("/max_duration_seconds"), equalTo("7776000"));
         }
     }
 
@@ -192,7 +192,7 @@ public class ApiTokenTest {
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_INVALID_PAYLOAD);
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
-            assertThat(response.getTextFromJsonBody("/error"), containsString("failed to parse field [expiration]"));
+            assertThat(response.getTextFromJsonBody("/error"), containsString("failed to parse field [duration_seconds]"));
         }
     }
 
@@ -254,7 +254,7 @@ public class ApiTokenTest {
                 "index_pattern": ["test-index-write"],
                 "allowed_actions": ["indices:data/write/index", "indices:data/write/bulk*", "indices:admin/mapping/put"]
               }],
-              "expiration": 3600000
+              "duration_seconds": 3600
             }
             """;
         String apiToken = generateApiToken(writePayload);
@@ -270,19 +270,20 @@ public class ApiTokenTest {
     }
 
     @Test
-    public void testExpiredApiToken_isRejected() {
-        // Create a token with an expiration in the past (1 ms after epoch)
+    public void testExpiredApiToken_isRejected() throws Exception {
+        // Create a token with a 1-second expiration, then wait for it to expire
         String expiredPayload = """
             {
               "name": "expired-token",
               "cluster_permissions": ["cluster_monitor"],
-              "expiration": 1
+              "duration_seconds": 1
             }
             """;
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, expiredPayload);
             response.assertStatusCode(HttpStatus.SC_OK);
             String expiredToken = response.getTextFromJsonBody("/token").toString();
+            Thread.sleep(1500); // Wait for token to expire
             Header authHeader = new BasicHeader("Authorization", "ApiKey " + expiredToken);
             authenticateWithApiToken(authHeader, HttpStatus.SC_UNAUTHORIZED);
         }
@@ -359,7 +360,7 @@ public class ApiTokenTest {
             {
               "name": "invalid name with spaces!",
               "cluster_permissions": ["cluster_monitor"],
-              "expiration": 3600000
+              "duration_seconds": 3600
             }
             """;
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
@@ -387,7 +388,7 @@ public class ApiTokenTest {
             {
               "name": "too-long-token",
               "cluster_permissions": ["cluster_monitor"],
-              "expiration": 7862400000
+              "duration_seconds": 7862400
             }
             """;
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {

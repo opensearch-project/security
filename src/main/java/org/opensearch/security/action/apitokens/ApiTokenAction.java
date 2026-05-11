@@ -55,7 +55,6 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.action.apitokens.ApiToken.CLUSTER_PERMISSIONS_FIELD;
-import static org.opensearch.security.action.apitokens.ApiToken.EXPIRATION_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.INDEX_PERMISSIONS_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.ISSUED_AT_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
@@ -156,7 +155,7 @@ public class ApiTokenAction extends BaseRestHandler {
                         builder.field(ApiToken.ID_FIELD, token.getId());
                         builder.field(NAME_FIELD, token.getName());
                         builder.field(ISSUED_AT_FIELD, token.getCreationTime().toEpochMilli());
-                        builder.field(EXPIRATION_FIELD, token.getExpiration());
+                        builder.field(ApiToken.EXPIRES_AT_FIELD, token.getExpiration());
                         builder.field(CLUSTER_PERMISSIONS_FIELD, token.getClusterPermissions());
                         builder.field(INDEX_PERMISSIONS_FIELD, token.getIndexPermissions());
                         if (token.getRevokedAt() != null) {
@@ -219,30 +218,29 @@ public class ApiTokenAction extends BaseRestHandler {
                         return;
                     }
 
-                    long requestedExpiration = createRequest.getExpiration();
-                    long maxExpirationSeconds = config.dynamic.api_tokens.getMaxExpirationSeconds();
+                    long requestedDurationSeconds = createRequest.getDurationSeconds();
+                    long maxDurationSeconds = config.dynamic.api_tokens.getMaxDurationSeconds();
                     long absoluteExpiration = 0;
 
-                    if (requestedExpiration != 0) {
-                        if (requestedExpiration < 0) {
-                            sendErrorResponse(channel, RestStatus.BAD_REQUEST, "Token expiration duration must be positive.");
+                    if (requestedDurationSeconds != 0) {
+                        if (requestedDurationSeconds < 0) {
+                            sendErrorResponse(channel, RestStatus.BAD_REQUEST, "Token duration must be positive.");
                             return;
                         }
-                        long requestedExpirationSeconds = requestedExpiration / 1000;
-                        if (maxExpirationSeconds > 0 && requestedExpirationSeconds > maxExpirationSeconds) {
+                        if (maxDurationSeconds > 0 && requestedDurationSeconds > maxDurationSeconds) {
                             sendErrorResponse(
                                 channel,
                                 RestStatus.BAD_REQUEST,
-                                "Token expiration exceeds the maximum allowed duration of " + maxExpirationSeconds + " seconds."
+                                "Token duration exceeds the maximum allowed duration of " + maxDurationSeconds + " seconds."
                             );
                             return;
                         }
-                        absoluteExpiration = Instant.now().toEpochMilli() + requestedExpiration;
-                    } else if (maxExpirationSeconds > 0) {
+                        absoluteExpiration = Instant.now().toEpochMilli() + (requestedDurationSeconds * 1000);
+                    } else if (maxDurationSeconds > 0) {
                         sendErrorResponse(
                             channel,
                             RestStatus.BAD_REQUEST,
-                            "Non-expiring tokens are not allowed. Maximum expiration is " + maxExpirationSeconds + " seconds."
+                            "Non-expiring tokens are not allowed. Maximum duration is " + maxDurationSeconds + " seconds."
                         );
                         return;
                     }

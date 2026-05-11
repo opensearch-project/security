@@ -32,7 +32,8 @@ public class ApiToken implements ToXContent {
     public static final String INDEX_PERMISSIONS_FIELD = "index_permissions";
     public static final String INDEX_PATTERN_FIELD = "index_pattern";
     public static final String ALLOWED_ACTIONS_FIELD = "allowed_actions";
-    public static final String EXPIRATION_FIELD = "expiration";
+    public static final String DURATION_SECONDS_FIELD = "duration_seconds";
+    public static final String EXPIRES_AT_FIELD = "expires_at";
     public static final String TOKEN_HASH_FIELD = "token_hash";
     public static final String REVOKED_AT_FIELD = "revoked_at";
     public static final String CREATED_BY_FIELD = "created_by";
@@ -63,7 +64,7 @@ public class ApiToken implements ToXContent {
             new ParseField(INDEX_PERMISSIONS_FIELD)
         );
         PARSER.declareLong(optionalConstructorArg(), new ParseField(ISSUED_AT_FIELD));
-        PARSER.declareLong(optionalConstructorArg(), new ParseField(EXPIRATION_FIELD));
+        PARSER.declareLong(optionalConstructorArg(), new ParseField(EXPIRES_AT_FIELD));
         PARSER.declareLong(optionalConstructorArg(), new ParseField(REVOKED_AT_FIELD));
         PARSER.declareString(optionalConstructorArg(), new ParseField(CREATED_BY_FIELD));
     }
@@ -195,7 +196,7 @@ public class ApiToken implements ToXContent {
         xContentBuilder.field(CLUSTER_PERMISSIONS_FIELD, clusterPermissions);
         xContentBuilder.field(INDEX_PERMISSIONS_FIELD, indexPermissions);
         xContentBuilder.field(ISSUED_AT_FIELD, creationTime.toEpochMilli());
-        xContentBuilder.field(EXPIRATION_FIELD, expiration);
+        xContentBuilder.field(EXPIRES_AT_FIELD, expiration);
         if (revokedAt != null) {
             xContentBuilder.field(REVOKED_AT_FIELD, revokedAt.toEpochMilli());
         }
@@ -243,19 +244,19 @@ public class ApiToken implements ToXContent {
                 (p, c) -> IndexPermission.fromXContent(p),
                 new ParseField(INDEX_PERMISSIONS_FIELD)
             );
-            PARSER.declareLong(optionalConstructorArg(), new ParseField(EXPIRATION_FIELD));
+            PARSER.declareLong(optionalConstructorArg(), new ParseField(DURATION_SECONDS_FIELD));
         }
 
         private final String name;
         private final List<String> clusterPermissions;
         private final List<IndexPermission> indexPermissions;
-        private final long expiration;
+        private final long durationSeconds;
 
-        public CreateRequest(String name, List<String> clusterPermissions, List<IndexPermission> indexPermissions, long expiration) {
+        public CreateRequest(String name, List<String> clusterPermissions, List<IndexPermission> indexPermissions, long durationSeconds) {
             this.name = name;
             this.clusterPermissions = clusterPermissions;
             this.indexPermissions = indexPermissions;
-            this.expiration = expiration;
+            this.durationSeconds = durationSeconds;
         }
 
         public static CreateRequest fromXContent(XContentParser parser) throws IOException {
@@ -274,8 +275,8 @@ public class ApiToken implements ToXContent {
             return indexPermissions;
         }
 
-        public long getExpiration() {
-            return expiration;
+        public long getDurationSeconds() {
+            return durationSeconds;
         }
     }
 

@@ -319,7 +319,7 @@ public class User implements Serializable, CustomAttributesAware {
      * @return true if the request is from an API token, otherwise false
      */
     public boolean isApiTokenRequest() {
-        return name != null && name.startsWith("token:");
+        return name != null && name.startsWith(org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX);
     }
 
     /**

@@ -44,7 +44,7 @@ public class ApiTokenV4Test {
         {
           "name": "v4-test-token",
           "cluster_permissions": ["cluster_monitor"],
-          "expiration": 3600000
+          "duration_seconds": 3600
         }
         """;
     private static final String INDEX_TOKEN_PAYLOAD = """
@@ -55,7 +55,7 @@ public class ApiTokenV4Test {
             "index_pattern": ["v4-test-*"],
             "allowed_actions": ["indices:data/read/search"]
           }],
-          "expiration": 3600000
+          "duration_seconds": 3600
         }
         """;
 
@@ -109,7 +109,7 @@ public class ApiTokenV4Test {
                 "index_pattern": ["v4-test-*"],
                 "allowed_actions": ["indices:data/read/search"]
               }],
-              "expiration": 3600000
+              "duration_seconds": 3600
             }
             """;
         String token = createToken(payload);

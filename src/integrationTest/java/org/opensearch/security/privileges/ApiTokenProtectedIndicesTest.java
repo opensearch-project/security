@@ -83,7 +83,7 @@ public class ApiTokenProtectedIndicesTest {
                 "index_pattern": ["*"],
                 "allowed_actions": ["indices:data/read/search"]
               }],
-              "expiration": 3600000
+              "duration_seconds": 3600
             }
             """;
         String token;
@@ -116,7 +116,7 @@ public class ApiTokenProtectedIndicesTest {
                 "index_pattern": ["normal-*"],
                 "allowed_actions": ["indices:data/read/search"]
               }],
-              "expiration": 3600000
+              "duration_seconds": 3600
             }
             """;
         String token;

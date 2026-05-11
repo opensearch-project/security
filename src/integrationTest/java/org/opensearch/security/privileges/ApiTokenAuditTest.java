@@ -48,7 +48,7 @@ public class ApiTokenAuditTest {
         {
           "name": "audit-test-token",
           "cluster_permissions": ["cluster_monitor"],
-          "expiration": 3600000
+          "duration_seconds": 3600
         }
         """;
 
@@ -103,7 +103,7 @@ public class ApiTokenAuditTest {
             {
               "name": "audit-write-test-token",
               "cluster_permissions": ["cluster_monitor"],
-              "expiration": 3600000
+              "duration_seconds": 3600
             }
             """;
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
@@ -112,5 +112,28 @@ public class ApiTokenAuditTest {
         }
 
         auditLogsRule.assertExactlyOne((AuditMessage msg) -> msg.getCategory() == AuditCategory.API_TOKEN_WRITE);
+    }
+
+    @Test
+    public void testApiTokenRevocationIsAudited() {
+        String createPayload = """
+            {
+              "name": "audit-revoke-test-token",
+              "cluster_permissions": ["cluster_monitor"],
+              "duration_seconds": 3600
+            }
+            """;
+        String tokenId;
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(API_TOKEN_PATH, createPayload);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            tokenId = response.getTextFromJsonBody("/id");
+        }
+
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            client.delete(API_TOKEN_PATH + "/" + tokenId).assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        auditLogsRule.assertExactly(2, (AuditMessage msg) -> msg.getCategory() == AuditCategory.API_TOKEN_WRITE);
     }
 }
