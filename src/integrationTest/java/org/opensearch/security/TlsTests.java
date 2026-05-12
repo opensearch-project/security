@@ -22,6 +22,7 @@ import org.apache.hc.core5.http.NoHttpResponseException;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.test.framework.AuditCompliance;
@@ -47,7 +48,7 @@ public class TlsTests {
 
     private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
 
-    public static final String SUPPORTED_CIPHER_SUIT = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+    public static final String SUPPORTED_CIPHER_SUIT = "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384";
     public static final String NOT_SUPPORTED_CIPHER_SUITE = "TLS_RSA_WITH_AES_128_CBC_SHA";
     public static final String AUTH_INFO_ENDPOINT = "/_opendistro/_security/authinfo?pretty";
 
@@ -95,7 +96,11 @@ public class TlsTests {
         try (CloseableHttpClient client = cluster.getClosableHttpClient(new String[] { NOT_SUPPORTED_CIPHER_SUITE })) {
             HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
 
-            assertThatThrownBy(() -> client.execute(httpGet), instanceOf(SSLHandshakeException.class));
+            if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+                assertThatThrownBy(() -> client.execute(httpGet), instanceOf(IllegalStateException.class));
+            } else {
+                assertThatThrownBy(() -> client.execute(httpGet), instanceOf(SSLHandshakeException.class));
+            }
         }
     }
 }

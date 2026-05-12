@@ -497,7 +497,7 @@ class MockSamlIdpServer implements Closeable {
                 assertion.setSignature(signature);
 
                 signature.setSigningCredential(this.signingCredential);
-                signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1);
+                signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512);
                 signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
 
                 XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
@@ -526,7 +526,7 @@ class MockSamlIdpServer implements Closeable {
         KeyEncryptionParameters kek = new KeyEncryptionParameters();
         // Algorithm from
         // https://santuario.apache.org/Java/api/constant-values.html#org.apache.xml.security.utils.EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSA15
-        kek.setAlgorithm("http://www.w3.org/2001/04/xmlenc#rsa-1_5");
+        kek.setAlgorithm("http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p");
         kek.setEncryptionCredential(new BasicX509Credential(spSignatureCertificate));
         Encrypter encrypter = new Encrypter(new DataEncryptionParameters(), kek);
         encrypter.setKeyPlacement(Encrypter.KeyPlacement.INLINE);

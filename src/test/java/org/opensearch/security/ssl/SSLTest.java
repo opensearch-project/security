@@ -32,9 +32,11 @@ import javax.net.ssl.SSLHandshakeException;
 import com.google.common.collect.Lists;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -73,6 +75,9 @@ import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_
 
 @SuppressWarnings({ "resource", "unchecked" })
 public class SSLTest extends SingleClusterTest {
+
+    @ClassRule
+    public static final CertificatesRule certificatesRule = new CertificatesRule(false);
 
     @Rule
     public final ExpectedException thrown = ExpectedException.none();
@@ -185,14 +190,19 @@ public class SSLTest extends SingleClusterTest {
 
         Security.setProperty("jdk.tls.disabledAlgorithms", "");
 
+        var typedKeyStore = FileHelper.resolveStore("ssl/node-0-keystore");
+        var typedTrustStore = FileHelper.resolveStore("ssl/truststore");
+
         Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStore("ssl/node-0-keystore").path())
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ssl/truststore").path())
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, typedKeyStore.path())
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_TYPE, typedKeyStore.type())
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, typedTrustStore.path())
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, typedTrustStore.type())
             // WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
             // WEAK and insecure protocol, do NOT use this, its here for unittesting only!!!
@@ -213,8 +223,8 @@ public class SSLTest extends SingleClusterTest {
             settings = Settings.builder()
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
                 .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.resolveStore("ssl/node-0-keystore").path())
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ssl/truststore").path())
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, typedKeyStore.path())
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, typedTrustStore.path())
                 // WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
                 // WEAK and insecure protocol, do NOT use this, its here for unittesting only!!!
@@ -413,35 +423,27 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testHttpsAndNodeSSLPemEnc() throws Exception {
+        final String keyPassword = randomAsciiAlphanumOfLength(CertificatesRule.FIPS_MIN_PASSWORD_LENGTH);
+        final CertificatesRule.PemFiles pem = certificatesRule.generatePemFiles(
+            "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE",
+            keyPassword
+        );
         final MockSecureSettings mockSecureSettings = new MockSecureSettings();
-        mockSecureSettings.setString(SECURITY_SSL_HTTP_PEMKEY_PASSWORD.propertyName, "changeit");
-        mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD.propertyName, "changeit");
+        mockSecureSettings.setString(SECURITY_SSL_HTTP_PEMKEY_PASSWORD.propertyName, keyPassword);
+        mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD.propertyName, keyPassword);
 
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.key")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, pem.cert())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, pem.key())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, pem.trustedCasPem())
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
-
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
-            )
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.key"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, pem.cert())
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, pem.key())
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
@@ -454,45 +456,39 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
+        rh.customTrustStoreFile = pem.trustStore();
+        rh.customTrustStorePassword = pem.trustStorePassword();
         rh.sendAdminCertificate = true;
 
         String res = rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty");
         Assert.assertTrue(res.contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
-        // Assert.assertTrue(!executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("null"));
         Assert.assertTrue(res.contains("CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE"));
     }
 
     @Test
     public void testSSLPemEncWithInsecureSettings() throws Exception {
+        final String keyPassword = randomAsciiAlphanumOfLength(CertificatesRule.FIPS_MIN_PASSWORD_LENGTH);
+        final CertificatesRule.PemFiles pem = certificatesRule.generatePemFiles(
+            "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE",
+            keyPassword
+        );
+
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
-            )
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.key")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, pem.cert())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, pem.key())
             // legacy insecure passwords
-            .put(SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD.insecurePropertyName, "changeit")
-            .put(SECURITY_SSL_HTTP_PEMKEY_PASSWORD.insecurePropertyName, "changeit")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
-            )
+            .put(SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD.insecurePropertyName, keyPassword)
+            .put(SECURITY_SSL_HTTP_PEMKEY_PASSWORD.insecurePropertyName, keyPassword)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, pem.trustedCasPem())
             .put(TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
-
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-            .put(
-                SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
-            )
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.key"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, pem.cert())
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, pem.key())
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
@@ -504,6 +500,8 @@ public class SSLTest extends SingleClusterTest {
         RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
+        rh.customTrustStoreFile = pem.trustStore();
+        rh.customTrustStorePassword = pem.trustStorePassword();
         rh.sendAdminCertificate = true;
 
         Assert.assertTrue(
@@ -627,6 +625,8 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testHttpsV3Fail() throws Exception {
+        assumeFalse("SSLv3 is not FIPS-approved", CryptoServicesRegistrar.isInApprovedOnlyMode());
+
         thrown.expect(SSLHandshakeException.class);
 
         final Settings settings = Settings.builder()
@@ -824,6 +824,7 @@ public class SSLTest extends SingleClusterTest {
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/chain-ca.pem")
             )
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE, FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, CertificateValidatorTest.CRL_DATE.getTime())
             .build();
 

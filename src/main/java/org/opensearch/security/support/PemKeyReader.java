@@ -40,26 +40,17 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.KeyException;
-import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
 import java.util.Locale;
-import javax.crypto.Cipher;
-import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -67,9 +58,17 @@ import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.crypto.CryptoServicesRegistrar;
-import org.bouncycastle.util.io.pem.PemObject;
-import org.bouncycastle.util.io.pem.PemReader;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.bouncycastle.openssl.PEMException;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8DecryptorProviderBuilder;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
+import org.bouncycastle.pkcs.PKCSException;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
@@ -80,44 +79,20 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_
 public final class PemKeyReader {
 
     private static final Logger log = LogManager.getLogger(PemKeyReader.class);
+    private static final BouncyCastleFipsProvider BC_FIPS = new BouncyCastleFipsProvider();
 
     public static final String JKS = "JKS";
     public static final String PKCS12 = "PKCS12";
     public static final String BCFKS = "BCFKS";
-
-    private static byte[] readPrivateKey(File file) throws KeyException {
-        try (final InputStream in = new FileInputStream(file)) {
-            return readPrivateKey(in);
-        } catch (final IOException e) {
-            throw new KeyException("could not fine key file: " + file);
-        }
-    }
-
-    private static byte[] readPrivateKey(final InputStream in) throws KeyException {
-        try (final PemReader pemReader = new PemReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-            final PemObject pemObject = pemReader.readPemObject();
-            if (pemObject == null) {
-                throw new KeyException(
-                    "could not find a PKCS #8 private key in input stream"
-                        + " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)"
-                );
-            }
-            return pemObject.getContent();
-        } catch (final IOException ioe) {
-            throw new KeyException(
-                "could not find a PKCS #8 private key in input stream"
-                    + " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)",
-                ioe
-            );
-        }
-    }
 
     public static PrivateKey toPrivateKey(File keyFile, String keyPassword) throws NoSuchAlgorithmException, NoSuchPaddingException,
         InvalidKeySpecException, InvalidAlgorithmParameterException, KeyException, IOException {
         if (keyFile == null) {
             return null;
         }
-        return getPrivateKeyFromByteBuffer(PemKeyReader.readPrivateKey(keyFile), keyPassword);
+        try (InputStream in = new FileInputStream(keyFile)) {
+            return toPrivateKey(in, keyPassword);
+        }
     }
 
     public static PrivateKey toPrivateKey(InputStream in, String keyPassword) throws NoSuchAlgorithmException, NoSuchPaddingException,
@@ -125,44 +100,39 @@ public final class PemKeyReader {
         if (in == null) {
             return null;
         }
-        return getPrivateKeyFromByteBuffer(PemKeyReader.readPrivateKey(in), keyPassword);
-    }
-
-    private static PrivateKey getPrivateKeyFromByteBuffer(byte[] encodedKey, String keyPassword) throws NoSuchAlgorithmException,
-        NoSuchPaddingException, InvalidKeySpecException, InvalidAlgorithmParameterException, KeyException, IOException {
-
-        PKCS8EncodedKeySpec encodedKeySpec = generateKeySpec(keyPassword == null ? null : keyPassword.toCharArray(), encodedKey);
-        try {
-            return KeyFactory.getInstance("RSA").generatePrivate(encodedKeySpec);
-        } catch (InvalidKeySpecException ignore) {
-            try {
-                return KeyFactory.getInstance("DSA").generatePrivate(encodedKeySpec);
-            } catch (InvalidKeySpecException ignore2) {
-                try {
-                    return KeyFactory.getInstance("EC").generatePrivate(encodedKeySpec);
-                } catch (InvalidKeySpecException e) {
-                    throw new InvalidKeySpecException("Neither RSA, DSA nor EC worked", e);
+        try (PEMParser parser = new PEMParser(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            Object obj = parser.readObject();
+            if (obj == null) {
+                throw new KeyException(
+                    "could not find a PKCS #8 private key in input stream"
+                        + " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)"
+                );
+            }
+            PrivateKeyInfo pki;
+            if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
+                if (keyPassword == null) {
+                    throw new KeyException("private key is encrypted but no password was provided");
                 }
+                try {
+                    pki = ((PKCS8EncryptedPrivateKeyInfo) obj).decryptPrivateKeyInfo(
+                        new JceOpenSSLPKCS8DecryptorProviderBuilder().setProvider(BC_FIPS).build(keyPassword.toCharArray())
+                    );
+                } catch (PKCSException | OperatorCreationException e) {
+                    throw new KeyException("Failed to decrypt private key", e);
+                }
+            } else if (obj instanceof PrivateKeyInfo) {
+                pki = (PrivateKeyInfo) obj;
+            } else if (obj instanceof PEMKeyPair) {
+                pki = ((PEMKeyPair) obj).getPrivateKeyInfo();
+            } else {
+                throw new KeyException("Unexpected PEM object type: " + obj.getClass().getName());
+            }
+            try {
+                return new JcaPEMKeyConverter().setProvider(BC_FIPS).getPrivateKey(pki);
+            } catch (PEMException e) {
+                throw new KeyException("Failed to convert private key", e);
             }
         }
-    }
-
-    private static PKCS8EncodedKeySpec generateKeySpec(char[] password, byte[] key) throws IOException, NoSuchAlgorithmException,
-        NoSuchPaddingException, InvalidKeySpecException, InvalidKeyException, InvalidAlgorithmParameterException {
-
-        if (password == null) {
-            return new PKCS8EncodedKeySpec(key);
-        }
-
-        EncryptedPrivateKeyInfo encryptedPrivateKeyInfo = new EncryptedPrivateKeyInfo(key);
-        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(encryptedPrivateKeyInfo.getAlgName());
-        PBEKeySpec pbeKeySpec = new PBEKeySpec(password);
-        SecretKey pbeKey = keyFactory.generateSecret(pbeKeySpec);
-
-        Cipher cipher = Cipher.getInstance(encryptedPrivateKeyInfo.getAlgName());
-        cipher.init(Cipher.DECRYPT_MODE, pbeKey, encryptedPrivateKeyInfo.getAlgParameters());
-
-        return encryptedPrivateKeyInfo.getKeySpec(cipher);
     }
 
     public static X509Certificate loadCertificateFromFile(String file) throws Exception {
@@ -343,15 +313,6 @@ public final class PemKeyReader {
             return null;
         }
 
-    }
-
-    public static char[] randomChars(int len) {
-        final SecureRandom r = new SecureRandom();
-        final char[] ret = new char[len];
-        for (int i = 0; i < len; i++) {
-            ret[i] = (char) (r.nextInt(26) + 'a');
-        }
-        return ret;
     }
 
     public static String extractStoreType(String storePath, String storeType) {

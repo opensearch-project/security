@@ -127,6 +127,14 @@ public class FileHelper {
         return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".p12"), "PKCS12");
     }
 
+    public static TypedStore resolveStore(final Path dir, final String baseName, final String nonFipsExtension) {
+        if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+            return new TypedStore(dir.resolve(baseName + ".bcfks"), "BCFKS");
+        }
+        Path path = dir.resolve(baseName + nonFipsExtension);
+        return new TypedStore(path, inferStoreType(path));
+    }
+
     public static boolean classpathResourceExists(final String name) {
         return FileHelper.class.getClassLoader().getResource(name) != null;
     }

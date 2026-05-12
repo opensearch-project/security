@@ -80,7 +80,7 @@ public class SanParserTest {
     /** Builds a self-signed cert with a 3-byte iPAddress SAN (invalid: must be 4 or 16 bytes). */
     private static X509Certificate buildCertWithBadIpSan() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-        kpg.initialize(1024);
+        kpg.initialize(2048);
         KeyPair kp = kpg.generateKeyPair();
         X500Name dn = new X500Name("CN=test");
         Date now = new Date();
