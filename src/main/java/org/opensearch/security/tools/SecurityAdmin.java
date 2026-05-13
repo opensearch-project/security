@@ -173,7 +173,7 @@ public class SecurityAdmin {
                 System.exit(-1);
             }
 
-            System.out.println("ERR: An unexpected " + e.getClass().getSimpleName() + " occured: " + e.getMessage());
+            System.out.println("ERR: An unexpected " + e.getClass().getSimpleName() + " occurred: " + e.getMessage());
             System.out.println("Trace:");
             System.out.println(ExceptionsHelper.stackTrace(e));
             System.out.println();
