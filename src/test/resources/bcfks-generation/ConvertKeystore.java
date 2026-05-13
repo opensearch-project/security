@@ -9,8 +9,14 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-import java.io.*;
-import java.security.*;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.Key;
+import java.security.KeyStore;
+import java.security.Security;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.util.Enumeration;
 

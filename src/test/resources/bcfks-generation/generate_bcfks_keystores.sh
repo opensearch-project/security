@@ -18,13 +18,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RESOURCES="$(cd "$SCRIPT_DIR/.." && pwd)"
 BC_FIPS="$BC_FIPS_JAR"
 
-# ── Compile the converter ─────────────────────────────────────────────────────
-
-CONVERT_DIR=$(mktemp -d)
-trap 'rm -rf "$CONVERT_DIR"' EXIT
-
-javac -cp "$BC_FIPS" "$SCRIPT_DIR/ConvertKeystore.java" -d "$CONVERT_DIR"
-
 CONVERTED=0
 
 convert() {
@@ -33,8 +26,8 @@ convert() {
   local pass="${3:-changeit}"
   local dest="${src%.*}.bcfks"
   java --enable-native-access=ALL-UNNAMED \
-       -cp "$CONVERT_DIR:$BC_FIPS" \
-       ConvertKeystore "$src" "$type" "$pass" "$dest" "$pass"
+       -cp "$BC_FIPS" \
+       "$SCRIPT_DIR/ConvertKeystore.java" "$src" "$type" "$pass" "$dest" "$pass"
   CONVERTED=$(( CONVERTED + 1 ))
 }
 

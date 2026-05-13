@@ -23,18 +23,6 @@ popd
 
 set BC_FIPS=%BC_FIPS_JAR%
 
-:: ── Compile the converter ─────────────────────────────────────────────────────
-
-set CONVERT_DIR=%TEMP%\bcfks-convert-%RANDOM%
-mkdir "%CONVERT_DIR%"
-
-javac -cp "%BC_FIPS%" "%SCRIPT_DIR%ConvertKeystore.java" -d "%CONVERT_DIR%"
-if errorlevel 1 (
-    echo ERROR: Compilation failed. >&2
-    rmdir /s /q "%CONVERT_DIR%"
-    exit /b 1
-)
-
 set CONVERTED=0
 
 :: ── JKS-only keystores ────────────────────────────────────────────────────────
@@ -92,7 +80,7 @@ for %%F in (
 ) do (
     set SRC=%RESOURCES%\%%F
     set DEST=!SRC:.jks=.bcfks!
-    java --enable-native-access=ALL-UNNAMED -cp "%CONVERT_DIR%;%BC_FIPS%" ConvertKeystore "!SRC!" JKS changeit "!DEST!" changeit
+    java --enable-native-access=ALL-UNNAMED -cp "%BC_FIPS%" "%SCRIPT_DIR%ConvertKeystore.java" "!SRC!" JKS changeit "!DEST!" changeit
     set /a CONVERTED+=1
 )
 
@@ -116,7 +104,7 @@ for %%F in (
 ) do (
     set SRC=%RESOURCES%\%%F
     set DEST=!SRC:.p12=.bcfks!
-    java --enable-native-access=ALL-UNNAMED -cp "%CONVERT_DIR%;%BC_FIPS%" ConvertKeystore "!SRC!" PKCS12 changeit "!DEST!" changeit
+    java --enable-native-access=ALL-UNNAMED -cp "%BC_FIPS%" "%SCRIPT_DIR%ConvertKeystore.java" "!SRC!" PKCS12 changeit "!DEST!" changeit
     set /a CONVERTED+=1
 )
 
@@ -135,12 +123,11 @@ for %%F in (
 ) do (
     set SRC=%RESOURCES%\%%F
     set DEST=!SRC:.jks=.bcfks!
-    java --enable-native-access=ALL-UNNAMED -cp "%CONVERT_DIR%;%BC_FIPS%" ConvertKeystore "!SRC!" JKS secret "!DEST!" secret
+    java --enable-native-access=ALL-UNNAMED -cp "%BC_FIPS%" "%SCRIPT_DIR%ConvertKeystore.java" "!SRC!" JKS secret "!DEST!" secret
     set /a CONVERTED+=1
 )
 
 echo.
 echo Done. %CONVERTED% BCFKS files written alongside their source keystores.
 
-rmdir /s /q "%CONVERT_DIR%"
 endlocal
