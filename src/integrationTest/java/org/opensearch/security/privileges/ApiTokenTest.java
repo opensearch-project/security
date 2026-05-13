@@ -398,6 +398,43 @@ public class ApiTokenTest {
         }
     }
 
+    @Test
+    public void testFlushCacheReloadsFromIndex() {
+        String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
+
+        // Token should work
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            client.get("_cluster/health").assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        // Delete the token directly from the index (bypassing the API, simulating index-level removal)
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            // Get the token ID from the list
+            TestRestClient.HttpResponse listResponse = client.get(CREATE_API_TOKEN_PATH);
+            listResponse.assertStatusCode(HttpStatus.SC_OK);
+            String tokenId = listResponse.bodyAsJsonNode().get(0).get("id").asText();
+
+            // Delete directly from the system index
+            client.delete(".opensearch_security_api_tokens/_doc/" + tokenId + "?refresh=true").assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        // Token should STILL work because it's cached in memory
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            client.get("_cluster/health").assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        // Flush cache — this should reload from index (where the token no longer exists)
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            client.delete("_plugins/_security/api/cache").assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        // Token should now be rejected
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            client.get("_cluster/health").assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
+        }
+    }
+
     private void authenticateWithApiToken(Header authHeader, int expectedStatusCode) {
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.getAuthInfo();

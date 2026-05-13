@@ -748,7 +748,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         sslCertReloadEnabled,
                         passwordHasher,
                         rsIndexHandler,
-                        resourcePluginInfo
+                        resourcePluginInfo,
+                        apiTokenRepository
                     )
                 );
 
