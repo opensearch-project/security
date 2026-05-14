@@ -118,7 +118,7 @@ public class ApiTokenAuthenticatorTest {
         AuthCredentials ac = authenticator.extractCredentials(request, threadContext);
 
         assertNull("Should return null when accessing restricted endpoint", ac);
-        verify(log).error("OpenSearchException[Api Tokens are not allowed to be used for accessing this endpoint.]");
+        verify(log).warn("OpenSearchException[Api Tokens are not allowed to be used for accessing this endpoint.]");
     }
 
     @Test
@@ -132,6 +132,6 @@ public class ApiTokenAuthenticatorTest {
         AuthCredentials ac = authenticator.extractCredentials(request, new ThreadContext(Settings.EMPTY));
 
         assertNull("Should return null when authenticator is disabled", ac);
-        verify(log).error(eq("Api token authentication is disabled"));
+        verify(log).debug(eq("Api token authentication is disabled"));
     }
 }
