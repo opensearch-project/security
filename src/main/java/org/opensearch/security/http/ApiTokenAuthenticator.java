@@ -55,7 +55,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
     @Override
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) {
         if (!apiTokenEnabled) {
-            log.error("Api token authentication is disabled");
+            log.debug("Api token authentication is disabled");
             return null;
         }
 
@@ -75,13 +75,13 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
         String hash = ApiTokenRepository.hashToken(token);
         if (!apiTokenRepository.isValidToken(hash)) {
-            log.error("Api token is not valid");
+            log.debug("Api token is not valid");
             return null;
         }
 
         ApiTokenRepository.TokenEntry metadata = apiTokenRepository.getTokenMetadata(hash);
         if (metadata == null) {
-            log.error("Api token metadata not found");
+            log.warn("Api token metadata not found");
             return null;
         }
 
@@ -112,7 +112,7 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
         final String suffix = matcher.matches() ? matcher.group(2) : null;
         if (isAccessToRestrictedEndpoints(request, suffix)) {
             final OpenSearchException exception = ExceptionUtils.invalidUsageOfApiTokenException();
-            log.error(exception.toString());
+            log.warn(exception.toString());
             return false;
         }
         return true;
