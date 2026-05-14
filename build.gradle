@@ -28,13 +28,6 @@ buildscript {
         common_utils_version = System.getProperty("common_utils.version", '3.2.0.0')
 
         kafka_version  = '4.2.0'
-        open_saml_version = '5.2.1'
-        open_saml_shib_version = "9.1.4"
-        one_login_java_saml = '2.9.0'
-        jjwt_version = '0.13.0'
-        guava_version = '33.6.0-jre'
-        jaxb_version = '2.3.9'
-        spring_version = '7.0.7'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -502,9 +495,9 @@ configurations {
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.8"
-            force "com.google.guava:guava:${guava_version}"
-            force "at.yawk.lz4:lz4-java:1.11.0"
+            force libs.google.guava
+            force libs.lz4.java
+            force libs.snappy.java
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
@@ -604,7 +597,7 @@ allprojects {
                 integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
                 integrationTestImplementation "com.password4j:password4j:${versions.password4j}"
-                integrationTestImplementation "com.google.guava:guava:${guava_version}"
+                integrationTestImplementation libs.google.guava
                 integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
                 integrationTestImplementation "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
                 integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
@@ -687,7 +680,7 @@ dependencies {
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
-    implementation "com.google.guava:guava:${guava_version}"
+    implementation libs.google.guava
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.11.0'
     // When building with crypto.standard=FIPS-140-3 (set in gradle.properties), bcFips jars are provided by OpenSearch
@@ -714,9 +707,7 @@ dependencies {
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
 
     //JWT
-    implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
-    implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
-    implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
+    implementation libs.bundles.jjwt
     implementation "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
@@ -743,8 +734,7 @@ dependencies {
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
     //Onelogin OpenSaml
-    implementation "com.onelogin:java-saml:${one_login_java_saml}"
-    implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
+    implementation libs.bundles.onelogin.saml
     //OpenSAML
     runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.38"
     implementation project(path: ':libs:opensaml', configuration: 'shadow')
@@ -753,14 +743,16 @@ dependencies {
 
     implementation 'org.apache.commons:commons-text:1.15.0'
 
-    runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
-    runtimeOnly 'at.yawk.lz4:lz4-java:1.11.0'
+
+    runtimeOnly libs.bundles.archivers
+
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
+
+    runtimeOnly libs.bundles.jaxb
+
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.8'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.3.0'
-    runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
@@ -770,7 +762,8 @@ dependencies {
     testRuntimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
-    testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
+    testImplementation libs.opensaml.messaging.impl
+
     testImplementation "jakarta.servlet:jakarta.servlet-api:6.1.0"
     implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
@@ -804,7 +797,6 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.1'
     testImplementation "org.springframework.kafka:spring-kafka-test:4.0.5"
-    testImplementation "org.springframework:spring-beans:${spring_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.4'
     testImplementation('org.awaitility:awaitility:4.3.0') {
@@ -817,9 +809,13 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     // Kafka test execution
     testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.4'
-    testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
+
+    testImplementation libs.springframework.beans
+
+    testRuntimeOnly (libs.springframework.core) {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
+
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.18'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.6'
     testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.4') {
