@@ -464,9 +464,11 @@ public class SecurityInterceptorTests {
     @Test
     public void testTaskResourceUsageResponseHeaderSurvivesContextRestore() {
         final String TASK_RESOURCE_USAGE = "TASK_RESOURCE_USAGE";
-        final String resourceUsageValue = "{\"action\":\"indices:data/read/search[phase/query]\","
-            + "\"taskId\":1,\"parentTaskId\":2,\"nodeId\":\"dataNode1\","
-            + "\"taskResourceUsage\":{\"cpu_time_in_nanos\":123,\"memory_in_bytes\":456}}";
+        final String resourceUsageValue = """
+            {"action":"indices:data/read/search[phase/query]",\
+            "taskId":1,"parentTaskId":2,"nodeId":"dataNode1",\
+            "taskResourceUsage":{"cpu_time_in_nanos":123,"memory_in_bytes":456}}\
+            """;
 
         final AtomicReference<Map<String, List<String>>> responseHeadersAfterRestore = new AtomicReference<>();
 
@@ -519,9 +521,11 @@ public class SecurityInterceptorTests {
     @Test
     public void testMultipleResponseHeadersSurviveContextRestore() {
         final String TASK_RESOURCE_USAGE = "TASK_RESOURCE_USAGE";
-        final String resourceUsageValue = "{\"action\":\"indices:data/read/search[phase/query]\","
-            + "\"taskId\":3,\"parentTaskId\":4,\"nodeId\":\"dataNode2\","
-            + "\"taskResourceUsage\":{\"cpu_time_in_nanos\":789,\"memory_in_bytes\":1024}}";
+        final String resourceUsageValue = """
+            {"action":"indices:data/read/search[phase/query]",\
+            "taskId":3,"parentTaskId":4,"nodeId":"dataNode2",\
+            "taskResourceUsage":{"cpu_time_in_nanos":789,"memory_in_bytes":1024}}\
+            """;
         final String CUSTOM_HEADER = "X-Custom-Plugin-Header";
         final String customHeaderValue = "custom-plugin-data-value";
 
