@@ -1,0 +1,83 @@
+[versions]
+open_saml           = "5.2.1"
+open_saml_shib      = "9.2.1"
+one_login_saml      = "2.9.0"
+dropwizard_metrics  = "4.2.38"
+jjwt                = "0.13.0"
+jaxb                = "2.3.9"
+lz4_java            = "1.11.0"
+snappy_java         = "1.1.10.8"
+guava               = "33.6.0-jre"
+spring_framework    = "7.0.7"
+
+[libraries]
+#OneLogin saml
+onelogin-java-saml = { group = "com.onelogin", name = "java-saml", version.ref = "one_login_saml" }
+onelogin-java-saml-core = { group = "com.onelogin", name = "java-saml-core", version.ref = "one_login_saml" }
+#OpenSAML
+opensaml-core-api = { group = "org.opensaml", name = "opensaml-core-api", version.ref = "open_saml" }
+opensaml-core-impl = { group = "org.opensaml", name = "opensaml-core-impl", version.ref = "open_saml" }
+opensaml-security-api = { group = "org.opensaml", name = "opensaml-security-api", version.ref = "open_saml" }
+opensaml-security-impl = { group = "org.opensaml", name = "opensaml-security-impl", version.ref = "open_saml" }
+opensaml-xmlsec-api = { group = "org.opensaml", name = "opensaml-xmlsec-api", version.ref = "open_saml" }
+opensaml-xmlsec-impl = { group = "org.opensaml", name = "opensaml-xmlsec-impl", version.ref = "open_saml" }
+opensaml-saml-api = { group = "org.opensaml", name = "opensaml-saml-api", version.ref = "open_saml" }
+opensaml-saml-impl = { group = "org.opensaml", name = "opensaml-saml-impl", version.ref = "open_saml" }
+opensaml-messaging-api = { group = "org.opensaml", name = "opensaml-messaging-api", version.ref = "open_saml" }
+opensaml-messaging-impl = { group = "org.opensaml", name = "opensaml-messaging-impl", version.ref = "open_saml" }
+opensaml-storage-api = { group = "org.opensaml", name = "opensaml-storage-api", version.ref = "open_saml" }
+opensaml-profile-api = { group = "org.opensaml", name = "opensaml-profile-api", version.ref = "open_saml" }
+opensaml-soap-api = { group = "org.opensaml", name = "opensaml-soap-api", version.ref = "open_saml" }
+opensaml-soap-impl = { group = "org.opensaml", name = "opensaml-soap-impl", version.ref = "open_saml" }
+
+shib-support = { group = "net.shibboleth", name = "shib-support", version.ref = "open_saml_shib" }
+shib-security = { group = "net.shibboleth", name = "shib-security", version.ref = "open_saml_shib" }
+shib-networking = { group = "net.shibboleth", name = "shib-networking", version.ref = "open_saml_shib" }
+
+dropwizard-metrics-core = { group = "io.dropwizard.metrics", name = "metrics-core", version.ref = "dropwizard_metrics" }
+
+#JWT
+jjwt-api = { group = "io.jsonwebtoken", name = "jjwt-api", version.ref = "jjwt" }
+jjwt-impl = { group = "io.jsonwebtoken", name="jjwt-impl", version.ref = "jjwt" }
+jjwt-jackson = { group = "io.jsonwebtoken", name="jjwt-jackson", version.ref = "jjwt" }
+
+#JAXB
+jaxb-runtime = { group = "org.glassfish.jaxb", name = "jaxb-runtime", version.ref = "jaxb" }
+jaxb-txw2 = { group = "org.glassfish.jaxb", name = "txw2", version.ref = "jaxb" }
+
+#archivers
+lz4-java = { group = "at.yawk.lz4", name = "lz4-java", version.ref = "lz4_java" }
+snappy-java = { group = "org.xerial.snappy", name = "snappy-java", version.ref = "snappy_java" }
+
+google-guava = { group = "com.google.guava", name="guava", version.ref = "guava" }
+
+#spring framework
+springframework-core = { group = "org.springframework", name = "spring-core", version.ref = "spring_framework" }
+springframework-beans = { group = "org.springframework", name = "spring-beans", version.ref = "spring_framework" }
+
+[bundles]
+onelogin-saml = ["onelogin-java-saml", "onelogin-java-saml-core"]
+opensaml = [
+    "opensaml-core-api",
+    "opensaml-core-impl",
+    "opensaml-security-api",
+    "opensaml-security-impl",
+    "opensaml-xmlsec-api",
+    "opensaml-xmlsec-impl",
+    "opensaml-saml-api",
+    "opensaml-saml-impl",
+    "opensaml-messaging-api",
+    "opensaml-storage-api",
+    "shib-support",
+    "shib-security",
+    "shib-networking"
+]
+opensaml-runtime = [
+    "opensaml-profile-api",
+    "opensaml-soap-api",
+    "opensaml-soap-impl",
+    "dropwizard-metrics-core"
+]
+jjwt = ["jjwt-api", "jjwt-impl", "jjwt-jackson"]
+jaxb = ["jaxb-runtime", "jaxb-txw2"]
+archivers = ["lz4-java", "snappy-java"]

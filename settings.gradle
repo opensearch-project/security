@@ -7,7 +7,13 @@
 plugins {
     id("com.autonomousapps.build-health") version "3.10.0"
 }
-
+dependencyResolutionManagement {
+    versionCatalogs {
+        libraries {
+            from(files("gradle/libs.versions.toml"))
+        }
+    }
+}
 rootProject.name = 'opensearch-security'
 
 include "spi"
@@ -18,4 +24,6 @@ project(":sample-resource-plugin").name = "opensearch-sample-resource-plugin"
 
 include "bwc-test"
 project(":bwc-test").name = rootProject.name + "-bwc-test"
+
+
 include 'libs:opensaml'
