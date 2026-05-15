@@ -11,9 +11,16 @@
 
 package org.opensearch.security.privileges.int_tests;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -23,11 +30,13 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Integration test verifying that cluster-level actions (_mget, _msearch, _bulk) targeting the
  * dashboards index are denied when the user does not have access to the specified tenant.
  */
+@RunWith(Parameterized.class)
 public class MultiTenancyIntTests {
 
     static final TestSecurityConfig.Tenant TENANT_A = new TestSecurityConfig.Tenant("tenant_a").description("Tenant A");
@@ -46,12 +55,34 @@ public class MultiTenancyIntTests {
         new TestSecurityConfig.Role("user_b_role").clusterPermissions("cluster_composite_ops")
     );
 
+    static LocalCluster.Builder clusterBuilder() {
+        return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+            .authc(AUTHC_HTTPBASIC_INTERNAL)
+            .users(USER_A, USER_B)
+            .tenants(TENANT_A);
+    }
+
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(USER_A, USER_B)
-        .tenants(TENANT_A)
-        .build();
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        MultiTenancyIntTests::clusterBuilder
+    );
+
+    final LocalCluster cluster;
+    final ClusterConfig clusterConfig;
+
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> params() {
+        List<Object[]> result = new ArrayList<>();
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            result.add(new Object[] { clusterConfig });
+        }
+        return result;
+    }
+
+    public MultiTenancyIntTests(ClusterConfig clusterConfig) {
+        this.cluster = clusterInstances.get(clusterConfig);
+        this.clusterConfig = clusterConfig;
+    }
 
     /**
      * User A uses _mget targeting .kibana with a tenant they don't have access to.
@@ -77,7 +108,8 @@ public class MultiTenancyIntTests {
 
     /**
      * User A uses _msearch targeting .kibana with a tenant they don't have access to.
-     * This should be denied.
+     * This should be denied. For _msearch, the denial may appear either as a top-level 403
+     * or as a per-sub-request error within a 200 response (v4 evaluator behavior).
      */
     @Test
     public void msearch_unauthorizedTenantAccess_shouldBeDenied() {
@@ -87,7 +119,16 @@ public class MultiTenancyIntTests {
                 {"size":10, "query":{"match_all":{}}}
                 """, new BasicHeader("securitytenant", "user_b"));
 
-            assertThat(response, isForbidden());
+            if (response.getStatusCode() == 200) {
+                // v4 evaluator: top-level 200 but inner response should contain a 403 error
+                String body = response.getBody();
+                assertTrue(
+                    "Expected security_exception in msearch response but got: " + body,
+                    body.contains("security_exception") || body.contains("\"status\":403")
+                );
+            } else {
+                assertThat(response, isForbidden());
+            }
         }
     }
 
