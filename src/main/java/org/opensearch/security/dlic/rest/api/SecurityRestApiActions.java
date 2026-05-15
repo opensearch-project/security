@@ -20,6 +20,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -59,7 +60,8 @@ public class SecurityRestApiActions {
         final boolean certificatesReloadEnabled,
         final PasswordHasher passwordHasher,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
-        final ResourcePluginInfo resourcePluginInfo
+        final ResourcePluginInfo resourcePluginInfo,
+        final ApiTokenRepository apiTokenRepository
     ) {
         final var securityApiDependencies = new SecurityApiDependencies(
             adminDns,
@@ -81,7 +83,7 @@ public class SecurityRestApiActions {
                 new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
                 new RolesApiAction(clusterService, threadPool, securityApiDependencies),
                 new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
-                new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies),
+                new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies, apiTokenRepository),
                 new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies),
                 // FIXME Change inheritance for PermissionsInfoAction
                 new PermissionsInfoAction(
