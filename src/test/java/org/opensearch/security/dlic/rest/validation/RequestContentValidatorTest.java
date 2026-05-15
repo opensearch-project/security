@@ -524,6 +524,68 @@ public class RequestContentValidatorTest {
     }
 
     @Test
+    public void testPatchSkipsValidationOnUnchangedFieldsWithBlankArrayElements() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("hash", RequestContentValidator.DataType.STRING, "backend_roles", RequestContentValidator.DataType.ARRAY);
+            }
+        });
+        // Original has a legacy empty-string in backend_roles
+        final ObjectNode original = DefaultObjectMapper.objectMapper.createObjectNode();
+        original.put("hash", "oldhash");
+        original.putArray("backend_roles").add("").add("admin");
+
+        // Patch only changes hash, backend_roles stays the same
+        final ObjectNode patched = original.deepCopy();
+        patched.put("hash", "newhash");
+
+        final ValidationResult<JsonNode> validationResult = validator.validate(request, patched, original);
+        assertTrue("PATCH on unrelated field should pass even with legacy blank array elements", validationResult.isValid());
+    }
+
+    @Test
+    public void testPatchRejectsBlankArrayElementsInChangedField() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                return Map.of("hash", RequestContentValidator.DataType.STRING, "backend_roles", RequestContentValidator.DataType.ARRAY);
+            }
+        });
+        final ObjectNode original = DefaultObjectMapper.objectMapper.createObjectNode();
+        original.put("hash", "oldhash");
+        original.putArray("backend_roles").add("admin");
+
+        // Patch introduces a blank element in backend_roles
+        final ObjectNode patched = original.deepCopy();
+        patched.putArray("backend_roles").add("").add("admin");
+
+        final ValidationResult<JsonNode> validationResult = validator.validate(request, patched, original);
+        assertFalse("PATCH that introduces blank array elements should be rejected", validationResult.isValid());
+        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT);
+    }
+
+    @Test
     public void testNoopValidator() throws Exception {
         final ValidationResult<JsonNode> validationResult = RequestContentValidator.NOOP_VALIDATOR.validate(request);
         assertTrue(validationResult.isValid());
