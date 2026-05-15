@@ -25,7 +25,6 @@ import org.opensearch.security.DefaultObjectMapper;
 import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
@@ -39,8 +38,13 @@ public class ConfigV7Test {
 
     public void assertEquals(ConfigV7.Kibana expected, JsonNode node) {
         assertThat(node.get("multitenancy_enabled").asBoolean(), is(expected.multitenancy_enabled));
-        assertThat(node.get("sign_in_options").isArray(), is(true));
-        assertThat(node.get("sign_in_options").toString(), containsString(expected.sign_in_options.get(0).toString()));
+        JsonNode signInOptionsNode = node.get("sign_in_options");
+        if (expected.sign_in_options.isEmpty()) {
+            Assert.assertTrue(signInOptionsNode == null || signInOptionsNode.isEmpty());
+        } else {
+            assertThat(signInOptionsNode.isArray(), is(true));
+            assertThat(signInOptionsNode.size(), is(expected.sign_in_options.size()));
+        }
         JsonNode preferredTenantsNode = node.get("preferred_tenants");
         if (omitDefaults && expected.preferred_tenants.isEmpty()) {
             Assert.assertNull(preferredTenantsNode);

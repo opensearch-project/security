@@ -269,19 +269,37 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
     private List<DashboardSignInOption> getNewSignInOptions(JsonNode newOptions, Authc authc) {
 
-        Set<String> domains = authc.getDomains().keySet();
+        Set<String> authenticatorTypes = authc.getDomains()
+            .values()
+            .stream()
+            .filter(domain -> domain.http_enabled)
+            .map(domain -> domain.http_authenticator.type.toLowerCase())
+            .collect(Collectors.toSet());
 
-        return IntStream.range(0, newOptions.size()).mapToObj(newOptions::get).map(JsonNode::asText).filter(option -> {
-            // Checking if the new sign-in options are set in backend.
-            if (option.equals(DashboardSignInOption.ANONYMOUS.toString())
-                || domains.stream().anyMatch(domain -> domain.contains(option.toLowerCase()))) {
-                return true;
-            } else {
+        return IntStream.range(0, newOptions.size()).mapToObj(newOptions::get).map(JsonNode::asText).map(option -> {
+            DashboardSignInOption resolved = resolveSignInOption(option);
+            if (resolved == null) {
+                throw new IllegalArgumentException("Validation failure: " + option + " is not a recognized sign-in option.");
+            }
+            if (resolved == DashboardSignInOption.ANONYMOUS) {
+                return resolved;
+            }
+            if (!authenticatorTypes.contains(resolved.getOption())) {
                 throw new IllegalArgumentException(
-                    "Validation failure: " + option.toUpperCase() + " authentication provider is not available for this cluster."
+                    "Validation failure: " + resolved + " authentication provider is not available for this cluster."
                 );
             }
-        }).map(DashboardSignInOption::valueOf).collect(Collectors.toList());
+            return resolved;
+        }).collect(Collectors.toList());
+    }
+
+    private DashboardSignInOption resolveSignInOption(String option) {
+        for (DashboardSignInOption e : DashboardSignInOption.values()) {
+            if (e.name().equalsIgnoreCase(option) || e.getOption().equalsIgnoreCase(option)) {
+                return e;
+            }
+        }
+        return null;
     }
 
     private List<String> getPreferredTenants(JsonNode preferredTenants) {
