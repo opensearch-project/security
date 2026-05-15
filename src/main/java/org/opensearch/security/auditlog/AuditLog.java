@@ -60,6 +60,9 @@ public interface AuditLog extends Closeable {
     // index event requests
     void logIndexEvent(String privilege, TransportRequest request, Task task);
 
+    // settings change events
+    void logSettingsChange(String action, TransportRequest request, Task task);
+
     // spoof
     void logBadHeaders(TransportRequest request, String action, Task task);
 

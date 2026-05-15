@@ -165,7 +165,9 @@ public class AuditApiAction extends AbstractApiAction {
             AuditCategory.GRANTED_PRIVILEGES,
             AuditCategory.MISSING_PRIVILEGES,
             AuditCategory.INDEX_EVENT,
-            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT
+            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT,
+            AuditCategory.CLUSTER_SETTINGS_CHANGED,
+            AuditCategory.INDEX_SETTINGS_CHANGED
         );
 
         protected AuditRequestContentValidator(ValidationContext validationContext) {
