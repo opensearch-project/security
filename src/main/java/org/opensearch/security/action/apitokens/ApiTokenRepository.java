@@ -47,7 +47,7 @@ public class ApiTokenRepository {
     private final List<TokenListener> tokenListener = new ArrayList<>();
     private static final Logger log = LogManager.getLogger(ApiTokenRepository.class);
 
-    private final Map<String, TokenEntry> tokenCache = new ConcurrentHashMap<>();
+    private volatile Map<String, TokenEntry> tokenCache = new ConcurrentHashMap<>();
 
     public record TokenEntry(RoleV7 role, long expiration, String name) {
         public boolean isExpired() {
@@ -64,7 +64,7 @@ public class ApiTokenRepository {
             byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
+            throw new RuntimeException(HASH_ALGORITHM + " not available", e);
         }
     }
 
@@ -78,14 +78,16 @@ public class ApiTokenRepository {
         apiTokenIndexHandler.getTokenMetadatas(new ActionListener<Map<String, ApiToken>>() {
             @Override
             public void onResponse(Map<String, ApiToken> tokenMetadatas) {
-                tokenCache.keySet().removeIf(hash -> !tokenMetadatas.containsKey(hash));
+                Map<String, TokenEntry> newCache = new ConcurrentHashMap<>();
                 tokenMetadatas.forEach((hash, tokenMetadata) -> {
-                    if (tokenMetadata.isRevoked()) {
-                        tokenCache.remove(hash);
-                        return;
+                    if (!tokenMetadata.isRevoked()) {
+                        newCache.put(
+                            hash,
+                            new TokenEntry(buildRole(tokenMetadata), tokenMetadata.getExpiration(), tokenMetadata.getName())
+                        );
                     }
-                    tokenCache.put(hash, new TokenEntry(buildRole(tokenMetadata), tokenMetadata.getExpiration(), tokenMetadata.getName()));
                 });
+                tokenCache = newCache;
                 listener.onResponse(null);
             }
 

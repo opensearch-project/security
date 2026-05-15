@@ -241,6 +241,34 @@ public class ApiTokenTest {
     }
 
     @Test
+    public void testApiTokenWithOnlyIndexPermissions_noClusterPermissionsField() {
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            adminClient.putJson("test-index-nocluster", "{\"settings\":{\"number_of_shards\":1}}").assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        String payload = """
+            {
+              "name": "no-cluster-perms-token",
+              "index_permissions": [{
+                "index_pattern": ["test-index-nocluster"],
+                "allowed_actions": ["indices:data/read/search"]
+              }],
+              "duration_seconds": 3600
+            }
+            """;
+        String apiToken = generateApiToken(payload);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
+
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            // Should be able to search the allowed index
+            client.get("test-index-nocluster/_search").assertStatusCode(HttpStatus.SC_OK);
+
+            // Should NOT be able to call cluster health (no cluster permissions)
+            assertThat(client.get("_cluster/health").getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+    }
+
+    @Test
     public void testApiTokenWithIndexPermissions_canWriteAllowedIndex() {
         try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
             adminClient.putJson("test-index-write", "{\"settings\":{\"number_of_shards\":1}}").assertStatusCode(HttpStatus.SC_OK);
