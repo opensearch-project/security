@@ -27,8 +27,8 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
@@ -79,9 +79,8 @@ public class SecurityRestFilterUnitTests {
      */
     @Test
     public void testSecurityRestFilterWrap() throws Exception {
-        AdminDNs adminDNs = mock(AdminDNs.class);
-
-        RestHandler wrappedRestHandler = sf.wrap(testRestHandler, adminDNs, new HashSet<>());
+        SuperAdminAuthority superAdminAuthority = mock(SuperAdminAuthority.class);
+        RestHandler wrappedRestHandler = sf.wrap(testRestHandler, superAdminAuthority, new HashSet<>());
 
         assertTrue(wrappedRestHandler instanceof SecurityRestFilter.AuthczRestHandler);
         assertFalse(wrappedRestHandler instanceof TestRestHandler);
@@ -90,12 +89,9 @@ public class SecurityRestFilterUnitTests {
     @Test
     public void testDoesCallDelegateOnSuccessfulAuthorization() throws Exception {
         SecurityRestFilter filterSpy = spy(sf);
-        AdminDNs adminDNs = mock(AdminDNs.class);
-
+        SuperAdminAuthority superAdminAuthority = mock(SuperAdminAuthority.class);
         RestHandler testRestHandlerSpy = spy(testRestHandler);
-        RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, adminDNs, new HashSet<>());
-
-        doReturn(false).when(filterSpy).userIsSuperAdmin(any(), any());
+        RestHandler wrappedRestHandler = filterSpy.wrap(testRestHandlerSpy, superAdminAuthority, new HashSet<>());
 
         wrappedRestHandler.handleRequest(mock(RestRequest.class), mock(RestChannel.class), mock(NodeClient.class));
 

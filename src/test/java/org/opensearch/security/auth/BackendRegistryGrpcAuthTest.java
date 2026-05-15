@@ -31,6 +31,7 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.filter.GrpcRequestChannel;
 import org.opensearch.security.http.HTTPBasicAuthenticator;
 import org.opensearch.security.http.XFFResolver;
@@ -70,6 +71,9 @@ public class BackendRegistryGrpcAuthTest {
     @Mock
     private ClusterInfoHolder clusterInfoHolder;
 
+    @Mock
+    private SuperAdminAuthority superAdminAuthority;
+
     private BackendRegistry backendRegistry;
 
     @Before
@@ -79,6 +83,7 @@ public class BackendRegistryGrpcAuthTest {
         // no admin user configured - ensure these checks are false
         when(adminDns.isAdmin(any())).thenReturn(false);
         when(adminDns.isAdminDN(any())).thenReturn(false);
+        when(superAdminAuthority.getAdminDns()).thenReturn(adminDns);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
         when(xffResolver.resolve(any())).thenReturn(new TransportAddress(new InetSocketAddress("127.0.0.1", 9200)));
@@ -86,7 +91,7 @@ public class BackendRegistryGrpcAuthTest {
         // backend registry requires at least one auth path is available to initialize.
         // here we enable user injection to allow us to mock/test other failure cases.
         Settings settings = Settings.builder().put("plugins.security.unsupported.inject_user.enabled", true).build();
-        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, clusterInfoHolder);
+        backendRegistry = new BackendRegistry(settings, superAdminAuthority, xffResolver, auditLog, threadPool, clusterInfoHolder);
     }
 
     @Test

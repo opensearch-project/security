@@ -56,7 +56,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     protected final ThreadContext threadContext;
     protected final Index index;
     protected final String securityIndex;
-    private final AdminDNs adminDns;
+    private final SuperAdminAuthority superAdminAuthority;
     private final PrivilegesConfiguration privilegesConfiguration;
     private final RoleMapper roleMapper;
     private final WildcardMatcher protectedIndexMatcher;
@@ -72,7 +72,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     public SystemIndexSearcherWrapper(
         final IndexService indexService,
         final Settings settings,
-        final AdminDNs adminDNs,
+        final SuperAdminAuthority superAdminAuthority,
         final PrivilegesConfiguration privilegesConfiguration,
         final RoleMapper roleMapper
     ) {
@@ -84,7 +84,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
         );
         this.privilegesConfiguration = privilegesConfiguration;
         this.roleMapper = roleMapper;
-        this.adminDns = adminDNs;
+        this.superAdminAuthority = superAdminAuthority;
         this.protectedIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY));
         this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY));
         this.protectedIndexEnabled = settings.getAsBoolean(
@@ -130,7 +130,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
 
         final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-        if (user != null && adminDns.isAdmin(user)) {
+        if (user != null && superAdminAuthority.isSuperAdmin(user)) {
             return true;
         }
 
@@ -177,7 +177,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
             return true;
-        } else if (adminDns.isAdmin(user)) {
+        } else if (superAdminAuthority.isSuperAdmin(user)) {
             return true;
         } else {
             return false;

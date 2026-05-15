@@ -119,6 +119,7 @@ public final class AuditMessage {
 
     public static final String EXCEPTION = "audit_request_exception_stacktrace";
     public static final String IS_ADMIN_DN = "audit_request_effective_user_is_admin";
+    public static final String IS_SUPERADMIN_SECRET = "audit_request_effective_user_is_superadmin_secret";
     public static final String PRIVILEGE = "audit_request_privilege";
 
     public static final String TASK_ID = "audit_trace_task_id";
@@ -172,6 +173,10 @@ public final class AuditMessage {
 
     public void addIsAdminDn(boolean isAdminDn) {
         auditInfo.put(IS_ADMIN_DN, isAdminDn);
+    }
+
+    public void addIsSuperadminSecret(boolean isSuperadminSecret) {
+        auditInfo.put(IS_SUPERADMIN_SECRET, isSuperadminSecret);
     }
 
     public void addException(Throwable t) {

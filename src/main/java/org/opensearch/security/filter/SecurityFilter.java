@@ -86,9 +86,9 @@ import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -113,7 +113,7 @@ public class SecurityFilter implements ActionFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesConfiguration privilegesConfiguration;
-    private final AdminDNs adminDns;
+    private final SuperAdminAuthority superAdminAuthority;
     private final DlsFlsRequestValve dlsFlsValve;
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
@@ -129,7 +129,7 @@ public class SecurityFilter implements ActionFilter {
     public SecurityFilter(
         final Settings settings,
         PrivilegesConfiguration privilegesConfiguration,
-        final AdminDNs adminDns,
+        final SuperAdminAuthority superAdminAuthority,
         DlsFlsRequestValve dlsFlsValve,
         AuditLog auditLog,
         ThreadPool threadPool,
@@ -139,7 +139,7 @@ public class SecurityFilter implements ActionFilter {
         ResourceAccessEvaluator resourceAccessEvaluator
     ) {
         this.privilegesConfiguration = privilegesConfiguration;
-        this.adminDns = adminDns;
+        this.superAdminAuthority = superAdminAuthority;
         this.dlsFlsValve = dlsFlsValve;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -221,7 +221,7 @@ public class SecurityFilter implements ActionFilter {
             if (user != null && threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
                 threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
             }
-            final boolean userIsAdmin = isUserAdmin(user, adminDns);
+            final boolean userIsAdmin = isUserAdmin(user, superAdminAuthority);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
             final boolean confRequest = "true".equals(
@@ -555,8 +555,8 @@ public class SecurityFilter implements ActionFilter {
         return false;
     }
 
-    private static boolean isUserAdmin(User user, final AdminDNs adminDns) {
-        return user != null && adminDns.isAdmin(user);
+    private static boolean isUserAdmin(User user, final SuperAdminAuthority superAdminAuthority) {
+        return superAdminAuthority.isSuperAdmin(user);
     }
 
     private void attachSourceFieldContext(ActionRequest request) {

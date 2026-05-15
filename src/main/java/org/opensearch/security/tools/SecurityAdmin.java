@@ -67,13 +67,16 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.function.Factory;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -300,6 +303,15 @@ public class SecurityAdmin {
             Option.builder("keypass").hasArg().argName("password").desc("Password of the key of admin certificate (optional)").build()
         );
 
+        options.addOption(
+            Option.builder("sas")
+                .longOpt("superadmin-secret")
+                .hasArg()
+                .argName("secret")
+                .desc("Superadmin secret for HTTP header authentication")
+                .build()
+        );
+
         options.addOption(Option.builder("si").longOpt("show-info").desc("Show system and license info").build());
 
         options.addOption(Option.builder("w").longOpt("whoami").desc("Show information about the used admin certificate").build());
@@ -374,6 +386,7 @@ public class SecurityAdmin {
         final boolean promptForPassword;
         String explicitReplicas = null;
         String backup = null;
+        String superadminSecret = null;
         final boolean resolveEnvVars;
         Integer validateConfig = null;
 
@@ -461,6 +474,7 @@ public class SecurityAdmin {
             explicitReplicas = line.getOptionValue("er", explicitReplicas);
 
             backup = line.getOptionValue("backup");
+            superadminSecret = line.getOptionValue("sas", superadminSecret);
 
             resolveEnvVars = line.hasOption("rev");
 
@@ -533,7 +547,8 @@ public class SecurityAdmin {
                 enabledProtocols,
                 enabledCiphers,
                 hostname,
-                port
+                port,
+                superadminSecret
             )
         ) {
 
@@ -1465,7 +1480,8 @@ public class SecurityAdmin {
         String[] enabledProtocols,
         String[] enabledCiphers,
         String hostname,
-        int port
+        int port,
+        String superadminSecret
     ) {
 
         final HostnameVerifier hnv = !nhnv ? new DefaultHostnameVerifier() : NoopHostnameVerifier.INSTANCE;
@@ -1475,7 +1491,13 @@ public class SecurityAdmin {
 
         HttpHost httpHost = new HttpHost("https", hostname, port);
 
-        RestClientBuilder restClientBuilder = RestClient.builder(httpHost).setHttpClientConfigCallback(builder -> {
+        RestClientBuilder restClientBuilder = RestClient.builder(httpHost);
+        if (!ObjectUtils.isEmpty(superadminSecret)) {
+            restClientBuilder.setDefaultHeaders(
+                new Header[] { new BasicHeader(ConfigConstants.SECURITY_SUPERADMIN_SECRET_HEADER, superadminSecret) }
+            );
+        }
+        restClientBuilder = restClientBuilder.setHttpClientConfigCallback(builder -> {
             TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
                 .setSslContext(sslContext)
                 .setTlsVersions(supportedProtocols)

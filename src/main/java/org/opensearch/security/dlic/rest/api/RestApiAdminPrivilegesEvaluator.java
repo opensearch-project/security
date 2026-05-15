@@ -21,7 +21,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -83,19 +83,19 @@ public class RestApiAdminPrivilegesEvaluator {
 
     private final PrivilegesConfiguration privilegesConfiguration;
 
-    private final AdminDNs adminDNs;
+    private final SuperAdminAuthority superAdminAuthority;
 
     private final boolean restapiAdminEnabled;
 
     public RestApiAdminPrivilegesEvaluator(
         final ThreadContext threadContext,
         final PrivilegesConfiguration privilegesConfiguration,
-        final AdminDNs adminDNs,
+        final SuperAdminAuthority superAdminAuthority,
         final boolean restapiAdminEnabled
     ) {
         this.threadContext = threadContext;
         this.privilegesConfiguration = privilegesConfiguration;
-        this.adminDNs = adminDNs;
+        this.superAdminAuthority = superAdminAuthority;
         this.restapiAdminEnabled = restapiAdminEnabled;
     }
 
@@ -104,7 +104,7 @@ public class RestApiAdminPrivilegesEvaluator {
         if (userAndRemoteAddress.getLeft() == null) {
             return false;
         }
-        if (adminDNs.isAdmin(userAndRemoteAddress.getLeft())) {
+        if (superAdminAuthority.isSuperAdmin(userAndRemoteAddress.getLeft())) {
             return true;
         }
         if (!ENDPOINTS_WITH_PERMISSIONS.containsKey(endpoint)) {
