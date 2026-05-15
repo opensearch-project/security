@@ -30,7 +30,8 @@ public enum AuditCategory {
     COMPLIANCE_DOC_WRITE,
     COMPLIANCE_EXTERNAL_CONFIG,
     COMPLIANCE_INTERNAL_CONFIG_READ,
-    COMPLIANCE_INTERNAL_CONFIG_WRITE;
+    COMPLIANCE_INTERNAL_CONFIG_WRITE,
+    API_TOKEN_WRITE;
 
     public static Set<AuditCategory> parse(final Collection<String> categories) {
         if (categories.isEmpty()) return Collections.emptySet();

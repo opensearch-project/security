@@ -28,6 +28,17 @@ import static org.junit.Assert.assertTrue;
 public class AuthTokenUtilsTest {
 
     @Test
+    public void testIsAccessToRestrictedEndpointsForApiToken() {
+        NamedXContentRegistry namedXContentRegistry = new NamedXContentRegistry(Collections.emptyList());
+
+        FakeRestRequest request = new FakeRestRequest.Builder(namedXContentRegistry).withPath("/api/apitokens")
+            .withMethod(RestRequest.Method.POST)
+            .build();
+
+        assertTrue(AuthTokenUtils.isAccessToRestrictedEndpoints(SecurityRequestFactory.from(request), "api/generateonbehalfoftoken"));
+    }
+
+    @Test
     public void testIsAccessToRestrictedEndpointsForOnBehalfOfToken() {
         NamedXContentRegistry namedXContentRegistry = new NamedXContentRegistry(Collections.emptyList());
 

@@ -124,6 +124,16 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        // noop
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        // noop
+    }
+
+    @Override
     public ComplianceConfig getComplianceConfig() {
         return null;
     }
