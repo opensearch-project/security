@@ -104,6 +104,12 @@ public class User implements Serializable, CustomAttributesAware {
     private volatile transient String serializedBase64;
 
     /**
+     * The type of authenticator that authenticated this user (e.g., "basic", "obo", "apitoken").
+     * Transient — not serialized, only used for in-process authorization decisions.
+     */
+    private transient String authenticatedBy;
+
+    /**
      * Create a new authenticated user without roles and attributes
      *
      * @param name The username (must not be null or empty)
@@ -330,6 +336,14 @@ public class User implements Serializable, CustomAttributesAware {
             return name.substring("plugin:".length());
         }
         return null;
+    }
+
+    public String getAuthenticatedBy() {
+        return authenticatedBy;
+    }
+
+    public void setAuthenticatedBy(String authenticatedBy) {
+        this.authenticatedBy = authenticatedBy;
     }
 
     /**
