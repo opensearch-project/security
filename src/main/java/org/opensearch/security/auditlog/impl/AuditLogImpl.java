@@ -237,6 +237,20 @@ public class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        if (enabled) {
+            super.logApiTokenCreated(tokenName, createdBy);
+        }
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        if (enabled) {
+            super.logApiTokenRevoked(tokenId, revokedBy);
+        }
+    }
+
+    @Override
     protected void logExternalConfig() {
         if (enabled) {
             super.logExternalConfig();
