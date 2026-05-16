@@ -30,16 +30,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Integration tests for {@link InternalOpenSearchSink} with default date-based index naming.
+ * Integration tests for {@link InternalOpenSearchSink} with a plain concrete index
+ * (no alias configured).
  *
- * <p>Tests the regular index creation path (no alias configured). The default pattern
- * {@code 'security-auditlog-'YYYY.MM.dd} creates daily indices
- * (e.g., {@code security-auditlog-2025.01.11}).</p>
+ * <p>Exercises the regular index creation path: the default pattern
+ * {@code 'security-auditlog-'YYYY.MM.dd} produces daily indices
+ * (e.g., {@code security-auditlog-2025.01.11}). No pre-existing index or alias is
+ * present when the cluster starts, so the sink must create the index on first write.</p>
  *
  * <h5>Tested Code Paths in {@code createIndexIfAbsent()}:</h5>
  * <ul>
  *   <li>First event: both {@code metadata.hasAlias()} and {@code metadata.hasIndex()} return
- *       {@code false}, triggering a {@code CreateIndexRequest} with the date-based index name.</li>
+ *       {@code false}, triggering a {@code CreateIndexRequest} with the date-based index name
+ *       ({@link #testCreatesAuditIndexAutomatically()}).</li>
  *   <li>Subsequent events: {@code metadata.hasIndex()} returns {@code true}; covered by
  *       the inherited {@link AbstractInternalOpenSearchSinkIntegrationTest#testPersistsAuditEventsToTarget()}.</li>
  * </ul>
@@ -49,9 +52,9 @@ import static org.hamcrest.Matchers.*;
  * {@link AbstractInternalOpenSearchSinkIntegrationTest}.</p>
  *
  * @see InternalOpenSearchSinkIntegrationTestAuditAlias for the write-alias variant
- * @see InternalOpenSearchSinkTest for unit tests covering exception branches
+ * @see InternalOpenSearchSinkTest for unit tests covering exception and race-condition branches
  */
-public class InternalOpenSearchSinkIntegrationTest extends AbstractInternalOpenSearchSinkIntegrationTest {
+public class InternalOpenSearchSinkIntegrationTestConcreteIndex extends AbstractInternalOpenSearchSinkIntegrationTest {
 
     private static final String AUDIT_INDEX_PREFIX = "security-auditlog-";
 
@@ -90,14 +93,14 @@ public class InternalOpenSearchSinkIntegrationTest extends AbstractInternalOpenS
 
             generateAuditEvent("_cluster/health");
 
-            await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+            await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
                 refreshAuditTarget(client);
                 assertThat("At least one new audit event must be generated",
                     countAuditDocs(client), greaterThan(before));
             });
 
-            await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
-                GetIndexResponse response = CLUSTER.getInternalNodeClient()
+            await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
+                GetIndexResponse response = client
                     .admin()
                     .indices()
                     .getIndex(new GetIndexRequest().indices(AUDIT_INDEX_PREFIX + "*"))

@@ -34,8 +34,8 @@ import static org.hamcrest.Matchers.*;
  * Base class for {@link InternalOpenSearchSink} integration tests.
  *
  * <p>Holds test methods that are valid regardless of whether the audit target
- * is a date-based index or a write alias. Each subclass provides its own
- * {@link org.junit.ClassRule}-annotated {@link LocalCluster} and overrides
+ * is a plain concrete index or a write alias. Each subclass provides its own
+ * {@code @ClassRule} {@link LocalCluster} and overrides
  * {@link #cluster()} and {@link #auditTarget()} to supply the correct
  * cluster and query pattern for that configuration variant.</p>
  *
@@ -43,8 +43,8 @@ import static org.hamcrest.Matchers.*;
  * and {@code testAuditDocumentContainsMandatoryFields} across the two concrete
  * integration-test classes that differ only in cluster setup.</p>
  *
- * @see InternalOpenSearchSinkIntegrationTest      default date-based index variant
- * @see InternalOpenSearchSinkIntegrationTestAuditAlias  write-alias variant
+ * @see InternalOpenSearchSinkIntegrationTestConcreteIndex concrete date-based index variant
+ * @see InternalOpenSearchSinkIntegrationTestAuditAlias    write-alias variant
  */
 abstract class AbstractInternalOpenSearchSinkIntegrationTest {
 
@@ -113,7 +113,7 @@ abstract class AbstractInternalOpenSearchSinkIntegrationTest {
             generateAuditEvent("_cluster/health");
             generateAuditEvent("_cluster/stats");
 
-            await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+            await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
                 refreshAuditTarget(client);
                 assertThat("At least 2 new audit events must be persisted",
                     countAuditDocs(client) - before, greaterThanOrEqualTo(2L));
@@ -130,7 +130,7 @@ abstract class AbstractInternalOpenSearchSinkIntegrationTest {
      *   <li>{@code audit_category} — event classification (e.g., {@code GRANTED_PRIVILEGES})</li>
      *   <li>{@code audit_request_layer} — processing layer; expected value: {@code REST}</li>
      *   <li>{@code audit_request_origin} — origin layer; expected value: {@code REST}</li>
-     *   <li>{@code @timestamp} — ISO-8601 event timestamp</li>
+     *   <li>{@code @timestamp} — event timestamp</li>
      * </ul>
      *
      * <p><b>REST-Specific Fields:</b></p>
@@ -151,7 +151,7 @@ abstract class AbstractInternalOpenSearchSinkIntegrationTest {
 
             generateAuditEvent("_cluster/health");
 
-            await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+            await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
                 refreshAuditTarget(client);
                 assertThat("Test must generate at least one new event",
                     countAuditDocs(client) - before, greaterThan(0L));
