@@ -176,6 +176,6 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private static boolean isTokenAuthenticatedUser(User user) {
         String authBy = user.getAuthenticatedBy();
-        return "onbehalfof_jwt".equals(authBy);
+        return "onbehalfof_jwt".equals(authBy) || "apitoken".equals(authBy);
     }
 }

@@ -12,6 +12,8 @@
 package org.opensearch.security.privileges;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +29,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.action.apitokens.ApiToken;
 import org.opensearch.security.http.ApiTokenAuthenticator;
 import org.opensearch.test.framework.ApiTokenConfig;
+import org.opensearch.test.framework.OnBehalfOfConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -49,6 +52,11 @@ public class ApiTokenTest {
     static final TestSecurityConfig.User REGULAR_USER = new TestSecurityConfig.User("regular_user");
 
     private static final String CREATE_API_TOKEN_PATH = "_plugins/_security/api/apitokens";
+    private static final String CREATE_OBO_TOKEN_PATH = "_plugins/_security/api/obo/token";
+    private static final String OBO_DESCRIPTION = "{\"description\":\"Testing\", \"service\":\"self-issued\"}";
+    private static final String signingKey = Base64.getEncoder()
+        .encodeToString("jwt signing key for an on behalf of token authentication backend for testing".getBytes(StandardCharsets.UTF_8));
+    private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
     public static final String ADMIN_USER_NAME = "admin";
     public static final String REGULAR_USER_NAME = "regular_user";
     public static final String DEFAULT_PASSWORD = "secret";
@@ -100,6 +108,10 @@ public class ApiTokenTest {
         return new ApiTokenConfig().enabled(true);
     }
 
+    private static OnBehalfOfConfig defaultOnBehalfOfConfig() {
+        return new OnBehalfOfConfig().enabled(true).signingKey(signingKey).encryptionKey(encryptionKey);
+    }
+
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
@@ -114,6 +126,7 @@ public class ApiTokenTest {
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .apiToken(defaultApiTokenConfig())
+        .onBehalfOf(defaultOnBehalfOfConfig())
         .build();
 
     @Before
@@ -164,6 +177,26 @@ public class ApiTokenTest {
 
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_PAYLOAD);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
+        }
+    }
+
+    @Test
+    public void shouldNotBeAbleToUseApiTokenToGenerateOboTokens() {
+        // Give the token the OBO create permission so it passes the privilege check
+        // and hits the isTokenAuthenticatedUser guard
+        String payload = """
+            {
+              "name": "test-token-obo",
+              "cluster_permissions": ["security:obo/create"],
+              "duration_seconds": 3600
+            }
+            """;
+        String apiToken = generateApiToken(payload);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
+
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            TestRestClient.HttpResponse response = client.postJson(CREATE_OBO_TOKEN_PATH, OBO_DESCRIPTION);
             response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
     }
