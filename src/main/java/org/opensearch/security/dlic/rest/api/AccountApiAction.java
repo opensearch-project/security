@@ -113,7 +113,7 @@ public class AccountApiAction extends AbstractApiAction {
             )
             .onChangeRequest(Method.PUT, request -> withUserAndRemoteAddress().map(userAndRemoteAddress -> {
                 final User user = userAndRemoteAddress.getLeft();
-                if ("onbehalfof_jwt".equals(user.getAuthenticatedBy())) {
+                if ("onbehalfof_jwt".equals(user.getAuthenticatedBy()) || "apitoken".equals(user.getAuthenticatedBy())) {
                     return ValidationResult.error(
                         RestStatus.FORBIDDEN,
                         forbiddenMessage("Token-authenticated users cannot change passwords")

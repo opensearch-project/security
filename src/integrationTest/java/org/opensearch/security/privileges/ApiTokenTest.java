@@ -208,7 +208,7 @@ public class ApiTokenTest {
 
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.putJson("_plugins/_security/api/account", CURRENT_AND_NEW_PASSWORDS);
-            response.assertStatusCode(HttpStatus.SC_NOT_FOUND);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
     }
 
