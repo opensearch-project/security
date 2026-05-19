@@ -17,9 +17,9 @@ java {
 }
 
 opensearchplugin {
-    name 'opensearch-sample-resource-plugin'
-    description 'Sample plugin that extends OpenSearch Resource Plugin'
-    classname 'org.opensearch.sample.SampleResourcePlugin'
+    name = 'opensearch-sample-resource-plugin'
+    description = 'Sample plugin that extends OpenSearch Resource Plugin'
+    classname = 'org.opensearch.sample.SampleResourcePlugin'
     extendedPlugins = ['opensearch-security;optional=true']
 }
 
@@ -29,7 +29,7 @@ loggerUsageCheck.enabled = false
 validateNebulaPom.enabled = false
 testingConventions.enabled = false
 tasks.configureEach { task ->
-    if(task.name.contains("forbiddenApisIntegrationTest")) {
+    if (task.name.contains("forbiddenApisIntegrationTest")) {
         task.enabled = false
     }
 }
@@ -45,7 +45,7 @@ ext {
 repositories {
     mavenLocal()
     mavenCentral()
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+    maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
 
 sourceSets {
@@ -153,7 +153,7 @@ tasks.register('jacocoSamplePluginReport', JacocoReport) {
 
     executionData = fileTree(dir: buildDir, include: 'jacoco/*.exec')
     def sampleClasses = sourceSets.main.output.classesDirs
-    def rootClasses   = project(':').sourceSets.main.output.classesDirs
+    def rootClasses = project(':').sourceSets.main.output.classesDirs
     def filteredRootClasses = rootClasses.collect { outDir ->
         fileTree(dir: outDir, include: [
                 'org/opensearch/security/spi/resources/**/*.class',
@@ -162,10 +162,10 @@ tasks.register('jacocoSamplePluginReport', JacocoReport) {
         ])
     }
     def spiClasses = project(':opensearch-security-spi').sourceSets.main.output.classesDirs
-    classDirectories  = files(sampleClasses, filteredRootClasses, spiClasses)
+    classDirectories = files(sampleClasses, filteredRootClasses, spiClasses)
 
     def sampleSrc = sourceSets.main.allSource.srcDirs
-    def rootSrc   = project(':').sourceSets.main.allSource.srcDirs
+    def rootSrc = project(':').sourceSets.main.allSource.srcDirs
     def filteredRootSrc = rootSrc.collect { srcDir ->
         fileTree(dir: srcDir, include: [
                 'org/opensearch/security/spi/resources/**/*.java',
@@ -177,7 +177,7 @@ tasks.register('jacocoSamplePluginReport', JacocoReport) {
     sourceDirectories = files(sampleSrc, filteredRootSrc, spiSrc)
 
     reports {
-        xml.required  = true
+        xml.required = true
     }
 }
 
