@@ -393,7 +393,7 @@ public class RequestContentValidator implements ToXContent {
 
     private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
         if (originalContent != null) {
-            final JsonNode patch = JsonDiff.asJson(originalContent, jsonContent);
+            final JsonNode patch = Jackson3JsonDiff.asJson(originalContent, jsonContent);
             return nullValuesInArrayValidator(jsonContent, patch);
         }
         // Use allowedKeysWithConfig if provided, otherwise fall back to allowedKeys
