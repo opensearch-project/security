@@ -35,8 +35,6 @@ import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jwt.SignedJWT;
 
-import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
-
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
 
@@ -57,7 +55,7 @@ public class JwtVendor {
      * */
     static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings) {
         final OctetSequenceKey key;
-        if (!isKeyNull(settings, "signing_key")) {
+        if (settings.get("signing_key") != null) {
             final String signingKey = settings.get("signing_key");
             key = new OctetSequenceKey.Builder(Base64.getDecoder().decode(signingKey)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)

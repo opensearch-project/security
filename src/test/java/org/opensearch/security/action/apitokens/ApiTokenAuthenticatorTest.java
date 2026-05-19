@@ -62,7 +62,6 @@ public class ApiTokenAuthenticatorTest {
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("ApiKey " + plainToken);
-        when(request.path()).thenReturn("/test");
 
         AuthCredentials ac = authenticator.extractCredentials(request, threadContext);
 
@@ -75,7 +74,6 @@ public class ApiTokenAuthenticatorTest {
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("ApiKey " + plainToken);
-        when(request.path()).thenReturn("/test");
 
         AuthCredentials ac = authenticator.extractCredentials(request, threadContext);
 
@@ -91,7 +89,6 @@ public class ApiTokenAuthenticatorTest {
 
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("ApiKey " + plainToken);
-        when(request.path()).thenReturn("/test");
 
         AuthCredentials ac = authenticator.extractCredentials(request, threadContext);
 
@@ -102,23 +99,10 @@ public class ApiTokenAuthenticatorTest {
     public void testExtractCredentialsFailWhenTokenMissingPrefix() {
         SecurityRequest request = mock(SecurityRequest.class);
         when(request.header("Authorization")).thenReturn("ApiKey notanosprefixedtoken");
-        when(request.path()).thenReturn("/test");
 
         AuthCredentials ac = authenticator.extractCredentials(request, threadContext);
 
         assertNull("Should return null when token does not have os_ prefix", ac);
-    }
-
-    @Test
-    public void testExtractCredentialsFailWhenAccessingRestrictedEndpoint() {
-        SecurityRequest request = mock(SecurityRequest.class);
-        when(request.header("Authorization")).thenReturn("ApiKey " + plainToken);
-        when(request.path()).thenReturn("/_plugins/_security/api/apitokens");
-
-        AuthCredentials ac = authenticator.extractCredentials(request, threadContext);
-
-        assertNull("Should return null when accessing restricted endpoint", ac);
-        verify(log).warn("OpenSearchException[Api Tokens are not allowed to be used for accessing this endpoint.]");
     }
 
     @Test

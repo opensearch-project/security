@@ -12,32 +12,23 @@
 package org.opensearch.security.http;
 
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
-import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.action.apitokens.ApiTokenRepository.TOKEN_PREFIX;
-import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
 
 public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
-    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
-    private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
     private static final String API_KEY_PREFIX = "apikey ";
 
     public static final String API_TOKEN_USER_PREFIX = "token:";
@@ -61,10 +52,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
 
         String token = extractTokenFromHeader(request);
         if (token == null) {
-            return null;
-        }
-
-        if (!isRequestAllowed(request)) {
             return null;
         }
 
@@ -105,17 +92,6 @@ public class ApiTokenAuthenticator implements HTTPAuthenticator {
             return null;
         }
         return header.substring(header.toLowerCase(java.util.Locale.ROOT).indexOf(API_KEY_PREFIX) + API_KEY_PREFIX.length()).trim();
-    }
-
-    public Boolean isRequestAllowed(final SecurityRequest request) {
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
-        final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (isAccessToRestrictedEndpoints(request, suffix)) {
-            final OpenSearchException exception = ExceptionUtils.invalidUsageOfApiTokenException();
-            log.warn(exception.toString());
-            return false;
-        }
-        return true;
     }
 
     @Override
