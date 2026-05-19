@@ -542,7 +542,7 @@ public class RequestContentValidatorTest {
             }
         });
         // Original has a legacy empty-string in backend_roles
-        final ObjectNode original = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode original = DefaultObjectMapper.objectMapper().createObjectNode();
         original.put("hash", "oldhash");
         original.putArray("backend_roles").add("").add("admin");
 
@@ -572,7 +572,7 @@ public class RequestContentValidatorTest {
                 return Map.of("hash", RequestContentValidator.DataType.STRING, "backend_roles", RequestContentValidator.DataType.ARRAY);
             }
         });
-        final ObjectNode original = DefaultObjectMapper.objectMapper.createObjectNode();
+        final ObjectNode original = DefaultObjectMapper.objectMapper().createObjectNode();
         original.put("hash", "oldhash");
         original.putArray("backend_roles").add("admin");
 
