@@ -71,6 +71,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
@@ -93,6 +94,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Settings settings;
     private volatile AuditConfig.Filter auditConfigFilter;
     private final String securityIndex;
+    private final WildcardMatcher securityIndicesMatcher;
     private volatile ComplianceConfig complianceConfig;
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
@@ -126,6 +128,12 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+        );
+        this.securityIndicesMatcher = WildcardMatcher.from(
+            List.of(
+                settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+                ConfigConstants.OPENSEARCH_API_TOKENS_INDEX
+            )
         );
         this.environment = environment;
         this.userFactory = userFactory;
@@ -481,7 +489,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndex.equals(index)
+        AuditCategory category = securityIndicesMatcher.test(index)
             ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ
             : AuditCategory.COMPLIANCE_DOC_READ;
 
@@ -514,7 +522,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                         log.error(e.toString());
                     }
                 } else {
-                    if (securityIndex.equals(index) && !"tattr".equals(id)) {
+                    if (securityIndicesMatcher.test(index) && !"tattr".equals(id)) {
                         try {
                             Map<String, String> map = fieldNameValues.entrySet()
                                 .stream()
@@ -548,9 +556,14 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndex.equals(shardId.getIndexName())
-            ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE
-            : AuditCategory.COMPLIANCE_DOC_WRITE;
+        AuditCategory category;
+        if (ConfigConstants.OPENSEARCH_API_TOKENS_INDEX.equals(shardId.getIndexName())) {
+            category = AuditCategory.API_TOKEN_WRITE;
+        } else if (securityIndicesMatcher.test(shardId.getIndexName())) {
+            category = AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE;
+        } else {
+            category = AuditCategory.COMPLIANCE_DOC_WRITE;
+        }
 
         String effectiveUser = getUser();
 
@@ -578,7 +591,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                     // originalSource is empty
                     originalSource = "{}";
                 }
-                if (securityIndex.equals(shardId.getIndexName())) {
+                if (securityIndicesMatcher.test(shardId.getIndexName())) {
+                    boolean isApiTokenIndex = shardId.getIndexName().equals(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+
                     if (originalSource == null) {
                         try (
                             XContentParser parser = XContentHelper.createParser(
@@ -588,11 +603,19 @@ public abstract class AbstractAuditLog implements AuditLog {
                                 XContentType.JSON
                             )
                         ) {
-                            Object base64 = parser.map().values().iterator().next();
-                            if (base64 instanceof String) {
-                                originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
-                            } else {
+                            if (isApiTokenIndex) {
                                 originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                            } else {
+                                Object base64 = parser.map().values().iterator().next();
+                                if (base64 instanceof String) {
+                                    originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
+                                } else {
+                                    originalSource = XContentHelper.convertToJson(
+                                        originalResult.internalSourceRef(),
+                                        false,
+                                        XContentType.JSON
+                                    );
+                                }
                             }
                         } catch (Exception e) {
                             log.error(e.toString());
@@ -607,11 +630,15 @@ public abstract class AbstractAuditLog implements AuditLog {
                             XContentType.JSON
                         )
                     ) {
-                        Object base64 = parser.map().values().iterator().next();
-                        if (base64 instanceof String) {
-                            currentSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
-                        } else {
+                        if (isApiTokenIndex) {
                             currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                        } else {
+                            Object base64 = parser.map().values().iterator().next();
+                            if (base64 instanceof String) {
+                                currentSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
+                            } else {
+                                currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                            }
                         }
                     } catch (Exception e) {
                         log.error(e.toString());
@@ -638,7 +665,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if (!complianceConfig.shouldLogWriteMetadataOnly() && !complianceConfig.shouldLogDiffsForWrite()) {
-            if (securityIndex.equals(shardId.getIndexName())) {
+            if (securityIndicesMatcher.test(shardId.getIndexName())) {
                 // current source, normally not null or empty
                 try (
                     XContentParser parser = XContentHelper.createParser(
@@ -786,6 +813,22 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
         }
 
+        save(msg);
+    }
+
+    @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
+        msg.addEffectiveUser(createdBy);
+        msg.addSecurityConfigWriteDiffSource("{\"action\":\"created\",\"token_name\":\"" + tokenName + "\"}", tokenName);
+        save(msg);
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
+        msg.addEffectiveUser(revokedBy);
+        msg.addSecurityConfigWriteDiffSource("{\"action\":\"revoked\",\"token_id\":\"" + tokenId + "\"}", tokenId);
         save(msg);
     }
 

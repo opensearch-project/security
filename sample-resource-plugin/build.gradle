@@ -79,7 +79,7 @@ configurations {
             // Force versions present in security plugin
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
             force "com.google.protobuf:protobuf-java:${versions.protobuf}"
-            force "com.google.guava:guava:${guava_version}"
+            force libs.google.guava
             force "com.google.guava:failureaccess:1.0.3"
             force "io.projectreactor:reactor-core:3.8.5"
 

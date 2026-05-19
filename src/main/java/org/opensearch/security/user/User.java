@@ -316,6 +316,13 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
+     * @return true if the request is from an API token, otherwise false
+     */
+    public boolean isApiTokenRequest() {
+        return name != null && name.startsWith(org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX);
+    }
+
+    /**
      * If this user is a plugin user, returns the plugin Java class name. Otherwise, returns null.
      */
     public String getPluginName() {

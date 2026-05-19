@@ -61,7 +61,7 @@ public class RestHelper {
         }
 
         Response response = client.performRequest(request);
-        log.info("Recieved response " + response.getStatusLine());
+        log.info("Received response " + response.getStatusLine());
         return response;
     }
 
