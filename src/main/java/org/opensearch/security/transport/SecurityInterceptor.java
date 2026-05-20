@@ -379,12 +379,14 @@ public class SecurityInterceptor {
     // based on
     // org.opensearch.transport.TransportService.ContextRestoreResponseHandler<T>
     // which is private scoped
-    private class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
+    // Visible for testing
+    class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
         private final Supplier<ThreadContext.StoredContext> contextToRestore;
         private final TransportResponseHandler<T> innerHandler;
 
-        private RestoringTransportResponseHandler(
+        // Visible for testing
+        RestoringTransportResponseHandler(
             TransportResponseHandler<T> innerHandler,
             Supplier<ThreadContext.StoredContext> contextToRestore
         ) {
@@ -395,6 +397,11 @@ public class SecurityInterceptor {
         @Override
         public T read(StreamInput in) throws IOException {
             return innerHandler.read(in);
+        }
+
+        @Override
+        public boolean skipsDeserialization() {
+            return innerHandler.skipsDeserialization();
         }
 
         @Override
