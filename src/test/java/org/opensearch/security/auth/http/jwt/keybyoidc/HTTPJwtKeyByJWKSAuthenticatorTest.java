@@ -76,6 +76,27 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
     }
 
     @Test
+    public void testJwksAuthenticationWithInvalidECSignature() throws Exception {
+        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
+
+        try {
+            Settings settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).build();
+
+            HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
+
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer invalid.jwt.token"), new HashMap<>()).asSecurityRequest(),
+                null
+            );
+
+            Assert.assertNull(creds);
+
+        } finally {
+            mockJwksServer.close();
+        }
+    }
+
+    @Test
     public void testJwksAuthenticationWithBearerPrefix() throws Exception {
         MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
 
