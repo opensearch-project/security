@@ -11,7 +11,6 @@ package org.opensearch.security.transport;
 import java.io.IOException;
 import java.util.function.Supplier;
 
-import org.jspecify.annotations.NonNull;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -21,6 +20,8 @@ import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.transport.TransportException;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.stream.StreamTransportResponse;
+
+import org.jspecify.annotations.NonNull;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -44,38 +45,37 @@ public class RestoringTransportResponseHandlerTests {
         );
 
         // Verify executor is forwarded
-        assertEquals(
-            "executor must match inner handler",
-            innerHandler.executor(),
-            wrappedHandler.executor()
-        );
+        assertEquals("executor must match inner handler", innerHandler.executor(), wrappedHandler.executor());
 
         // Verify read() forwards the StreamInput and returns the same response
         byte[] payload = new byte[] { 0x01, 0x42, (byte) 0xFF, 0x00, 0x7E, (byte) 0xAB };
         StreamInput streamInput = StreamInput.wrap(payload);
         TransportResponse readResult = wrappedHandler.read(streamInput);
 
-        assertSame(
-            "read() must forward the exact StreamInput to inner handler",
-            streamInput,
-            innerHandler.lastReadInput
-        );
-        assertSame(
-            "read() must return the inner handler's response",
-            innerHandler.readResponse,
-            readResult
-        );
+        assertSame("read() must forward the exact StreamInput to inner handler", streamInput, innerHandler.lastReadInput);
+        assertSame("read() must return the inner handler's response", innerHandler.readResponse, readResult);
     }
 
-    private static @NonNull TransportResponseHandler<TransportResponse> getRestorableTransportResponseTransportResponseHandler(TestTransportResponseHandler innerHandler) {
+    private static TransportResponseHandler<TransportResponse> getRestorableTransportResponseTransportResponseHandler(
+        TestTransportResponseHandler innerHandler
+    ) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         Supplier<ThreadContext.StoredContext> restorableContext = threadContext.newRestorableContext(true);
         SecurityInterceptor interceptor = new SecurityInterceptor(
-            null, null, null, null, null, null, null, null, null, null, () -> false, null
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            () -> false,
+            null
         );
-        TransportResponseHandler<TransportResponse> wrappedHandler =
-            interceptor.new RestoringTransportResponseHandler<>(innerHandler, restorableContext);
-        return wrappedHandler;
+        return interceptor.new RestoringTransportResponseHandler<>(innerHandler, restorableContext);
     }
 
     private static class TestTransportResponseHandler implements TransportResponseHandler<TransportResponse> {
