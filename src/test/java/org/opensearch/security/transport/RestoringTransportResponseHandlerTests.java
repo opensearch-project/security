@@ -21,8 +21,6 @@ import org.opensearch.transport.TransportException;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.stream.StreamTransportResponse;
 
-import org.jspecify.annotations.NonNull;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
