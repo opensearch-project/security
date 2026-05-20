@@ -2,6 +2,19 @@
 
 Guidance for AI coding agents working in this repository.
 
+## Keeping This File Up to Date
+
+This file should be updated automatically as part of any change that affects the information documented here. Do not treat it as a separate maintenance task — include the `AGENTS.md` update in the same commit or PR as the relevant code change. Examples of changes that should trigger an update:
+
+- Adding, removing, or renaming source packages or top-level directories
+- Changing the build system, required JDK version, or key Gradle tasks
+- Adding or retiring test suites or testing conventions
+- Changing code style tooling or static analysis configuration
+- Updating contribution workflows (branching strategy, backport process, commit conventions, etc.)
+- Adding new security-specific patterns or constraints agents should be aware of
+
+Keep entries concise. This file is read by agents, not end users — precision and accuracy matter more than prose.
+
 ## Repository Overview
 
 OpenSearch Security is a plugin that adds authentication, authorization, TLS encryption, audit logging, and multi-tenancy to OpenSearch. The plugin intercepts all requests at the REST and transport layers before they reach OpenSearch action handlers.
