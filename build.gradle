@@ -818,10 +818,6 @@ dependencies {
 
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.18'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.6'
-    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.4') {
-        exclude(group: 'ch.qos.logback', module: 'logback-classic')
-        exclude(group: 'ch.qos.logback', module: 'logback-core')
-    }
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"

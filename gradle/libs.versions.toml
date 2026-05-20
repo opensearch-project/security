@@ -1,6 +1,6 @@
 [versions]
-open_saml           = "5.2.1"
-open_saml_shib      = "9.2.1"
+open_saml           = "5.2.2"
+open_saml_shib      = "9.2.2"
 one_login_saml      = "2.9.0"
 dropwizard_metrics  = "4.2.38"
 jjwt                = "0.13.0"
