@@ -13,7 +13,7 @@ This file should be updated automatically as part of any change that affects the
 - Updating contribution workflows (branching strategy, backport process, commit conventions, etc.)
 - Adding new security-specific patterns or constraints agents should be aware of
 
-Keep entries concise. This file is read by agents, not end users — precision and accuracy matter more than prose.
+When in doubt, update the file.
 
 ## Repository Overview
 
@@ -181,17 +181,7 @@ SpotBugs runs on main sources (not tests). Include-filter: `spotbugs-include.xml
 - **Resource sharing** changes should be validated against the sample plugin in `sample-resource-plugin/`.
 - **FIPS compliance** — the build supports FIPS-140-3 mode (`gradle.properties`). Avoid cryptographic primitives that are not FIPS-approved.
 
-## Adding Dependencies
-
-When adding or removing a non-test scope dependency in `build.gradle`:
-
-1. Copy the library's `LICENSE.txt` and `NOTICE.txt` into `licenses/` as `<artifact>-LICENSE.txt` and `<artifact>-NOTICE.txt`.
-2. Run `./gradlew updateSHAs` to regenerate SHA checksum files.
-3. Verify with `./gradlew check`.
-
 ## Commits
-
-Run `./gradlew precommit` before every commit.
 
 Write commit titles focused on **user impact**, not implementation details:
 
@@ -209,18 +199,20 @@ Commit title ≤ 50 characters. Leave a blank line before the body; wrap body at
 
 The automated backport workflow has been retired. Backports must be performed manually using your preferred Git workflow — the example below uses `git cherry-pick`, but other approaches (e.g. patch files or GUI tools) are equally valid.
 
+The most common backport targets are the `2.19` and `3.6` branches, which are the current Long-Term Support (LTS) releases.
+
 **Example using `git cherry-pick`:**
 
 ```bash
-# Check out a new branch from the target release branch
+# Check out a new branch from the 2.19 LTS branch
 git fetch upstream
-git checkout -b backport/my-fix-2.x upstream/2.x
+git checkout -b backport/my-fix-2.19 upstream/2.19
 
 # Cherry-pick the commit(s) from main (use -x to record the source SHA)
 git cherry-pick -x <commit-sha>
 
 # Push to your fork and open a PR against the target branch
-git push origin backport/my-fix-2.x
+git push origin backport/my-fix-2.19
 ```
 
 Resolve any conflicts, then open a PR against the target branch referencing the original PR for reviewer context.

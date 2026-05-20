@@ -318,13 +318,15 @@ See [CONTRIBUTING](CONTRIBUTING.md).
 
 The automated backport workflow has been retired. Backports must now be performed manually using your preferred Git workflow — the example below uses `git cherry-pick`, but other approaches (e.g. patch files or GUI tools) are equally valid.
 
-**Example using `git cherry-pick`** — to backport a merged PR to a release branch (e.g. `2.x`):
+The most common backport targets are the `2.19` and `3.6` branches, which are the current Long-Term Support (LTS) releases.
+
+**Example using `git cherry-pick`** — to backport a merged PR to the `2.19` LTS branch:
 
 1. Identify the commit SHA(s) from the merged PR on `main`.
 2. Check out the target branch locally:
    ```bash
    git fetch upstream
-   git checkout -b backport/my-fix-2.x upstream/2.x
+   git checkout -b backport/my-fix-2.19 upstream/2.19
    ```
 3. Cherry-pick the commit(s):
    ```bash
@@ -333,6 +335,6 @@ The automated backport workflow has been retired. Backports must now be performe
    Use `-x` to record the original commit reference in the message. If there are multiple commits, cherry-pick them in order. Resolve any conflicts as needed.
 4. Push the branch to your fork and open a PR against the target branch:
    ```bash
-   git push origin backport/my-fix-2.x
+   git push origin backport/my-fix-2.19
    ```
 5. Reference the original PR in the backport PR description so reviewers have context.
