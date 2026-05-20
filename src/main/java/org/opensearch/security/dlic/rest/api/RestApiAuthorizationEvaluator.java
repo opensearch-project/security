@@ -185,6 +185,13 @@ public class RestApiAuthorizationEvaluator {
         }
     }
 
+    /**
+     * Check if the current request is allowed to use the REST API and the
+     * requested end point. Using an admin certificate grants all permissions. A
+     * user/role can have restricted end points.
+     *
+     * @return an error message if user does not have access, null otherwise
+     */
     public String checkAccessPermissions(RestRequest request, Endpoint endpoint) throws IOException {
 
         if (logger.isDebugEnabled()) {
@@ -343,7 +350,7 @@ public class RestApiAuthorizationEvaluator {
     @SuppressWarnings({ "rawtypes" })
     private Map<Endpoint, List<Method>> parseDisabledEndpoints(Settings settings) {
         if (settings == null || settings.isEmpty()) {
-            logger.error("Settings for disabled endpoint is null or empty: '{}', skipping.", settings);
+            logger.info("Settings for disabled endpoint is null or empty: '{}', skipping.", settings);
             return Collections.emptyMap();
         }
 
@@ -365,12 +372,13 @@ public class RestApiAuthorizationEvaluator {
                 continue;
             }
 
-            if (value.getValue() instanceof Collection == false) {
+            if (!(value.getValue() instanceof Collection)) {
                 logger.error(
                     "Disabled HTTP methods of endpoint '{}' must be an array, actually is '{}', skipping.",
                     endpointString,
                     (value.getValue().toString())
                 );
+                continue;
             }
 
             final List<Method> disabledMethods = new LinkedList<>();
@@ -380,7 +388,7 @@ public class RestApiAuthorizationEvaluator {
                     continue;
                 }
 
-                if (disabledMethodObj instanceof String == false) {
+                if (!(disabledMethodObj instanceof String)) {
                     logger.error("Found non-String value in disabled HTTP methods of endpoint '{}', skipping.", endpointString);
                     continue;
                 }

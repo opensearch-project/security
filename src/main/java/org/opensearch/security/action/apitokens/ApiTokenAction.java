@@ -37,8 +37,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
-import org.opensearch.security.dlic.rest.api.RestApiPrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
@@ -61,7 +60,6 @@ import static org.opensearch.security.action.apitokens.ApiToken.NAME_FIELD;
 import static org.opensearch.security.action.apitokens.ApiToken.REVOKED_AT_FIELD;
 import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class ApiTokenAction extends BaseRestHandler {
     private final ApiTokenRepository apiTokenRepository;
@@ -95,12 +93,14 @@ public class ApiTokenAction extends BaseRestHandler {
             adminDns,
             configurationRepository,
             privilegesConfiguration,
-            new RestApiPrivilegesEvaluator(settings, adminDns, roleMapper, principalExtractor, configPath, threadPool),
-            new RestApiAdminPrivilegesEvaluator(
-                threadPool.getThreadContext(),
-                privilegesConfiguration,
+            new RestApiAuthorizationEvaluator(
+                settings,
                 adminDns,
-                settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
+                roleMapper,
+                principalExtractor,
+                configPath,
+                threadPool,
+                privilegesConfiguration
             ),
             auditLog,
             settings
@@ -336,8 +336,8 @@ public class ApiTokenAction extends BaseRestHandler {
     }
 
     protected String authorizeSecurityAccess(RestRequest request) throws IOException {
-        if (!(securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)
-            || securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, Endpoint.APITOKENS) == null)) {
+        if (!(securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(Endpoint.APITOKENS)
+            || securityApiDependencies.restApiAuthorizationEvaluator().checkAccessPermissions(request, Endpoint.APITOKENS) == null)) {
             return "User does not have required security API access";
         }
         return null;
