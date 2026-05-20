@@ -128,6 +128,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
     private final ImmutableMap<String, ActionPrivileges> pluginIdToActionPrivileges;
+    private volatile Map<String, ActionPrivileges> tokenIdToActionPrivileges;
     private final IndicesRequestResolver indicesRequestResolver;
     private final IndicesRequestModifier indicesRequestModifier = new IndicesRequestModifier();
     private final RoleMapper roleMapper;
@@ -164,6 +165,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             dynamicDependencies.staticActionGroups(),
             specialIndexProtection
         );
+        this.tokenIdToActionPrivileges = dynamicDependencies.tokenIdToActionPrivileges();
         this.updateConfiguration(
             dynamicDependencies.actionGroups(),
             dynamicDependencies.rolesConfiguration(),
@@ -220,6 +222,9 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
         if (user.isPluginUser()) {
             mappedRoles = ImmutableSet.of();
             actionPrivileges = this.pluginIdToActionPrivileges.getOrDefault(user.getName(), ActionPrivileges.EMPTY);
+        } else if (user.isApiTokenRequest()) {
+            mappedRoles = ImmutableSet.of();
+            actionPrivileges = this.tokenIdToActionPrivileges.getOrDefault(user.getName(), ActionPrivileges.EMPTY);
         } else {
             mappedRoles = this.roleMapper.map(user, caller);
             actionPrivileges = this.actionPrivileges.get();

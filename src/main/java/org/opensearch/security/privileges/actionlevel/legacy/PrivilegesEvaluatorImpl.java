@@ -152,6 +152,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     private final Settings settings;
     private final AtomicReference<RoleBasedActionPrivileges> actionPrivileges = new AtomicReference<>();
     private final ImmutableMap<String, ActionPrivileges> pluginIdToActionPrivileges;
+    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges;
     private final RoleMapper roleMapper;
     private final IndicesRequestResolver indicesRequestResolver;
 
@@ -192,6 +193,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
 
+        this.tokenIdToActionPrivileges = dynamicDependencies.tokenIdToActionPrivileges();
         this.pluginIdToActionPrivileges = createActionPrivileges(
             dynamicDependencies.pluginIdToPrivileges(),
             dynamicDependencies.staticActionGroups()
@@ -285,6 +287,9 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         if (user.isPluginUser()) {
             mappedRoles = ImmutableSet.of();
             actionPrivileges = this.pluginIdToActionPrivileges.getOrDefault(user.getName(), ActionPrivileges.EMPTY);
+        } else if (user.isApiTokenRequest()) {
+            mappedRoles = ImmutableSet.of();
+            actionPrivileges = this.tokenIdToActionPrivileges.getOrDefault(user.getName(), ActionPrivileges.EMPTY);
         } else {
             mappedRoles = this.roleMapper.map(user, caller);
             actionPrivileges = this.actionPrivileges.get();

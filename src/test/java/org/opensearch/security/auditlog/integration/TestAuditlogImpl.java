@@ -67,7 +67,7 @@ public class TestAuditlogImpl extends AuditLogSink {
             final int maxSecondsToWaitForMessages = 1;
             boolean foundAll = false;
             foundAll = latch.await(maxSecondsToWaitForMessages, TimeUnit.SECONDS);
-            // After the wait has prevent any new messages from being recieved
+            // After the wait has prevent any new messages from being received
             resetAuditStorage(0, missedMessages);
             if (!foundAll || messages.size() != expectedCount) {
                 throw new MessagesNotFoundException(expectedCount, messages);
@@ -102,8 +102,8 @@ public class TestAuditlogImpl extends AuditLogSink {
     /**
      * Resets all of the mechanics for fresh messages to be captured
      *
-     * @param expectedMessageCount The number of messages before the latch is signalled, indicating all messages have been recieved
-     * @param messages Where messages will be stored after being recieved
+     * @param expectedMessageCount The number of messages before the latch is signalled, indicating all messages have been received
+     * @param messages Where messages will be stored after being received
      */
     private static CountDownLatch resetAuditStorage(int expectedMessageCount, List<AuditMessage> messages) {
         final CountDownLatch latch = new CountDownLatch(expectedMessageCount);
