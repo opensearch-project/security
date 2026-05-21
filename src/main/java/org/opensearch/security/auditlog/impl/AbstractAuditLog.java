@@ -46,6 +46,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
@@ -446,18 +447,18 @@ public abstract class AbstractAuditLog implements AuditLog {
         for (String key : newSettings.keySet()) {
             final String newValue = newSettings.get(key);
             final String oldValue = currentSettings.get(key);
-            final boolean isSensitive = isSensitiveSetting(key);
+            final boolean isSecure = isSecureSetting(key);
 
             final Map<String, Object> change = new HashMap<>();
             change.put("setting", key);
-            change.put("old_value", isSensitive && oldValue != null ? "***REDACTED***" : oldValue);
+            change.put("old_value", isSecure && oldValue != null ? "***REDACTED***" : oldValue);
             change.put("scope", scope);
 
             if (newValue == null) {
                 change.put("new_value", null);
                 change.put("operation", "removed");
             } else {
-                change.put("new_value", isSensitive ? "***REDACTED***" : newValue);
+                change.put("new_value", isSecure ? "***REDACTED***" : newValue);
                 change.put("operation", "set");
             }
 
@@ -468,18 +469,18 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     /**
      * Checks if a setting should have its value redacted in audit logs.
-     * Uses ClusterSettings.isSensitiveSetting() to detect SecureSetting instances (e.g., keystore passwords,
-     * TLS keys). Falls back to pattern matching for plugin-specific settings
-     * that may not be registered in the cluster settings registry.
+     * Returns true for settings registered as SecureSetting (secrets stored
+     * in the keystore), or settings whose key contains common secret indicators
+     * (password, secret, token).
      */
-    private boolean isSensitiveSetting(String key) {
+    private boolean isSecureSetting(final String key) {
         try {
-            // Looks up the Setting object by key and checks setting.isSensitive(),
-            // which returns true for SecureSetting instances — the proper way to identify secrets
-            if (clusterService.getClusterSettings().isSensitiveSetting(key)) {
+            // Looks up the Setting object by key and checks if it is an instance of SecureSetting
+            // i.e. secrets stored in the opensearch-keystore that must be redacted
+            if (clusterService.getClusterSettings().get(key) instanceof SecureSetting) {
                 return true;
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // Setting not registered in cluster settings — fall through to pattern match
         }
         // Pattern fallback for settings not registered as SecureSetting (e.g., plugin SSL settings)

@@ -121,7 +121,7 @@ public class SettingsChangeAuditIntegrationTest extends AbstractAuditlogUnitTest
         Assert.assertTrue(auditlogs.contains("test-wild-002"));
         validateMsgs(TestAuditlogImpl.messages);
 
-        // test sensitive setting redaction
+        // test secure setting redaction
         TestAuditlogImpl.clear();
         rh.executePutRequest(
             "_cluster/settings",

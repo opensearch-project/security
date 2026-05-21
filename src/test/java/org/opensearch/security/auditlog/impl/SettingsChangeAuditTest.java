@@ -295,10 +295,10 @@ public class SettingsChangeAuditTest {
         assertThat(result, not(containsString("CLUSTER_SETTINGS_CHANGED")));
     }
 
-    // --- Sensitive setting redaction tests ---
+    // --- Secure setting redaction tests ---
 
     @Test
-    public void testSensitiveSettingRedactionByPasswordPattern() throws Exception {
+    public void testSecureSettingRedactionByPasswordPattern() throws Exception {
         final AbstractAuditLog auditLog = createAuditLog();
 
         final ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
@@ -313,7 +313,7 @@ public class SettingsChangeAuditTest {
     }
 
     @Test
-    public void testSensitiveSettingRedactionBySecretPattern() throws Exception {
+    public void testSecureSettingRedactionBySecretPattern() throws Exception {
         final AbstractAuditLog auditLog = createAuditLog();
 
         final ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
@@ -328,7 +328,7 @@ public class SettingsChangeAuditTest {
     }
 
     @Test
-    public void testSensitiveSettingRedactionByTokenPattern() throws Exception {
+    public void testSecureSettingRedactionByTokenPattern() throws Exception {
         final AbstractAuditLog auditLog = createAuditLog();
 
         final ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
@@ -343,7 +343,7 @@ public class SettingsChangeAuditTest {
     }
 
     @Test
-    public void testNonSensitiveSettingNotRedacted() throws Exception {
+    public void testNonSecureSettingNotRedacted() throws Exception {
         final AbstractAuditLog auditLog = createAuditLog();
 
         final ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
@@ -358,7 +358,7 @@ public class SettingsChangeAuditTest {
     }
 
     @Test
-    public void testSensitiveOldValueAlsoRedacted() throws Exception {
+    public void testSecureOldValueAlsoRedacted() throws Exception {
         // Mock current state with a sensitive setting already set
         final Metadata metadata = mock(Metadata.class);
         when(metadata.persistentSettings()).thenReturn(
@@ -508,12 +508,12 @@ public class SettingsChangeAuditTest {
     // --- ClusterSettings registry redaction test ---
 
     /**
-     * Verifies that isSensitiveSetting() pattern fallback works even when ClusterSettings
+     * Verifies that isSecureSetting() pattern fallback works even when ClusterSettings
      * registry is available but returns false (setting registered but not as SecureSetting).
      * The registry path returning true is covered by integration tests with a real cluster.
      */
     @Test
-    public void testSensitiveSettingRedactionWhenRegistryReturnsFalse() throws Exception {
+    public void testSecureSettingRedactionWhenRegistryReturnsFalse() throws Exception {
         // When getClusterSettings() is not mocked, it returns null → exception caught → pattern fallback runs.
         // This test verifies the pattern fallback catches "password" in the key name regardless.
         final AbstractAuditLog auditLog = createAuditLog();
