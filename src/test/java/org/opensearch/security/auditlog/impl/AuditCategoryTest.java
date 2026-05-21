@@ -68,6 +68,7 @@ public class AuditCategoryTest {
                             "COMPLIANCE_INTERNAL_CONFIG_WRITE",
                             "CLUSTER_SETTINGS_CHANGED",
                             "INDEX_SETTINGS_CHANGED"
+                            "API_TOKEN_WRITE"
                         ),
                         EnumSet.allOf(AuditCategory.class) }, }
             );

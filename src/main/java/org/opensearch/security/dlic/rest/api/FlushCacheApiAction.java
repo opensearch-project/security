@@ -22,6 +22,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -46,13 +47,17 @@ public class FlushCacheApiAction extends AbstractApiAction {
         ImmutableList.of(new DeprecatedRoute(Method.DELETE, "/cache", OPENDISTRO_API_DEPRECATION_MESSAGE))
     );
 
+    private final ApiTokenRepository apiTokenRepository;
+
     @Inject
     public FlushCacheApiAction(
         final ClusterService clusterService,
         final ThreadPool threadPool,
-        final SecurityApiDependencies securityApiDependencies
+        final SecurityApiDependencies securityApiDependencies,
+        final ApiTokenRepository apiTokenRepository
     ) {
         super(Endpoint.CACHE, clusterService, threadPool, securityApiDependencies);
+        this.apiTokenRepository = apiTokenRepository;
         this.requestHandlersBuilder.configureRequestHandlers(this::flushCacheApiRequestHandlers);
     }
 
@@ -97,6 +102,14 @@ public class FlushCacheApiAction extends AbstractApiAction {
                         LOGGER.debug("Cache invalidated for user: " + username);
                         ok(channel, "Cache invalidated for user: " + username);
                     } else {
+                        if (apiTokenRepository != null) {
+                            apiTokenRepository.reloadApiTokensFromIndex(
+                                ActionListener.wrap(
+                                    v -> { apiTokenRepository.notifyAboutChanges(); },
+                                    e -> LOGGER.error("Failed to reload API tokens after cache flush", e)
+                                )
+                            );
+                        }
                         LOGGER.debug("cache flushed successfully");
                         ok(channel, "Cache flushed successfully.");
                     }

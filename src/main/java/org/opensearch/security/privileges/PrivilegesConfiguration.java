@@ -13,6 +13,7 @@ package org.opensearch.security.privileges;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
@@ -20,8 +21,10 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.identity.SecurePluginSubject;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
@@ -33,6 +36,8 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 
 /**
  * This class manages and gives access to various additional classes which are derived from privileges related configuration in
@@ -63,6 +68,8 @@ public class PrivilegesConfiguration {
     private final SpecialIndices specialIndices;
     private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
 
+    private ApiTokenRepository apiTokenRepository;
+    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges = new ConcurrentHashMap<>();
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
      * not have knowledge of any action groups defined in the dynamic configuration. All other functionality should
@@ -81,6 +88,36 @@ public class PrivilegesConfiguration {
         this.staticActionGroups = buildStaticActionGroups();
         this.specialIndices = new SpecialIndices(coreDependencies.settings());
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(coreDependencies.settings());
+
+        ApiTokenRepository apiTokenRepository = coreDependencies.apiTokenRepository();
+        this.apiTokenRepository = apiTokenRepository;
+
+        if (apiTokenRepository != null) {
+            Settings settings = coreDependencies.settings();
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection tokenIndexProtection =
+                new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
+                    specialIndices::isSystemIndex,
+                    specialIndices::isSystemIndex,
+                    indicesNeedingSpecialRoles(settings)
+                );
+
+            apiTokenRepository.subscribeOnChange(() -> {
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+                Map<String, ActionPrivileges> newTokenPrivileges = new java.util.HashMap<>();
+                apiTokenRepository.forEachToken(
+                    (tokenId, role) -> newTokenPrivileges.put(
+                        tokenId,
+                        new SubjectBasedActionPrivileges(role, flattenedActionGroups, tokenIndexProtection, false)
+                    )
+                );
+                // Atomic swap: add/update new entries, then remove stale ones
+                tokenIdToActionPrivileges.putAll(newTokenPrivileges);
+                tokenIdToActionPrivileges.keySet().retainAll(newTokenPrivileges.keySet());
+            });
+        }
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -137,7 +174,8 @@ public class PrivilegesConfiguration {
                         specialIndices,
                         this.tenantPrivileges::get,
                         this.multiTenancyConfiguration::get,
-                        this.pluginIdToRolePrivileges
+                        this.pluginIdToRolePrivileges,
+                        this.tokenIdToActionPrivileges
                     );
 
                     if (currentType != targetType) {
@@ -259,6 +297,31 @@ public class PrivilegesConfiguration {
 
     private static FlattenedActionGroups buildStaticActionGroups() {
         return new FlattenedActionGroups(DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS)));
+    }
+
+    private static RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles indicesNeedingSpecialRoles(
+        Settings settings
+    ) {
+        if (!settings.getAsBoolean(
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY,
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT
+        )) {
+            return RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles.DISABLED;
+        }
+        WildcardMatcher indexMatcher = WildcardMatcher.from(
+            settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_DEFAULT)
+        );
+        WildcardMatcher allowedRolesMatcher = WildcardMatcher.from(
+            settings.getAsList(
+                ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY,
+                ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_DEFAULT
+            )
+        );
+        return new RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles(
+            true,
+            indexMatcher,
+            allowedRolesMatcher
+        );
     }
 
     private static class RawConfiguration {

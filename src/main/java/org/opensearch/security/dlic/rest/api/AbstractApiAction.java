@@ -262,7 +262,11 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                 }
                 // create or update case of the entity. we need to verify new JSON configuration for them
                 if ((beforePatchEntity == null) || !Objects.equals(beforePatchEntity, patchedEntity)) {
-                    final var requestCheck = endpointValidator.createRequestContentValidator(entityName).validate(request, patchedEntity);
+                    final var validator = endpointValidator.createRequestContentValidator(entityName);
+                    if (beforePatchEntity != null) {
+                        validator.withOriginalContent(beforePatchEntity);
+                    }
+                    final var requestCheck = validator.validate(request, patchedEntity);
                     if (!requestCheck.isValid()) {
                         return ValidationResult.error(requestCheck.status(), requestCheck.errorMessage());
                     }
