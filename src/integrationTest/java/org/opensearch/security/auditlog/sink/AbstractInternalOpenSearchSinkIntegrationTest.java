@@ -26,9 +26,9 @@ import org.opensearch.transport.client.Client;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Base class for {@link InternalOpenSearchSink} integration tests.
@@ -72,10 +72,10 @@ abstract class AbstractInternalOpenSearchSinkIntegrationTest {
     /** Counts all audit documents reachable through {@link #auditTarget()}. */
     long countAuditDocs(Client client) {
         return Objects.requireNonNull(
-            client.search(
-                new SearchRequest(auditTarget())
-                    .source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(0))
-            ).actionGet().getHits().getTotalHits()
+            client.search(new SearchRequest(auditTarget()).source(new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(0)))
+                .actionGet()
+                .getHits()
+                .getTotalHits()
         ).value();
     }
 
@@ -115,8 +115,7 @@ abstract class AbstractInternalOpenSearchSinkIntegrationTest {
 
             await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
                 refreshAuditTarget(client);
-                assertThat("At least 2 new audit events must be persisted",
-                    countAuditDocs(client) - before, greaterThanOrEqualTo(2L));
+                assertThat("At least 2 new audit events must be persisted", countAuditDocs(client) - before, greaterThanOrEqualTo(2L));
             });
         }
     }
@@ -153,42 +152,32 @@ abstract class AbstractInternalOpenSearchSinkIntegrationTest {
 
             await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
                 refreshAuditTarget(client);
-                assertThat("Test must generate at least one new event",
-                    countAuditDocs(client) - before, greaterThan(0L));
+                assertThat("Test must generate at least one new event", countAuditDocs(client) - before, greaterThan(0L));
             });
 
             SearchResponse response = client.search(
                 new SearchRequest(auditTarget()).source(
-                    new SearchSourceBuilder()
-                        .query(QueryBuilders.matchAllQuery())
-                        .size(1)
-                        .sort("@timestamp", SortOrder.DESC)
+                    new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(1).sort("@timestamp", SortOrder.DESC)
                 )
             ).actionGet();
 
-            assertThat("At least one audit document must exist",
-                Objects.requireNonNull(response.getHits().getTotalHits()).value(), greaterThan(0L));
+            assertThat(
+                "At least one audit document must exist",
+                Objects.requireNonNull(response.getHits().getTotalHits()).value(),
+                greaterThan(0L)
+            );
 
             Map<String, Object> doc = response.getHits().getAt(0).getSourceAsMap();
 
-            assertThat("Missing field: audit_category",
-                doc.containsKey("audit_category"), is(true));
-            assertThat("Missing field: audit_request_layer",
-                doc.containsKey("audit_request_layer"), is(true));
-            assertThat("Wrong value: audit_request_layer",
-                doc.get("audit_request_layer"), is("REST"));
-            assertThat("Missing field: audit_request_origin",
-                doc.containsKey("audit_request_origin"), is(true));
-            assertThat("Wrong value: audit_request_origin",
-                doc.get("audit_request_origin"), is("REST"));
-            assertThat("Missing field: @timestamp",
-                doc.containsKey("@timestamp"), is(true));
-            assertThat("Missing field: audit_rest_request_method",
-                doc.containsKey("audit_rest_request_method"), is(true));
-            assertThat("Missing field: audit_rest_request_path",
-                doc.containsKey("audit_rest_request_path"), is(true));
-            assertThat("Unexpected field: audit_transport_request_type",
-                doc.containsKey("audit_transport_request_type"), is(false));
+            assertThat("Missing field: audit_category", doc.containsKey("audit_category"), is(true));
+            assertThat("Missing field: audit_request_layer", doc.containsKey("audit_request_layer"), is(true));
+            assertThat("Wrong value: audit_request_layer", doc.get("audit_request_layer"), is("REST"));
+            assertThat("Missing field: audit_request_origin", doc.containsKey("audit_request_origin"), is(true));
+            assertThat("Wrong value: audit_request_origin", doc.get("audit_request_origin"), is("REST"));
+            assertThat("Missing field: @timestamp", doc.containsKey("@timestamp"), is(true));
+            assertThat("Missing field: audit_rest_request_method", doc.containsKey("audit_rest_request_method"), is(true));
+            assertThat("Missing field: audit_rest_request_path", doc.containsKey("audit_rest_request_path"), is(true));
+            assertThat("Unexpected field: audit_transport_request_type", doc.containsKey("audit_transport_request_type"), is(false));
         }
     }
 }

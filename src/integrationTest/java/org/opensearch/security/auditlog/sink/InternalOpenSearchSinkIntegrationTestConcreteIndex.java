@@ -25,9 +25,9 @@ import org.opensearch.transport.client.Client;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Integration tests for {@link InternalOpenSearchSink} with a plain concrete index
@@ -59,11 +59,9 @@ public class InternalOpenSearchSinkIntegrationTestConcreteIndex extends Abstract
     private static final String AUDIT_INDEX_PREFIX = "security-auditlog-";
 
     @ClassRule
-    public static final LocalCluster CLUSTER = new LocalCluster.Builder()
-        .clusterManager(ClusterManager.SINGLENODE)
+    public static final LocalCluster CLUSTER = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(true)
-        .internalAudit(new AuditConfiguration(true)
-            .filters(new AuditFilters().enabledRest(true).enabledTransport(false)))
+        .internalAudit(new AuditConfiguration(true).filters(new AuditFilters().enabledRest(true).enabledTransport(false)))
         .build();
 
     @Override
@@ -95,23 +93,21 @@ public class InternalOpenSearchSinkIntegrationTestConcreteIndex extends Abstract
 
             await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
                 refreshAuditTarget(client);
-                assertThat("At least one new audit event must be generated",
-                    countAuditDocs(client), greaterThan(before));
+                assertThat("At least one new audit event must be generated", countAuditDocs(client), greaterThan(before));
             });
 
             await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
-                GetIndexResponse response = client
-                    .admin()
+                GetIndexResponse response = client.admin()
                     .indices()
                     .getIndex(new GetIndexRequest().indices(AUDIT_INDEX_PREFIX + "*"))
                     .actionGet();
 
-                assertThat("At least one audit index must exist",
-                    response.indices().length, greaterThan(0));
-                assertThat("All audit indices must follow date-based pattern security-auditlog-YYYY.MM.dd",
-                    Arrays.stream(response.indices())
-                        .allMatch(name -> name.matches(AUDIT_INDEX_PREFIX + "\\d{4}\\.\\d{2}\\.\\d{2}$")),
-                    is(true));
+                assertThat("At least one audit index must exist", response.indices().length, greaterThan(0));
+                assertThat(
+                    "All audit indices must follow date-based pattern security-auditlog-YYYY.MM.dd",
+                    Arrays.stream(response.indices()).allMatch(name -> name.matches(AUDIT_INDEX_PREFIX + "\\d{4}\\.\\d{2}\\.\\d{2}$")),
+                    is(true)
+                );
             });
         }
     }

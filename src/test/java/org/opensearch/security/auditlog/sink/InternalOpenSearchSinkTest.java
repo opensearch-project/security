@@ -67,14 +67,22 @@ public class InternalOpenSearchSinkTest {
 
     private static final String TEST_INDEX = "test-audit-index";
 
-    @Mock private ClusterService clusterService;
-    @Mock private ClusterState clusterState;
-    @Mock private Metadata metadata;
-    @Mock private Client client;
-    @Mock private AdminClient adminClient;
-    @Mock private IndicesAdminClient indicesAdminClient;
-    @Mock private ThreadPool threadPool;
-    @Mock private ActionFuture<CreateIndexResponse> createIndexFuture;
+    @Mock
+    private ClusterService clusterService;
+    @Mock
+    private ClusterState clusterState;
+    @Mock
+    private Metadata metadata;
+    @Mock
+    private Client client;
+    @Mock
+    private AdminClient adminClient;
+    @Mock
+    private IndicesAdminClient indicesAdminClient;
+    @Mock
+    private ThreadPool threadPool;
+    @Mock
+    private ActionFuture<CreateIndexResponse> createIndexFuture;
 
     private InternalOpenSearchSink sink;
 
@@ -197,8 +205,7 @@ public class InternalOpenSearchSinkTest {
 
         boolean result = sink.createIndexIfAbsent(TEST_INDEX);
 
-        assertThat("Must return false when index creation is not acknowledged by the cluster",
-            result, is(false));
+        assertThat("Must return false when index creation is not acknowledged by the cluster", result, is(false));
         verify(indicesAdminClient).create(any(CreateIndexRequest.class));
     }
 }
