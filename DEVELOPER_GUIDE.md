@@ -318,7 +318,7 @@ See [CONTRIBUTING](CONTRIBUTING.md).
 
 The automated backport workflow has been retired. Backports must now be performed manually using your preferred Git workflow — the example below uses `git cherry-pick`, but other approaches (e.g. patch files or GUI tools) are equally valid.
 
-The most common backport targets are the `2.19` and `3.6` branches, which are the current Long-Term Support (LTS) releases.
+The most common backport targets are the branches for the current Long-Term Support (LTS) releases.
 
 **Example using `git cherry-pick`** — to backport a merged PR to the `2.19` LTS branch:
 

@@ -199,7 +199,7 @@ Commit title ≤ 50 characters. Leave a blank line before the body; wrap body at
 
 The automated backport workflow has been retired. Backports must be performed manually using your preferred Git workflow — the example below uses `git cherry-pick`, but other approaches (e.g. patch files or GUI tools) are equally valid.
 
-The most common backport targets are the `2.19` and `3.6` branches, which are the current Long-Term Support (LTS) releases.
+The most common backport targets are the branches for the current Long-Term Support (LTS) releases.
 
 **Example using `git cherry-pick`:**
 
