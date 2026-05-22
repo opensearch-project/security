@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.Set;
 import javax.crypto.SecretKey;
 
-import com.google.common.io.BaseEncoding;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.Level;
@@ -68,7 +67,7 @@ public class OnBehalfOfAuthenticatorTest {
 
     final static String signingKey =
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
-    final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
+    final static String signingKeyB64Encoded = Base64.getEncoder().encodeToString(signingKey.getBytes(StandardCharsets.UTF_8));
     final static SecretKey secretKey = Keys.hmacShaKeyFor(signingKeyB64Encoded.getBytes(StandardCharsets.UTF_8));
 
     private static final String SECURITY_PREFIX = "/_plugins/_security/";
@@ -125,7 +124,7 @@ public class OnBehalfOfAuthenticatorTest {
         Exception exception = assertThrows(
             RuntimeException.class,
             () -> extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 }),
+                Base64.getEncoder().encodeToString(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 }),
                 claimsEncryptionKey,
                 Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy"),
                 false

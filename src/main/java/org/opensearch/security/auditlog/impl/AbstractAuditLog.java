@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -30,7 +31,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.BaseEncoding;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -529,7 +529,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                                 .collect(
                                     Collectors.toMap(
                                         entry -> "id",
-                                        entry -> new String(BaseEncoding.base64().decode(entry.getValue()), StandardCharsets.UTF_8)
+                                        entry -> new String(Base64.getDecoder().decode(entry.getValue()), StandardCharsets.UTF_8)
                                     )
                                 );
                             msg.addSecurityConfigMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")), id);
@@ -608,7 +608,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                             } else {
                                 Object base64 = parser.map().values().iterator().next();
                                 if (base64 instanceof String) {
-                                    originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
+                                    originalSource = (new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8));
                                 } else {
                                     originalSource = XContentHelper.convertToJson(
                                         originalResult.internalSourceRef(),
@@ -635,7 +635,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                         } else {
                             Object base64 = parser.map().values().iterator().next();
                             if (base64 instanceof String) {
-                                currentSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
+                                currentSource = new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8);
                             } else {
                                 currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
                             }
@@ -678,7 +678,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     Object base64 = parser.map().values().iterator().next();
                     if (base64 instanceof String) {
                         msg.addSecurityConfigContentToRequestBody(
-                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                            new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8),
                             id
                         );
                     } else {
@@ -747,7 +747,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     ) {
                         Object base64 = parser.map().values().iterator().next();
                         if (base64 instanceof String) {
-                            originalSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
+                            originalSource = new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8);
                         } else {
                             originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                         }
@@ -796,7 +796,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     Object base64 = parser.map().values().iterator().next();
                     if (base64 instanceof String) {
                         msg.addSecurityConfigContentToRequestBody(
-                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                            new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8),
                             id
                         );
                     } else {
