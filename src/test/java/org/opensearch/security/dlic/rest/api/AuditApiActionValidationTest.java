@@ -12,7 +12,6 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Test;
 
@@ -50,9 +49,7 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
         when(configurationRepository.isAuditHotReloadingEnabled()).thenReturn(false);
 
         // PUT is allowed when the audit config document does not exist (bootstrap case)
-        final var result = auditApiAction.withCreateOrUpdateAuditApi(
-            FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()
-        );
+        final var result = auditApiAction.withCreateOrUpdateAuditApi(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build());
         assertTrue(result.isValid());
     }
 
@@ -62,9 +59,7 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
         when(configurationRepository.isAuditHotReloadingEnabled()).thenReturn(true);
 
         // PUT is also allowed when the audit config document exists (update case)
-        final var result = auditApiAction.withCreateOrUpdateAuditApi(
-            FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()
-        );
+        final var result = auditApiAction.withCreateOrUpdateAuditApi(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build());
         assertTrue(result.isValid());
     }
 
