@@ -267,10 +267,22 @@ public class AuditApiAction extends AbstractApiAction {
             .onChangeRequest(RestRequest.Method.PATCH, request -> withEnabledAuditApi(request).map(this::processPatchRequest))
             .onChangeRequest(
                 RestRequest.Method.PUT,
-                request -> withEnabledAuditApi(request).map(ignore -> processPutRequest("config", request))
+                request -> withCreateOrUpdateAuditApi(request).map(ignore -> processPutRequest("config", request))
             )
             .override(RestRequest.Method.POST, methodNotImplementedHandler)
             .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
+    }
+
+    /**
+     * Allows PUT to bootstrap the audit config when the document does not exist,
+     * or to update it through normal validation when it does.
+     */
+    ValidationResult<RestRequest> withCreateOrUpdateAuditApi(final RestRequest request) {
+        if (!securityApiDependencies.configurationRepository().isAuditHotReloadingEnabled()) {
+            // Document does not exist — allow PUT to bootstrap the audit config
+            return ValidationResult.success(request);
+        }
+        return withEnabledAuditApi(request);
     }
 
     ValidationResult<RestRequest> withEnabledAuditApi(final RestRequest request) {

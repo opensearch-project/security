@@ -12,11 +12,13 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -40,6 +42,30 @@ public class AuditApiActionValidationTest extends AbstractApiActionValidationTes
             assertFalse(result.isValid());
             assertThat(result.status(), is(RestStatus.NOT_IMPLEMENTED));
         }
+    }
+
+    @Test
+    public void putAllowedWhenAuditConfigDocDoesNotExist() {
+        final var auditApiAction = new AuditApiAction(clusterService, threadPool, securityApiDependencies);
+        when(configurationRepository.isAuditHotReloadingEnabled()).thenReturn(false);
+
+        // PUT is allowed when the audit config document does not exist (bootstrap case)
+        final var result = auditApiAction.withCreateOrUpdateAuditApi(
+            FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()
+        );
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void putAllowedWhenAuditConfigDocExists() {
+        final var auditApiAction = new AuditApiAction(clusterService, threadPool, securityApiDependencies);
+        when(configurationRepository.isAuditHotReloadingEnabled()).thenReturn(true);
+
+        // PUT is also allowed when the audit config document exists (update case)
+        final var result = auditApiAction.withCreateOrUpdateAuditApi(
+            FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()
+        );
+        assertTrue(result.isValid());
     }
 
     @Test
