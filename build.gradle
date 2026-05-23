@@ -91,7 +91,35 @@ java.sourceCompatibility = JavaVersion.VERSION_21
 java.targetCompatibility = JavaVersion.VERSION_21
 
 
-tasks.withType(JavaCompile).configureEach {
+compileJava {
+    options.compilerArgs = [
+            '-Xlint:auxiliaryclass',
+            '-Xlint:cast',
+            '-Xlint:classfile',
+            '-Xlint:dep-ann',
+            '-Xlint:divzero',
+            '-Xlint:empty',
+            '-Xlint:exports',
+            '-Xlint:fallthrough',
+            '-Xlint:finally',
+            '-Xlint:module',
+            '-Xlint:opens',
+            '-Xlint:overloads',
+            '-Xlint:overrides',
+            '-Xlint:-processing',
+            '-Xlint:rawtypes',
+            '-Xlint:removal',
+            '-Xlint:requires-automatic',
+            '-Xlint:requires-transitive-automatic',
+            '-Xlint:static',
+            '-Xlint:unchecked',
+            '-Xlint:varargs',
+            '-Xlint:preview',
+            '-Werror']
+    options.encoding = 'UTF-8'
+}
+
+compileTestJava {
     options.compilerArgs = [
             '-Xlint:auxiliaryclass',
             '-Xlint:cast',
