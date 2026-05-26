@@ -533,7 +533,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("responses[*].hits.hits[*]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(isOk())
+                    .whenEmpty(isForbidden())
             );
         }
     }
@@ -575,7 +575,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("docs[?(@.found == true)]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
+                    .whenEmpty(isForbidden())
             );
         }
     }
@@ -650,7 +650,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
                     .reducedBy(user.reference(WRITE))
-                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
+                    .whenEmpty(isForbidden())
             );
         } finally {
             delete(
@@ -737,7 +737,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_finance).at("items[*].index[?(@.result == 'created')]._index")
                     .reducedBy(user.reference(WRITE))
-                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
+                    .whenEmpty(isForbidden())
             );
         } finally {
             delete(".kibana_-853258278_finance_1");
@@ -808,7 +808,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("items[*].delete[?(@.result == 'deleted')]._index")
                     .reducedBy(user.reference(WRITE))
-                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
+                    .whenEmpty(isForbidden())
             );
         } finally {
             delete(
@@ -858,9 +858,6 @@ public class DashboardMultiTenancyIntTests {
                         .reducedBy(user.reference(WRITE))
                         .whenEmpty(isOk())
                 );
-            } else if (clusterConfig.legacyPrivilegeEvaluation) {
-                // In the legacy mode, the requests on the items fail
-                assertThat(response, containsExactly().at("items[*].update[?(@.result == 'updated')]._index").whenEmpty(isOk()));
             } else {
                 // In the new privilege evaluation mode, the whole bulk request fails
                 assertThat(response, isForbidden());
@@ -894,7 +891,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("docs[?(@.found == true)]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isOk() : isForbidden())
+                    .whenEmpty(isForbidden())
             );
         }
     }
