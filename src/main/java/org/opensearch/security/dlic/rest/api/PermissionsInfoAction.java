@@ -35,6 +35,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
@@ -58,7 +59,7 @@ public class PermissionsInfoAction extends BaseRestHandler {
         ImmutableList.of(new DeprecatedRoute(Method.GET, "/permissionsinfo", OPENDISTRO_API_DEPRECATION_MESSAGE))
     );
 
-    private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
+    private final RestApiAuthorizationEvaluator restApiAuthorizationEvaluator;
     private final ThreadPool threadPool;
     private final RoleMapper roleMapper;
     private final ConfigurationRepository configurationRepository;
@@ -73,19 +74,21 @@ public class PermissionsInfoAction extends BaseRestHandler {
         final ClusterService cs,
         final PrincipalExtractor principalExtractor,
         final RoleMapper roleMapper,
+        final PrivilegesConfiguration privilegesConfiguration,
         ThreadPool threadPool,
         AuditLog auditLog
     ) {
         super();
         this.threadPool = threadPool;
         this.roleMapper = roleMapper;
-        this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(
+        this.restApiAuthorizationEvaluator = new RestApiAuthorizationEvaluator(
             settings,
             adminDNs,
             roleMapper,
             principalExtractor,
             configPath,
-            threadPool
+            threadPool,
+            privilegesConfiguration
         );
         this.configurationRepository = configurationRepository;
     }
@@ -130,8 +133,8 @@ public class PermissionsInfoAction extends BaseRestHandler {
                     final TransportAddress remoteAddress = threadPool.getThreadContext()
                         .getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
                     Set<String> userRoles = roleMapper.map(user, remoteAddress);
-                    Boolean hasApiAccess = restApiPrivilegesEvaluator.currentUserHasRestApiAccess(userRoles);
-                    Map<Endpoint, List<Method>> disabledEndpoints = restApiPrivilegesEvaluator.getDisabledEndpointsForCurrentUser(
+                    Boolean hasApiAccess = restApiAuthorizationEvaluator.currentUserHasRestApiAccess(userRoles);
+                    Map<Endpoint, List<Method>> disabledEndpoints = restApiAuthorizationEvaluator.getDisabledEndpointsForCurrentUser(
                         user.getName(),
                         userRoles
                     );

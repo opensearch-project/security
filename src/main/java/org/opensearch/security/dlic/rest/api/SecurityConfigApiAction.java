@@ -30,7 +30,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.SECURITY_CONFIG_UPDATE;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -107,8 +107,7 @@ public class SecurityConfigApiAction extends AbstractApiAction {
                 if (!restApiAdminEnabled) {
                     return allowPutOrPatch;
                 } else {
-                    return securityApiDependencies.restApiAdminPrivilegesEvaluator()
-                        .isCurrentUserAdminFor(endpoint, SECURITY_CONFIG_UPDATE);
+                    return securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint, SECURITY_CONFIG_UPDATE);
                 }
             default:
                 return true;
@@ -125,8 +124,8 @@ public class SecurityConfigApiAction extends AbstractApiAction {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
