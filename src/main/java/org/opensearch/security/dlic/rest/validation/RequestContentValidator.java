@@ -209,6 +209,17 @@ public class RequestContentValidator implements ToXContent {
         this.validationContext = validationContext;
     }
 
+    private JsonNode originalContent;
+
+    /**
+     * Sets the original content for patch-aware validation.
+     * When set, the null/blank array element check will only validate fields that changed.
+     */
+    public RequestContentValidator withOriginalContent(final JsonNode originalContent) {
+        this.originalContent = originalContent;
+        return this;
+    }
+
     public ValidationResult<JsonNode> validate(final RestRequest request) throws IOException {
         return parseRequestContent(request).map(this::validateContentSize).map(jsonContent -> validate(request, jsonContent));
     }
@@ -226,6 +237,7 @@ public class RequestContentValidator implements ToXContent {
         if (patch.isEmpty()) {
             return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
         }
+        this.originalContent = originalContent;
         return validateContentSize(patchedContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
@@ -386,12 +398,17 @@ public class RequestContentValidator implements ToXContent {
         final Set<String> allowedKeys = (fieldConfigs != null) ? fieldConfigs.keySet() : validationContext.allowedKeys().keySet();
 
         for (final String key : allowedKeys) {
-            JsonNode value = jsonContent.get(key);
-            if (value != null) {
-                if (hasNullOrBlankArrayElement(value)) {
-                    this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
-                    return ValidationResult.error(RestStatus.BAD_REQUEST, this);
-                }
+            final JsonNode value = jsonContent.get(key);
+            if (value == null) {
+                continue;
+            }
+            // Skip validation if the field hasn't changed from the original
+            if (originalContent != null && value.equals(originalContent.get(key))) {
+                continue;
+            }
+            if (hasNullOrBlankArrayElement(value)) {
+                this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
         }
         return ValidationResult.success(jsonContent);

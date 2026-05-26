@@ -280,7 +280,8 @@ public class PrivilegesEvaluatorImplTest {
                 settings,
                 indexNameExpressionResolver,
                 () -> "unavailable",
-                NamedXContentRegistry.EMPTY
+                NamedXContentRegistry.EMPTY,
+                null
             ),
             dynamicDependencies.with(compiledRoles)
         );

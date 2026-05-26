@@ -12,18 +12,17 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.function.LongSupplier;
 
-import com.google.common.io.BaseEncoding;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -43,6 +42,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -55,7 +55,7 @@ public class JwtVendorTest {
 
     final static String signingKey =
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
-    final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
+    final static String signingKeyB64Encoded = Base64.getEncoder().encodeToString(signingKey.getBytes(StandardCharsets.UTF_8));
 
     @Test
     public void testCreateJwkFromSettings() {
@@ -70,14 +70,14 @@ public class JwtVendorTest {
     @Test
     public void testCreateJwkFromSettingsWithWeakKey() {
         Settings settings = Settings.builder().put("signing_key", "abcd1234").build();
-        Throwable exception = Assert.assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Throwable exception = assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }
 
     @Test
     public void testCreateJwkFromSettingsWithoutSigningKey() {
         Settings settings = Settings.builder().put("jwt", "").build();
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Throwable exception = assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(
             exception.getMessage(),
             equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")
@@ -259,4 +259,5 @@ public class JwtVendorTest {
         final String[] parts = logMessage.split("\\.");
         assertTrue(parts.length >= 3);
     }
+
 }

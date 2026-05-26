@@ -290,8 +290,8 @@ public class AuditApiAction extends AbstractApiAction {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override

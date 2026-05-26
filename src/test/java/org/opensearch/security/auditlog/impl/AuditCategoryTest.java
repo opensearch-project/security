@@ -65,7 +65,8 @@ public class AuditCategoryTest {
                             "COMPLIANCE_DOC_WRITE",
                             "COMPLIANCE_EXTERNAL_CONFIG",
                             "COMPLIANCE_INTERNAL_CONFIG_READ",
-                            "COMPLIANCE_INTERNAL_CONFIG_WRITE"
+                            "COMPLIANCE_INTERNAL_CONFIG_WRITE",
+                            "API_TOKEN_WRITE"
                         ),
                         EnumSet.allOf(AuditCategory.class) }, }
             );

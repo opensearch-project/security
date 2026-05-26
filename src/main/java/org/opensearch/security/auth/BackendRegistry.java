@@ -452,6 +452,8 @@ public class BackendRegistry {
             Disallow superuser authentication through auth domain.
             Only client cert authentication is allowed for this user.
              */
+            authenticatedUser.setAuthenticatedBy(authDomain.getHttpAuthenticator().getType());
+
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
