@@ -37,9 +37,9 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.util.Base64;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.BaseEncoding;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.core.common.Strings;
@@ -85,14 +85,14 @@ public class Base64Helper {
             throw new OpenSearchException("Instance {} of class {} is not serializable", e, object, object.getClass());
         }
         final byte[] bytes = bos.toByteArray();
-        return BaseEncoding.base64().encode(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     public static Serializable deserializeObject(final String string) {
 
         Preconditions.checkArgument(!Strings.isNullOrEmpty(string), "object must not be null or empty");
 
-        final byte[] bytes = BaseEncoding.base64().decode(string);
+        final byte[] bytes = Base64.getDecoder().decode(string);
         final ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         try (Base64Helper.SafeObjectInputStream in = new Base64Helper.SafeObjectInputStream(bis)) {
             return (Serializable) in.readObject();
