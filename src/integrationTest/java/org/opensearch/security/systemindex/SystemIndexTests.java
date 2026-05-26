@@ -128,4 +128,36 @@ public class SystemIndexTests {
             assertThat(response1.getBody(), response1.getBody().contains("\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"}"));
         }
     }
+
+    @Test
+    public void regularUserShouldBeAbleToSearchReadableSystemIndex() {
+        // Create a task entry in .tasks by running update_by_query with wait_for_completion=false
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            // Create a test index with a document
+            client.putJson("test-ubq-index/_doc/1?refresh=true", "{\"field\":\"value\"}");
+
+            // Run update_by_query with wait_for_completion=false to create a .tasks entry
+            HttpResponse ubqResponse = client.postJson(
+                "test-ubq-index/_update_by_query?wait_for_completion=false&refresh=true",
+                "{\"script\":{\"source\":\"ctx._source.field='updated'\",\"lang\":\"painless\"}}"
+            );
+            assertThat(ubqResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+
+            // Wait briefly for the task to be persisted
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            // Search .tasks - should return results since it's a ReadableSystemIndexDescriptor
+            HttpResponse searchResponse = client.get(".tasks/_search");
+            assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+            assertThat(
+                "Expected non-empty results from .tasks search",
+                searchResponse.getBody().contains("\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"}"),
+                equalTo(false)
+            );
+        }
+    }
 }
