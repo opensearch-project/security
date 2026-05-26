@@ -11,7 +11,7 @@
 package org.opensearch.security.privileges.dlsfls;
 
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.support.ConfigConstants;
@@ -24,12 +24,16 @@ import org.opensearch.security.user.User;
 public class DlsFlsBaseContext {
     private final PrivilegesConfiguration privilegesConfiguration;
     private final ThreadContext threadContext;
-    private final AdminDNs adminDNs;
+    private final SuperAdminAuthority superAdminAuthority;
 
-    public DlsFlsBaseContext(PrivilegesConfiguration privilegesConfiguration, ThreadContext threadContext, AdminDNs adminDNs) {
+    public DlsFlsBaseContext(
+        PrivilegesConfiguration privilegesConfiguration,
+        ThreadContext threadContext,
+        SuperAdminAuthority superAdminAuthority
+    ) {
         this.privilegesConfiguration = privilegesConfiguration;
         this.threadContext = threadContext;
-        this.adminDNs = adminDNs;
+        this.superAdminAuthority = superAdminAuthority;
     }
 
     /**
@@ -42,7 +46,7 @@ public class DlsFlsBaseContext {
         }
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-        if (HeaderHelper.isInternalOrPluginRequest(threadContext) || adminDNs.isAdmin(user)) {
+        if (HeaderHelper.isInternalOrPluginRequest(threadContext) || superAdminAuthority.isSuperAdmin(user)) {
             return null;
         }
 

@@ -33,8 +33,8 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
@@ -68,7 +68,7 @@ public class PermissionsInfoAction extends BaseRestHandler {
         final Path configPath,
         final RestController controller,
         final Client client,
-        final AdminDNs adminDNs,
+        final SuperAdminAuthority superAdminAuthority,
         final ConfigurationRepository configurationRepository,
         final ClusterService cs,
         final PrincipalExtractor principalExtractor,
@@ -81,7 +81,7 @@ public class PermissionsInfoAction extends BaseRestHandler {
         this.roleMapper = roleMapper;
         this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(
             settings,
-            adminDNs,
+            superAdminAuthority,
             roleMapper,
             principalExtractor,
             configPath,

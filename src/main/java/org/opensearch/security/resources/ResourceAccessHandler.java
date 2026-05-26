@@ -26,7 +26,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auth.UserSubjectImpl;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -49,19 +49,19 @@ public class ResourceAccessHandler {
 
     private final ThreadContext threadContext;
     private final ResourceSharingIndexHandler resourceSharingIndexHandler;
-    private final AdminDNs adminDNs;
+    private final SuperAdminAuthority superAdminAuthority;
     private final ResourcePluginInfo resourcePluginInfo;
 
     @Inject
     public ResourceAccessHandler(
         final ThreadPool threadPool,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
-        AdminDNs adminDns,
+        SuperAdminAuthority superAdminAuthority,
         ResourcePluginInfo resourcePluginInfo
     ) {
         this.threadContext = threadPool.getThreadContext();
         this.resourceSharingIndexHandler = resourceSharingIndexHandler;
-        this.adminDNs = adminDns;
+        this.superAdminAuthority = superAdminAuthority;
         this.resourcePluginInfo = resourcePluginInfo;
     }
 
@@ -83,7 +83,7 @@ public class ResourceAccessHandler {
 
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
 
-        if (adminDNs.isAdmin(user)) {
+        if (superAdminAuthority.isSuperAdmin(user)) {
             loadAllResourceIds(resourceType, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return;
         }
@@ -109,7 +109,7 @@ public class ResourceAccessHandler {
             return;
         }
 
-        if (adminDNs.isAdmin(user)) {
+        if (superAdminAuthority.isSuperAdmin(user)) {
             loadAllResourceSharingRecords(resourceType, ActionListener.wrap(listener::onResponse, listener::onFailure));
             return;
         }
@@ -149,7 +149,7 @@ public class ResourceAccessHandler {
 
         LOGGER.info("Checking if user '{}' has permission to resource '{}'", user.getName(), resourceId);
 
-        if (adminDNs.isAdmin(user)) {
+        if (superAdminAuthority.isSuperAdmin(user)) {
             LOGGER.debug("User '{}' is admin, automatically granted permission on '{}'", user.getName(), resourceId);
             listener.onResponse(true);
             return;

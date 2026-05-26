@@ -26,9 +26,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
@@ -80,7 +80,7 @@ public class SecurityFilterTests {
         final SecurityFilter filter = new SecurityFilter(
             settings,
             mock(PrivilegesConfiguration.class),
-            mock(AdminDNs.class),
+            mock(SuperAdminAuthority.class),
             mock(DlsFlsRequestValve.class),
             mock(AuditLog.class),
             mock(ThreadPool.class),
@@ -103,7 +103,7 @@ public class SecurityFilterTests {
         final SecurityFilter filter = new SecurityFilter(
             settings,
             mock(PrivilegesConfiguration.class),
-            mock(AdminDNs.class),
+            mock(SuperAdminAuthority.class),
             mock(DlsFlsRequestValve.class),
             auditLog,
             new ThreadPool(Settings.builder().put("node.name", "mock").build()),

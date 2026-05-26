@@ -22,10 +22,10 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.SecurityConfigVersionsLoader;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.RoleMapper;
@@ -47,7 +47,7 @@ public class SecurityRestApiActions {
         final Path configPath,
         final RestController controller,
         final Client client,
-        final AdminDNs adminDns,
+        final SuperAdminAuthority superAdminAuthority,
         final ConfigurationRepository configurationRepository,
         final ClusterService clusterService,
         final PrincipalExtractor principalExtractor,
@@ -64,14 +64,14 @@ public class SecurityRestApiActions {
         final ApiTokenRepository apiTokenRepository
     ) {
         final var securityApiDependencies = new SecurityApiDependencies(
-            adminDns,
+            superAdminAuthority.getAdminDns(),
             configurationRepository,
             privilegesConfiguration,
-            new RestApiPrivilegesEvaluator(settings, adminDns, roleMapper, principalExtractor, configPath, threadPool),
+            new RestApiPrivilegesEvaluator(settings, superAdminAuthority, roleMapper, principalExtractor, configPath, threadPool),
             new RestApiAdminPrivilegesEvaluator(
                 threadPool.getThreadContext(),
                 privilegesConfiguration,
-                adminDns,
+                superAdminAuthority,
                 settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
             ),
             auditLog,
@@ -91,7 +91,7 @@ public class SecurityRestApiActions {
                     configPath,
                     controller,
                     client,
-                    adminDns,
+                    superAdminAuthority,
                     configurationRepository,
                     clusterService,
                     principalExtractor,
