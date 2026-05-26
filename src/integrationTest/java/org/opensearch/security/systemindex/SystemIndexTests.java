@@ -165,11 +165,7 @@ public class SystemIndexTests {
             // GET by doc ID - should also return the document
             HttpResponse getResponse = client.get(".tasks/_doc/" + taskId);
             assertThat(getResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
-            assertThat(
-                "Expected found=true for GET on .tasks doc",
-                getResponse.getBody().contains("\"found\":true"),
-                equalTo(true)
-            );
+            assertThat("Expected found=true for GET on .tasks doc", getResponse.getBody().contains("\"found\":true"), equalTo(true));
         }
     }
 }
