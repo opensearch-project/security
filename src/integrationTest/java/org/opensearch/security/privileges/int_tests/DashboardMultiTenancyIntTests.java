@@ -533,7 +533,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("responses[*].hits.hits[*]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(isForbidden())
+                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isForbidden() : isOk())
             );
         }
     }
