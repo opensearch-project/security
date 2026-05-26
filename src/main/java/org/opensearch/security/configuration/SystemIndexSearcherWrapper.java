@@ -40,6 +40,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
+import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -153,6 +154,12 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
         boolean matchesSystemIndexRegisteredWithCore = !SystemIndexRegistry.matchesSystemIndexPattern(Set.of(index.getName())).isEmpty();
         boolean isSystemIndex = systemIndexMatcher.test(index.getName()) || matchesSystemIndexRegisteredWithCore;
         if (!isSystemIndex) {
+            return false;
+        }
+
+        // Don't block readable system indices - they are explicitly marked to allow search/get
+        Set<SystemIndexDescriptor> matchingDescriptors = SystemIndexRegistry.matchesSystemIndexDescriptor(Set.of(index.getName()));
+        if (matchingDescriptors.stream().anyMatch(SystemIndexDescriptor::isReadable)) {
             return false;
         }
 
