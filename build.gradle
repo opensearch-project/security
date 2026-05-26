@@ -683,6 +683,7 @@ dependencies {
     implementation libs.google.guava
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.11.0'
+    implementation 'info.picocli:picocli:4.7.6'
     // When building with crypto.standard=FIPS-140-3 (set in gradle.properties), bcFips jars are provided by OpenSearch
     if (FipsBuildParams.isInFipsMode()) {
         compileOnly "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
@@ -995,4 +996,19 @@ tasks.register("updateVersion") {
         }
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
+}
+
+// Helper task to run CLI tools: ./gradlew runTool -PtoolClass=org.opensearch.security.tools.Hasher -PtoolArgs="--help"
+configurations {
+    toolRuntime {
+        extendsFrom implementation, compileOnly
+        canBeResolved = true
+    }
+}
+tasks.register('runTool', JavaExec) {
+    classpath = sourceSets.main.output + configurations.toolRuntime
+    mainClass = project.findProperty('toolClass') ?: 'org.opensearch.security.tools.Hasher'
+    args = (project.findProperty('toolArgs') ?: '--help').split(' ').toList()
+    jvmArgs = ['--add-opens=java.base/java.lang=ALL-UNNAMED']
+    ignoreExitValue = true
 }
