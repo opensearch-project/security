@@ -118,6 +118,12 @@ public class PrivilegesInterceptor {
 
     /**
      * return Boolean.TRUE to prematurely deny request
+    public String getDashboardsIndexName() {
+        DashboardsMultiTenancyConfiguration config = this.multiTenancyConfigurationSupplier.get();
+        return config.dashboardsIndex();
+    }
+
+    /**
      * return Boolean.FALSE to prematurely allow request
      * return null to go through original eval flow
      *
@@ -232,6 +238,20 @@ public class PrivilegesInterceptor {
                 log.trace("not a request to only the .kibana index");
                 log.trace(user.getName() + "/" + dashboardsServerUsername);
                 log.trace(requestedResolved + " does not contain only " + dashboardsIndexName);
+            }
+
+            // For multi-document actions (_mget, _bulk, _msearch, _mtv), validate that any
+            // dashboards-prefixed indices match the user's own tenant. Deny if they reference
+            // another tenant's index to prevent cross-tenant access bypass.
+            if (!requestedResolved.isLocalAll()) {
+                final Set<String> indices = requestedResolved.getAllIndices();
+                final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
+
+                for (String idx : indices) {
+                    if (idx.startsWith(dashboardsIndexName + "_") && !idx.startsWith(tenantIndexName)) {
+                        return ACCESS_DENIED_REPLACE_RESULT;
+                    }
+                }
             }
 
         }
