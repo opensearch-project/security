@@ -4,6 +4,14 @@
  * This project uses @Incubating APIs which are subject to change.
  */
 
+pluginManagement {
+    repositories {
+        maven { url = uri("https://ci.opensearch.org/maven2/") }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
 plugins {
     id("com.autonomousapps.build-health") version "3.10.0"
 }
