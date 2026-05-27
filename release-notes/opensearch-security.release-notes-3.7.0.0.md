@@ -40,15 +40,12 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.7.0
 
 * Add BCFKS keystore generation utilities and documentation ([#6087](https://github.com/opensearch-project/security/pull/6087))
 * Introduce an AGENTS.MD file for agentic development guidance ([#6156](https://github.com/opensearch-project/security/pull/6156))
-* Fix typo: occured → occurred in log and error messages ([#6141](https://github.com/opensearch-project/security/pull/6141))
-* Fix typo: Recieved → Received in test framework log messages ([#6142](https://github.com/opensearch-project/security/pull/6142))
 
 ### Maintenance
 
 * Remove unnecessary debug log message for JWT authentication ([#6086](https://github.com/opensearch-project/security/pull/6086))
 * Cleanup SafeSerializationUtils to remove unused Guava classes ([#6152](https://github.com/opensearch-project/security/pull/6152))
 * Remove passay and Guava BaseEncoding dependencies, replace with JDK equivalents ([#6160](https://github.com/opensearch-project/security/pull/6160))
-* Update affiliation for shikharj05 ([#6139](https://github.com/opensearch-project/security/pull/6139))
 * Bump OpenSAML to 5.2.2 and remove unused ZooKeeper test dependency ([#6149](https://github.com/opensearch-project/security/pull/6149))
 
 ### Refactoring
