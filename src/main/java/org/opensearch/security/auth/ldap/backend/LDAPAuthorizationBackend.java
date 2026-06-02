@@ -511,6 +511,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         return sslConf != null && !(sslConf.getHostnameVerifier() instanceof AllowAnyHostnameVerifier);
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static void configureSNISocketFactory(DefaultConnectionFactory connFactory) {
         Map<String, Object> props = new HashMap<>();
         props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");

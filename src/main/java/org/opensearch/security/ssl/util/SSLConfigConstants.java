@@ -37,7 +37,9 @@ public final class SSLConfigConstants {
      */
     public static final String DEFAULT_STORE_PASSWORD = "changeit"; // #16
     public static final String JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION = "jdk.tls.rejectClientInitiatedRenegotiation";
-    public static final String[] ALLOWED_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
+    public static final String[] ALLOWED_SSL_PROTOCOLS = FipsMode.isEnabled()
+        ? new String[] { "TLSv1.3", "TLSv1.2" }
+        : new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
 
     /**
      * Shared settings prefixes/postfixes

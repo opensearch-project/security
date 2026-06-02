@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.bouncycastle.crypto.fips.FipsDRBG;
 
 import org.opensearch.ExceptionsHelper;
@@ -249,8 +248,8 @@ public class UserService {
      */
     public static char[] generatePassword() {
         SecureRandom seed = new SecureRandom();
-        SecureRandom drbg = FipsDRBG.SHA256_HMAC
-            .fromEntropySource(seed, false)
+        SecureRandom drbg = FipsDRBG.SHA256_HMAC //
+            .fromEntropySource(seed, false) //
             .build(seed.generateSeed(32), false);
         return generatePassword(drbg);
     }

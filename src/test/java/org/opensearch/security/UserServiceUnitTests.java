@@ -125,7 +125,6 @@ public class UserServiceUnitTests {
         );
     }
 
-
     @Test
     public void testGeneratedPasswordContents() {
         char[] password = UserService.generatePassword();
