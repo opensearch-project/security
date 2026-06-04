@@ -21,8 +21,7 @@ import org.opensearch.security.support.ConfigConstants;
 public class SecurityApiDependencies {
     private AdminDNs adminDNs;
     private final ConfigurationRepository configurationRepository;
-    private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
-    private final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
+    private final RestApiAuthorizationEvaluator restApiAuthorizationEvaluator;
     private final AuditLog auditLog;
     private final Settings settings;
 
@@ -32,16 +31,14 @@ public class SecurityApiDependencies {
         final AdminDNs adminDNs,
         final ConfigurationRepository configurationRepository,
         final PrivilegesConfiguration privilegesConfiguration,
-        final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator,
-        final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator,
+        final RestApiAuthorizationEvaluator restApiAuthorizationEvaluator,
         final AuditLog auditLog,
         final Settings settings
     ) {
         this.adminDNs = adminDNs;
         this.configurationRepository = configurationRepository;
         this.privilegesConfiguration = privilegesConfiguration;
-        this.restApiPrivilegesEvaluator = restApiPrivilegesEvaluator;
-        this.restApiAdminPrivilegesEvaluator = restApiAdminPrivilegesEvaluator;
+        this.restApiAuthorizationEvaluator = restApiAuthorizationEvaluator;
         this.auditLog = auditLog;
         this.settings = settings;
     }
@@ -58,12 +55,8 @@ public class SecurityApiDependencies {
         return configurationRepository;
     }
 
-    public RestApiPrivilegesEvaluator restApiPrivilegesEvaluator() {
-        return restApiPrivilegesEvaluator;
-    }
-
-    public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-        return restApiAdminPrivilegesEvaluator;
+    public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+        return restApiAuthorizationEvaluator;
     }
 
     public AuditLog auditLog() {

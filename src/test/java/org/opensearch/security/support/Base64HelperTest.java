@@ -15,10 +15,10 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.stream.IntStream;
 
-import com.google.common.io.BaseEncoding;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -107,7 +107,7 @@ public class Base64HelperTest {
         }
         final OpenSearchException exception = assertThrows(
             OpenSearchException.class,
-            () -> Base64Helper.deserializeObject(BaseEncoding.base64().encode(bos.toByteArray()))
+            () -> Base64Helper.deserializeObject(Base64.getEncoder().encodeToString(bos.toByteArray()))
         );
         assertThat(exception.getMessage(), containsString("Unauthorized deserialization attempt"));
     }

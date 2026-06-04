@@ -316,8 +316,25 @@ See [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Backports
 
-The Github workflow in [`backport.yml`](.github/workflows/backport.yml) creates backport PRs automatically when the
-original PR with an appropriate label `backport <backport-branch-name>` is merged to main with the backport workflow
-run successfully on the PR. For example, if a PR on main needs to be backported to `1.x` branch, add a label
-`backport 1.x` to the PR and make sure the backport workflow runs on the PR along with other checks. Once this PR is
-merged to main, the workflow will create a backport PR to the `1.x` branch.
+The automated backport workflow has been retired. Backports must now be performed manually using your preferred Git workflow — the example below uses `git cherry-pick`, but other approaches (e.g. patch files or GUI tools) are equally valid.
+
+The most common backport targets are the branches for the current Long-Term Support (LTS) releases.
+
+**Example using `git cherry-pick`** — to backport a merged PR to the `2.19` LTS branch:
+
+1. Identify the commit SHA(s) from the merged PR on `main`.
+2. Check out the target branch locally:
+   ```bash
+   git fetch upstream
+   git checkout -b backport/my-fix-2.19 upstream/2.19
+   ```
+3. Cherry-pick the commit(s):
+   ```bash
+   git cherry-pick -x <commit-sha>
+   ```
+   Use `-x` to record the original commit reference in the message. If there are multiple commits, cherry-pick them in order. Resolve any conflicts as needed.
+4. Push the branch to your fork and open a PR against the target branch:
+   ```bash
+   git push origin backport/my-fix-2.19
+   ```
+5. Reference the original PR in the backport PR description so reviewers have context.

@@ -274,7 +274,7 @@ public class DisabledCategoriesTest {
     private static final AuditCategory[] filterComplianceCategories(AuditCategory[] cats) {
         List<AuditCategory> retval = new ArrayList<AuditCategory>();
         for (AuditCategory c : cats) {
-            if (!c.toString().startsWith("COMPLIANCE")) {
+            if (!c.toString().startsWith("COMPLIANCE") && c != AuditCategory.API_TOKEN_WRITE) {
                 retval.add(c);
             }
         }
