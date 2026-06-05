@@ -308,6 +308,7 @@ public class SecurityFilter implements ActionFilter {
                 if (userIsAdmin && !confRequest && !internalRequest && !passThroughRequest) {
                     auditLog.logGrantedPrivileges(action, request, task);
                     auditLog.logIndexEvent(action, request, task);
+                    auditLog.logSettingsChange(action, request, task);
                 }
 
                 chain.proceed(task, action, request, listener);
@@ -424,6 +425,7 @@ public class SecurityFilter implements ActionFilter {
                     if (response.isAllowed()) {
                         auditLog.logGrantedPrivileges(action, request, task);
                         auditLog.logIndexEvent(action, request, task);
+                        auditLog.logSettingsChange(action, request, task);
                         chain.proceed(task, action, request, listener);
                     } else {
                         handleUnauthorized.accept(response);
@@ -452,6 +454,7 @@ public class SecurityFilter implements ActionFilter {
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
+                auditLog.logSettingsChange(action, request, task);
                 if (!dlsFlsValve.invoke(context, listener)) {
                     return;
                 }

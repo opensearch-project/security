@@ -181,6 +181,13 @@ public class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
+    public void logSettingsChange(String action, TransportRequest request, Task task) {
+        if (enabled) {
+            super.logSettingsChange(action, request, task);
+        }
+    }
+
+    @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
         if (enabled) {
             super.logBadHeaders(request, action, task);
