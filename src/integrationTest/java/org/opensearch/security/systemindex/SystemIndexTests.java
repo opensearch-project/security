@@ -56,6 +56,7 @@ public class SystemIndexTests {
     public void setup() {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             client.delete(".system-index1");
+            client.delete(".system-index2");
         }
     }
 
@@ -130,42 +131,34 @@ public class SystemIndexTests {
     }
 
     @Test
-    public void regularUserShouldBeAbleToSearchReadableSystemIndex() {
-        // Create a task entry in .tasks by running update_by_query with wait_for_completion=false
+    public void regularUserShouldBeAbleToSearchUnrestrictedSystemIndex() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse response1 = client.put(".system-index2");
+            assertThat(response1.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
+
+            String doc = "{\"field\":\"value\"}";
+            HttpResponse adminPostResponse = client.postJson(".system-index2/_doc/1?refresh=true", doc);
+            assertThat(adminPostResponse.getStatusCode(), equalTo(RestStatus.CREATED.getStatus()));
+        }
+
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            // Create a test index with a document
-            client.putJson("test-ubq-index/_doc/1?refresh=true", "{\"field\":\"value\"}");
-
-            // Run update_by_query with wait_for_completion=false to create a .tasks entry
-            HttpResponse ubqResponse = client.postJson(
-                "test-ubq-index/_update_by_query?wait_for_completion=false&refresh=true",
-                "{\"script\":{\"source\":\"ctx._source.field='updated'\",\"lang\":\"painless\"}}"
-            );
-            assertThat(ubqResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
-
-            // Extract task id from response
-            String taskId = ubqResponse.getBodyAs(Map.class).get("task").toString();
-
-            // Wait briefly for the task to be persisted
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            // Search .tasks - should return results since it's a ReadableSystemIndexDescriptor
-            HttpResponse searchResponse = client.get(".tasks/_search");
+            // Search .system-index2 - should return results since it uses UnrestrictedSystemIndexDescriptor.
+            HttpResponse searchResponse = client.get(".system-index2/_search");
             assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
             assertThat(
-                "Expected non-empty results from .tasks search",
+                "Expected non-empty results from .system-index2 search",
                 searchResponse.getBody().contains("\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"}"),
                 equalTo(false)
             );
 
             // GET by doc ID - should also return the document
-            HttpResponse getResponse = client.get(".tasks/_doc/" + taskId);
+            HttpResponse getResponse = client.get(".system-index2/_doc/1");
             assertThat(getResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
-            assertThat("Expected found=true for GET on .tasks doc", getResponse.getBody().contains("\"found\":true"), equalTo(true));
+            assertThat(
+                "Expected found=true for GET on .system-index2 doc",
+                getResponse.getBody().contains("\"found\":true"),
+                equalTo(true)
+            );
         }
     }
 }
