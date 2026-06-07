@@ -26,7 +26,9 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -119,6 +121,7 @@ public class SystemIndexTests {
 
             assertThat(response2.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
             assertThat(response2.getBody(), response2.getBody().contains("\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"}"));
+            assertThat(response2.getBody(), containsString("\"field\":\"value\""));
         }
 
         // Regular users should not be able to read it
@@ -127,6 +130,7 @@ public class SystemIndexTests {
             HttpResponse response1 = client.get(".system-index1/_search");
 
             assertThat(response1.getBody(), response1.getBody().contains("\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"}"));
+            assertThat(response1.getBody(), not(containsString("\"field\":\"value\"")));
         }
     }
 
@@ -145,20 +149,14 @@ public class SystemIndexTests {
             // Search .system-index2 - should return results since it uses UnrestrictedSystemIndexDescriptor.
             HttpResponse searchResponse = client.get(".system-index2/_search");
             assertThat(searchResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
-            assertThat(
-                "Expected non-empty results from .system-index2 search",
-                searchResponse.getBody().contains("\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"}"),
-                equalTo(false)
-            );
+            assertThat(searchResponse.getBody(), containsString("\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"}"));
+            assertThat(searchResponse.getBody(), containsString("\"field\":\"value\""));
 
             // GET by doc ID - should also return the document
             HttpResponse getResponse = client.get(".system-index2/_doc/1");
             assertThat(getResponse.getStatusCode(), equalTo(RestStatus.OK.getStatus()));
-            assertThat(
-                "Expected found=true for GET on .system-index2 doc",
-                getResponse.getBody().contains("\"found\":true"),
-                equalTo(true)
-            );
+            assertThat(getResponse.getBody(), containsString("\"found\":true"));
+            assertThat(getResponse.getBody(), containsString("\"field\":\"value\""));
         }
     }
 }
