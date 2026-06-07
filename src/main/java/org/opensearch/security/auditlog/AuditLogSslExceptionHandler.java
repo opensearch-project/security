@@ -26,6 +26,9 @@
 
 package org.opensearch.security.auditlog;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -33,6 +36,8 @@ import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
 
 public class AuditLogSslExceptionHandler implements SslExceptionHandler {
+
+    private static final Logger log = LogManager.getLogger(AuditLogSslExceptionHandler.class);
 
     private final AuditLog auditLog;
 
@@ -69,7 +74,12 @@ public class AuditLogSslExceptionHandler implements SslExceptionHandler {
         switch (type) {
             case 0:
                 if (t instanceof OpenSearchException) {
-                    auditLog.logMissingPrivileges(action, request, task);
+                    log.debug(
+                        "Exception caught at SSL request handler (action={}, class={}); not audited.",
+                        action,
+                        t.getClass().getName(),
+                        t
+                    );
                 } else {
                     auditLog.logSSLException(request, t, action, task);
                 }

@@ -54,7 +54,9 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CON
  *     "enable_transport" : true,
  *     "disabled_transport_categories" : [
  *       "GRANTED_PRIVILEGES",
- *       "AUTHENTICATED"
+ *       "AUTHENTICATED",
+ *       "CLUSTER_SETTINGS_CHANGED",
+ *       "INDEX_SETTINGS_CHANGED"
  *     ],
  *     "resolve_bulk_requests" : false,
  *     "log_request_body" : true,
@@ -246,14 +248,14 @@ public class AuditConfig {
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
                 )
             );
             final List<String> rawIgnoredUsers = getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS);
@@ -300,14 +302,14 @@ public class AuditConfig {
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_REST_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
                 )
             );
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
