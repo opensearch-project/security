@@ -433,6 +433,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
                     if (!replaceResult.continueEvaluation) {
                         if (replaceResult.accessDenied) {
                             auditLog.logMissingPrivileges(action0, request, task);
+                            return PrivilegesEvaluatorResponse.insufficient(action0);
                         } else {
                             return PrivilegesEvaluatorResponse.ok().with(replaceResult.createIndexRequestBuilder);
                         }
