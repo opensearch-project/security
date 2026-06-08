@@ -39,6 +39,7 @@ buildscript {
 
     repositories {
         mavenLocal()
+        maven { url = "https://ci.opensearch.org/maven2/" }
         mavenCentral()
         maven { url = "https://plugins.gradle.org/m2/" }
         maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
@@ -59,9 +60,9 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.11.2"
-    id "org.gradle.test-retry" version "1.6.4"
+    id "org.gradle.test-retry" version "1.6.5"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.5.4"
+    id "com.github.spotbugs" version "6.5.5"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -484,11 +485,14 @@ configurations {
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+            force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
             force "io.netty:netty-buffer:${versions.netty}"
             force "io.netty:netty-codec-base:${versions.netty}"
             force "io.netty:netty-codec-http:${versions.netty}"
             force "io.netty:netty-codec-http2:${versions.netty}"
             force "io.netty:netty-codec-http3:${versions.netty}"
+            force "io.netty:netty-codec-native-quic:${versions.netty}"
+            force "io.netty:netty-codec-classes-quic:${versions.netty}"
             force "io.netty:netty-common:${versions.netty}"
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-resolver:${versions.netty}"
@@ -517,9 +521,9 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
             force "org.checkerframework:checker-qual:3.55.1"
-            force "ch.qos.logback:logback-classic:1.5.32"
+            force "ch.qos.logback:logback-classic:1.5.34"
             force "commons-io:commons-io:2.22.0"
-            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.4"
+            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.1"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.23.0"
             force "net.bytebuddy:byte-buddy:1.18.8"
@@ -527,7 +531,7 @@ configurations {
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
-            force "org.scala-lang:scala3-library_3:3.8.3"
+            force "org.scala-lang:scala3-library_3:3.8.4"
         }
     }
 }
@@ -553,6 +557,7 @@ subprojects {
 allprojects {
     repositories {
         mavenLocal()
+        maven { url = "https://ci.opensearch.org/maven2/" }
         mavenCentral()
         maven { url = "https://plugins.gradle.org/m2/" }
         maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
@@ -693,7 +698,7 @@ dependencies {
         implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     }
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:10.9'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.9.1'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
     implementation "com.github.seancfoley:ipaddress:5.6.2"

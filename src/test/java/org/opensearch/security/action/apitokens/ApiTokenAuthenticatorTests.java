@@ -12,18 +12,15 @@
 package org.opensearch.security.action.apitokens;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.http.ApiTokenAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
-
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -32,21 +29,22 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
-public class ApiTokenAuthenticatorTest {
+public class ApiTokenAuthenticatorTests extends LuceneTestCase {
 
     private ApiTokenAuthenticator authenticator;
-    @Mock
     private Logger log;
-    @Mock
     private ApiTokenRepository apiTokenRepository;
 
     private ThreadContext threadContext;
     private final String plainToken = "os_validtoken123";
     private final String tokenHash = ApiTokenRepository.hashToken(plainToken);
 
+    @Override
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        super.setUp();
+        log = mock(Logger.class);
+        apiTokenRepository = mock(ApiTokenRepository.class);
         Settings settings = Settings.builder().put("enabled", "true").build();
         authenticator = new ApiTokenAuthenticator(settings, "opensearch-cluster", apiTokenRepository);
         authenticator.log = log;
