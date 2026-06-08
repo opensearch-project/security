@@ -527,7 +527,7 @@ configurations {
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.23.0"
             force "net.bytebuddy:byte-buddy:1.18.8"
-            force "org.ow2.asm:asm:9.9.1"
+            force "org.ow2.asm:asm:${versions.asm}"
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
@@ -730,7 +730,7 @@ dependencies {
     compileOnly "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.5'
-    runtimeOnly 'org.ow2.asm:asm:9.9.1'
+    runtimeOnly "org.ow2.asm:asm:${versions.asm}"
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
