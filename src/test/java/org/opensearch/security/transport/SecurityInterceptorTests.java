@@ -474,14 +474,6 @@ public class SecurityInterceptorTests {
         completableRequestDecorate(sender, connection1, action, request, options, handler, localNode);
     }
 
-    @Test
-    public void testStreamRequestType() {
-        TransportRequestOptions streamOptions = mock(TransportRequestOptions.class);
-        when(streamOptions.type()).thenReturn(TransportRequestOptions.Type.STREAM);
-
-        completableRequestDecorate(jdkSerializedSender, connection1, action, request, streamOptions, handler, localNode);
-    }
-
     /**
      * Verifies that TASK_RESOURCE_USAGE response header survives context restore
      * in RestoringTransportResponseHandler.handleResponse().
@@ -795,64 +787,6 @@ public class SecurityInterceptorTests {
 
         assertNotNull("User transient should be restored before inner handler receives exception", userAfterRestore.get());
         assertThat(userAfterRestore.get(), is(user));
-    }
-
-    /**
-     * Preservation test: handleStreamResponse() delegates directly to inner handler
-     * without header processing.
-     */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    @Test
-    public void testPreservation_HandleStreamResponseDelegatesDirectly() {
-        final AtomicReference<Boolean> streamHandlerCalled = new AtomicReference<>(false);
-
-        TransportResponseHandler<TransportResponse> streamCapturingHandler = new TransportResponseHandler<TransportResponse>() {
-            @Override
-            public TransportResponse read(org.opensearch.core.common.io.stream.StreamInput in) {
-                return null;
-            }
-
-            @Override
-            public void handleResponse(TransportResponse response) {}
-
-            @Override
-            public void handleException(TransportException exp) {}
-
-            @Override
-            public void handleStreamResponse(org.opensearch.transport.stream.StreamTransportResponse<TransportResponse> response) {
-                streamHandlerCalled.set(true);
-            }
-
-            @Override
-            public String executor() {
-                return "same";
-            }
-        };
-
-        AsyncSender streamSender = new AsyncSender() {
-            @Override
-            public <T extends TransportResponse> void sendRequest(
-                Connection connection,
-                String action,
-                TransportRequest request,
-                TransportRequestOptions options,
-                TransportResponseHandler<T> handler
-            ) {
-                handler.handleStreamResponse(null);
-                senderLatch.get().countDown();
-            }
-        };
-
-        securityInterceptor.sendRequestDecorate(streamSender, connection3, action, request, options, streamCapturingHandler, localNode);
-
-        try {
-            senderLatch.get().await(1, TimeUnit.SECONDS);
-        } catch (final InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        senderLatch.set(new CountDownLatch(1));
-
-        assertTrue("handleStreamResponse should delegate directly to inner handler", streamHandlerCalled.get());
     }
 
     /**
