@@ -166,8 +166,12 @@ public class SecurityInterceptor {
         // skip the same node optimization for stream transport which doesn't use DirectChannel and thus ser/de is needed
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode()) && !isStreamChannel;
 
+        final Supplier<ThreadContext.StoredContext> restorableContextSupplier = getThreadContext().newRestorableContext(true);
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
-            final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
+            final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(
+                handler,
+                restorableContextSupplier
+            );
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
             final Map<String, String> headerMap = new HashMap<>(
@@ -363,10 +367,13 @@ public class SecurityInterceptor {
     // which is private scoped
     private class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
-        private final ThreadContext.StoredContext contextToRestore;
+        private final Supplier<ThreadContext.StoredContext> contextToRestore;
         private final TransportResponseHandler<T> innerHandler;
 
-        private RestoringTransportResponseHandler(TransportResponseHandler<T> innerHandler, ThreadContext.StoredContext contextToRestore) {
+        private RestoringTransportResponseHandler(
+            TransportResponseHandler<T> innerHandler,
+            Supplier<ThreadContext.StoredContext> contextToRestore
+        ) {
             this.contextToRestore = contextToRestore;
             this.innerHandler = innerHandler;
         }
@@ -393,7 +400,7 @@ public class SecurityInterceptor {
             List<String> dlsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
             List<String> maskedFieldsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
 
-            contextToRestore.restore();
+            contextToRestore.get();
 
             final boolean isDebugEnabled = log.isDebugEnabled();
             if (response instanceof ClusterSearchShardsResponse) {
@@ -424,8 +431,9 @@ public class SecurityInterceptor {
 
         @Override
         public void handleException(TransportException e) {
-            contextToRestore.restore();
-            innerHandler.handleException(e);
+            try (ThreadContext.StoredContext ignore = contextToRestore.get()) {
+                innerHandler.handleException(e);
+            }
         }
 
         @Override
