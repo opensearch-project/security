@@ -523,7 +523,7 @@ configurations {
             force "org.checkerframework:checker-qual:3.55.1"
             force "ch.qos.logback:logback-classic:1.5.34"
             force "commons-io:commons-io:2.22.0"
-            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.4"
+            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.1"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.23.0"
             force "net.bytebuddy:byte-buddy:1.18.8"
