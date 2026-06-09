@@ -30,6 +30,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -221,8 +222,15 @@ public class AccountApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                        return ImmutableMap.of("hash", DataType.STRING, "password", DataType.STRING, "current_password", DataType.STRING);
+                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeys() {
+                        return ImmutableMap.of(
+                            "hash",
+                            FieldConfiguration.of(DataType.STRING),
+                            "password",
+                            FieldConfiguration.of(DataType.STRING),
+                            "current_password",
+                            FieldConfiguration.of(DataType.STRING)
+                        );
                     }
                 });
             }

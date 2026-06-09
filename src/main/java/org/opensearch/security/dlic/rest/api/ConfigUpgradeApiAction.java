@@ -45,6 +45,7 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -399,8 +400,13 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        return Map.of(REQUEST_PARAM_CONFIGS_KEY, DataType.ARRAY, REQUEST_PARAM_ENTITIES_KEY, DataType.ARRAY);
+                    public Map<String, FieldConfiguration> allowedKeys() {
+                        return Map.of(
+                            REQUEST_PARAM_CONFIGS_KEY,
+                            FieldConfiguration.of(DataType.ARRAY),
+                            REQUEST_PARAM_ENTITIES_KEY,
+                            FieldConfiguration.of(DataType.ARRAY)
+                        );
                     }
                 });
             }

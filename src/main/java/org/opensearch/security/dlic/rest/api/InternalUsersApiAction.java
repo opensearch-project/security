@@ -29,6 +29,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.Hashed;
@@ -327,18 +328,18 @@ public class InternalUsersApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeys() {
+                        final ImmutableMap.Builder<String, FieldConfiguration> allowedKeys = ImmutableMap.builder();
                         if (isCurrentUserAdmin()) {
-                            allowedKeys.put("hidden", DataType.BOOLEAN);
-                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                            allowedKeys.put("hidden", FieldConfiguration.of(DataType.BOOLEAN));
+                            allowedKeys.put("reserved", FieldConfiguration.of(DataType.BOOLEAN));
                         }
-                        return allowedKeys.put("backend_roles", DataType.ARRAY)
-                            .put("attributes", DataType.OBJECT)
-                            .put("description", DataType.STRING)
-                            .put("opendistro_security_roles", DataType.ARRAY)
-                            .put("hash", DataType.STRING)
-                            .put("password", DataType.STRING)
+                        return allowedKeys.put("backend_roles", FieldConfiguration.of(DataType.ARRAY))
+                            .put("attributes", FieldConfiguration.of(DataType.OBJECT))
+                            .put("description", FieldConfiguration.of(DataType.STRING))
+                            .put("opendistro_security_roles", FieldConfiguration.of(DataType.ARRAY))
+                            .put("hash", FieldConfiguration.of(DataType.STRING))
+                            .put("password", FieldConfiguration.of(DataType.STRING))
                             .build();
                     }
                 });
