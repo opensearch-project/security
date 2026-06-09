@@ -19,6 +19,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.stream.IntStream;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -30,7 +31,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
-public class Base64HelperTest {
+public class Base64HelperTest extends LuceneTestCase {
 
     private static final class NotSafeSerializable implements Serializable {
         private static final long serialVersionUID = 5135559266828470092L;
