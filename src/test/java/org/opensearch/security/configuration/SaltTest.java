@@ -13,6 +13,7 @@ package org.opensearch.security.configuration;
 
 import java.nio.charset.StandardCharsets;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -26,7 +27,7 @@ import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.configuration.Salt.SALT_SIZE;
 import static org.junit.Assert.assertArrayEquals;
 
-public class SaltTest {
+public class SaltTest extends LuceneTestCase {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
