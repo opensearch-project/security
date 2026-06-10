@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.security.user.User;
@@ -35,6 +36,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class SafeSerializationUtilsTest extends LuceneTestCase {
+
+    @Before
+    public void setupCache() {
+        SafeSerializationUtils.safeClassCache.clear();
+    }
 
     @After
     public void clearCache() {

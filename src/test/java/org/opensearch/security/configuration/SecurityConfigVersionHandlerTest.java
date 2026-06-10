@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.ResourceAlreadyExistsException;
@@ -49,7 +49,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -62,8 +62,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
-public class SecurityConfigVersionHandlerTest {
+@LuceneTestCase.SuppressSysoutChecks(bugUrl = "Test intentionally exercises failure paths that log exceptions")
+public class SecurityConfigVersionHandlerTest extends LuceneTestCase {
 
     @Mock
     private ConfigurationRepository configRepo;
@@ -88,6 +88,7 @@ public class SecurityConfigVersionHandlerTest {
 
     @Before
     public void setup() throws Exception {
+        MockitoAnnotations.openMocks(this);
         settings = Settings.builder()
             .put("path.home", ".")
             .put("node.name", "test-node")
