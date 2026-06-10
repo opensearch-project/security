@@ -16,12 +16,6 @@ all_access:
   - "admin"
   description: "Maps admin to all_access"
 
-own_index:
-  reserved: false
-  users:
-  - "*"
-  description: "Allow full access to an index named like the username"
-
 logstash:
   reserved: false
   backend_roles:
