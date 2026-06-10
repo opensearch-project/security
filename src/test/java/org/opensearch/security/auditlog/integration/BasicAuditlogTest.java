@@ -1008,4 +1008,49 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
         assertThat(TestAuditlogImpl.messages.size(), is(1));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(expectedUpdateUserRequestBody));
     }
+
+    @Test
+    public void testTenantFieldOnAuthenticatedRestRequest() throws Exception {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+            .build();
+        setup(settings);
+
+        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            final HttpResponse response = rh.executeGetRequest(
+                "_search",
+                encodeBasicHeader("admin", "admin"),
+                new BasicHeader("securitytenant", "engineering_tenant")
+            );
+            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }, 2);
+
+        messages.forEach(message -> assertThat(message.toJson(), message.getAsMap().get(AuditMessage.REQUEST_TENANT), equalTo("engineering_tenant")));
+        validateMsgs(messages);
+    }
+
+    @Test
+    public void testTenantFieldOnFailedLogin() throws Exception {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
+            .build();
+        setup(settings);
+
+        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            final HttpResponse response = rh.executeGetRequest(
+                "_search",
+                encodeBasicHeader("admin", "wrongpassword"),
+                new BasicHeader("securitytenant", "engineering_tenant")
+            );
+            assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+        }, 1);
+
+        assertThat(messages.get(0).getCategory(), equalTo(AuditCategory.FAILED_LOGIN));
+        assertThat(messages.get(0).getAsMap().get(AuditMessage.REQUEST_TENANT), equalTo("engineering_tenant"));
+
+        validateMsgs(messages);
+    }
 }
