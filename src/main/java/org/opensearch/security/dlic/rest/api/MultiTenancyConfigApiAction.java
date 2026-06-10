@@ -138,24 +138,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        // Provide basic type information for backward compatibility
-                        return ImmutableMap.of(
-                            DEFAULT_TENANT_JSON_PROPERTY,
-                            DataType.STRING,
-                            PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
-                            DataType.BOOLEAN,
-                            MULTITENANCY_ENABLED_JSON_PROPERTY,
-                            DataType.BOOLEAN,
-                            SIGN_IN_OPTIONS,
-                            DataType.ARRAY,
-                            PREFERRED_TENANTS,
-                            DataType.ARRAY
-                        );
-                    }
-
-                    @Override
-                    public Map<String, FieldConfiguration> allowedKeysWithConfig() {
+                    public Map<String, FieldConfiguration> allowedKeys() {
                         return ImmutableMap.<String, FieldConfiguration>builder()
                             .put(
                                 DEFAULT_TENANT_JSON_PROPERTY,

@@ -234,6 +234,19 @@ public class PrivilegesInterceptor {
                 log.trace(requestedResolved + " does not contain only " + dashboardsIndexName);
             }
 
+            // For multi-document actions (_mget, _bulk, _msearch, _mtv), deny any request
+            // that directly references a concrete dashboards tenant index. Legitimate Dashboards
+            // requests always go through the top-level alias which gets rewritten by the interceptor.
+            if (!requestedResolved.isLocalAll()) {
+                final Set<String> indices = requestedResolved.getAllIndices();
+
+                for (String idx : indices) {
+                    if (idx.startsWith(dashboardsIndexName + "_")) {
+                        return ACCESS_DENIED_REPLACE_RESULT;
+                    }
+                }
+            }
+
         }
 
         return CONTINUE_EVALUATION_REPLACE_RESULT;

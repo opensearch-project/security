@@ -31,6 +31,7 @@ import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.impl.CType;
@@ -179,16 +180,16 @@ public class RolesApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                    public Map<String, FieldConfiguration> allowedKeys() {
+                        final ImmutableMap.Builder<String, FieldConfiguration> allowedKeys = ImmutableMap.builder();
                         if (isCurrentUserAdmin()) {
-                            allowedKeys.put("hidden", DataType.BOOLEAN);
-                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                            allowedKeys.put("hidden", FieldConfiguration.of(DataType.BOOLEAN));
+                            allowedKeys.put("reserved", FieldConfiguration.of(DataType.BOOLEAN));
                         }
-                        return allowedKeys.put("cluster_permissions", DataType.ARRAY)
-                            .put("tenant_permissions", DataType.ARRAY)
-                            .put("index_permissions", DataType.ARRAY)
-                            .put("description", DataType.STRING)
+                        return allowedKeys.put("cluster_permissions", FieldConfiguration.of(DataType.ARRAY))
+                            .put("tenant_permissions", FieldConfiguration.of(DataType.ARRAY))
+                            .put("index_permissions", FieldConfiguration.of(DataType.ARRAY))
+                            .put("description", FieldConfiguration.of(DataType.STRING))
                             .build();
                     }
                 });

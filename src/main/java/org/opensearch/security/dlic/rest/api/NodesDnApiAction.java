@@ -30,6 +30,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
@@ -187,8 +188,8 @@ public class NodesDnApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        return ImmutableMap.of("nodes_dn", DataType.ARRAY);
+                    public Map<String, FieldConfiguration> allowedKeys() {
+                        return ImmutableMap.of("nodes_dn", FieldConfiguration.of(DataType.ARRAY));
                     }
                 });
             }
