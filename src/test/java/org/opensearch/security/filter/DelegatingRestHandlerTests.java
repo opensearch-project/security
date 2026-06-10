@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.core.common.bytes.BytesArray;
@@ -30,7 +31,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-public class DelegatingRestHandlerTests {
+public class DelegatingRestHandlerTests extends LuceneTestCase {
 
     @Test
     public void testDelegatingRestHandlerShouldActAsOriginal() throws Exception {
