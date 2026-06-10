@@ -466,19 +466,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                        // Provide basic type information for backward compatibility
-                        return ImmutableMap.<String, RequestContentValidator.DataType>builder()
-                            .put("source_index", RequestContentValidator.DataType.STRING)
-                            .put("username_path", RequestContentValidator.DataType.STRING)
-                            .put("backend_roles_path", RequestContentValidator.DataType.STRING)
-                            .put("default_owner", RequestContentValidator.DataType.STRING)
-                            .put("default_access_level", RequestContentValidator.DataType.OBJECT)
-                            .build();
-                    }
-
-                    @Override
-                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeysWithConfig() {
+                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeys() {
                         Set<String> allowedIndices = resourcePluginInfo.getResourceIndicesForProtectedTypes();
                         RequestContentValidator.FieldValidator sourceIndexValidator = (fieldName, value) -> {
                             if (value instanceof String strValue) {
