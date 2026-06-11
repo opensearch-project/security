@@ -39,13 +39,13 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.cert.jcajce.JcaX509v2CRLBuilder;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
@@ -59,8 +59,8 @@ import static org.junit.Assert.assertThrows;
 
 public class SSLRequestHelperTests {
 
-    private static final String STORE_NAME = CryptoServicesRegistrar.isInApprovedOnlyMode() ? "truststore.bcfks" : "truststore.jks";
-    private static final String STORE_TYPE = CryptoServicesRegistrar.isInApprovedOnlyMode() ? "BCFKS" : "JKS";
+    private static final String STORE_NAME = FipsMode.isEnabled() ? "truststore.bcfks" : "truststore.jks";
+    private static final String STORE_TYPE = FipsMode.isEnabled() ? "BCFKS" : "JKS";
     private static final char[] INTERNAL_STORE_PASSWORD = DEFAULT_STORE_PASSWORD.toCharArray();
 
     /** Minimum TLS packet buffer size used when the engine reports a smaller value. */

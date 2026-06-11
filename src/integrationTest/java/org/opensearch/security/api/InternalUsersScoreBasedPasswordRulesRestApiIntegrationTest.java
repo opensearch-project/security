@@ -79,10 +79,10 @@ public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends 
     @Test
     public void canCreateUserWithPassword() throws Exception {
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
-            final var createdResp = client.putJson(internalUsers("str1234567"), internalUserWithPassword("s5tRx2r4bwex"));
+            final var createdResp = client.putJson(internalUsers("str1234567"), internalUserWithPassword("s5tRx2r4bwexYZ"));
             assertThat(createdResp, isCreated());
 
-            final var patchResp = client.patch(internalUsers(), patch(addOp("str1234567", internalUserWithPassword("s5tRx2r4bwex"))));
+            final var patchResp = client.patch(internalUsers(), patch(addOp("str1234567", internalUserWithPassword("s5tRx2r4bwexYZ"))));
             assertThat(patchResp, isOk());
         }
     }

@@ -45,6 +45,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
@@ -78,7 +79,9 @@ public class SettingsBasedSSLConfigurator {
     public static final String VERIFY_HOSTNAMES = "verify_hostnames";
     public static final String TRUST_ALL = "trust_all";
 
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.of("TLSv1.2", "TLSv1.1");
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = FipsMode.isEnabled()
+        ? ImmutableList.of("TLSv1.3", "TLSv1.2")
+        : ImmutableList.of("TLSv1.2", "TLSv1.1");
 
     private SSLContextBuilder sslContextBuilder;
     private final Settings settings;
@@ -302,7 +305,7 @@ public class SettingsBasedSSLConfigurator {
         }
 
         try {
-            effectiveKeyPassword = PemKeyReader.randomChars(12);
+            effectiveKeyPassword = SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray();
             effectiveKeyAlias = "al";
             effectiveTruststore = PemKeyReader.toTruststore(effectiveKeyAlias, trustCertificates);
             effectiveKeystore = PemKeyReader.toKeystore(
@@ -514,14 +517,6 @@ public class SettingsBasedSSLConfigurator {
                 return null;
             } else {
                 return this.effectiveTruststoreAliases.toArray(new String[this.effectiveTruststoreAliases.size()]);
-            }
-        }
-
-        public String[] getEffectiveKeyAliasesArray() {
-            if (this.effectiveKeyAlias == null) {
-                return null;
-            } else {
-                return new String[] { this.effectiveKeyAlias };
             }
         }
 

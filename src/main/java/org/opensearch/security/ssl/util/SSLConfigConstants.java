@@ -24,11 +24,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
-
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.support.FipsMode;
 
 import io.netty.handler.ssl.ClientAuth;
 
@@ -38,7 +37,9 @@ public final class SSLConfigConstants {
      */
     public static final String DEFAULT_STORE_PASSWORD = "changeit"; // #16
     public static final String JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION = "jdk.tls.rejectClientInitiatedRenegotiation";
-    public static final String[] ALLOWED_SSL_PROTOCOLS = { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
+    public static final String[] ALLOWED_SSL_PROTOCOLS = FipsMode.isEnabled()
+        ? new String[] { "TLSv1.3", "TLSv1.2" }
+        : new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
 
     /**
      * Shared settings prefixes/postfixes
@@ -46,8 +47,8 @@ public final class SSLConfigConstants {
     public static final String ENABLED = "enabled";
     public static final String CLIENT_AUTH_MODE = "clientauth_mode";
     public static final String ENFORCE_CERT_RELOAD_DN_VERIFICATION = "enforce_cert_reload_dn_verification";
-    public static final String DEFAULT_STORE_TYPE = CryptoServicesRegistrar.isInApprovedOnlyMode()
-        ? "BCFKS"
+    public static final String DEFAULT_STORE_TYPE = FipsMode.isEnabled()
+        ? "BCFKS" // PKCS#11 must remain opt-in via explicit config
         : KeyStore.getDefaultType().toUpperCase(Locale.ROOT);
     public static final String SSL_PREFIX = "plugins.security.ssl.";
 

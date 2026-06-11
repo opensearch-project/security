@@ -29,7 +29,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
-            () -> OpenSearchSecurityPlugin.validateFipsMode("true", settings)
+            () -> OpenSearchSecurityPlugin.validateFipsMode(true, settings, () -> true)
         );
         assertThat(ex.getMessage(), containsString("FIPS mode is enabled"));
         assertThat(ex.getMessage(), containsString("Only PBKDF2 is allowed in FIPS mode"));
@@ -42,7 +42,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
-            () -> OpenSearchSecurityPlugin.validateFipsMode("true", settings)
+            () -> OpenSearchSecurityPlugin.validateFipsMode(true, settings, () -> true)
         );
         assertThat(ex.getMessage(), containsString("bcrypt"));
         assertThat(ex.getMessage(), containsString("FIPS mode is enabled"));
@@ -54,7 +54,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
-            () -> OpenSearchSecurityPlugin.validateFipsMode("true", settings)
+            () -> OpenSearchSecurityPlugin.validateFipsMode(true, settings, () -> true)
         );
         assertThat(ex.getMessage(), containsString("argon2"));
     }
@@ -64,7 +64,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "pbkdf2").build();
 
         // Should not throw
-        OpenSearchSecurityPlugin.validateFipsMode("true", settings);
+        OpenSearchSecurityPlugin.validateFipsMode(true, settings, () -> true);
     }
 
     @Test
@@ -72,7 +72,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "PBKDF2").build();
 
         // Should not throw
-        OpenSearchSecurityPlugin.validateFipsMode("true", settings);
+        OpenSearchSecurityPlugin.validateFipsMode(true, settings, () -> true);
     }
 
     @Test
@@ -80,14 +80,29 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "bcrypt").build();
 
         // Should not throw when FIPS mode is not enabled
-        OpenSearchSecurityPlugin.validateFipsMode("false", settings);
+        OpenSearchSecurityPlugin.validateFipsMode(false, settings, () -> false);
     }
 
     @Test
-    public void testFipsModeNullEnvAllowsAnyAlgorithm() {
+    public void testFipsModeEnabledWithoutApprovedOnlyModeThrows() {
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "pbkdf2").build();
+
+        IllegalStateException ex = assertThrows(
+            IllegalStateException.class,
+            () -> OpenSearchSecurityPlugin.validateFipsMode(true, settings, () -> false)
+        );
+        assertThat(ex.getMessage(), containsString("BCFIPS security provider is not running in FIPS approved-only mode"));
+    }
+
+    @Test
+    public void testFipsModeEnabledWithBothViolationsThrows() {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "bcrypt").build();
 
-        // Should not throw when env var is null
-        OpenSearchSecurityPlugin.validateFipsMode(null, settings);
+        IllegalStateException ex = assertThrows(
+            IllegalStateException.class,
+            () -> OpenSearchSecurityPlugin.validateFipsMode(true, settings, () -> false)
+        );
+        assertThat(ex.getMessage(), containsString("BCFIPS security provider is not running in FIPS approved-only mode"));
+        assertThat(ex.getMessage(), containsString("Only PBKDF2 is allowed in FIPS mode"));
     }
 }

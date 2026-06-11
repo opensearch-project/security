@@ -31,8 +31,10 @@ package org.opensearch.test.framework;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -70,6 +72,7 @@ import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.transport.client.Client;
@@ -98,8 +101,22 @@ public class TestSecurityConfig {
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
     private static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        Settings.builder()
+            .put(
+                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
+                FipsMode.isEnabled() ? ConfigConstants.PBKDF2 : ConfigConstants.BCRYPT
+            )
+            .build()
     );
+
+    /** Random 16-byte (128-bit) password generated once per JVM — always satisfies BC FIPS 112-bit minimum. */
+    public static final String DEFAULT_TEST_PASSWORD;
+
+    static {
+        byte[] bytes = new byte[16];
+        new SecureRandom().nextBytes(bytes);
+        DEFAULT_TEST_PASSWORD = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
 
     private Config config = new Config();
     private Map<String, User> internalUsers = new LinkedHashMap<>();
@@ -500,7 +517,7 @@ public class TestSecurityConfig {
 
         public User(String name) {
             this.name = name;
-            this.password = "secret";
+            this.password = DEFAULT_TEST_PASSWORD;
         }
 
         public User description(String description) {
@@ -1314,7 +1331,7 @@ public class TestSecurityConfig {
         }
     }
 
-    static String hashPassword(final String clearTextPassword) {
+    public static String hashPassword(final String clearTextPassword) {
         return passwordHasher.hash(clearTextPassword.toCharArray());
     }
 

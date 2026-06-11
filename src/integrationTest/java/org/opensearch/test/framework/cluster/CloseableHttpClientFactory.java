@@ -24,6 +24,8 @@ import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.http.io.SocketConfig;
 
+import org.opensearch.security.support.FipsMode;
+
 class CloseableHttpClientFactory {
 
     private final SSLContext sslContext;
@@ -50,9 +52,12 @@ class CloseableHttpClientFactory {
 
         final HttpClientBuilder hcb = HttpClients.custom();
 
+        // TLSv1.3 dropped support for AES-CBC
+        String[] protocols = supportedCipherSuites != null && FipsMode.isEnabled() ? new String[] { "TLSv1.2" } : null;
+
         final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
             this.sslContext,
-            null,
+            protocols,
             supportedCipherSuites,
             NoopHostnameVerifier.INSTANCE
         );
