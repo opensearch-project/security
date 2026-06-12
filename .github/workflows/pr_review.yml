@@ -6,7 +6,7 @@ on:
 
 jobs:
   Code-Diff-Analyzer:
-    uses: opensearch-project/opensearch-build/.github/workflows/code-diff-analyzer.yml@c2498b758c08fb7bc48476509a5fc1b8dd5f7493 # main
+    uses: opensearch-project/opensearch-build/.github/workflows/code-diff-analyzer.yml@b92b8c03b40d1ae935e5cc8591becdbb49f15313 # main
     if: github.repository == 'opensearch-project/security'
     permissions:
       id-token: write  # github oidc to assume aws roles
