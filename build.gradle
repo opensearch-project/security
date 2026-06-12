@@ -443,6 +443,9 @@ bundlePlugin {
         into 'config'
     }
     from('tools') {
+        into 'bin'
+    }
+    from('tools') {
         into 'tools'
     }
 }
