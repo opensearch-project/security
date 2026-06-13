@@ -37,7 +37,7 @@ runs:
         plugin-branch: ${{ inputs.plugin-next-branch }}
 
     - name: Run BWC tests
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
       with:
         cache-disabled: true
         arguments: |
@@ -50,7 +50,7 @@ runs:
           -Dbwc.version.previous=${{ steps.build-previous.outputs.built-version }}
           -Dbwc.version.next=${{ steps.build-next.outputs.built-version }} -i
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       if: always()
       with:
         name: ${{ inputs.report-artifact-name }}
