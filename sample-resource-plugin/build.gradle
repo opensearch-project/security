@@ -25,7 +25,6 @@ opensearchplugin {
 
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
-loggerUsageCheck.enabled = false
 validateNebulaPom.enabled = false
 testingConventions.enabled = false
 tasks.configureEach { task ->
