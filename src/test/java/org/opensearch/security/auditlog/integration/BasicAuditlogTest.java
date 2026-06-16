@@ -401,14 +401,12 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
 
     public void testMsearch() throws Exception {
 
-        String msearch = "{\"index\":\"sf\", \"ignore_unavailable\": true}"
-            + System.lineSeparator()
-            + "{\"size\":0,\"query\":{\"match_all\":{}}}"
-            + System.lineSeparator()
-            + "{\"index\":\"sf\", \"ignore_unavailable\": true}"
-            + System.lineSeparator()
-            + "{\"size\":0,\"query\":{\"match_all\":{}}}"
-            + System.lineSeparator();
+        String msearch = """
+            {"index":"sf", "ignore_unavailable": true}
+            {"size":0,"query":{"match_all":{}}}
+            {"index":"sf", "ignore_unavailable": true}
+            {"size":0,"query":{"match_all":{}}}
+            """;
 
         // msaerch
         HttpResponse response = rh.executePostRequest("_msearch?pretty", msearch, encodeBasicHeader("admin", "admin"));
@@ -426,26 +424,17 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
     public void testBulkAuth() throws Exception {
 
         // testBulkAuth
-        String bulkBody = "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
-            + System.lineSeparator()
-            + "{ \"field1\" : \"value1\" }"
-            + System.lineSeparator()
-            + "{ \"index\" : { \"_index\" : \"worf\", \"_id\" : \"2\" } }"
-            + System.lineSeparator()
-            + "{ \"field2\" : \"value2\" }"
-            + System.lineSeparator()
-            +
-
-            "{ \"update\" : {\"_id\" : \"1\", \"_index\" : \"test\"} }"
-            + System.lineSeparator()
-            + "{ \"doc\" : {\"field\" : \"valuex\"} }"
-            + System.lineSeparator()
-            + "{ \"delete\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
-            + System.lineSeparator()
-            + "{ \"create\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
-            + System.lineSeparator()
-            + "{ \"field1\" : \"value3x\" }"
-            + System.lineSeparator();
+        String bulkBody = """
+            { "index" : { "_index" : "test", "_id" : "1" } }
+            { "field1" : "value1" }
+            { "index" : { "_index" : "worf", "_id" : "2" } }
+            { "field2" : "value2" }
+            { "update" : {"_id" : "1", "_index" : "test"} }
+            { "doc" : {"field" : "valuex"} }
+            { "delete" : { "_index" : "test", "_id" : "1" } }
+            { "create" : { "_index" : "test", "_id" : "1" } }
+            { "field1" : "value3x" }
+            """;
 
         HttpResponse response = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("admin", "admin"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
@@ -464,26 +453,17 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
 
     public void testBulkNonAuth() throws Exception {
 
-        String bulkBody = "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
-            + System.lineSeparator()
-            + "{ \"field1\" : \"value1\" }"
-            + System.lineSeparator()
-            + "{ \"index\" : { \"_index\" : \"worf\", \"_id\" : \"2\" } }"
-            + System.lineSeparator()
-            + "{ \"field2\" : \"value2\" }"
-            + System.lineSeparator()
-            +
-
-            "{ \"update\" : {\"_id\" : \"1\", \"_index\" : \"test\"} }"
-            + System.lineSeparator()
-            + "{ \"doc\" : {\"field\" : \"valuex\"} }"
-            + System.lineSeparator()
-            + "{ \"delete\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
-            + System.lineSeparator()
-            + "{ \"create\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"
-            + System.lineSeparator()
-            + "{ \"field1\" : \"value3x\" }"
-            + System.lineSeparator();
+        String bulkBody = """
+            { "index" : { "_index" : "test", "_id" : "1" } }
+            { "field1" : "value1" }
+            { "index" : { "_index" : "worf", "_id" : "2" } }
+            { "field2" : "value2" }
+            { "update" : {"_id" : "1", "_index" : "test"} }
+            { "doc" : {"field" : "valuex"} }
+            { "delete" : { "_index" : "test", "_id" : "1" } }
+            { "create" : { "_index" : "test", "_id" : "1" } }
+            { "field1" : "value3x" }
+            """;
 
         HttpResponse response = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("worf", "worf"));
 
@@ -502,14 +482,8 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
 
     public void testUpdateSettings() throws Exception {
 
-        String json = "{"
-            + "\"persistent\" : {"
-            + "\"indices.recovery.*\" : null"
-            + "},"
-            + "\"transient\" : {"
-            + "\"indices.recovery.*\" : null"
-            + "}"
-            + "}";
+        String json = """
+            {"persistent" : {"indices.recovery.*" : null},"transient" : {"indices.recovery.*" : null}}""";
 
         String expectedRequestBodyLog =
             "{\\\"persistent_settings\\\":{\\\"indices\\\":{\\\"recovery\\\":{\\\"*\\\":null}}},\\\"transient_settings\\\":{\\\"indices\\\":{\\\"recovery\\\":{\\\"*\\\":null}}}}";
