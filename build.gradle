@@ -392,9 +392,6 @@ opensearchplugin {
     extendedPlugins = ['rule-framework', 'workload-management;optional=true', 'transport-grpc;optional=true']
 }
 
-// This requires an additional Jar not published as part of build-tools
-loggerUsageCheck.enabled = false
-
 publishing {
     publications {
         pluginZip(MavenPublication) { publication ->
