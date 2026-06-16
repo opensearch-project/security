@@ -81,7 +81,7 @@ configurations {
             force "com.google.protobuf:protobuf-java:${versions.protobuf}"
             force libs.google.guava
             force "com.google.guava:failureaccess:1.0.3"
-            force "io.projectreactor:reactor-core:3.8.5"
+            force "io.projectreactor:reactor-core:3.8.6"
 
             // Netty version alignment with OpenSearch core
             force "io.netty:netty-buffer:${versions.netty}"
