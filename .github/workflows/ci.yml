@@ -17,7 +17,7 @@ env:
 
 jobs:
   Get-CI-Image-Tag:
-    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@58029ed0db12929e8e920eb875925335583f9490 # main
+    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
     with:
       product: opensearch
 
