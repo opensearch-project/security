@@ -274,6 +274,36 @@ public class ApiTokenTest {
     }
 
     @Test
+    public void testApiTokenWithReadActionGroup_canCountAllowedDocuments() {
+        try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
+            adminClient.putJson("test-index-count/_doc/1?refresh=true", "{\"field\":\"value\"}").assertStatusCode(HttpStatus.SC_CREATED);
+        }
+
+        String payload = """
+            {
+              "name": "test-token-count",
+              "cluster_permissions": [],
+              "index_permissions": [{
+                "index_pattern": ["test-index-count"],
+                "allowed_actions": ["read"]
+              }],
+              "duration_seconds": 3600
+            }
+            """;
+        String apiToken = generateApiToken(payload);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
+
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            TestRestClient.HttpResponse countResponse = client.get("test-index-count/_count");
+            countResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(countResponse.getTextFromJsonBody("/count"), equalTo("1"));
+
+            TestRestClient.HttpResponse forbiddenResponse = client.get("other-index/_count");
+            assertThat(forbiddenResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+    }
+
+    @Test
     public void testApiTokenWithOnlyIndexPermissions_noClusterPermissionsField() {
         try (TestRestClient adminClient = cluster.getRestClient(ADMIN_USER)) {
             adminClient.putJson("test-index-nocluster", "{\"settings\":{\"number_of_shards\":1}}").assertStatusCode(HttpStatus.SC_OK);
