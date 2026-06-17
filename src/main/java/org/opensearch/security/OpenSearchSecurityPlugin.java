@@ -165,6 +165,7 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesActionType;
 import org.opensearch.security.dlic.rest.api.ssl.TransportCertificatesInfoNodesAction;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
+import org.opensearch.security.filter.AuditActionFilter;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.hasher.PasswordHasher;
@@ -339,6 +340,24 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         return Objects.requireNonNull(sslExceptionHandler);
+    }
+
+    /**
+     * Initializes audit logging for SSL-only or disabled modes where the full security
+     * stack is not bootstrapped. If audit type is configured, creates a real AuditLogImpl;
+     * otherwise uses NullAuditLog.
+     */
+    private void initStandaloneAuditIfEnabled(Client localClient, ThreadPool threadPool, ClusterService clusterService, Environment environment) {
+        this.threadPool = threadPool;
+        this.cs = clusterService;
+        this.localClient = localClient;
+        final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
+        final String auditType = settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null);
+        if (auditType != null) {
+            auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment, new UserFactory.Simple());
+        } else {
+            auditLog = new NullAuditLog();
+        }
     }
 
     private static boolean isDisabled(final Settings settings) {
@@ -966,6 +985,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         List<ActionFilter> filters = new ArrayList<>(1);
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
             filters.add(Objects.requireNonNull(sf));
+        } else if (!client && auditLog != null && !(auditLog instanceof NullAuditLog)) {
+            filters.add(new AuditActionFilter(auditLog));
         }
         return filters;
     }
@@ -1179,6 +1200,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     ) {
         SSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         if (SSLConfig.isSslOnlyMode()) {
+            initStandaloneAuditIfEnabled(localClient, threadPool, clusterService, environment);
             return super.createComponents(
                 localClient,
                 clusterService,
