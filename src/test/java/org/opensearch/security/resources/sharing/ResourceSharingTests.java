@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -36,7 +37,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link org.opensearch.security.resources.sharing.ResourceSharing}.
  */
-public class ResourceSharingTests {
+public class ResourceSharingTests extends LuceneTestCase {
 
     private CreatedBy mockCreatedBy(String username) {
         CreatedBy createdBy = mock(CreatedBy.class);

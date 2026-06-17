@@ -13,7 +13,10 @@ package org.opensearch.security.filter;
 
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,10 +45,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-public class SecurityRestFilterUnitTests {
+public class SecurityRestFilterUnitTests extends LuceneTestCase {
 
     SecurityRestFilter sf;
     RestHandler testRestHandler;
+    ThreadPool threadPool;
 
     class TestRestHandler implements RestHandler {
 
@@ -56,22 +60,27 @@ public class SecurityRestFilterUnitTests {
     }
 
     @Before
-    public void setUp() throws NoSuchMethodException {
+    public void setupSecurityRestFilter() throws NoSuchMethodException {
         testRestHandler = new TestRestHandler();
 
-        ThreadPool tp = spy(new ThreadPool(Settings.builder().put("node.name", "mock").build()));
-        doReturn(new ThreadContext(Settings.EMPTY)).when(tp).getThreadContext();
+        threadPool = spy(new ThreadPool(Settings.builder().put("node.name", "mock").build()));
+        doReturn(new ThreadContext(Settings.EMPTY)).when(threadPool).getThreadContext();
 
         sf = new SecurityRestFilter(
             mock(BackendRegistry.class),
             mock(RestLayerPrivilegesEvaluator.class),
             mock(AuditLog.class),
-            tp,
+            threadPool,
             mock(PrincipalExtractor.class),
             Settings.EMPTY,
             mock(Path.class),
             mock(CompatConfig.class)
         );
+    }
+
+    @After
+    public void shutdownThreadPool() {
+        ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
     }
 
     /**

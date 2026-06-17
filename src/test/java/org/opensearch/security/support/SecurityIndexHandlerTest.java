@@ -17,12 +17,12 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
 
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -53,7 +53,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -73,8 +73,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
-public class SecurityIndexHandlerTest {
+public class SecurityIndexHandlerTest extends LuceneTestCase {
 
     final static String INDEX_NAME = "some_index";
 
@@ -145,6 +144,7 @@ public class SecurityIndexHandlerTest {
 
     @Before
     public void setupClient() throws IOException {
+        MockitoAnnotations.openMocks(this);
         when(client.admin()).thenReturn(mock(AdminClient.class));
         when(client.admin().indices()).thenReturn(indicesAdminClient);
         when(client.threadPool()).thenReturn(threadPool);

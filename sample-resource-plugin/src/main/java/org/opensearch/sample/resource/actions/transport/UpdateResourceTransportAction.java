@@ -10,6 +10,7 @@ package org.opensearch.sample.resource.actions.transport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
@@ -78,7 +79,7 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
                 }, listener::onFailure));
             }
         } catch (Exception e) {
-            log.error("Failed to update resource: {}", request.getResourceId(), e);
+            log.error(() -> new ParameterizedMessage("Failed to update resource: {}", request.getResourceId()), e);
             listener.onFailure(e);
         }
 
