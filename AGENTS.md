@@ -73,7 +73,7 @@ formatter/          # Eclipse JDT formatter configuration
 The plugin version must match the target OpenSearch version. Check `build.gradle`:
 
 ```groovy
-opensearch_version = System.getProperty("opensearch.version", "3.7.0-SNAPSHOT")
+opensearch_version = System.getProperty("opensearch.version", "3.8.0-SNAPSHOT")
 ```
 
 ```bash
