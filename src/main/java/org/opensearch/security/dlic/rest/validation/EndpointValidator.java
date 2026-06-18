@@ -30,6 +30,10 @@ public interface EndpointValidator {
 
     RestApiAuthorizationEvaluator restApiAuthorizationEvaluator();
 
+    default boolean isCurrentUserSuperAdmin() {
+        return restApiAuthorizationEvaluator().isCurrentUserSuperAdmin();
+    }
+
     private String resourceName() {
         if (Objects.isNull(endpoint())) {
             return "";
@@ -156,6 +160,9 @@ public interface EndpointValidator {
     default ValidationResult<SecurityConfiguration> isAllowedToChangeEntityWithRestAdminPermissions(
         final SecurityConfiguration securityConfiguration
     ) throws IOException {
+        if (isCurrentUserSuperAdmin()) {
+            return ValidationResult.success(securityConfiguration);
+        }
         final var configuration = securityConfiguration.configuration();
         if (securityConfiguration.entityExists()) {
             final var existingEntity = configuration.getCEntry(securityConfiguration.entityName());

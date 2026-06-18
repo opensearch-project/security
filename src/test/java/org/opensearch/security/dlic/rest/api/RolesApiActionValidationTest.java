@@ -14,6 +14,7 @@ package org.opensearch.security.dlic.rest.api;
 import org.junit.Test;
 
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 
 import org.mockito.Mockito;
@@ -37,6 +38,52 @@ public class RolesApiActionValidationTest extends AbstractApiActionValidationTes
         final var result = rolesApiActionEndpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("sss", configuration));
 
         assertTrue(result.isValid());
+    }
+
+    @Test
+    public void superAdminIsAllowedToCreateRoleWithRestAdminPermissions() throws Exception {
+        when(restApiAuthorizationEvaluator.isCurrentUserSuperAdmin()).thenReturn(true);
+
+        final var role = objectMapper.createObjectNode();
+        final var clusterPermissions = objectMapper.createArrayNode();
+        clusterPermissions.add("restapi:admin/actiongroups");
+        clusterPermissions.add("restapi:admin/roles");
+        clusterPermissions.add("restapi:admin/rolesmapping");
+        role.set("cluster_permissions", clusterPermissions);
+        final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
+            .createEndpointValidator();
+        assertTrue(rolesApiActionEndpointValidator.isCurrentUserSuperAdmin());
+
+        final var result = rolesApiActionEndpointValidator.isAllowedToChangeImmutableEntity(
+            SecurityConfiguration.of(role, "test_role", configuration)
+        );
+
+        assertTrue(result.isValid());
+    }
+    
+    @Test
+    public void nonSuperAdminIsNotAllowedToCreateRoleWithRestAdminPermissions() throws Exception {
+        when(restApiAuthorizationEvaluator.isCurrentUserSuperAdmin()).thenReturn(false);
+        Mockito.doReturn(CType.ROLES).when(configuration).getCType();
+        when(configuration.getImplementingClass()).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+
+        final var role = objectMapper.createObjectNode();
+        final var clusterPermissions = objectMapper.createArrayNode();
+        clusterPermissions.add("restapi:admin/actiongroups");
+        clusterPermissions.add("restapi:admin/roles");
+        clusterPermissions.add("restapi:admin/rolesmapping");
+        role.set("cluster_permissions", clusterPermissions);
+        final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
+            .createEndpointValidator();
+        assertFalse(rolesApiActionEndpointValidator.isCurrentUserSuperAdmin());
+
+        final var result = rolesApiActionEndpointValidator.isAllowedToChangeImmutableEntity(
+            SecurityConfiguration.of(role, "test_role", configuration)
+        );
+
+        assertFalse(result.isValid());
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
     @Test
