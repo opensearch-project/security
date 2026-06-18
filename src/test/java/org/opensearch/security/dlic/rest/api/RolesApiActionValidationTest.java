@@ -60,7 +60,7 @@ public class RolesApiActionValidationTest extends AbstractApiActionValidationTes
 
         assertTrue(result.isValid());
     }
-    
+
     @Test
     public void nonSuperAdminIsNotAllowedToCreateRoleWithRestAdminPermissions() throws Exception {
         when(restApiAuthorizationEvaluator.isCurrentUserSuperAdmin()).thenReturn(false);
