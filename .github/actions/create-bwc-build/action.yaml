@@ -46,9 +46,10 @@ runs:
         build-root-directory: ${{ inputs.plugin-branch }}
 
     - id: get-opensearch-version
-      uses: peternied/get-opensearch-version@c13e2946341f9f17befbafe76327dae0d1e0b7a0 # v1
-      with:
-        working-directory: ${{ inputs.plugin-branch }}
+      run: |
+        echo "version=$(./gradlew properties -Dbuild.snapshot=false | grep ^version: | awk '{split($0, a, ": ");print a[2]}')" >> $GITHUB_OUTPUT
+      working-directory: ${{ inputs.plugin-branch }}
+      shell: bash
 
     - name: Copy current distro into the expected folder
       run: |
