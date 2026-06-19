@@ -12,7 +12,8 @@ package org.opensearch.security.auditlog.sink;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+
+import org.apache.lucene.tests.util.LuceneTestCase;
 
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -28,7 +29,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -62,8 +63,7 @@ import static org.mockito.Mockito.when;
  *   <li>{@link InternalOpenSearchSinkIntegrationTestAuditAlias}</li>
  * </ul>
  */
-@RunWith(MockitoJUnitRunner.class)
-public class InternalOpenSearchSinkTest {
+public class InternalOpenSearchSinkTest extends LuceneTestCase {
 
     private static final String TEST_INDEX = "test-audit-index";
 
@@ -87,7 +87,8 @@ public class InternalOpenSearchSinkTest {
     private InternalOpenSearchSink sink;
 
     @Before
-    public void setUp() {
+    public void setupSink() {
+        MockitoAnnotations.openMocks(this);
         when(clusterService.state()).thenReturn(clusterState);
         when(clusterState.metadata()).thenReturn(metadata);
         when(metadata.hasAlias(TEST_INDEX)).thenReturn(false);
