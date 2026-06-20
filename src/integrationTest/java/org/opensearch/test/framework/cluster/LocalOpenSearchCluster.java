@@ -91,23 +91,6 @@ public class LocalOpenSearchCluster {
 
     static {
         System.setProperty("opensearch.enforce.bootstrap.checks", "true");
-        initializeSerialFilter();
-    }
-
-    /**
-     * Installs a process-wide ObjectInputFilter that rejects all deserialization by default,
-     * mirroring what OpenSearch bootstrap does when bootstrap.serial_filter is enabled.
-     * Code that legitimately needs deserialization must set a filter on their ObjectInputStream.
-     */
-    private static void initializeSerialFilter() {
-        try {
-            java.io.ObjectInputFilter rejectAllFilter = filterInfo -> filterInfo.serialClass() == null
-                ? java.io.ObjectInputFilter.Status.UNDECIDED
-                : java.io.ObjectInputFilter.Status.REJECTED;
-            java.io.ObjectInputFilter.Config.setSerialFilter(rejectAllFilter);
-        } catch (IllegalStateException e) {
-            // Filter already set
-        }
     }
 
     private static final Logger log = LogManager.getLogger(LocalOpenSearchCluster.class);
