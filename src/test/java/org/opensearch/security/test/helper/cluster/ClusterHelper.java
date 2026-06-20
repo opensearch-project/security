@@ -481,7 +481,8 @@ public final class ClusterHelper {
             .put("transport.tcp.port", tcpPort)
             .put("http.port", httpPort)
             .put("http.cors.enabled", true)
-            .put("path.home", "./target");
+            .put("path.home", "./target")
+            .put("bootstrap.serial_filter", true);
     }
 
     private enum ClusterState {
