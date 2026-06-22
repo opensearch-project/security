@@ -14,6 +14,7 @@ package org.opensearch.security.authtoken.jwt;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
+import javax.crypto.SecretKey;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,6 +24,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.authtoken.jwt.claims.JwtClaimsBuilder;
+import org.opensearch.security.util.KeyUtils;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -36,6 +38,7 @@ import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jwt.SignedJWT;
 
 public class JwtVendor {
+    public static final String SIGNING_KEY_PROPERTY_KEY = "signing_key";
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
 
     private final JWK signingKey;
@@ -55,8 +58,12 @@ public class JwtVendor {
      * */
     static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings) {
         final OctetSequenceKey key;
-        if (settings.get("signing_key") != null) {
-            final String signingKey = settings.get("signing_key");
+
+        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, SIGNING_KEY_PROPERTY_KEY);
+        if (keystoreKey != null) {
+            key = new OctetSequenceKey.Builder(keystoreKey.getEncoded()).algorithm(JWSAlgorithm.HS512).keyUse(KeyUse.SIGNATURE).build();
+        } else if (settings.get(SIGNING_KEY_PROPERTY_KEY) != null) {
+            final String signingKey = settings.get(SIGNING_KEY_PROPERTY_KEY);
             key = new OctetSequenceKey.Builder(Base64.getDecoder().decode(signingKey)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();

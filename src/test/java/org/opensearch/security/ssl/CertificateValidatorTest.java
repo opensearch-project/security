@@ -35,11 +35,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.security.ssl.util.CertificateValidator;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -87,9 +87,7 @@ public class CertificateValidatorTest {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
             Assert.fail();
         } catch (GeneralSecurityException e) {
-            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
-                ? "Certificate revocation after 2018-05-05"
-                : "Certificate has been revoked";
+            String expectedMessage = FipsMode.isEnabled() ? "Certificate revocation after 2018-05-05" : "Certificate has been revoked";
             Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
@@ -129,9 +127,7 @@ public class CertificateValidatorTest {
         try {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
         } catch (GeneralSecurityException e) {
-            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
-                ? "No CRLs found for issuer"
-                : "Certificate has been revoked";
+            String expectedMessage = FipsMode.isEnabled() ? "No CRLs found for issuer" : "Certificate has been revoked";
             Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
@@ -165,9 +161,7 @@ public class CertificateValidatorTest {
             Assert.fail();
         } catch (GeneralSecurityException e) {
             assertThat(e, instanceOf(CertPathValidatorException.class));
-            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
-                ? "No CRLs found for issuer"
-                : "Certificate has been revoked";
+            String expectedMessage = FipsMode.isEnabled() ? "Certificate revocation after" : "Certificate has been revoked";
             Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }
@@ -203,9 +197,7 @@ public class CertificateValidatorTest {
             validator.validate(certsToValidate.toArray(new X509Certificate[0]));
             Assert.fail();
         } catch (GeneralSecurityException e) {
-            String expectedMessage = CryptoServicesRegistrar.isInApprovedOnlyMode()
-                ? "No CRLs found for issuer"
-                : "Certificate has been revoked";
+            String expectedMessage = FipsMode.isEnabled() ? "Certificate revocation after" : "Certificate has been revoked";
             Assert.assertNotNull(ExceptionUtils.findMsg(e, expectedMessage));
         }
     }

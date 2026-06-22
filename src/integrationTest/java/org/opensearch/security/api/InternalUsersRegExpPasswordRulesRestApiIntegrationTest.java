@@ -79,7 +79,7 @@ public class InternalUsersRegExpPasswordRulesRestApiIntegrationTest extends Abst
             final var r = client.patch(
                 internalUsers(),
                 patch(
-                    addOp("testuser1", internalUserWithPassword("$aA123456789")),
+                    addOp("testuser1", internalUserWithPassword("$aA1234567890ab")),
                     addOp("testuser2", internalUserWithPassword("testpassword2"))
                 )
             );
@@ -93,12 +93,12 @@ public class InternalUsersRegExpPasswordRulesRestApiIntegrationTest extends Abst
     @Test
     public void canCreateUsersWithPassword() throws Exception {
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
-            assertThat(client.putJson(internalUsers("ok1"), internalUserWithPassword("$aA123456789")), isCreated());
-            assertThat(client.putJson(internalUsers("ok2"), internalUserWithPassword("$Aa123456789")), isCreated());
-            assertThat(client.putJson(internalUsers("ok3"), internalUserWithPassword("$1aAAAAAAAAA")), isCreated());
-            assertThat(client.putJson(internalUsers("ok3"), internalUserWithPassword("$1aAAAAAAAAC")), isOk());
-            assertThat(client.patch(internalUsers(), patch(addOp("ok3", internalUserWithPassword("$1aAAAAAAAAB")))), isOk());
-            assertThat(client.putJson(internalUsers("ok1"), internalUserWithPassword("Admin_123")), isOk());
+            assertThat(client.putJson(internalUsers("ok1"), internalUserWithPassword("$aA1234567890ab")), isCreated());
+            assertThat(client.putJson(internalUsers("ok2"), internalUserWithPassword("$Aa1234567890ab")), isCreated());
+            assertThat(client.putJson(internalUsers("ok3"), internalUserWithPassword("$1aAAAAAAAAAAab")), isCreated());
+            assertThat(client.putJson(internalUsers("ok3"), internalUserWithPassword("$1aAAAAAAAACab")), isOk());
+            assertThat(client.patch(internalUsers(), patch(addOp("ok3", internalUserWithPassword("$1aAAAAAAAABab")))), isOk());
+            assertThat(client.putJson(internalUsers("ok1"), internalUserWithPassword("Admin_1234567890")), isOk());
         }
     }
 

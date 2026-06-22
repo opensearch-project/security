@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableMap;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -53,6 +54,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
@@ -106,6 +108,11 @@ public class HTTPSamlAuthenticatorTest {
 
     private static X509Certificate spSigningCertificate;
     private static PrivateKey spSigningPrivateKey;
+
+    @BeforeClass
+    public static void skipInFipsMode() {
+        Assume.assumeFalse("Skipping SAML tests: SAML frameworks are not FIPS-compliant", FipsMode.isEnabled());
+    }
 
     @Before
     public void setUp() throws Exception {

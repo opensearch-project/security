@@ -17,6 +17,7 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.security.support.FipsMode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -27,7 +28,7 @@ public abstract class AbstractPasswordHasherTests extends LuceneTestCase {
 
     PasswordHasher passwordHasher;
 
-    final String password = "testPassword";
+    final String password = FipsMode.isEnabled() ? "notarealpassword" : "testPassword";
     final String wrongPassword = "wrongTestPassword";
 
     @Test
@@ -76,18 +77,18 @@ public abstract class AbstractPasswordHasherTests extends LuceneTestCase {
 
     @Test
     public void shouldCleanupPasswordCharArray() {
-        char[] password = new char[] { 'p', 'a', 's', 's', 'w', 'o', 'r', 'd' };
-        passwordHasher.hash(password);
-        assertThat("\0\0\0\0\0\0\0\0", is(new String(password)));
+        char[] passwordAsChar = password.toCharArray();
+        passwordHasher.hash(passwordAsChar);
+        assertThat("\0".repeat(password.length()), is(new String(passwordAsChar)));
     }
 
     @Test
     public void shouldCleanupPasswordCharBuffer() {
-        char[] password = new char[] { 'p', 'a', 's', 's', 'w', 'o', 'r', 'd' };
-        CharBuffer passwordBuffer = CharBuffer.wrap(password);
-        passwordHasher.hash(password);
-        assertThat("\0\0\0\0\0\0\0\0", is(new String(password)));
-        assertThat("\0\0\0\0\0\0\0\0", is(passwordBuffer.toString()));
+        char[] passwordAsChar = password.toCharArray();
+        CharBuffer passwordBuffer = CharBuffer.wrap(passwordAsChar);
+        passwordHasher.hash(passwordAsChar);
+        assertThat("\0".repeat(password.length()), is(new String(passwordAsChar)));
+        assertThat("\0".repeat(password.length()), is(passwordBuffer.toString()));
     }
 
 }
