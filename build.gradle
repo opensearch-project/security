@@ -734,7 +734,7 @@ dependencies {
     //Onelogin OpenSaml
     implementation libs.bundles.onelogin.saml
     //OpenSAML
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.38"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.39"
     implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
