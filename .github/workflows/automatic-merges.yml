@@ -12,14 +12,14 @@ jobs:
   automatic-merge-version-bumps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: find-triggering-pr
-        uses: peternied/find-triggering-pr@v1
+        uses: peternied/find-triggering-pr@ebe6a5ff5d5edfdf31b1f8aca20f89167c57bbef # v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: peternied/discerning-merger@v3
+      - uses: peternied/discerning-merger@07eafb14c195a2c23b291f6b008a686589cfb545 # v3
         if: steps.find-triggering-pr.outputs.pr-number != null
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
