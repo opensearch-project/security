@@ -256,4 +256,66 @@ public class AuditConfigFilterTest {
             .build();
         assertThat(parse.apply(settingMultipleValues), equalTo(ImmutableSet.of(AUTHENTICATED, BAD_HEADERS)));
     }
+
+    @Test
+    public void testUnifiedDisabledCategoriesTakesPrecedence() {
+        // When disabled_categories is set, it should be used for both REST and transport
+        final Settings settings = Settings.builder()
+            .putList(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES,
+                BAD_HEADERS.toString(),
+                FAILED_LOGIN.toString()
+            )
+            .putList(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                SSL_EXCEPTION.toString()
+            )
+            .putList(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                MISSING_PRIVILEGES.toString()
+            )
+            .build();
+
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        // Unified setting wins — split settings are ignored
+        assertThat(filter.getDisabledRestCategories(), is(ImmutableSet.of(BAD_HEADERS, FAILED_LOGIN)));
+        assertThat(filter.getDisabledTransportCategories(), is(ImmutableSet.of(BAD_HEADERS, FAILED_LOGIN)));
+    }
+
+    @Test
+    public void testFallsBackToSplitSettingsWhenUnifiedAbsent() {
+        // When disabled_categories is NOT set, fall back to split settings
+        final Settings settings = Settings.builder()
+            .putList(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                BAD_HEADERS.toString(),
+                SSL_EXCEPTION.toString()
+            )
+            .putList(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                FAILED_LOGIN.toString(),
+                MISSING_PRIVILEGES.toString()
+            )
+            .build();
+
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertThat(filter.getDisabledRestCategories(), is(ImmutableSet.of(BAD_HEADERS, SSL_EXCEPTION)));
+        assertThat(filter.getDisabledTransportCategories(), is(ImmutableSet.of(FAILED_LOGIN, MISSING_PRIVILEGES)));
+    }
+
+    @Test
+    public void testUnifiedDisabledCategoriesViaMap() {
+        // Test the JSON/Map path (dynamic config)
+        final Map<String, Object> properties = new HashMap<>();
+        properties.put("disabled_categories", List.of(BAD_HEADERS.toString(), FAILED_LOGIN.toString()));
+        properties.put("disabled_rest_categories", List.of(SSL_EXCEPTION.toString()));
+        properties.put("disabled_transport_categories", List.of(MISSING_PRIVILEGES.toString()));
+
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(properties);
+
+        assertThat(filter.getDisabledRestCategories(), is(ImmutableSet.of(BAD_HEADERS, FAILED_LOGIN)));
+        assertThat(filter.getDisabledTransportCategories(), is(ImmutableSet.of(BAD_HEADERS, FAILED_LOGIN)));
+    }
 }

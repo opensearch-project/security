@@ -337,6 +337,11 @@ public abstract class AbstractAuditLog implements AuditLog {
         msgs.forEach(this::save);
     }
 
+    @Override
+    public void logRequestAudit(AuditMessage msg) {
+        save(msg);  // sends to AuditMessageRouter → configured sinks (async)
+    }
+
     // Routes settings change audit to the appropriate handler
     @Override
     public void logSettingsChange(String action, TransportRequest request, Task task) {

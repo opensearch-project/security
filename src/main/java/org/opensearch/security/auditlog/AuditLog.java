@@ -36,6 +36,7 @@ import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
@@ -59,6 +60,9 @@ public interface AuditLog extends Closeable {
 
     // index event requests
     void logIndexEvent(String privilege, TransportRequest request, Task task);
+
+    // standalone audit (non-FGAC modes)
+    void logRequestAudit(AuditMessage msg);
 
     // settings change events
     void logSettingsChange(String action, TransportRequest request, Task task);

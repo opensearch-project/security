@@ -146,7 +146,9 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.AuditLogSslExceptionHandler;
 import org.opensearch.security.auditlog.NullAuditLog;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
+import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.auth.RolesInjector;
@@ -354,9 +356,23 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
         final String auditType = settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null);
         if (auditType != null) {
-            auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment, new UserFactory.Simple());
+            AuditLogImpl auditLogImpl = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment, new UserFactory.Simple());
+            auditLogImpl.setConfig(AuditConfig.from(settings));
+            auditLog = auditLogImpl;
+            warnIfAuthCategoriesEnabled(settings);
         } else {
             auditLog = new NullAuditLog();
+        }
+    }
+
+    private void warnIfAuthCategoriesEnabled(Settings settings) {
+        AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+        Set<AuditCategory> enabledAuthOnly = new HashSet<>(AuditCategory.AUTH_ONLY_CATEGORIES);
+        enabledAuthOnly.removeAll(filter.getDisabledRestCategories());
+        enabledAuthOnly.removeAll(filter.getDisabledTransportCategories());
+        if (!enabledAuthOnly.isEmpty()) {
+            log.warn("Auth-related audit categories {} are enabled but will not produce events "
+                + "as no authentication layer is active.", enabledAuthOnly);
         }
     }
 
@@ -985,8 +1001,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         List<ActionFilter> filters = new ArrayList<>(1);
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
             filters.add(Objects.requireNonNull(sf));
-        } else if (!client && auditLog != null && !(auditLog instanceof NullAuditLog)) {
-            filters.add(new AuditActionFilter(auditLog));
+        
+        // !(auditLog instanceof NullAuditLog) prevents registering AuditActionFilter when there's no real sink to send events to. No point intercepting every request just to discard the message.
+        } else if (!client && auditLog != null && !(auditLog instanceof NullAuditLog)) {  
+            filters.add(new AuditActionFilter(auditLog, cs));
         }
         return filters;
     }
@@ -1645,6 +1663,408 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             )
         );
 
+        // Security - Audit (registered outside sslOnlyMode gate for standalone audit logging)
+        settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ROUTES + ".", Property.NodeScope));
+        settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + ".", Property.NodeScope));
+        settings.add(Setting.intSetting(ConfigConstants.SECURITY_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN,
+                100 * 1000,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered)
+        );
+        settings.add(
+            Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true, Property.NodeScope, Property.Filtered)
+        );
+        settings.add(
+            Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered)
+        );
+        settings.add(
+            Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered)
+        );
+        final List<String> disabledCategories = new ArrayList<String>(2);
+        disabledCategories.add("AUTHENTICATED");
+        disabledCategories.add("GRANTED_PRIVILEGES");
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                disabledCategories,
+                Function.identity(),
+                Property.NodeScope
+            )
+        ); // not filtered here
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                disabledCategories,
+                Function.identity(),
+                Property.NodeScope
+            )
+        ); // not filtered here
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );
+        final List<String> ignoredUsers = new ArrayList<String>(2);
+        ignoredUsers.add("kibanaserver");
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+                ignoredUsers,
+                Function.identity(),
+                Property.NodeScope
+            )
+        );
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        ); // not filtered here
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
+                false,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+
+        final BiFunction<String, Boolean, Setting<Boolean>> boolSettingNodeScopeFiltered = (
+            String keyWithNamespace,
+            Boolean value) -> Setting.boolSetting(keyWithNamespace, value, Property.NodeScope, Property.Filtered);
+
+        Arrays.stream(FilterEntries.values()).map(filterEntry -> {
+            switch (filterEntry) {
+                case DISABLE_REST_CATEGORIES:
+                case DISABLE_TRANSPORT_CATEGORIES:
+                    return Setting.listSetting(
+                        filterEntry.getKeyWithNamespace(),
+                        disabledCategories,
+                        Function.identity(),
+                        Property.NodeScope
+                    );
+                case DISABLE_CATEGORIES:
+                    return Setting.listSetting(
+                        filterEntry.getKeyWithNamespace(),
+                        Collections.emptyList(),
+                        Function.identity(),
+                        Property.NodeScope
+                    );
+                case IGNORE_REQUESTS:
+                case IGNORE_HEADERS:
+                    return Setting.listSetting(
+                        filterEntry.getKeyWithNamespace(),
+                        Collections.emptyList(),
+                        Function.identity(),
+                        Property.NodeScope
+                    );
+                case IGNORE_USERS:
+                    return Setting.listSetting(
+                        filterEntry.getKeyWithNamespace(),
+                        ignoredUsers,
+                        Function.identity(),
+                        Property.NodeScope
+                    );
+                // All boolean settings with default of true
+                case ENABLE_REST:
+                case ENABLE_TRANSPORT:
+                case EXCLUDE_SENSITIVE_HEADERS:
+                case LOG_REQUEST_BODY:
+                case RESOLVE_INDICES:
+                    return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), true);
+                case RESOLVE_BULK_REQUESTS:
+                    return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), false);
+                default:
+                    throw new RuntimeException("Please add support for new FilterEntries value '" + filterEntry.name() + "'");
+            }
+        }).forEach(settings::add);
+
+        // Security - Audit - Sink
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_TYPE,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+
+        // Internal OpenSearch DataStream
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_MANAGE,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NAME,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS,
+                1,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_REPLICAS,
+                0,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+
+        // External OpenSearch
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS,
+                Lists.newArrayList("localhost:9200"),
+                Function.identity(),
+                Property.NodeScope
+            )
+        ); // not filtered here
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL,
+                false,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_VERIFY_HOSTNAMES,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH,
+                false,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_CONTENT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_FILEPATH,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_CONTENT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_FILEPATH,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_PASSWORD,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_CONTENT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_JKS_CERT_ALIAS,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );// not filtered here
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );// not filtered here
+
+        // Webhooks
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_URL,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_FORMAT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+
+        // Log4j
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_LOGGER_NAME,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_LEVEL,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.intSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
+                    + ConfigConstants.SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE,
+                Integer.MAX_VALUE,
+                255,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+
         if (!SSLConfig.isSslOnlyMode()) {
             settings.add(
                 Setting.listSetting(
@@ -1724,394 +2144,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Setting.boolSetting(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false, Property.NodeScope, Property.Filtered)
             );
 
-            // Security - Audit
-            settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ROUTES + ".", Property.NodeScope));
-            settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + ".", Property.NodeScope));
-            settings.add(Setting.intSetting(ConfigConstants.SECURITY_AUDIT_THREADPOOL_SIZE, 10, Property.NodeScope, Property.Filtered));
-            settings.add(
-                Setting.intSetting(
-                    ConfigConstants.SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN,
-                    100 * 1000,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true, Property.NodeScope, Property.Filtered)
-            );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true, Property.NodeScope, Property.Filtered)
-            );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered)
-            );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered)
-            );
             settings.add(
                 Setting.simpleString(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, Property.NodeScope, Property.Filtered)
-            );
-            final List<String> disabledCategories = new ArrayList<String>(2);
-            disabledCategories.add("AUTHENTICATED");
-            disabledCategories.add("GRANTED_PRIVILEGES");
-            settings.add(
-                Setting.listSetting(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
-                    disabledCategories,
-                    Function.identity(),
-                    Property.NodeScope
-                )
-            ); // not filtered here
-            settings.add(
-                Setting.listSetting(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
-                    disabledCategories,
-                    Function.identity(),
-                    Property.NodeScope
-                )
-            ); // not filtered here
-            final List<String> ignoredUsers = new ArrayList<String>(2);
-            ignoredUsers.add("kibanaserver");
-            settings.add(
-                Setting.listSetting(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
-                    ignoredUsers,
-                    Function.identity(),
-                    Property.NodeScope
-                )
-            );
-            settings.add(
-                Setting.listSetting(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
-                    Collections.emptyList(),
-                    Function.identity(),
-                    Property.NodeScope
-                )
-            ); // not filtered here
-            settings.add(
-                Setting.listSetting(
-                    ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS,
-                    Collections.emptyList(),
-                    Function.identity(),
-                    Property.NodeScope
-                )
-            );
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
-                    false,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
-                    true,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-
-            final BiFunction<String, Boolean, Setting<Boolean>> boolSettingNodeScopeFiltered = (
-                String keyWithNamespace,
-                Boolean value) -> Setting.boolSetting(keyWithNamespace, value, Property.NodeScope, Property.Filtered);
-
-            Arrays.stream(FilterEntries.values()).map(filterEntry -> {
-                switch (filterEntry) {
-                    case DISABLE_REST_CATEGORIES:
-                    case DISABLE_TRANSPORT_CATEGORIES:
-                        return Setting.listSetting(
-                            filterEntry.getKeyWithNamespace(),
-                            disabledCategories,
-                            Function.identity(),
-                            Property.NodeScope
-                        );
-                    case IGNORE_REQUESTS:
-                    case IGNORE_HEADERS:
-                        return Setting.listSetting(
-                            filterEntry.getKeyWithNamespace(),
-                            Collections.emptyList(),
-                            Function.identity(),
-                            Property.NodeScope
-                        );
-                    case IGNORE_USERS:
-                        return Setting.listSetting(
-                            filterEntry.getKeyWithNamespace(),
-                            ignoredUsers,
-                            Function.identity(),
-                            Property.NodeScope
-                        );
-                    // All boolean settings with default of true
-                    case ENABLE_REST:
-                    case ENABLE_TRANSPORT:
-                    case EXCLUDE_SENSITIVE_HEADERS:
-                    case LOG_REQUEST_BODY:
-                    case RESOLVE_INDICES:
-                        return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), true);
-                    case RESOLVE_BULK_REQUESTS:
-                        return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), false);
-                    default:
-                        throw new RuntimeException("Please add support for new FilterEntries value '" + filterEntry.name() + "'");
-                }
-            }).forEach(settings::add);
-
-            // Security - Audit - Sink
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_TYPE,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-
-            // Internal OpenSearch DataStream
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_MANAGE,
-                    true,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NAME,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.intSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_SHARDS,
-                    1,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.intSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_TEMPLATE_NUMBER_OF_REPLICAS,
-                    0,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-
-            // External OpenSearch
-            settings.add(
-                Setting.listSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS,
-                    Lists.newArrayList("localhost:9200"),
-                    Function.identity(),
-                    Property.NodeScope
-                )
-            ); // not filtered here
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_PASSWORD,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL,
-                    false,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_VERIFY_HOSTNAMES,
-                    true,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH,
-                    false,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_CONTENT,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_FILEPATH,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_CONTENT,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_FILEPATH,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_PASSWORD,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_CONTENT,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_JKS_CERT_ALIAS,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.listSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS,
-                    Collections.emptyList(),
-                    Function.identity(),
-                    Property.NodeScope
-                )
-            );// not filtered here
-            settings.add(
-                Setting.listSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS,
-                    Collections.emptyList(),
-                    Function.identity(),
-                    Property.NodeScope
-                )
-            );// not filtered here
-
-            // Webhooks
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_URL,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_FORMAT,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.boolSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY,
-                    true,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-
-            // Log4j
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_LOGGER_NAME,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_LEVEL,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
-            settings.add(
-                Setting.intSetting(
-                    ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
-                        + ConfigConstants.SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE,
-                    Integer.MAX_VALUE,
-                    255,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
             );
 
             // Kerberos

@@ -25,6 +25,7 @@ import com.google.common.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
@@ -129,7 +130,12 @@ public class AuditConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
-        private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
+        private static final Logger log = LogManager.getLogger(Filter.class);
+        private static Set<String> FIELDS = new HashSet<>(DefaultObjectMapper.getFields(Filter.class)) {
+            {
+                add("disabled_categories");
+            }
+        };
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
 
@@ -199,6 +205,7 @@ public class AuditConfig {
                 "disabled_transport_categories",
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES
             ),
+            DISABLE_CATEGORIES("disabled_categories", ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES),
             IGNORE_USERS("ignore_users", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS),
             IGNORE_REQUESTS("ignore_requests", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS),
             IGNORE_HEADERS("ignore_headers", ConfigConstants.SECURITY_AUDIT_IGNORE_HEADERS);
@@ -244,20 +251,33 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
-                getOrDefault(
-                    properties,
-                    FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
-                )
+            final List<String> unifiedCategories = getOrDefault(
+                properties,
+                FilterEntries.DISABLE_CATEGORIES.getKey(),
+                Collections.emptyList()
             );
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
-                getOrDefault(
-                    properties,
-                    FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
-                )
-            );
+            final Set<AuditCategory> disabledRestCategories;
+            final Set<AuditCategory> disabledTransportCategories;
+            if (!unifiedCategories.isEmpty()) {
+                Set<AuditCategory> parsed = AuditCategory.parse(unifiedCategories);
+                disabledRestCategories = parsed;
+                disabledTransportCategories = parsed;
+            } else {
+                disabledRestCategories = AuditCategory.parse(
+                    getOrDefault(
+                        properties,
+                        FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
+                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
+                    )
+                );
+                disabledTransportCategories = AuditCategory.parse(
+                    getOrDefault(
+                        properties,
+                        FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
+                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
+                    )
+                );
+            }
             final List<String> rawIgnoredUsers = getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS);
             final Set<String> ignoredAuditUsers = rawIgnoredUsers.size() == 1 && "NONE".equalsIgnoreCase(rawIgnoredUsers.get(0))
                 ? Collections.emptySet()
@@ -298,20 +318,37 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
-                fromSettingStringSet(
-                    settings,
-                    FilterEntries.DISABLE_REST_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
-                )
+            final Set<String> unifiedCategories = fromSettingStringSet(
+                settings,
+                FilterEntries.DISABLE_CATEGORIES,
+                Collections.emptyList()
             );
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
-                fromSettingStringSet(
-                    settings,
-                    FilterEntries.DISABLE_TRANSPORT_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
-                )
-            );
+            final Set<AuditCategory> disabledRestCategories;
+            final Set<AuditCategory> disabledTransportCategories;
+            if (!unifiedCategories.isEmpty()) {
+                // Unified setting takes precedence
+                Set<AuditCategory> parsed = AuditCategory.parse(unifiedCategories);
+                disabledRestCategories = parsed;
+                disabledTransportCategories = parsed;
+            } else {
+                // Fall back to deprecated split settings
+                log.warn("'disabled_rest_categories' and 'disabled_transport_categories' are deprecated. "
+                    + "Use 'disabled_categories' instead to apply to both layers.");
+                disabledRestCategories = AuditCategory.parse(
+                    fromSettingStringSet(
+                        settings,
+                        FilterEntries.DISABLE_REST_CATEGORIES,
+                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
+                    )
+                );
+                disabledTransportCategories = AuditCategory.parse(
+                    fromSettingStringSet(
+                        settings,
+                        FilterEntries.DISABLE_TRANSPORT_CATEGORIES,
+                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
+                    )
+                );
+            }
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
             final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
