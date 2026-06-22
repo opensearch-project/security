@@ -219,6 +219,7 @@ public class RequestContentValidator implements ToXContent {
         return validateContentSize(jsonContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
+            .map(this::validateStringLength)
             .map(ignored -> validatePassword(request, jsonContent));
     }
 
@@ -232,6 +233,7 @@ public class RequestContentValidator implements ToXContent {
         return validateContentSize(patchedContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
+            .map(this::validateStringLength)
             .map(ignored -> validatePassword(request, patchedContent));
     }
 
@@ -400,6 +402,26 @@ public class RequestContentValidator implements ToXContent {
         return false;
     }
 
+    private ValidationResult<JsonNode> validateStringLength(final JsonNode jsonContent) {
+        if (exceedsMaxStringLength(jsonContent)) {
+            this.validationError = ValidationError.STRING_EXCEEDS_MAX_LENGTH;
+            return ValidationResult.error(RestStatus.BAD_REQUEST, this);
+        }
+        return ValidationResult.success(jsonContent);
+    }
+
+    private boolean exceedsMaxStringLength(final JsonNode node) {
+        if (node.isTextual() && node.asText().length() > MAX_STRING_LENGTH) {
+            return true;
+        }
+        for (final JsonNode child : node) {
+            if (exceedsMaxStringLength(child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ValidationResult<JsonNode> validatePassword(final RestRequest request, final JsonNode jsonContent) {
         if (jsonContent.has("password")) {
             final PasswordValidator passwordValidator = PasswordValidator.of(validationContext.settings());
@@ -518,7 +540,8 @@ public class RequestContentValidator implements ToXContent {
         PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
         PAYLOAD_MANDATORY("Request body required for this action."),
         SECURITY_NOT_INITIALIZED("Security index not initialized"),
-        NULL_ARRAY_ELEMENT("`null` or blank values are not allowed as json array elements");
+        NULL_ARRAY_ELEMENT("`null` or blank values are not allowed as json array elements"),
+        STRING_EXCEEDS_MAX_LENGTH("String value exceeds the maximum allowed length of " + MAX_STRING_LENGTH + " characters");
 
         private final String message;
 

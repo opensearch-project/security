@@ -66,6 +66,12 @@ public interface EndpointValidator {
         if (entityName == null) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("No " + resourceName() + " specified."));
         }
+        if (entityName.length() > RequestContentValidator.MAX_STRING_LENGTH) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage(resourceName() + " name exceeds maximum length of " + RequestContentValidator.MAX_STRING_LENGTH + ".")
+            );
+        }
         return ValidationResult.success(entityName);
     }
 
