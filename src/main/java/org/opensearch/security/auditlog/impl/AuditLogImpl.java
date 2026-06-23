@@ -181,6 +181,13 @@ public class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
+    public void logSettingsChange(String action, TransportRequest request, Task task) {
+        if (enabled) {
+            super.logSettingsChange(action, request, task);
+        }
+    }
+
+    @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
         if (enabled) {
             super.logBadHeaders(request, action, task);
@@ -233,6 +240,20 @@ public class AuditLogImpl extends AbstractAuditLog {
     public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult) {
         if (enabled) {
             super.logDocumentDeleted(shardId, delete, result, originalResult);
+        }
+    }
+
+    @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        if (enabled) {
+            super.logApiTokenCreated(tokenName, createdBy);
+        }
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        if (enabled) {
+            super.logApiTokenRevoked(tokenId, revokedBy);
         }
     }
 

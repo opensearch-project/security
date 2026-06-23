@@ -27,19 +27,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 
-public class RestApiPrivilegesEvaluatorTest {
+public class RestApiAuthorizationEvaluatorTest {
 
-    private RestApiPrivilegesEvaluator privilegesEvaluator;
+    private RestApiAuthorizationEvaluator privilegesEvaluator;
 
     @Before
     public void setUp() {
-        this.privilegesEvaluator = new RestApiPrivilegesEvaluator(
+        this.privilegesEvaluator = new RestApiAuthorizationEvaluator(
             Settings.EMPTY,
             mock(AdminDNs.class),
             (user, caller) -> user.getSecurityRoles(),
             mock(PrincipalExtractor.class),
             mock(Path.class),
-            mock(ThreadPool.class)
+            mock(ThreadPool.class),
+            null
         );
     }
 

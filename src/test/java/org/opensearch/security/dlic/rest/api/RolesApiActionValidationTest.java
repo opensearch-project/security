@@ -47,7 +47,7 @@ public class RolesApiActionValidationTest extends AbstractApiActionValidationTes
         when(configuration.exists("sss")).thenReturn(true);
         Mockito.<Object>when(configuration.getCEntry("sss")).thenReturn(role);
 
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
         final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
             .createEndpointValidator();
         final var result = rolesApiActionEndpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("sss", configuration));

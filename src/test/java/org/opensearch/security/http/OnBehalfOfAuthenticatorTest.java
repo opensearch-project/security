@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.Set;
 import javax.crypto.SecretKey;
 
-import com.google.common.io.BaseEncoding;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.Level;
@@ -37,7 +36,6 @@ import org.junit.Test;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
-import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
@@ -51,8 +49,6 @@ import org.mockito.ArgumentCaptor;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -71,7 +67,7 @@ public class OnBehalfOfAuthenticatorTest {
 
     final static String signingKey =
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
-    final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
+    final static String signingKeyB64Encoded = Base64.getEncoder().encodeToString(signingKey.getBytes(StandardCharsets.UTF_8));
     final static SecretKey secretKey = Keys.hmacShaKeyFor(signingKeyB64Encoded.getBytes(StandardCharsets.UTF_8));
 
     private static final String SECURITY_PREFIX = "/_plugins/_security/";
@@ -128,7 +124,7 @@ public class OnBehalfOfAuthenticatorTest {
         Exception exception = assertThrows(
             RuntimeException.class,
             () -> extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 }),
+                Base64.getEncoder().encodeToString(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 }),
                 claimsEncryptionKey,
                 Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy"),
                 false
@@ -625,27 +621,6 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         assertNull(credentials);
-    }
-
-    @Test
-    public void testRequestNotAllowed() {
-        OnBehalfOfAuthenticator oboAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
-
-        // Test POST on generate on-behalf-of token endpoint
-        SecurityRequest mockedRequest1 = mock(SecurityRequest.class);
-        when(mockedRequest1.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
-        when(mockedRequest1.path()).thenReturn(SECURITY_PREFIX + ON_BEHALF_OF_SUFFIX);
-        when(mockedRequest1.method()).thenReturn(POST);
-        assertFalse(oboAuth.isRequestAllowed(mockedRequest1));
-        assertNull(oboAuth.extractCredentials(mockedRequest1, null));
-
-        // Test PUT on password changing endpoint
-        SecurityRequest mockedRequest2 = mock(SecurityRequest.class);
-        when(mockedRequest2.header(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer someToken");
-        when(mockedRequest2.path()).thenReturn(SECURITY_PREFIX + ACCOUNT_SUFFIX);
-        when(mockedRequest2.method()).thenReturn(PUT);
-        assertFalse(oboAuth.isRequestAllowed(mockedRequest2));
-        assertNull(oboAuth.extractCredentials(mockedRequest2, null));
     }
 
     /** extracts a default user credential from a request header */

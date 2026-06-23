@@ -74,6 +74,11 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
+    public void logSettingsChange(String action, TransportRequest request, Task task) {
+        // noop, intentionally left empty
+    }
+
+    @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
         // noop, intentionally left empty
     }
@@ -121,6 +126,16 @@ public class NullAuditLog implements AuditLog {
     @Override
     public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult) {
         // noop, intentionally left empty
+    }
+
+    @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        // noop
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        // noop
     }
 
     @Override
