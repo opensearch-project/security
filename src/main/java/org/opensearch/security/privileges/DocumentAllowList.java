@@ -18,7 +18,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -31,6 +33,8 @@ import org.opensearch.security.support.ConfigConstants;
 public class DocumentAllowList {
 
     private static final Logger log = LogManager.getLogger(DocumentAllowList.class);
+
+    public static final String ANY_DOCUMENT_ID = "*";
 
     public static DocumentAllowList get(ThreadContext threadContext) {
         String header = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
@@ -48,34 +52,51 @@ public class DocumentAllowList {
     }
 
     public static boolean isAllowed(ActionRequest request, ThreadContext threadContext) {
-        String docAllowListHeader = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
+        final var documentAllowList = DocumentAllowList.get(threadContext);
 
-        if (docAllowListHeader == null) {
+        if (documentAllowList.isEmpty()) {
             return false;
         }
 
-        if (!(request instanceof GetRequest)) {
-            return false;
-        }
-
-        try {
-            DocumentAllowList documentAllowList = DocumentAllowList.parse(docAllowListHeader);
-            GetRequest getRequest = (GetRequest) request;
-
+        // GetRequest: id-based TLQ resolves via GET; match exact (index, id) entry.
+        // SearchRequest: query-based TLQ resolves via SEARCH; match wildcard entry.
+        // GetSettingsRequest: query-based TLQ retrieves the index setting (during the fetch phase).
+        // Other request types (including writes) are never allowlisted.
+        if (request instanceof GetRequest getRequest) {
             if (documentAllowList.isAllowed(getRequest.index(), getRequest.id())) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Request " + request + " is allowed by " + documentAllowList);
-                }
-
+                log.debug("Request {} is allowed by {}", request, documentAllowList);
                 return true;
-            } else {
+            }
+            return false;
+        } else if (request instanceof SearchRequest searchRequest) {
+            if (isIndicesAllowlisted(documentAllowList, searchRequest.indices())) {
+                log.debug("Request {} is allowed by {}", request, documentAllowList);
+                return true;
+            }
+            return false;
+        } else if (request instanceof GetSettingsRequest getSettingsRequest) {
+            if (isIndicesAllowlisted(documentAllowList, getSettingsRequest.indices())) {
+                log.debug("Request {} is allowed by {}", request, documentAllowList);
+                return true;
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    // allMatch semantics: at privilege-evaluation time, every index in the request must be
+    // covered. DlsFlsValveImpl uses anyMatch+size()==1 for a different purpose (per-shard bypass).
+    private static boolean isIndicesAllowlisted(DocumentAllowList documentAllowList, String[] indices) {
+        if (indices == null || indices.length == 0) {
+            return false;
+        }
+        for (String index : indices) {
+            if (index == null || !documentAllowList.isAllowed(index, ANY_DOCUMENT_ID)) {
                 return false;
             }
-
-        } catch (Exception e) {
-            log.error("Error while handling document allow list: " + docAllowListHeader, e);
-            return false;
         }
+        return true;
     }
 
     private static final DocumentAllowList EMPTY = new DocumentAllowList();

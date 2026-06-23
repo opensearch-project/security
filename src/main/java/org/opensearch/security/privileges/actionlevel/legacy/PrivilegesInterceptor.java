@@ -258,12 +258,12 @@ public class PrivilegesInterceptor {
 
     private void applyDocumentAllowList(String indexName) {
         DocumentAllowList documentAllowList = new DocumentAllowList();
-        documentAllowList.add(indexName, "*");
+        documentAllowList.add(indexName, DocumentAllowList.ANY_DOCUMENT_ID);
         IndexAbstraction indexAbstraction = clusterStateSupplier.get().getMetadata().getIndicesLookup().get(indexName);
 
         if (indexAbstraction instanceof IndexAbstraction.Alias) {
             for (IndexMetadata index : ((IndexAbstraction.Alias) indexAbstraction).getIndices()) {
-                documentAllowList.add(index.getIndex().getName(), "*");
+                documentAllowList.add(index.getIndex().getName(), DocumentAllowList.ANY_DOCUMENT_ID);
             }
         }
 
