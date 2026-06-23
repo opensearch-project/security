@@ -216,9 +216,15 @@ public class ConfigConstants {
         "opendistro_security.audit.config.disabled_transport_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES =
         "opendistro_security.audit.config.disabled_rest_categories";
-    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT = ImmutableList.of(
+    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
         AuditCategory.GRANTED_PRIVILEGES.toString()
+    );
+    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT = ImmutableList.of(
+        AuditCategory.AUTHENTICATED.toString(),
+        AuditCategory.GRANTED_PRIVILEGES.toString(),
+        AuditCategory.CLUSTER_SETTINGS_CHANGED.toString(),
+        AuditCategory.INDEX_SETTINGS_CHANGED.toString()
     );
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
@@ -270,6 +276,7 @@ public class ConfigConstants {
     // Log4j
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
+    public static final String SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE = "log4j.maximum_index_characters_per_message";
 
     // retry
     public static final String SECURITY_AUDIT_RETRY_COUNT = SECURITY_SETTINGS_PREFIX + "audit.config.retry_count";
@@ -331,12 +338,6 @@ public class ConfigConstants {
         + "ssl.certificates_hot_reload.enabled";
     public static final String SECURITY_DISABLE_ENVVAR_REPLACEMENT = SECURITY_SETTINGS_PREFIX + "disable_envvar_replacement";
     public static final String SECURITY_DFM_EMPTY_OVERRIDES_ALL = SECURITY_SETTINGS_PREFIX + "dfm_empty_overrides_all";
-
-    public enum RolesMappingResolution {
-        MAPPING_ONLY,
-        BACKENDROLES_ONLY,
-        BOTH
-    }
 
     public static final String SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = SECURITY_SETTINGS_PREFIX
         + "filter_securityindex_from_all_requests";
@@ -423,6 +424,7 @@ public class ConfigConstants {
     // Variable for initial admin password support
     public static final String OPENSEARCH_INITIAL_ADMIN_PASSWORD = "OPENSEARCH_INITIAL_ADMIN_PASSWORD";
 
+    public static final String OPENSEARCH_API_TOKENS_INDEX = ".opensearch_security_api_tokens";
     // Resource sharing feature-flag
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
     public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;

@@ -17,13 +17,9 @@ import org.junit.Test;
 
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.node.Node;
 import org.opensearch.threadpool.ThreadPool;
-
-import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
 
 public class ClusterStateMetadataDependentPrivilegesTest {
 
@@ -33,10 +29,8 @@ public class ClusterStateMetadataDependentPrivilegesTest {
         try {
             ConcreteTestSubject subject = new ConcreteTestSubject();
             ClusterState clusterState = clusterState(metadata(1));
-            ClusterService clusterService = Mockito.mock(ClusterService.class);
-            Mockito.when(clusterService.state()).thenReturn(clusterState);
 
-            subject.updateClusterStateMetadataAsync(clusterService, threadPool);
+            subject.updateClusterStateMetadataAsync(() -> clusterState, threadPool);
             Awaitility.await().until(() -> subject.getCurrentlyUsedMetadataVersion() == 1);
             subject.shutdown();
         } finally {
@@ -50,14 +44,12 @@ public class ClusterStateMetadataDependentPrivilegesTest {
         try {
             ConcreteTestSubject subject = new ConcreteTestSubject();
             AtomicReference<ClusterState> clusterStateReference = new AtomicReference<>(clusterState(metadata(1)));
-            ClusterService clusterService = Mockito.mock(ClusterService.class);
-            Mockito.when(clusterService.state()).thenAnswer((Answer<ClusterState>) invocationOnMock -> clusterStateReference.get());
-            subject.updateClusterStateMetadataAsync(clusterService, threadPool);
-            subject.updateClusterStateMetadataAsync(clusterService, threadPool);
+            subject.updateClusterStateMetadataAsync(clusterStateReference::get, threadPool);
+            subject.updateClusterStateMetadataAsync(clusterStateReference::get, threadPool);
 
             for (int i = 2; i <= 100; i++) {
                 clusterStateReference.set(clusterState(metadata(i)));
-                subject.updateClusterStateMetadataAsync(clusterService, threadPool);
+                subject.updateClusterStateMetadataAsync(clusterStateReference::get, threadPool);
                 Thread.sleep(10);
             }
 
@@ -74,9 +66,7 @@ public class ClusterStateMetadataDependentPrivilegesTest {
         try {
             ConcreteTestSubject subject = new ConcreteTestSubject();
             ClusterState clusterState = clusterState(metadata(1));
-            ClusterService clusterService = Mockito.mock(ClusterService.class);
-            Mockito.when(clusterService.state()).thenReturn(clusterState);
-            subject.updateClusterStateMetadataAsync(clusterService, threadPool);
+            subject.updateClusterStateMetadataAsync(() -> clusterState, threadPool);
             subject.shutdown();
         } finally {
             threadPool.shutdown();

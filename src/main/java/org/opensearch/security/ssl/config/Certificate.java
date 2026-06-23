@@ -11,30 +11,10 @@
 
 package org.opensearch.security.ssl.config;
 
-import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
-
-import com.google.common.collect.ImmutableList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1Object;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.ASN1String;
-import org.bouncycastle.asn1.ASN1TaggedObject;
 
 public class Certificate {
-
-    private final static Logger LOGGER = LogManager.getLogger(Certificate.class);
 
     private final X509Certificate certificate;
 
@@ -72,70 +52,11 @@ public class Certificate {
     }
 
     public String subjectAlternativeNames() {
-        return loadSubjectAlternativeNames();
+        return SanParser.parse(certificate);
     }
 
     public byte[] signature() {
         return certificate.getSignature();
-    }
-
-    @Deprecated(since = "since JDK 21", forRemoval = true)
-    public String loadSubjectAlternativeNames() {
-        String san = "";
-        try {
-            Collection<List<?>> altNames = certificate != null && certificate.getSubjectAlternativeNames() != null
-                ? certificate.getSubjectAlternativeNames()
-                : null;
-            if (altNames != null) {
-                Comparator<List<?>> comparator = Comparator.comparing((List<?> altName) -> (Integer) altName.get(0))
-                    .thenComparing((List<?> altName) -> (String) altName.get(1));
-
-                Set<List<?>> sans = new TreeSet<>(comparator);
-                for (List<?> altName : altNames) {
-                    Integer type = (Integer) altName.get(0);
-                    // otherName requires parsing to string
-                    if (type == 0) {
-                        List<?> otherName = parseOtherName(altName);
-                        if (otherName != null) {
-                            sans.add(Arrays.asList(type, otherName));
-                        }
-                    } else {
-                        sans.add(altName);
-                    }
-                }
-                san = sans.toString();
-            }
-        } catch (CertificateParsingException e) {
-            LOGGER.error("Issue parsing SubjectAlternativeName:", e);
-        }
-
-        return san;
-    }
-
-    @Deprecated(since = "since JDK 21", forRemoval = true)
-    private List<String> parseOtherName(List<?> altName) {
-        if (altName.size() < 2) {
-            LOGGER.warn("Couldn't parse subject alternative names");
-            return null;
-        }
-        try (final ASN1InputStream in = new ASN1InputStream((byte[]) altName.get(1))) {
-            final ASN1Primitive asn1Primitive = in.readObject();
-            final ASN1Sequence sequence = ASN1Sequence.getInstance(asn1Primitive);
-            final ASN1ObjectIdentifier asn1ObjectIdentifier = ASN1ObjectIdentifier.getInstance(sequence.getObjectAt(0));
-            final ASN1TaggedObject asn1TaggedObject = ASN1TaggedObject.getInstance(sequence.getObjectAt(1));
-            ASN1Object maybeTaggedAsn1Primitive = asn1TaggedObject.getObject();
-            if (maybeTaggedAsn1Primitive instanceof ASN1TaggedObject) {
-                maybeTaggedAsn1Primitive = ASN1TaggedObject.getInstance(maybeTaggedAsn1Primitive).getObject();
-            }
-            if (maybeTaggedAsn1Primitive instanceof ASN1String) {
-                return ImmutableList.of(asn1ObjectIdentifier.getId(), maybeTaggedAsn1Primitive.toString());
-            } else {
-                LOGGER.warn("Couldn't parse subject alternative names");
-                return null;
-            }
-        } catch (final Exception ioe) { // catch all exception here since BC throws diff exceptions
-            throw new RuntimeException("Couldn't parse subject alternative names", ioe);
-        }
     }
 
     public String serialNumber() {

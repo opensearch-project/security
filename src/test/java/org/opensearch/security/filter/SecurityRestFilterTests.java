@@ -50,7 +50,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         setup();
 
         // ADD SOME ALLOWLISTED APIs
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
             "_plugins/_security/api/allowlist",
@@ -87,7 +87,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         setup();
 
         // ADD SOME ALLOWLISTED APIs - /_cat/nodes and /_cat/indices
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
             "_plugins/_security/api/allowlist",
@@ -119,7 +119,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         setup();
 
         // DISABLE ALLOWLISTED BUT ADD SOME ALLOWLISTED APIs - /_cat/nodes and /_cat/plugins
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
             "_plugins/_security/api/allowlist",
@@ -163,7 +163,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         setup();
 
         // ALLOWLIST GET /_cluster/settings
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
             "_plugins/_security/api/allowlist",
@@ -220,7 +220,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         setup();
 
         // ALLOWLIST GET /_cluster/settings/ - extra / in the request
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
             "_plugins/_security/api/allowlist",
@@ -269,7 +269,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         setup();
 
         // ALLOWLIST GET /_cluster/settings (no extra / in request)
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(
             "_plugins/_security/api/allowlist",
@@ -314,7 +314,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
     public void testHasPermissionCheckParam_AccessAllowedCase() throws Exception {
         setup();
 
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cluster/health?perform_permission_check=true", nonAdminCredsHeader);
         rh.sendAdminCertificate = false;
@@ -342,7 +342,7 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         setup();
 
         // Create a new user with no permissions
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
 
         String createUserBody = "{" + "\"password\": \"test-pass\"," + "\"backend_roles\": []" + "}";

@@ -12,16 +12,16 @@
 package org.opensearch.security.dlic.rest.validation;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,7 +33,11 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 
-import com.flipkart.zjsonpatch.JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
@@ -52,18 +56,18 @@ public class RequestContentValidator implements ToXContent {
         }
 
         @Override
-        public Map<String, DataType> allowedKeys() {
+        public Map<String, FieldConfiguration> allowedKeys() {
             return Collections.emptyMap();
         }
     }) {
         @Override
         public ValidationResult<JsonNode> validate(RestRequest request) {
-            return ValidationResult.success(DefaultObjectMapper.objectMapper.createObjectNode());
+            return ValidationResult.success(DefaultObjectMapper.objectMapper().createObjectNode());
         }
 
         @Override
         public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonNode) {
-            return ValidationResult.success(DefaultObjectMapper.objectMapper.createObjectNode());
+            return ValidationResult.success(DefaultObjectMapper.objectMapper().createObjectNode());
         }
     };
 
@@ -85,6 +89,77 @@ public class RequestContentValidator implements ToXContent {
         BOOLEAN;
     }
 
+    /**
+     * Validator interface for field-level validation
+     */
+    @FunctionalInterface
+    public interface FieldValidator {
+        /**
+         * Validate a field value
+         * @param fieldName the name of the field being validated
+         * @param value the value to validate (can be String, JsonNode, etc.)
+         * @throws IllegalArgumentException if validation fails
+         */
+        void validate(String fieldName, Object value);
+    }
+
+    /**
+     * Configuration for a field including its type and validation rules
+     */
+    public static class FieldConfiguration {
+        private final DataType dataType;
+        private final Integer maxLength;
+        private final FieldValidator validator;
+
+        private FieldConfiguration(DataType dataType, Integer maxLength, FieldValidator validator) {
+            this.dataType = dataType;
+            this.maxLength = maxLength;
+            this.validator = validator;
+        }
+
+        public static FieldConfiguration of(DataType dataType) {
+            return new FieldConfiguration(dataType, null, null);
+        }
+
+        public static FieldConfiguration of(DataType dataType, int maxLength) {
+            return new FieldConfiguration(dataType, maxLength, null);
+        }
+
+        public static FieldConfiguration of(DataType dataType, FieldValidator validator) {
+            return new FieldConfiguration(dataType, null, validator);
+        }
+
+        public static FieldConfiguration of(DataType dataType, int maxLength, FieldValidator validator) {
+            return new FieldConfiguration(dataType, maxLength, validator);
+        }
+
+        public DataType getDataType() {
+            return dataType;
+        }
+
+        public Integer getMaxLength() {
+            return maxLength;
+        }
+
+        public FieldValidator getValidator() {
+            return validator;
+        }
+
+        public void validate(String fieldName, Object value) {
+            // Validate max length for strings
+            if (maxLength != null && value instanceof String strValue) {
+                if (strValue.length() > maxLength) {
+                    throw new IllegalArgumentException(fieldName + " length [" + strValue.length() + "] exceeds max [" + maxLength + "]");
+                }
+            }
+
+            // Run custom validator if present
+            if (validator != null) {
+                validator.validate(fieldName, value);
+            }
+        }
+    }
+
     public interface ValidationContext {
 
         default boolean hasParams() {
@@ -103,7 +178,7 @@ public class RequestContentValidator implements ToXContent {
 
         Settings settings();
 
-        Map<String, DataType> allowedKeys();
+        Map<String, FieldConfiguration> allowedKeys();
 
     }
 
@@ -125,6 +200,17 @@ public class RequestContentValidator implements ToXContent {
         this.validationContext = validationContext;
     }
 
+    private JsonNode originalContent;
+
+    /**
+     * Sets the original content for patch-aware validation.
+     * When set, the null/blank array element check will only validate fields that changed.
+     */
+    public RequestContentValidator withOriginalContent(final JsonNode originalContent) {
+        this.originalContent = originalContent;
+        return this;
+    }
+
     public ValidationResult<JsonNode> validate(final RestRequest request) throws IOException {
         return parseRequestContent(request).map(this::validateContentSize).map(jsonContent -> validate(request, jsonContent));
     }
@@ -133,18 +219,21 @@ public class RequestContentValidator implements ToXContent {
         return validateContentSize(jsonContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
+            .map(this::validateStringLength)
             .map(ignored -> validatePassword(request, jsonContent));
     }
 
     public ValidationResult<JsonNode> validate(final RestRequest request, final JsonNode patchedContent, final JsonNode originalContent)
         throws IOException {
-        JsonNode patch = JsonDiff.asJson(originalContent, patchedContent);
+        JsonNode patch = Jackson3JsonDiff.asJson(originalContent, patchedContent);
         if (patch.isEmpty()) {
             return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
         }
+        this.originalContent = originalContent;
         return validateContentSize(patchedContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
+            .map(this::validateStringLength)
             .map(ignored -> validatePassword(request, patchedContent));
     }
 
@@ -168,7 +257,7 @@ public class RequestContentValidator implements ToXContent {
 
     protected ValidationResult<JsonNode> validateJsonKeys(final JsonNode jsonContent) {
         final Set<String> requestedKeys = new HashSet<>();
-        jsonContent.fieldNames().forEachRemaining(requestedKeys::add);
+        jsonContent.propertyNames().spliterator().forEachRemaining(requestedKeys::add);
         // mandatory settings, one of ...
         if (Collections.disjoint(requestedKeys, validationContext.mandatoryOrKeys())) {
             missingMandatoryOrKeys.addAll(validationContext.mandatoryOrKeys());
@@ -189,14 +278,21 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> validateDataType(final JsonNode jsonContent) {
-        try (final JsonParser parser = DefaultObjectMapper.objectMapper.treeAsTokens(jsonContent)) {
+        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeys();
+
+        try (final JsonParser parser = DefaultObjectMapper.objectMapper().treeAsTokens(jsonContent)) {
             JsonToken token;
             while ((token = parser.nextToken()) != null) {
-                if (token.equals(JsonToken.FIELD_NAME)) {
-                    String currentName = parser.getCurrentName();
-                    final DataType dataType = validationContext.allowedKeys().get(currentName);
+                if (token.equals(JsonToken.PROPERTY_NAME)) {
+                    String currentName = parser.currentName();
+
+                    final FieldConfiguration fieldConfig = fieldConfigs.get(currentName);
+                    final DataType dataType = (fieldConfig != null) ? fieldConfig.getDataType() : null;
+
                     if (dataType != null) {
                         JsonToken valueToken = parser.nextToken();
+
+                        // Validate data type
                         switch (dataType) {
                             case INTEGER:
                                 if (valueToken != JsonToken.VALUE_NUMBER_INT) {
@@ -206,23 +302,60 @@ public class RequestContentValidator implements ToXContent {
                             case STRING:
                                 if (valueToken != JsonToken.VALUE_STRING) {
                                     wrongDataTypes.put(currentName, "String expected");
+                                } else if (fieldConfig != null) {
+                                    // Enhanced validation: validate string-specific constraints
+                                    String stringValue = parser.getText();
+                                    try {
+                                        fieldConfig.validate(currentName, stringValue);
+                                    } catch (IllegalArgumentException e) {
+                                        wrongDataTypes.put(currentName, e.getMessage());
+                                    }
                                 }
                                 break;
                             case ARRAY:
                                 if (valueToken != JsonToken.START_ARRAY && valueToken != JsonToken.END_ARRAY) {
                                     wrongDataTypes.put(currentName, "Array expected");
+                                } else if (fieldConfig != null && fieldConfig.getValidator() != null) {
+                                    // Enhanced validation: validate array content
+                                    JsonNode arrayNode = jsonContent.get(currentName);
+                                    try {
+                                        fieldConfig.validate(currentName, arrayNode);
+                                    } catch (IllegalArgumentException e) {
+                                        wrongDataTypes.put(currentName, e.getMessage());
+                                    }
                                 }
                                 break;
                             case OBJECT:
                                 if (!valueToken.equals(JsonToken.START_OBJECT) && !valueToken.equals(JsonToken.END_OBJECT)) {
                                     wrongDataTypes.put(currentName, "Object expected");
+                                } else if (fieldConfig != null && fieldConfig.getValidator() != null) {
+                                    // Enhanced validation: validate object content
+                                    JsonNode objectNode = jsonContent.get(currentName);
+                                    try {
+                                        fieldConfig.validate(currentName, objectNode);
+                                    } catch (IllegalArgumentException e) {
+                                        wrongDataTypes.put(currentName, e.getMessage());
+                                    }
+                                }
+                                break;
+                            case BOOLEAN:
+                                if (valueToken != JsonToken.VALUE_TRUE && valueToken != JsonToken.VALUE_FALSE) {
+                                    // Backwards compatibility: accept string "true" or "false"
+                                    if (valueToken == JsonToken.VALUE_STRING) {
+                                        String strValue = parser.getText();
+                                        if (!"true".equalsIgnoreCase(strValue) && !"false".equalsIgnoreCase(strValue)) {
+                                            wrongDataTypes.put(currentName, "Boolean expected");
+                                        }
+                                    } else {
+                                        wrongDataTypes.put(currentName, "Boolean expected");
+                                    }
                                 }
                                 break;
                         }
                     }
                 }
             }
-        } catch (final IOException ioe) {
+        } catch (final JacksonException ioe) {
             LOGGER.error("Couldn't create JSON for payload {}", jsonContent, ioe);
             this.validationError = ValidationError.BODY_NOT_PARSEABLE;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
@@ -235,13 +368,20 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
-        for (final Map.Entry<String, DataType> allowedKey : validationContext.allowedKeys().entrySet()) {
-            JsonNode value = jsonContent.get(allowedKey.getKey());
-            if (value != null) {
-                if (hasNullOrBlankArrayElement(value)) {
-                    this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
-                    return ValidationResult.error(RestStatus.BAD_REQUEST, this);
-                }
+        final Set<String> allowedKeys = validationContext.allowedKeys().keySet();
+
+        for (final String key : allowedKeys) {
+            final JsonNode value = jsonContent.get(key);
+            if (value == null) {
+                continue;
+            }
+            // Skip validation if the field hasn't changed from the original
+            if (originalContent != null && value.equals(originalContent.get(key))) {
+                continue;
+            }
+            if (hasNullOrBlankArrayElement(value)) {
+                this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
         }
         return ValidationResult.success(jsonContent);
@@ -253,7 +393,7 @@ public class RequestContentValidator implements ToXContent {
                 if (node.isArray()) {
                     return true;
                 }
-            } else if (element.isContainerNode()) {
+            } else if (element.isContainer()) {
                 if (hasNullOrBlankArrayElement(element)) {
                     return true;
                 }
@@ -262,10 +402,30 @@ public class RequestContentValidator implements ToXContent {
         return false;
     }
 
+    private ValidationResult<JsonNode> validateStringLength(final JsonNode jsonContent) {
+        if (exceedsMaxStringLength(jsonContent)) {
+            this.validationError = ValidationError.STRING_EXCEEDS_MAX_LENGTH;
+            return ValidationResult.error(RestStatus.BAD_REQUEST, this);
+        }
+        return ValidationResult.success(jsonContent);
+    }
+
+    private boolean exceedsMaxStringLength(final JsonNode node) {
+        if (node.isTextual() && node.asText().length() > MAX_STRING_LENGTH) {
+            return true;
+        }
+        for (final JsonNode child : node) {
+            if (exceedsMaxStringLength(child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ValidationResult<JsonNode> validatePassword(final RestRequest request, final JsonNode jsonContent) {
         if (jsonContent.has("password")) {
             final PasswordValidator passwordValidator = PasswordValidator.of(validationContext.settings());
-            final String password = jsonContent.get("password").asText();
+            final String password = jsonContent.get("password").asString();
             if (Strings.isNullOrEmpty(password)) {
                 this.validationError = ValidationError.INVALID_PASSWORD_TOO_SHORT;
                 return ValidationResult.error(RestStatus.BAD_REQUEST, this);
@@ -337,7 +497,7 @@ public class RequestContentValidator implements ToXContent {
 
             private final Set<String> mandatoryOrKeys = validationContext.mandatoryOrKeys();
 
-            private final Map<String, DataType> allowedKeys = validationContext.allowedKeys();
+            private final Map<String, FieldConfiguration> allowedKeys = validationContext.allowedKeys();
 
             @Override
             public Settings settings() {
@@ -360,7 +520,7 @@ public class RequestContentValidator implements ToXContent {
             }
 
             @Override
-            public Map<String, DataType> allowedKeys() {
+            public Map<String, FieldConfiguration> allowedKeys() {
                 return allowedKeys;
             }
         });
@@ -380,7 +540,8 @@ public class RequestContentValidator implements ToXContent {
         PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
         PAYLOAD_MANDATORY("Request body required for this action."),
         SECURITY_NOT_INITIALIZED("Security index not initialized"),
-        NULL_ARRAY_ELEMENT("`null` or blank values are not allowed as json array elements");
+        NULL_ARRAY_ELEMENT("`null` or blank values are not allowed as json array elements"),
+        STRING_EXCEEDS_MAX_LENGTH("String value exceeds the maximum allowed length of " + MAX_STRING_LENGTH + " characters");
 
         private final String message;
 
@@ -392,5 +553,221 @@ public class RequestContentValidator implements ToXContent {
             return message;
         }
 
+    }
+
+    /* ========================================================================
+     * Input Validation Utilities (Generic)
+     * ======================================================================== */
+
+    public static final int MAX_STRING_LENGTH = 256;
+    public static final int MAX_ARRAY_SIZE = 100_000;
+
+    // Alphanumeric + _ - : OR : * - "*" is only allowed as standalone
+    private static final Pattern SAFE_VALUE = Pattern.compile("^(\\*|[A-Za-z0-9_:-]+)$");
+
+    /* ---------------------- generic helpers ---------------------- */
+
+    public static void requireNonEmpty(String fieldName, String value) {
+        if (Strings.isNullOrEmpty(value)) {
+            throw new IllegalArgumentException(fieldName + " must not be null or empty");
+        }
+    }
+
+    public static void validateMaxLength(String fieldName, String value, int maxLength) {
+        if (value.length() > maxLength) {
+            throw new IllegalArgumentException(fieldName + " length [" + value.length() + "] exceeds max [" + maxLength + "]");
+        }
+    }
+
+    /**
+     * Validates a value against safe character pattern with optional wildcard support
+     * @param fieldName the name of the field being validated
+     * @param value the value to validate
+     * @param maxLength maximum allowed length
+     * @param allowWildcard whether to allow "*" as a standalone value
+     */
+    public static void validateSafeValue(String fieldName, String value, int maxLength, boolean allowWildcard) {
+        requireNonEmpty(fieldName, value);
+        validateMaxLength(fieldName, value, maxLength);
+        if (!SAFE_VALUE.matcher(value).matches()) {
+            throw new IllegalArgumentException(
+                fieldName + " contains invalid characters; allowed: " + (allowWildcard ? "* OR " : "") + "A-Z a-z 0-9 _ - :"
+            );
+        }
+    }
+
+    /**
+     * Validates a value against safe character pattern (no wildcard support)
+     */
+    public static void validateSafeValue(String fieldName, String value, int maxLength) {
+        validateSafeValue(fieldName, value, maxLength, false);
+    }
+
+    public static void validateArrayEntryCount(String fieldName, int count) {
+        if (count > MAX_ARRAY_SIZE) {
+            throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + MAX_ARRAY_SIZE);
+        }
+    }
+
+    /**
+     * Generic value validation against an allowed set (for types, levels, etc.)
+     * @param fieldName the name of the field being validated
+     * @param value the value to validate
+     * @param maxLength maximum allowed length
+     * @param allowedValues set or collection of allowed values
+     */
+    public static void validateValueInSet(String fieldName, String value, int maxLength, Collection<String> allowedValues) {
+        validateSafeValue(fieldName, value, maxLength);
+
+        if (allowedValues == null || allowedValues.isEmpty()) {
+            throw new IllegalStateException("No allowed values configured for " + fieldName);
+        }
+
+        if (!allowedValues.contains(value)) {
+            throw new IllegalArgumentException(
+                "Invalid " + fieldName + " [" + value + "]. Allowed values: " + String.join(", ", allowedValues)
+            );
+        }
+    }
+
+    /* ---------------------- specialized validators ---------------------- */
+
+    /**
+     * Validates a path-like value (no whitespace allowed)
+     */
+    public static void validatePath(String fieldName, String path, int maxLength) {
+        requireNonEmpty(fieldName, path);
+        validateMaxLength(fieldName, path, maxLength);
+        if (!path.equals(path.trim()) || path.chars().anyMatch(Character::isWhitespace)) {
+            throw new IllegalArgumentException(fieldName + " must not contain whitespace");
+        }
+    }
+
+    /**
+     * Validates a value against an allowed set
+     */
+    public static void validateFieldValueInSet(
+        String fieldName,
+        String value,
+        int maxLength,
+        Set<String> allowedValues,
+        String errorContext
+    ) {
+        requireNonEmpty(fieldName, value);
+        validateMaxLength(fieldName, value, maxLength);
+        if (allowedValues == null || allowedValues.isEmpty()) {
+            throw new IllegalStateException("No allowed " + errorContext + " configured");
+        }
+        if (!allowedValues.contains(value)) {
+            throw new IllegalArgumentException("Invalid " + fieldName + " [" + value + "]. Allowed " + errorContext + ": " + allowedValues);
+        }
+    }
+
+    /**
+     * Validates a JSON object node with non-empty string values
+     */
+    public static void validateNonEmptyValuesInAnObject(String fieldName, JsonNode node) {
+        if (node == null || node.isNull()) {
+            return;
+        }
+
+        if (!node.isObject()) {
+            throw new IllegalArgumentException(fieldName + " must be an object");
+        }
+
+        if (!node.propertyNames().iterator().hasNext()) {
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
+        }
+
+        node.properties().spliterator().forEachRemaining(entry -> {
+            JsonNode val = entry.getValue();
+            if (!val.isString() || val.asString().isEmpty()) {
+                throw new IllegalArgumentException(fieldName + " for key [" + entry.getKey() + "] must be a non-empty string");
+            }
+        });
+    }
+
+    /* ========================================================================
+     * Pre-built Field Validators for Common Use Cases
+     * ======================================================================== */
+
+    /**
+     * Creates a validator for principal values (users, roles, backend_roles, etc.)
+     * @param allowWildcard whether to allow "*" as a standalone value
+     */
+    public static FieldValidator principalValidator(boolean allowWildcard) {
+        return (fieldName, value) -> {
+            if (value instanceof String strValue) {
+                validateSafeValue(fieldName, strValue, MAX_STRING_LENGTH, allowWildcard);
+            }
+        };
+    }
+
+    /**
+     * Validator for path-like values (no whitespace allowed)
+     */
+    public static final FieldValidator PATH_VALIDATOR = (fieldName, value) -> {
+        if (value instanceof String strValue) {
+            validatePath(fieldName, strValue, MAX_STRING_LENGTH);
+        }
+    };
+
+    /**
+     * Validator for array entry counts with default MAX_ARRAY_SIZE (works with JsonNode arrays)
+     */
+    public static final FieldValidator ARRAY_SIZE_VALIDATOR = (fieldName, value) -> {
+        validateArraySize(fieldName, value, MAX_ARRAY_SIZE);
+    };
+
+    /**
+     * Validator for array entry counts with custom maxSize (works with JsonNode arrays)
+     */
+    public static FieldValidator arraySizeValidator(int maxSize) {
+        return (fieldName, value) -> { validateArraySize(fieldName, value, maxSize); };
+    }
+
+    private static void validateArraySize(String fieldName, Object value, int maxSize) {
+        if (value instanceof JsonNode node) {
+            if (node.isArray() && node.size() > maxSize) {
+                throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + maxSize);
+            }
+        } else if (value instanceof Integer) {
+            int count = (Integer) value;
+            if (count > maxSize) {
+                throw new IllegalArgumentException("Array field [" + fieldName + "] exceeds maximum size of " + maxSize);
+            }
+        }
+    }
+
+    public static final FieldValidator ARRAY_OF_STRINGS_VALIDATOR = (fieldName, value) -> {
+        if (value instanceof JsonNode node) {
+            IntStream.range(0, node.size()).mapToObj(node::get).forEach(element -> {
+                if (!element.isTextual()) {
+                    throw new IllegalArgumentException(fieldName + " should only contain string values.");
+                }
+            });
+        }
+    };
+
+    /**
+     * Creates a validator that checks if a string value is in an allowed set
+     */
+    public static FieldValidator allowedValuesValidator(Set<String> allowedValues, String errorMessage) {
+        return (fieldName, value) -> {
+            if (value instanceof String strValue) {
+                if (!allowedValues.contains(strValue)) {
+                    throw new IllegalArgumentException(
+                        errorMessage != null ? errorMessage : fieldName + " must be one of: " + String.join(", ", allowedValues)
+                    );
+                }
+            }
+        };
+    }
+
+    /**
+     * overloaded implementation of #allowedValuesValidator() to pass null errorMessage
+     */
+    public static FieldValidator allowedValuesValidator(Set<String> allowedValues) {
+        return allowedValuesValidator(allowedValues, null);
     }
 }

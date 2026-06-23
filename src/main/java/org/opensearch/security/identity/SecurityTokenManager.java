@@ -41,8 +41,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 import org.greenrobot.eventbus.Subscribe;
 
-import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
-
 /**
  * This class is the Security Plugin's implementation of the TokenManager used by all Identity Plugins.
  * It handles the issuance of both Service Account Tokens and On Behalf Of tokens.
@@ -129,9 +127,6 @@ public class SecurityTokenManager implements TokenManager {
         }
         if (mappedRoles == null) {
             throw new IllegalArgumentException("Roles cannot be null");
-        }
-        if (isKeyNull(oboSettings, "encryption_key")) {
-            throw new IllegalArgumentException("encryption_key cannot be null");
         }
 
         final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(oboSettings.get("encryption_key"));

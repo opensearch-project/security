@@ -114,7 +114,7 @@ final class LdapServer {
     private Collection<InMemoryListenerConfig> getInMemoryListenerConfigs() throws Exception {
         Collection<InMemoryListenerConfig> listenerConfigs = new ArrayList<InMemoryListenerConfig>();
 
-        String serverKeyStorePath = FileHelper.getAbsoluteFilePathFromClassPath("ldap/node-0-keystore.jks").toFile().getAbsolutePath();
+        String serverKeyStorePath = FileHelper.resolveStore("ldap/node-0-keystore").path().toFile().getAbsolutePath();
         final SSLUtil serverSSLUtil = new SSLUtil(
             new KeyStoreKeyManager(serverKeyStorePath, "changeit".toCharArray()),
             new TrustStoreTrustManager(serverKeyStorePath)

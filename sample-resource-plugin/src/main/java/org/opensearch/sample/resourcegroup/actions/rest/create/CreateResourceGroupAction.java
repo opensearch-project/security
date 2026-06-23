@@ -21,7 +21,7 @@ public class CreateResourceGroupAction extends ActionType<CreateResourceGroupRes
     /**
      * Create sample resource group action name
      */
-    public static final String NAME = "cluster:admin/sample-resource-plugin/group/create";
+    public static final String NAME = "sampleresourcegroup:create";
 
     private CreateResourceGroupAction() {
         super(NAME, CreateResourceGroupResponse::new);

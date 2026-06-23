@@ -21,7 +21,7 @@ public class GetResourceGroupAction extends ActionType<GetResourceGroupResponse>
     /**
      * Get sample resource group action name
      */
-    public static final String NAME = "cluster:admin/sample-resource-plugin/group/get";
+    public static final String NAME = "sampleresourcegroup:get";
 
     private GetResourceGroupAction() {
         super(NAME, GetResourceGroupResponse::new);

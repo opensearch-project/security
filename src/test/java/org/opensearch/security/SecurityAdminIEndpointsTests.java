@@ -52,8 +52,8 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
     public void testEndpoints() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .putList("plugins.security.nodes_dn", "CN=node-*.example.com,OU=SSL,O=Test,L=Test,C=DE")
             .build();
         setup(settings);
@@ -107,7 +107,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
             )
         );
 
-        rh.keystore = "spock-keystore.jks";
+        rh.keystore = "spock-keystore";
 
         assertThat((res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode(), is(HttpStatus.SC_OK));
 
@@ -131,7 +131,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
             )
         );
 
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
 
         assertThat((res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode(), is(HttpStatus.SC_OK));
 

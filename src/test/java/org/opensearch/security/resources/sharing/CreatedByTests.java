@@ -10,6 +10,7 @@ package org.opensearch.security.resources.sharing;
 
 import java.io.IOException;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ import static org.mockito.Mockito.when;
  *
  * @opensearch.experimental
  */
-public class CreatedByTests {
+public class CreatedByTests extends LuceneTestCase {
 
     @Test
     public void testCreatedByConstructorWithValidUser() {
@@ -42,16 +43,6 @@ public class CreatedByTests {
         CreatedBy createdBy = new CreatedBy(expectedUser);
 
         MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getUsername())));
-    }
-
-    @Test
-    public void testCreatedByConstructorWithValidUserAndTenant() {
-        String expectedUser = "testUser";
-        String expectedTenant = "customTenant";
-        CreatedBy createdBy = new CreatedBy(expectedUser, expectedTenant);
-
-        MatcherAssert.assertThat(expectedUser, is(equalTo(createdBy.getUsername())));
-        MatcherAssert.assertThat(expectedTenant, is(equalTo(createdBy.getTenant())));
     }
 
     @Test

@@ -112,6 +112,7 @@ public class ResourceSharingIndexHandler {
      * The index will be created with the following structure:
      * - source_idx (keyword): The source index containing the original document
      * - resource_id (keyword): The ID of the shared resource
+     * - tenant (keyword): Tenant where the resource is stored
      * - created_by (object): Information about the user who created the sharing
      * - user (keyword): Username of the creator
      * - share_with (object): Access control configuration for shared resources
@@ -649,8 +650,10 @@ public class ResourceSharingIndexHandler {
             }
             for (String accessLevel : shareWith.accessLevels()) {
                 Recipients target = shareWith.atAccessLevel(accessLevel);
-
                 sharingInfo.share(accessLevel, target);
+            }
+            if (shareWith.getGeneralAccess() != null) {
+                sharingInfo.setGeneralAccess(shareWith.getGeneralAccess());
             }
 
             String resourceSharingIndex = getSharingIndex(resourceIndex);
@@ -707,6 +710,8 @@ public class ResourceSharingIndexHandler {
         String resourceIndex,
         ShareWith add,
         ShareWith revoke,
+        boolean generalAccessPresent,
+        String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
 
@@ -719,10 +724,13 @@ public class ResourceSharingIndexHandler {
         // Apply patch and update the document
         sharingInfoListener.whenComplete(sharingInfo -> {
             if (add != null) {
-                sharingInfo.getShareWith().add(add);
+                sharingInfo.applyAdd(add);
             }
             if (revoke != null) {
-                sharingInfo.getShareWith().revoke(revoke);
+                sharingInfo.applyRevoke(revoke);
+            }
+            if (generalAccessPresent) {
+                sharingInfo.setGeneralAccess(generalAccess);
             }
 
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
@@ -898,7 +906,7 @@ public class ResourceSharingIndexHandler {
     ) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(query)
             .size(1000)
-            .fetchSource(new String[] { "resource_id", "created_by", "share_with" }, null);
+            .fetchSource(new String[] { "resource_id", "tenant", "created_by", "share_with" }, null);
 
         searchRequest.source(searchSourceBuilder);
 
@@ -958,7 +966,7 @@ public class ResourceSharingIndexHandler {
             final int BATCH = 1000; // tune if docs are large
             final Set<SharingRecord> out = ConcurrentHashMap.newKeySet();
             final AtomicInteger cursor = new AtomicInteger(0);
-            final String[] includes = { "resource_id", "created_by", "share_with" };
+            final String[] includes = { "resource_id", "tenant", "created_by", "share_with" };
 
             // self-referencing lambda for batch run
             final AtomicReference<Runnable> submitNextRef = new AtomicReference<>();
@@ -1173,10 +1181,8 @@ public class ResourceSharingIndexHandler {
 
         if (isAdmin || resourceSharingRecord.isCreatedBy(user.getName())) return true;
 
-        if (resourceSharingRecord.isSharedWithEveryone()) return true;
-
         var sw = resourceSharingRecord.getShareWith();
-        if (sw == null || sw.getSharingInfo().isEmpty()) return false;
+        if (sw == null) return false;
 
         Set<String> users = Set.of(user.getName());
         Set<String> roles = new HashSet<>(user.getSecurityRoles());

@@ -143,6 +143,7 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     builder.field("opensearch_dashboards_index", multiTenancyConfiguration.dashboardsIndex());
                     builder.field("opensearch_dashboards_server_user", multiTenancyConfiguration.dashboardsServerUsername());
                     builder.field("multitenancy_enabled", multiTenancyConfiguration.multitenancyEnabled());
+                    builder.field("preferred_tenants", multiTenancyConfiguration.preferredTenants());
                     builder.field("private_tenant_enabled", multiTenancyConfiguration.privateTenantEnabled());
                     builder.field("default_tenant", multiTenancyConfiguration.dashboardsDefaultTenant());
                     builder.field("sign_in_options", getSignInOptions());
@@ -156,6 +157,8 @@ public class DashboardsInfoAction extends BaseRestHandler {
                         client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, DEFAULT_PASSWORD_REGEX)
                     );
                     builder.field("resource_sharing_enabled", resourceSharingEnabledSetting.getDynamicSettingValue());
+                    builder.field("api_tokens_enabled", getApiTokensEnabled());
+                    builder.field("max_duration_seconds", getMaxDurationSeconds());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
@@ -189,6 +192,22 @@ public class DashboardsInfoAction extends BaseRestHandler {
         } else {
             return new ConfigV7.Kibana().sign_in_options;
         }
+    }
+
+    private boolean getApiTokensEnabled() {
+        ConfigV7 generalConfig = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
+        if (generalConfig != null && generalConfig.dynamic != null && generalConfig.dynamic.api_tokens != null) {
+            return Boolean.TRUE.equals(generalConfig.dynamic.api_tokens.getEnabled());
+        }
+        return false;
+    }
+
+    private long getMaxDurationSeconds() {
+        ConfigV7 generalConfig = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
+        if (generalConfig != null && generalConfig.dynamic != null && generalConfig.dynamic.api_tokens != null) {
+            return generalConfig.dynamic.api_tokens.getMaxDurationSeconds();
+        }
+        return 0;
     }
 
 }

@@ -11,13 +11,10 @@ package org.opensearch.security;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 
-import org.opensearch.core.common.Strings;
 import org.opensearch.security.securityconf.impl.CType;
 
 public class ConfigurationFiles {
@@ -40,14 +37,6 @@ public class ConfigurationFiles {
             return tempDirectory.toAbsolutePath();
         } catch (IOException ex) {
             throw new RuntimeException("Cannot create directory with security plugin configuration.", ex);
-        }
-    }
-
-    public static void writeToConfig(final CType cType, final Path configFolder, final String content) throws IOException {
-        if (Strings.isNullOrEmpty(content)) return;
-        try (final var out = Files.newOutputStream(cType.configFile(configFolder), StandardOpenOption.APPEND)) {
-            out.write(content.getBytes(StandardCharsets.UTF_8));
-            out.flush();
         }
     }
 

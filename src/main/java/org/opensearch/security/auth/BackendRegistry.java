@@ -87,7 +87,7 @@ import static org.opensearch.security.http.HTTPBasicAuthenticator.BASIC_TYPE;
 public class BackendRegistry {
 
     protected static final Logger log = LogManager.getLogger(BackendRegistry.class);
-    private static final Set<String> GRPC_SUPPORTED_AUTH = Set.of("jwt");
+    private static final Set<String> GRPC_SUPPORTED_AUTH = Set.of("jwt", "basic");
 
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
@@ -452,6 +452,8 @@ public class BackendRegistry {
             Disallow superuser authentication through auth domain.
             Only client cert authentication is allowed for this user.
              */
+            authenticatedUser.setAuthenticatedBy(authDomain.getHttpAuthenticator().getType());
+
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);

@@ -60,11 +60,10 @@ _meta:
 
 config:
   dynamic:
-    # Set filtered_alias_mode to 'disallow' to forbid more than 2 filtered aliases per index
-    # Set filtered_alias_mode to 'warn' to allow more than 2 filtered aliases per index but warns about it (default)
-    # Set filtered_alias_mode to 'nowarn' to allow more than 2 filtered aliases per index silently
-    #filtered_alias_mode: warn
-    #do_not_fail_on_forbidden: false
+    # Set privileges_evaluation_type to "v4" to enable the new privileges evaluation engine.
+    # This should give you a more seamless experience, especially for users with restricted privileges
+    # working in OpenSearch Dashboards.
+    # privileges_evaluation_type: "v4"
     #kibana:
     # Kibana multitenancy
     #multitenancy_enabled: true

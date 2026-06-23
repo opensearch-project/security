@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -30,20 +31,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.BaseEncoding;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
@@ -72,6 +75,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
@@ -79,8 +83,9 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 
 import com.flipkart.zjsonpatch.DiffFlags;
-import com.flipkart.zjsonpatch.JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
 import org.greenrobot.eventbus.Subscribe;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -93,6 +98,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Settings settings;
     private volatile AuditConfig.Filter auditConfigFilter;
     private final String securityIndex;
+    private final WildcardMatcher securityIndicesMatcher;
     private volatile ComplianceConfig complianceConfig;
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
@@ -126,6 +132,12 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+        );
+        this.securityIndicesMatcher = WildcardMatcher.from(
+            List.of(
+                settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+                ConfigConstants.OPENSEARCH_API_TOKENS_INDEX
+            )
         );
         this.environment = environment;
         this.userFactory = userFactory;
@@ -325,6 +337,170 @@ public abstract class AbstractAuditLog implements AuditLog {
         msgs.forEach(this::save);
     }
 
+    // Routes settings change audit to the appropriate handler
+    @Override
+    public void logSettingsChange(String action, TransportRequest request, Task task) {
+        if (request instanceof ClusterUpdateSettingsRequest) {
+            logClusterSettingsChange(action, (ClusterUpdateSettingsRequest) request, task);
+        } else if (request instanceof UpdateSettingsRequest) {
+            logIndexSettingsChange(action, (UpdateSettingsRequest) request, task);
+        }
+    }
+
+    // Audits cluster settings changes (persistent and transient)
+    private void logClusterSettingsChange(String action, ClusterUpdateSettingsRequest request, Task task) {
+        if (!checkTransportFilter(AuditCategory.CLUSTER_SETTINGS_CHANGED, action, getUser(), request)) {
+            return;
+        }
+
+        final List<Map<String, Object>> changes = new ArrayList<>();
+
+        final Settings persistentSettings = request.persistentSettings();
+        if (!persistentSettings.isEmpty()) {
+            Settings currentPersistent = Settings.EMPTY;
+            try {
+                currentPersistent = clusterService.state().metadata().persistentSettings();
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current persistent settings for audit", e);
+            }
+            changes.addAll(buildSettingsChanges(persistentSettings, currentPersistent, "persistent"));
+        }
+
+        final Settings transientSettings = request.transientSettings();
+        if (!transientSettings.isEmpty()) {
+            Settings currentTransient = Settings.EMPTY;
+            try {
+                currentTransient = clusterService.state().metadata().transientSettings();
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current transient settings for audit", e);
+            }
+            changes.addAll(buildSettingsChanges(transientSettings, currentTransient, "transient"));
+        }
+
+        if (changes.isEmpty()) {
+            return;
+        }
+
+        final AuditMessage msg = new AuditMessage(AuditCategory.CLUSTER_SETTINGS_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
+        TransportAddress remoteAddress = getRemoteAddress();
+        msg.addRemoteAddress(remoteAddress);
+        msg.addEffectiveUser(getUser());
+        msg.addAction(action);
+        msg.addRequestType(request.getClass().getSimpleName());
+        msg.addSettingsChanges(changes);
+
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+
+        save(msg);
+    }
+
+    // Audits index-level settings changes
+    private void logIndexSettingsChange(String action, UpdateSettingsRequest request, Task task) {
+        if (!checkTransportFilter(AuditCategory.INDEX_SETTINGS_CHANGED, action, getUser(), request)) {
+            return;
+        }
+
+        final Settings newSettings = request.settings();
+        final String[] indices = request.indices();
+        final String[] resolvedIndices = resolveIndices(indices);
+
+        // Use settings from the first resolved index as representative current state
+        Settings currentSettings = Settings.EMPTY;
+        if (resolvedIndices.length > 0) {
+            try {
+                final var indexMetadata = clusterService.state().metadata().index(resolvedIndices[0]);
+                if (indexMetadata != null) {
+                    currentSettings = indexMetadata.getSettings();
+                }
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current index settings for audit", e);
+            }
+        }
+
+        final List<Map<String, Object>> changes = buildSettingsChanges(newSettings, currentSettings, "index");
+        if (changes.isEmpty()) {
+            return;
+        }
+
+        final AuditMessage msg = new AuditMessage(AuditCategory.INDEX_SETTINGS_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
+        TransportAddress remoteAddress = getRemoteAddress();
+        msg.addRemoteAddress(remoteAddress);
+        msg.addEffectiveUser(getUser());
+        msg.addAction(action);
+        msg.addRequestType(request.getClass().getSimpleName());
+        msg.addIndices(indices);
+        msg.addResolvedIndices(resolvedIndices);
+        msg.addSettingsChanges(changes);
+
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+
+        save(msg);
+    }
+
+    // Compares old vs new values for each setting and builds change entries
+    private List<Map<String, Object>> buildSettingsChanges(Settings newSettings, Settings currentSettings, String scope) {
+        final List<Map<String, Object>> changes = new ArrayList<>();
+        for (String key : newSettings.keySet()) {
+            final String newValue = newSettings.get(key);
+            final String oldValue = currentSettings.get(key);
+            final boolean isSecure = isSecureSetting(key);
+
+            final Map<String, Object> change = new HashMap<>();
+            change.put("setting", key);
+            change.put("old_value", isSecure && oldValue != null ? "***REDACTED***" : oldValue);
+            change.put("scope", scope);
+
+            if (newValue == null) {
+                change.put("new_value", null);
+                change.put("operation", "removed");
+            } else {
+                change.put("new_value", isSecure ? "***REDACTED***" : newValue);
+                change.put("operation", "set");
+            }
+
+            changes.add(change);
+        }
+        return changes;
+    }
+
+    /**
+     * Checks if a setting should have its value redacted in audit logs.
+     * Returns true for settings registered as SecureSetting (secrets stored
+     * in the keystore), or settings whose key contains common secret indicators
+     * (password, secret, token).
+     */
+    private boolean isSecureSetting(final String key) {
+        try {
+            // Looks up the Setting object by key and checks if it is an instance of SecureSetting
+            // i.e. secrets stored in the opensearch-keystore that must be redacted
+            if (clusterService.getClusterSettings().get(key) instanceof SecureSetting) {
+                return true;
+            }
+        } catch (final Exception e) {
+            // Setting not registered in cluster settings — fall through to pattern match
+        }
+        // Pattern fallback for settings not registered as SecureSetting (e.g., plugin SSL settings)
+        final String lowerKey = key.toLowerCase();
+        return lowerKey.contains("password") || lowerKey.contains("secret") || lowerKey.contains("token");
+    }
+
+    // Resolves index patterns to concrete index names
+    private String[] resolveIndices(String[] indices) {
+        if (indices == null || indices.length == 0) {
+            return new String[0];
+        }
+        try {
+            return resolver.concreteIndexNames(clusterService.state(), IndicesOptions.lenientExpandOpen(), indices);
+        } catch (Exception e) {
+            log.debug("Unable to resolve indices for settings change audit", e);
+            return indices;
+        }
+    }
+
     @Override
     public void logBadHeaders(TransportRequest request, String action, Task task) {
 
@@ -481,7 +657,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndex.equals(index)
+        AuditCategory category = securityIndicesMatcher.test(index)
             ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ
             : AuditCategory.COMPLIANCE_DOC_READ;
 
@@ -514,14 +690,14 @@ public abstract class AbstractAuditLog implements AuditLog {
                         log.error(e.toString());
                     }
                 } else {
-                    if (securityIndex.equals(index) && !"tattr".equals(id)) {
+                    if (securityIndicesMatcher.test(index) && !"tattr".equals(id)) {
                         try {
                             Map<String, String> map = fieldNameValues.entrySet()
                                 .stream()
                                 .collect(
                                     Collectors.toMap(
                                         entry -> "id",
-                                        entry -> new String(BaseEncoding.base64().decode(entry.getValue()), StandardCharsets.UTF_8)
+                                        entry -> new String(Base64.getDecoder().decode(entry.getValue()), StandardCharsets.UTF_8)
                                     )
                                 );
                             msg.addSecurityConfigMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")), id);
@@ -548,9 +724,14 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndex.equals(shardId.getIndexName())
-            ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE
-            : AuditCategory.COMPLIANCE_DOC_WRITE;
+        AuditCategory category;
+        if (ConfigConstants.OPENSEARCH_API_TOKENS_INDEX.equals(shardId.getIndexName())) {
+            category = AuditCategory.API_TOKEN_WRITE;
+        } else if (securityIndicesMatcher.test(shardId.getIndexName())) {
+            category = AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE;
+        } else {
+            category = AuditCategory.COMPLIANCE_DOC_WRITE;
+        }
 
         String effectiveUser = getUser();
 
@@ -578,7 +759,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                     // originalSource is empty
                     originalSource = "{}";
                 }
-                if (securityIndex.equals(shardId.getIndexName())) {
+                if (securityIndicesMatcher.test(shardId.getIndexName())) {
+                    boolean isApiTokenIndex = shardId.getIndexName().equals(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+
                     if (originalSource == null) {
                         try (
                             XContentParser parser = XContentHelper.createParser(
@@ -588,11 +771,19 @@ public abstract class AbstractAuditLog implements AuditLog {
                                 XContentType.JSON
                             )
                         ) {
-                            Object base64 = parser.map().values().iterator().next();
-                            if (base64 instanceof String) {
-                                originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
-                            } else {
+                            if (isApiTokenIndex) {
                                 originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                            } else {
+                                Object base64 = parser.map().values().iterator().next();
+                                if (base64 instanceof String) {
+                                    originalSource = (new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8));
+                                } else {
+                                    originalSource = XContentHelper.convertToJson(
+                                        originalResult.internalSourceRef(),
+                                        false,
+                                        XContentType.JSON
+                                    );
+                                }
                             }
                         } catch (Exception e) {
                             log.error(e.toString());
@@ -607,18 +798,22 @@ public abstract class AbstractAuditLog implements AuditLog {
                             XContentType.JSON
                         )
                     ) {
-                        Object base64 = parser.map().values().iterator().next();
-                        if (base64 instanceof String) {
-                            currentSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
-                        } else {
+                        if (isApiTokenIndex) {
                             currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                        } else {
+                            Object base64 = parser.map().values().iterator().next();
+                            if (base64 instanceof String) {
+                                currentSource = new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8);
+                            } else {
+                                currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                            }
                         }
                     } catch (Exception e) {
                         log.error(e.toString());
                     }
-                    final JsonNode diffnode = JsonDiff.asJson(
-                        DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource)
+                    final JsonNode diffnode = Jackson3JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper().readTree(originalSource),
+                        DefaultObjectMapper.objectMapper().readTree(currentSource)
                     );
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
@@ -626,9 +821,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                         originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                     }
                     currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
-                    final JsonNode diffnode = JsonDiff.asJson(
-                        DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource)
+                    final JsonNode diffnode = Jackson3JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper().readTree(originalSource),
+                        DefaultObjectMapper.objectMapper().readTree(currentSource)
                     );
                     msg.addComplianceWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString());
                 }
@@ -638,7 +833,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if (!complianceConfig.shouldLogWriteMetadataOnly() && !complianceConfig.shouldLogDiffsForWrite()) {
-            if (securityIndex.equals(shardId.getIndexName())) {
+            if (securityIndicesMatcher.test(shardId.getIndexName())) {
                 // current source, normally not null or empty
                 try (
                     XContentParser parser = XContentHelper.createParser(
@@ -651,7 +846,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     Object base64 = parser.map().values().iterator().next();
                     if (base64 instanceof String) {
                         msg.addSecurityConfigContentToRequestBody(
-                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                            new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8),
                             id
                         );
                     } else {
@@ -720,7 +915,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     ) {
                         Object base64 = parser.map().values().iterator().next();
                         if (base64 instanceof String) {
-                            originalSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
+                            originalSource = new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8);
                         } else {
                             originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                         }
@@ -730,9 +925,9 @@ public abstract class AbstractAuditLog implements AuditLog {
 
                     // For delete, the "current" state is empty
                     String currentSource = "{}";
-                    final JsonNode diffnode = JsonDiff.asJson(
-                        DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource),
+                    final JsonNode diffnode = Jackson3JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper().readTree(originalSource),
+                        DefaultObjectMapper.objectMapper().readTree(currentSource),
                         EnumSet.noneOf(DiffFlags.class)
                     );
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
@@ -741,9 +936,9 @@ public abstract class AbstractAuditLog implements AuditLog {
 
                     // For delete, the "current" state is empty
                     String currentSource = "{}";
-                    final JsonNode diffnode = JsonDiff.asJson(
-                        DefaultObjectMapper.objectMapper.readTree(originalSource),
-                        DefaultObjectMapper.objectMapper.readTree(currentSource),
+                    final JsonNode diffnode = Jackson3JsonDiff.asJson(
+                        DefaultObjectMapper.objectMapper().readTree(originalSource),
+                        DefaultObjectMapper.objectMapper().readTree(currentSource),
                         EnumSet.noneOf(DiffFlags.class)
                     );
                     msg.addComplianceWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString());
@@ -769,7 +964,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     Object base64 = parser.map().values().iterator().next();
                     if (base64 instanceof String) {
                         msg.addSecurityConfigContentToRequestBody(
-                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                            new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8),
                             id
                         );
                     } else {
@@ -786,6 +981,22 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
         }
 
+        save(msg);
+    }
+
+    @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
+        msg.addEffectiveUser(createdBy);
+        msg.addSecurityConfigWriteDiffSource("{\"action\":\"created\",\"token_name\":\"" + tokenName + "\"}", tokenName);
+        save(msg);
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
+        msg.addEffectiveUser(revokedBy);
+        msg.addSecurityConfigWriteDiffSource("{\"action\":\"revoked\",\"token_id\":\"" + tokenId + "\"}", tokenId);
         save(msg);
     }
 

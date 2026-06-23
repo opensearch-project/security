@@ -25,18 +25,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,13 +47,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1Object;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.ASN1String;
-import org.bouncycastle.asn1.ASN1TaggedObject;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
@@ -65,6 +54,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.ssl.config.SanParser;
 import org.opensearch.security.ssl.util.CertFileProps;
 import org.opensearch.security.ssl.util.CertFromFile;
 import org.opensearch.security.ssl.util.CertFromKeystore;
@@ -1026,59 +1016,6 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
     @Override
     public String getSubjectAlternativeNames(X509Certificate cert) {
-        String san = "";
-        try {
-            Collection<List<?>> altNames = cert != null && cert.getSubjectAlternativeNames() != null
-                ? cert.getSubjectAlternativeNames()
-                : null;
-            if (altNames != null) {
-                Comparator<List<?>> comparator = Comparator.comparing((List<?> altName) -> (Integer) altName.get(0))
-                    .thenComparing((List<?> altName) -> (String) altName.get(1));
-
-                Set<List<?>> sans = new TreeSet<>(comparator);
-                for (List<?> altName : altNames) {
-                    Integer type = (Integer) altName.get(0);
-                    // otherName requires parsing to string
-                    if (type == 0) {
-                        List<?> otherName = getOtherName(altName);
-                        if (otherName != null) {
-                            sans.add(Arrays.asList(type, otherName));
-                        }
-                    } else {
-                        sans.add(altName);
-                    }
-                }
-                san = sans.toString();
-            }
-        } catch (CertificateParsingException e) {
-            log.error("Issue parsing SubjectAlternativeName:", e);
-        }
-
-        return san;
-    }
-
-    private List<String> getOtherName(List<?> altName) {
-        if (altName.size() < 2) {
-            log.warn("Couldn't parse subject alternative names");
-            return null;
-        }
-        try (final ASN1InputStream in = new ASN1InputStream((byte[]) altName.get(1))) {
-            final ASN1Primitive asn1Primitive = in.readObject();
-            final ASN1Sequence sequence = ASN1Sequence.getInstance(asn1Primitive);
-            final ASN1ObjectIdentifier asn1ObjectIdentifier = ASN1ObjectIdentifier.getInstance(sequence.getObjectAt(0));
-            final ASN1TaggedObject asn1TaggedObject = ASN1TaggedObject.getInstance(sequence.getObjectAt(1));
-            ASN1Object maybeTaggedAsn1Primitive = asn1TaggedObject.getObject();
-            if (maybeTaggedAsn1Primitive instanceof ASN1TaggedObject) {
-                maybeTaggedAsn1Primitive = ASN1TaggedObject.getInstance(maybeTaggedAsn1Primitive).getObject();
-            }
-            if (maybeTaggedAsn1Primitive instanceof ASN1String) {
-                return ImmutableList.of(asn1ObjectIdentifier.getId(), maybeTaggedAsn1Primitive.toString());
-            } else {
-                log.warn("Couldn't parse subject alternative names");
-                return null;
-            }
-        } catch (final Exception ioe) { // catch all exception here since BC throws diff exceptions
-            throw new RuntimeException("Couldn't parse subject alternative names", ioe);
-        }
+        return SanParser.parse(cert);
     }
 }

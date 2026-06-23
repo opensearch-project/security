@@ -21,7 +21,7 @@ public class DeleteResourceGroupAction extends ActionType<DeleteResourceGroupRes
     /**
      * Delete sample resource group action name
      */
-    public static final String NAME = "cluster:admin/sample-resource-plugin/group/delete";
+    public static final String NAME = "sampleresourcegroup:delete";
 
     private DeleteResourceGroupAction() {
         super(NAME, DeleteResourceGroupResponse::new);

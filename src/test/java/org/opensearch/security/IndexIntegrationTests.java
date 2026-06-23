@@ -300,15 +300,15 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         HttpResponse resc = rh.executeGetRequest("/foo1/_search?pretty", encodeBasicHeader("baz", "worf"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
+        Assert.assertTrue(resc.getBody().contains("\"content\":1"));
 
         resc = rh.executeGetRequest("/foo2/_search?pretty", encodeBasicHeader("baz", "worf"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
+        Assert.assertTrue(resc.getBody().contains("\"content\":2"));
 
         resc = rh.executeGetRequest("/foo/_search?pretty", encodeBasicHeader("baz", "worf"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertTrue(resc.getBody().contains("\"content\" : 3"));
+        Assert.assertTrue(resc.getBody().contains("\"content\":3"));
 
         // resc = rh.executeGetRequest("/fooba/z/_search?pretty", encodeBasicHeader("baz", "worf"));
         // assertThat(resc.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
@@ -316,16 +316,16 @@ public class IndexIntegrationTests extends SingleClusterTest {
         resc = rh.executeGetRequest("/foo1/_doc/1?pretty", encodeBasicHeader("baz", "worf"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
         Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
-        Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
+        Assert.assertTrue(resc.getBody().contains("\"content\":1"));
 
         resc = rh.executeGetRequest("/foo2/_doc/2?pretty", encodeBasicHeader("baz", "worf"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
+        Assert.assertTrue(resc.getBody().contains("\"content\":2"));
         Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
 
         resc = rh.executeGetRequest("/foo/_doc/3?pretty", encodeBasicHeader("baz", "worf"));
         assertThat(resc.getStatusCode(), is(HttpStatus.SC_OK));
-        Assert.assertTrue(resc.getBody().contains("\"content\" : 3"));
+        Assert.assertTrue(resc.getBody().contains("\"content\":3"));
         Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
 
         // resc = rh.executeGetRequest("/fooba/z/4?pretty", encodeBasicHeader("baz", "worf"));
@@ -336,8 +336,8 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         resc = rh.executeGetRequest("/foo*,-fooba/_search?pretty", encodeBasicHeader("baz", "worf"));
         assertThat(resc.getStatusCode(), is(200));
-        Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
-        Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
+        Assert.assertTrue(resc.getBody().contains("\"content\":1"));
+        Assert.assertTrue(resc.getBody().contains("\"content\":2"));
     }
 
     @Test

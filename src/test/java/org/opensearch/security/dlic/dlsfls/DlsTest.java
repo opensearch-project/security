@@ -225,7 +225,7 @@ public class DlsTest extends AbstractDlsFlsTest {
         );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
         Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 1500"));
+        Assert.assertTrue(res.getBody().contains("\"amount\": 1500"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         String mgetBody = """

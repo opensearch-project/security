@@ -48,7 +48,7 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
 
     protected void testHttpOperations() throws Exception {
 
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
 
         // GET configuration

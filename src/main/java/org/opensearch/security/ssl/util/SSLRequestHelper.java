@@ -19,22 +19,31 @@ package org.opensearch.security.ssl.util;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.CRL;
+import java.security.cert.CertPathValidatorException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Map.Entry;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
@@ -57,10 +66,6 @@ public class SSLRequestHelper {
         private final String principal;
         private final String protocol;
         private final String cipher;
-
-        public SSLInfo(final X509Certificate[] x509Certs, final String principal, final String protocol, final String cipher) {
-            this(x509Certs, principal, protocol, cipher, null);
-        }
 
         public SSLInfo(
             final X509Certificate[] x509Certs,
@@ -129,48 +134,61 @@ public class SSLRequestHelper {
         final String protocol = session.getProtocol();
         final String cipher = session.getCipherSuite();
         String principal = null;
-        boolean validationFailure = false;
 
         if (engine.getNeedClientAuth() || engine.getWantClientAuth()) {
-
+            Certificate[] certs = null;
             try {
-                final Certificate[] certs = session.getPeerCertificates();
+                certs = session.getPeerCertificates();
+            } catch (SSLPeerUnverifiedException e) {
+                // deal with 'null' certs down below
+            }
 
-                if (certs != null && certs.length > 0 && certs[0] instanceof X509Certificate) {
-                    x509Certs = Arrays.copyOf(certs, certs.length, X509Certificate[].class);
-                    final X509Certificate[] x509CertsF = x509Certs;
-
-                    validationFailure = AccessController.doPrivileged(() -> !validate(x509CertsF, settings, configPath));
-
-                    if (validationFailure) {
-                        throw new SSLPeerUnverifiedException("Unable to validate certificate (CRL)");
-                    }
-                    principal = principalExtractor == null ? null : principalExtractor.extractPrincipal(x509Certs[0], Type.HTTP);
-                } else if (engine.getNeedClientAuth()) {
-                    throw new OpenSearchException("No client certificates found but such are needed (SG 9).");
-                }
-
-            } catch (final SSLPeerUnverifiedException e) {
-                if (engine.getNeedClientAuth() || validationFailure) {
-                    throw e;
-                }
+            if (certs != null && certs.length > 0 && certs[0] instanceof X509Certificate) {
+                x509Certs = Arrays.copyOf(certs, certs.length, X509Certificate[].class);
+                validatePeerCerts(x509Certs, settings, configPath);
+                principal = principalExtractor == null ? null : principalExtractor.extractPrincipal(x509Certs[0], Type.HTTP);
+            } else if (engine.getNeedClientAuth()) {
+                throw new OpenSearchException("No client certificates found but such are needed (SG 9).");
             }
         }
 
-        Certificate[] localCerts = session.getLocalCertificates();
-        return new SSLInfo(
-            x509Certs,
-            principal,
-            protocol,
-            cipher,
-            localCerts == null ? null : Arrays.copyOf(localCerts, localCerts.length, X509Certificate[].class)
-        );
+        X509Certificate[] localCerts = null;
+        if (session.getLocalCertificates() != null) {
+            localCerts = Arrays.stream(session.getLocalCertificates()).map(X509Certificate.class::cast).toArray(X509Certificate[]::new);
+        }
+
+        return new SSLInfo(x509Certs, principal, protocol, cipher, localCerts);
+    }
+
+    private static void validatePeerCerts(final X509Certificate[] x509Certs, final Settings settings, final Path configPath)
+        throws SSLPeerUnverifiedException {
+        AccessController.doPrivilegedChecked(() -> {
+            try {
+                validate(x509Certs, settings, configPath);
+            } catch (CertPathValidatorException e) {
+                log.error(
+                    "Certificate is revoked or path invalid for '{}' (reason: {})",
+                    x509Certs[0].getSubjectX500Principal(),
+                    e.getReason()
+                );
+                throw new SSLPeerUnverifiedException(e.getMessage(), e);
+            } catch (CertificateException e) {
+                log.error("Certificate revocation check failed for '{}'", x509Certs[0].getSubjectX500Principal(), e);
+                throw new SSLPeerUnverifiedException(e.getMessage(), e);
+            } catch (IOException e) {
+                log.warn("CRL/OCSP infrastructure unreachable (check CRL file path or OCSP/CRLDP network access): {}", e.getMessage());
+                throw new SSLPeerUnverifiedException(e.getMessage(), e);
+            } catch (GeneralSecurityException e) {
+                log.error("Certificate revocation check configuration error", e);
+                throw new SSLPeerUnverifiedException(e.getMessage(), e);
+            }
+        });
     }
 
     public static boolean containsBadHeader(final ThreadContext context, String prefix) {
         if (context != null) {
-            for (final Entry<String, String> header : context.getHeaders().entrySet()) {
-                if (header != null && header.getKey() != null && header.getKey().trim().toLowerCase().startsWith(prefix)) {
+            for (final String key : context.getHeaders().keySet()) {
+                if (key.trim().toLowerCase().startsWith(prefix)) {
                     return true;
                 }
             }
@@ -179,88 +197,102 @@ public class SSLRequestHelper {
         return false;
     }
 
-    private static boolean validate(X509Certificate[] x509Certs, final Settings settings, final Path configPath) {
+    static void validate(X509Certificate[] x509Certs, final Settings settings, final Path configPath) throws IOException,
+        GeneralSecurityException {
 
         final boolean validateCrl = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, false);
-
-        final boolean isTraceEnabled = log.isTraceEnabled();
-        if (isTraceEnabled) {
-            log.trace("validateCrl: {}", validateCrl);
-        }
+        log.trace("validateCrl: {}", validateCrl);
 
         if (!validateCrl) {
-            return true;
+            return;
         }
 
         final Environment env = new Environment(settings, configPath);
+        final Collection<? extends CRL> crls = loadCrls(settings, env);
+        final CertificateValidator validator = buildValidator(settings, env, crls);
+        configureValidator(validator, settings);
+        validator.validate(x509Certs);
+    }
 
-        try {
-
-            Collection<? extends CRL> crls = null;
-            final String crlFile = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE);
-
-            if (crlFile != null) {
-                final File crl = env.configDir().resolve(crlFile).toAbsolutePath().toFile();
-                try (FileInputStream crlin = new FileInputStream(crl)) {
-                    crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
-                }
-
-                if (isTraceEnabled) {
-                    log.trace("crls from file: {}", crls.size());
-                }
-            } else {
-                if (isTraceEnabled) {
-                    log.trace("no crl file configured");
-                }
-            }
-
-            final String truststore = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH);
-            CertificateValidator validator = null;
-
-            if (truststore != null) {
-                final String truststoreType = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, "JKS");
-                final String truststorePassword = SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings);
-                // final String truststoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, null);
-
-                final KeyStore ts = KeyStore.getInstance(truststoreType);
-                try (FileInputStream fin = new FileInputStream(new File(env.configDir().resolve(truststore).toAbsolutePath().toString()))) {
-                    ts.load(
-                        fin,
-                        (truststorePassword == null || truststorePassword.length() == 0) ? null : truststorePassword.toCharArray()
-                    );
-                }
-                validator = new CertificateValidator(ts, crls);
-            } else {
-                final File trustedCas = env.configDir()
-                    .resolve(settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, ""))
-                    .toAbsolutePath()
-                    .toFile();
-                try (FileInputStream trin = new FileInputStream(trustedCas)) {
-                    Collection<? extends Certificate> cert = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509")
-                        .generateCertificates(trin);
-                    validator = new CertificateValidator(cert.toArray(new X509Certificate[0]), crls);
-                }
-            }
-
-            validator.setEnableCRLDP(!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false));
-            validator.setEnableOCSP(!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false));
-            validator.setCheckOnlyEndEntities(
-                settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true)
-            );
-            validator.setPreferCrl(settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP, false));
-            Long dateTimestamp = settings.getAsLong(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, null);
-            if (dateTimestamp != null && dateTimestamp.longValue() < 0) {
-                dateTimestamp = null;
-            }
-            validator.setDate(dateTimestamp == null ? null : new Date(dateTimestamp.longValue()));
-            validator.validate(x509Certs);
-
-            return true;
-
-        } catch (Exception e) {
-            log.warn("Unable to validate CRL: ", ExceptionUtils.getRootCause(e));
+    static Collection<? extends CRL> loadCrls(final Settings settings, final Environment env) throws IOException, GeneralSecurityException {
+        final String crlFile = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE);
+        if (crlFile == null) {
+            log.trace("no crl file configured");
+            return null;
         }
 
-        return false;
+        final File crl = env.configDir().resolve(crlFile).toAbsolutePath().toFile();
+        try (FileInputStream crlin = new FileInputStream(crl)) {
+            final Collection<? extends CRL> crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
+            log.trace("crls from file: {}", crls.size());
+            return crls;
+        }
+    }
+
+    static CertificateValidator buildValidator(final Settings settings, final Environment env, final Collection<? extends CRL> crls)
+        throws IOException, GeneralSecurityException {
+        final String truststore = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH);
+        if (truststore != null) {
+            return buildValidatorFromTruststore(settings, env, crls, truststore);
+        } else {
+            return buildValidatorFromPem(settings, env, crls);
+        }
+    }
+
+    static CertificateValidator buildValidatorFromTruststore(
+        final Settings settings,
+        final Environment env,
+        final Collection<? extends CRL> crls,
+        final String truststore
+    ) throws IOException, GeneralSecurityException {
+        final String defaultStoreType = CryptoServicesRegistrar.isInApprovedOnlyMode() ? "BCFKS" : "JKS";
+        final String truststoreType = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, defaultStoreType);
+        final String truststorePassword = SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings);
+        final KeyStore ts = KeyStore.getInstance(truststoreType);
+        try (FileInputStream fin = new FileInputStream(env.configDir().resolve(truststore).toAbsolutePath().toString())) {
+            ts.load(fin, (truststorePassword == null || truststorePassword.isEmpty()) ? null : truststorePassword.toCharArray());
+        }
+        return new CertificateValidator(trustAnchorsFrom(ts), crls);
+    }
+
+    static CertificateValidator buildValidatorFromPem(final Settings settings, final Environment env, final Collection<? extends CRL> crls)
+        throws IOException, GeneralSecurityException {
+        final File trustedCas = env.configDir()
+            .resolve(settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, ""))
+            .toAbsolutePath()
+            .toFile();
+        try (FileInputStream trin = new FileInputStream(trustedCas)) {
+            final Collection<? extends Certificate> certs = CertificateFactory.getInstance("X.509").generateCertificates(trin);
+            final X509Certificate[] trustedCerts = certs.stream().map(X509Certificate.class::cast).toArray(X509Certificate[]::new);
+            return new CertificateValidator(trustAnchorsFrom(trustedCerts), crls);
+        }
+    }
+
+    static Set<TrustAnchor> trustAnchorsFrom(final KeyStore trustStore) throws GeneralSecurityException {
+        final Set<TrustAnchor> anchors = new HashSet<>();
+        for (Enumeration<String> aliases = trustStore.aliases(); aliases.hasMoreElements();) {
+            final String alias = aliases.nextElement();
+            if (trustStore.isCertificateEntry(alias)) {
+                anchors.add(new TrustAnchor((X509Certificate) trustStore.getCertificate(alias), null));
+            }
+        }
+        return anchors;
+    }
+
+    public static Set<TrustAnchor> trustAnchorsFrom(final X509Certificate... certs) {
+        return Arrays.stream(certs).map(cert -> new TrustAnchor(cert, null)).collect(Collectors.toSet());
+    }
+
+    static void configureValidator(final CertificateValidator validator, final Settings settings) {
+        validator.setEnableCRLDP(!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false));
+        validator.setEnableOCSP(!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false));
+        validator.setCheckOnlyEndEntities(settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true));
+        validator.setPreferCrl(settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP, false));
+
+        Long dateTimestamp = settings.getAsLong(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, null);
+        if (dateTimestamp != null && dateTimestamp < 0) {
+            dateTimestamp = null;
+        }
+        validator.setDate(dateTimestamp == null ? null : new Date(dateTimestamp));
     }
 }

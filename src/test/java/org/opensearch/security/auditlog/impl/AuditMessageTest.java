@@ -12,6 +12,7 @@
 package org.opensearch.security.auditlog.impl;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +39,13 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.impl.CType;
 
+import tools.jackson.databind.ObjectMapper;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.opensearch.security.auditlog.impl.AuditMessage.SPLIT_MESSAGE_IDENTIFIER;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -68,17 +74,21 @@ public class AuditMessageTest {
         "test-4"
     );
 
+    private final ClusterService clusterServiceMock = mock(ClusterService.class);
+    private final DiscoveryNode discoveryNodeMock = mock(DiscoveryNode.class);
+    private final ClusterName clusterNameMock = mock(ClusterName.class);
+    private final AuditConfig auditConfig = mock(AuditConfig.class);
+    private final AuditConfig.Filter auditFilterMock = mock(AuditConfig.Filter.class);
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     private AuditMessage message;
-    private AuditConfig auditConfig;
 
     @Before
     public void setUp() {
-        final ClusterService clusterServiceMock = mock(ClusterService.class);
-        when(clusterServiceMock.localNode()).thenReturn(mock(DiscoveryNode.class));
-        when(clusterServiceMock.getClusterName()).thenReturn(mock(ClusterName.class));
-        auditConfig = mock(AuditConfig.class);
-        final AuditConfig.Filter auditFilter = mock(AuditConfig.Filter.class);
-        when(auditConfig.getFilter()).thenReturn(auditFilter);
+        when(clusterServiceMock.localNode()).thenReturn(discoveryNodeMock);
+        when(clusterServiceMock.getClusterName()).thenReturn(clusterNameMock);
+        when(auditConfig.getFilter()).thenReturn(auditFilterMock);
         message = new AuditMessage(AuditCategory.AUTHENTICATED, clusterServiceMock, AuditLog.Origin.REST, AuditLog.Origin.REST);
     }
 
@@ -199,5 +209,66 @@ public class AuditMessageTest {
 
         message.addRestRequestInfo(request, auditConfig.getFilter());
         assertThat(message.getAsMap().get(AuditMessage.REQUEST_BODY), is("ERROR: Unable to generate request body"));
+    }
+
+    private AuditMessage dummyAuditMessage(final String[] indices, String[] resolvedIndices) {
+        final AuditMessage auditMessage = new AuditMessage(
+            AuditCategory.AUTHENTICATED,
+            clusterServiceMock,
+            AuditLog.Origin.REST,
+            AuditLog.Origin.REST
+        );
+
+        if (indices != null) {
+            auditMessage.addIndices(indices);
+        }
+        if (resolvedIndices != null) {
+            auditMessage.addResolvedIndices(resolvedIndices);
+        }
+        return auditMessage;
+    }
+
+    private String[] getTestIndices(final int indexNameLength, final int numberOfIndices) {
+        ArrayList<String> indices = new ArrayList<>();
+        for (int i = 0; i < numberOfIndices; i++) {
+            indices.add("a".repeat(indexNameLength));
+        }
+        return indices.toArray(new String[0]);
+    }
+
+    private static String getSplitMessageId(final String message) {
+        return objectMapper.readTree(message).get(SPLIT_MESSAGE_IDENTIFIER).asText();
+    }
+
+    @Test
+    public void testToJsonSplitIndices() {
+        // test standard case, should be split into 4 messages
+        AuditMessage auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 3));
+        List<String> splitMessages = auditMessage.toJsonSplitIndices(255);
+        assertThat(splitMessages.size(), is(4));
+        // all messages share the same ID
+        assertThat(splitMessages.stream().map(AuditMessageTest::getSplitMessageId).distinct().count(), is(1L));
+
+        // test when audit_trace_indices is not present, should be split into 3 messages
+        auditMessage = dummyAuditMessage(null, getTestIndices(255, 3));
+        splitMessages = auditMessage.toJsonSplitIndices(255);
+        assertThat(splitMessages.size(), is(3));
+        // all messages share the same ID
+        assertThat(splitMessages.stream().map(AuditMessageTest::getSplitMessageId).distinct().count(), is(1L));
+
+        // test when splitting isn't required, should return a single message
+        auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 2));
+        splitMessages = auditMessage.toJsonSplitIndices(700);
+        assertThat(splitMessages.size(), is(1));
+        // messages that aren't split don't get a split ID
+        assertThat(splitMessages.getFirst(), not(containsString(SPLIT_MESSAGE_IDENTIFIER)));
+
+        // test when there aren't enough indices to fill a whole message so some resolved indices are added too.
+        // Should be split into 2 messages. First with "*" and one resolved index, second with the remaining resolved indices
+        auditMessage = dummyAuditMessage(new String[] { "*" }, getTestIndices(255, 3));
+        splitMessages = auditMessage.toJsonSplitIndices(700);
+        assertThat(splitMessages.size(), is(2));
+        // all messages share the same ID
+        assertThat(splitMessages.stream().map(AuditMessageTest::getSplitMessageId).distinct().count(), is(1L));
     }
 }

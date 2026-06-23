@@ -172,10 +172,7 @@ public class LdapBackendTestNewStyleConfig {
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
             .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
@@ -224,10 +221,7 @@ public class LdapBackendTestNewStyleConfig {
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
             .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "SSLv3")
             .put("path.home", ".")
@@ -249,10 +243,7 @@ public class LdapBackendTestNewStyleConfig {
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
             .put("verify_hostnames", false)
             .putList("enabled_ssl_ciphers", "AAA")
             .put("path.home", ".")
@@ -274,10 +265,7 @@ public class LdapBackendTestNewStyleConfig {
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
             .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "TLSv1.2")
             .putList("enabled_ssl_ciphers", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA")
@@ -297,10 +285,7 @@ public class LdapBackendTestNewStyleConfig {
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
             .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
@@ -584,10 +569,7 @@ public class LdapBackendTestNewStyleConfig {
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
-            .put(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks")
-            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
             .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
@@ -741,6 +723,29 @@ public class LdapBackendTestNewStyleConfig {
         assertThat(user.getRoles().size(), is(3));
         MatcherAssert.assertThat(user.getRoles(), hasItem("nested3"));
         MatcherAssert.assertThat(user.getRoles(), hasItem("rolemo4"));
+    }
+
+    @Test
+    public void testLdapAuthorizationRolesearchDisabledWithLdapAuthContext() throws Exception {
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put("users.u1.search", "(uid={0})")
+            .put("users.u1.base", "ou=people,o=TEST")
+            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, false)
+            .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description")
+            .build();
+
+        AuthenticationContext context = ctx("spock", "spocksecret");
+        User user = new LDAPAuthenticationBackend(settings, null).authenticate(context);
+        user = new LDAPAuthorizationBackend(settings, null).addRoles(user, context);
+
+        Assert.assertNotNull(user);
+        assertThat(user.getName(), is("cn=Captain Spock,ou=people,o=TEST"));
+        assertThat(user.getRoles().size(), is(2));
+        Assert.assertTrue(user.getRoles().contains("dummyempty"));
+        Assert.assertTrue(user.getRoles().contains("rolemo4"));
     }
 
     @Test

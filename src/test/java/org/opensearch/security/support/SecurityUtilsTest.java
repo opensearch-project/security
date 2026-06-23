@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,7 +23,7 @@ import static org.opensearch.security.support.SecurityUtils.ENVBASE64_PATTERN;
 import static org.opensearch.security.support.SecurityUtils.ENVBC_PATTERN;
 import static org.opensearch.security.support.SecurityUtils.ENV_PATTERN;
 
-public class SecurityUtilsTest {
+public class SecurityUtilsTest extends LuceneTestCase {
 
     private final Collection<String> interestingEnvKeyNames = List.of(
         "=ExitCode",

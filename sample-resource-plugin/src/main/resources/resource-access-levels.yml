@@ -1,0 +1,39 @@
+resource_types:
+  sample-resource:
+      sample_read_only:
+        default: true
+        allowed_actions:
+          - "sampleresource:get"
+
+      sample_read_write:
+        allowed_actions:
+          - "sampleresource:*"
+
+      sample_full_access:
+        allowed_actions:
+          - "sampleresource:*"
+          - "cluster:admin/security/resource/share"
+  sample-resource-group:
+    sample_group_read_only:
+      default: true
+      allowed_actions:
+        # TODO: can sample-resource access levels be referenced here? i.e. sample_read_only
+        - "sampleresourcegroup:get"
+        # group read-only also grants read on child resources
+        - "sampleresource:get"
+        - "sampleresource:search"
+
+    sample_group_read_write:
+      allowed_actions:
+        - "sampleresourcegroup:*"
+        # group read-write also grants read/write on child resources
+        - "sampleresource:get"
+        - "sampleresource:search"
+        - "sampleresource:update"
+
+    sample_group_full_access:
+      allowed_actions:
+        - "sampleresourcegroup:*"
+        # group full-access grants full access on child resources
+        - "sampleresource:*"
+        - "cluster:admin/security/resource/share"

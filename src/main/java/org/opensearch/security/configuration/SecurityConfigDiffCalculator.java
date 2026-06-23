@@ -14,8 +14,6 @@ package org.opensearch.security.configuration;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,7 +21,9 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.SecurityConfigVersionDocument.HistoricSecurityConfig;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
-import com.flipkart.zjsonpatch.JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Utility class to compute differences between two versions of security configurations
@@ -34,7 +34,7 @@ import com.flipkart.zjsonpatch.JsonDiff;
 public class SecurityConfigDiffCalculator {
     private static final Logger LOGGER = LogManager.getLogger(SecurityConfigDiffCalculator.class);
 
-    private static final ObjectMapper objectMapper = DefaultObjectMapper.objectMapper;
+    private static final ObjectMapper objectMapper = DefaultObjectMapper.objectMapper();
 
     public static boolean hasSecurityConfigChanged(
         Map<String, HistoricSecurityConfig<?>> oldConfig,
@@ -49,7 +49,7 @@ public class SecurityConfigDiffCalculator {
             JsonNode oldNode = buildConfigDataNode(oldConfig);
             JsonNode newNode = buildConfigDataNode(newConfig);
 
-            JsonNode diff = JsonDiff.asJson(oldNode, newNode);
+            JsonNode diff = Jackson3JsonDiff.asJson(oldNode, newNode);
 
             if (diff.isEmpty()) {
                 LOGGER.info("No changes detected in security configuration.");

@@ -18,7 +18,7 @@ public class SearchResourceAction extends ActionType<SearchResponse> {
 
     public static final SearchResourceAction INSTANCE = new SearchResourceAction();
 
-    public static final String NAME = "cluster:admin/sample-resource-plugin/search";
+    public static final String NAME = "sampleresource:search";
 
     private SearchResourceAction() {
         super(NAME, SearchResponse::new);

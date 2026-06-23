@@ -16,6 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
@@ -85,7 +86,12 @@ public class ShareRestAction extends BaseRestHandler {
         builder.resourceType(resourceType);
 
         if (request.hasContent()) {
-            builder.parseContent(request.contentParser(), resourcePluginInfo);
+            try (XContentParser parser = request.contentParser()) {
+                builder.parseContent(parser, resourcePluginInfo);
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                return channel -> { channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, e.getMessage())); };
+            }
+
         }
 
         if (builder.resourceId == null || builder.resourceType == null) {

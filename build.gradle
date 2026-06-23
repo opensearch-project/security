@@ -11,12 +11,13 @@
 
 
 import com.diffplug.gradle.spotless.JavaExtension
+import org.opensearch.gradle.info.FipsBuildParams
 import org.opensearch.gradle.test.RestIntegTestTask
 import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.5.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.8.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -26,14 +27,7 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.2.0.0')
 
-        kafka_version  = '4.1.1'
-        open_saml_version = '5.1.6'
-        open_saml_shib_version = "9.1.4"
-        one_login_java_saml = '2.9.0'
-        jjwt_version = '0.13.0'
-        guava_version = '33.5.0-jre'
-        jaxb_version = '2.3.9'
-        spring_version = '7.0.3'
+        kafka_version = '4.3.0'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -45,11 +39,12 @@ buildscript {
 
     repositories {
         mavenLocal()
+        maven { url = "https://ci.opensearch.org/maven2/" }
         mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
-        maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
-        maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
+        maven { url = "https://plugins.gradle.org/m2/" }
+        maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+        maven { url = "https://artifacts.opensearch.org/snapshots/lucene/" }
+        maven { url = "https://build.shibboleth.net/nexus/content/groups/public" }
     }
 
     dependencies {
@@ -65,9 +60,9 @@ plugins {
     id 'com.diffplug.spotless' version '6.25.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.11.2"
-    id "org.gradle.test-retry" version "1.6.4"
+    id "org.gradle.test-retry" version "1.6.5"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.4.8"
+    id "com.github.spotbugs" version "6.5.5"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -166,72 +161,72 @@ filepermissions.enabled = false
 forbiddenPatterns.enabled = false
 testingConventions.enabled = false
 jarHell.enabled = true
-tasks.whenTaskAdded {task ->
-    if(task.name.contains("forbiddenApisIntegrationTest")) {
+tasks.whenTaskAdded { task ->
+    if (task.name.contains("forbiddenApisIntegrationTest")) {
         task.enabled = false
     }
 }
 
 def splitTestConfig = [
-    ciSecurityIntegrationTest: [
-        description: "Runs integration tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*Integ*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
+        ciSecurityIntegrationTest: [
+                description: "Runs integration tests from all classes.",
+                filters    : [
+                        includeTestsMatching: [
+                                "org.opensearch.security.*Integ*"
+                        ],
+                        excludeTestsMatching: [
+                                "org.opensearch.security.sanity.tests.*"
+                        ]
+                ]
+        ],
+        crossClusterTest         : [
+                description: "Runs cross-cluster tests.",
+                filters    : [
+                        includeTestsMatching: [
+                                "org.opensearch.security.ccstest.*"
+                        ]
+                ]
+        ],
+        dlicDlsflsTest           : [
+                description: "Runs Document- and Field-Level Security tests.",
+                filters    : [
+                        includeTestsMatching: [
+                                "org.opensearch.security.dlic.dlsfls.*"
+                        ]
+                ]
+        ],
+        dlicRestApiTest          : [
+                description: "Runs REST Management API tests.",
+                filters    : [
+                        includeTestsMatching: [
+                                "org.opensearch.security.dlic.rest.*"
+                        ]
+                ]
+        ],
+        indicesTest              : [
+                description: "Runs indices tests from all classes.",
+                filters    : [
+                        includeTestsMatching: [
+                                "org.opensearch.security.*indices*"
+                        ],
+                        excludeTestsMatching: [
+                                "org.opensearch.security.sanity.tests.*"
+                        ]
+                ]
+        ],
+        sslTest                  : [
+                description: "Runs most of the SSL tests.",
+                filters    : [
+                        includeTestsMatching: [
+                                "org.opensearch.security.ssl.*"
+                        ]
+                ]
         ]
-    ],
-    crossClusterTest: [
-        description: "Runs cross-cluster tests.",
-        filters: [
-            includeTestsMatching: [
-                    "org.opensearch.security.ccstest.*"
-            ]
-        ]
-    ],
-    dlicDlsflsTest: [
-        description: "Runs Document- and Field-Level Security tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.dlic.dlsfls.*"
-            ]
-        ]
-    ],
-    dlicRestApiTest: [
-        description: "Runs REST Management API tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.dlic.rest.*"
-            ]
-        ]
-    ],
-    indicesTest: [
-        description: "Runs indices tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*indices*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
-        ]
-    ],
-    sslTest: [
-        description: "Runs most of the SSL tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.ssl.*"
-            ]
-        ]
-    ]
 ] as ConfigObject
 
 List<String> taskNames = splitTestConfig.keySet() as List
 
-task listTasksAsJSON {
+tasks.register("listTasksAsJSON") {
     // We are using `doLast` to explicitly specify when we
     // want this action to be started. Without it the output
     // is not shown at all or can be mixed with other outputs.
@@ -240,23 +235,23 @@ task listTasksAsJSON {
     }
 }
 
-task copyExtraTestResources(dependsOn: testClasses) {
+tasks.register('copyExtraTestResources', Copy) {
+    dependsOn testClasses
 
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/test/src/test/resources'
+    into "build/testrun" // base dir for all `into` below
+
+    from("src/test/resources") {
+        into("test/src/test/resources")
     }
 
     taskNames.each { testName ->
-        copy {
-            from 'src/test/resources'
-            into "build/testrun/${testName}/src/test/resources"
+        from("src/test/resources") {
+            into("${testName}/src/test/resources")
         }
     }
 
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/citest/src/test/resources'
+    from("src/test/resources") {
+        into "citest/src/test/resources"
     }
 }
 
@@ -324,20 +319,20 @@ test {
     setCommonTestConfig(it)
 }
 
-task citest(type: Test) {
+tasks.register("citest", Test) {
     group = "Github Actions tests"
     description = "Runs the test suite on classes not covered by rest of the task in this group."
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
         splitTestConfig.each { entry ->
-            entry.value.filters.each{ test ->
+            entry.value.filters.each { test ->
                 if (test.key == "includeTestsMatching") {
-                    test.value.each{
+                    test.value.each {
                         excludeTestsMatching "${it}"
                     }
                 } else if (test.key == "includeTest") {
-                    test.value.each{
+                    test.value.each {
                         excludeTest "${it}"
                     }
                 }
@@ -347,14 +342,14 @@ task citest(type: Test) {
     setCommonTestConfig(it)
 }
 
-splitTestConfig.each{ testName, testCfg ->
-    task "${testName}"(type: Test) {
+splitTestConfig.each { testName, testCfg ->
+    tasks.register("${testName}", Test) {
         group = testCfg.group ?: "Github Actions tests"
         description = testCfg.description
         include testCfg.include ?: '**/*.class'
         filter {
-            testCfg.filters.each{ filter, values ->
-                values.each{ value ->
+            testCfg.filters.each { filter, values ->
+                values.each { value ->
                     "${filter}" "${value}"
                 }
             }
@@ -377,8 +372,8 @@ jacocoTestReport {
 }
 
 checkstyle {
-    toolVersion "11.0.0"
-    showViolations true
+    toolVersion = "11.0.0"
+    showViolations = true
     configDirectory.set(rootProject.file("checkstyle/"))
 }
 
@@ -391,14 +386,11 @@ tasks.withType(Checkstyle) {
 
 
 opensearchplugin {
-    name 'opensearch-security'
-    description 'Provide access control related features for OpenSearch'
-    classname 'org.opensearch.security.OpenSearchSecurityPlugin'
+    name = 'opensearch-security'
+    description = 'Provide access control related features for OpenSearch'
+    classname = 'org.opensearch.security.OpenSearchSecurityPlugin'
     extendedPlugins = ['rule-framework', 'workload-management;optional=true', 'transport-grpc;optional=true']
 }
-
-// This requires an additional Jar not published as part of build-tools
-loggerUsageCheck.enabled = false
 
 publishing {
     publications {
@@ -457,7 +449,7 @@ bundlePlugin {
 sourceSets {
     integrationTest {
         java {
-            srcDir file ('src/integrationTest/java')
+            srcDir file('src/integrationTest/java')
             compileClasspath += sourceSets.main.output
             runtimeClasspath += sourceSets.main.output
         }
@@ -465,7 +457,7 @@ sourceSets {
             srcDir file('src/integrationTest/resources')
         }
         processIntegrationTestResources {
-            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }
     }
 }
@@ -478,52 +470,65 @@ configurations {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.21.0'
-            force 'commons-logging:commons-logging:1.3.5'
+            force 'commons-codec:commons-codec:1.22.0'
+            force 'commons-logging:commons-logging:1.4.0'
             force 'org.slf4j:slf4j-api:1.7.36'
             force 'org.scala-lang:scala-library:2.13.18'
-            force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
+            force "tools.jackson:jackson-bom:${versions.jackson3}"
+            force "tools.jackson.core:jackson-core:${versions.jackson3}"
+            force "tools.jackson.datatype:jackson-datatype-jdk8:${versions.jackson3}"
+            force "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
+            // Keeping Jackson 2.x since Kafka clients and etc still need it
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+            force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
             force "io.netty:netty-buffer:${versions.netty}"
+            force "io.netty:netty-codec-base:${versions.netty}"
+            force "io.netty:netty-codec-http:${versions.netty}"
+            force "io.netty:netty-codec-http2:${versions.netty}"
+            force "io.netty:netty-codec-http3:${versions.netty}"
+            force "io.netty:netty-codec-native-quic:${versions.netty}"
+            force "io.netty:netty-codec-classes-quic:${versions.netty}"
             force "io.netty:netty-common:${versions.netty}"
             force "io.netty:netty-handler:${versions.netty}"
+            force "io.netty:netty-resolver:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.8"
-            force "com.google.guava:guava:${guava_version}"
+            force libs.google.guava
+            force libs.lz4.java
+            force libs.snappy.java
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
+            force "org.apache.logging.log4j:log4j-api:${versions.log4j}"
+            force "org.apache.logging.log4j:log4j-core:${versions.log4j}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.34.100"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.300"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.34.200"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.400"
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
             force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
-            force "org.codehaus.plexus:plexus-utils:3.6.0"
+            force "org.codehaus.plexus:plexus-utils:3.6.1"
 
             // For integrationTest
             force "org.apache.httpcomponents:httpclient:4.5.14"
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
-            force "org.checkerframework:checker-qual:3.53.0"
-            force "ch.qos.logback:logback-classic:1.5.26"
-            force "commons-io:commons-io:2.21.0"
-            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.8.3"
+            force "org.checkerframework:checker-qual:3.55.1"
+            force "ch.qos.logback:logback-classic:1.5.34"
+            force "commons-io:commons-io:2.22.0"
+            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.1"
             force "org.hamcrest:hamcrest:2.2"
-            force "org.mockito:mockito-core:5.21.0"
-            force "net.bytebuddy:byte-buddy:1.18.4"
-            force "org.ow2.asm:asm:9.9.1"
-            force "com.google.j2objc:j2objc-annotations:3.1"
+            force "org.mockito:mockito-core:5.23.0"
+            force "net.bytebuddy:byte-buddy:1.18.8"
+            force "org.ow2.asm:asm:${versions.asm}"
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
-
-            exclude group: "org.lz4", module: "lz4-java"
+            force "org.scala-lang:scala3-library_3:3.8.4"
         }
     }
 }
@@ -534,7 +539,7 @@ subprojects {
             testImplementation 'org.hamcrest:hamcrest:2.2'
             testImplementation 'junit:junit:4.13.2'
             testImplementation "org.opensearch:opensearch:${opensearch_version}"
-            testImplementation "org.mockito:mockito-core:5.21.0"
+            testImplementation "org.mockito:mockito-core:5.23.0"
         }
 
         afterEvaluate {
@@ -549,19 +554,20 @@ subprojects {
 allprojects {
     repositories {
         mavenLocal()
+        maven { url = "https://ci.opensearch.org/maven2/" }
         mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
-        maven { url "https://artifacts.opensearch.org/snapshots/lucene/" }
-        maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
-        maven { url "build.shibboleth.net/maven/releases"}
+        maven { url = "https://plugins.gradle.org/m2/" }
+        maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+        maven { url = "https://artifacts.opensearch.org/snapshots/lucene/" }
+        maven { url = "https://build.shibboleth.net/nexus/content/repositories/releases" }
+        maven { url = "build.shibboleth.net/maven/releases" }
     }
 
     afterEvaluate {
         if (project.configurations.findByName('integrationTestImplementation')) {
             dependencies {
                 integrationTestImplementation 'junit:junit:4.13.2'
-                integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}"){
+                integrationTestImplementation("org.opensearch.plugin:reindex-client:${opensearch_version}") {
                     exclude(group: 'org.slf4j', module: 'slf4j-api')
                 }
                 integrationTestImplementation "org.opensearch:protobufs:${versions.opensearchprotobufs}"
@@ -569,7 +575,7 @@ allprojects {
                 integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
                 integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-                integrationTestImplementation 'commons-io:commons-io:2.21.0'
+                integrationTestImplementation 'commons-io:commons-io:2.22.0'
                 integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
                 integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
                 integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
@@ -586,35 +592,36 @@ allprojects {
                 integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
                 integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
                 integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-                integrationTestImplementation "org.mockito:mockito-core:5.21.0"
-                integrationTestImplementation "org.passay:passay:1.6.6"
+                integrationTestImplementation "org.mockito:mockito-core:5.23.0"
                 integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
                 integrationTestImplementation "com.password4j:password4j:${versions.password4j}"
-                integrationTestImplementation "com.google.guava:guava:${guava_version}"
+                integrationTestImplementation libs.google.guava
                 integrationTestImplementation "org.apache.commons:commons-lang3:${versions.commonslang}"
-                integrationTestImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+                integrationTestImplementation "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
                 integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
                 integrationTestImplementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
-                integrationTestImplementation('com.flipkart.zjsonpatch:zjsonpatch:0.4.16'){
-                    exclude(group:'com.fasterxml.jackson.core')
+                integrationTestImplementation('io.github.vishwakarma:zjsonpatch:0.6.2') {
+                    exclude(group: 'com.fasterxml.jackson.core')
                     exclude(group: 'org.apache.commons', module: 'commons-collections4')
                 }
                 integrationTestImplementation 'org.slf4j:slf4j-api:2.0.12'
                 integrationTestImplementation 'com.selectivem.collections:special-collections-complete:1.4.0'
 
-                integrationTestImplementation ('com.jayway.jsonpath:json-path:2.10.0') {
+                integrationTestImplementation('com.jayway.jsonpath:json-path:2.10.0') {
                     exclude(group: 'net.minidev', module: 'json-smart')
                 }
+                integrationTestImplementation "io.projectreactor.netty:reactor-netty-core:${versions.reactor_netty}"
+                integrationTestImplementation "io.projectreactor.netty:reactor-netty-http:${versions.reactor_netty}"
             }
         }
     }
 }
 
 //add new task that runs integration tests
-task integrationTest(type: Test) {
+tasks.register("integrationTest", Test) {
     filter {
         excludeTestsMatching 'org.opensearch.sample.*Resource*'
     }
@@ -674,17 +681,24 @@ dependencies {
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
-    implementation "com.google.guava:guava:${guava_version}"
+    implementation libs.google.guava
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.11.0'
-    implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
-    implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
-    implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
+    // When building with crypto.standard=FIPS-140-3 (set in gradle.properties), bcFips jars are provided by OpenSearch
+    if (FipsBuildParams.isInFipsMode()) {
+        compileOnly "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+        compileOnly "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+        compileOnly "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
+    } else {
+        implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+        implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+        implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
+    }
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'com.nimbusds:nimbus-jose-jwt:10.7'
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.9.1'
     implementation 'com.rfksystems:blake2b:2.0.0'
     implementation "com.password4j:password4j:${versions.password4j}"
-    implementation "com.github.seancfoley:ipaddress:5.5.1"
+    implementation "com.github.seancfoley:ipaddress:5.6.2"
     compileOnly "org.opensearch.plugin:workload-management-wlm-spi:${opensearch_version}"
     compileOnly "org.opensearch.plugin:autotagging-commons-spi:${opensearch_version}"
     compileOnly "org.opensearch.plugin:transport-grpc-spi:${opensearch_version}"
@@ -694,15 +708,13 @@ dependencies {
     implementation 'com.selectivem.collections:special-collections-complete:1.4.0'
 
     //JWT
-    implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
-    implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
-    implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
-    // JSON patch
-    implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.16'
-    implementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
+    implementation libs.bundles.jjwt
+    implementation "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
-    //Password generation
-    implementation 'org.passay:passay:1.6.6'
+    // JSON patch
+    implementation 'io.github.vishwakarma:zjsonpatch:0.6.2'
+    implementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
@@ -710,44 +722,45 @@ dependencies {
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'commons-codec:commons-codec:1.21.0'
+    runtimeOnly 'commons-codec:commons-codec:1.22.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.3.0'
     compileOnly "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
-    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.4'
-    runtimeOnly 'org.ow2.asm:asm:9.9.1'
+    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.5'
+    runtimeOnly "org.ow2.asm:asm:${versions.asm}"
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.22.4'
 
     //Onelogin OpenSaml
-    implementation "com.onelogin:java-saml:${one_login_java_saml}"
-    implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
+    implementation libs.bundles.onelogin.saml
     //OpenSAML
-    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.38"
+    runtimeOnly "io.dropwizard.metrics:metrics-core:4.2.39"
     implementation project(path: ':libs:opensaml', configuration: 'shadow')
 
     implementation "com.nulab-inc:zxcvbn:1.9.0"
 
-    runtimeOnly 'com.google.guava:failureaccess:1.0.3'
-    runtimeOnly 'org.apache.commons:commons-text:1.15.0'
-    runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
-    runtimeOnly 'com.google.j2objc:j2objc-annotations:3.1'
+    implementation 'org.apache.commons:commons-text:1.15.0'
+
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
-    runtimeOnly 'at.yawk.lz4:lz4-java:1.10.3'
+
+    runtimeOnly libs.bundles.archivers
+
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
+
+    runtimeOnly libs.bundles.jaxb
+
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.8'
-    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.2'
-    runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
+    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.3.0'
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.53.0'
-    runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
+    testRuntimeOnly 'com.google.guava:failureaccess:1.0.3'
+    testRuntimeOnly 'org.checkerframework:checker-qual:3.55.1'
 
 
-    testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
+    testImplementation libs.opensaml.messaging.impl
+
     testImplementation "jakarta.servlet:jakarta.servlet-api:6.1.0"
     implementation "org.apache.commons:commons-lang3:${versions.commonslang}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
@@ -780,10 +793,8 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
     testImplementation 'commons-validator:commons-validator:1.10.1'
-    testImplementation "org.springframework.kafka:spring-kafka-test:4.0.2"
-    testImplementation "org.springframework:spring-beans:${spring_version}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.4'
     testImplementation('org.awaitility:awaitility:4.3.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
@@ -792,28 +803,26 @@ dependencies {
     testImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
-    // Kafka test execution
-    testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.4'
-    testRuntimeOnly ("org.springframework:spring-core:${spring_version}") {
-        exclude(group:'org.springframework', module: 'spring-jcl' )
+
+    testImplementation libs.springframework.beans
+
+    testRuntimeOnly(libs.springframework.core) {
+        exclude(group: 'org.springframework', module: 'spring-jcl')
     }
+
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.18'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.6'
-    testRuntimeOnly('org.apache.zookeeper:zookeeper:3.9.4') {
-        exclude(group:'ch.qos.logback', module: 'logback-classic' )
-        exclude(group:'ch.qos.logback', module: 'logback-core' )
-    }
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 
     implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+    implementation "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.33.0') {
+    implementation('com.google.googlejavaformat:google-java-format:1.35.0') {
         exclude group: 'com.google.guava'
     }
 }
@@ -827,7 +836,8 @@ tasks.register('testsJar', Jar) {
     from(sourceSets.test.output)
 }
 
-task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
+tasks.register("bundleSecurityAdminStandalone", Zip) {
+    dependsOn(jar)
     archiveClassifier = 'securityadmin-standalone'
     from(configurations.runtimeClasspath) {
         into 'deps/'
@@ -843,7 +853,8 @@ task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
     }
 }
 
-task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
+tasks.register("bundleSecurityAdminStandaloneTarGz", Tar) {
+    dependsOn(jar)
     archiveClassifier = 'securityadmin-standalone'
     archiveExtension = 'tar.gz'
     compression = Compression.GZIP
@@ -881,7 +892,7 @@ publishing {
     }
 }
 
-task integTestRemote(type: RestIntegTestTask) {
+tasks.register("integTestRemote", RestIntegTestTask) {
 
     systemProperty "tests.security.manager", "false"
     systemProperty "user", System.getProperty("user")
@@ -913,10 +924,10 @@ afterEvaluate {
             into opensearchplugin.name
         }
 
-        user 'root'
-        permissionGroup 'root'
-        fileMode 0644
-        dirMode 0755
+        user = "root"
+        permissionGroup = "root"
+        fileMode = 0644
+        dirMode = 0755
 
         requires('opensearch', versions.opensearch, EQUAL)
         packager = 'Amazon'
@@ -924,10 +935,10 @@ afterEvaluate {
         os = 'LINUX'
         prefix '/usr'
 
-        license 'ASL-2.0'
-        maintainer 'OpenSearch <opensearch@amazon.com>'
-        url 'https://opensearch.org/downloads.html'
-        summary '''
+        license = 'ASL-2.0'
+        maintainer = 'OpenSearch <opensearch@amazon.com>'
+        url = 'https://opensearch.org/downloads.html'
+        summary = '''
          Security plugin for OpenSearch.
          Reference documentation can be found at https://opensearch.org/docs/latest/.
     '''.stripIndent().replace('\n', ' ').trim()
@@ -937,11 +948,11 @@ afterEvaluate {
         arch = 'NOARCH'
         dependsOn 'assemble'
         finalizedBy 'renameRpm'
-        task renameRpm(type: Copy) {
-            from("$buildDir/distributions")
-            into("$buildDir/distributions")
+        tasks.register("renameRpm", Copy) {
+            from("$layout.buildDirectory/distributions")
+            into("$layout.buildDirectory/distributions")
             rename "$archiveFileName", "${packageName}-${version}.rpm"
-            doLast { delete file("$buildDir/distributions/$archiveFileName") }
+            doLast { delete file("$layout.buildDirectory/distributions/$archiveFileName") }
         }
     }
 
@@ -949,33 +960,33 @@ afterEvaluate {
         arch = 'all'
         dependsOn 'assemble'
         finalizedBy 'renameDeb'
-        task renameDeb(type: Copy) {
-            from("$buildDir/distributions")
-            into("$buildDir/distributions")
+        tasks.register("renameDeb", Copy) {
+            from("$layout.buildDirectory/distributions")
+            into("$layout.buildDirectory/distributions")
             rename "$archiveFileName", "${packageName}-${version}.deb"
-            doLast { delete file("$buildDir/distributions/$archiveFileName") }
+            doLast { delete file("$layout.buildDirectory/distributions/$archiveFileName") }
         }
     }
 
-    task buildPackages(type: GradleBuild) {
+    tasks.register("buildPackages", GradleBuild) {
         tasks = ['build', 'buildRpm', 'buildDeb']
     }
 }
 
 // updateVersion: Task to auto increment to the next development iteration
-task updateVersion {
+tasks.register("updateVersion") {
     onlyIf { System.getProperty('newVersion') }
     doLast {
         ext.newVersion = System.getProperty('newVersion')
         println "Setting version to ${newVersion}."
         // String tokenization to support -SNAPSHOT
-        ant.replaceregexp(match: opensearch_version.tokenize('-')[0], replace: newVersion.tokenize('-')[0], flags:'g', byline:true) {
+        ant.replaceregexp(match: opensearch_version.tokenize('-')[0], replace: newVersion.tokenize('-')[0], flags: 'g', byline: true) {
             fileset(dir: projectDir) {
                 // Include the required files that needs to be updated with new Version
                 include(name: "bwc-test/build.gradle")
                 include(name: ".github/workflows/plugin_install.yml")
             }
         }
-        ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
+        ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }

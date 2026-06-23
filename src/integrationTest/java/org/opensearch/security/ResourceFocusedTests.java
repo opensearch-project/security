@@ -13,6 +13,9 @@ package org.opensearch.security;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -31,13 +34,21 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.http.HttpTransportSettings;
 import org.opensearch.test.framework.AsyncActions;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.ReactorHttpClient;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
+
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import reactor.netty.http.HttpProtocol;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -64,11 +75,13 @@ public class ResourceFocusedTests {
             )
             .on("*")
     );
+    private static Map<String, Object> NODE_SETTINGS = Map.of(HttpTransportSettings.SETTING_HTTP_HTTP3_ENABLED.getKey(), true);
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER, LIMITED_USER)
+        .nodeSettings(NODE_SETTINGS)
         .anonymousAuth(false)
         .doNotFailOnForbidden(true)
         .build();
@@ -86,10 +99,11 @@ public class ResourceFocusedTests {
         // Tweaks:
         final RequestBodySize size = RequestBodySize.XLarge;
         final String requestPath = "/*/_search";
-        final int parrallelism = 5;
+        final int parallelism = 5;
         final int totalNumberOfRequests = 100;
 
-        runResourceTest(size, requestPath, parrallelism, totalNumberOfRequests);
+        runResourceTest(size, requestPath, parallelism, totalNumberOfRequests);
+        runResourceTestWithGenericClient(size, requestPath, parallelism, totalNumberOfRequests);
     }
 
     @Test
@@ -97,10 +111,11 @@ public class ResourceFocusedTests {
         // Tweaks:
         final RequestBodySize size = RequestBodySize.Medium;
         final String requestPath = "/*/_search";
-        final int parrallelism = 20;
+        final int parallelism = 20;
         final int totalNumberOfRequests = 10_000;
 
-        runResourceTest(size, requestPath, parrallelism, totalNumberOfRequests);
+        runResourceTest(size, requestPath, parallelism, totalNumberOfRequests);
+        runResourceTestWithGenericClient(size, requestPath, parallelism, totalNumberOfRequests);
     }
 
     @Test
@@ -108,16 +123,17 @@ public class ResourceFocusedTests {
         // Tweaks:
         final RequestBodySize size = RequestBodySize.Small;
         final String requestPath = "/*/_search";
-        final int parrallelism = 100;
+        final int parallelism = 100;
         final int totalNumberOfRequests = 15_000;
 
-        runResourceTest(size, requestPath, parrallelism, totalNumberOfRequests);
+        runResourceTest(size, requestPath, parallelism, totalNumberOfRequests);
+        runResourceTestWithGenericClient(size, requestPath, parallelism, totalNumberOfRequests);
     }
 
     private void runResourceTest(
         final RequestBodySize size,
         final String requestPath,
-        final int parrallelism,
+        final int parallelism,
         final int totalNumberOfRequests
     ) {
         final byte[] compressedRequestBody = createCompressedRequestBody(size);
@@ -127,11 +143,37 @@ public class ResourceFocusedTests {
                 post.setEntity(new ByteArrayEntity(compressedRequestBody, ContentType.APPLICATION_JSON));
                 TestRestClient.HttpResponse response = client.executeRequest(post);
                 return response.getStatusCode();
-            }, parrallelism, totalNumberOfRequests);
+            }, parallelism, totalNumberOfRequests);
 
             AsyncActions.getAll(requests, 2, TimeUnit.MINUTES).forEach((responseCode) -> {
                 assertThat(responseCode, equalTo(HttpStatus.SC_UNAUTHORIZED));
             });
+        }
+    }
+
+    private void runResourceTestWithGenericClient(
+        final RequestBodySize size,
+        final String requestPath,
+        final int parallelism,
+        final int totalNumberOfRequests
+    ) {
+        final byte[] compressedRequestBody = createCompressedRequestBody(size);
+        try (
+            final ReactorHttpClient client = cluster.getGenericClient(
+                HttpProtocol.HTTP3,
+                true,
+                Settings.builder().loadFromMap(NODE_SETTINGS).build()
+            )
+        ) {
+            List<Tuple<String, byte[]>> requestUris = new ArrayList<>();
+            for (int i = 0; i < totalNumberOfRequests; i++) {
+                requestUris.add(Tuple.tuple(requestPath, compressedRequestBody));
+            }
+
+            final Collection<FullHttpResponse> responses = client.post(requestUris, parallelism);
+            responses.stream()
+                .map(FullHttpResponse::status)
+                .forEach(responseCode -> assertThat(responseCode, equalTo(HttpResponseStatus.UNAUTHORIZED)));
         }
     }
 

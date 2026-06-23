@@ -1,5 +1,7 @@
 name: Dependabot PR actions
-on: pull_request_target
+
+on:
+  pull_request_target:
 
 jobs:
   dependabot:
@@ -7,35 +9,41 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
+      issues: write
     if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' }}
+
     steps:
       - name: GitHub App token
         id: github_app_token
-        uses: tibdex/github-app-token@v2.1.0
+        uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
           installation_id: 22958780
 
+      - name: Fetch Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3
+        with:
+          github-token: ${{ steps.github_app_token.outputs.token }}
+
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           token: ${{ steps.github_app_token.outputs.token }}
           ref: ${{ github.head_ref }}
 
-      # See please https://docs.gradle.org/8.10/userguide/upgrading_version_8.html#minimum_daemon_jvm_version
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
           java-version: 21
           distribution: temurin
 
       - name: Update Gradle SHAs
-        run: |
-          ./gradlew updateSHAs
+        run: ./gradlew updateSHAs
 
-      - name: Commit the changes
-        uses: stefanzweifel/git-auto-commit-action@v7
+      - name: Commit SHA changes
+        uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7
         with:
           commit_message: Updating SHAs
           branch: ${{ github.head_ref }}
@@ -44,11 +52,10 @@ jobs:
           commit_options: '--signoff'
 
       - name: Run spotless
-        run: |
-          ./gradlew spotlessApply
+        run: ./gradlew spotlessApply
 
-      - name: Commit the changes
-        uses: stefanzweifel/git-auto-commit-action@v7
+      - name: Commit spotless changes
+        uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7
         with:
           commit_message: Spotless formatting
           branch: ${{ github.head_ref }}
@@ -56,17 +63,7 @@ jobs:
           commit_user_email: support@github.com
           commit_options: '--signoff'
 
-      - name: Update the changelog
-        uses: dangoslen/dependabot-changelog-helper@v4
-        with:
-          version: 'Unreleased 3.x'
-          sectionHeader: "Maintenance"
-
-      - name: Commit the changes
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: "Update changelog"
-          branch: ${{ github.head_ref }}
-          commit_user_name: dependabot[bot]
-          commit_user_email: support@github.com
-          commit_options: '--signoff'
+      - name: Add skip-changelog label
+        run: gh pr edit "${{ github.event.pull_request.html_url }}" --add-label "skip-changelog"
+        env:
+          GITHUB_TOKEN: ${{ steps.github_app_token.outputs.token }}

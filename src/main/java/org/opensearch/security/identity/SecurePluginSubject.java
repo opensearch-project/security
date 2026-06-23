@@ -22,18 +22,27 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 public class SecurePluginSubject implements PluginSubject {
+    private static final String PLUGIN_PRINCIPAL_PREFIX = "plugin:";
+
     private final ThreadPool threadPool;
     private final NamedPrincipal pluginPrincipal;
     private final User pluginUser;
 
-    public static String getPluginPrincipalName(String canonicalClassName) {
-        return "plugin:" + canonicalClassName;
+    public static String getPluginPrincipalName(Plugin plugin) {
+        return PLUGIN_PRINCIPAL_PREFIX + plugin.getClass().getCanonicalName();
+    }
+
+    public static String getPluginClassNameFromPrincipal(String name) {
+        if (name.startsWith(PLUGIN_PRINCIPAL_PREFIX)) {
+            return name.substring(PLUGIN_PRINCIPAL_PREFIX.length());
+        }
+        return null;
     }
 
     public SecurePluginSubject(ThreadPool threadPool, Settings settings, Plugin plugin) {
         super();
         this.threadPool = threadPool;
-        String principal = getPluginPrincipalName(plugin.getClass().getCanonicalName());
+        String principal = getPluginPrincipalName(plugin);
         this.pluginPrincipal = new NamedPrincipal(principal);
         // Convention for plugin username. Prefixed with 'plugin:'. ':' is forbidden from usernames, so this
         // guarantees that a user with this username cannot be created by other means.

@@ -14,8 +14,6 @@ package org.opensearch.security.auditlog;
 import java.util.Arrays;
 import java.util.Collection;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -25,6 +23,8 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.auditlog.config.AuditConfig.DEPRECATED_KEYS;
 
@@ -69,8 +69,8 @@ public abstract class AbstractAuditlogUnitTest extends SingleClusterTest {
         Settings.Builder builder = Settings.builder();
 
         builder.put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"));
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("auditlog/node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("auditlog/truststore").path());
 
         return builder.put(additionalSettings).build();
     }
@@ -79,7 +79,7 @@ public abstract class AbstractAuditlogUnitTest extends SingleClusterTest {
         final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
-        rh.keystore = "auditlog/kirk-keystore.jks";
+        rh.keystore = "auditlog/kirk-keystore";
         rh.executePutRequest("sf", null);
         rh.executePutRequest("sf/public/0?refresh", "{\"number\" : \"NCC-1701-D\"}");
         rh.executePutRequest("sf/public/0?refresh", "{\"some\" : \"value\"}");
@@ -106,10 +106,10 @@ public abstract class AbstractAuditlogUnitTest extends SingleClusterTest {
             throw new IllegalArgumentException("json is either null or empty");
         }
 
-        JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
+        JsonNode node = DefaultObjectMapper.objectMapper().readTree(json);
 
         if (node.get("audit_request_body") != null) {
-            DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
+            DefaultObjectMapper.objectMapper().readTree(node.get("audit_request_body").asText());
         }
     }
 
@@ -127,7 +127,7 @@ public abstract class AbstractAuditlogUnitTest extends SingleClusterTest {
         final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
-        rh.keystore = "auditlog/kirk-keystore.jks";
+        rh.keystore = "auditlog/kirk-keystore";
         rh.executePutRequest("_opendistro/_security/api/audit/config", payload);
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;

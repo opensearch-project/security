@@ -59,7 +59,8 @@ public class ResourceSharingMultiTenancyTests {
             TestRestClient.HttpResponse sharingInfoResponse = client.get(
                 SECURITY_SHARE_ENDPOINT + "?resource_id=" + resourceId + "&resource_type=" + RESOURCE_TYPE
             );
-            assertThat(sharingInfoResponse.getBody(), containsString("\"created_by\":{\"user\":\"admin\",\"tenant\":\"customtenant\"}"));
+            assertThat(sharingInfoResponse.getBody(), containsString("\"tenant\":\"customtenant\""));
+            assertThat(sharingInfoResponse.getBody(), containsString("\"created_by\":{\"user\":\"admin\"}"));
         }
     }
 }

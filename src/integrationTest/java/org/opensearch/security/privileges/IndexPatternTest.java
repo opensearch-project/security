@@ -13,18 +13,12 @@ package org.opensearch.security.privileges;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
+import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
@@ -232,19 +226,10 @@ public class IndexPatternTest {
     }
 
     private static PrivilegesEvaluationContext ctx() {
-        IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(new ThreadContext(Settings.EMPTY));
-        IndexResolverReplacer indexResolverReplacer = new IndexResolverReplacer(indexNameExpressionResolver, () -> CLUSTER_STATE, null);
-        User user = new User("test_user").withAttributes(ImmutableMap.of("attrs.a11", "a11", "attrs.year", "year"));
-        return new PrivilegesEvaluationContext(
-            user,
-            ImmutableSet.of(),
-            "indices:action/test",
-            null,
-            null,
-            indexResolverReplacer,
-            indexNameExpressionResolver,
-            () -> CLUSTER_STATE,
-            ActionPrivileges.EMPTY
-        );
+        return MockPrivilegeEvaluationContextBuilder.ctx()
+            .action("indices:action/test")
+            .attr("attrs.a11", "a11")
+            .attr("attrs.year", "year")
+            .get();
     }
 }

@@ -16,6 +16,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.security.user.User;
 
 import static org.junit.Assert.assertEquals;
@@ -25,9 +26,11 @@ import static org.junit.Assert.assertTrue;
 public class UserAttributesUnitTest {
     @Test
     public void testNeedsAttributeSubstitution() {
-        assertTrue(UserAttributes.needsAttributeSubstitution("{\"foo\": \"${user.name}}\""));
+        assertTrue(UserAttributes.needsAttributeSubstitution("""
+            {"foo": "${user.name}}"}"""));
         assertTrue(UserAttributes.needsAttributeSubstitution("${attr1.proxy.foo}"));
-        assertFalse(UserAttributes.needsAttributeSubstitution("{\"foo\": \"bar\"}"));
+        assertFalse(UserAttributes.needsAttributeSubstitution("""
+            {"foo": "bar"}"""));
     }
 
     @Test
@@ -40,6 +43,7 @@ public class UserAttributesUnitTest {
             ImmutableSet.copyOf(List.of("mapped_role1")),
             null,
             null,
+            ActionRequestMetadata.empty(),
             null,
             null,
             null,
@@ -52,6 +56,7 @@ public class UserAttributesUnitTest {
                 "name": "${user.name}",
                 "name2": "${user_name}",
                 "bar": "${attr.proxy.attr1}",
+                "baz": "${attr.proxy.notexists:-${attr.proxy.attr1}}",
                 "roles": [${user.roles}],
                 "roles2": [${user_roles}],
                 "security_roles": [${user.securityRoles}],
@@ -63,6 +68,7 @@ public class UserAttributesUnitTest {
                 "name": "test_user",
                 "name2": "test_user",
                 "bar": "value1",
+                "baz": "value1",
                 "roles": ["role2"],
                 "roles2": ["role2"],
                 "security_roles": ["role1","mapped_role1"],
@@ -70,5 +76,35 @@ public class UserAttributesUnitTest {
             }
             """;
         assertEquals(expectedString, UserAttributes.replaceProperties(stringWithPlaceholders, ctx));
+    }
+
+    @Test
+    public void testFindUnresolvedAttributes_noTokens() {
+        assertTrue(UserAttributes.findUnresolvedAttributes("""
+            {"term": {"dept": "value"}}""").isEmpty());
+    }
+
+    @Test
+    public void testFindUnresolvedAttributes_singleToken() {
+        assertEquals(List.of("attr.jwt.array"), UserAttributes.findUnresolvedAttributes("""
+            {"terms": {"arr": [${attr.jwt.array}]}}"""));
+    }
+
+    @Test
+    public void testFindUnresolvedAttributes_multipleTokens() {
+        assertEquals(List.of("attr.jwt.dept", "attr.proxy.region"), UserAttributes.findUnresolvedAttributes("""
+            {
+                "bool": {
+                    "must": [
+                        {"term": {"dept": "${attr.jwt.dept}"}},
+                        {"term": {"region": "${attr.proxy.region}"}}
+                    ]
+                }
+            }"""));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testFindUnresolvedAttributes_returnsUnmodifiableList() {
+        UserAttributes.findUnresolvedAttributes("${attr.foo}").add("extra");
     }
 }

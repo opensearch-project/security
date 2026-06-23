@@ -33,18 +33,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
 
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
+import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.indices.SystemIndexRegistry;
+import org.opensearch.indices.UnrestrictedSystemIndexDescriptor;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RoleMapper;
-import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.WildcardMatcher;
@@ -156,6 +158,12 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             return false;
         }
 
+        // Don't block unrestricted system indices - they are explicitly marked to allow search/get.
+        Set<SystemIndexDescriptor> matchingDescriptors = SystemIndexRegistry.matchesSystemIndexDescriptor(Set.of(index.getName()));
+        if (matchingDescriptors.stream().anyMatch(UnrestrictedSystemIndexDescriptor.class::isInstance)) {
+            return false;
+        }
+
         if (systemIndexPermissionEnabled) {
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if (HeaderHelper.isInternalOrPluginRequest(threadContext)) {
@@ -166,7 +174,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
             String permission = ConfigConstants.SYSTEM_INDEX_PERMISSION;
             PrivilegesEvaluationContext context = this.privilegesConfiguration.privilegesEvaluator().createContext(user, permission);
             PrivilegesEvaluatorResponse result = context.getActionPrivileges()
-                .hasExplicitIndexPrivilege(context, Set.of(permission), IndexResolverReplacer.Resolved.ofIndex(index.getName()));
+                .hasExplicitIndexPrivilege(context, Set.of(permission), ResolvedIndices.of(index.getName()));
 
             return !result.isAllowed();
         }

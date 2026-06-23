@@ -23,10 +23,10 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.security.support.PemKeyReader;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SECURE_SUFFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_PASSWORD;
-import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_KEY_PASSWORD;
@@ -126,9 +126,12 @@ public class SslCertificatesLoader {
         final char[] keyStorePassword,
         final char[] keyPassword
     ) {
+        final Path path = resolvePath(environment.settings().get(sslConfigSuffix + KEYSTORE_FILEPATH), environment);
+        final String explicitType = environment.settings().get(sslConfigSuffix + KEYSTORE_TYPE);
+        final String resolvedType = PemKeyReader.extractStoreType(path.toString(), explicitType);
         return new KeyStoreConfiguration.JdkKeyStoreConfiguration(
-            resolvePath(environment.settings().get(sslConfigSuffix + KEYSTORE_FILEPATH), environment),
-            environment.settings().get(sslConfigSuffix + KEYSTORE_TYPE, DEFAULT_STORE_TYPE),
+            path,
+            resolvedType,
             settings.get(KEYSTORE_ALIAS, null),
             keyStorePassword,
             keyPassword
@@ -140,9 +143,12 @@ public class SslCertificatesLoader {
         final Environment environment,
         final char[] trustStorePassword
     ) {
+        final Path path = resolvePath(environment.settings().get(sslConfigSuffix + TRUSTSTORE_FILEPATH), environment);
+        final String explicitType = environment.settings().get(sslConfigSuffix + TRUSTSTORE_TYPE);
+        final String resolvedType = PemKeyReader.extractStoreType(path.toString(), explicitType);
         return new TrustStoreConfiguration.JdkTrustStoreConfiguration(
-            resolvePath(environment.settings().get(sslConfigSuffix + TRUSTSTORE_FILEPATH), environment),
-            environment.settings().get(sslConfigSuffix + TRUSTSTORE_TYPE, DEFAULT_STORE_TYPE),
+            path,
+            resolvedType,
             settings.get(TRUSTSTORE_ALIAS, null),
             trustStorePassword
         );

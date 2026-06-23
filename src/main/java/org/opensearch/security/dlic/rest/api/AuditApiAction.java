@@ -19,8 +19,6 @@ import java.util.Set;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -34,9 +32,14 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.conflictMessage;
@@ -163,7 +166,9 @@ public class AuditApiAction extends AbstractApiAction {
             AuditCategory.GRANTED_PRIVILEGES,
             AuditCategory.MISSING_PRIVILEGES,
             AuditCategory.INDEX_EVENT,
-            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT
+            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT,
+            AuditCategory.CLUSTER_SETTINGS_CHANGED,
+            AuditCategory.INDEX_SETTINGS_CHANGED
         );
 
         protected AuditRequestContentValidator(ValidationContext validationContext) {
@@ -211,17 +216,16 @@ public class AuditApiAction extends AbstractApiAction {
 
     private static List<String> readReadonlyFieldsFromFile() {
         try {
-            final var readonlyFields = DefaultObjectMapper.YAML_MAPPER.readValue(
-                AuditApiAction.class.getResourceAsStream(STATIC_RESOURCE),
-                new TypeReference<Map<String, List<String>>>() {
-                }
-            ).get(READONLY_FIELD);
+            final var readonlyFields = DefaultObjectMapper.yamlMapper()
+                .readValue(AuditApiAction.class.getResourceAsStream(STATIC_RESOURCE), new TypeReference<Map<String, List<String>>>() {
+                })
+                .get(READONLY_FIELD);
             if (!AuditConfig.FIELD_PATHS.containsAll(readonlyFields)) {
                 throw new StaticResourceException("Invalid read-only field paths provided in static resource file " + STATIC_RESOURCE);
             }
             return readonlyFields;
 
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new StaticResourceException("Unable to load audit static resource file", e);
         }
     }
@@ -289,8 +293,8 @@ public class AuditApiAction extends AbstractApiAction {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
@@ -325,8 +329,15 @@ public class AuditApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                        return ImmutableMap.of("enabled", DataType.BOOLEAN, "audit", DataType.OBJECT, "compliance", DataType.OBJECT);
+                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeys() {
+                        return ImmutableMap.of(
+                            "enabled",
+                            FieldConfiguration.of(DataType.BOOLEAN),
+                            "audit",
+                            FieldConfiguration.of(DataType.OBJECT),
+                            "compliance",
+                            FieldConfiguration.of(DataType.OBJECT)
+                        );
                     }
                 });
             }

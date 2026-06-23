@@ -27,6 +27,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
@@ -96,8 +97,8 @@ public class RolesMappingApiAction extends AbstractApiAction {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
@@ -150,17 +151,17 @@ public class RolesMappingApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                    public Map<String, FieldConfiguration> allowedKeys() {
+                        final ImmutableMap.Builder<String, FieldConfiguration> allowedKeys = ImmutableMap.builder();
                         if (isCurrentUserAdmin()) {
-                            allowedKeys.put("hidden", DataType.BOOLEAN);
-                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                            allowedKeys.put("hidden", FieldConfiguration.of(DataType.BOOLEAN));
+                            allowedKeys.put("reserved", FieldConfiguration.of(DataType.BOOLEAN));
                         }
-                        return allowedKeys.put("backend_roles", DataType.ARRAY)
-                            .put("and_backend_roles", DataType.ARRAY)
-                            .put("hosts", DataType.ARRAY)
-                            .put("users", DataType.ARRAY)
-                            .put("description", DataType.STRING)
+                        return allowedKeys.put("backend_roles", FieldConfiguration.of(DataType.ARRAY))
+                            .put("and_backend_roles", FieldConfiguration.of(DataType.ARRAY))
+                            .put("hosts", FieldConfiguration.of(DataType.ARRAY))
+                            .put("users", FieldConfiguration.of(DataType.ARRAY))
+                            .put("description", FieldConfiguration.of(DataType.STRING))
                             .build();
                     }
                 });

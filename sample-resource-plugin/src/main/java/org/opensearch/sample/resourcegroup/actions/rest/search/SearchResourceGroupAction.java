@@ -18,7 +18,7 @@ public class SearchResourceGroupAction extends ActionType<SearchResponse> {
 
     public static final SearchResourceGroupAction INSTANCE = new SearchResourceGroupAction();
 
-    public static final String NAME = "cluster:admin/sample-resource-plugin/group/search";
+    public static final String NAME = "sampleresourcegroup:search";
 
     private SearchResourceGroupAction() {
         super(NAME, SearchResponse::new);

@@ -26,6 +26,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.data.TestIndex;
@@ -40,11 +41,9 @@ import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserInde
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.limitedToNone;
 import static org.opensearch.test.framework.matcher.RestIndexMatchers.OnUserIndexMatcher.unlimitedIncludingOpenSearchSecurityIndex;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isInternalServerError;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
-/**
- * TODO requests on non cm node
- */
 @RunWith(Parameterized.class)
 public class SnapshotAuthorizationIntTests {
     static final TestIndex index_a1 = TestIndex.name("index_ar1").documentCount(10).seed(1).build();
@@ -187,7 +186,7 @@ public class SnapshotAuthorizationIntTests {
     );
 
     static LocalCluster.Builder clusterBuilder() {
-        return new LocalCluster.Builder().singleNode()
+        return new LocalCluster.Builder().clusterManager(ClusterManager.DEFAULT)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(USERS)//
             .indices(index_a1, index_a2, index_a3, index_b1, index_b2, index_b3)//
@@ -330,6 +329,22 @@ public class SnapshotAuthorizationIntTests {
         } finally {
             delete("_snapshot/test_repository/all_index_snapshot");
             delete(index_awx1, index_awx2, index_bwx1, index_bwx2);
+        }
+    }
+
+    @Test
+    public void restore_nonExistingSnapshot() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+
+            TestRestClient.HttpResponse httpResponse = restClient.post(
+                "_snapshot/test_repository/non_existing_snapshot/_restore?wait_for_completion=true"
+            );
+
+            if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isInternalServerError("/error/reason", "snapshot does not exist"));
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
         }
     }
 

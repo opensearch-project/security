@@ -5,15 +5,13 @@ apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
 
 buildscript {
-    ext {
-        open_saml_version = '5.1.6'
-        open_saml_shib_version = "9.2.0"
-    }
-
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+        maven { url = "https://plugins.gradle.org/m2/" }
+        maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+        maven { url = "https://artifacts.opensearch.org/snapshots/lucene/" }
+        maven { url = "https://build.shibboleth.net/nexus/content/groups/public" }
     }
 
     dependencies {
@@ -21,54 +19,34 @@ buildscript {
     }
 }
 
-repositories {
-    maven { url "build.shibboleth.net/maven/releases"}
-}
-
 configurations.all {
     resolutionStrategy {
         force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
-        force "org.bouncycastle:bcpkix-jdk18on:1.83"
-        force "org.bouncycastle:bcprov-jdk18on:1.83"
+        force "org.bouncycastle:bcpkix-jdk18on:1.84"
+        force "org.bouncycastle:bcprov-jdk18on:1.84"
         force "org.apache.commons:commons-lang3:${versions.commonslang}"
+        force "tools.jackson.core:jackson-core:${versions.jackson3}"
     }
 }
 
-task sourcesJar(type: Jar) {
+tasks.register("sourcesJar", Jar) {
     archiveClassifier.set 'sources'
     from sourceSets.main.allJava
 }
 
 dependencies {
-    implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
 
-    implementation "net.shibboleth:shib-support:${open_saml_shib_version}"
-    implementation "net.shibboleth:shib-security:${open_saml_shib_version}"
-    implementation "net.shibboleth:shib-networking:${open_saml_shib_version}"
-    implementation "org.opensaml:opensaml-core-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-core-impl:${open_saml_version}"
-
-
-    implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
-
-    implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
-    implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
-        exclude(group: 'org.apache.velocity', module: 'velocity')
+    implementation(libs.bundles.opensaml) {
+        exclude(group: "org.apache.velocity", module: "velocity")
     }
-    implementation "org.opensaml:opensaml-messaging-api:${open_saml_version}"
-    implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
-
-    runtimeOnly "org.opensaml:opensaml-profile-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
-    runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
+    runtimeOnly libs.bundles.opensaml.runtime
 
     runtimeOnly "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
     runtimeOnly "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
 }
 
 tasks.shadowJar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     mergeServiceFiles()
     exclude 'com/**'
     exclude 'org/apache/**'
@@ -81,5 +59,6 @@ tasks.shadowJar {
     exclude 'META-INF/maven/commons-io/commons-io/**'
     exclude 'META-INF/maven/org.apache.commons/commons-lang3/**'
     exclude 'META-INF/versions/**/org/bouncycastle/**'
+    exclude 'META-INF/versions/**/com/fasterxml/**'
     exclude 'META-INF/services/org.opensaml.security.crypto.ec.NamedCurve'
 }

@@ -305,7 +305,7 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     }
 
     KeyStore keyStore(final String type) throws Exception {
-        final var keyStore = KeyStore.getInstance(isNull(type) ? KeyStore.getDefaultType() : type);
+        final var keyStore = KeyStore.getInstance(isNull(type) ? DEFAULT_STORE_TYPE : type);
         keyStore.load(null, null);
         return keyStore;
     }

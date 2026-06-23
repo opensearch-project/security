@@ -25,8 +25,6 @@ import com.google.common.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
@@ -36,6 +34,8 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
+
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT;
@@ -54,7 +54,9 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CON
  *     "enable_transport" : true,
  *     "disabled_transport_categories" : [
  *       "GRANTED_PRIVILEGES",
- *       "AUTHENTICATED"
+ *       "AUTHENTICATED",
+ *       "CLUSTER_SETTINGS_CHANGED",
+ *       "INDEX_SETTINGS_CHANGED"
  *     ],
  *     "resolve_bulk_requests" : false,
  *     "log_request_body" : true,
@@ -95,7 +97,7 @@ public class AuditConfig {
     private final boolean auditLogEnabled;
     @JsonProperty("audit")
     private final Filter filter;
-
+    @JsonProperty("compliance")
     private final ComplianceConfig compliance;
 
     public boolean isEnabled() {
@@ -224,7 +226,7 @@ public class AuditConfig {
 
         @JsonCreator
         @VisibleForTesting
-        public static Filter from(Map<String, Object> properties) throws JsonProcessingException {
+        public static Filter from(Map<String, Object> properties) {
             if (!FIELDS.containsAll(properties.keySet())) {
                 throw new UnrecognizedPropertyException(
                     null,
@@ -246,19 +248,20 @@ public class AuditConfig {
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
                 )
             );
-            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(
-                getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS)
-            );
+            final List<String> rawIgnoredUsers = getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS);
+            final Set<String> ignoredAuditUsers = rawIgnoredUsers.size() == 1 && "NONE".equalsIgnoreCase(rawIgnoredUsers.get(0))
+                ? Collections.emptySet()
+                : ImmutableSet.copyOf(rawIgnoredUsers);
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(
                 getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList())
             );
@@ -299,14 +302,14 @@ public class AuditConfig {
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_REST_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
                 )
             );
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);

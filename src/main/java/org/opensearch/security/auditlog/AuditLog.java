@@ -60,6 +60,9 @@ public interface AuditLog extends Closeable {
     // index event requests
     void logIndexEvent(String privilege, TransportRequest request, Task task);
 
+    // settings change events
+    void logSettingsChange(String action, TransportRequest request, Task task);
+
     // spoof
     void logBadHeaders(TransportRequest request, String action, Task task);
 
@@ -76,6 +79,11 @@ public interface AuditLog extends Closeable {
     void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
 
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult);
+
+    // API token events
+    void logApiTokenCreated(String tokenName, String createdBy);
+
+    void logApiTokenRevoked(String tokenId, String revokedBy);
 
     // compliance config
     ComplianceConfig getComplianceConfig();

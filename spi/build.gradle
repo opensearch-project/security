@@ -12,7 +12,7 @@ plugins {
 repositories {
     mavenLocal()
     mavenCentral()
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+    maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
 }
 
 dependencies {
@@ -28,12 +28,12 @@ shadowJar {
     archiveClassifier.set(null)
 }
 
-task sourcesJar(type: Jar) {
+tasks.register("sourcesJar", Jar) {
     archiveClassifier.set 'sources'
     from sourceSets.main.allJava
 }
 
-task javadocJar(type: Jar) {
+tasks.register("javadocJar", Jar) {
     archiveClassifier.set 'javadoc'
     from tasks.javadoc
 }
@@ -45,7 +45,7 @@ jar {
 publishing {
     publications {
         shadow(MavenPublication) { publication ->
-            project.shadow.component(publication)
+            from components.shadow
             artifact sourcesJar
             artifact javadocJar
             pom {

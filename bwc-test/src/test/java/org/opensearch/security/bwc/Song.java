@@ -13,10 +13,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.opensearch.common.Randomness;
+
+import tools.jackson.databind.ObjectMapper;
 
 public class Song {
 
@@ -104,7 +103,7 @@ public class Song {
         return Map.of(FIELD_ARTIST, artist, FIELD_TITLE, title, FIELD_LYRICS, lyrics, FIELD_STARS, stars, FIELD_GENRE, genre);
     }
 
-    public String asJson() throws JsonProcessingException {
+    public String asJson() {
         return new ObjectMapper().writeValueAsString(this.asMap());
     }
 

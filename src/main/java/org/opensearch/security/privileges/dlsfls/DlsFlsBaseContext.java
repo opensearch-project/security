@@ -46,9 +46,21 @@ public class DlsFlsBaseContext {
             return null;
         }
 
+        if (user.isApiTokenRequest()) {
+            // API token permissions are currently limited to action/index permissions and cannot express DLS, FLS, or
+            // field masking rules. Without this branch, the role-based DLS/FLS layer sees no mapped roles for token
+            // users and applies a match-none restriction after the token-specific privilege evaluator has allowed the
+            // request. TODO: replace this with token-aware DLS/FLS/FM restrictions if those are added to API tokens.
+            return null;
+        }
+
         PrivilegesEvaluationContext ctx = this.privilegesConfiguration.privilegesEvaluator().createContext(user, null);
         threadContext.putTransient("tmp_dls_fls_ctx", ctx);
         return ctx;
+    }
+
+    public DlsFlsProcessedConfig config() {
+        return this.privilegesConfiguration.dlsFlsProcessedConfig();
     }
 
     public boolean isDlsDoneOnFilterLevel() {

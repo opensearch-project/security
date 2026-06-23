@@ -63,7 +63,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         c.putCEntry("some_role_with_reserved_mapping", allClusterPermissions);
         c.putCEntry("some_role_with_hidden_mapping", allClusterPermissions);
 
-        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var objectMapper = DefaultObjectMapper.objectMapper();
         final var config = objectMapper.createObjectNode();
         config.set("_meta", objectMapper.createObjectNode().put("type", CType.ROLESMAPPING.toLCString()).put("config_version", 2));
         config.set("kibana_read_only", objectMapper.createObjectNode());

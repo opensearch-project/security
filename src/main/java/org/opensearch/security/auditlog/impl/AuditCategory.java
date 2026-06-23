@@ -30,10 +30,16 @@ public enum AuditCategory {
     COMPLIANCE_DOC_WRITE,
     COMPLIANCE_EXTERNAL_CONFIG,
     COMPLIANCE_INTERNAL_CONFIG_READ,
-    COMPLIANCE_INTERNAL_CONFIG_WRITE;
+    COMPLIANCE_INTERNAL_CONFIG_WRITE,
+    CLUSTER_SETTINGS_CHANGED,
+    INDEX_SETTINGS_CHANGED,
+    API_TOKEN_WRITE;
 
     public static Set<AuditCategory> parse(final Collection<String> categories) {
         if (categories.isEmpty()) return Collections.emptySet();
+        if (categories.size() == 1 && "NONE".equalsIgnoreCase(categories.iterator().next())) {
+            return Collections.emptySet();
+        }
 
         return categories.stream().map(String::toUpperCase).map(AuditCategory::valueOf).collect(ImmutableSet.toImmutableSet());
     }

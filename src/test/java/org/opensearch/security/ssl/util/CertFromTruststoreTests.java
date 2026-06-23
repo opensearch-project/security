@@ -29,11 +29,8 @@ public class CertFromTruststoreTests {
     @Test
     public void testLoadSameCertForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
         IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        var ts = FileHelper.resolveStore("ssl/extended_key_usage/truststore");
+        KeystoreProps props = new KeystoreProps(ts.path().toString(), ts.type(), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca");
 
@@ -43,11 +40,8 @@ public class CertFromTruststoreTests {
 
     @Test
     public void testLoadSameCertWithoutAlias() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        var ts = FileHelper.resolveStore("ssl/extended_key_usage/truststore");
+        KeystoreProps props = new KeystoreProps(ts.path().toString(), ts.type(), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, null);
 
@@ -56,11 +50,8 @@ public class CertFromTruststoreTests {
 
     public void testLoadDifferentCertsForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
         IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        var ts = FileHelper.resolveStore("ssl/extended_key_usage/truststore");
+        KeystoreProps props = new KeystoreProps(ts.path().toString(), ts.type(), "changeit");
 
         CertFromTruststore cert = new CertFromTruststore(props, "root-ca", "root-ca");
 

@@ -56,7 +56,8 @@ public class TenantPrivileges {
     public static final TenantPrivileges EMPTY = new TenantPrivileges(
         SecurityDynamicConfiguration.empty(CType.ROLES),
         SecurityDynamicConfiguration.empty(CType.TENANTS),
-        FlattenedActionGroups.EMPTY
+        FlattenedActionGroups.EMPTY,
+        true
     );
 
     private static final List<ActionType> READ = ImmutableList.of(ActionType.READ);
@@ -81,11 +82,20 @@ public class TenantPrivileges {
      */
     private final ImmutableMap<String, ImmutableMap<ActionType, ImmutableList<String>>> rolesToActionTypeToDynamicTenantPattern;
 
+    /**
+     * If true, users with the "kibana_user" role have read/write access to the "global_tenant" tenant,
+     * if they do not have any other explicit access to that tenant. This is only used in the legacy privilege
+     * evaluation logic.
+     */
+    private final boolean implicitGlobalTenantReadWriteAccess;
+
     public TenantPrivileges(
         SecurityDynamicConfiguration<RoleV7> roles,
         SecurityDynamicConfiguration<TenantV7> definedTenants,
-        FlattenedActionGroups actionGroups
+        FlattenedActionGroups actionGroups,
+        boolean implicitGlobalTenantReadWriteAccess
     ) {
+        this.implicitGlobalTenantReadWriteAccess = implicitGlobalTenantReadWriteAccess;
         this.allTenantNames = ImmutableSet.copyOf(definedTenants.getCEntries().keySet());
 
         Map<String, RoleV7> roleEntries = roles.getCEntries();
@@ -192,19 +202,21 @@ public class TenantPrivileges {
             }
         }
 
-        // The following code block exists only for legacy reasons; it carries over a weird logic from ConfigModelV7:
-        // https://github.com/opensearch-project/security/blob/344673a455de956f6a8f3217e61d0636b46a3527/src/main/java/org/opensearch/security/securityconf/ConfigModelV7.java#L230-L232
-        // This gives users r/w access to the global tenant if they do not have explicitly configured access to it.
-        // As this is surprising and undocumented behavior, it should be removed; possibly, in the next major release
-        // of OpenSearch; see https://github.com/opensearch-project/security/issues/5356
-        if ("global_tenant".equals(tenant) && context.getMappedRoles().contains("kibana_user")) {
-            if (actionTypeToRoles == null) {
-                return true;
-            }
+        if (this.implicitGlobalTenantReadWriteAccess) {
+            // The following code block exists only for legacy reasons; it carries over a weird logic from ConfigModelV7:
+            // https://github.com/opensearch-project/security/blob/344673a455de956f6a8f3217e61d0636b46a3527/src/main/java/org/opensearch/security/securityconf/ConfigModelV7.java#L230-L232
+            // This gives users r/w access to the global tenant if they do not have explicitly configured access to it.
+            // As this is surprising and undocumented behavior, it should be removed; possibly, in the next major release
+            // of OpenSearch; see https://github.com/opensearch-project/security/issues/5356
+            if ("global_tenant".equals(tenant) && context.getMappedRoles().contains("kibana_user")) {
+                if (actionTypeToRoles == null) {
+                    return true;
+                }
 
-            ImmutableCompactSubSet<String> readRoles = actionTypeToRoles.get(ActionType.READ);
-            if (readRoles == null || !readRoles.containsAny(context.getMappedRoles())) {
-                return true;
+                ImmutableCompactSubSet<String> readRoles = actionTypeToRoles.get(ActionType.READ);
+                if (readRoles == null || !readRoles.containsAny(context.getMappedRoles())) {
+                    return true;
+                }
             }
         }
 

@@ -104,6 +104,12 @@ public class User implements Serializable, CustomAttributesAware {
     private volatile transient String serializedBase64;
 
     /**
+     * The type of authenticator that authenticated this user (e.g., "basic", "obo", "apitoken").
+     * Transient — not serialized, only used for in-process authorization decisions.
+     */
+    private transient String authenticatedBy;
+
+    /**
      * Create a new authenticated user without roles and attributes
      *
      * @param name The username (must not be null or empty)
@@ -313,6 +319,31 @@ public class User implements Serializable, CustomAttributesAware {
      */
     public boolean isPluginUser() {
         return name != null && name.startsWith("plugin:");
+    }
+
+    /**
+     * @return true if the request is from an API token, otherwise false
+     */
+    public boolean isApiTokenRequest() {
+        return name != null && name.startsWith(org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX);
+    }
+
+    /**
+     * If this user is a plugin user, returns the plugin Java class name. Otherwise, returns null.
+     */
+    public String getPluginName() {
+        if (isPluginUser()) {
+            return name.substring("plugin:".length());
+        }
+        return null;
+    }
+
+    public String getAuthenticatedBy() {
+        return authenticatedBy;
+    }
+
+    public void setAuthenticatedBy(String authenticatedBy) {
+        this.authenticatedBy = authenticatedBy;
     }
 
     /**

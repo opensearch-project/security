@@ -11,10 +11,11 @@
 package org.opensearch.security.privileges.dlsfls;
 
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Assert;
 import org.junit.Test;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -312,7 +313,7 @@ public class FlsDocumentFilterTest {
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
             FieldPrivileges.FlsRule.ALLOW_ALL,
-            FieldMasking.FieldMaskingRule.of(FieldMasking.Config.DEFAULT, "b"),
+            FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.DEFAULT, "b"),
             ImmutableSet.of()
         );
 
@@ -343,7 +344,7 @@ public class FlsDocumentFilterTest {
         byte[] result = FlsDocumentFilter.filter(
             sourceDocument.getBytes(UTF_8),
             FieldPrivileges.FlsRule.ALLOW_ALL,
-            FieldMasking.FieldMaskingRule.of(FieldMasking.Config.DEFAULT, "b.b1"),
+            FieldMasking.FieldMaskingRule.of(FieldMaskingTestHelper.DEFAULT, "b.b1"),
             ImmutableSet.of()
         );
 

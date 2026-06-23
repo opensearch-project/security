@@ -45,9 +45,9 @@ ext {
 buildscript {
     repositories {
         mavenLocal()
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+        maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url = "https://plugins.gradle.org/m2/" }
     }
 
     dependencies {
@@ -57,15 +57,15 @@ buildscript {
 
 repositories {
     mavenLocal()
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+    maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
+    maven { url = "https://plugins.gradle.org/m2/" }
 }
 
 configurations.all {
     resolutionStrategy {
         force "org.hamcrest:hamcrest:2.2"
-        force "org.mockito:mockito-core:5.21.0"
+        force "org.mockito:mockito-core:5.23.0"
     }
 }
 
@@ -74,12 +74,11 @@ dependencies {
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
-    testImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+    testImplementation "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
     testImplementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
 
 }
 
-loggerUsageCheck.enabled = false
 testingConventions.enabled = false
 validateNebulaPom.enabled = false
 
@@ -91,12 +90,12 @@ String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
 String projectVersion = nextVersion
 
-String previousOpenSearch  = extractVersion(previousVersion) + "-SNAPSHOT";
-String nextOpenSearch  = extractVersion(nextVersion) + "-SNAPSHOT";
+String previousOpenSearch = extractVersion(previousVersion) + "-SNAPSHOT";
+String nextOpenSearch = extractVersion(nextVersion) + "-SNAPSHOT";
 
 // Extracts the OpenSearch version from a plugin version string, 2.4.0.0 -> 2.4.0.
 def String extractVersion(versionStr) {
-    def versionMatcher =  versionStr =~ /(.+?)(\.\d+)(-(alpha|beta|rc)\d+)?$/
+    def versionMatcher = versionStr =~ /(.+?)(\.\d+)(-(alpha|beta|rc)\d+)?$/
     versionMatcher.find()
     if (versionMatcher.group(3) != null) { /* there is a qualifier */
         return versionMatcher.group(1) + versionMatcher.group(3)
@@ -105,7 +104,7 @@ def String extractVersion(versionStr) {
     }
 }
 
-2.times {i ->
+2.times { i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
@@ -117,7 +116,7 @@ def String extractVersion(versionStr) {
                     return new RegularFile() {
                         @Override
                         File getAsFile() {
-                            return fileTree(bwcFilePath  + bwcVersion).getSingleFile()
+                            return fileTree(bwcFilePath + bwcVersion).getSingleFile()
                         }
                     }
                 }
@@ -160,13 +159,13 @@ def String extractVersion(versionStr) {
 }
 
 List<Provider<RegularFile>> plugins = [
-        provider(new Callable<RegularFile>(){
+        provider(new Callable<RegularFile>() {
             @Override
             RegularFile call() throws Exception {
                 return new RegularFile() {
                     @Override
                     File getAsFile() {
-                        return fileTree(bwcFilePath  + projectVersion).getSingleFile()
+                        return fileTree(bwcFilePath + projectVersion).getSingleFile()
                     }
                 }
             }
@@ -174,8 +173,8 @@ List<Provider<RegularFile>> plugins = [
 ]
 
 // Creates a test cluster with 3 nodes of the old version.
-2.times {i ->
-    task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
+2.times { i ->
+    tasks.register("${baseName}#oldVersionClusterTask$i", StandaloneRestIntegTestTask) {
         useCluster testClusters."${baseName}$i"
         systemProperty 'tests.rest.bwcsuite', 'old_cluster'
         systemProperty 'tests.rest.bwcsuite_round', 'old'
@@ -188,7 +187,7 @@ List<Provider<RegularFile>> plugins = [
 // Upgrades one node of the old cluster to new OpenSearch version with upgraded plugin version
 // This results in a mixed cluster with 2 nodes on the old version and 1 upgraded node.
 // This is also used as a one third upgraded cluster for a rolling upgrade.
-task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
+tasks.register("${baseName}#mixedClusterTask", StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#oldVersionClusterTask0"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -204,7 +203,7 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
 // Upgrades the second node to new OpenSearch version with upgraded plugin version after the first node is upgraded.
 // This results in a mixed cluster with 1 node on the old version and 2 upgraded nodes.
 // This is used for rolling upgrade.
-task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
+tasks.register("${baseName}#twoThirdsUpgradedClusterTask", StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#mixedClusterTask"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -220,7 +219,7 @@ task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTas
 // Upgrades the third node to new OpenSearch version with upgraded plugin version after the second node is upgraded.
 // This results in a fully upgraded cluster.
 // This is used for rolling upgrade.
-task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
+tasks.register("${baseName}#rollingUpgradeClusterTask", StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -249,7 +248,7 @@ tasks.register("${baseName}#fullRestartClusterTask", StandaloneRestIntegTestTask
 }
 
 // A bwc test suite which runs all the bwc tasks combined.
-task bwcTestSuite(type: StandaloneRestIntegTestTask) {
+tasks.register("bwcTestSuite", StandaloneRestIntegTestTask) {
     exclude '**/**' // Do not run any tests as part of this aggregate task
     dependsOn tasks.named("${baseName}#mixedClusterTask")
     dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")

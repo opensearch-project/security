@@ -103,7 +103,7 @@ public class AuditConfigMigrater {
             );
 
             // write audit.yml.example
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(auditOutput), result);
+            DefaultObjectMapper.yamlMapper().writeValue(new File(auditOutput), result);
 
             // remove all deprecated values opensearch.yml
             System.out.println("Looking for deprecated keys in " + source);

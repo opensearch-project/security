@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -25,7 +24,6 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -35,7 +33,6 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
-import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.KeyUtils;
 
@@ -44,15 +41,9 @@ import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.security.WeakKeyException;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.util.AuthTokenUtils.isAccessToRestrictedEndpoints;
-
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private static final int MINIMUM_SIGNING_KEY_BIT_LENGTH = 512;
-    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
-    private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -74,7 +65,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return builder.build();
         });
         this.clusterName = clusterName;
-        this.encryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
+        this.encryptionUtil = encryptionKey != null ? new EncryptionDecryptionUtil(encryptionKey) : null;
     }
 
     private JwtParserBuilder initParserBuilder(final String signingKey) {
@@ -98,11 +89,21 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {
-        Object er = claims.get("er");
-        Object dr = claims.get("dr");
+        Object er = claims.get("encrypted_roles");
+        if (er == null) {
+            er = claims.get("er"); // backward compatibility
+        }
+        Object dr = claims.get("roles");
+        if (dr == null) {
+            dr = claims.get("dr"); // backward compatibility
+        }
         String rolesClaim = "";
 
         if (er != null) {
+            if (encryptionUtil == null) {
+                log.error("OBO token contains encrypted roles ('er') but no encryption_key is configured");
+                return List.of();
+            }
             rolesClaim = encryptionUtil.decrypt(er.toString());
         } else if (dr != null) {
             rolesClaim = dr.toString();
@@ -119,7 +120,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private String[] extractBackendRolesFromClaims(Claims claims) {
-        Object backendRolesObject = claims.get("br");
+        Object backendRolesObject = claims.get("backend_roles");
         String[] backendRoles;
 
         if (backendRolesObject == null) {
@@ -148,10 +149,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
         String jwtToken = extractJwtFromHeader(request);
         if (jwtToken == null) {
-            return null;
-        }
-
-        if (!isRequestAllowed(request)) {
             return null;
         }
 
@@ -237,17 +234,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         if (log.isDebugEnabled()) {
             log.debug(message, args);
         }
-    }
-
-    public Boolean isRequestAllowed(final SecurityRequest request) {
-        Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
-        final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (isAccessToRestrictedEndpoints(request, suffix)) {
-            final OpenSearchException exception = ExceptionUtils.invalidUsageOfOBOTokenException();
-            log.error(exception.toString());
-            return false;
-        }
-        return true;
     }
 
     @Override

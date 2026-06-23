@@ -13,7 +13,9 @@ package org.opensearch.security.auditlog.config;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -45,7 +47,13 @@ public class AuditConfigFilterTest {
     public void testDefault() {
         // arrange
         final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
-        final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
+        final EnumSet<AuditCategory> defaultDisabledRestCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
+        final EnumSet<AuditCategory> defaultDisabledTransportCategories = EnumSet.of(
+            AUTHENTICATED,
+            GRANTED_PRIVILEGES,
+            AuditCategory.CLUSTER_SETTINGS_CHANGED,
+            AuditCategory.INDEX_SETTINGS_CHANGED
+        );
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(Settings.EMPTY);
         // assert
@@ -58,8 +66,8 @@ public class AuditConfigFilterTest {
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditRequestsMatcher());
         assertThat(auditConfigFilter.getIgnoredAuditUsersMatcher(), is(defaultIgnoredUserMatcher));
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredCustomHeadersMatcher());
-        assertThat(defaultDisabledCategories, is(auditConfigFilter.getDisabledRestCategories()));
-        assertThat(defaultDisabledCategories, is(auditConfigFilter.getDisabledTransportCategories()));
+        assertThat(defaultDisabledRestCategories, is(auditConfigFilter.getDisabledRestCategories()));
+        assertThat(defaultDisabledTransportCategories, is(auditConfigFilter.getDisabledTransportCategories()));
     }
 
     @Test
@@ -113,6 +121,21 @@ public class AuditConfigFilterTest {
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
         // assert
+        assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
+        assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
+    }
+
+    @Test
+    public void testNoneViaMap() throws Exception {
+        // "NONE" sentinel should clear disabled categories and ignored users when set via the REST/Map path
+        final Map<String, Object> properties = new HashMap<>();
+        properties.put(FilterEntries.IGNORE_USERS.getKey(), List.of("NONE"));
+        properties.put(FilterEntries.DISABLE_REST_CATEGORIES.getKey(), List.of("None"));
+        properties.put(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(), List.of("none"));
+
+        final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(properties);
+
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditUsersMatcher());
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
@@ -188,7 +211,11 @@ public class AuditConfigFilterTest {
     public void fromSettingParseAuditCategory() {
         final FilterEntries entry = FilterEntries.DISABLE_REST_CATEGORIES;
         final Function<Settings, Set<AuditCategory>> parse = (settings) -> AuditCategory.parse(
-            AuditConfig.Filter.fromSettingStringSet(settings, entry, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT)
+            AuditConfig.Filter.fromSettingStringSet(
+                settings,
+                entry,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
+            )
         );
 
         final Settings noValues = Settings.builder().build();

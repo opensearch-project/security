@@ -51,6 +51,8 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
                     request.type(),
                     request.getAdd(),
                     request.getRevoke(),
+                    request.isGeneralAccessPresent(),
+                    request.getGeneralAccess(),
                     sharingInfoListener
                 );
                 break;

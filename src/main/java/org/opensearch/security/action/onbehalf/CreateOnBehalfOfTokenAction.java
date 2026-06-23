@@ -29,6 +29,8 @@ import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.transport.client.node.NodeClient;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -38,7 +40,10 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(new NamedRoute.Builder().method(POST).path("/generateonbehalfoftoken").uniqueName("security:obo/create").build()),
+        ImmutableList.of(
+            new NamedRoute.Builder().method(POST).path("/obo/token").uniqueName("security:obo/create").build(),
+            new NamedRoute.Builder().method(POST).path("/generateonbehalfoftoken").uniqueName("security:obo/create").build()
+        ),
         PLUGIN_API_ROUTE_PREFIX
     );
 
@@ -81,6 +86,14 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                 final XContentBuilder builder = channel.newBuilder();
                 BytesRestResponse response;
                 try {
+                    final User user = (User) client.threadPool().getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                    if (user != null && isTokenAuthenticatedUser(user)) {
+                        channel.sendResponse(
+                            new BytesRestResponse(RestStatus.FORBIDDEN, "Token-authenticated users cannot create new tokens")
+                        );
+                        return;
+                    }
+
                     if (!securityTokenManager.issueOnBehalfOfTokenAllowed()) {
                         channel.sendResponse(
                             new BytesRestResponse(
@@ -159,5 +172,10 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
             } catch (final NumberFormatException ignored) {}
         }
         throw new IllegalArgumentException("durationSeconds must be a number.");
+    }
+
+    private static boolean isTokenAuthenticatedUser(User user) {
+        String authBy = user.getAuthenticatedBy();
+        return "onbehalfof_jwt".equals(authBy) || "apitoken".equals(authBy);
     }
 }

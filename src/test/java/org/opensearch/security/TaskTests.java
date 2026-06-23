@@ -53,4 +53,30 @@ public class TaskTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().split("X-Opaque-Id").length > 2);
         Assert.assertTrue(!res.getBody().contains("failures"));
     }
+
+    @Test
+    public void testTaskRequestHeadersAreRemoved() throws Exception {
+        setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
+
+        RestHelper rh = nonSslRestHelper();
+        HttpResponse res;
+
+        // Test with X-Opaque-Id and X-Request-Id headers (32 hex chars for X-Request-Id)
+        assertThat(
+            HttpStatus.SC_OK,
+            is(
+                (res = rh.executeGetRequest(
+                    "_tasks?group_by=parents&pretty",
+                    encodeBasicHeader("nagilum", "nagilum"),
+                    new BasicHeader(Task.X_OPAQUE_ID, "testOpaqueId"),
+                    new BasicHeader(Task.X_REQUEST_ID, "abcd1234abcd1234abcd1234abcd1234")
+                )).getStatusCode()
+            )
+        );
+
+        // Verify the response contains the headers in task headers
+        Assert.assertTrue(res.getBody().contains("X-Opaque-Id"));
+        Assert.assertTrue(res.getBody().contains("testOpaqueId"));
+        Assert.assertTrue(!res.getBody().contains("failures"));
+    }
 }

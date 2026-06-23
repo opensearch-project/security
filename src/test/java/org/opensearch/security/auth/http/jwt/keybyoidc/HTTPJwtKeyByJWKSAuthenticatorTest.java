@@ -12,7 +12,6 @@
 package org.opensearch.security.auth.http.jwt.keybyoidc;
 
 import java.util.HashMap;
-import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
 import org.junit.Assert;
@@ -44,13 +43,56 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
             Assert.assertNotNull("Credentials should not be null", creds);
             assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
-            assertThat(creds.getAttributes().get("attr.jwt.aud"), is(List.of(TestJwts.TEST_AUDIENCE).toString()));
+            assertThat(creds.getAttributes().get("attr.jwt.aud"), is("[\"" + TestJwts.TEST_AUDIENCE + "\"]"));
             assertThat(creds.getBackendRoles().size(), is(0));
             assertThat(creds.getAttributes().size(), is(4));
         } finally {
             try {
                 mockJwksServer.close();
             } catch (Exception ignored) {}
+        }
+    }
+
+    @Test
+    public void testJwksAuthenticationWithEC() throws Exception {
+        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
+
+        try {
+            Settings settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).build();
+
+            HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
+
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_EC_1), new HashMap<>()).asSecurityRequest(),
+                null
+            );
+
+            Assert.assertNotNull(creds);
+            assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+
+        } finally {
+            mockJwksServer.close();
+        }
+    }
+
+    @Test
+    public void testJwksAuthenticationWithInvalidECSignature() throws Exception {
+        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
+
+        try {
+            Settings settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).build();
+
+            HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
+
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer invalid.jwt.token"), new HashMap<>()).asSecurityRequest(),
+                null
+            );
+
+            Assert.assertNull(creds);
+
+        } finally {
+            mockJwksServer.close();
         }
     }
 

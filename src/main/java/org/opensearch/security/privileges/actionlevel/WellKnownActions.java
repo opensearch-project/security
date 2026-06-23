@@ -18,10 +18,6 @@ import org.opensearch.action.admin.cluster.health.ClusterHealthAction;
 import org.opensearch.action.admin.cluster.node.stats.NodesStatsAction;
 import org.opensearch.action.admin.cluster.state.ClusterStateAction;
 import org.opensearch.action.admin.cluster.stats.ClusterStatsAction;
-import org.opensearch.action.admin.indices.analyze.AnalyzeAction;
-import org.opensearch.action.admin.indices.create.AutoCreateAction;
-import org.opensearch.action.admin.indices.mapping.put.AutoPutMappingAction;
-import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.opensearch.action.admin.indices.refresh.RefreshAction;
 import org.opensearch.action.admin.indices.refresh.TransportShardRefreshAction;
 import org.opensearch.action.bulk.BulkAction;
@@ -74,10 +70,6 @@ public class WellKnownActions {
         UpdateByQueryAction.NAME,
         DeleteByQueryAction.NAME,
         TransportShardBulkAction.ACTION_NAME,
-        PutMappingAction.NAME,
-        AutoPutMappingAction.NAME,
-        AnalyzeAction.NAME,
-        AutoCreateAction.NAME,
         RefreshAction.NAME,
         TransportShardRefreshAction.NAME,
         FieldCapabilitiesAction.NAME

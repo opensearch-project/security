@@ -14,10 +14,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-
-import org.apache.logging.log4j.util.Strings;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.stream.Collectors;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.metadata.IndexAbstraction;
@@ -29,12 +29,11 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.MatchNoneQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.UserAttributes;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 
 /**
  * This class converts role configuration into pre-computed, optimized data structures for checking DLS privileges.
@@ -46,27 +45,18 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
  * Instances of this class are managed by DlsFlsProcessedConfig.
  */
 public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPrivileges.DlsQuery, DlsRestriction> {
+    private static final int MAX_ATTRIBUTES_IN_ERROR_MESSAGE = 10;
+
     private final NamedXContentRegistry xContentRegistry;
 
     public DocumentPrivileges(
-        SecurityDynamicConfiguration<RoleV7> roles,
-        Map<String, IndexAbstraction> indexMetadata,
+        CompiledRoles compiledRoles,
+        SortedMap<String, IndexAbstraction> indexMetadata,
         NamedXContentRegistry xContentRegistry,
         Settings settings
     ) {
-        super(roles, indexMetadata, (rolePermissions) -> roleToRule(rolePermissions, xContentRegistry), settings);
+        super(compiledRoles, indexMetadata, (indexPermissions) -> indexPermissions.dls, settings);
         this.xContentRegistry = xContentRegistry;
-    }
-
-    static DlsQuery roleToRule(RoleV7.Index rolePermissions, NamedXContentRegistry xContentRegistry)
-        throws PrivilegesConfigurationValidationException {
-        String dlsQueryTemplate = rolePermissions.getDls();
-
-        if (dlsQueryTemplate != null && !Strings.isBlank(dlsQueryTemplate)) {
-            return DlsQuery.create(dlsQueryTemplate, xContentRegistry);
-        } else {
-            return null;
-        }
     }
 
     @Override
@@ -93,7 +83,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
     /**
      * The basic rules of DLS are queries. This class encapsulates single queries.
      */
-    static abstract class DlsQuery {
+    public static abstract class DlsQuery {
         final String queryString;
 
         DlsQuery(String queryString) {
@@ -133,7 +123,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             }
         }
 
-        static DlsQuery create(String queryString, NamedXContentRegistry xContentRegistry)
+        public static DlsQuery create(String queryString, NamedXContentRegistry xContentRegistry)
             throws PrivilegesConfigurationValidationException {
             if (UserAttributes.needsAttributeSubstitution(queryString)) {
                 return new DlsQuery.Dynamic(queryString, xContentRegistry);
@@ -176,8 +166,16 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             RenderedDlsQuery evaluate(PrivilegesEvaluationContext context) throws PrivilegesEvaluationException {
                 String effectiveQueryString = UserAttributes.replaceProperties(this.queryString, context);
                 if (UserAttributes.needsAttributeSubstitution(effectiveQueryString)) {
+                    List<String> unresolved = UserAttributes.findUnresolvedAttributes(effectiveQueryString);
+                    Set<String> available = context.getUser().getCustomAttributesMap().keySet();
+                    String availableStr = available.size() > MAX_ATTRIBUTES_IN_ERROR_MESSAGE
+                        ? available.stream().limit(MAX_ATTRIBUTES_IN_ERROR_MESSAGE).collect(Collectors.joining(", "))
+                            + " ... and "
+                            + (available.size() - MAX_ATTRIBUTES_IN_ERROR_MESSAGE)
+                            + " more"
+                        : String.join(", ", available);
                     throw new PrivilegesEvaluationException(
-                        "Invalid DLS query: " + effectiveQueryString,
+                        "DLS query references undefined user attributes: " + unresolved + ". Available attributes are: " + availableStr,
                         new OpenSearchSecurityException("User attribute substitution failed")
                     );
                 }
