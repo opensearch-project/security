@@ -1148,4 +1148,112 @@ public class RequestContentValidatorTest {
         RequestContentValidator.validateNonEmptyValuesInAnObject("default_access_level", node);
     }
 
+    /* ---------------------- validateStringLength ---------------------- */
+
+    @Test
+    public void testStringLengthValidationRejectsOverMaxLength() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, FieldConfiguration> allowedKeys() {
+                return Map.of("description", FieldConfiguration.of(DataType.STRING));
+            }
+        });
+        final JsonNode payload = DefaultObjectMapper.objectMapper()
+            .createObjectNode()
+            .put("description", repeat('a', RequestContentValidator.MAX_STRING_LENGTH + 1));
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.STRING_EXCEEDS_MAX_LENGTH);
+    }
+
+    @Test
+    public void testStringLengthValidationAcceptsAtMaxLength() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, FieldConfiguration> allowedKeys() {
+                return Map.of("description", FieldConfiguration.of(DataType.STRING));
+            }
+        });
+        final JsonNode payload = DefaultObjectMapper.objectMapper()
+            .createObjectNode()
+            .put("description", repeat('a', RequestContentValidator.MAX_STRING_LENGTH));
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertTrue(validationResult.isValid());
+    }
+
+    @Test
+    public void testStringLengthValidationChecksNestedArrayElements() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, FieldConfiguration> allowedKeys() {
+                return Map.of("backend_roles", FieldConfiguration.of(DataType.ARRAY));
+            }
+        });
+        final ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode();
+        payload.putArray("backend_roles").add("short").add(repeat('x', RequestContentValidator.MAX_STRING_LENGTH + 1));
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.STRING_EXCEEDS_MAX_LENGTH);
+    }
+
+    @Test
+    public void testStringLengthValidationChecksPatchedContent() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, FieldConfiguration> allowedKeys() {
+                return Map.of("description", FieldConfiguration.of(DataType.STRING));
+            }
+        });
+        final JsonNode original = DefaultObjectMapper.objectMapper().createObjectNode().put("description", "short");
+        final JsonNode patched = DefaultObjectMapper.objectMapper()
+            .createObjectNode()
+            .put("description", repeat('a', RequestContentValidator.MAX_STRING_LENGTH + 1));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request, patched, original);
+        assertFalse(validationResult.isValid());
+        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.STRING_EXCEEDS_MAX_LENGTH);
+    }
+
 }

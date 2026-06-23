@@ -25,7 +25,6 @@ opensearchplugin {
 
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
-loggerUsageCheck.enabled = false
 validateNebulaPom.enabled = false
 testingConventions.enabled = false
 tasks.configureEach { task ->
@@ -70,7 +69,7 @@ configurations {
             force 'org.apache.httpcomponents:httpclient:4.5.14'
             force 'org.apache.httpcomponents:httpcore:4.4.16'
             force 'commons-codec:commons-codec:1.22.0'
-            force 'commons-logging:commons-logging:1.3.6'
+            force 'commons-logging:commons-logging:1.4.0'
             force 'org.hamcrest:hamcrest:2.2'
             force 'org.mockito:mockito-core:5.23.0'
             force 'org.slf4j:slf4j-api:1.7.36'
@@ -81,7 +80,7 @@ configurations {
             force "com.google.protobuf:protobuf-java:${versions.protobuf}"
             force libs.google.guava
             force "com.google.guava:failureaccess:1.0.3"
-            force "io.projectreactor:reactor-core:3.8.5"
+            force "io.projectreactor:reactor-core:3.8.6"
 
             // Netty version alignment with OpenSearch core
             force "io.netty:netty-buffer:${versions.netty}"
