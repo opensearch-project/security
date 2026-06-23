@@ -517,8 +517,14 @@ public class DlsFilterLevelActionHandler {
 
                 for (QueryBuilder queryBuilder : queryBuilders) {
                     TermsQueryBuilder termsQueryBuilder = (TermsQueryBuilder) queryBuilder;
+                    final var lookupIndex = termsQueryBuilder.termsLookup().index();
+                    final var lookupId = termsQueryBuilder.termsLookup().id();
 
-                    documentAllowlist.add(termsQueryBuilder.termsLookup().index(), termsQueryBuilder.termsLookup().id());
+                    if (lookupId != null) {
+                        documentAllowlist.add(lookupIndex, lookupId);
+                    } else {
+                        documentAllowlist.add(lookupIndex, DocumentAllowList.WILDCARD_DOCUMENT_ID);
+                    }
                 }
             }
 

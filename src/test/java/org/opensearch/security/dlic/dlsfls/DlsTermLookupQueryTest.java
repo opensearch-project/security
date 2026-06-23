@@ -88,6 +88,11 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{ \"bla\": \"blub\" }", XContentType.JSON)
         ).actionGet();
+        client.index(
+            new IndexRequest("user_access_codes").id("tlq_query_1337")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{ \"access_codes\": [1337] }", XContentType.JSON)
+        ).actionGet();
 
         // need to have keyword for bu field since we're testing aggregations
         client.admin().indices().create(new CreateIndexRequest("tlqdocuments")).actionGet();
@@ -741,6 +746,70 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         }
         // expect FFF to be absent
         Assert.assertNull("Expected bucket FFF to be absent", agg.getBucketByKey("FFF"));
+    }
+
+    // -----------------------------------
+    // Test query-based TLQ (no doc ID)
+    // -----------------------------------
+
+    @Test
+    public void testQueryBasedTlq_Search_AccessCode_1337() throws Exception {
+
+        setup(
+            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
+                .setSecurityInternalUsers("internal_users_tlq.yml")
+                .setSecurityRoles("roles_tlq.yml")
+                .setSecurityRolesMapping("roles_mapping_tlq.yml")
+        );
+
+        final var response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(200));
+        final var xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        final var searchResponse = SearchResponse.fromXContent(xcp);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value(), is(10L));
+        assertAccessCodesMatch(searchResponse.getHits().getHits(), new Integer[] { 1337 });
+    }
+
+    @Test
+    public void testQueryBasedTlq_Search_Dummy_AccessCode_1337() throws Exception {
+
+        setup(
+            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
+                .setSecurityInternalUsers("internal_users_tlq.yml")
+                .setSecurityRoles("roles_tlq.yml")
+                .setSecurityRolesMapping("roles_mapping_tlq.yml")
+        );
+
+        final var response = rh.executeGetRequest("/tlqdummy/_search?pretty", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(200));
+        final var xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        final var searchResponse = SearchResponse.fromXContent(xcp);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value(), is(5L));
+    }
+
+    @Test
+    public void testQueryBasedTlq_Get_AccessCode_1337() throws Exception {
+
+        setup(
+            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
+                .setSecurityInternalUsers("internal_users_tlq.yml")
+                .setSecurityRoles("roles_tlq.yml")
+                .setSecurityRolesMapping("roles_mapping_tlq.yml")
+        );
+
+        // doc 1 has access_codes [1337] - should be accessible
+        HttpResponse response = rh.executeGetRequest("/tlqdocuments/_doc/1", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(200));
+
+        // doc 2 has access_codes [42] - should not be accessible
+        response = rh.executeGetRequest("/tlqdocuments/_doc/2", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(404));
+
+        // user_access_codes index should not be directly accessible
+        response = rh.executeGetRequest("/user_access_codes/_doc/tlq_query_1337", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(403));
     }
 
     public static List<NamedXContentRegistry.Entry> getDefaultNamedXContents() {
