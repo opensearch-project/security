@@ -611,6 +611,7 @@ public class LocalOpenSearchCluster {
                 .put("discovery.probe.handshake_timeout", "10s")
                 .put("http.cors.enabled", true)
                 .put("gateway.auto_import_dangling_indices", "true")
+                .put("bootstrap.serial_filter", true)
                 .build();
         }
 

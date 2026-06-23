@@ -1,14 +1,14 @@
 [versions]
-open_saml           = "5.2.2"
+open_saml           = "5.2.3"
 open_saml_shib      = "9.2.2"
 one_login_saml      = "2.9.0"
-dropwizard_metrics  = "4.2.38"
+dropwizard_metrics  = "4.2.39"
 jjwt                = "0.13.0"
 jaxb                = "2.3.9"
 lz4_java            = "1.11.0"
 snappy_java         = "1.1.10.8"
 guava               = "33.6.0-jre"
-spring_framework    = "7.0.7"
+spring_framework    = "7.0.8"
 
 [libraries]
 #OneLogin saml

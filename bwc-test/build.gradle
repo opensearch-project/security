@@ -79,7 +79,6 @@ dependencies {
 
 }
 
-loggerUsageCheck.enabled = false
 testingConventions.enabled = false
 validateNebulaPom.enabled = false
 

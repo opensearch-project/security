@@ -84,6 +84,22 @@ public class EndpointValidatorTest {
     }
 
     @Test
+    public void requiredEntityNameExceedsMaxLength() {
+        final String longName = "a".repeat(RequestContentValidator.MAX_STRING_LENGTH + 1);
+        var validationResult = endpointValidator.withRequiredEntityName(longName);
+        assertFalse(validationResult.isValid());
+        assertThat(validationResult.status(), is(RestStatus.BAD_REQUEST));
+    }
+
+    @Test
+    public void requiredEntityNameAtMaxLength() {
+        final String maxName = "a".repeat(RequestContentValidator.MAX_STRING_LENGTH);
+        var validationResult = endpointValidator.withRequiredEntityName(maxName);
+        assertTrue(validationResult.isValid());
+        assertThat(validationResult.status(), is(RestStatus.OK));
+    }
+
+    @Test
     public void entityDoesNotExist() {
         when(configuration.exists("some_role")).thenReturn(false);
         final var validationResult = endpointValidator.entityExists(SecurityConfiguration.of("some_role", configuration));

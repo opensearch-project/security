@@ -32,6 +32,7 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
@@ -165,7 +166,9 @@ public class AuditApiAction extends AbstractApiAction {
             AuditCategory.GRANTED_PRIVILEGES,
             AuditCategory.MISSING_PRIVILEGES,
             AuditCategory.INDEX_EVENT,
-            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT
+            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT,
+            AuditCategory.CLUSTER_SETTINGS_CHANGED,
+            AuditCategory.INDEX_SETTINGS_CHANGED
         );
 
         protected AuditRequestContentValidator(ValidationContext validationContext) {
@@ -326,8 +329,15 @@ public class AuditApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, RequestContentValidator.DataType> allowedKeys() {
-                        return ImmutableMap.of("enabled", DataType.BOOLEAN, "audit", DataType.OBJECT, "compliance", DataType.OBJECT);
+                    public Map<String, RequestContentValidator.FieldConfiguration> allowedKeys() {
+                        return ImmutableMap.of(
+                            "enabled",
+                            FieldConfiguration.of(DataType.BOOLEAN),
+                            "audit",
+                            FieldConfiguration.of(DataType.OBJECT),
+                            "compliance",
+                            FieldConfiguration.of(DataType.OBJECT)
+                        );
                     }
                 });
             }

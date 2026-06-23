@@ -29,6 +29,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
@@ -140,17 +141,17 @@ public class RateLimitersApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                    public Map<String, FieldConfiguration> allowedKeys() {
+                        final ImmutableMap.Builder<String, FieldConfiguration> allowedKeys = ImmutableMap.builder();
 
-                        return allowedKeys.put(TYPE_JSON_PROPERTY, DataType.STRING)
-                            .put(IGNORE_HOSTS_JSON_PROPERTY, DataType.ARRAY)
-                            .put(AUTHENTICATION_BACKEND_JSON_PROPERTY, DataType.STRING)
-                            .put(ALLOWED_TRIES_JSON_PROPERTY, DataType.INTEGER)
-                            .put(TIME_WINDOW_SECONDS_JSON_PROPERTY, DataType.INTEGER)
-                            .put(BLOCK_EXPIRY_JSON_PROPERTY, DataType.INTEGER)
-                            .put(MAX_BLOCKED_CLIENTS_JSON_PROPERTY, DataType.INTEGER)
-                            .put(MAX_TRACKED_CLIENTS_JSON_PROPERTY, DataType.INTEGER)
+                        return allowedKeys.put(TYPE_JSON_PROPERTY, FieldConfiguration.of(DataType.STRING))
+                            .put(IGNORE_HOSTS_JSON_PROPERTY, FieldConfiguration.of(DataType.ARRAY))
+                            .put(AUTHENTICATION_BACKEND_JSON_PROPERTY, FieldConfiguration.of(DataType.STRING))
+                            .put(ALLOWED_TRIES_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
+                            .put(TIME_WINDOW_SECONDS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
+                            .put(BLOCK_EXPIRY_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
+                            .put(MAX_BLOCKED_CLIENTS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
+                            .put(MAX_TRACKED_CLIENTS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
                             .build();
                     }
                 });

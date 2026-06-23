@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.action.ActionListener;
@@ -30,9 +30,6 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.ActionListenerUtils.TestActionListener;
-
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -50,8 +47,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("unchecked")
-@RunWith(MockitoJUnitRunner.class)
-public class ApiTokenRepositoryTest {
+public class ApiTokenRepositoryTests extends LuceneTestCase {
     private static final String TOKEN_ALPHA = "os_alpha";
     private static final String TOKEN_BETA = "os_beta";
     private static final String TOKEN_FRESH = "os_fresh";
@@ -71,12 +67,13 @@ public class ApiTokenRepositoryTest {
     private static final String HASH_THREE = ApiTokenRepository.hashToken(TOKEN_THREE);
     private static final String HASH_TEST = ApiTokenRepository.hashToken(TOKEN_TEST);
     private static final String HASH_EXISTS = ApiTokenRepository.hashToken(TOKEN_EXISTS);
-    @Mock
     private ApiTokenIndexHandler apiTokenIndexHandler;
     private ApiTokenRepository repository;
 
+    @Override
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        super.setUp();
         apiTokenIndexHandler = mock(ApiTokenIndexHandler.class);
         repository = ApiTokenRepository.forTest(apiTokenIndexHandler);
     }
