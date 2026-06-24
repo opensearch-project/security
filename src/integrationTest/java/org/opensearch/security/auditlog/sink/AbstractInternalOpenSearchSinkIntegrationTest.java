@@ -27,7 +27,9 @@ import org.opensearch.transport.client.Client;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
 import static org.awaitility.Awaitility.await;
 
 /**
@@ -112,10 +114,11 @@ abstract class AbstractInternalOpenSearchSinkIntegrationTest {
 
             generateAuditEvent("_cluster/health");
             generateAuditEvent("_cluster/stats");
+            generateAuditEvent("_nodes");
 
             await().atMost(10, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> {
                 refreshAuditTarget(client);
-                assertThat("At least 2 new audit events must be persisted", countAuditDocs(client) - before, greaterThanOrEqualTo(2L));
+                assertThat("At least 3 new audit events must be persisted", countAuditDocs(client) - before, greaterThanOrEqualTo(3L));
             });
         }
     }

@@ -10,10 +10,9 @@
  */
 package org.opensearch.security.auditlog.sink;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.lucene.tests.util.LuceneTestCase;
 
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -96,16 +95,7 @@ public class InternalOpenSearchSinkTest extends LuceneTestCase {
         when(client.admin()).thenReturn(adminClient);
         when(adminClient.indices()).thenReturn(indicesAdminClient);
 
-        sink = new InternalOpenSearchSink(
-            "test-sink",
-            Settings.EMPTY,
-            null,
-            null,
-            client,
-            threadPool,
-            null,
-            clusterService
-        );
+        sink = new InternalOpenSearchSink("test-sink", Settings.EMPTY, null, null, client, threadPool, null, clusterService);
     }
 
     /**
