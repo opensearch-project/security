@@ -21,11 +21,11 @@ runs:
 
     - name: Checkout Branch from Fork
       if: ${{ inputs.plugin-branch == 'current_branch' }}
-      uses: actions/checkout@v2
+      uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
       with:
         path: ${{ inputs.plugin-branch }}
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
       if: ${{ inputs.plugin-branch != 'current_branch' }}
       with:
         repository: opensearch-project/security
@@ -33,14 +33,14 @@ runs:
         path: ${{ inputs.plugin-branch }}
 
     - name: Build
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
       with:
         cache-disabled: true
         arguments: assemble
         build-root-directory: ${{ inputs.plugin-branch }}
 
     - id: get-opensearch-version
-      uses: peternied/get-opensearch-version@v1
+      uses: peternied/get-opensearch-version@c13e2946341f9f17befbafe76327dae0d1e0b7a0 # v1
       with:
         working-directory: ${{ inputs.plugin-branch }}
 

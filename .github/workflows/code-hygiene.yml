@@ -8,23 +8,23 @@ jobs:
     name: Check if all files end in newline
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
 
       - name: Linelint
-        uses: fernandrone/linelint@0.0.6
+        uses: fernandrone/linelint@7907a5dca0c28ea7dd05c6d8d8cacded713aca11 # 0.0.6
 
   spotless:
     runs-on: ubuntu-latest
     name: Spotless scan
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 17
 
-      - uses: gradle/gradle-build-action@v3
+      - uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
         with:
           cache-disabled: true
           arguments: spotlessCheck
@@ -33,14 +33,14 @@ jobs:
     runs-on: ubuntu-latest
     name: Checkstyle scan
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 11
 
-      - uses: gradle/gradle-build-action@v3
+      - uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
         with:
           cache-disabled: true
           arguments: checkstyleMain checkstyleTest checkstyleIntegrationTest
@@ -49,14 +49,14 @@ jobs:
     runs-on: ubuntu-latest
     name: Spotbugs scan
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 11
 
-      - uses: gradle/gradle-build-action@v3
+      - uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
         with:
           cache-disabled: true
           arguments: spotbugsMain
