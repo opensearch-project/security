@@ -211,7 +211,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             && resolvedIndices.local()
                 .namesOfIndices(context.clusterState())
                 .stream()
-                .anyMatch(index -> documentAllowList.isAllowed(index, "*"))) {
+                .anyMatch(index -> documentAllowList.isAllowed(index, DocumentAllowList.WILDCARD_DOCUMENT_ID))) {
             // The documentAllowList is needed here for Dashboards multi tenancy which can redirect index accesses to indices for which no
             // normal index privileges are present
             // If we would not use the documentAllowList here, the index would appear to be protected
@@ -481,7 +481,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 // - DLS rules which use "term lookup queries" and thus need to access indices for which no privileges are present
                 // - Dashboards multi tenancy which can redirect index accesses to indices for which no normal index privileges are present
 
-                if (!dlsRestriction.isUnrestricted() && documentAllowList.isAllowed(index, "*")) {
+                if (!dlsRestriction.isUnrestricted() && documentAllowList.isAllowed(index, DocumentAllowList.WILDCARD_DOCUMENT_ID)) {
                     dlsRestriction = DlsRestriction.NONE;
                     log.debug("Lifting DLS for {} due to present document allowlist", index);
                 }

@@ -224,12 +224,12 @@ public class DashboardsMultitenancySystemIndexHandler {
 
     private void applyDocumentAllowList(String indexName) {
         DocumentAllowList documentAllowList = new DocumentAllowList();
-        documentAllowList.add(indexName, "*");
+        documentAllowList.add(indexName, DocumentAllowList.WILDCARD_DOCUMENT_ID);
         IndexAbstraction indexAbstraction = this.clusterStateSupplier.get().getMetadata().getIndicesLookup().get(indexName);
 
         if (indexAbstraction instanceof IndexAbstraction.Alias) {
             for (IndexMetadata index : indexAbstraction.getIndices()) {
-                documentAllowList.add(index.getIndex().getName(), "*");
+                documentAllowList.add(index.getIndex().getName(), DocumentAllowList.WILDCARD_DOCUMENT_ID);
             }
         }
 
