@@ -14,7 +14,7 @@ package org.opensearch.security.support;
  */
 public final class FipsMode {
 
-    static java.util.function.Supplier<String> envSupplier = () -> System.getenv("OPENSEARCH_FIPS_MODE");
+    public static java.util.function.Supplier<String> envSupplier = () -> System.getenv("OPENSEARCH_FIPS_MODE");
 
     public static boolean isEnabled() {
         return "true".equalsIgnoreCase(envSupplier.get());

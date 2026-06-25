@@ -69,6 +69,12 @@ public class JwtVendorTest {
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
     final static String signingKeyB64Encoded = Base64.getEncoder().encodeToString(signingKey.getBytes(StandardCharsets.UTF_8));
 
+    // encryption_key is consumed Base64-decoded; a 32-char alphanumeric string decodes to only 24 bytes,
+    // under the 32-byte AES-256 floor FIPS requires. Base64-encode the 32 bytes so it decodes back to 32.
+    final static String claimsEncryptionKey = RandomStringUtils.secure().nextAlphanumeric(32);
+    final static String claimsEncryptionKeyB64Encoded = Base64.getEncoder()
+        .encodeToString(claimsEncryptionKey.getBytes(StandardCharsets.UTF_8));
+
     @Test
     public void testCreateJwkFromSettings() {
         final Settings settings = Settings.builder().put(SIGNING_KEY_PROPERTY_KEY, signingKeyB64Encoded).build();
@@ -138,17 +144,16 @@ public class JwtVendorTest {
         int expirySeconds = 300;
         // 2023 oct 4, 10:00:00 AM GMT
         LongSupplier currentTime = () -> 1696413600000L;
-        String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder()
             .put(SIGNING_KEY_PROPERTY_KEY, signingKeyB64Encoded)
-            .put("encryption_key", claimsEncryptionKey)
+            .put("encryption_key", claimsEncryptionKeyB64Encoded)
             .build();
 
         Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
 
         JwtVendor OBOJwtVendor = new JwtVendor(settings);
         final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
-            new OBOJwtClaimsBuilder(claimsEncryptionKey).addRoles(roles)
+            new OBOJwtClaimsBuilder(new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded)).addRoles(roles)
                 .addBackendRoles(false, backendRoles)
                 .issuer(issuer)
                 .subject(subject)
@@ -169,7 +174,7 @@ public class JwtVendorTest {
         assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("iat")).getTime(), is(1696413600000L));
         // 2023 oct 4, 10:05:00 AM GMT
         assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
-        EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
+        EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded);
         assertThat(
             encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("encrypted_roles").toString()),
             equalTo(expectedRoles)
@@ -189,17 +194,16 @@ public class JwtVendorTest {
 
         int expirySeconds = 300;
         LongSupplier currentTime = () -> (long) 100;
-        String claimsEncryptionKey = "1234567890123456";
         Settings settings = Settings.builder()
             .put(SIGNING_KEY_PROPERTY_KEY, signingKeyB64Encoded)
-            .put("encryption_key", claimsEncryptionKey)
+            .put("encryption_key", claimsEncryptionKeyB64Encoded)
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
             .build();
         final JwtVendor OBOJwtVendor = new JwtVendor(settings);
         Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
 
         final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
-            new OBOJwtClaimsBuilder(claimsEncryptionKey).addRoles(roles)
+            new OBOJwtClaimsBuilder(new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded)).addRoles(roles)
                 .addBackendRoles(true, backendRoles)
                 .issuer(issuer)
                 .subject(subject)
@@ -221,7 +225,7 @@ public class JwtVendorTest {
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("backend_roles"), is(notNullValue()));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("backend_roles").toString(), equalTo(expectedBackendRoles));
 
-        EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
+        EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded);
         assertThat(
             encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("encrypted_roles").toString()),
             equalTo(expectedRoles)
@@ -240,10 +244,9 @@ public class JwtVendorTest {
 
         // Mock settings and other required dependencies
         LongSupplier currentTime = () -> (long) 100;
-        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder()
             .put(SIGNING_KEY_PROPERTY_KEY, signingKeyB64Encoded)
-            .put("encryption_key", claimsEncryptionKey)
+            .put("encryption_key", claimsEncryptionKeyB64Encoded)
             .build();
 
         final String issuer = "cluster_0";
@@ -256,7 +259,7 @@ public class JwtVendorTest {
         final JwtVendor OBOJwtVendor = new JwtVendor(settings);
         Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
         OBOJwtVendor.createJwt(
-            new OBOJwtClaimsBuilder(claimsEncryptionKey).addRoles(roles)
+            new OBOJwtClaimsBuilder(new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded)).addRoles(roles)
                 .addBackendRoles(true, backendRoles)
                 .issuer(issuer)
                 .subject(subject)

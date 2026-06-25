@@ -67,6 +67,7 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authz;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthzDomain;
 import org.opensearch.security.support.ReflectionHelper;
+import org.opensearch.security.util.KeyUtils;
 
 public class DynamicConfigModelV7 extends DynamicConfigModel {
 
@@ -393,7 +394,9 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          * order: -1 - prioritize the OBO authentication when it gets enabled
          */
         Settings oboSettings = getDynamicOnBehalfOfSettings();
-        if (oboSettings.get("signing_key") != null) {
+        final boolean signingKeyConfigured = oboSettings.get("signing_key") != null
+            || oboSettings.get("signing_key" + KeyUtils.KEYSTORE_ALIAS) != null;
+        if (signingKeyConfigured) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
                 new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName()),

@@ -29,6 +29,7 @@ import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
@@ -129,7 +130,9 @@ public class SecurityTokenManager implements TokenManager {
             throw new IllegalArgumentException("Roles cannot be null");
         }
 
-        final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(oboSettings.get("encryption_key"));
+        final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(
+            EncryptionDecryptionUtil.fromSettings(oboSettings, "encryption_key")
+        );
 
         // Add obo claims
         claimsBuilder.issuer(cs.getClusterName().value());

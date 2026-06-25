@@ -37,8 +37,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.ssl.config.CertType;
-import org.opensearch.security.support.PemKeyReaderLoadSecretKeyTest;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
+import org.opensearch.test.BouncyCastleThreadFilter;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -57,7 +58,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_FIL
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_TYPE;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
 
-@ThreadLeakFilters(filters = { PemKeyReaderLoadSecretKeyTest.BCFipsEntropyDaemonFilter.class })
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
 public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
 
     @ClassRule

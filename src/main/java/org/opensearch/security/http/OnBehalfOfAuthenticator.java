@@ -12,6 +12,7 @@
 package org.opensearch.security.http;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.crypto.SecretKey;
 
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
@@ -38,42 +40,90 @@ import org.opensearch.security.util.KeyUtils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.WeakKeyException;
 
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private static final int MINIMUM_SIGNING_KEY_BIT_LENGTH = 512;
+    private static final String SIGNING_KEY = "signing_key";
+    private static final String ENCRYPTION_KEY = "encryption_key";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";
 
-    private final JwtParser jwtParser;
-    private final String encryptionKey;
+    private final Settings settings;
     private final Boolean enabled;
     private final String clusterName;
-
-    private final EncryptionDecryptionUtil encryptionUtil;
+    private volatile boolean initialized = false;
+    private volatile JwtParser jwtParser;
+    private volatile EncryptionDecryptionUtil encryptionUtil;
 
     public OnBehalfOfAuthenticator(Settings settings, String clusterName) {
-        enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
-        encryptionKey = settings.get("encryption_key");
-        jwtParser = AccessController.doPrivileged(() -> {
-            JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-            return builder.build();
-        });
+        this.enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
+        this.settings = settings;
         this.clusterName = clusterName;
-        this.encryptionUtil = encryptionKey != null ? new EncryptionDecryptionUtil(encryptionKey) : null;
     }
 
-    private JwtParserBuilder initParserBuilder(final String signingKey) {
+    /**
+     * Builds the JWT parser and encryption helper on first use. Initialization is attempted exactly once.
+     *
+     * @return {@code true} if OBO authentication is usable, {@code false} if it is misconfigured
+     */
+    private synchronized boolean ensureInitialized() {
+        if (!initialized) {
+            initialized = true;
+            try {
+                jwtParser = AccessController.doPrivileged(this::buildJwtParser);
+                encryptionUtil = EncryptionDecryptionUtil.fromSettings(settings, ENCRYPTION_KEY);
+            } catch (final RuntimeException e) {
+                log.error("On-behalf-of authentication is misconfigured; OBO tokens will be rejected: {}", e.toString(), e);
+            }
+        }
+        return jwtParser != null;
+    }
+
+    /**
+     * Builds the HMAC verification parser. The signing key may be supplied either via a keystore (e.g. BCFKS,
+     * keeping the key out of cluster state) or as a Base64-encoded {@code signing_key} setting. The keystore
+     * path mirrors how {@link org.opensearch.security.authtoken.jwt.JwtVendor} signs OBO tokens, so issuance
+     * and verification share the same key material.
+     */
+    private JwtParser buildJwtParser() {
+        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, SIGNING_KEY);
+        if (keystoreKey != null) {
+            final byte[] keyBytes = keystoreKey.getEncoded();
+            validateSigningKeyBitLength(keyBytes.length * Byte.SIZE);
+            return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(keyBytes)).build();
+        }
+        final String signingKey = settings.get(SIGNING_KEY);
+        validateSigningKey(signingKey);
+        return KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log).build();
+    }
+
+    /**
+     * Validates a Base64-encoded {@code signing_key}, throwing {@link OpenSearchSecurityException} with a
+     * descriptive message when it is missing, not valid Base64, or below the
+     * {@value #MINIMUM_SIGNING_KEY_BIT_LENGTH}-bit minimum. Package-private static so it can be unit-tested
+     * directly without standing up an authenticator.
+     */
+    static void validateSigningKey(final String signingKey) {
         if (signingKey == null) {
             throw new OpenSearchSecurityException("Unable to find on behalf of authenticator signing_key");
         }
+        final int signingKeyLengthBits;
+        try {
+            signingKeyLengthBits = Base64.getDecoder().decode(signingKey).length * Byte.SIZE;
+        } catch (final IllegalArgumentException e) {
+            throw new OpenSearchSecurityException("Signing key is not a valid Base64-encoded value: " + e.getMessage());
+        }
+        validateSigningKeyBitLength(signingKeyLengthBits);
+    }
 
-        final int signingKeyLengthBits = signingKey.length() * 8;
+    static void validateSigningKeyBitLength(final int signingKeyLengthBits) {
         if (signingKeyLengthBits < MINIMUM_SIGNING_KEY_BIT_LENGTH) {
             throw new OpenSearchSecurityException(
                 "Signing key size was "
@@ -83,9 +133,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                     + " bits."
             );
         }
-        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
-
-        return jwtParserBuilder;
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {
@@ -148,7 +195,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
 
         String jwtToken = extractJwtFromHeader(request);
-        if (jwtToken == null) {
+        if (jwtToken == null || !ensureInitialized()) {
             return null;
         }
 

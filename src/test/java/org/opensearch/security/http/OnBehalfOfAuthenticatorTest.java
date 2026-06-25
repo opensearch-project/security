@@ -23,7 +23,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.Level;
@@ -31,18 +34,24 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.security.util.FakeRestRequest;
+import org.opensearch.security.util.KeyUtils;
+import org.opensearch.test.BouncyCastleThreadFilter;
 
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.mockito.ArgumentCaptor;
 
@@ -54,100 +63,121 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
 public class OnBehalfOfAuthenticatorTest {
     final static String clusterName = "cluster_0";
     final static String enableOBO = "true";
     final static String disableOBO = "false";
-    final static String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+    // encryption_key is consumed Base64-decoded; a 32-char alphanumeric string decodes to only 24 bytes,
+    // under the 32-byte AES-256 floor FIPS requires. Base64-encode the 32 bytes so it decodes back to 32.
+    final static String claimsEncryptionKey = RandomStringUtils.secure().nextAlphanumeric(32);
+    final static String claimsEncryptionKeyB64Encoded = Base64.getEncoder()
+        .encodeToString(claimsEncryptionKey.getBytes(StandardCharsets.UTF_8));
 
     final static String signingKey =
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
     final static String signingKeyB64Encoded = Base64.getEncoder().encodeToString(signingKey.getBytes(StandardCharsets.UTF_8));
     final static SecretKey secretKey = Keys.hmacShaKeyFor(signingKeyB64Encoded.getBytes(StandardCharsets.UTF_8));
 
-    private static final String SECURITY_PREFIX = "/_plugins/_security/";
-    private static final String ON_BEHALF_OF_SUFFIX = "api/obo/token";
-    private static final String ACCOUNT_SUFFIX = "api/account";
+    private static final String KEYSTORE_STORE_PASSWORD = "kspass";
+    private static final String KEYSTORE_KEY_PASSWORD = "keypass";
+
+    @Rule
+    public TemporaryFolder tempDir = new TemporaryFolder();
 
     @Test
-    public void testReRequestAuthenticationReturnsEmptyOptional() {
+    public void testReRequestAuthenticationReturnsEmptyOptional() throws Exception {
         OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
         Optional<SecurityResponse> result = authenticator.reRequestAuthentication(null, null);
         assertFalse(result.isPresent());
     }
 
     @Test
-    public void testGetTypeReturnsExpectedType() {
+    public void testGetTypeReturnsExpectedType() throws Exception {
         OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
         String type = authenticator.getType();
         assertThat(type, is("onbehalfof_jwt"));
     }
 
     @Test
-    public void testNoKey() {
-        Exception exception = assertThrows(
-            RuntimeException.class,
-            () -> extractCredentialsFromJwtHeader(
-                null,
-                claimsEncryptionKey,
-                Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy"),
-                false
-            )
+    public void testNoSigningKey() throws Exception {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> OnBehalfOfAuthenticator.validateSigningKey(null)
         );
-        assertThat(exception.getMessage(), equalTo("Unable to find on behalf of authenticator signing_key"));
+        assertThat(ex.getMessage(), equalTo("Unable to find on behalf of authenticator signing_key"));
     }
 
     @Test
-    public void testEmptyKey() {
-        Exception exception = assertThrows(
-            RuntimeException.class,
-            () -> extractCredentialsFromJwtHeader(
-                "",
-                claimsEncryptionKey,
-                Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy"),
-                false
-            )
+    public void testEmptySigningKey() throws Exception {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> OnBehalfOfAuthenticator.validateSigningKey("")
         );
         assertThat(
-            exception.getMessage(),
+            ex.getMessage(),
             equalTo("Signing key size was 0 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
         );
     }
 
     @Test
-    public void testBadKey() {
-        Exception exception = assertThrows(
-            RuntimeException.class,
-            () -> extractCredentialsFromJwtHeader(
-                Base64.getEncoder().encodeToString(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 }),
-                claimsEncryptionKey,
-                Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy"),
-                false
-            )
+    public void testSigningKeyOf80BitsRejected() throws Exception {
+        // 10 raw bytes -> Base64-decoded length is 80 bits, below the 512-bit minimum
+        String key = Base64.getEncoder().encodeToString(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 });
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> OnBehalfOfAuthenticator.validateSigningKey(key)
         );
         assertThat(
-            exception.getMessage(),
-            equalTo("Signing key size was 128 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+            ex.getMessage(),
+            equalTo("Signing key size was 80 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
         );
     }
 
     @Test
-    public void testWeakKeyExceptionHandling() throws Exception {
-        Settings settings = Settings.builder().put("signing_key", "testKey").put("encryption_key", claimsEncryptionKey).build();
-        try {
-            OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, "testCluster");
-            fail("Expected WeakKeyException");
-        } catch (OpenSearchSecurityException e) {
-            assertThat(
-                e.getMessage(),
-                equalTo("Signing key size was 56 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
-            );
-        }
+    public void testSigningKeyOf384BitsRejected() throws Exception {
+        // 64 Base64 characters decode to only 48 bytes = 384 bits, below the 512-bit minimum
+        final String key = Base64.getEncoder().encodeToString(new byte[48]);
+        assertThat(key.length(), equalTo(64));
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> OnBehalfOfAuthenticator.validateSigningKey(key)
+        );
+        assertThat(
+            ex.getMessage(),
+            equalTo("Signing key size was 384 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+        );
+    }
+
+    @Test
+    public void testSigningKeyOf40BitsRejected() throws Exception {
+        // "testKey" Base64-decodes to 5 bytes = 40 bits
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> OnBehalfOfAuthenticator.validateSigningKey("testKey")
+        );
+        assertThat(
+            ex.getMessage(),
+            equalTo("Signing key size was 40 bits, which is not secure enough. Please use a signing_key with a size >= 512 bits.")
+        );
+    }
+
+    @Test
+    public void testMisconfiguredKeyDeclinesWithoutThrowing() throws Exception {
+        Settings settings = Settings.builder()
+            .put("enabled", enableOBO)
+            .put("signing_key", "testKey") // misconfigured signing key
+            .put("encryption_key", claimsEncryptionKeyB64Encoded)
+            .build();
+        OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName);
+        Map<String, String> headers = Map.of("Authorization", "Bearer a.b.c");
+        AuthCredentials credentials = auth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
+        assertNull(credentials);
     }
 
     @Test
@@ -183,10 +213,12 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testDisabled() throws Exception {
         String jwsToken = Jwts.builder()
-            .setIssuer(clusterName)
-            .setSubject("Leonard McCoy")
-            .setAudience("ext_0")
-            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("ext_0")
+            .and()
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(disableOBOSettings(), clusterName);
@@ -201,7 +233,7 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testInvalidTokenException() {
+    public void testInvalidTokenException() throws Exception {
         Appender mockAppender = mock(Appender.class);
         ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
         when(mockAppender.getName()).thenReturn("MockAppender");
@@ -236,10 +268,12 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testNonSpecifyOBOSetting() throws Exception {
         String jwsToken = Jwts.builder()
-            .setIssuer(clusterName)
-            .setSubject("Leonard McCoy")
-            .setAudience("ext_0")
-            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("ext_0")
+            .and()
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(nonSpecifyOBOSetting(), clusterName);
@@ -261,10 +295,12 @@ public class OnBehalfOfAuthenticatorTest {
         expectedAttributes.put("attr.jwt.aud", "[\"ext_0\"]");
 
         String jwsToken = Jwts.builder()
-            .setIssuer(clusterName)
-            .setSubject("Leonard McCoy")
-            .setAudience("ext_0")
-            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("ext_0")
+            .and()
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
@@ -287,10 +323,12 @@ public class OnBehalfOfAuthenticatorTest {
     public void testBearerWrongPosition() throws Exception {
 
         String jwsToken = Jwts.builder()
-            .setIssuer(clusterName)
-            .setSubject("Leonard McCoy")
-            .setAudience("ext_0")
-            .signWith(secretKey, SignatureAlgorithm.HS512)
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("ext_0")
+            .and()
+            .signWith(secretKey, Jwts.SIG.HS512)
             .compact();
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
 
@@ -308,10 +346,12 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testBasicAuthHeader() throws Exception {
         String jwsToken = Jwts.builder()
-            .setIssuer(clusterName)
-            .setSubject("Leonard McCoy")
-            .setAudience("ext_0")
-            .signWith(secretKey, SignatureAlgorithm.HS512)
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("ext_0")
+            .and()
+            .signWith(secretKey, Jwts.SIG.HS512)
             .compact();
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
 
@@ -356,12 +396,14 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testMissingBearerPrefixInAuthHeader() {
+    public void testMissingBearerPrefixInAuthHeader() throws Exception {
         String jwsToken = Jwts.builder()
-            .setIssuer(clusterName)
-            .setSubject("Leonard McCoy")
-            .setAudience("ext_0")
-            .signWith(secretKey, SignatureAlgorithm.HS512)
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("ext_0")
+            .and()
+            .signWith(secretKey, Jwts.SIG.HS512)
             .compact();
 
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
@@ -377,12 +419,12 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testPlainTextedRolesFromDrClaim() {
+    public void testPlainTextedRolesFromDrClaim() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("roles", "role1,role2").setAudience("svc1"),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).subject("Leonard McCoy").claim("roles", "role1,role2").audience().add("svc1").and(),
             true
         );
 
@@ -393,13 +435,157 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testBackendRolesExtraction() {
+    public void testSigningKeyFromKeystoreVerifiesToken() throws Exception {
+        final byte[] keyBytes = Base64.getDecoder().decode(signingKeyB64Encoded);
+        final FileHelper.TypedStore typedStore = FileHelper.storeSecretKey(
+            tempDir,
+            "obo-signing",
+            new SecretKeySpec(keyBytes, "HmacSHA512"),
+            KEYSTORE_STORE_PASSWORD,
+            KEYSTORE_KEY_PASSWORD
+        );
+
+        final Settings settings = putKeystoreSettings(
+            Settings.builder().put("enabled", enableOBO).put("encryption_key", claimsEncryptionKeyB64Encoded),
+            typedStore,
+            "signing_key",
+            "obo-signing"
+        ).build();
+
+        final String jwsToken = Jwts.builder()
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("svc1")
+            .and()
+            .claim("roles", "role1,role2")
+            .signWith(Keys.hmacShaKeyFor(keyBytes), Jwts.SIG.HS512)
+            .compact();
+
+        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName);
+        final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
+        final AuthCredentials credentials = auth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getSecurityRoles().size(), is(2));
+    }
+
+    @Test
+    public void testEncryptionKeyFromKeystoreDecryptsRoles() throws Exception {
+        final byte[] aesKeyBytes = new byte[32];
+        Arrays.fill(aesKeyBytes, (byte) 7);
+        final FileHelper.TypedStore typedStore = FileHelper.storeSecretKey(
+            tempDir,
+            "obo-enc",
+            new SecretKeySpec(aesKeyBytes, "AES"),
+            KEYSTORE_STORE_PASSWORD,
+            KEYSTORE_KEY_PASSWORD
+        );
+
+        final Settings settings = putKeystoreSettings(
+            Settings.builder().put("enabled", enableOBO).put("signing_key", signingKeyB64Encoded),
+            typedStore,
+            "encryption_key",
+            "obo-enc"
+        ).build();
+
+        // Simulate issuance: encrypt the roles with the same keystore-derived key
+        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(settings, "encryption_key");
+        final String encryptedRoles = issuerUtil.encrypt("role1,role2");
+
+        final String jwsToken = Jwts.builder()
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("svc1")
+            .and()
+            .claim("encrypted_roles", encryptedRoles)
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
+            .compact();
+
+        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName);
+        final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
+        final AuthCredentials credentials = auth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        assertNotNull(credentials);
+        assertThat(credentials.getSecurityRoles().size(), is(2));
+        assertTrue(credentials.getSecurityRoles().contains("role1"));
+        assertTrue(credentials.getSecurityRoles().contains("role2"));
+    }
+
+    @Test
+    public void testSigningAndEncryptionKeysBothFromKeystore() throws Exception {
+        final byte[] signingKeyBytes = Base64.getDecoder().decode(signingKeyB64Encoded);
+        final FileHelper.TypedStore signingStore = FileHelper.storeSecretKey(
+            tempDir,
+            "obo-signing",
+            new SecretKeySpec(signingKeyBytes, "HmacSHA512"),
+            KEYSTORE_STORE_PASSWORD,
+            KEYSTORE_KEY_PASSWORD
+        );
+
+        final byte[] aesKeyBytes = new byte[32];
+        Arrays.fill(aesKeyBytes, (byte) 7);
+        final FileHelper.TypedStore encryptionStore = FileHelper.storeSecretKey(
+            tempDir,
+            "obo-enc",
+            new SecretKeySpec(aesKeyBytes, "AES"),
+            KEYSTORE_STORE_PASSWORD,
+            KEYSTORE_KEY_PASSWORD
+        );
+
+        Settings.Builder builder = putKeystoreSettings(
+            Settings.builder().put("enabled", enableOBO),
+            signingStore,
+            "signing_key",
+            "obo-signing"
+        );
+        builder = putKeystoreSettings(builder, encryptionStore, "encryption_key", "obo-enc");
+        final Settings settings = builder.build();
+
+        // Simulate issuance: encrypt the roles with the same keystore-derived AES key the verifier will resolve.
+        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(settings, "encryption_key");
+        final String encryptedRoles = issuerUtil.encrypt("role1,role2");
+
+        final String jwsToken = Jwts.builder()
+            .issuer(clusterName)
+            .subject("Leonard McCoy")
+            .audience()
+            .add("svc1")
+            .and()
+            .claim("encrypted_roles", encryptedRoles)
+            .signWith(Keys.hmacShaKeyFor(signingKeyBytes), Jwts.SIG.HS512)
+            .compact();
+
+        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName);
+        final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
+        final AuthCredentials credentials = auth.extractCredentials(
+            new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        assertThat(credentials.getSecurityRoles().size(), is(2));
+        assertTrue(credentials.getSecurityRoles().contains("role1"));
+        assertTrue(credentials.getSecurityRoles().contains("role2"));
+    }
+
+    @Test
+    public void testBackendRolesExtraction() throws Exception {
         String rolesString = "role1, role2 ,role3,role4 , role5";
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Test User").setAudience("audience_0").claim("backend_roles", rolesString),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).subject("Test User").audience().add("audience_0").and().claim("backend_roles", rolesString),
             true
         );
 
@@ -412,8 +598,8 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testRolesDecryptionFromErClaimWithNoEncryptionKeyReturnsEmpty() {
-        EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(claimsEncryptionKey);
+    public void testRolesDecryptionFromErClaimWithNoEncryptionKeyReturnsEmpty() throws Exception {
+        EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded);
         String encryptedRole = util.encrypt("admin,developer");
 
         // No encryption_key in settings
@@ -422,11 +608,13 @@ public class OnBehalfOfAuthenticatorTest {
             clusterName
         );
         final String jwsToken = Jwts.builder()
-            .setIssuer(clusterName)
-            .setSubject("Test User")
-            .setAudience("audience_0")
+            .issuer(clusterName)
+            .subject("Test User")
+            .audience()
+            .add("audience_0")
+            .and()
             .claim("encrypted_roles", encryptedRole)
-            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
         final AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(Map.of("Authorization", "Bearer " + jwsToken), new HashMap<>()).asSecurityRequest(),
@@ -438,18 +626,20 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testPlainTextRolesFromDrClaimWithNoEncryptionKey() {
+    public void testPlainTextRolesFromDrClaimWithNoEncryptionKey() throws Exception {
         // No encryption_key in settings — dr claim should still be readable
         final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(
             Settings.builder().put("enabled", enableOBO).put("signing_key", signingKeyB64Encoded).build(),
             clusterName
         );
         final String jwsToken = Jwts.builder()
-            .setIssuer(clusterName)
-            .setSubject("Test User")
-            .setAudience("audience_0")
+            .issuer(clusterName)
+            .subject("Test User")
+            .audience()
+            .add("audience_0")
+            .and()
             .claim("roles", "role1,role2")
-            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
         final AuthCredentials credentials = jwtAuth.extractCredentials(
             new FakeRestRequest(Map.of("Authorization", "Bearer " + jwsToken), new HashMap<>()).asSecurityRequest(),
@@ -462,14 +652,20 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
-    public void testRolesDecryptionFromErClaim() {
-        EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(claimsEncryptionKey);
+    public void testRolesDecryptionFromErClaim() throws Exception {
+        EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded);
         String encryptedRole = util.encrypt("admin,developer");
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Test User").setAudience("audience_0").claim("encrypted_roles", encryptedRole),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder()
+                .issuer(clusterName)
+                .subject("Test User")
+                .audience()
+                .add("audience_0")
+                .and()
+                .claim("encrypted_roles", encryptedRole),
             true
         );
 
@@ -483,8 +679,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("roles", null).setAudience("svc1"),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).subject("Leonard McCoy").claim("roles", null).audience().add("svc1").and(),
             false
         );
 
@@ -498,8 +694,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").claim("roles", 123L).setAudience("svc1"),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).subject("Leonard McCoy").claim("roles", 123L).audience().add("svc1").and(),
             true
         );
 
@@ -514,8 +710,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Leonard McCoy").setAudience("svc1"),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).subject("Leonard McCoy").audience().add("svc1").and(),
             false
         );
 
@@ -530,8 +726,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).claim("roles", "role1,role2").claim("asub", "Dr. Who").setAudience("svc1"),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).claim("roles", "role1,role2").claim("asub", "Dr. Who").audience().add("svc1").and(),
             false
         );
 
@@ -543,8 +739,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Test User").claim("roles", "role1,role2"),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).subject("Test User").claim("roles", "role1,role2"),
             false
         );
 
@@ -556,8 +752,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Expired").setExpiration(new Date(100)),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).subject("Expired").expiration(new Date(100)),
             false
         );
 
@@ -569,8 +765,8 @@ public class OnBehalfOfAuthenticatorTest {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
-            claimsEncryptionKey,
-            Jwts.builder().setIssuer(clusterName).setSubject("Expired").setNotBefore(new Date(System.currentTimeMillis() + (1000 * 36000))),
+            claimsEncryptionKeyB64Encoded,
+            Jwts.builder().issuer(clusterName).subject("Expired").notBefore(new Date(System.currentTimeMillis() + (1000 * 36000))),
             false
         );
 
@@ -591,7 +787,12 @@ public class OnBehalfOfAuthenticatorTest {
                     + "}"
             );
 
-        final AuthCredentials credentials = extractCredentialsFromJwtHeader(signingKeyB64Encoded, claimsEncryptionKey, builder, true);
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            signingKeyB64Encoded,
+            claimsEncryptionKeyB64Encoded,
+            builder,
+            true
+        );
 
         assertNotNull(credentials);
         assertThat(credentials.getUsername(), is("Cluster_0"));
@@ -605,10 +806,12 @@ public class OnBehalfOfAuthenticatorTest {
     public void testDifferentIssuer() throws Exception {
 
         String jwsToken = Jwts.builder()
-            .setIssuer("Wrong Cluster Identifier")
-            .setSubject("Leonard McCoy")
-            .setAudience("ext_0")
-            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .issuer("Wrong Cluster Identifier")
+            .subject("Leonard McCoy")
+            .audience()
+            .add("ext_0")
+            .and()
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
@@ -621,6 +824,19 @@ public class OnBehalfOfAuthenticatorTest {
         );
 
         assertNull(credentials);
+    }
+
+    private static Settings.Builder putKeystoreSettings(
+        Settings.Builder builder,
+        FileHelper.TypedStore typedStore,
+        String prefix,
+        String alias
+    ) {
+        return builder.put(prefix + KeyUtils.KEYSTORE_PATH, typedStore.path())
+            .put(prefix + KeyUtils.KEYSTORE_TYPE, typedStore.type())
+            .put(prefix + KeyUtils.KEYSTORE_PASSWORD, KEYSTORE_STORE_PASSWORD)
+            .put(prefix + KeyUtils.KEYSTORE_ALIAS, alias)
+            .put(prefix + KeyUtils.KEYSTORE_KEY_PASSWORD, KEYSTORE_KEY_PASSWORD);
     }
 
     /** extracts a default user credential from a request header */
@@ -639,10 +855,8 @@ public class OnBehalfOfAuthenticatorTest {
             clusterName
         );
 
-        final String jwsToken = jwtBuilder.signWith(
-            Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)),
-            SignatureAlgorithm.HS512
-        ).compact();
+        final String jwsToken =
+            jwtBuilder.signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512).compact();
         final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
         return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
     }
@@ -651,7 +865,7 @@ public class OnBehalfOfAuthenticatorTest {
         return Settings.builder()
             .put("enabled", enableOBO)
             .put("signing_key", signingKeyB64Encoded)
-            .put("encryption_key", claimsEncryptionKey)
+            .put("encryption_key", claimsEncryptionKeyB64Encoded)
             .build();
     }
 
@@ -659,15 +873,15 @@ public class OnBehalfOfAuthenticatorTest {
         return Settings.builder()
             .put("enabled", disableOBO)
             .put("signing_key", signingKeyB64Encoded)
-            .put("encryption_key", claimsEncryptionKey)
+            .put("encryption_key", claimsEncryptionKeyB64Encoded)
             .build();
     }
 
     private Settings noSigningKeyOBOSettings() {
-        return Settings.builder().put("enabled", disableOBO).put("encryption_key", claimsEncryptionKey).build();
+        return Settings.builder().put("enabled", disableOBO).put("encryption_key", claimsEncryptionKeyB64Encoded).build();
     }
 
     private Settings nonSpecifyOBOSetting() {
-        return Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
+        return Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKeyB64Encoded).build();
     }
 }
