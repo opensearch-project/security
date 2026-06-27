@@ -88,6 +88,7 @@ import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.state.SecurityMetadata;
 import org.opensearch.security.support.ConfigConstants;
@@ -553,7 +554,17 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
 
     private void notifyConfigurationListeners(ConfigurationMap configuration) {
         configCache.putAll(configuration.rawMap());
+        validateComplianceSaltIfNeeded(configuration);
         notifyAboutChanges(configuration);
+    }
+
+    private void validateComplianceSaltIfNeeded(ConfigurationMap configuration) {
+        if (!configuration.containsKey(CType.ROLES)) {
+            return;
+        }
+
+        final SecurityDynamicConfiguration<RoleV7> rolesConfig = configuration.get(CType.ROLES);
+        Salt.validateSaltSettings(settings, Salt.isFieldMaskingConfigured(rolesConfig));
     }
 
     public synchronized void subscribeOnChange(ConfigurationChangeListener listener) {

@@ -544,8 +544,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         }
 
-        // TODO: Uncomment for 4.0 - enforce that the default compliance salt is not used outside of demo configuration
-        // Salt.validateSaltSettings(settings);
+        // TODO: Uncomment for 4.0 - enforce that the default compliance salt is not used when field masking is configured
+        // Salt.validateSaltSettings(settings, Salt.isFieldMaskingConfigured(rolesConfig));
     }
 
     private void verifyTLSVersion(final String settings, final List<String> configuredProtocols) {
