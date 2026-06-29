@@ -1735,6 +1735,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             disabledCategories.add("GRANTED_PRIVILEGES");
             settings.add(
                 Setting.listSetting(
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES,
+                    disabledCategories,
+                    Function.identity(),
+                    Property.NodeScope
+                )
+            );
+            settings.add(
+                Setting.listSetting(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
                     disabledCategories,
                     Function.identity(),
@@ -1798,6 +1806,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             Arrays.stream(FilterEntries.values()).map(filterEntry -> {
                 switch (filterEntry) {
+                    case DISABLE_CATEGORIES:
+                        return Setting.listSetting(
+                            filterEntry.getKeyWithNamespace(),
+                            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT,
+                            Function.identity(),
+                            Property.NodeScope
+                        );
                     case DISABLE_REST_CATEGORIES:
                     case DISABLE_TRANSPORT_CATEGORIES:
                         return Setting.listSetting(

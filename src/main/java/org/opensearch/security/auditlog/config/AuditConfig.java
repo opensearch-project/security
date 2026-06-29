@@ -27,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.impl.AuditCategory;
@@ -151,8 +152,12 @@ public class AuditConfig {
         private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
         private WildcardMatcher ignoredUrlParamsMatcher;
+        @Deprecated
         private final Set<AuditCategory> disabledRestCategories;
+        @Deprecated
         private final Set<AuditCategory> disabledTransportCategories;
+        private final boolean disabledCategoriesConfigured;
+        private final Set<AuditCategory> disabledCategories;
 
         @VisibleForTesting
         Filter(
@@ -167,7 +172,9 @@ public class AuditConfig {
             final Set<String> ignoredCustomHeaders,
             final Set<String> ignoredUrlParams,
             final Set<AuditCategory> disabledRestCategories,
-            final Set<AuditCategory> disabledTransportCategories
+            final Set<AuditCategory> disabledTransportCategories,
+            final boolean disabledCategoriesConfigured,
+            final Set<AuditCategory> disabledCategories
         ) {
             this.isRestApiAuditEnabled = isRestApiAuditEnabled;
             this.isTransportApiAuditEnabled = isTransportApiAuditEnabled;
@@ -185,6 +192,8 @@ public class AuditConfig {
             this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
+            this.disabledCategoriesConfigured = disabledCategoriesConfigured;
+            this.disabledCategories = disabledCategories;
         }
 
         public enum FilterEntries {
@@ -194,6 +203,7 @@ public class AuditConfig {
             LOG_REQUEST_BODY("log_request_body", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY),
             RESOLVE_INDICES("resolve_indices", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES),
             EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS),
+            DISABLE_CATEGORIES("disabled_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES),
             DISABLE_REST_CATEGORIES("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES),
             DISABLE_TRANSPORT_CATEGORIES(
                 "disabled_transport_categories",
@@ -244,6 +254,17 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
+            final boolean disabledCategoriesConfigured = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
+
+
+            // Defaults for disabledCategories are not applied; fallback is to REST/transport split settings.
+            final Set<AuditCategory> disabledCategories = AuditCategory.parse(
+                getOrDefault(
+                    properties,
+                    FilterEntries.DISABLE_CATEGORIES.getKey(),
+                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                )
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
@@ -269,6 +290,15 @@ public class AuditConfig {
                 getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
+            if (properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
+                || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey())) {
+                final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
+                deprecationLogger.deprecate(
+                    "disabled_rest_transport_categories",
+                    "Properties 'disabled_rest_categories' and 'disabled_transport_categories' are deprecated. Use 'disabled_categories' instead."
+                );
+            }
+
             return new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
@@ -281,7 +311,9 @@ public class AuditConfig {
                 ignoreHeaders,
                 new HashSet<>(),
                 disabledRestCategories,
-                disabledTransportCategories
+                disabledTransportCategories,
+                disabledCategoriesConfigured,
+                disabledCategories
             );
 
         }
@@ -298,6 +330,16 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
+            final boolean disabledCategoriesConfigured = settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace());
+
+            // Defaults for disabledCategories are not applied; fallback is to REST/transport split settings.
+            final Set<AuditCategory> disabledCategories = AuditCategory.parse(
+                fromSettingStringSet(
+                    settings,
+                    FilterEntries.DISABLE_CATEGORIES,
+                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                )
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
@@ -315,6 +357,18 @@ public class AuditConfig {
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
             final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
+
+            if (settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace())) {
+                final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
+                deprecationLogger.deprecate(
+                    "disabled_rest_transport_categories",
+                    "Settingssssss 'disabled_rest_categories' and 'disabled_transport_categories' are deprecated. Use 'disabled_categories' instead."
+                );
+            }
+
             return new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
@@ -327,8 +381,9 @@ public class AuditConfig {
                 ignoreHeaders,
                 new HashSet<>(),
                 disabledRestCategories,
-                disabledTransportCategories
-            );
+                disabledTransportCategories,
+                disabledCategoriesConfigured,
+                disabledCategories);
         }
 
         static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
@@ -480,6 +535,23 @@ public class AuditConfig {
         }
 
         /**
+         * Disabled categories for API auditing
+         * @return set of categories
+         */
+        @JsonProperty("disabled_categories")
+        public Set<AuditCategory> getDisabledCategories() {
+            return disabledCategories;
+        }
+
+        /**
+         * Whether the unified disabled_categories setting is present
+         * @return true if disabled_categories was explicitly set
+         */
+        public boolean isDisabledCategoriesConfigured() {
+            return disabledCategoriesConfigured;
+        }
+
+        /**
          * Disabled categories for REST API auditing
          * @return set of categories
          */
@@ -499,9 +571,17 @@ public class AuditConfig {
 
         public void log(Logger logger) {
             logger.info("Auditing on REST API is {}.", isRestApiAuditEnabled ? "enabled" : "disabled");
-            logger.info("{} are excluded from REST API auditing.", disabledRestCategories);
             logger.info("Auditing on Transport API is {}.", isTransportApiAuditEnabled ? "enabled" : "disabled");
-            logger.info("{} are excluded from Transport API auditing.", disabledTransportCategories);
+            if (disabledCategoriesConfigured) {
+                if (disabledCategories.isEmpty()) {
+                    logger.info("No audit categories are excluded from REST or Transport API auditing.");
+                } else {
+                    logger.info("{} are excluded from REST and Transport API auditing.", disabledCategories);
+                }
+            } else {
+                logger.info("{} are excluded from REST API auditing.", disabledRestCategories);
+                logger.info("{} are excluded from Transport API auditing.", disabledTransportCategories);
+            }
             logger.info("Auditing of request body is {}.", logRequestBody ? "enabled" : "disabled");
             logger.info("Bulk requests resolution is {} during request auditing.", resolveBulkRequests ? "enabled" : "disabled");
             logger.info("Index resolution is {} during request auditing.", resolveIndices ? "enabled" : "disabled");
@@ -516,10 +596,14 @@ public class AuditConfig {
             return "Filter{"
                 + "isRestApiAuditEnabled="
                 + isRestApiAuditEnabled
-                + ", disabledRestCategories="
-                + disabledRestCategories
                 + ", isTransportApiAuditEnabled="
                 + isTransportApiAuditEnabled
+                + ", disabledCategoriesConfigured="
+                + disabledCategoriesConfigured
+                + ", disabledCategories="
+                + disabledCategories
+                + ", disabledRestCategories="
+                + disabledRestCategories
                 + ", disabledTransportCategories="
                 + disabledTransportCategories
                 + ", resolveBulkRequests="
