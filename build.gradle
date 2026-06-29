@@ -470,7 +470,7 @@ configurations {
 configurations {
     all {
         resolutionStrategy {
-            force 'commons-codec:commons-codec:1.22.0'
+            force 'commons-codec:commons-codec:1.22.1'
             force 'commons-logging:commons-logging:1.4.0'
             force 'org.slf4j:slf4j-api:1.7.36'
             force 'org.scala-lang:scala-library:2.13.18'
@@ -990,3 +990,4 @@ tasks.register("updateVersion") {
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }
+// Trigger dependency scan
