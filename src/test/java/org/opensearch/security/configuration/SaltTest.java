@@ -28,9 +28,6 @@ import org.junit.rules.ExpectedException;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,7 +35,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.configuration.Salt.SALT_SIZE;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class SaltTest extends LuceneTestCase {
@@ -57,7 +53,7 @@ public class SaltTest extends LuceneTestCase {
     }
 
     @Test
-    public void testDefaultSaltDoesNotLogWarningWithoutFieldMasking() {
+    public void testSaltFromDoesNotLogDefaultSaltWarning() {
         final List<String> warnings = captureWarnLogs(() -> {
             Salt.from(Settings.EMPTY);
             Salt.from(Settings.EMPTY);
@@ -68,67 +64,38 @@ public class SaltTest extends LuceneTestCase {
     }
 
     @Test
-    public void testDefaultSaltRejectedInProductionWhenFieldMaskingConfigured() {
-        // assert
-        thrown.expect(OpenSearchException.class);
-        thrown.expectMessage("Default compliance salt is not allowed in production when field masking is configured");
-
-        // act
-        Salt.validateSaltSettings(Settings.EMPTY, true);
-    }
-
-    @Test
-    public void testDefaultSaltAllowedWhenFieldMaskingNotConfigured() {
-        Salt.validateSaltSettings(Settings.EMPTY, false);
-        Salt.validateSaltSettings(Settings.builder().put(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, true).build(), false);
-    }
-
-    @Test
-    public void testDefaultSaltAllowedWithDemoFlagWhenFieldMaskingConfigured() {
-        final List<String> warnings = captureWarnLogs(
-            () -> Salt.validateSaltSettings(
-                Settings.builder().put(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, true).build(),
-                true
-            )
-        );
+    public void testWarnIfDefaultComplianceSaltLogsOnce() {
+        final List<String> warnings = captureWarnLogs(() -> Salt.warnIfDefaultComplianceSalt(Settings.EMPTY));
 
         assertThat(warnings.size(), is(1));
-        assertTrue(warnings.get(0).contains("Field masking is configured"));
-        assertTrue(warnings.get(0).contains(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT));
+        assertTrue(warnings.get(0).contains("Default compliance salt is in use"));
+        assertTrue(warnings.get(0).contains(ConfigConstants.SECURITY_COMPLIANCE_SALT));
+        assertTrue(warnings.get(0).contains(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES));
     }
 
     @Test
-    public void testIsFieldMaskingConfigured() throws Exception {
-        final RoleV7 roleWithoutMasking = RoleV7.fromYamlString(
-            "cluster_permissions:\n"
-                + "  - 'cluster:monitor/health'\n"
-                + "index_permissions:\n"
-                + "  - index_patterns:\n"
-                + "      - '*'\n"
-                + "    allowed_actions:\n"
-                + "      - 'read'"
-        );
-        final RoleV7 roleWithMasking = RoleV7.fromYamlString(
-            "cluster_permissions:\n"
-                + "  - 'cluster:monitor/health'\n"
-                + "index_permissions:\n"
-                + "  - index_patterns:\n"
-                + "      - '*'\n"
-                + "    masked_fields:\n"
-                + "      - 'secret'\n"
-                + "    allowed_actions:\n"
-                + "      - 'read'"
-        );
+    public void testWarnIfDefaultComplianceSaltSkipsCustomSalt() {
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_COMPLIANCE_SALT, "abcdefghijklmnop").build();
 
-        final SecurityDynamicConfiguration<RoleV7> withoutMasking = SecurityDynamicConfiguration.empty(CType.ROLES);
-        withoutMasking.putCEntry("role_a", roleWithoutMasking);
+        final List<String> warnings = captureWarnLogs(() -> Salt.warnIfDefaultComplianceSalt(settings));
 
-        final SecurityDynamicConfiguration<RoleV7> withMasking = SecurityDynamicConfiguration.empty(CType.ROLES);
-        withMasking.putCEntry("role_b", roleWithMasking);
+        assertThat(warnings, empty());
+    }
 
-        assertFalse(Salt.isFieldMaskingConfigured(null));
-        assertFalse(Salt.isFieldMaskingConfigured(withoutMasking));
-        assertTrue(Salt.isFieldMaskingConfigured(withMasking));
+    @Test
+    public void testDefaultSaltRejectedInProduction() {
+        // assert
+        thrown.expect(OpenSearchException.class);
+        thrown.expectMessage("Default compliance salt is not allowed in production");
+
+        // act - validation rejects default salt when allow_unsafe_democertificates is false
+        Salt.validateSaltSettings(Settings.EMPTY);
+    }
+
+    @Test
+    public void testDefaultSaltAllowedWithDemoFlag() {
+        // should not throw
+        Salt.validateSaltSettings(Settings.builder().put(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, true).build());
     }
 
     @Test

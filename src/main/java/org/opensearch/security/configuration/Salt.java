@@ -21,8 +21,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 
 /**
@@ -83,53 +81,45 @@ public class Salt {
     }
 
     /**
-     * Returns whether any loaded role defines field masking via {@code masked_fields}.
+     * Logs a warning when the default compliance salt is in use.
+     * Must be called once during plugin startup.
+     * @param settings fully loaded node settings
      */
-    public static boolean isFieldMaskingConfigured(final SecurityDynamicConfiguration<RoleV7> rolesConfig) {
-        if (rolesConfig == null) {
-            return false;
+    public static void warnIfDefaultComplianceSalt(final Settings settings) {
+        final String saltAsString = settings.get(
+            ConfigConstants.SECURITY_COMPLIANCE_SALT,
+            ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT
+        );
+        if (ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.equals(saltAsString)) {
+            log.warn(
+                "Default compliance salt is in use. Configure {} to a random 16-character string identical on all nodes, "
+                    + "or set {} to true for demo/test environments.",
+                ConfigConstants.SECURITY_COMPLIANCE_SALT,
+                ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES
+            );
         }
-
-        return rolesConfig.getCEntries()
-            .values()
-            .stream()
-            .flatMap(role -> role.getIndex_permissions().stream())
-            .anyMatch(index -> !index.getMasked_fields().isEmpty());
     }
 
     /**
-     * Validates compliance salt when field masking is in use.
-     * Must be called after roles configuration is loaded or reloaded.
+     * Validates that the default compliance salt is not used unless allow_unsafe_democertificates is enabled.
+     * Must be called after node settings are fully loaded (e.g. during plugin startup).
      * @param settings fully loaded node settings
-     * @param fieldMaskingConfigured whether any role defines {@code masked_fields}
-     * @throws OpenSearchException if the default salt is used with field masking in production
+     * @throws OpenSearchException if the default salt is used without the demo flag
      */
-    public static void validateSaltSettings(final Settings settings, final boolean fieldMaskingConfigured) {
-        if (!fieldMaskingConfigured) {
-            return;
-        }
-
+    public static void validateSaltSettings(final Settings settings) {
         final String saltAsString = settings.get(
             ConfigConstants.SECURITY_COMPLIANCE_SALT,
             ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT
         );
         final boolean allowUnsafeDemoCertificates = settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false);
-        if (ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.equals(saltAsString)) {
-            if (allowUnsafeDemoCertificates) {
-                log.warn(
-                    "Field masking is configured but compliance salt {} is still the default. Configure {} to a random 16-character string identical on all nodes",
-                    saltAsString,
-                    ConfigConstants.SECURITY_COMPLIANCE_SALT
-                );
-            } else {
-                throw new OpenSearchException(
-                    "Default compliance salt is not allowed in production when field masking is configured. Please configure "
-                        + ConfigConstants.SECURITY_COMPLIANCE_SALT
-                        + " to a random 16-character string, or set "
-                        + ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES
-                        + " to true for demo/test environments."
-                );
-            }
+        if (ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.equals(saltAsString) && !allowUnsafeDemoCertificates) {
+            throw new OpenSearchException(
+                "Default compliance salt is not allowed in production. Please configure "
+                    + ConfigConstants.SECURITY_COMPLIANCE_SALT
+                    + " to a random 16-character string, or set "
+                    + ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES
+                    + " to true for demo/test environments."
+            );
         }
     }
 }
