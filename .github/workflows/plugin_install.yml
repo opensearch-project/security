@@ -25,7 +25,7 @@ jobs:
         uses: DarshitChanpura/secure-password-action@70c04529b3705c2f0f5fb81d26b29d11ce120d18 # v1.0.0
 
       - name: Set up JDK
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
