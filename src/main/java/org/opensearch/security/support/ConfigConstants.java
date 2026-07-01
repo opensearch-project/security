@@ -402,6 +402,9 @@ public class ConfigConstants {
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
     public static final String SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT = SECURITY_SETTINGS_PREFIX + "masked_fields.algorithm.default";
 
+    // Dynamic cluster setting for Dashboards URL used in SAML authentication flow
+    public static final String SECURITY_DASHBOARDS_URL = SECURITY_SETTINGS_PREFIX + "dashboards.dashboards_url";
+
     public static final String TENANCY_PRIVATE_TENANT_NAME = "private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";

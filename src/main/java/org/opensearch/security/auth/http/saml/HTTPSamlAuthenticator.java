@@ -34,6 +34,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.secure_sm.AccessController;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.http.jwt.AbstractHTTPJwtAuthenticator;
@@ -45,6 +46,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestChannelUnsupported;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.opensaml.integration.SecurityXMLObjectProviderInitializer;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.user.AuthCredentials;
@@ -132,7 +134,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
             this.metadataResolver = createMetadataResolver(settings, configPath);
 
-            this.saml2SettingsProvider = new Saml2SettingsProvider(settings, this.metadataResolver, spSignaturePrivateKey);
+            this.saml2SettingsProvider = new Saml2SettingsProvider(
+                settings,
+                this.metadataResolver,
+                spSignaturePrivateKey,
+                this::getDashboardsUrl
+            );
 
             try {
                 this.saml2SettingsProvider.getCached();
@@ -145,7 +152,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
             this.jwtSettings = this.createJwtAuthenticatorSettings(settings);
 
-            this.authTokenProcessorHandler = new AuthTokenProcessorHandler(settings, jwtSettings, this.saml2SettingsProvider);
+            this.authTokenProcessorHandler = new AuthTokenProcessorHandler(
+                settings,
+                jwtSettings,
+                this.saml2SettingsProvider,
+                this::getDashboardsUrl
+            );
 
             this.httpJwtAuthenticator = new HTTPJwtAuthenticator(this.jwtSettings, configPath);
 
@@ -153,6 +165,33 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             log.error("Error creating HTTPSamlAuthenticator. SAML authentication will not work", e);
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Get the Dashboards URL with fallback logic:
+     * 1. Try dynamic cluster setting (if available)
+     * 2. Fall back to security configuration (kibana_url)
+     *
+     * @return the Dashboards URL to use
+     */
+    private String getDashboardsUrl() {
+        try {
+            // Try to get the dynamic cluster setting value
+            OpensearchDynamicSetting<String> dashboardsUrlSetting = OpenSearchSecurityPlugin.GuiceHolder.getDashboardsUrlSetting();
+            if (dashboardsUrlSetting != null) {
+                String dynamicUrl = dashboardsUrlSetting.getDynamicSettingValue();
+                if (dynamicUrl != null && !dynamicUrl.trim().isEmpty()) {
+                    log.debug("Using Dashboards URL from dynamic cluster setting: {}", dynamicUrl);
+                    return dynamicUrl;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Dynamic dashboards URL setting not available, using security configuration", e);
+        }
+
+        // Fall back to security configuration
+        log.debug("Using Dashboards URL from security configuration (kibana_url): {}", kibanaRootUrl);
+        return kibanaRootUrl;
     }
 
     @Override

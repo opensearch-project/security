@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -52,14 +53,26 @@ public class Saml2SettingsProvider {
     private final MetadataResolver metadataResolver;
     private final String idpEntityId;
     private final PrivateKey spSignaturePrivateKey;
+    private final Supplier<String> dashboardsUrlSupplier;
     private Saml2Settings cachedSaml2Settings;
     private Instant metadataUpdateTime;
+    private String lastUsedDashboardsUrl;
 
     Saml2SettingsProvider(Settings opensearchSettings, MetadataResolver metadataResolver, PrivateKey spSignaturePrivateKey) {
+        this(opensearchSettings, metadataResolver, spSignaturePrivateKey, () -> opensearchSettings.get("kibana_url"));
+    }
+
+    Saml2SettingsProvider(
+        Settings opensearchSettings,
+        MetadataResolver metadataResolver,
+        PrivateKey spSignaturePrivateKey,
+        Supplier<String> dashboardsUrlSupplier
+    ) {
         this.opensearchSettings = opensearchSettings;
         this.metadataResolver = metadataResolver;
         this.idpEntityId = opensearchSettings.get("idp.entity_id");
         this.spSignaturePrivateKey = spSignaturePrivateKey;
+        this.dashboardsUrlSupplier = dashboardsUrlSupplier;
     }
 
     Saml2Settings get() throws SamlConfigException {
@@ -113,8 +126,10 @@ public class Saml2SettingsProvider {
         }
 
         if (this.cachedSaml2Settings == null) {
+            String currentDashboardsUrl = this.dashboardsUrlSupplier.get();
             this.cachedSaml2Settings = this.get();
             this.metadataUpdateTime = tempLastUpdate;
+            this.lastUsedDashboardsUrl = currentDashboardsUrl;
         }
 
         return this.cachedSaml2Settings;
@@ -128,10 +143,22 @@ public class Saml2SettingsProvider {
         }
 
         if (refreshableMetadataResolver.getLastUpdate().isAfter(this.metadataUpdateTime)) {
+            log.debug("IdP metadata has been updated; SAML settings cache will be refreshed");
             return true;
-        } else {
-            return false;
         }
+
+        // Check if Dashboards URL has changed
+        String currentDashboardsUrl = this.dashboardsUrlSupplier.get();
+        if (this.lastUsedDashboardsUrl != null && !this.lastUsedDashboardsUrl.equals(currentDashboardsUrl)) {
+            log.debug(
+                "Dashboards URL has changed from '{}' to '{}'; SAML settings cache will be refreshed",
+                this.lastUsedDashboardsUrl,
+                currentDashboardsUrl
+            );
+            return true;
+        }
+
+        return false;
     }
 
     private void initMisc(HashMap<String, Object> configProperties) {
@@ -143,7 +170,7 @@ public class Saml2SettingsProvider {
     private void initSpEndpoints(HashMap<String, Object> configProperties) {
         configProperties.put(
             SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_URL_PROPERTY_KEY,
-            this.buildAssertionConsumerEndpoint(this.opensearchSettings.get("kibana_url"))
+            this.buildAssertionConsumerEndpoint(this.dashboardsUrlSupplier.get())
         );
         configProperties.put(
             SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_BINDING_PROPERTY_KEY,
