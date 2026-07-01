@@ -10,6 +10,10 @@ config:
     # Enable/disable REST API auditing
     enable_rest: true
 
+    disabled_categories:
+      - AUTHENTICATED
+      - GRANTED_PRIVILEGES
+
     # Categories to exclude from REST API auditing
     disabled_rest_categories:
       - AUTHENTICATED

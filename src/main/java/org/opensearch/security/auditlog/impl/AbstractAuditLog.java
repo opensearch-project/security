@@ -1129,6 +1129,16 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
+        if (auditConfigFilter.isDisabledCategoriesConfigured()) {
+            if (auditConfigFilter.getDisabledCategories().contains(category)) {
+                if (isTraceEnabled) {
+                    log.trace("Skipped audit log message because category {} not enabled", category);
+                }
+                return false;
+            }
+            return true;
+        }
+
         if (!auditConfigFilter.getDisabledTransportCategories().contains(category)) {
             return true;
         } else {
@@ -1220,6 +1230,16 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
 
             return false;
+        }
+
+        if (auditConfigFilter.isDisabledCategoriesConfigured()) {
+            if (auditConfigFilter.getDisabledCategories().contains(category)) {
+                if (isTraceEnabled) {
+                    log.trace("Skipped audit log message because category {} not enabled", category);
+                }
+                return false;
+            }
+            return true;
         }
 
         if (!auditConfigFilter.getDisabledRestCategories().contains(category)) {
