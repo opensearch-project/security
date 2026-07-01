@@ -149,6 +149,19 @@ public class AuditApiAction extends AbstractApiAction {
     private final List<String> readonlyFields;
 
     public static class AuditRequestContentValidator extends RequestContentValidator {
+        public static final Set<AuditCategory> DISABLED_CATEGORIES = Set.of(
+            AuditCategory.BAD_HEADERS,
+            AuditCategory.SSL_EXCEPTION,
+            AuditCategory.AUTHENTICATED,
+            AuditCategory.FAILED_LOGIN,
+            AuditCategory.GRANTED_PRIVILEGES,
+            AuditCategory.MISSING_PRIVILEGES,
+            AuditCategory.INDEX_EVENT,
+            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT,
+            AuditCategory.CLUSTER_SETTINGS_CHANGED,
+            AuditCategory.INDEX_SETTINGS_CHANGED
+        );
+
         public static final Set<AuditCategory> DISABLED_REST_CATEGORIES = Set.of(
             AuditCategory.BAD_HEADERS,
             AuditCategory.SSL_EXCEPTION,
@@ -190,6 +203,9 @@ public class AuditApiAction extends AbstractApiAction {
                 // try parsing to target type
                 final AuditConfig auditConfig = DefaultObjectMapper.readTree(jsonContent, AuditConfig.class);
                 final AuditConfig.Filter filter = auditConfig.getFilter();
+                if (!DISABLED_CATEGORIES.containsAll(filter.getDisabledCategories())) {
+                    throw new IllegalArgumentException("Invalid categories passed in the request");
+                }
                 if (!DISABLED_REST_CATEGORIES.containsAll(filter.getDisabledRestCategories())) {
                     throw new IllegalArgumentException("Invalid REST categories passed in the request");
                 }

@@ -145,6 +145,10 @@ public class AuditConfigSerializeTest {
             .field("disabled_rest_categories", Collections.singletonList("AUTHENTICATED"))
             .field("enable_transport", true)
             .field("disabled_transport_categories", Collections.singletonList("SSL_EXCEPTION"))
+            .field(
+                "disabled_categories",
+                ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
+            )
             .field("resolve_bulk_requests", true)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -219,7 +223,9 @@ public class AuditConfigSerializeTest {
             ImmutableSet.of("test-header"),
             ImmutableSet.of("test-param"),
             EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES),
-            EnumSet.of(AUTHENTICATED)
+            EnumSet.of(AUTHENTICATED),
+            false,
+            null
         );
         final ComplianceConfig compliance = new ComplianceConfig(
             true,
@@ -366,6 +372,10 @@ public class AuditConfigSerializeTest {
             .startObject("audit")
             .field("enable_rest", true)
             .field("enable_transport", true)
+            .field(
+                "disabled_categories",
+                ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
+            )
             .field("resolve_bulk_requests", true)
             .field("log_request_body", true)
             .field("resolve_indices", true)
