@@ -212,10 +212,18 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES = "opendistro_security.audit.resolve_indices";
     public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_REST = "opendistro_security.audit.enable_rest";
     public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT = "opendistro_security.audit.enable_transport";
+    public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES =
+        "opendistro_security.audit.config.disabled_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES =
         "opendistro_security.audit.config.disabled_transport_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES =
         "opendistro_security.audit.config.disabled_rest_categories";
+    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT = ImmutableList.of(
+        AuditCategory.AUTHENTICATED.toString(),
+        AuditCategory.GRANTED_PRIVILEGES.toString(),
+        AuditCategory.CLUSTER_SETTINGS_CHANGED.toString(),
+        AuditCategory.INDEX_SETTINGS_CHANGED.toString()
+    );
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
         AuditCategory.GRANTED_PRIVILEGES.toString()

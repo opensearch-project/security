@@ -256,4 +256,83 @@ public class AuditConfigFilterTest {
             .build();
         assertThat(parse.apply(settingMultipleValues), equalTo(ImmutableSet.of(AUTHENTICATED, BAD_HEADERS)));
     }
+
+    @Test
+    public void testUnifiedDisabledCategoriesTakesPrecedence() {
+        // When disabled_categories is set, it should be used and disabledCategoriesConfigured = true
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_categories", "FAILED_LOGIN", "SSL_EXCEPTION")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertTrue(filter.isDisabledCategoriesConfigured());
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(FAILED_LOGIN, SSL_EXCEPTION)));
+    }
+
+    @Test
+    public void testFallbackToSplitWhenUnifiedNotSet() {
+        // When disabled_categories is NOT set, fall back to split settings
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_rest_categories", "AUTHENTICATED")
+            .putList("plugins.security.audit.config.disabled_transport_categories", "FAILED_LOGIN")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertFalse(filter.isDisabledCategoriesConfigured());
+        assertThat(filter.getDisabledRestCategories(), equalTo(EnumSet.of(AUTHENTICATED)));
+        assertThat(filter.getDisabledTransportCategories(), equalTo(EnumSet.of(FAILED_LOGIN)));
+    }
+
+    @Test
+    public void testUnifiedOverridesSplitEvenWhenBothPresent() {
+        // When both unified and split are set, unified wins
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_categories", "BAD_HEADERS")
+            .putList("plugins.security.audit.config.disabled_rest_categories", "AUTHENTICATED")
+            .putList("plugins.security.audit.config.disabled_transport_categories", "FAILED_LOGIN")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertTrue(filter.isDisabledCategoriesConfigured());
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(BAD_HEADERS)));
+    }
+
+    @Test
+    public void testDefaultDisabledCategoriesWhenNothingConfigured() {
+        // When nothing is configured, disabled_categories is not set (null internally, empty set via getter)
+        // The split settings (disabled_rest/transport_categories) handle the defaults
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(Settings.EMPTY);
+
+        assertFalse(filter.isDisabledCategoriesConfigured());
+        assertTrue(filter.getDisabledCategories().isEmpty());
+    }
+
+    @Test
+    public void testEmptyUnifiedDisabledCategories() {
+        // Explicitly setting disabled_categories to empty means nothing is disabled
+        final Settings settings = Settings.builder().putList("plugins.security.audit.config.disabled_categories").build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertTrue(filter.isDisabledCategoriesConfigured());
+        assertTrue(filter.getDisabledCategories().isEmpty());
+    }
+
+    @Test
+    public void testUnifiedCategoriesUsedIndependentlyOfSplit() {
+        // Unified has MISSING_PRIVILEGES only, split has AUTHENTICATED (rest) and FAILED_LOGIN (transport)
+        // Verify that when unified is configured, only its categories matter
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_categories", "MISSING_PRIVILEGES")
+            .putList("plugins.security.audit.config.disabled_rest_categories", "AUTHENTICATED")
+            .putList("plugins.security.audit.config.disabled_transport_categories", "FAILED_LOGIN")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertTrue(filter.isDisabledCategoriesConfigured());
+        // Unified should have ONLY MISSING_PRIVILEGES
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(MISSING_PRIVILEGES)));
+        // It should NOT contain what the split settings had
+        assertFalse(filter.getDisabledCategories().contains(AUTHENTICATED));
+        assertFalse(filter.getDisabledCategories().contains(FAILED_LOGIN));
+    }
 }

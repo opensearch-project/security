@@ -22,6 +22,7 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditTestUtils;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.helper.RetrySink;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -159,6 +160,73 @@ public class AuditlogTest {
             Assert.assertTrue(al.checkTransportFilter(category, "indices:data/any", "user", mock(TransportRequest.class)));
             Assert.assertFalse(al.checkTransportFilter(category, "internal:any", "user", mock(TransportRequest.class)));
 
+        }
+    }
+
+    @Test
+    public void testUnifiedDisabledCategoriesSuppressesTransport() {
+        // Unified disables FAILED_LOGIN — verify it's suppressed at transport layer
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+            .putList("plugins.security.audit.config.disabled_categories", "FAILED_LOGIN")
+            .build();
+        final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+
+        // FAILED_LOGIN should be suppressed
+        Assert.assertFalse(al.checkTransportFilter(AuditCategory.FAILED_LOGIN, "action", "user", mock(TransportRequest.class)));
+        // AUTHENTICATED should NOT be suppressed (not in unified list)
+        Assert.assertTrue(al.checkTransportFilter(AuditCategory.AUTHENTICATED, "action", "user", mock(TransportRequest.class)));
+    }
+
+    @Test
+    public void testUnifiedDisabledCategoriesSuppressesRest() {
+        // Unified disables GRANTED_PRIVILEGES — verify it's suppressed at REST layer
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
+            .putList("plugins.security.audit.config.disabled_categories", "GRANTED_PRIVILEGES")
+            .build();
+        final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+
+        // GRANTED_PRIVILEGES should be suppressed
+        Assert.assertFalse(al.checkRestFilter(AuditCategory.GRANTED_PRIVILEGES, "user", mock(SecurityRequestChannel.class)));
+        // FAILED_LOGIN should NOT be suppressed
+        Assert.assertTrue(al.checkRestFilter(AuditCategory.FAILED_LOGIN, "user", mock(SecurityRequestChannel.class)));
+    }
+
+    @Test
+    public void testUnifiedDisabledCategoriesIgnoresSplitSettings() {
+        // Unified has only MISSING_PRIVILEGES disabled
+        // Split has AUTHENTICATED (rest) and FAILED_LOGIN (transport) disabled
+        // Unified should take precedence — AUTHENTICATED and FAILED_LOGIN should NOT be suppressed
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
+            .putList("plugins.security.audit.config.disabled_categories", "MISSING_PRIVILEGES")
+            .putList("plugins.security.audit.config.disabled_rest_categories", "AUTHENTICATED")
+            .putList("plugins.security.audit.config.disabled_transport_categories", "FAILED_LOGIN")
+            .build();
+        final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
+
+        // MISSING_PRIVILEGES suppressed (in unified)
+        Assert.assertFalse(al.checkTransportFilter(AuditCategory.MISSING_PRIVILEGES, "action", "user", mock(TransportRequest.class)));
+        Assert.assertFalse(al.checkRestFilter(AuditCategory.MISSING_PRIVILEGES, "user", mock(SecurityRequestChannel.class)));
+
+        // AUTHENTICATED and FAILED_LOGIN should NOT be suppressed (unified doesn't have them)
+        Assert.assertTrue(al.checkTransportFilter(AuditCategory.AUTHENTICATED, "action", "user", mock(TransportRequest.class)));
+        Assert.assertTrue(al.checkTransportFilter(AuditCategory.FAILED_LOGIN, "action", "user", mock(TransportRequest.class)));
+        Assert.assertTrue(al.checkRestFilter(AuditCategory.AUTHENTICATED, "user", mock(SecurityRequestChannel.class)));
+        Assert.assertTrue(al.checkRestFilter(AuditCategory.FAILED_LOGIN, "user", mock(SecurityRequestChannel.class)));
+    }
+
+    @Test
+    public void testInvalidCategoryNameThrowsException() {
+        // Invalid category name should throw IllegalArgumentException during parse
+        final Settings settings = Settings.builder().putList("plugins.security.audit.config.disabled_categories", "BOGUS_CATEGORY").build();
+        try {
+            AuditConfig.Filter.from(settings);
+            Assert.fail("Expected IllegalArgumentException for invalid category");
+        } catch (IllegalArgumentException e) {
+            // expected
         }
     }
 }
