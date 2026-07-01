@@ -2596,7 +2596,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static BackendRegistry backendRegistry;
         private static AuditLogImpl auditLog;
         private static PrivilegesConfiguration privilegesConfiguration;
-        private static OpensearchDynamicSetting<String> dashboardsUrlSetting;
+        private static volatile OpensearchDynamicSetting<String> dashboardsUrlSetting;
 
         private static ExtensionsManager extensionsManager;
 

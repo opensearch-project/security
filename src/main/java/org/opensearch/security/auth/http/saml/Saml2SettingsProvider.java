@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -125,6 +126,10 @@ public class Saml2SettingsProvider {
             tempLastUpdate = ((RefreshableMetadataResolver) this.metadataResolver).getLastUpdate();
         }
 
+        if (this.isDashboardsUrlChanged()) {
+            this.cachedSaml2Settings = null;
+        }
+
         if (this.cachedSaml2Settings == null) {
             String currentDashboardsUrl = this.dashboardsUrlSupplier.get();
             this.cachedSaml2Settings = this.get();
@@ -143,13 +148,15 @@ public class Saml2SettingsProvider {
         }
 
         if (refreshableMetadataResolver.getLastUpdate().isAfter(this.metadataUpdateTime)) {
-            log.debug("IdP metadata has been updated; SAML settings cache will be refreshed");
             return true;
+        } else {
+            return false;
         }
+    }
 
-        // Check if Dashboards URL has changed
+    private boolean isDashboardsUrlChanged() {
         String currentDashboardsUrl = this.dashboardsUrlSupplier.get();
-        if (this.lastUsedDashboardsUrl != null && !this.lastUsedDashboardsUrl.equals(currentDashboardsUrl)) {
+        if (!Objects.equals(this.lastUsedDashboardsUrl, currentDashboardsUrl)) {
             log.debug(
                 "Dashboards URL has changed from '{}' to '{}'; SAML settings cache will be refreshed",
                 this.lastUsedDashboardsUrl,
@@ -157,7 +164,6 @@ public class Saml2SettingsProvider {
             );
             return true;
         }
-
         return false;
     }
 
