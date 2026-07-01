@@ -97,7 +97,8 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private String spSignatureAlgorithm;
     private Boolean useForceAuthn;
     private PrivateKey spSignaturePrivateKey;
-    private Saml2SettingsProvider saml2SettingsProvider;
+    @VisibleForTesting
+    protected Saml2SettingsProvider saml2SettingsProvider;
     private MetadataResolver metadataResolver;
     private AuthTokenProcessorHandler authTokenProcessorHandler;
     @VisibleForTesting
@@ -169,27 +170,21 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
     /**
      * Get the Dashboards URL with fallback logic:
-     * 1. Try dynamic cluster setting (if available)
-     * 2. Fall back to security configuration (kibana_url)
+     * 1. Try dynamic cluster setting
+     * 2. Fall back to security configuration
      *
      * @return the Dashboards URL to use
      */
     private String getDashboardsUrl() {
-        try {
-            // Try to get the dynamic cluster setting value
-            OpensearchDynamicSetting<String> dashboardsUrlSetting = OpenSearchSecurityPlugin.GuiceHolder.getDashboardsUrlSetting();
-            if (dashboardsUrlSetting != null) {
-                String dynamicUrl = dashboardsUrlSetting.getDynamicSettingValue();
-                if (dynamicUrl != null && !dynamicUrl.trim().isEmpty()) {
-                    log.debug("Using Dashboards URL from dynamic cluster setting: {}", dynamicUrl);
-                    return dynamicUrl;
-                }
+        OpensearchDynamicSetting<String> dashboardsUrlSetting = OpenSearchSecurityPlugin.GuiceHolder.getDashboardsUrlSetting();
+        if (dashboardsUrlSetting != null) {
+            String dynamicUrl = dashboardsUrlSetting.getDynamicSettingValue();
+            if (dynamicUrl != null && !dynamicUrl.trim().isEmpty()) {
+                log.debug("Using Dashboards URL from dynamic cluster setting: {}", dynamicUrl);
+                return dynamicUrl;
             }
-        } catch (Exception e) {
-            log.debug("Dynamic dashboards URL setting not available, using security configuration", e);
         }
 
-        // Fall back to security configuration
         log.debug("Using Dashboards URL from security configuration (kibana_url): {}", kibanaRootUrl);
         return kibanaRootUrl;
     }
