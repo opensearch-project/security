@@ -50,9 +50,11 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.filter.SecurityResponse;
+import org.opensearch.security.setting.DashboardsUrlSetting;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
@@ -989,6 +991,55 @@ public class HTTPSamlAuthenticatorTest {
             return null;
         }
 
+    }
+
+    @Test
+    public void dynamicClusterSettingUrlTakesPrecedenceOverKibanaUrl() throws Exception {
+        // Inject a dynamic setting with a URL different from kibana_url
+        Settings settingsWithDynamicUrl = Settings.builder()
+            .put(org.opensearch.security.support.ConfigConstants.SECURITY_DASHBOARDS_URL, "http://dynamic-dashboards")
+            .build();
+        DashboardsUrlSetting dynamicSetting = new DashboardsUrlSetting(settingsWithDynamicUrl);
+        OpenSearchSecurityPlugin.GuiceHolder.setDashboardsUrlSetting(dynamicSetting);
+
+        try {
+            Settings settings = Settings.builder()
+                .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://kibana-fallback")
+                .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("exchange_key", "abc")
+                .put("roles_key", "roles")
+                .put("path.home", ".")
+                .build();
+            HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+            String acsUrl = samlAuthenticator.saml2SettingsProvider.getCached().getSpAssertionConsumerServiceUrl().toString();
+            assertThat(acsUrl, Matchers.startsWith("http://dynamic-dashboards"));
+        } finally {
+            OpenSearchSecurityPlugin.GuiceHolder.setDashboardsUrlSetting(null);
+        }
+    }
+
+    @Test
+    public void fallsBackToKibanaUrlWhenDynamicSettingIsAbsent() throws Exception {
+        // Dynamic setting is null (not configured) — must fall back to kibana_url
+        DashboardsUrlSetting dynamicSetting = new DashboardsUrlSetting(Settings.builder().build());
+        OpenSearchSecurityPlugin.GuiceHolder.setDashboardsUrlSetting(dynamicSetting);
+
+        try {
+            Settings settings = Settings.builder()
+                .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://kibana-fallback")
+                .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("exchange_key", "abc")
+                .put("roles_key", "roles")
+                .put("path.home", ".")
+                .build();
+            HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+            String acsUrl = samlAuthenticator.saml2SettingsProvider.getCached().getSpAssertionConsumerServiceUrl().toString();
+            assertThat(acsUrl, Matchers.startsWith("http://kibana-fallback"));
+        } finally {
+            OpenSearchSecurityPlugin.GuiceHolder.setDashboardsUrlSetting(null);
+        }
     }
 
     static class AuthenticateHeaders {

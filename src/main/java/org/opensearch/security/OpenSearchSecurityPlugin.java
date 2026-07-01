@@ -206,6 +206,7 @@ import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.setting.DashboardsUrlSetting;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
 import org.opensearch.security.spi.SecurityConfigExtension;
@@ -304,6 +305,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private final OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
     private final OpensearchDynamicSetting<List<String>> resourceSharingProtectedResourceTypesSetting;
+    private final OpensearchDynamicSetting<String> dashboardsUrlSetting;
     private volatile PasswordHasher passwordHasher;
     private volatile DlsFlsBaseContext dlsFlsBaseContext;
     private ResourceSharingIndexHandler rsIndexHandler;
@@ -391,6 +393,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         resourceSharingEnabledSetting = new ResourceSharingFeatureFlagSetting(settings, resourcePluginInfo); // not filtered
         resourceSharingProtectedResourceTypesSetting = new ResourceSharingProtectedResourcesSetting(settings, resourcePluginInfo); // not
                                                                                                                                    // filtered
+        dashboardsUrlSetting = new DashboardsUrlSetting(settings);
         resourcePluginInfo.setProtectedTypesSetting(resourceSharingProtectedResourceTypesSetting);
 
         if (disabled) {
@@ -1208,6 +1211,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         transportPassiveAuthSetting.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         resourceSharingEnabledSetting.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         resourceSharingProtectedResourceTypesSetting.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        dashboardsUrlSetting.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+
+        // Make dashboardsUrlSetting available through GuiceHolder for SAML authenticators
+        GuiceHolder.setDashboardsUrlSetting(dashboardsUrlSetting);
 
         final ClusterInfoHolder cih = new ClusterInfoHolder(this.cs.getClusterName().value());
         this.cs.addListener(cih);
@@ -2227,6 +2234,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
             settings.add(transportPassiveAuthSetting.getDynamicSetting());
 
+            settings.add(dashboardsUrlSetting.getDynamicSetting());
+
             settings.add(
                 Setting.boolSetting(
                     ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS,
@@ -2587,6 +2596,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         private static BackendRegistry backendRegistry;
         private static AuditLogImpl auditLog;
         private static PrivilegesConfiguration privilegesConfiguration;
+        private static volatile OpensearchDynamicSetting<String> dashboardsUrlSetting;
 
         private static ExtensionsManager extensionsManager;
 
@@ -2635,6 +2645,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         public static AuditLog getAuditLog() {
             return auditLog;
+        }
+
+        public static OpensearchDynamicSetting<String> getDashboardsUrlSetting() {
+            return dashboardsUrlSetting;
+        }
+
+        public static void setDashboardsUrlSetting(OpensearchDynamicSetting<String> setting) {
+            dashboardsUrlSetting = setting;
         }
 
         @Override
