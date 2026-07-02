@@ -33,7 +33,7 @@ jobs:
           java-version: 21
 
       - name: Checkout security
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Generate list of tasks
         id: set-matrix
@@ -59,7 +59,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Build and Test
         uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
@@ -102,7 +102,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Build and Test
         uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
@@ -122,7 +122,7 @@ jobs:
     needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux", "sample-plugin-integration-tests-linux", "sample-plugin-integration-tests-windows"]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: downloaded-artifacts
@@ -155,7 +155,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Run Integration Tests
         uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
@@ -198,7 +198,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Build and Test
         uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
@@ -241,7 +241,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Run SampleResourcePlugin Integration Tests
         uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
@@ -273,7 +273,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Run SampleResourcePlugin Integration Tests
         uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
@@ -306,7 +306,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Run Resource Tests
         uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
@@ -324,7 +324,7 @@ jobs:
           java-version: 21
 
       - name: Checkout Security Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Build BWC tests
         uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
@@ -348,7 +348,7 @@ jobs:
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout Security Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - id: build-previous
         uses: ./.github/actions/run-bwc-suite
@@ -366,7 +366,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
       - uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
@@ -380,7 +380,7 @@ jobs:
   build-health:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
       - uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
@@ -398,7 +398,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Environment
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Configure Java
         uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5
