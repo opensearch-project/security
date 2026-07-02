@@ -11,6 +11,7 @@
 
 package org.opensearch.security.identity;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Set;
@@ -53,6 +54,7 @@ public class SecurityTokenManager implements TokenManager {
     private final ThreadPool threadPool;
     private final UserService userService;
     private final RoleMapper roleMapper;
+    private final Path configPath;
 
     private Settings oboSettings = null;
     private final LongSupplier timeProvider = System::currentTimeMillis;
@@ -62,12 +64,14 @@ public class SecurityTokenManager implements TokenManager {
         final ClusterService cs,
         final ThreadPool threadPool,
         final UserService userService,
-        RoleMapper roleMapper
+        final RoleMapper roleMapper,
+        final Path configPath
     ) {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;
         this.roleMapper = roleMapper;
+        this.configPath = configPath;
     }
 
     @Subscribe
@@ -82,7 +86,7 @@ public class SecurityTokenManager implements TokenManager {
     /** For testing */
     JwtVendor createJwtVendor(final Settings settings) {
         try {
-            return new JwtVendor(settings);
+            return new JwtVendor(settings, configPath);
         } catch (final Exception ex) {
             logger.error("Unable to create the JwtVendor instance", ex);
             return null;
@@ -131,7 +135,7 @@ public class SecurityTokenManager implements TokenManager {
         }
 
         final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(
-            EncryptionDecryptionUtil.fromSettings(oboSettings, "encryption_key")
+            EncryptionDecryptionUtil.fromSettings(oboSettings, "encryption_key", configPath)
         );
 
         // Add obo claims

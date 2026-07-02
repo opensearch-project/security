@@ -12,6 +12,7 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
@@ -51,8 +52,8 @@ public class EncryptionDecryptionUtil {
      *
      * @return a util instance, or {@code null} if no key is configured
      */
-    public static EncryptionDecryptionUtil fromSettings(final Settings settings, final String prefix) {
-        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, prefix);
+    public static EncryptionDecryptionUtil fromSettings(final Settings settings, final String prefix, final Path configPath) {
+        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, prefix, configPath);
         if (keystoreKey != null) {
             return new EncryptionDecryptionUtil(keystoreKey.getEncoded());
         }

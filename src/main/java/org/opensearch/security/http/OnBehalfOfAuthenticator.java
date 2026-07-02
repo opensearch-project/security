@@ -11,6 +11,7 @@
 
 package org.opensearch.security.http;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -58,14 +59,16 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     private final Settings settings;
     private final Boolean enabled;
     private final String clusterName;
+    private final Path configPath;
     private volatile boolean initialized = false;
     private volatile JwtParser jwtParser;
     private volatile EncryptionDecryptionUtil encryptionUtil;
 
-    public OnBehalfOfAuthenticator(Settings settings, String clusterName) {
+    public OnBehalfOfAuthenticator(Settings settings, String clusterName, Path configPath) {
         this.enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
         this.settings = settings;
         this.clusterName = clusterName;
+        this.configPath = configPath;
     }
 
     /**
@@ -78,7 +81,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             initialized = true;
             try {
                 jwtParser = AccessController.doPrivileged(this::buildJwtParser);
-                encryptionUtil = EncryptionDecryptionUtil.fromSettings(settings, ENCRYPTION_KEY);
+                encryptionUtil = EncryptionDecryptionUtil.fromSettings(settings, ENCRYPTION_KEY, configPath);
             } catch (final RuntimeException e) {
                 log.error("On-behalf-of authentication is misconfigured; OBO tokens will be rejected: {}", e.toString(), e);
             }
@@ -93,7 +96,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
      * and verification share the same key material.
      */
     private JwtParser buildJwtParser() {
-        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, SIGNING_KEY);
+        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, SIGNING_KEY, configPath);
         if (keystoreKey != null) {
             final byte[] keyBytes = keystoreKey.getEncoded();
             validateSigningKeyBitLength(keyBytes.length * Byte.SIZE);

@@ -11,6 +11,7 @@
 
 package org.opensearch.security.util;
 
+import java.nio.file.Path;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -46,18 +47,20 @@ public class KeyUtils {
      * Expected settings:
      * <ul>
      *   <li>{@code <prefix>}{@value #KEYSTORE_ALIAS} — required; absence returns {@code null} (acts as an opt-in flag)</li>
-     *   <li>{@code <prefix>}{@value #KEYSTORE_PATH} — required for file-based keystores; may be omitted only for PKCS11</li>
+     *   <li>{@code <prefix>}{@value #KEYSTORE_PATH} — the keystore file; an absolute path is used as-is, a relative
+     *       path is resolved against {@code configPath} (the node config directory), so the keystore can be configured
+     *       relative to that directory like other security file settings</li>
      *   <li>{@code <prefix>}{@value #KEYSTORE_TYPE} — optional; auto-detected from file content when absent</li>
-     *   <li>{@code <prefix>}{@value #KEYSTORE_PASSWORD} — optional; absent or {@code null} means the keystore has no password</li>
-     *   <li>{@code <prefix>}{@value #KEYSTORE_KEY_PASSWORD} — optional; falls back to {@code KEYSTORE_PASSWORD} when absent;
-     *       both may be {@code null} for keystores and entries that carry no password</li>
+     *   <li>{@code <prefix>}{@value #KEYSTORE_PASSWORD} — the keystore password</li>
+     *   <li>{@code <prefix>}{@value #KEYSTORE_KEY_PASSWORD} — the key password; falls back to {@code KEYSTORE_PASSWORD} when absent</li>
      * </ul>
      *
+     * @param configPath the node config directory; resolved against for relative keystore paths
      * @return the loaded {@link SecretKey}, or {@code null} if the alias setting is absent
      * @throws IllegalArgumentException if the alias is present but the path is missing, the keystore
      *                                  cannot be loaded, or the entry at the alias is not a {@link SecretKey}
      */
-    public static SecretKey loadKeyFromKeystore(final Settings settings, final String prefix) {
+    public static SecretKey loadKeyFromKeystore(final Settings settings, final String prefix, final Path configPath) {
         final String alias = settings.get(prefix + KEYSTORE_ALIAS);
         if (alias == null) {
             return null;
@@ -65,9 +68,16 @@ public class KeyUtils {
         final String type = settings.get(prefix + KEYSTORE_TYPE);
         final String ksPassword = settings.get(prefix + KEYSTORE_PASSWORD);
         final String keyPassword = settings.get(prefix + KEYSTORE_KEY_PASSWORD);
-        final String pathStr = settings.get(prefix + KEYSTORE_PATH);
+        final String pathStr = resolveKeystorePath(settings.get(prefix + KEYSTORE_PATH), configPath);
 
         return PemKeyReader.loadSecretKeyFromKeystore(pathStr, ksPassword, type, alias, keyPassword);
+    }
+
+    private static String resolveKeystorePath(final String pathStr, final Path configPath) {
+        if (pathStr == null || pathStr.isEmpty()) {
+            return pathStr;
+        }
+        return configPath.resolve(pathStr).toAbsolutePath().toString();
     }
 
     public static JwtParserBuilder createJwtParserBuilderFromSigningKey(final String signingKey, final Logger log) {

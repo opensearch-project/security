@@ -48,7 +48,7 @@ public class KeyUtilsLoadKeyFromKeystoreTest {
     @Test
     public void returnsNullWhenAliasSettingAbsent() {
         Settings settings = Settings.builder().build();
-        assertThat(KeyUtils.loadKeyFromKeystore(settings, PREFIX), nullValue());
+        assertThat(KeyUtils.loadKeyFromKeystore(settings, PREFIX, tempDir.getRoot().toPath()), nullValue());
     }
 
     @Test
@@ -61,7 +61,7 @@ public class KeyUtilsLoadKeyFromKeystoreTest {
             .put(PREFIX + KEYSTORE_ALIAS, "test-key")
             .put(PREFIX + KEYSTORE_KEY_PASSWORD, "keypass")
             .build();
-        SecretKey loaded = KeyUtils.loadKeyFromKeystore(settings, PREFIX);
+        SecretKey loaded = KeyUtils.loadKeyFromKeystore(settings, PREFIX, tempDir.getRoot().toPath());
         assertThat(loaded, notNullValue());
         assertThat(loaded.getEncoded(), equalTo(SECRET_KEY.getEncoded()));
     }

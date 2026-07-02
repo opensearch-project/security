@@ -17,9 +17,11 @@
 
 package org.opensearch.security.ssl.util;
 
+import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 
 import org.opensearch.common.settings.Setting;
@@ -47,7 +49,7 @@ public final class SSLConfigConstants {
     public static final String ENFORCE_CERT_RELOAD_DN_VERIFICATION = "enforce_cert_reload_dn_verification";
     public static final String DEFAULT_STORE_TYPE = FipsMode.isEnabled()
         ? "BCFKS" // PKCS#11 must remain opt-in via explicit config
-        : "JKS";
+        : KeyStore.getDefaultType().toUpperCase(Locale.ROOT); // JDK default (PKCS12); JKS rejects null key passwords
     public static final String SSL_PREFIX = "plugins.security.ssl.";
 
     public static final String KEYSTORE_TYPE = "keystore_type";

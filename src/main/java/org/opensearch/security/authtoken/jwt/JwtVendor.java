@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
@@ -44,8 +45,8 @@ public class JwtVendor {
     private final JWK signingKey;
     private final JWSSigner signer;
 
-    public JwtVendor(Settings settings) {
-        final Tuple<JWK, JWSSigner> tuple = createJwkFromSettings(settings);
+    public JwtVendor(Settings settings, Path configPath) {
+        final Tuple<JWK, JWSSigner> tuple = createJwkFromSettings(settings, configPath);
         signingKey = tuple.v1();
         signer = tuple.v2();
     }
@@ -56,10 +57,10 @@ public class JwtVendor {
      *   PublicKeyUse: SIGN
      *   Encryption Algorithm: HS512
      * */
-    static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings) {
+    static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings, final Path configPath) {
         final OctetSequenceKey key;
 
-        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, SIGNING_KEY_PROPERTY_KEY);
+        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, SIGNING_KEY_PROPERTY_KEY, configPath);
         if (keystoreKey != null) {
             key = new OctetSequenceKey.Builder(keystoreKey.getEncoded()).algorithm(JWSAlgorithm.HS512).keyUse(KeyUse.SIGNATURE).build();
         } else if (settings.get(SIGNING_KEY_PROPERTY_KEY) != null) {

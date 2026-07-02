@@ -92,14 +92,14 @@ public class OnBehalfOfAuthenticatorTest {
 
     @Test
     public void testReRequestAuthenticationReturnsEmptyOptional() throws Exception {
-        OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
         Optional<SecurityResponse> result = authenticator.reRequestAuthentication(null, null);
         assertFalse(result.isPresent());
     }
 
     @Test
     public void testGetTypeReturnsExpectedType() throws Exception {
-        OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator authenticator = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
         String type = authenticator.getType();
         assertThat(type, is("onbehalfof_jwt"));
     }
@@ -174,7 +174,7 @@ public class OnBehalfOfAuthenticatorTest {
             .put("signing_key", "testKey") // misconfigured signing key
             .put("encryption_key", claimsEncryptionKeyB64Encoded)
             .build();
-        OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName);
+        OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName, tempDir.getRoot().toPath());
         Map<String, String> headers = Map.of("Authorization", "Bearer a.b.c");
         AuthCredentials credentials = auth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
         assertNull(credentials);
@@ -183,7 +183,7 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testTokenMissing() throws Exception {
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
         Map<String, String> headers = new HashMap<String, String>();
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
@@ -199,7 +199,7 @@ public class OnBehalfOfAuthenticatorTest {
 
         String jwsToken = "123invalidtoken..";
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -221,7 +221,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(disableOBOSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(disableOBOSettings(), clusterName, tempDir.getRoot().toPath());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -246,7 +246,7 @@ public class OnBehalfOfAuthenticatorTest {
         String invalidToken = "invalidToken";
         Settings settings = defaultSettings();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(settings, clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(settings, clusterName, tempDir.getRoot().toPath());
 
         Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
 
@@ -276,7 +276,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(nonSpecifyOBOSetting(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(nonSpecifyOBOSetting(), clusterName, tempDir.getRoot().toPath());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -303,7 +303,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -330,7 +330,7 @@ public class OnBehalfOfAuthenticatorTest {
             .and()
             .signWith(secretKey, Jwts.SIG.HS512)
             .compact();
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
 
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", jwsToken + "Bearer " + " 123");
@@ -353,7 +353,7 @@ public class OnBehalfOfAuthenticatorTest {
             .and()
             .signWith(secretKey, Jwts.SIG.HS512)
             .compact();
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
 
         Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Basic " + jwsToken);
 
@@ -377,7 +377,7 @@ public class OnBehalfOfAuthenticatorTest {
 
         String craftedToken = "beaRerSomeActualToken"; // This token matches the BEARER pattern but doesn't contain the BEARER_PREFIX
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
         Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, craftedToken);
 
         AuthCredentials credentials = jwtAuth.extractCredentials(
@@ -406,7 +406,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(secretKey, Jwts.SIG.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
 
         Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, jwsToken);
 
@@ -462,7 +462,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(keyBytes), Jwts.SIG.HS512)
             .compact();
 
-        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName);
+        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName, tempDir.getRoot().toPath());
         final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
         final AuthCredentials credentials = auth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(),
@@ -494,7 +494,7 @@ public class OnBehalfOfAuthenticatorTest {
         ).build();
 
         // Simulate issuance: encrypt the roles with the same keystore-derived key
-        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(settings, "encryption_key");
+        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(settings, "encryption_key", tempDir.getRoot().toPath());
         final String encryptedRoles = issuerUtil.encrypt("role1,role2");
 
         final String jwsToken = Jwts.builder()
@@ -507,7 +507,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
-        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName);
+        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName, tempDir.getRoot().toPath());
         final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
         final AuthCredentials credentials = auth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(),
@@ -551,7 +551,7 @@ public class OnBehalfOfAuthenticatorTest {
         final Settings settings = builder.build();
 
         // Simulate issuance: encrypt the roles with the same keystore-derived AES key the verifier will resolve.
-        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(settings, "encryption_key");
+        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(settings, "encryption_key", tempDir.getRoot().toPath());
         final String encryptedRoles = issuerUtil.encrypt("role1,role2");
 
         final String jwsToken = Jwts.builder()
@@ -564,7 +564,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(signingKeyBytes), Jwts.SIG.HS512)
             .compact();
 
-        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName);
+        final OnBehalfOfAuthenticator auth = new OnBehalfOfAuthenticator(settings, clusterName, tempDir.getRoot().toPath());
         final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
         final AuthCredentials credentials = auth.extractCredentials(
             new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(),
@@ -605,7 +605,8 @@ public class OnBehalfOfAuthenticatorTest {
         // No encryption_key in settings
         final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(
             Settings.builder().put("enabled", enableOBO).put("signing_key", signingKeyB64Encoded).build(),
-            clusterName
+            clusterName,
+            tempDir.getRoot().toPath()
         );
         final String jwsToken = Jwts.builder()
             .issuer(clusterName)
@@ -630,7 +631,8 @@ public class OnBehalfOfAuthenticatorTest {
         // No encryption_key in settings — dr claim should still be readable
         final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(
             Settings.builder().put("enabled", enableOBO).put("signing_key", signingKeyB64Encoded).build(),
-            clusterName
+            clusterName,
+            tempDir.getRoot().toPath()
         );
         final String jwsToken = Jwts.builder()
             .issuer(clusterName)
@@ -814,7 +816,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterName, tempDir.getRoot().toPath());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -852,7 +854,8 @@ public class OnBehalfOfAuthenticatorTest {
                 .put("signing_key", signingKeyB64Encoded)
                 .put("encryption_key", encryptionKey)
                 .build(),
-            clusterName
+            clusterName,
+            tempDir.getRoot().toPath()
         );
 
         final String jwsToken =
