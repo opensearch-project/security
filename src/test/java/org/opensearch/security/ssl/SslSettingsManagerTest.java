@@ -28,10 +28,10 @@ import org.opensearch.env.Environment;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
+import org.opensearch.test.BouncyCastleThreadFilter;
 
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
-import org.opensearch.test.BouncyCastleThreadFilter;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;

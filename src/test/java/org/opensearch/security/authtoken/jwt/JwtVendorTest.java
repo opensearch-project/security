@@ -88,14 +88,20 @@ public class JwtVendorTest {
     @Test
     public void testCreateJwkFromSettingsWithWeakKey() {
         Settings settings = Settings.builder().put(SIGNING_KEY_PROPERTY_KEY, "abcd1234").build();
-        Throwable exception = assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath()));
+        Throwable exception = assertThrows(
+            OpenSearchException.class,
+            () -> JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath())
+        );
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }
 
     @Test
     public void testCreateJwkFromSettingsWithoutSigningKey() {
         Settings settings = Settings.builder().put("jwt", "").build();
-        Throwable exception = assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath()));
+        Throwable exception = assertThrows(
+            RuntimeException.class,
+            () -> JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath())
+        );
         assertThat(
             exception.getMessage(),
             equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")

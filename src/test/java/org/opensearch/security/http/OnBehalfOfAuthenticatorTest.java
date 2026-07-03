@@ -494,7 +494,11 @@ public class OnBehalfOfAuthenticatorTest {
         ).build();
 
         // Simulate issuance: encrypt the roles with the same keystore-derived key
-        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(settings, "encryption_key", tempDir.getRoot().toPath());
+        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(
+            settings,
+            "encryption_key",
+            tempDir.getRoot().toPath()
+        );
         final String encryptedRoles = issuerUtil.encrypt("role1,role2");
 
         final String jwsToken = Jwts.builder()
@@ -551,7 +555,11 @@ public class OnBehalfOfAuthenticatorTest {
         final Settings settings = builder.build();
 
         // Simulate issuance: encrypt the roles with the same keystore-derived AES key the verifier will resolve.
-        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(settings, "encryption_key", tempDir.getRoot().toPath());
+        final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(
+            settings,
+            "encryption_key",
+            tempDir.getRoot().toPath()
+        );
         final String encryptedRoles = issuerUtil.encrypt("role1,role2");
 
         final String jwsToken = Jwts.builder()
@@ -858,8 +866,8 @@ public class OnBehalfOfAuthenticatorTest {
             tempDir.getRoot().toPath()
         );
 
-        final String jwsToken =
-            jwtBuilder.signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512).compact();
+        final String jwsToken = jwtBuilder.signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), Jwts.SIG.HS512)
+            .compact();
         final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
         return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()).asSecurityRequest(), null);
     }

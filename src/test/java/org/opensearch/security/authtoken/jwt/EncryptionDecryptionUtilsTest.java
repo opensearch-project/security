@@ -30,8 +30,7 @@ public class EncryptionDecryptionUtilsTest {
     // encryption_key is consumed Base64-decoded; a 32-char alphanumeric string decodes to only 24 bytes,
     // under the 32-byte AES-256 floor FIPS requires. Base64-encode the 32 bytes so it decodes back to 32.
     final static String key = RandomStringUtils.secure().nextAlphanumeric(32);
-    final static String encodedKey = Base64.getEncoder()
-        .encodeToString(key.getBytes(StandardCharsets.UTF_8));
+    final static String encodedKey = Base64.getEncoder().encodeToString(key.getBytes(StandardCharsets.UTF_8));
 
     @Test
     public void testEncryptDecrypt() {
