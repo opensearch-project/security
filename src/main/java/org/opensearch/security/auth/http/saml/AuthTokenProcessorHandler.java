@@ -405,6 +405,10 @@ class AuthTokenProcessorHandler {
                 return acsEndpoint;
             } else {
                 String dashboardsUrl = dashboardsUrlSupplier.get();
+                if (dashboardsUrl == null || dashboardsUrl.isEmpty()) {
+                    log.error("Dashboards URL is not configured; cannot resolve relative acsEndpoint: {}", acsEndpoint);
+                    return acsEndpoint;
+                }
                 return new URI(dashboardsUrl).resolve(acsEndpointUri).toString();
             }
         } catch (URISyntaxException e) {
