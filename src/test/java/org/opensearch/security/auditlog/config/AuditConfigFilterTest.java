@@ -270,9 +270,7 @@ public class AuditConfigFilterTest {
         assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES)));
 
         // Test via map
-        final Map<String, Object> properties = Map.of(
-            FilterEntries.DISABLE_CATEGORIES.getKey(), List.of("FAILED_LOGIN", "SSL_EXCEPTION")
-        );
+        final Map<String, Object> properties = Map.of(FilterEntries.DISABLE_CATEGORIES.getKey(), List.of("FAILED_LOGIN", "SSL_EXCEPTION"));
 
         final AuditConfig.Filter filterFromMap = AuditConfig.Filter.from(properties);
 

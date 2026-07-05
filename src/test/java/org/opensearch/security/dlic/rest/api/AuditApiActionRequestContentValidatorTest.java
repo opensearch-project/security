@@ -113,9 +113,11 @@ public class AuditApiActionRequestContentValidatorTest extends AbstractApiAction
             .createEndpointValidator()
             .createRequestContentValidator();
 
-        final var validCategories = Stream.of(AuditCategory.AUTHENTICATED, AuditCategory.CLUSTER_SETTINGS_CHANGED, AuditCategory.BAD_HEADERS)
-            .map(Enum::name)
-            .collect(Collectors.toList());
+        final var validCategories = Stream.of(
+            AuditCategory.AUTHENTICATED,
+            AuditCategory.CLUSTER_SETTINGS_CHANGED,
+            AuditCategory.BAD_HEADERS
+        ).map(Enum::name).collect(Collectors.toList());
         final var auditConfig = new AuditConfig(
             true,
             AuditConfig.Filter.from(Map.of("disabled_categories", validCategories)),

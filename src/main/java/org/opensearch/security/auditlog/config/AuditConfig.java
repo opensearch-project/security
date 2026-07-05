@@ -257,13 +257,12 @@ public class AuditConfig {
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
             final boolean disabledCategoriesConfigured = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
 
-
             // Defaults for disabledCategories are not applied; fallback is to REST/transport split settings.
             final Set<AuditCategory> disabledCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_CATEGORIES.getKey(),
-                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
                 )
             );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
@@ -338,7 +337,7 @@ public class AuditConfig {
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_CATEGORIES,
-                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
                 )
             );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
@@ -384,7 +383,8 @@ public class AuditConfig {
                 disabledRestCategories,
                 disabledTransportCategories,
                 disabledCategoriesConfigured,
-                disabledCategories);
+                disabledCategories
+            );
         }
 
         static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {

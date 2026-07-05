@@ -65,7 +65,10 @@ public class AuditConfigSerializeTest {
             .field("enabled", true)
             .startObject("audit")
             .field("enable_rest", true)
-            .field("disabled_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED"))
+            .field(
+                "disabled_categories",
+                ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
+            )
             .field("disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
             .field(
@@ -313,7 +316,10 @@ public class AuditConfigSerializeTest {
             .field("enabled", true)
             .startObject("audit")
             .field("enable_rest", true)
-            .field("disabled_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED"))
+            .field(
+                "disabled_categories",
+                ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
+            )
             .field("disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
             .field(
@@ -363,14 +369,7 @@ public class AuditConfigSerializeTest {
         assertFalse(audit.isDisabledCategoriesConfigured());
         assertThat(
             audit.getDisabledCategories(),
-            is(
-                EnumSet.of(
-                    AUTHENTICATED,
-                    GRANTED_PRIVILEGES,
-                    AuditCategory.CLUSTER_SETTINGS_CHANGED,
-                    AuditCategory.INDEX_SETTINGS_CHANGED
-                )
-            )
+            is(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES, AuditCategory.CLUSTER_SETTINGS_CHANGED, AuditCategory.INDEX_SETTINGS_CHANGED))
         );
         assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledRestCategories()));
         assertThat(
