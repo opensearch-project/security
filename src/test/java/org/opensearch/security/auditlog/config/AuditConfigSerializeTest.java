@@ -65,6 +65,7 @@ public class AuditConfigSerializeTest {
             .field("enabled", true)
             .startObject("audit")
             .field("enable_rest", true)
+            .field("disabled_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED"))
             .field("disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
             .field(
@@ -105,6 +106,18 @@ public class AuditConfigSerializeTest {
         final ComplianceConfig compliance = auditConfig.getCompliance();
         // assert
         assertTrue(audit.isRestApiAuditEnabled());
+        assertFalse(audit.isDisabledCategoriesConfigured());
+        assertThat(
+            audit.getDisabledCategories(),
+            is(
+                EnumSet.of(
+                    AuditCategory.AUTHENTICATED,
+                    AuditCategory.GRANTED_PRIVILEGES,
+                    AuditCategory.CLUSTER_SETTINGS_CHANGED,
+                    AuditCategory.INDEX_SETTINGS_CHANGED
+                )
+            )
+        );
         assertThat(audit.getDisabledRestCategories(), is(EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES)));
         assertTrue(audit.isTransportApiAuditEnabled());
         assertThat(
@@ -175,6 +188,18 @@ public class AuditConfigSerializeTest {
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
         // assert
         assertTrue(audit.isRestApiAuditEnabled());
+        assertFalse(audit.isDisabledCategoriesConfigured());
+        assertThat(
+            audit.getDisabledCategories(),
+            is(
+                EnumSet.of(
+                    AuditCategory.AUTHENTICATED,
+                    AuditCategory.GRANTED_PRIVILEGES,
+                    AuditCategory.CLUSTER_SETTINGS_CHANGED,
+                    AuditCategory.INDEX_SETTINGS_CHANGED
+                )
+            )
+        );
         assertThat(EnumSet.of(AuditCategory.AUTHENTICATED), is(audit.getDisabledRestCategories()));
         assertTrue(audit.isTransportApiAuditEnabled());
         assertThat(EnumSet.of(AuditCategory.SSL_EXCEPTION), is(audit.getDisabledTransportCategories()));
@@ -219,7 +244,9 @@ public class AuditConfigSerializeTest {
             ImmutableSet.of("test-header"),
             ImmutableSet.of("test-param"),
             EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES),
-            EnumSet.of(AUTHENTICATED)
+            EnumSet.of(AUTHENTICATED),
+            false,
+            Collections.emptySet()
         );
         final ComplianceConfig compliance = new ComplianceConfig(
             true,
@@ -244,6 +271,7 @@ public class AuditConfigSerializeTest {
             .field("disabled_rest_categories", ImmutableList.of("FAILED_LOGIN", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
             .field("disabled_transport_categories", Collections.singletonList("AUTHENTICATED"))
+            .field("disabled_categories", Collections.emptyList())
             .field("resolve_bulk_requests", true)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -285,6 +313,7 @@ public class AuditConfigSerializeTest {
             .field("enabled", true)
             .startObject("audit")
             .field("enable_rest", true)
+            .field("disabled_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED"))
             .field("disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
             .field(
@@ -331,6 +360,18 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
+        assertFalse(audit.isDisabledCategoriesConfigured());
+        assertThat(
+            audit.getDisabledCategories(),
+            is(
+                EnumSet.of(
+                    AUTHENTICATED,
+                    GRANTED_PRIVILEGES,
+                    AuditCategory.CLUSTER_SETTINGS_CHANGED,
+                    AuditCategory.INDEX_SETTINGS_CHANGED
+                )
+            )
+        );
         assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledRestCategories()));
         assertThat(
             EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES, AuditCategory.CLUSTER_SETTINGS_CHANGED, AuditCategory.INDEX_SETTINGS_CHANGED),
@@ -388,6 +429,7 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
+        assertFalse(audit.isDisabledCategoriesConfigured());
         assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledRestCategories()));
         assertThat(
             EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES, AuditCategory.CLUSTER_SETTINGS_CHANGED, AuditCategory.INDEX_SETTINGS_CHANGED),
@@ -403,9 +445,114 @@ public class AuditConfigSerializeTest {
         assertThat(configCompliance.getAuditLogIndex(), is("test-auditlog-index"));
     }
 
+    @Test
+    public void testSerializeWithDisabledCategories() throws IOException {
+        // arrange
+        final AuditConfig.Filter audit = new AuditConfig.Filter(
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            ImmutableSet.of("ignore-user-1"),
+            ImmutableSet.of("ignore-request-1"),
+            ImmutableSet.of("test-header"),
+            ImmutableSet.of("test-param"),
+            EnumSet.of(AuditCategory.FAILED_LOGIN),
+            EnumSet.of(AUTHENTICATED),
+            true,
+            EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES)
+        );
+        final ComplianceConfig compliance = ComplianceConfig.DEFAULT;
+        final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
+        final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
+            .startObject()
+            .field("enabled", true)
+            .startObject("audit")
+            .field("enable_rest", true)
+            .field("disabled_rest_categories", Collections.singletonList("FAILED_LOGIN"))
+            .field("enable_transport", true)
+            .field("disabled_transport_categories", Collections.singletonList("AUTHENTICATED"))
+            .field("disabled_categories", ImmutableList.of("GRANTED_PRIVILEGES", "AUTHENTICATED"))
+            .field("resolve_bulk_requests", true)
+            .field("log_request_body", true)
+            .field("resolve_indices", true)
+            .field("exclude_sensitive_headers", true)
+            .field("ignore_users", Collections.singletonList("ignore-user-1"))
+            .field("ignore_requests", Collections.singletonList("ignore-request-1"))
+            .field("ignore_headers", Collections.singletonList("test-header"))
+            .field("ignore_url_params", Collections.singletonList("test-param"))
+            .endObject()
+            .startObject("compliance")
+            .field("enabled", true)
+            .field("external_config", false)
+            .field("internal_config", false)
+            .field("read_metadata_only", false)
+            .field("read_watched_fields", Collections.emptyMap())
+            .field("read_ignore_users", Collections.singletonList("kibanaserver"))
+            .field("write_metadata_only", false)
+            .field("write_log_diffs", false)
+            .field("write_watched_indices", Collections.emptyList())
+            .field("write_ignore_users", Collections.singletonList("kibanaserver"))
+            .endObject()
+            .endObject();
+
+        // act
+        final String json = objectMapper.writeValueAsString(auditConfig);
+        // assert
+        assertTrue(compareJson(jsonBuilder.toString(), json));
+    }
+
+    @Test
+    public void testDeserializeWithDisabledCategories() throws IOException {
+        // arrange
+        final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
+            .startObject()
+            .field("enabled", true)
+            .startObject("audit")
+            .field("enable_rest", true)
+            .field("disabled_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
+            .field("enable_transport", true)
+            .field("resolve_bulk_requests", true)
+            .field("log_request_body", true)
+            .field("resolve_indices", true)
+            .field("exclude_sensitive_headers", true)
+            .field("ignore_users", Collections.singletonList("test-user-1"))
+            .field("ignore_requests", Collections.singletonList("test-request"))
+            .field("ignore_headers", Collections.singletonList("test-headers"))
+            .field("ignore_url_params", Collections.singletonList("test-param"))
+            .endObject()
+            .startObject("compliance")
+            .field("enabled", true)
+            .field("external_config", false)
+            .endObject()
+            .endObject();
+        final String json = jsonBuilder.toString();
+
+        // act
+        final AuditConfig auditConfig = objectMapper.readValue(json, AuditConfig.class);
+        final AuditConfig.Filter audit = auditConfig.getFilter();
+        // assert
+        assertTrue(audit.isRestApiAuditEnabled());
+        assertTrue(audit.isDisabledCategoriesConfigured());
+        assertThat(EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES), is(audit.getDisabledCategories()));
+    }
+
     private boolean compareJson(final String json1, final String json2) {
-        ObjectNode objectNode1 = objectMapper.readValue(json1, ObjectNode.class);
-        ObjectNode objectNode2 = objectMapper.readValue(json2, ObjectNode.class);
-        return objectNode1.equals(objectNode2);
+        try {
+            ObjectNode objectNode1 = objectMapper.readValue(json1, ObjectNode.class);
+            ObjectNode objectNode2 = objectMapper.readValue(json2, ObjectNode.class);
+            if (!objectNode1.equals(objectNode2)) {
+                System.err.println("JSON MISMATCH!");
+                System.err.println("EXPECTED: " + json1);
+                System.err.println("ACTUAL:   " + json2);
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("Exception in compareJson: " + e.getMessage());
+            return false;
+        }
     }
 }

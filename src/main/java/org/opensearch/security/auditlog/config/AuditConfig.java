@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.logging.log4j.Logger;
@@ -547,6 +548,7 @@ public class AuditConfig {
          * Whether the unified disabled_categories setting is present
          * @return true if disabled_categories was explicitly set
          */
+        @JsonIgnore
         public boolean isDisabledCategoriesConfigured() {
             return disabledCategoriesConfigured;
         }

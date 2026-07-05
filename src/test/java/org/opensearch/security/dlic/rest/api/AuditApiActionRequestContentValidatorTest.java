@@ -80,4 +80,49 @@ public class AuditApiActionRequestContentValidatorTest extends AbstractApiAction
         assertFalse(result.isValid());
         assertThat(result.status(), is(RestStatus.BAD_REQUEST));
     }
+
+    @Test
+    public void validateAuditDisabledCategoriesInvalid() throws IOException {
+        InjectableValues.Std injectableValues = new InjectableValues.Std();
+        injectableValues.addValue(Settings.class, Settings.EMPTY);
+        DefaultObjectMapper.inject(injectableValues);
+        final var auditApiActionRequestContentValidator = new AuditApiAction(clusterService, threadPool, securityApiDependencies)
+            .createEndpointValidator()
+            .createRequestContentValidator();
+
+        final var invalidCategories = Stream.of(AuditCategory.COMPLIANCE_DOC_WRITE, AuditCategory.COMPLIANCE_DOC_READ)
+            .map(Enum::name)
+            .toList();
+        final var auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(Map.of("disabled_categories", invalidCategories)),
+            ComplianceConfig.DEFAULT
+        );
+        final var content = DefaultObjectMapper.writeValueAsString(objectMapper.valueToTree(auditConfig), false);
+        var result = auditApiActionRequestContentValidator.validate(FakeRestRequest.builder().withContent(new BytesArray(content)).build());
+        assertFalse(result.isValid());
+        assertThat(result.status(), is(RestStatus.BAD_REQUEST));
+    }
+
+    @Test
+    public void validateAuditDisabledCategoriesValid() throws IOException {
+        InjectableValues.Std injectableValues = new InjectableValues.Std();
+        injectableValues.addValue(Settings.class, Settings.EMPTY);
+        DefaultObjectMapper.inject(injectableValues);
+        final var auditApiActionRequestContentValidator = new AuditApiAction(clusterService, threadPool, securityApiDependencies)
+            .createEndpointValidator()
+            .createRequestContentValidator();
+
+        final var validCategories = Stream.of(AuditCategory.AUTHENTICATED, AuditCategory.CLUSTER_SETTINGS_CHANGED, AuditCategory.BAD_HEADERS)
+            .map(Enum::name)
+            .collect(Collectors.toList());
+        final var auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(Map.of("disabled_categories", validCategories)),
+            ComplianceConfig.DEFAULT
+        );
+        final var content = DefaultObjectMapper.writeValueAsString(objectMapper.valueToTree(auditConfig), false);
+        var result = auditApiActionRequestContentValidator.validate(FakeRestRequest.builder().withContent(new BytesArray(content)).build());
+        org.junit.Assert.assertTrue(result.isValid());
+    }
 }

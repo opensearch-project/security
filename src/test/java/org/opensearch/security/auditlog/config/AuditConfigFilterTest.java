@@ -256,4 +256,43 @@ public class AuditConfigFilterTest {
             .build();
         assertThat(parse.apply(settingMultipleValues), equalTo(ImmutableSet.of(AUTHENTICATED, BAD_HEADERS)));
     }
+
+    @Test
+    public void testDisabledCategoriesConfigured() {
+        // Test via the primary (plugins.security.*) key
+        final Settings settings = Settings.builder()
+            .putList(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace(), "AUTHENTICATED", "GRANTED_PRIVILEGES")
+            .build();
+
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertTrue(filter.isDisabledCategoriesConfigured());
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES)));
+
+        // Test via map
+        final Map<String, Object> properties = Map.of(
+            FilterEntries.DISABLE_CATEGORIES.getKey(), List.of("FAILED_LOGIN", "SSL_EXCEPTION")
+        );
+
+        final AuditConfig.Filter filterFromMap = AuditConfig.Filter.from(properties);
+
+        assertTrue(filterFromMap.isDisabledCategoriesConfigured());
+        assertThat(filterFromMap.getDisabledCategories(), equalTo(EnumSet.of(FAILED_LOGIN, SSL_EXCEPTION)));
+    }
+
+    @Test
+    public void testDisabledCategoriesPrecedence() {
+        final Settings settings = Settings.builder()
+            .putList(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace(), "SSL_EXCEPTION")
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "FAILED_LOGIN")
+            .build();
+
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertTrue(filter.isDisabledCategoriesConfigured());
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(SSL_EXCEPTION)));
+        assertThat(filter.getDisabledRestCategories(), equalTo(EnumSet.of(AUTHENTICATED)));
+        assertThat(filter.getDisabledTransportCategories(), equalTo(EnumSet.of(FAILED_LOGIN)));
+    }
 }
