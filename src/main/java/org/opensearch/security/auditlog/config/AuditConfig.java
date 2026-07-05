@@ -365,7 +365,7 @@ public class AuditConfig {
                 final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
                 deprecationLogger.deprecate(
                     "disabled_rest_transport_categories",
-                    "Settingssssss 'disabled_rest_categories' and 'disabled_transport_categories' are deprecated. Use 'disabled_categories' instead."
+                    "Settings 'disabled_rest_categories' and 'disabled_transport_categories' are deprecated. Use 'disabled_categories' instead."
                 );
             }
 
