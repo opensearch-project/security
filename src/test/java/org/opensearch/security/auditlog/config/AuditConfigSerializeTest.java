@@ -71,6 +71,7 @@ public class AuditConfigSerializeTest {
                 "disabled_transport_categories",
                 ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
             )
+            .field("disabled_categories", Collections.emptyList())
             .field("resolve_bulk_requests", false)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -224,8 +225,7 @@ public class AuditConfigSerializeTest {
             ImmutableSet.of("test-param"),
             EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES),
             EnumSet.of(AUTHENTICATED),
-            false,
-            null
+            Collections.emptySet()
         );
         final ComplianceConfig compliance = new ComplianceConfig(
             true,
@@ -250,6 +250,7 @@ public class AuditConfigSerializeTest {
             .field("disabled_rest_categories", ImmutableList.of("FAILED_LOGIN", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
             .field("disabled_transport_categories", Collections.singletonList("AUTHENTICATED"))
+            .field("disabled_categories", Collections.emptyList())
             .field("resolve_bulk_requests", true)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -297,6 +298,7 @@ public class AuditConfigSerializeTest {
                 "disabled_transport_categories",
                 ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
             )
+            .field("disabled_categories", Collections.emptyList())
             .field("resolve_bulk_requests", false)
             .field("log_request_body", true)
             .field("resolve_indices", true)

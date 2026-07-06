@@ -166,38 +166,42 @@ public class AuditlogTest {
     @Test
     public void testUnifiedDisabledCategoriesSuppressesTransport() {
         // Unified disables FAILED_LOGIN — verify it's suppressed at transport layer
+        // Also set empty split to isolate the unified behavior
         final Settings settings = Settings.builder()
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
             .putList("plugins.security.audit.config.disabled_categories", "FAILED_LOGIN")
+            .putList("plugins.security.audit.config.disabled_transport_categories")
             .build();
         final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 
-        // FAILED_LOGIN should be suppressed
+        // FAILED_LOGIN should be suppressed (in unified)
         Assert.assertFalse(al.checkTransportFilter(AuditCategory.FAILED_LOGIN, "action", "user", mock(TransportRequest.class)));
-        // AUTHENTICATED should NOT be suppressed (not in unified list)
+        // AUTHENTICATED should NOT be suppressed (not in unified, and split transport is empty)
         Assert.assertTrue(al.checkTransportFilter(AuditCategory.AUTHENTICATED, "action", "user", mock(TransportRequest.class)));
     }
 
     @Test
     public void testUnifiedDisabledCategoriesSuppressesRest() {
         // Unified disables GRANTED_PRIVILEGES — verify it's suppressed at REST layer
+        // Also set empty split to isolate the unified behavior
         final Settings settings = Settings.builder()
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
             .putList("plugins.security.audit.config.disabled_categories", "GRANTED_PRIVILEGES")
+            .putList("plugins.security.audit.config.disabled_rest_categories")
             .build();
         final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 
-        // GRANTED_PRIVILEGES should be suppressed
+        // GRANTED_PRIVILEGES should be suppressed (in unified)
         Assert.assertFalse(al.checkRestFilter(AuditCategory.GRANTED_PRIVILEGES, "user", mock(SecurityRequestChannel.class)));
-        // FAILED_LOGIN should NOT be suppressed
+        // FAILED_LOGIN should NOT be suppressed (not in unified, and split rest is empty)
         Assert.assertTrue(al.checkRestFilter(AuditCategory.FAILED_LOGIN, "user", mock(SecurityRequestChannel.class)));
     }
 
     @Test
-    public void testUnifiedDisabledCategoriesIgnoresSplitSettings() {
-        // Unified has only MISSING_PRIVILEGES disabled
+    public void testUnifiedAndSplitWorkInTandem() {
+        // Unified has MISSING_PRIVILEGES disabled
         // Split has AUTHENTICATED (rest) and FAILED_LOGIN (transport) disabled
-        // Unified should take precedence — AUTHENTICATED and FAILED_LOGIN should NOT be suppressed
+        // Both should apply (union) — all three categories should be suppressed on their respective layers
         final Settings settings = Settings.builder()
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
@@ -207,14 +211,16 @@ public class AuditlogTest {
             .build();
         final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 
-        // MISSING_PRIVILEGES suppressed (in unified)
+        // MISSING_PRIVILEGES suppressed on both layers (in unified)
         Assert.assertFalse(al.checkTransportFilter(AuditCategory.MISSING_PRIVILEGES, "action", "user", mock(TransportRequest.class)));
         Assert.assertFalse(al.checkRestFilter(AuditCategory.MISSING_PRIVILEGES, "user", mock(SecurityRequestChannel.class)));
 
-        // AUTHENTICATED and FAILED_LOGIN should NOT be suppressed (unified doesn't have them)
+        // AUTHENTICATED suppressed on REST (in split rest), but NOT on transport
+        Assert.assertFalse(al.checkRestFilter(AuditCategory.AUTHENTICATED, "user", mock(SecurityRequestChannel.class)));
         Assert.assertTrue(al.checkTransportFilter(AuditCategory.AUTHENTICATED, "action", "user", mock(TransportRequest.class)));
-        Assert.assertTrue(al.checkTransportFilter(AuditCategory.FAILED_LOGIN, "action", "user", mock(TransportRequest.class)));
-        Assert.assertTrue(al.checkRestFilter(AuditCategory.AUTHENTICATED, "user", mock(SecurityRequestChannel.class)));
+
+        // FAILED_LOGIN suppressed on transport (in split transport), but NOT on REST
+        Assert.assertFalse(al.checkTransportFilter(AuditCategory.FAILED_LOGIN, "action", "user", mock(TransportRequest.class)));
         Assert.assertTrue(al.checkRestFilter(AuditCategory.FAILED_LOGIN, "user", mock(SecurityRequestChannel.class)));
     }
 

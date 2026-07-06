@@ -218,12 +218,6 @@ public class ConfigConstants {
         "opendistro_security.audit.config.disabled_transport_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES =
         "opendistro_security.audit.config.disabled_rest_categories";
-    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT = ImmutableList.of(
-        AuditCategory.AUTHENTICATED.toString(),
-        AuditCategory.GRANTED_PRIVILEGES.toString(),
-        AuditCategory.CLUSTER_SETTINGS_CHANGED.toString(),
-        AuditCategory.INDEX_SETTINGS_CHANGED.toString()
-    );
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
         AuditCategory.GRANTED_PRIVILEGES.toString()

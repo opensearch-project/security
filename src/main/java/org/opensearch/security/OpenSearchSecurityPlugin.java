@@ -1736,7 +1736,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings.add(
                 Setting.listSetting(
                     ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES,
-                    disabledCategories,
+                    Collections.emptyList(),
                     Function.identity(),
                     Property.NodeScope
                 )
@@ -1809,7 +1809,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     case DISABLE_CATEGORIES:
                         return Setting.listSetting(
                             filterEntry.getKeyWithNamespace(),
-                            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT,
+                            Collections.emptyList(),
                             Function.identity(),
                             Property.NodeScope
                         );

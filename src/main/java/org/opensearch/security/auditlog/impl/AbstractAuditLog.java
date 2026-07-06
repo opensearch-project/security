@@ -1129,24 +1129,15 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (auditConfigFilter.isDisabledCategoriesConfigured()) {
-            if (auditConfigFilter.getDisabledCategories().contains(category)) {
-                if (isTraceEnabled) {
-                    log.trace("Skipped audit log message because category {} not enabled", category);
-                }
-                return false;
-            }
-            return true;
-        }
-
-        if (!auditConfigFilter.getDisabledTransportCategories().contains(category)) {
-            return true;
-        } else {
+        if (auditConfigFilter.getDisabledCategories().contains(category)
+            || auditConfigFilter.getDisabledTransportCategories().contains(category)) {
             if (isTraceEnabled) {
                 log.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;
         }
+
+        return true;
 
         // skip internal:*
         // check transport audit enabled
@@ -1232,24 +1223,15 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (auditConfigFilter.isDisabledCategoriesConfigured()) {
-            if (auditConfigFilter.getDisabledCategories().contains(category)) {
-                if (isTraceEnabled) {
-                    log.trace("Skipped audit log message because category {} not enabled", category);
-                }
-                return false;
-            }
-            return true;
-        }
-
-        if (!auditConfigFilter.getDisabledRestCategories().contains(category)) {
-            return true;
-        } else {
+        if (auditConfigFilter.getDisabledCategories().contains(category)
+            || auditConfigFilter.getDisabledRestCategories().contains(category)) {
             if (isTraceEnabled) {
                 log.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;
         }
+
+        return true;
     }
 
     protected abstract void save(final AuditMessage msg);

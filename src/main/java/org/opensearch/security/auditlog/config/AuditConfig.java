@@ -130,11 +130,7 @@ public class AuditConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
-        private static Set<String> FIELDS = new HashSet<>(DefaultObjectMapper.getFields(Filter.class)) {
-            {
-                add("disabled_categories");
-            }
-        };
+        private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
 
@@ -156,10 +152,7 @@ public class AuditConfig {
         private final WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
         private WildcardMatcher ignoredUrlParamsMatcher;
-        @com.fasterxml.jackson.annotation.JsonIgnore
-        private final boolean disabledCategoriesConfigured;
         @JsonProperty("disabled_categories")
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         private final Set<AuditCategory> disabledCategories;
         @Deprecated
         private final Set<AuditCategory> disabledRestCategories;
@@ -180,7 +173,6 @@ public class AuditConfig {
             final Set<String> ignoredUrlParams,
             final Set<AuditCategory> disabledRestCategories,
             final Set<AuditCategory> disabledTransportCategories,
-            final boolean disabledCategoriesConfigured,
             final Set<AuditCategory> disabledCategories
         ) {
             this.isRestApiAuditEnabled = isRestApiAuditEnabled;
@@ -199,7 +191,6 @@ public class AuditConfig {
             this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
-            this.disabledCategoriesConfigured = disabledCategoriesConfigured;
             this.disabledCategories = disabledCategories;
         }
 
@@ -261,16 +252,13 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
-            final boolean disabledCategoriesConfigured = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
-            final Set<AuditCategory> disabledCategories = disabledCategoriesConfigured
-                ? AuditCategory.parse(
-                    getOrDefault(
-                        properties,
-                        FilterEntries.DISABLE_CATEGORIES.getKey(),
-                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
-                    )
+            final Set<AuditCategory> disabledCategories = AuditCategory.parse(
+                getOrDefault(
+                    properties,
+                    FilterEntries.DISABLE_CATEGORIES.getKey(),
+                    Collections.emptyList()
                 )
-                : null;
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
@@ -296,13 +284,14 @@ public class AuditConfig {
                 getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
-            if (properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
-                || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey())) {
+            if (properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey())
+                && (properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
+                    || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey()))) {
                 final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
                 deprecationLogger.deprecate(
                     "disabled_rest_transport_categories",
-                    "Properties 'disabled_rest_categories' and 'disabled_transport_categories' are deprecated. "
-                        + "Use 'disabled_categories' instead."
+                    "Both 'disabled_categories' and 'disabled_rest_categories'/'disabled_transport_categories' are configured. "
+                        + "They will work in tandem, but consider migrating to 'disabled_categories' only."
                 );
             }
 
@@ -319,7 +308,6 @@ public class AuditConfig {
                 new HashSet<>(),
                 disabledRestCategories,
                 disabledTransportCategories,
-                disabledCategoriesConfigured,
                 disabledCategories
             );
 
@@ -337,16 +325,13 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
-            final boolean disabledCategoriesConfigured = settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace());
-            final Set<AuditCategory> disabledCategories = disabledCategoriesConfigured
-                ? AuditCategory.parse(
-                    fromSettingStringSet(
-                        settings,
-                        FilterEntries.DISABLE_CATEGORIES,
-                        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
-                    )
+            final Set<AuditCategory> disabledCategories = AuditCategory.parse(
+                fromSettingStringSet(
+                    settings,
+                    FilterEntries.DISABLE_CATEGORIES,
+                    Collections.emptyList()
                 )
-                : null;
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
@@ -365,15 +350,16 @@ public class AuditConfig {
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
             final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
 
-            if (settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
-                || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
-                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
-                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace())) {
+            if (settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace())
+                && (settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
+                    || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
+                    || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
+                    || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace()))) {
                 final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
                 deprecationLogger.deprecate(
                     "disabled_rest_transport_categories",
-                    "Settings 'disabled_rest_categories' and 'disabled_transport_categories' are deprecated. "
-                        + "Use 'disabled_categories' instead."
+                    "Both 'disabled_categories' and 'disabled_rest_categories'/'disabled_transport_categories' are configured. "
+                        + "They will work in tandem, but consider migrating to 'disabled_categories' only."
                 );
             }
 
@@ -390,7 +376,6 @@ public class AuditConfig {
                 new HashSet<>(),
                 disabledRestCategories,
                 disabledTransportCategories,
-                disabledCategoriesConfigured,
                 disabledCategories
             );
         }
@@ -566,15 +551,7 @@ public class AuditConfig {
          * @return set of categories
          */
         public Set<AuditCategory> getDisabledCategories() {
-            return disabledCategories != null ? disabledCategories : Collections.emptySet();
-        }
-
-        /**
-         * Whether the unified disabled_categories setting was explicitly configured
-         * @return true if disabled_categories was set
-         */
-        public boolean isDisabledCategoriesConfigured() {
-            return disabledCategoriesConfigured;
+            return disabledCategories;
         }
 
         public void log(Logger logger) {
