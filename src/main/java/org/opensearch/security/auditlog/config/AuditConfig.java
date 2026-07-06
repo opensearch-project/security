@@ -253,11 +253,7 @@ public class AuditConfig {
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
             final Set<AuditCategory> disabledCategories = AuditCategory.parse(
-                getOrDefault(
-                    properties,
-                    FilterEntries.DISABLE_CATEGORIES.getKey(),
-                    Collections.emptyList()
-                )
+                getOrDefault(properties, FilterEntries.DISABLE_CATEGORIES.getKey(), Collections.emptyList())
             );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 getOrDefault(
@@ -326,11 +322,7 @@ public class AuditConfig {
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
             final Set<AuditCategory> disabledCategories = AuditCategory.parse(
-                fromSettingStringSet(
-                    settings,
-                    FilterEntries.DISABLE_CATEGORIES,
-                    Collections.emptyList()
-                )
+                fromSettingStringSet(settings, FilterEntries.DISABLE_CATEGORIES, Collections.emptyList())
             );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 fromSettingStringSet(
