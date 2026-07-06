@@ -299,7 +299,9 @@ public class DashboardMultiTenancyIntTests {
     static final TestSecurityConfig.User WILDCARD_TENANT_USER = new TestSecurityConfig.User("wildcard_tenant_user").description("r/w to *")
         .roles(
             TestSecurityConfig.Role.KIBANA_USER,
-            new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops")
+            new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops", "cluster_monitor")
+                .indexPermissions("indices:monitor/*")
+                .on("*")
                 .tenantPermissions("kibana_all_write")
                 .on("*")
         )
@@ -967,6 +969,34 @@ public class DashboardMultiTenancyIntTests {
                     throw new RuntimeException("Error while deleting " + path + "\n" + response.getBody());
                 }
             }
+        }
+    }
+
+    /**
+     * Regression test: _cat/indices with a securitytenant header should NOT be denied by the
+     * multi-tenancy interceptor. Previously, the cross-tenant check in PrivilegesInterceptor would
+     * fire for _cat/indices because the resolved indices incidentally include .kibana_* tenant indices
+     * from other tenants. The fix ensures the check only applies when the user explicitly targets a
+     * concrete tenant index in the original request.
+     */
+    @Test
+    public void catIndices_withTenantHeader_shouldNotBeDenied() {
+        // Only run once (not for every parameterized user)
+        if (!user.equals(WILDCARD_TENANT_USER)) {
+            return;
+        }
+
+        // WILDCARD_TENANT_USER has kibana_user role which includes cluster_monitor.
+        // With the securitytenant header set, this request should NOT be denied by
+        // the multi-tenancy interceptor just because _cat/indices resolves to indices
+        // that include .kibana_* tenant indices from other tenants.
+        try (TestRestClient restClient = cluster.getRestClient(WILDCARD_TENANT_USER)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                "_cat/indices?format=json",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isOk());
         }
     }
 }

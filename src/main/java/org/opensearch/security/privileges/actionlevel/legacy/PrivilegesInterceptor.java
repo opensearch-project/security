@@ -235,13 +235,18 @@ public class PrivilegesInterceptor {
             }
 
             // For multi-document actions (_mget, _bulk, _msearch, _mtv), deny any request
-            // that directly references a concrete dashboards tenant index. Legitimate Dashboards
-            // requests always go through the top-level alias which gets rewritten by the interceptor.
+            // that directly references a concrete dashboards tenant index belonging to another tenant.
+            // Legitimate Dashboards requests always go through the top-level alias which gets rewritten
+            // by the interceptor.
+            // We check originalRequested (what the user explicitly specified) rather than allIndices
+            // (the fully resolved set) to avoid false positives from broad queries like _cat/indices
+            // where tenant indices are incidentally included in the resolution.
             if (!requestedResolved.isLocalAll()) {
-                final Set<String> indices = requestedResolved.getAllIndices();
+                final Set<String> originalRequested = requestedResolved.getOriginalRequested();
+                final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
 
-                for (String idx : indices) {
-                    if (idx.startsWith(dashboardsIndexName + "_")) {
+                for (String idx : originalRequested) {
+                    if (idx.startsWith(dashboardsIndexName + "_") && !idx.startsWith(tenantIndexName)) {
                         return ACCESS_DENIED_REPLACE_RESULT;
                     }
                 }
