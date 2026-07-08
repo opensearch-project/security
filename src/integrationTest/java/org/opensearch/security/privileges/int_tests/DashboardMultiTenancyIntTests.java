@@ -299,7 +299,9 @@ public class DashboardMultiTenancyIntTests {
     static final TestSecurityConfig.User WILDCARD_TENANT_USER = new TestSecurityConfig.User("wildcard_tenant_user").description("r/w to *")
         .roles(
             TestSecurityConfig.Role.KIBANA_USER,
-            new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops")
+            new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops", "cluster_monitor")
+                .indexPermissions("indices:monitor/*", "indices:admin/data_stream/get")
+                .on("*")
                 .tenantPermissions("kibana_all_write")
                 .on("*")
         )
@@ -967,6 +969,53 @@ public class DashboardMultiTenancyIntTests {
                     throw new RuntimeException("Error while deleting " + path + "\n" + response.getBody());
                 }
             }
+        }
+    }
+
+    /**
+     * Verifies that _cat/indices with a broad pattern and securitytenant header is NOT denied.
+     */
+    @Test
+    public void catIndices_withTenantHeader_shouldNotBeDenied() {
+        if (!user.equals(WILDCARD_TENANT_USER)) {
+            return;
+        }
+
+        if (clusterConfig.systemIndexPrivilegeEnabled) {
+            return;
+        }
+
+        try (TestRestClient restClient = cluster.getRestClient(WILDCARD_TENANT_USER)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                "_cat/indices/.kib*?format=json",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isOk());
+        }
+    }
+
+    /**
+     * Verifies that _data_stream/** with a securitytenant header is NOT denied.
+     * ISM Dashboards sends this on the Data Streams page load.
+     */
+    @Test
+    public void dataStream_withTenantHeader_shouldNotBeDenied() {
+        if (!user.equals(WILDCARD_TENANT_USER)) {
+            return;
+        }
+
+        if (clusterConfig.systemIndexPrivilegeEnabled) {
+            return;
+        }
+
+        try (TestRestClient restClient = cluster.getRestClient(WILDCARD_TENANT_USER)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                "_data_stream/**",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isOk());
         }
     }
 }
