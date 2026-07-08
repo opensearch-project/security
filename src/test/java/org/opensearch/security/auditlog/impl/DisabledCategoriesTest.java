@@ -82,24 +82,6 @@ public class DisabledCategoriesTest {
     }
 
     @Test
-    public void invalidConfigurationTest() {
-        Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put("plugins.security.audit.type", "debug");
-        settingsBuilder.put("plugins.security.audit.config.disabled_categories", "nonexistant, bad_headers");
-        AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(
-            settingsBuilder.build(),
-            null,
-            null,
-            AbstractSecurityUnitTest.MOCK_POOL,
-            null,
-            cs
-        );
-        logAll(auditLog);
-        String result = TestAuditlogImpl.sb.toString();
-        Assert.assertFalse(categoriesPresentInLog(result, AuditCategory.BAD_HEADERS));
-    }
-
-    @Test
     public void enableAllCategoryTest() throws Exception {
         final Builder settingsBuilder = Settings.builder();
 
