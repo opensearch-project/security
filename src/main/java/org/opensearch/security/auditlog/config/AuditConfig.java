@@ -201,7 +201,7 @@ public class AuditConfig {
             LOG_REQUEST_BODY("log_request_body", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY),
             RESOLVE_INDICES("resolve_indices", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES),
             EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS),
-            DISABLE_CATEGORIES("disabled_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES),
+            DISABLE_CATEGORIES("disabled_categories", ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES),
             DISABLE_REST_CATEGORIES("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES),
             DISABLE_TRANSPORT_CATEGORIES(
                 "disabled_transport_categories",
@@ -280,16 +280,10 @@ public class AuditConfig {
                 getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
-            if (properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey())
-                && (properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
-                    || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey()))) {
-                final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
-                deprecationLogger.deprecate(
-                    "disabled_rest_transport_categories",
-                    "Both 'disabled_categories' and 'disabled_rest_categories'/'disabled_transport_categories' are configured. "
-                        + "They will work in tandem, but consider migrating to 'disabled_categories' only."
-                );
-            }
+            final boolean unifiedPresent = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
+            final boolean splitPresent = properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
+                || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey());
+            warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
 
             return new Filter(
                 isRestApiAuditEnabled,
@@ -342,18 +336,12 @@ public class AuditConfig {
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
             final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
 
-            if (settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace())
-                && (settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
-                    || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
-                    || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
-                    || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace()))) {
-                final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
-                deprecationLogger.deprecate(
-                    "disabled_rest_transport_categories",
-                    "Both 'disabled_categories' and 'disabled_rest_categories'/'disabled_transport_categories' are configured. "
-                        + "They will work in tandem, but consider migrating to 'disabled_categories' only."
-                );
-            }
+            final boolean unifiedPresent = settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace());
+            final boolean splitPresent = settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace());
+            warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
 
             return new Filter(
                 isRestApiAuditEnabled,
@@ -395,6 +383,17 @@ public class AuditConfig {
 
             // Fallback to the legacy keyname
             return ConfigConstants.getSettingAsSet(settings, filterEntry.getLegacyKeyWithNamespace(), defaultValue, true);
+        }
+
+        private static void warnIfBothUnifiedAndSplitConfigured(boolean unifiedPresent, boolean splitPresent) {
+            if (unifiedPresent && splitPresent) {
+                final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
+                deprecationLogger.deprecate(
+                    "disabled_rest_transport_categories",
+                    "Both 'disabled_categories' and 'disabled_rest_categories'/'disabled_transport_categories' are configured. "
+                        + "They will work in tandem, but consider migrating to 'disabled_categories' only."
+                );
+            }
         }
 
         /**

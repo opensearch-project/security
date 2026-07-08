@@ -212,8 +212,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES = "opendistro_security.audit.resolve_indices";
     public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_REST = "opendistro_security.audit.enable_rest";
     public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT = "opendistro_security.audit.enable_transport";
-    public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES =
-        "opendistro_security.audit.config.disabled_categories";
+    public static final String SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES = "plugins.security.audit.config.disabled_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES =
         "opendistro_security.audit.config.disabled_transport_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES =
