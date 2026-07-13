@@ -149,6 +149,10 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.auditConfigFilter.log(log);
     }
 
+    public AuditConfig.Filter getFilter() {
+        return auditConfigFilter;
+    }
+
     protected void onComplianceConfigChanged(ComplianceConfig complianceConfig) {
         this.complianceConfig = complianceConfig;
         enableRoutes();
@@ -335,6 +339,26 @@ public abstract class AbstractAuditLog implements AuditLog {
         );
 
         msgs.forEach(this::save);
+    }
+
+    @Override
+    public void logRequestAudit(AuditMessage msg) {
+        if (auditConfigFilter != null
+            && (auditConfigFilter.getDisabledCategories().contains(msg.getCategory())
+                || auditConfigFilter.getDisabledTransportCategories().contains(msg.getCategory()))) {
+            return;
+        }
+        save(msg);
+    }
+
+    @Override
+    public void logTransportAudit(AuditMessage msg) {
+        if (auditConfigFilter != null
+            && (auditConfigFilter.getDisabledCategories().contains(msg.getCategory())
+                || auditConfigFilter.getDisabledTransportCategories().contains(msg.getCategory()))) {
+            return;
+        }
+        save(msg);
     }
 
     // Routes settings change audit to the appropriate handler
