@@ -61,12 +61,13 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Build and Test
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: |
-            ${{ matrix.gradle_task }} -Dbuild.snapshot=false
+
+      - name: Build and Test
+        run: ./gradlew ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -104,12 +105,13 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Build and Test
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: |
-            ${{ matrix.gradle_task }} -Dbuild.snapshot=false
+
+      - name: Build and Test
+        run: ./gradlew ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -157,12 +159,13 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Run Integration Tests
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: |
-            :integrationTest -Dbuild.snapshot=false
+
+      - name: Run Integration Tests
+        run: ./gradlew :integrationTest -Dbuild.snapshot=false
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -200,12 +203,13 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Build and Test
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: |
-            :integrationTest -Dbuild.snapshot=false
+
+      - name: Build and Test
+        run: ./gradlew :integrationTest -Dbuild.snapshot=false
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -243,11 +247,11 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Run SampleResourcePlugin Integration Tests
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
-        with:
-          arguments: |
-            :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
+
+      - name: Run SampleResourcePlugin Integration Tests
+        run: ./gradlew :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -275,11 +279,11 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Run SampleResourcePlugin Integration Tests
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
-        with:
-          arguments: |
-            :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
+
+      - name: Run SampleResourcePlugin Integration Tests
+        run: ./gradlew :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -308,12 +312,13 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Run Resource Tests
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: |
-            :integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
+
+      - name: Run Resource Tests
+        run: ./gradlew :integrationTest -Dbuild.snapshot=false --tests org.opensearch.security.ResourceFocusedTests
 
   backward-compatibility-build:
     runs-on: ubuntu-latest
@@ -326,12 +331,13 @@ jobs:
       - name: Checkout Security Repo
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Build BWC tests
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: |
-            -p bwc-test build -x test -x integTest
+
+      - name: Build BWC tests
+        run: ./gradlew -p bwc-test build -x test -x integTest
 
   backward-compatibility:
     strategy:

@@ -27,7 +27,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: spotlessCheck
+
+      - run: ./gradlew spotlessCheck
 
   checkstyle:
     runs-on: ubuntu-latest
@@ -43,7 +44,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: checkstyleMain checkstyleTest checkstyleIntegrationTest
+
+      - run: ./gradlew checkstyleMain checkstyleTest checkstyleIntegrationTest
 
   spotbugs:
     runs-on: ubuntu-latest
@@ -59,7 +61,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-disabled: true
-          arguments: spotbugsMain
+
+      - run: ./gradlew spotbugsMain
 
   check-permissions-order:
     runs-on: ubuntu-latest
