@@ -65,8 +65,6 @@ import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.FipsMode;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.NodeSettingsSupplier;
 import org.opensearch.security.test.SingleClusterTest;

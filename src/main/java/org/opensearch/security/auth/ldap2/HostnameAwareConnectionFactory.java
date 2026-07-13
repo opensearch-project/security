@@ -12,26 +12,36 @@
 package org.opensearch.security.auth.ldap2;
 
 import org.ldaptive.Connection;
-import org.ldaptive.ConnectionFactory;
-import org.ldaptive.LdapException;
+import org.ldaptive.ConnectionConfig;
+import org.ldaptive.DefaultConnectionFactory;
 import org.ldaptive.LdapURL;
 
 /**
- * Wrapper around ConnectionFactory that extracts the hostname from the LDAP URL
- * and stores it in ThreadLocal for use by SNISettingTLSSocketFactory.
+ * {@link DefaultConnectionFactory} that extracts the hostname from the LDAP URL and returns a
+ * {@link SniAwareConnection}, so the SNI context is established when the connection is opened —
+ * the TLS socket is created at {@code open()}, not at {@code getConnection()}.
  *
- * <p>This is necessary because JNDI LDAP resolves hostnames to IP addresses before
- * creating SSL sockets, making the hostname unavailable for SNI configuration.
+ * <p>Extending {@link DefaultConnectionFactory} (rateher than merely implementing
+ * {@code ConnectionFactory}) lets the same class back a connection pool, which requires a
+ * concrete {@link DefaultConnectionFactory}, as well as serve non-pooled connections directly.
+ * The pool creates each physical connection via {@link #getConnection()} and then calls
+ * {@code open()} on it, so the SNI wrapping applies uniformly to pooled and non-pooled paths.
+ *
+ * <p>This is necessary because JNDI LDAP resolves hostnames to IP addresses before creating
+ * SSL sockets, making the hostname unavailable for SNI configuration.
  */
-public record HostnameAwareConnectionFactory(ConnectionFactory delegate, String ldapUrl, boolean verifyHostname)
-    implements
-        ConnectionFactory {
+public class HostnameAwareConnectionFactory extends DefaultConnectionFactory {
+
+    private final String ldapUrl;
+
+    public HostnameAwareConnectionFactory(ConnectionConfig config, String ldapUrl) {
+        super(config);
+        this.ldapUrl = ldapUrl;
+    }
 
     @Override
-    public Connection getConnection() throws LdapException {
+    public Connection getConnection() {
         String hostname = new LdapURL(ldapUrl).getEntry().getHostname();
-        try (var ignored = SNISettingTLSSocketFactory.configure(hostname, verifyHostname)) {
-            return delegate.getConnection();
-        }
+        return new SniAwareConnection(super.getConnection(), hostname);
     }
 }

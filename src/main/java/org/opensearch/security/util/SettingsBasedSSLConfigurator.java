@@ -45,7 +45,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
@@ -79,9 +78,7 @@ public class SettingsBasedSSLConfigurator {
     public static final String VERIFY_HOSTNAMES = "verify_hostnames";
     public static final String TRUST_ALL = "trust_all";
 
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = FipsMode.isEnabled()
-        ? ImmutableList.of("TLSv1.3", "TLSv1.2")
-        : ImmutableList.of("TLSv1.2", "TLSv1.1");
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.copyOf(SSLConfigConstants.ALLOWED_SSL_PROTOCOLS);
 
     private SSLContextBuilder sslContextBuilder;
     private final Settings settings;

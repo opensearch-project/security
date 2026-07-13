@@ -14,9 +14,12 @@ package org.opensearch.security.auth.ldap2;
 import org.junit.After;
 import org.junit.Test;
 
-import org.ldaptive.LdapException;
+import org.ldaptive.Connection;
+import org.ldaptive.ConnectionConfig;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class HostnameAwareConnectionFactoryTest {
 
@@ -26,18 +29,24 @@ public class HostnameAwareConnectionFactoryTest {
     }
 
     @Test
-    public void getConnection_setsHostnameBeforeDelegating() throws LdapException {
-        String[] captured = { null };
-        new HostnameAwareConnectionFactory(() -> {
-            captured[0] = SNISettingTLSSocketFactory.getHostname();
-            return null;
-        }, "ldaps://example.com:636", true).getConnection();
+    public void getConnection_wrapsWithHostnameFromUrl_withoutSettingContextAtBuild() {
+        HostnameAwareConnectionFactory factory = new HostnameAwareConnectionFactory(
+            new ConnectionConfig("ldaps://example.com:636"),
+            "ldaps://example.com:636"
+        );
 
-        assertEquals("example.com", captured[0]);
+        Connection connection = factory.getConnection();
+
+        // The connection is wrapped with the hostname parsed from the LDAP URL; the wrapper then
+        // establishes it as the SNI context at open() — see SniAwareConnectionTest.
+        assertTrue(connection instanceof SniAwareConnection);
+        assertEquals("example.com", ((SniAwareConnection) connection).hostname());
+        // Building the connection must NOT set the context — the socket isn't created yet.
+        assertNull(SNISettingTLSSocketFactory.getHostname());
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void getConnection_throwsOnUnparseableUrl() throws LdapException {
-        new HostnameAwareConnectionFactory(() -> null, "not-a-valid-url", false).getConnection();
+    public void getConnection_throwsOnUnparseableUrl() {
+        new HostnameAwareConnectionFactory(new ConnectionConfig("ldaps://example.com:636"), "not-a-valid-url").getConnection();
     }
 }

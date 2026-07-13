@@ -27,6 +27,7 @@ import tools.jackson.databind.JsonNode;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.StringContains.containsString;
 
 @RunWith(Parameterized.class)
 public class ConfigV7Test {

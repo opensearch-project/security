@@ -43,11 +43,7 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
 
     private static final Logger log = LogManager.getLogger(SNISettingTLSSocketFactory.class);
 
-    // ThreadLocal to store the hostname for the current LDAP connection
     private static final ThreadLocal<String> hostnameThreadLocal = new ThreadLocal<>();
-
-    // ThreadLocal to control whether endpoint identification should be enabled
-    private static final ThreadLocal<Boolean> verifyHostnameThreadLocal = ThreadLocal.withInitial(() -> false);
 
     private final SSLSocketFactory delegate;
 
@@ -73,19 +69,18 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
     }
 
     /**
-     * Sets SNI hostname and endpoint identification flag for the current thread, returning an
-     * {@link SniContext} that clears both on close. Intended for use in try-with-resources:
+     * Sets the SNI hostname for the current thread, returning an {@link SniContext} that clears it
+     * on close. Intended for use in try-with-resources:
      *
      * <pre>{@code
-     * try (var ignored = SNISettingTLSSocketFactory.configure(hostname, verifyHostname)) {
+     * try (var ignored = SNISettingTLSSocketFactory.configure(hostname)) {
      *     connection.open();
      * }
      * }</pre>
      */
-    public static SniContext configure(String hostname, boolean verifyHostname) {
+    public static SniContext configure(String hostname) {
         hostnameThreadLocal.set(hostname);
-        verifyHostnameThreadLocal.set(verifyHostname);
-        log.debug("Configured SNI context: hostname={}, verifyHostname={}", hostname, verifyHostname);
+        log.debug("Configured SNI context: hostname={}", hostname);
         return SNISettingTLSSocketFactory::clearContext;
     }
 
@@ -95,7 +90,6 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
 
     static void clearContext() {
         hostnameThreadLocal.remove();
-        verifyHostnameThreadLocal.remove();
     }
 
     SNISettingTLSSocketFactory(SSLSocketFactory delegate) {
@@ -148,7 +142,9 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
     }
 
     /**
-     * Configures SNI and hostname verification on a newly created socket.
+     * Sets the SNI {@code server_name} on a newly created socket from the hostname carried on the
+     * ThreadLocal. Hostname <em>verification</em> is handled by JNDI's endpoint identification (and
+     * ldaptive's verifier) — not here.
      *
      * @param socket the created socket
      * @return the configured socket
@@ -169,10 +165,6 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
         }
 
         SSLParameters params = sslSocket.getSSLParameters();
-        if (verifyHostnameThreadLocal.get()) {
-            params.setEndpointIdentificationAlgorithm("LDAPS");
-        }
-
         if (!IPAddress.isValid(hostname)) {
             log.debug("Configuring SNI for hostname: {} on socket: {}", hostname, socket.getClass().getName());
             params.setServerNames(Collections.singletonList(new SNIHostName(hostname)));

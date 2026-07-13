@@ -53,8 +53,8 @@ import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory;
+import org.opensearch.security.auth.ldap2.SocketFactoryClassLoader;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -82,9 +82,7 @@ import org.ldaptive.ssl.AllowAnyHostnameVerifier;
 import org.ldaptive.ssl.AllowAnyTrustManager;
 import org.ldaptive.ssl.CredentialConfig;
 import org.ldaptive.ssl.CredentialConfigFactory;
-import org.ldaptive.ssl.DefaultHostnameVerifier;
 import org.ldaptive.ssl.SslConfig;
-import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
@@ -94,9 +92,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
     private static final String COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION =
         "com.sun.jndi.ldap.object.disableEndpointIdentification";
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = FipsMode.isEnabled()
-        ? ImmutableList.of("TLSv1.2")
-        : ImmutableList.of("TLSv1.2", "TLSv1.1");
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.copyOf(SSLConfigConstants.ALLOWED_SSL_PROTOCOLS);
     static final int ONE_PLACEHOLDER = 1;
     static final int TWO_PLACEHOLDER = 2;
     static final String DEFAULT_ROLEBASE = "";
@@ -139,7 +135,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             ClassLoader originalClassloader = null;
             if (isJava9OrHigher) {
                 originalClassloader = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(new Java9CL());
+                Thread.currentThread().setContextClassLoader(new SocketFactoryClassLoader());
             }
 
             checkConnection0(connectionConfig, bindDn, password, originalClassloader, isJava9OrHigher);
@@ -154,7 +150,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             ClassLoader originalClassloader = null;
             if (isJava9OrHigher) {
                 originalClassloader = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(new Java9CL());
+                Thread.currentThread().setContextClassLoader(new SocketFactoryClassLoader());
             }
 
             return getConnection0(settings, configPath, originalClassloader, isJava9OrHigher);
@@ -212,9 +208,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
 
-            // Register custom socket factory for SNI hostname verification if SSL is enabled
             String sniHostname = null;
-            boolean verifyHostname = shouldVerifyHostname(config.getSslConfig());
             if (config.getLdapUrl() != null && config.getLdapUrl().startsWith("ldaps:")) {
                 configureSNISocketFactory(connFactory);
                 String ldapUrl = config.getLdapUrl();
@@ -231,7 +225,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             try (
                 SNISettingTLSSocketFactory.SniContext ignored = StringUtils.isBlank(sniHostname)
                     ? null
-                    : SNISettingTLSSocketFactory.configure(sniHostname, verifyHostname)
+                    : SNISettingTLSSocketFactory.configure(sniHostname)
             ) {
                 connection = connFactory.getConnection();
                 connection.open();
@@ -339,9 +333,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 // This addresses a known issue where JNDI LDAP doesn't pass hostname to SSLSocketFactory
                 // See: https://github.com/bcgit/bc-java/issues/460
                 if (enableSSL) {
-                    boolean verifyHostname = shouldVerifyHostname(config.getSslConfig());
                     configureSNISocketFactory(connFactory);
-                    try (var ignored = SNISettingTLSSocketFactory.configure(split[0], verifyHostname)) {
+                    try (var ignored = SNISettingTLSSocketFactory.configure(split[0])) {
                         connection = connFactory.getConnection();
                         connection.open();
                     }
@@ -658,9 +651,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 sslConfig.setTrustManagers(new AllowAnyTrustManager());
             }
 
-            if (verifyHostnames) {
-                sslConfig.setHostnameVerifier(new DefaultHostnameVerifier());
-            } else {
+            if (!verifyHostnames) {
                 sslConfig.setHostnameVerifier(new AllowAnyHostnameVerifier());
                 final String deiProp = System.getProperty(COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION);
 
@@ -677,8 +668,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     // https://www.oracle.com/technetwork/java/javase/10-0-2-relnotes-4477557.html
                     // https://www.oracle.com/technetwork/java/javase/11-0-1-relnotes-5032023.html
                 }
-
-                System.setProperty(COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION, "true");
             }
 
             final List<String> enabledCipherSuites = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_CIPHERS, Collections.emptyList());
@@ -1225,34 +1214,5 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
 
         return null;
-    }
-
-    @SuppressWarnings("rawtypes")
-    private final static Class clazz = ThreadLocalTLSSocketFactory.class;
-
-    private final static class Java9CL extends ClassLoader {
-
-        public Java9CL() {
-            super();
-        }
-
-        @SuppressWarnings("unused")
-        public Java9CL(ClassLoader parent) {
-            super(parent);
-        }
-
-        @SuppressWarnings({ "rawtypes", "unchecked" })
-        @Override
-        public Class loadClass(String name) throws ClassNotFoundException {
-
-            if (name.equals("org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory")) {
-                return SNISettingTLSSocketFactory.class;
-            }
-            if (name.equalsIgnoreCase("org.ldaptive.ssl.ThreadLocalTLSSocketFactory")) {
-                return clazz;
-            }
-
-            return super.loadClass(name);
-        }
     }
 }

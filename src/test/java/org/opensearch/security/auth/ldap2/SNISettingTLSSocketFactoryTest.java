@@ -39,40 +39,27 @@ public class SNISettingTLSSocketFactoryTest {
     // --- configureSocket ---
 
     @Test
-    public void configureSocket_setsSniAndEndpointIdentification_whenVerifyHostname() throws Exception {
+    public void configureSocket_setsSni() throws Exception {
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("example.com", true);
+        SNISettingTLSSocketFactory.configure("example.com");
 
         factory.configureSocket(socket);
 
         List<SNIServerName> serverNames = socket.getSSLParameters().getServerNames();
         assertEquals(1, serverNames.size());
         assertEquals("example.com", ((SNIHostName) serverNames.get(0)).getAsciiName());
-        assertEquals("LDAPS", socket.getSSLParameters().getEndpointIdentificationAlgorithm());
-    }
-
-    @Test
-    public void configureSocket_setsSniButNotEndpointIdentification_whenVerifyHostnameDisabled() throws Exception {
-        SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("example.com", false);
-
-        factory.configureSocket(socket);
-
-        List<SNIServerName> serverNames = socket.getSSLParameters().getServerNames();
-        assertEquals(1, serverNames.size());
-        assertEquals("example.com", ((SNIHostName) serverNames.get(0)).getAsciiName());
+        // Endpoint identification (hostname verification) is JNDI's job, not the factory's.
         assertNull(socket.getSSLParameters().getEndpointIdentificationAlgorithm());
     }
 
     @Test
-    public void configureSocket_skipsSnForIpAddress() throws Exception {
+    public void configureSocket_skipsSniForIpAddress() throws Exception {
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("192.168.1.1", true);
+        SNISettingTLSSocketFactory.configure("192.168.1.1");
 
         factory.configureSocket(socket);
 
         assertNull(socket.getSSLParameters().getServerNames());
-        assertEquals("LDAPS", socket.getSSLParameters().getEndpointIdentificationAlgorithm());
     }
 
     @Test
@@ -88,7 +75,7 @@ public class SNISettingTLSSocketFactoryTest {
     @Test(expected = IllegalArgumentException.class)
     public void configureSocket_throwsOnInvalidHostname() throws Exception {
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("invalid..hostname", true);
+        SNISettingTLSSocketFactory.configure("invalid..hostname");
 
         factory.configureSocket(socket);
     }
@@ -96,7 +83,7 @@ public class SNISettingTLSSocketFactoryTest {
     @Test
     public void configureSocket_passesThroughNonSslSocket() {
         Socket socket = new Socket();
-        SNISettingTLSSocketFactory.configure("example.com", true);
+        SNISettingTLSSocketFactory.configure("example.com");
 
         Socket result = factory.configureSocket(socket);
 
@@ -127,7 +114,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_wrappingSocket_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com", false);
+        SNISettingTLSSocketFactory.configure("example.com");
 
         Socket result = f.createSocket(new Socket(), "example.com", 636, true);
 
@@ -139,7 +126,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_stringHost_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com", false);
+        SNISettingTLSSocketFactory.configure("example.com");
 
         Socket result = f.createSocket("example.com", 636);
 
@@ -151,7 +138,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_stringHostWithLocalAddress_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com", false);
+        SNISettingTLSSocketFactory.configure("example.com");
 
         Socket result = f.createSocket("example.com", 636, InetAddress.getLoopbackAddress(), 0);
 
@@ -163,7 +150,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_inetAddress_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com", false);
+        SNISettingTLSSocketFactory.configure("example.com");
 
         Socket result = f.createSocket(InetAddress.getLoopbackAddress(), 636);
 
@@ -175,7 +162,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_inetAddressWithLocalAddress_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com", false);
+        SNISettingTLSSocketFactory.configure("example.com");
 
         Socket result = f.createSocket(InetAddress.getLoopbackAddress(), 636, InetAddress.getLoopbackAddress(), 0);
 
