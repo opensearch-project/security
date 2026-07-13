@@ -23,8 +23,8 @@ buildscript {
 configurations.all {
     resolutionStrategy {
         force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
-        force "org.bouncycastle:bcpkix-jdk18on:1.84"
-        force "org.bouncycastle:bcprov-jdk18on:1.84"
+        force "org.bouncycastle:bcpkix-jdk18on:1.85"
+        force "org.bouncycastle:bcprov-jdk18on:1.85"
         force "org.apache.commons:commons-lang3:${versions.commonslang}"
         force "tools.jackson.core:jackson-core:${versions.jackson3}"
     }
