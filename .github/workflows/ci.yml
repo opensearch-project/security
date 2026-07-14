@@ -68,6 +68,7 @@ jobs:
 
       - name: Build and Test
         run: ./gradlew ${{ matrix.gradle_task }} -Dbuild.snapshot=false
+        shell: bash
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -105,11 +106,7 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
-        with:
-          cache-disabled: true
-
+      # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
       - name: Build and Test
         run: ./gradlew ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
@@ -166,6 +163,7 @@ jobs:
 
       - name: Run Integration Tests
         run: ./gradlew :integrationTest -Dbuild.snapshot=false
+        shell: bash
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
@@ -203,11 +201,7 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
-        with:
-          cache-disabled: true
-
+      # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
       - name: Build and Test
         run: ./gradlew :integrationTest -Dbuild.snapshot=false
 
@@ -247,9 +241,7 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
-
+      # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
       - name: Run SampleResourcePlugin Integration Tests
         run: ./gradlew :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
@@ -284,6 +276,7 @@ jobs:
 
       - name: Run SampleResourcePlugin Integration Tests
         run: ./gradlew :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
+        shell: bash
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()

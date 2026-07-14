@@ -40,6 +40,7 @@ jobs:
 
       - name: Assemble target plugin
         run: ./gradlew assemble
+        shell: bash
 
       # Move and rename the plugin for installation
       - name: Move and rename the plugin for installation
@@ -67,4 +68,7 @@ jobs:
           jdk-version: 21
 
       - name: Run sanity tests
-        run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=${{ steps.generate-password.outputs.password }} -i
+        run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin "-Dpassword=${SECURITY_PASSWORD}" -i
+        shell: bash
+        env:
+          SECURITY_PASSWORD: ${{ steps.generate-password.outputs.password }}
