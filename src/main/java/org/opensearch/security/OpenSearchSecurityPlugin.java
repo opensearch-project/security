@@ -1150,7 +1150,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             indexModule.addIndexOperationListener(ciol);
 
             // Compliance read tracking — lightweight reader wrapper (no DLS/FLS)
-            indexModule.setReaderWrapper(indexService -> new ComplianceReadIndexSearcherWrapper(indexService, threadPool, cs, auditLog));
+            // Also sets IndexService on ciol so write_log_diffs can retrieve original docs
+            indexModule.setReaderWrapper(indexService -> {
+                ciol.setIs(indexService);
+                return new ComplianceReadIndexSearcherWrapper(indexService, threadPool, cs, auditLog);
+            });
         }
     }
 
