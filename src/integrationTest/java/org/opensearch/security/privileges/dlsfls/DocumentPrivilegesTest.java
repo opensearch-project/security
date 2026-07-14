@@ -67,6 +67,7 @@ import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.dataStreams;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
@@ -386,6 +387,10 @@ public class DocumentPrivilegesTest {
                 if (index == index_a1) {
                     if (userSpec.roles.contains("dls_role_1") && userSpec.roles.contains("dls_role_2")) {
                         assertNotNull(exception);
+                        assertThat(
+                            exception.getMessage(),
+                            equalTo("DLS query references undefined user attributes: [attr.attr_a]. Available attributes are: [none]")
+                        );
                     }
                 }
             } else if (userSpec.roles.contains("non_dls_role") && dfmEmptyOverridesAll) {
