@@ -990,3 +990,62 @@ tasks.register("updateVersion") {
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }
+
+run {
+    useCluster project.testClusters.integTest
+    testClusters.integTest.plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // Set JVM arguments for memory
+    testClusters.integTest.nodes.each { node ->
+        node.jvmArgs(
+                '-Xms2g',  // Initial heap size
+                '-Xmx2g',   // Maximum heap size
+        )
+    }
+
+    // Configure security for run task
+    afterEvaluate {
+      testClusters.integTest.nodes.each  { node ->
+        // Add certificate files
+        node.extraConfigFile("kirk.pem", file("bwc-test/src/test/resources/security/kirk.pem"))
+        node.extraConfigFile("kirk-key.pem", file("bwc-test/src/test/resources/security/kirk-key.pem"))
+        node.extraConfigFile("esnode.pem", file("bwc-test/src/test/resources/security/esnode.pem"))
+        node.extraConfigFile("esnode-key.pem", file("bwc-test/src/test/resources/security/esnode-key.pem"))
+        node.extraConfigFile("root-ca.pem", file("bwc-test/src/test/resources/security/root-ca.pem"))
+
+        // Security settings
+        node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
+        node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
+        node.setting("plugins.security.ssl.transport.pemtrustedcas_filepath", "root-ca.pem")
+        node.setting("plugins.security.ssl.transport.enforce_hostname_verification", "false")
+        node.setting("plugins.security.ssl.http.enabled", "true")
+        node.setting("plugins.security.ssl.http.pemcert_filepath", "esnode.pem")
+        node.setting("plugins.security.ssl.http.pemkey_filepath", "esnode-key.pem")
+        node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
+        node.setting("plugins.security.allow_unsafe_democertificates", "true")
+        node.setting("plugins.security.allow_default_init_securityindex", "true")
+        node.setting("plugins.security.authcz.admin_dn", "\n - CN=kirk,OU=client,O=client,L=test,C=de")
+        node.setting("plugins.security.audit.type", "internal_opensearch")
+        node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
+        node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
+        node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")
+        node.setting("plugins.security.system_indices.enabled", "true")
+
+        var creds = node.getCredentials()
+        if (creds.isEmpty()) {
+            creds.add(Map.of('username', 'admin', 'password', 'admin'))
+        } else {
+            creds.get(0).putAll(Map.of('username', 'admin', 'password', 'admin'))
+        }
+      }
+    }
+
+    doFirst {
+        // There seems to be an issue when running multi node run or integ tasks with unicast_hosts
+        // not being written, the waitForAllConditions ensures it's written
+        getClusters().forEach { cluster ->
+            cluster.setSecure(true)
+            cluster.waitForAllConditions()
+        }
+    }
+}
