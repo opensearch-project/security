@@ -36,9 +36,12 @@ public class StandaloneAuditTransportInterceptTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT,
+                true
             )
         )
         .sslOnly(true)

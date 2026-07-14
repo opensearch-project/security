@@ -166,46 +166,76 @@ public class SecuritySettings {
     private static final String COMPLIANCE_PREFIX = "plugins.security.audit.compliance.";
 
     public static final Setting<Boolean> COMPLIANCE_ENABLED = Setting.boolSetting(
-        COMPLIANCE_PREFIX + "enabled", true, Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "enabled",
+        true,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<List<String>> COMPLIANCE_WRITE_WATCHED_INDICES = Setting.listSetting(
-        COMPLIANCE_PREFIX + "write_watched_indices", Collections.emptyList(), Function.identity(),
-        Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "write_watched_indices",
+        Collections.emptyList(),
+        Function.identity(),
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<Boolean> COMPLIANCE_WRITE_METADATA_ONLY = Setting.boolSetting(
-        COMPLIANCE_PREFIX + "write_metadata_only", false, Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "write_metadata_only",
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<Boolean> COMPLIANCE_WRITE_LOG_DIFFS = Setting.boolSetting(
-        COMPLIANCE_PREFIX + "write_log_diffs", false, Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "write_log_diffs",
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<Boolean> COMPLIANCE_EXTERNAL_CONFIG_ENABLED = Setting.boolSetting(
-        COMPLIANCE_PREFIX + "external_config", false, Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "external_config",
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<Boolean> COMPLIANCE_INTERNAL_CONFIG_ENABLED = Setting.boolSetting(
-        COMPLIANCE_PREFIX + "internal_config", false, Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "internal_config",
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<Boolean> COMPLIANCE_READ_METADATA_ONLY = Setting.boolSetting(
-        COMPLIANCE_PREFIX + "read_metadata_only", false, Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "read_metadata_only",
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<List<String>> COMPLIANCE_READ_WATCHED_FIELDS = Setting.listSetting(
-        COMPLIANCE_PREFIX + "read_watched_fields", Collections.emptyList(), Function.identity(),
-        Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "read_watched_fields",
+        Collections.emptyList(),
+        Function.identity(),
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<List<String>> COMPLIANCE_READ_IGNORE_USERS = Setting.listSetting(
-        COMPLIANCE_PREFIX + "read_ignore_users", Collections.emptyList(), Function.identity(),
-        Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "read_ignore_users",
+        Collections.emptyList(),
+        Function.identity(),
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<List<String>> COMPLIANCE_WRITE_IGNORE_USERS = Setting.listSetting(
-        COMPLIANCE_PREFIX + "write_ignore_users", Collections.emptyList(), Function.identity(),
-        Setting.Property.NodeScope, Setting.Property.Dynamic
+        COMPLIANCE_PREFIX + "write_ignore_users",
+        Collections.emptyList(),
+        Function.identity(),
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 }

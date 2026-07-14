@@ -74,9 +74,7 @@ public class AuditTransportInterceptorTest {
     @Test
     public void testLogsTransportEventWithCorrectFields() throws Exception {
         TransportRequest request = mock(TransportRequest.class);
-        when(request.remoteAddress()).thenReturn(
-            new TransportAddress(new InetSocketAddress(InetAddress.getByName("10.0.0.5"), 9300))
-        );
+        when(request.remoteAddress()).thenReturn(new TransportAddress(new InetSocketAddress(InetAddress.getByName("10.0.0.5"), 9300)));
 
         Task task = mock(Task.class);
         when(task.getId()).thenReturn(99L);
@@ -86,7 +84,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:data/write/index", "generic", false, actualHandler
+            "indices:data/write/index",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -116,7 +117,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "internal:coordination/fault_detection/follower_check", "generic", false, actualHandler
+            "internal:coordination/fault_detection/follower_check",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -137,7 +141,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "cluster:monitor/nodes/stats", "generic", false, actualHandler
+            "cluster:monitor/nodes/stats",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -155,7 +162,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:monitor/stats", "generic", false, actualHandler
+            "indices:monitor/stats",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -180,7 +190,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:data/read/search", "generic", false, actualHandler
+            "indices:data/read/search",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -207,7 +220,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:data/write/index", "generic", false, actualHandler
+            "indices:data/write/index",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -232,7 +248,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:data/read/search", "generic", false, actualHandler
+            "indices:data/read/search",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -260,7 +279,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:data/write/index", "generic", false, actualHandler
+            "indices:data/write/index",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -288,7 +310,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:data/read/search", "generic", false, actualHandler
+            "indices:data/read/search",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);
@@ -307,7 +332,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:data/read/search", "generic", false, actualHandler
+            "indices:data/read/search",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, null);
@@ -327,9 +355,7 @@ public class AuditTransportInterceptorTest {
     public void testLogsReplicaWriteAction() throws Exception {
         // Replica writes use action names like "indices:data/write/bulk[s][r]"
         TransportRequest request = mock(TransportRequest.class);
-        when(request.remoteAddress()).thenReturn(
-            new TransportAddress(new InetSocketAddress(InetAddress.getByName("10.0.0.2"), 9300))
-        );
+        when(request.remoteAddress()).thenReturn(new TransportAddress(new InetSocketAddress(InetAddress.getByName("10.0.0.2"), 9300)));
 
         Task task = mock(Task.class);
         when(task.getId()).thenReturn(200L);
@@ -339,7 +365,10 @@ public class AuditTransportInterceptorTest {
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
         TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
-            "indices:data/write/bulk[s][r]", "generic", false, actualHandler
+            "indices:data/write/bulk[s][r]",
+            "generic",
+            false,
+            actualHandler
         );
 
         wrappedHandler.messageReceived(request, channel, task);

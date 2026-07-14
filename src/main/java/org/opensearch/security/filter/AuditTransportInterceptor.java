@@ -61,27 +61,20 @@ public class AuditTransportInterceptor implements TransportInterceptor {
         this.threadPool = threadPool;
 
         // Skip internal cluster noise by default
-        this.ignoreActionsMatcher = WildcardMatcher.from(
-            "internal:*",
-            "cluster:monitor/*",
-            "indices:monitor/*"
-        );
+        this.ignoreActionsMatcher = WildcardMatcher.from("internal:*", "cluster:monitor/*", "indices:monitor/*");
+
+        // In disabled mode, the parent plugin sets settings=null — use EMPTY as fallback
+        final Settings effectiveSettings = settings != null ? settings : Settings.EMPTY;
 
         // Respect same ignore settings as AuditActionFilter
-        List<String> ignoreUsers = settings.getAsList(
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
-            List.of()
-        );
+        List<String> ignoreUsers = effectiveSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, List.of());
         this.ignoreUsersMatcher = WildcardMatcher.from(ignoreUsers);
 
-        List<String> ignoreRequests = settings.getAsList(
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
-            List.of()
-        );
+        List<String> ignoreRequests = effectiveSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, List.of());
         this.ignoreRequestsMatcher = WildcardMatcher.from(ignoreRequests);
 
         // Respect disabled transport categories (check unified setting first, then transport-specific)
-        List<String> unifiedDisabledCats = settings.getAsList(
+        List<String> unifiedDisabledCats = effectiveSettings.getAsList(
             ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES,
             List.of()
         );
@@ -89,18 +82,18 @@ public class AuditTransportInterceptor implements TransportInterceptor {
         if (!unifiedDisabledCats.isEmpty()) {
             disabledCats = unifiedDisabledCats;
         } else {
-            disabledCats = settings.getAsList(
+            disabledCats = effectiveSettings.getAsList(
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
             );
         }
-        this.disabledCategories = disabledCats.stream()
-            .map(s -> {
-                try { return AuditCategory.valueOf(s.toUpperCase()); }
-                catch (Exception e) { return null; }
-            })
-            .filter(c -> c != null)
-            .collect(Collectors.toSet());
+        this.disabledCategories = disabledCats.stream().map(s -> {
+            try {
+                return AuditCategory.valueOf(s.toUpperCase());
+            } catch (Exception e) {
+                return null;
+            }
+        }).filter(c -> c != null).collect(Collectors.toSet());
     }
 
     @Override
@@ -118,13 +111,11 @@ public class AuditTransportInterceptor implements TransportInterceptor {
                     // Skip if TRANSPORT_AUDIT is disabled
                     if (!disabledCategories.contains(AuditCategory.TRANSPORT_AUDIT)) {
                         // Skip ignored requests (action or class name)
-                        if (!ignoreRequestsMatcher.test(action)
-                            && !ignoreRequestsMatcher.test(request.getClass().getSimpleName())) {
+                        if (!ignoreRequestsMatcher.test(action) && !ignoreRequestsMatcher.test(request.getClass().getSimpleName())) {
                             // Skip ignored users
                             String principal = threadPool.getThreadContext()
                                 .getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-                            User user = threadPool.getThreadContext()
-                                .getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                            User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                             String effectiveUser = user != null ? user.getName() : principal;
                             if (effectiveUser == null || !ignoreUsersMatcher.test(effectiveUser)) {
                                 logTransportEvent(action, request, task);

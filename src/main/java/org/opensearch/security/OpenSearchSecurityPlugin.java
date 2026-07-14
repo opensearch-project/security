@@ -160,8 +160,8 @@ import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
-import org.opensearch.security.compliance.ComplianceReadIndexSearcherWrapper;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
+import org.opensearch.security.compliance.ComplianceReadIndexSearcherWrapper;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
@@ -1150,9 +1150,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             indexModule.addIndexOperationListener(ciol);
 
             // Compliance read tracking — lightweight reader wrapper (no DLS/FLS)
-            indexModule.setReaderWrapper(
-                indexService -> new ComplianceReadIndexSearcherWrapper(indexService, threadPool, cs, auditLog)
-            );
+            indexModule.setReaderWrapper(indexService -> new ComplianceReadIndexSearcherWrapper(indexService, threadPool, cs, auditLog));
         }
     }
 

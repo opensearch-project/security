@@ -409,25 +409,21 @@ public class ComplianceConfig {
     }
 
     public void setWatchedReadFields(List<String> readFields) {
-        // Parse format: "indexpattern,field1,field2,..." 
+        // Parse format: "indexpattern,field1,field2,..."
         final Map<String, List<String>> parsed = readFields.stream()
             .map(entry -> entry.split(","))
             .filter(split -> split.length != 0 && !split[0].isEmpty())
             .collect(
                 Collectors.toMap(
                     split -> split[0],
-                    split -> split.length == 1
-                        ? List.of("*")
-                        : Arrays.stream(split).skip(1).collect(Collectors.toList())
+                    split -> split.length == 1 ? List.of("*") : Arrays.stream(split).skip(1).collect(Collectors.toList())
                 )
             );
         this.watchedReadFields = parsed;
         this.readEnabledFields = parsed.entrySet()
             .stream()
             .filter(entry -> !entry.getKey().isEmpty())
-            .collect(
-                Collectors.toMap(entry -> WildcardMatcher.from(entry.getKey()), entry -> Set.copyOf(entry.getValue()))
-            );
+            .collect(Collectors.toMap(entry -> WildcardMatcher.from(entry.getKey()), entry -> Set.copyOf(entry.getValue())));
         this.readEnabledFieldsCache.invalidateAll();
     }
 

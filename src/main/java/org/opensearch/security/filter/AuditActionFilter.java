@@ -198,7 +198,11 @@ public class AuditActionFilter implements ActionFilter {
                 // Resolve wildcards to actual index names
                 if (filter.shouldResolveIndices() && indices != null && indices.length > 0) {
                     try {
-                        String[] resolved = resolver.concreteIndexNames(clusterService.state(), IndicesOptions.lenientExpandOpen(), indices);
+                        String[] resolved = resolver.concreteIndexNames(
+                            clusterService.state(),
+                            IndicesOptions.lenientExpandOpen(),
+                            indices
+                        );
                         msg.addResolvedIndices(resolved);
                     } catch (Exception e) {
                         // Index resolution can fail if cluster state isn't ready — log raw indices only

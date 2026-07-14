@@ -38,9 +38,12 @@ public class StandaloneAuditComplianceDocTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "watched-*"
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES,
+                "watched-*"
             )
         )
         .sslOnly(true)
@@ -53,9 +56,12 @@ public class StandaloneAuditComplianceDocTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "read-watched"
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+                "read-watched"
             )
         )
         .sslOnly(true)
@@ -74,9 +80,7 @@ public class StandaloneAuditComplianceDocTest {
             client.putJson("watched-index/_doc/1?refresh=true", "{\"name\": \"sensitive\", \"ssn\": \"123-45-6789\"}");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE
-        );
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE);
     }
 
     @Test
@@ -86,9 +90,7 @@ public class StandaloneAuditComplianceDocTest {
         }
 
         auditLogsRule.waitForAuditLogs();
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE
-        );
+        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE);
     }
 
     @Test
@@ -116,9 +118,7 @@ public class StandaloneAuditComplianceDocTest {
         }
 
         // Should produce compliance write events for each doc
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE
-        );
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE);
     }
 
     @Test
@@ -129,9 +129,7 @@ public class StandaloneAuditComplianceDocTest {
         }
 
         // Update should also trigger compliance write
-        auditLogsRule.assertAtLeast(2, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE
-        );
+        auditLogsRule.assertAtLeast(2, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE);
     }
 
     @Test
@@ -142,9 +140,7 @@ public class StandaloneAuditComplianceDocTest {
         }
 
         // Delete from watched index should also produce compliance event
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE
-        );
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE);
     }
 
     @Test
@@ -154,9 +150,7 @@ public class StandaloneAuditComplianceDocTest {
             client.putJson("watched-logs-2026/_doc/1?refresh=true", "{\"data\": \"wildcard-match\"}");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE
-        );
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE);
     }
 
     @Test
@@ -185,9 +179,7 @@ public class StandaloneAuditComplianceDocTest {
             client.get("read-watched/_search");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_READ
-        );
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_READ);
     }
 
     @Test
@@ -198,9 +190,7 @@ public class StandaloneAuditComplianceDocTest {
         }
 
         auditLogsRule.waitForAuditLogs();
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_READ
-        );
+        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_READ);
     }
 
     @Test
@@ -224,9 +214,7 @@ public class StandaloneAuditComplianceDocTest {
             client.get("read-watched/_doc/get-test");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_READ
-        );
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_READ);
     }
 
     @Test
@@ -239,9 +227,7 @@ public class StandaloneAuditComplianceDocTest {
             client.postJson("read-watched/_search", "{\"query\": {\"match_all\": {}}}");
         }
 
-        auditLogsRule.assertAtLeast(3, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.COMPLIANCE_DOC_READ
-        );
+        auditLogsRule.assertAtLeast(3, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_READ);
     }
 
     @Test

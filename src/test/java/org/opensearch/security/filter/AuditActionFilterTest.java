@@ -10,7 +10,6 @@ package org.opensearch.security.filter;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
@@ -267,7 +266,12 @@ public class AuditActionFilterTest {
         Settings ignoreSettings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "ignored_admin")
             .build();
-        AuditActionFilter ignoreFilter = new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.from(ignoreSettings).getFilter());
+        AuditActionFilter ignoreFilter = new AuditActionFilter(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.from(ignoreSettings).getFilter()
+        );
 
         User ignoredUser = new User("ignored_admin");
         threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoredUser);
@@ -290,7 +294,12 @@ public class AuditActionFilterTest {
         Settings ignoreSettings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "indices:data/read/search")
             .build();
-        AuditActionFilter ignoreFilter = new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.from(ignoreSettings).getFilter());
+        AuditActionFilter ignoreFilter = new AuditActionFilter(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.from(ignoreSettings).getFilter()
+        );
 
         SearchRequest request = new SearchRequest("my-index");
         ActionFilterChain<SearchRequest, ActionResponse> chain = mock(ActionFilterChain.class);
@@ -310,7 +319,12 @@ public class AuditActionFilterTest {
         Settings ignoreSettings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "SearchRequest")
             .build();
-        AuditActionFilter ignoreFilter = new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.from(ignoreSettings).getFilter());
+        AuditActionFilter ignoreFilter = new AuditActionFilter(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.from(ignoreSettings).getFilter()
+        );
 
         SearchRequest request = new SearchRequest("my-index");
         ActionFilterChain<SearchRequest, ActionResponse> chain = mock(ActionFilterChain.class);

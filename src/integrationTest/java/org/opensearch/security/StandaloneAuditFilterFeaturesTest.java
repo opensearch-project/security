@@ -38,12 +38,18 @@ public class StandaloneAuditFilterFeaturesTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true,
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true,
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true,
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
+                true,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES,
+                true,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
+                true,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
+                true
             )
         )
         .sslOnly(true)
@@ -56,9 +62,12 @@ public class StandaloneAuditFilterFeaturesTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, List.of("indices:data/read/search", "SearchRequest")
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+                List.of("indices:data/read/search", "SearchRequest")
             )
         )
         .sslOnly(true)
@@ -71,9 +80,12 @@ public class StandaloneAuditFilterFeaturesTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
+                false
             )
         )
         .sslOnly(true)
@@ -86,10 +98,14 @@ public class StandaloneAuditFilterFeaturesTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, List.of("CN=kirk,OU=client,O=client,L=test,*"),
-                "plugins.security.ssl.http.clientauth_mode", "OPTIONAL"
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+                List.of("CN=kirk,OU=client,O=client,L=test,*"),
+                "plugins.security.ssl.http.clientauth_mode",
+                "OPTIONAL"
             )
         )
         .sslOnly(true)
@@ -102,10 +118,14 @@ public class StandaloneAuditFilterFeaturesTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, List.of("*"),
-                "plugins.security.ssl.http.clientauth_mode", "OPTIONAL"
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+                List.of("*"),
+                "plugins.security.ssl.http.clientauth_mode",
+                "OPTIONAL"
             )
         )
         .sslOnly(true)
@@ -118,9 +138,12 @@ public class StandaloneAuditFilterFeaturesTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
+                false
             )
         )
         .sslOnly(true)
@@ -252,9 +275,7 @@ public class StandaloneAuditFilterFeaturesTest {
 
     @Test
     public void shouldSuppressEventsForIgnoredCertUser() {
-        try (TestRestClient client = ignoreUsersCluster.getRestClient(
-            ignoreUsersCluster.getTestCertificates().getAdminCertificateData()
-        )) {
+        try (TestRestClient client = ignoreUsersCluster.getRestClient(ignoreUsersCluster.getTestCertificates().getAdminCertificateData())) {
             client.get("_cluster/health");
             client.get("ignore-user-test/_search");
         }
@@ -273,8 +294,9 @@ public class StandaloneAuditFilterFeaturesTest {
             client.get("_cluster/health");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertAtLeast(
+            1,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("cluster:monitor/health")
         );
@@ -288,8 +310,9 @@ public class StandaloneAuditFilterFeaturesTest {
             client.putJson("partial-match/_doc/1", "{\"field\": \"value\"}");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertAtLeast(
+            1,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("indices:data/write")
         );
@@ -306,8 +329,9 @@ public class StandaloneAuditFilterFeaturesTest {
         }
 
         auditLogsRule.waitForAuditLogs();
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertExactlyScanAll(
+            0,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("indices:data/read/search")
         );
@@ -319,8 +343,9 @@ public class StandaloneAuditFilterFeaturesTest {
             client.putJson("not-ignored/_doc/1", "{\"field\": \"value\"}");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertAtLeast(
+            1,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("indices:data/write")
         );
@@ -335,8 +360,9 @@ public class StandaloneAuditFilterFeaturesTest {
         }
 
         auditLogsRule.waitForAuditLogs();
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertExactlyScanAll(
+            0,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().startsWith("internal:")
         );
@@ -482,8 +508,7 @@ public class StandaloneAuditFilterFeaturesTest {
     @Test
     public void shouldIncludeDocIdInBulkPerItemEvents() {
         try (TestRestClient client = fullFeaturesCluster.getRestClient()) {
-            String bulkBody = "{ \"index\": { \"_index\": \"bulk-id-test\", \"_id\": \"my-doc-99\" } }\n"
-                + "{ \"data\": \"test\" }\n";
+            String bulkBody = "{ \"index\": { \"_index\": \"bulk-id-test\", \"_id\": \"my-doc-99\" } }\n" + "{ \"data\": \"test\" }\n";
             client.postJson("_bulk?refresh=true", bulkBody);
         }
 
@@ -551,8 +576,7 @@ public class StandaloneAuditFilterFeaturesTest {
     @Test
     public void shouldIncludeShardIdInBulkPerItemEvents() {
         try (TestRestClient client = fullFeaturesCluster.getRestClient()) {
-            String bulkBody = "{ \"index\": { \"_index\": \"bulk-shard-test\", \"_id\": \"1\" } }\n"
-                + "{ \"data\": \"shard-check\" }\n";
+            String bulkBody = "{ \"index\": { \"_index\": \"bulk-shard-test\", \"_id\": \"1\" } }\n" + "{ \"data\": \"shard-check\" }\n";
             client.postJson("_bulk?refresh=true", bulkBody);
         }
 
@@ -581,9 +605,11 @@ public class StandaloneAuditFilterFeaturesTest {
     public void shouldSuppressAllEventsWhenWildcardIgnoreUsers() {
         // ignore_users: ["*"] should suppress events that have an identified user
         // System background events with null user are still logged (no identity to match)
-        try (TestRestClient client = ignoreAllUsersCluster.getRestClient(
-            ignoreAllUsersCluster.getTestCertificates().getAdminCertificateData()
-        )) {
+        try (
+            TestRestClient client = ignoreAllUsersCluster.getRestClient(
+                ignoreAllUsersCluster.getTestCertificates().getAdminCertificateData()
+            )
+        ) {
             client.get("_cluster/health");
             client.putJson("wildcard-ignore/_doc/1", "{\"field\": \"value\"}");
         }

@@ -37,10 +37,13 @@ public class StandaloneAuditDynamicFilterSettingsTest {
         .loadConfigurationIntoIndex(false)
         .nodeSettings(
             Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
                 // Start with body enabled (default)
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
+                true
             )
         )
         .sslOnly(true)
@@ -57,8 +60,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldStopLoggingBodyWhenDisabledAtRuntime() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Disable request body logging dynamically
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.log_request_body\": false}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.log_request_body\": false}}");
 
             // This request's body should NOT appear in audit
             client.postJson("dynamic-body-test/_search", "{\"query\": {\"match_all\": {}}}");
@@ -72,8 +74,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
 
         // Re-enable for subsequent tests
         try (TestRestClient client = cluster.getRestClient()) {
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.log_request_body\": true}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.log_request_body\": true}}");
         }
     }
 
@@ -81,8 +82,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldResumeLoggingBodyWhenReenabledAtRuntime() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Ensure body logging is enabled
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.log_request_body\": true}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.log_request_body\": true}}");
 
             client.postJson("dynamic-body-resume/_search", "{\"query\": {\"term\": {\"status\": \"active\"}}}");
         }
@@ -103,8 +103,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldIgnoreUsersAddedAtRuntime() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Add a wildcard ignore pattern at runtime
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.ignore_users\": [\"*\"]}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_users\": [\"*\"]}}");
 
             // This should be suppressed (wildcard matches all identified users)
             // But since SSL-only with no client cert = null user, it will still log
@@ -115,8 +114,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
 
         // Reset
         try (TestRestClient client = cluster.getRestClient()) {
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.ignore_users\": []}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_users\": []}}");
         }
     }
 
@@ -128,24 +126,26 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldIgnoreRequestsAddedAtRuntime() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Dynamically ignore search requests
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": [\"indices:data/read/search\"]}}");
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": [\"indices:data/read/search\"]}}"
+            );
 
             // Search should now be suppressed
             client.postJson("dynamic-ignore-req/_search", "{\"query\": {\"match_all\": {}}}");
         }
 
         auditLogsRule.waitForAuditLogs();
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertExactlyScanAll(
+            0,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().equals("indices:data/read/search")
         );
 
         // Reset
         try (TestRestClient client = cluster.getRestClient()) {
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": []}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": []}}");
         }
     }
 
@@ -153,17 +153,19 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldStopIgnoringRequestsWhenCleared() {
         try (TestRestClient client = cluster.getRestClient()) {
             // First ignore, then clear
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": [\"indices:data/read/search\"]}}");
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": []}}");
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": [\"indices:data/read/search\"]}}"
+            );
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": []}}");
 
             // Search should now be logged again
             client.postJson("dynamic-unignore/_search", "{\"query\": {\"match_all\": {}}}");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertAtLeast(
+            1,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("indices:data/read/search")
         );
@@ -177,24 +179,26 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldDisableCategoryAtRuntime() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Disable REQUEST_AUDIT category dynamically
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": [\"REQUEST_AUDIT\"]}}");
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": [\"REQUEST_AUDIT\"]}}"
+            );
 
             // This should NOT produce a REQUEST_AUDIT event
             client.get("_cluster/health");
         }
 
         auditLogsRule.waitForAuditLogs();
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertExactlyScanAll(
+            0,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("cluster:monitor/health")
         );
 
         // Reset
         try (TestRestClient client = cluster.getRestClient()) {
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": []}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": []}}");
         }
     }
 
@@ -202,17 +206,19 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldReenableCategoryAtRuntime() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Disable then re-enable
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": [\"REQUEST_AUDIT\"]}}");
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": []}}");
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": [\"REQUEST_AUDIT\"]}}"
+            );
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": []}}");
 
             // Should be logged again
             client.get("_cluster/health");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertAtLeast(
+            1,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("cluster:monitor/health")
         );
@@ -229,8 +235,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
             client.putJson("resolve-dynamic/_doc/1?refresh=true", "{\"field\": \"value\"}");
 
             // Disable index resolution
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.resolve_indices\": false}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.resolve_indices\": false}}");
 
             // Search with concrete index — should NOT have resolved_indices field
             client.get("resolve-dynamic/_search");
@@ -254,8 +259,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
 
         // Reset
         try (TestRestClient client = cluster.getRestClient()) {
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.resolve_indices\": true}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.resolve_indices\": true}}");
         }
     }
 
@@ -267,8 +271,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldToggleBulkResolutionAtRuntime() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Enable bulk resolution dynamically
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.resolve_bulk_requests\": true}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.resolve_bulk_requests\": true}}");
 
             String bulkBody = "{ \"index\": { \"_index\": \"dyn-bulk-a\", \"_id\": \"1\" } }\n"
                 + "{ \"field\": \"a\" }\n"
@@ -292,8 +295,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
 
         // Reset
         try (TestRestClient client = cluster.getRestClient()) {
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.resolve_bulk_requests\": false}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.resolve_bulk_requests\": false}}");
         }
     }
 
@@ -305,8 +307,7 @@ public class StandaloneAuditDynamicFilterSettingsTest {
     public void shouldToggleSensitiveHeaderExclusionAtRuntime() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Disable sensitive header exclusion — Authorization should now appear
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.exclude_sensitive_headers\": false}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.exclude_sensitive_headers\": false}}");
 
             client.get("_cluster/health");
         }
@@ -314,16 +315,16 @@ public class StandaloneAuditDynamicFilterSettingsTest {
         // When exclude_sensitive_headers=false, all headers pass through unfiltered
         // We can't easily inject an Authorization header in the test client,
         // but we verify the setting was accepted and events still flow
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertAtLeast(
+            1,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("cluster:monitor/health")
         );
 
         // Reset
         try (TestRestClient client = cluster.getRestClient()) {
-            client.putJson("_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.config.exclude_sensitive_headers\": true}}");
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.exclude_sensitive_headers\": true}}");
         }
     }
 }

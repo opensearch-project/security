@@ -34,12 +34,7 @@ public class StandaloneAuditDynamicConfigTest {
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .loadConfigurationIntoIndex(false)
-        .nodeSettings(
-            Map.of(
-                ConfigConstants.SECURITY_SSL_ONLY, true,
-                "plugins.security.audit.type", TestRuleAuditLogSink.class.getName()
-            )
-        )
+        .nodeSettings(Map.of(ConfigConstants.SECURITY_SSL_ONLY, true, "plugins.security.audit.type", TestRuleAuditLogSink.class.getName()))
         .sslOnly(true)
         .build();
 
@@ -53,8 +48,9 @@ public class StandaloneAuditDynamicConfigTest {
             client.get("_cluster/health");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertAtLeast(
+            1,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("cluster:monitor/health")
         );
@@ -64,10 +60,7 @@ public class StandaloneAuditDynamicConfigTest {
     public void shouldToggleAuditOffAndBackOn() {
         try (TestRestClient client = cluster.getRestClient()) {
             // Disable audit via cluster setting
-            client.putJson(
-                "_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.enabled\": false}}"
-            );
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.enabled\": false}}");
 
             // These should NOT be audited
             client.get("_cluster/health");
@@ -78,26 +71,24 @@ public class StandaloneAuditDynamicConfigTest {
 
         // No REQUEST_AUDIT events for the requests after disabling
         // (the cluster settings PUT itself may or may not be captured depending on timing)
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertExactlyScanAll(
+            0,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
-                && (msg.getPrivilege().contains("cluster:monitor/health")
-                    || msg.getPrivilege().contains("indices:data/write"))
+                && (msg.getPrivilege().contains("cluster:monitor/health") || msg.getPrivilege().contains("indices:data/write"))
         );
 
         // Re-enable audit
         try (TestRestClient client = cluster.getRestClient()) {
-            client.putJson(
-                "_cluster/settings",
-                "{\"persistent\": {\"plugins.security.audit.enabled\": true}}"
-            );
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.enabled\": true}}");
 
             // This SHOULD be audited again
             client.get("_cluster/health");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) ->
-            msg.getCategory() == AuditCategory.REQUEST_AUDIT
+        auditLogsRule.assertAtLeast(
+            1,
+            (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT
                 && msg.getPrivilege() != null
                 && msg.getPrivilege().contains("cluster:monitor/health")
         );
