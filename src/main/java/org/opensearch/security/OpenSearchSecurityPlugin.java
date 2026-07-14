@@ -487,6 +487,40 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return settings.getAsBoolean(ConfigConstants.SECURITY_DISABLED, false);
     }
 
+    /**
+     * Extracts the static prefix from the configured audit index name pattern.
+     * The index setting uses Joda date format where literal text is enclosed in single quotes
+     * (e.g., {@code 'security-auditlog-'YYYY.MM.dd}). This method extracts the literal prefix
+     * so the self-loop guard can skip audit writes to the audit index itself.
+     * Also checks the datastream name as a fallback.
+     */
+    public static String getAuditIndexPrefix(Settings settings) {
+        String indexPattern = settings.get(
+            ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,
+            "'security-auditlog-'YYYY.MM.dd"
+        );
+
+        // Extract literal prefix from Joda pattern: text between first pair of single quotes
+        if (indexPattern.startsWith("'")) {
+            int endQuote = indexPattern.indexOf("'", 1);
+            if (endQuote > 1) {
+                return indexPattern.substring(1, endQuote);
+            }
+        }
+
+        // No quotes — check if it's the datastream name setting
+        String dataStreamName = settings.get(
+            ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_DATASTREAM_NAME,
+            null
+        );
+        if (dataStreamName != null) {
+            return dataStreamName;
+        }
+
+        // Fallback: use the raw pattern as prefix (handles plain index names)
+        return indexPattern;
+    }
+
     private static boolean useClusterStateToInitSecurityConfig(final Settings settings) {
         return settings.getAsBoolean(SECURITY_ALLOW_DEFAULT_INIT_USE_CLUSTER_STATE, false);
     }
@@ -1167,7 +1201,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // !(auditLog instanceof NullAuditLog) prevents registering AuditActionFilter when there's no real sink to send events to. No
             // point intercepting every request just to discard the message.
         } else if (!client && auditLog != null && !(auditLog instanceof NullAuditLog)) {
-            filters.add(new AuditActionFilter(auditLog, cs, threadPool, ((AbstractAuditLog) auditLog).getFilter()));
+            filters.add(
+                new AuditActionFilter(
+                    auditLog,
+                    cs,
+                    threadPool,
+                    ((AbstractAuditLog) auditLog).getFilter(),
+                    new IndexNameExpressionResolver(threadPool.getThreadContext()),
+                    getAuditIndexPrefix(settings)
+                )
+            );
         }
         return filters;
     }
@@ -1179,7 +1222,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // Audit transport interceptor — non-FGAC modes only (SSL-only, disabled)
         // FGAC audits through SecurityFilter; adding transport audit to FGAC is a separate effort
         if (!client && (disabled || SSLConfig.isSslOnlyMode()) && auditLog != null && !(auditLog instanceof NullAuditLog)) {
-            interceptors.add(new AuditTransportInterceptor(auditLog, cs, threadPool, settings));
+            interceptors.add(
+                new AuditTransportInterceptor(
+                    auditLog,
+                    cs,
+                    threadPool,
+                    ((AbstractAuditLog) auditLog).getFilter(),
+                    getAuditIndexPrefix(settings)
+                )
+            );
         }
 
         if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {

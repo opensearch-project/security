@@ -687,4 +687,96 @@ public class StandaloneAuditFilterFeaturesTest {
             return !headerStr.toLowerCase().contains("authorization");
         });
     }
+
+    // =====================================================================
+    // Bulk — mixed operations log correct request types
+    // =====================================================================
+
+    @Test
+    public void shouldLogCorrectRequestTypeForMixedBulkOperations() {
+        try (TestRestClient client = fullFeaturesCluster.getRestClient()) {
+            // Create docs first so delete and update have targets
+            client.putJson("bulk-types/_doc/del-target?refresh=true", "{\"field\": \"delete-me\"}");
+            client.putJson("bulk-types/_doc/upd-target?refresh=true", "{\"field\": \"update-me\"}");
+
+            String bulkBody = "{ \"index\": { \"_index\": \"bulk-types\", \"_id\": \"idx-1\" } }\n"
+                + "{ \"field\": \"indexed\" }\n"
+                + "{ \"delete\": { \"_index\": \"bulk-types\", \"_id\": \"del-target\" } }\n"
+                + "{ \"update\": { \"_index\": \"bulk-types\", \"_id\": \"upd-target\" } }\n"
+                + "{ \"doc\": { \"field\": \"updated\" } }\n";
+            client.postJson("_bulk?refresh=true", bulkBody);
+        }
+
+        // Index operation should have IndexRequest type
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object docId = fields.get(AuditMessage.ID);
+            Object requestType = fields.get(AuditMessage.TRANSPORT_REQUEST_TYPE);
+            return "idx-1".equals(docId) && requestType != null && requestType.toString().contains("IndexRequest");
+        });
+
+        // Delete operation should have DeleteRequest type
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object docId = fields.get(AuditMessage.ID);
+            Object requestType = fields.get(AuditMessage.TRANSPORT_REQUEST_TYPE);
+            return "del-target".equals(docId) && requestType != null && requestType.toString().contains("DeleteRequest");
+        });
+    }
+
+    // =====================================================================
+    // Bulk — multi-index bulk produces per-item events with correct indices
+    // =====================================================================
+
+    @Test
+    public void shouldLogPerItemEventsWithCorrectIndicesForMultiIndexBulk() {
+        try (TestRestClient client = fullFeaturesCluster.getRestClient()) {
+            String bulkBody = "{ \"index\": { \"_index\": \"bulk-idx-alpha\", \"_id\": \"a1\" } }\n"
+                + "{ \"data\": \"alpha\" }\n"
+                + "{ \"index\": { \"_index\": \"bulk-idx-beta\", \"_id\": \"b1\" } }\n"
+                + "{ \"data\": \"beta\" }\n"
+                + "{ \"index\": { \"_index\": \"bulk-idx-gamma\", \"_id\": \"g1\" } }\n"
+                + "{ \"data\": \"gamma\" }\n";
+            client.postJson("_bulk?refresh=true", bulkBody);
+        }
+
+        // Each per-item event should have its own target index
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object indices = fields.get(AuditMessage.INDICES);
+            if (indices == null) return false;
+            String[] indexArr = (String[]) indices;
+            for (String idx : indexArr) {
+                if ("bulk-idx-alpha".equals(idx)) return true;
+            }
+            return false;
+        });
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object indices = fields.get(AuditMessage.INDICES);
+            if (indices == null) return false;
+            String[] indexArr = (String[]) indices;
+            for (String idx : indexArr) {
+                if ("bulk-idx-beta".equals(idx)) return true;
+            }
+            return false;
+        });
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object indices = fields.get(AuditMessage.INDICES);
+            if (indices == null) return false;
+            String[] indexArr = (String[]) indices;
+            for (String idx : indexArr) {
+                if ("bulk-idx-gamma".equals(idx)) return true;
+            }
+            return false;
+        });
+    }
 }

@@ -14,6 +14,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
+import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
@@ -242,6 +243,304 @@ public class StandaloneAuditComplianceDocTest {
             Map<String, Object> fields = msg.getAsMap();
             Object docId = fields.get(AuditMessage.ID);
             return "read-id-check".equals(docId);
+        });
+    }
+
+    // =====================================================================
+    // COMPLIANCE_DOC_WRITE with WRITE_LOG_DIFFS enabled
+    //
+    // Regression tests for the fix that passes IndexService to
+    // ComplianceIndexingOperationListener via setIs() inside the
+    // setReaderWrapper lambda. Without this fix, write_log_diffs in
+    // ssl-only mode would NPE when attempting to retrieve original docs.
+    // =====================================================================
+
+    // --- Cluster with compliance write tracking AND write_log_diffs enabled ---
+    @ClassRule
+    public static LocalCluster diffCluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+        .anonymousAuth(false)
+        .loadConfigurationIntoIndex(false)
+        .nodeSettings(
+            Map.of(
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES,
+                "diff-watched-*",
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS,
+                true
+            )
+        )
+        .sslOnly(true)
+        .build();
+
+    @Test
+    public void shouldProduceDiffContentWhenDocumentIsUpdated() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-idx/_doc/1?refresh=true", "{\"field\": \"original-value\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-idx/_doc/1?refresh=true", "{\"field\": \"updated-value\"}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object operation = fields.get(AuditMessage.COMPLIANCE_OPERATION);
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            Object diffIsNoop = fields.get(AuditMessage.COMPLIANCE_DIFF_IS_NOOP);
+            return Operation.UPDATE.toString().equals(String.valueOf(operation))
+                && diffContent != null
+                && diffContent.toString().contains("updated-value")
+                && Boolean.FALSE.equals(diffIsNoop);
+        });
+    }
+
+    @Test
+    public void shouldProduceCreateEventWithNoDiffForNewDocument() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-new/_doc/fresh?refresh=true", "{\"name\": \"brand-new\"}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object operation = fields.get(AuditMessage.COMPLIANCE_OPERATION);
+            return Operation.CREATE.toString().equals(String.valueOf(operation));
+        });
+    }
+
+    @Test
+    public void shouldProduceDiffContentWhenDocumentIsDeleted() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-del/_doc/to-delete?refresh=true", "{\"secret\": \"sensitive-data\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.delete("diff-watched-del/_doc/to-delete?refresh=true");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object operation = fields.get(AuditMessage.COMPLIANCE_OPERATION);
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            return Operation.DELETE.toString().equals(String.valueOf(operation))
+                && diffContent != null
+                && diffContent.toString().contains("sensitive-data");
+        });
+    }
+
+    @Test
+    public void shouldProduceNoopDiffWhenDocumentContentUnchanged() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-noop/_doc/same?refresh=true", "{\"field\": \"no-change\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-noop/_doc/same?refresh=true", "{\"field\": \"no-change\"}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object operation = fields.get(AuditMessage.COMPLIANCE_OPERATION);
+            Object diffIsNoop = fields.get(AuditMessage.COMPLIANCE_DIFF_IS_NOOP);
+            return Operation.UPDATE.toString().equals(String.valueOf(operation)) && Boolean.TRUE.equals(diffIsNoop);
+        });
+    }
+
+    @Test
+    public void shouldCaptureDiffForMultipleFieldChanges() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-multi/_doc/1?refresh=true", "{\"name\": \"Alice\", \"age\": 30, \"city\": \"Seattle\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-multi/_doc/1?refresh=true", "{\"name\": \"Bob\", \"age\": 25, \"city\": \"Portland\"}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            Object diffIsNoop = fields.get(AuditMessage.COMPLIANCE_DIFF_IS_NOOP);
+            return diffContent != null && Boolean.FALSE.equals(diffIsNoop) && diffContent.toString().contains("Bob");
+        });
+    }
+
+    @Test
+    public void shouldCaptureDiffForPartialUpdate() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-partial/_doc/1?refresh=true", "{\"name\": \"Original\", \"status\": \"active\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.postJson("diff-watched-partial/_update/1?refresh=true", "{\"doc\": {\"status\": \"inactive\"}}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object operation = fields.get(AuditMessage.COMPLIANCE_OPERATION);
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            return Operation.UPDATE.toString().equals(String.valueOf(operation))
+                && diffContent != null
+                && diffContent.toString().contains("inactive");
+        });
+    }
+
+    @Test
+    public void shouldCaptureDiffWhenNewFieldAdded() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-addfield/_doc/1?refresh=true", "{\"existing\": \"value\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-addfield/_doc/1?refresh=true", "{\"existing\": \"value\", \"newField\": \"added\"}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            Object diffIsNoop = fields.get(AuditMessage.COMPLIANCE_DIFF_IS_NOOP);
+            return diffContent != null && Boolean.FALSE.equals(diffIsNoop) && diffContent.toString().contains("newField");
+        });
+    }
+
+    @Test
+    public void shouldCaptureDiffWhenFieldRemoved() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-rmfield/_doc/1?refresh=true", "{\"keep\": \"yes\", \"remove\": \"gone\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-rmfield/_doc/1?refresh=true", "{\"keep\": \"yes\"}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            Object diffIsNoop = fields.get(AuditMessage.COMPLIANCE_DIFF_IS_NOOP);
+            return diffContent != null && Boolean.FALSE.equals(diffIsNoop) && diffContent.toString().contains("remove");
+        });
+    }
+
+    @Test
+    public void shouldCaptureDiffsForBulkUpdates() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-bulk/_doc/b1?refresh=true", "{\"val\": \"before1\"}");
+            client.putJson("diff-watched-bulk/_doc/b2?refresh=true", "{\"val\": \"before2\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            String bulkBody = "{ \"index\": { \"_index\": \"diff-watched-bulk\", \"_id\": \"b1\" } }\n"
+                + "{ \"val\": \"after1\" }\n"
+                + "{ \"index\": { \"_index\": \"diff-watched-bulk\", \"_id\": \"b2\" } }\n"
+                + "{ \"val\": \"after2\" }\n";
+            client.postJson("_bulk?refresh=true", bulkBody);
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object operation = fields.get(AuditMessage.COMPLIANCE_OPERATION);
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            return Operation.UPDATE.toString().equals(String.valueOf(operation))
+                && diffContent != null
+                && (diffContent.toString().contains("after1") || diffContent.toString().contains("after2"));
+        });
+    }
+
+    @Test
+    public void shouldNotProduceDiffForUnwatchedIndexWithDiffsEnabled() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("not-diff-watched/_doc/1?refresh=true", "{\"field\": \"original\"}");
+            client.putJson("not-diff-watched/_doc/1?refresh=true", "{\"field\": \"modified\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> msg.getCategory() == AuditCategory.COMPLIANCE_DOC_WRITE);
+    }
+
+    @Test
+    public void shouldProduceCorrectDiffsForSequentialUpdates() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-seq/_doc/1?refresh=true", "{\"version\": 1}");
+            client.putJson("diff-watched-seq/_doc/1?refresh=true", "{\"version\": 2}");
+            client.putJson("diff-watched-seq/_doc/1?refresh=true", "{\"version\": 3}");
+        }
+
+        auditLogsRule.assertAtLeast(2, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object operation = fields.get(AuditMessage.COMPLIANCE_OPERATION);
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            return Operation.UPDATE.toString().equals(String.valueOf(operation))
+                && diffContent != null
+                && !diffContent.toString().isEmpty();
+        });
+    }
+
+    @Test
+    public void shouldCaptureDiffForNestedObjectChanges() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-nested/_doc/1?refresh=true", "{\"user\": {\"name\": \"Alice\", \"role\": \"admin\"}}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-nested/_doc/1?refresh=true", "{\"user\": {\"name\": \"Alice\", \"role\": \"viewer\"}}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            Object diffIsNoop = fields.get(AuditMessage.COMPLIANCE_DIFF_IS_NOOP);
+            return diffContent != null && Boolean.FALSE.equals(diffIsNoop) && diffContent.toString().contains("viewer");
+        });
+    }
+
+    @Test
+    public void shouldCaptureDocIdInDiffAuditEvent() {
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-docid/_doc/unique-id-123?refresh=true", "{\"v\": 1}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = diffCluster.getRestClient()) {
+            client.putJson("diff-watched-docid/_doc/unique-id-123?refresh=true", "{\"v\": 2}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.COMPLIANCE_DOC_WRITE) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object docId = fields.get(AuditMessage.ID);
+            Object diffContent = fields.get(AuditMessage.COMPLIANCE_DIFF_CONTENT);
+            return "unique-id-123".equals(docId) && diffContent != null;
         });
     }
 }

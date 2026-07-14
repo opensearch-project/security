@@ -327,4 +327,142 @@ public class StandaloneAuditDynamicFilterSettingsTest {
             client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.exclude_sensitive_headers\": true}}");
         }
     }
+
+    // =====================================================================
+    // Transport interceptor — verify it reads live filter settings
+    // =====================================================================
+
+    @Test
+    public void shouldSuppressTransportEventsWhenCategoryDisabledAtRuntime() {
+        // First verify TRANSPORT_AUDIT events are produced
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("transport-dynamic-test/_doc/1?refresh=true", "{\"val\": \"before-disable\"}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.TRANSPORT_AUDIT);
+
+        // Now disable TRANSPORT_AUDIT dynamically
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": [\"TRANSPORT_AUDIT\"]}}"
+            );
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        // Index again — TRANSPORT_AUDIT should be suppressed
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("transport-dynamic-test/_doc/2?refresh=true", "{\"val\": \"after-disable\"}");
+        }
+
+        // Should still get REQUEST_AUDIT but no TRANSPORT_AUDIT for this second write
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object indices = fields.get(AuditMessage.INDICES);
+            if (indices == null) return false;
+            String[] indexArr = (String[]) indices;
+            for (String idx : indexArr) {
+                if ("transport-dynamic-test".equals(idx)) return true;
+            }
+            return false;
+        });
+
+        // Reset
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": []}}");
+        }
+    }
+
+    @Test
+    public void shouldRespectIgnoreRequestsOnTransportEventsAtRuntime() {
+        // Dynamically add a pattern to ignore_requests that matches shard-level writes
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": [\"indices:data/write/*\"]}}"
+            );
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("transport-ignore-req/_doc/1?refresh=true", "{\"val\": \"filtered\"}");
+        }
+
+        // TRANSPORT_AUDIT events for write actions should be suppressed
+        auditLogsRule.waitForAuditLogs();
+        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.TRANSPORT_AUDIT) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            String privilege = (String) fields.get(AuditMessage.PRIVILEGE);
+            return privilege != null && privilege.contains("indices:data/write");
+        });
+
+        // Reset
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": []}}");
+        }
+    }
+
+    // =====================================================================
+    // Transport interceptor — re-enable after disable proves bidirectional
+    // =====================================================================
+
+    @Test
+    public void shouldResumeTransportEventsWhenCategoryReenabledAtRuntime() {
+        // Disable TRANSPORT_AUDIT
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": [\"TRANSPORT_AUDIT\"]}}"
+            );
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        // Re-enable by clearing disabled categories
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.disabled_transport_categories\": []}}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        // Index a doc — TRANSPORT_AUDIT should now appear again
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("transport-reenable-test/_doc/1?refresh=true", "{\"val\": \"back\"}");
+        }
+
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.TRANSPORT_AUDIT);
+    }
+
+    // =====================================================================
+    // disabled_rest_categories should NOT suppress TRANSPORT_AUDIT
+    // =====================================================================
+
+    @Test
+    public void shouldNotSuppressTransportAuditWhenOnlyRestCategoryDisabled() {
+        // Disable TRANSPORT_AUDIT via REST categories only (should not affect transport interceptor)
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.disabled_rest_categories\": [\"TRANSPORT_AUDIT\"]}}"
+            );
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("transport-rest-cat-test/_doc/1?refresh=true", "{\"val\": \"still-logged\"}");
+        }
+
+        // TRANSPORT_AUDIT events should still appear — REST category disable doesn't affect transport
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.TRANSPORT_AUDIT);
+
+        // Reset
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.disabled_rest_categories\": []}}");
+        }
+    }
 }

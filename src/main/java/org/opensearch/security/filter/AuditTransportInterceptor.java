@@ -11,18 +11,16 @@ package org.opensearch.security.filter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
@@ -51,49 +49,24 @@ public class AuditTransportInterceptor implements TransportInterceptor {
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final WildcardMatcher ignoreActionsMatcher;
-    private final WildcardMatcher ignoreUsersMatcher;
-    private final WildcardMatcher ignoreRequestsMatcher;
-    private final Set<AuditCategory> disabledCategories;
+    private final AuditConfig.Filter filter;
+    private final String auditIndexPrefix;
 
-    public AuditTransportInterceptor(AuditLog auditLog, ClusterService clusterService, ThreadPool threadPool, Settings settings) {
+    public AuditTransportInterceptor(
+        AuditLog auditLog,
+        ClusterService clusterService,
+        ThreadPool threadPool,
+        AuditConfig.Filter filter,
+        String auditIndexPrefix
+    ) {
         this.auditLog = auditLog;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.filter = filter;
+        this.auditIndexPrefix = auditIndexPrefix;
 
         // Skip internal cluster noise by default
         this.ignoreActionsMatcher = WildcardMatcher.from("internal:*", "cluster:monitor/*", "indices:monitor/*");
-
-        // In disabled mode, the parent plugin sets settings=null — use EMPTY as fallback
-        final Settings effectiveSettings = settings != null ? settings : Settings.EMPTY;
-
-        // Respect same ignore settings as AuditActionFilter
-        List<String> ignoreUsers = effectiveSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, List.of());
-        this.ignoreUsersMatcher = WildcardMatcher.from(ignoreUsers);
-
-        List<String> ignoreRequests = effectiveSettings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, List.of());
-        this.ignoreRequestsMatcher = WildcardMatcher.from(ignoreRequests);
-
-        // Respect disabled transport categories (check unified setting first, then transport-specific)
-        List<String> unifiedDisabledCats = effectiveSettings.getAsList(
-            ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES,
-            List.of()
-        );
-        List<String> disabledCats;
-        if (!unifiedDisabledCats.isEmpty()) {
-            disabledCats = unifiedDisabledCats;
-        } else {
-            disabledCats = effectiveSettings.getAsList(
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
-            );
-        }
-        this.disabledCategories = disabledCats.stream().map(s -> {
-            try {
-                return AuditCategory.valueOf(s.toUpperCase());
-            } catch (Exception e) {
-                return null;
-            }
-        }).filter(c -> c != null).collect(Collectors.toSet());
     }
 
     @Override
@@ -109,15 +82,16 @@ public class AuditTransportInterceptor implements TransportInterceptor {
                 // Skip noisy internal actions
                 if (!ignoreActionsMatcher.test(action)) {
                     // Skip if TRANSPORT_AUDIT is disabled
-                    if (!disabledCategories.contains(AuditCategory.TRANSPORT_AUDIT)) {
+                    if (!filter.getDisabledTransportCategories().contains(AuditCategory.TRANSPORT_AUDIT)
+                        && !filter.getDisabledCategories().contains(AuditCategory.TRANSPORT_AUDIT)) {
                         // Skip ignored requests (action or class name)
-                        if (!ignoreRequestsMatcher.test(action) && !ignoreRequestsMatcher.test(request.getClass().getSimpleName())) {
+                        if (!filter.isRequestAuditDisabled(action) && !filter.isRequestAuditDisabled(request.getClass().getSimpleName())) {
                             // Skip ignored users
                             String principal = threadPool.getThreadContext()
                                 .getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
                             User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                             String effectiveUser = user != null ? user.getName() : principal;
-                            if (effectiveUser == null || !ignoreUsersMatcher.test(effectiveUser)) {
+                            if (effectiveUser == null || !filter.isAuditDisabled(effectiveUser)) {
                                 logTransportEvent(action, request, task);
                             }
                         }
@@ -136,7 +110,7 @@ public class AuditTransportInterceptor implements TransportInterceptor {
                 String[] indices = ((IndicesRequest) request).indices();
                 if (indices != null) {
                     for (String idx : indices) {
-                        if (idx != null && idx.startsWith("security-auditlog")) {
+                        if (idx != null && idx.startsWith(auditIndexPrefix)) {
                             return;
                         }
                     }

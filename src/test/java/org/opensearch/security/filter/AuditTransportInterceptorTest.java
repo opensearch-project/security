@@ -22,6 +22,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
@@ -67,7 +68,7 @@ public class AuditTransportInterceptorTest {
         when(clusterService.localNode()).thenReturn(node);
         when(clusterService.getClusterName()).thenReturn(new ClusterName("test-cluster"));
 
-        interceptor = new AuditTransportInterceptor(auditLog, clusterService, threadPool, Settings.EMPTY);
+        interceptor = new AuditTransportInterceptor(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT, "security-auditlog");
     }
 
     @SuppressWarnings("unchecked")

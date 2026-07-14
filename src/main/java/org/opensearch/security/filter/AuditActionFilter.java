@@ -19,6 +19,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.bulk.BulkItemRequest;
+import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -66,13 +67,22 @@ public class AuditActionFilter implements ActionFilter {
     private final ThreadPool threadPool;
     private final IndexNameExpressionResolver resolver;
     private final AuditConfig.Filter filter;
+    private final String auditIndexPrefix;
 
-    public AuditActionFilter(AuditLog auditLog, ClusterService clusterService, ThreadPool threadPool, AuditConfig.Filter filter) {
+    public AuditActionFilter(
+        AuditLog auditLog,
+        ClusterService clusterService,
+        ThreadPool threadPool,
+        AuditConfig.Filter filter,
+        IndexNameExpressionResolver resolver,
+        String auditIndexPrefix
+    ) {
         this.auditLog = auditLog;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
-        this.resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
         this.filter = filter;
+        this.resolver = resolver;
+        this.auditIndexPrefix = auditIndexPrefix;
     }
 
     @Override
@@ -100,7 +110,7 @@ public class AuditActionFilter implements ActionFilter {
             String[] indices = ((IndicesRequest) request).indices();
             if (indices != null) {
                 for (String idx : indices) {
-                    if (idx != null && idx.startsWith("security-auditlog")) {
+                    if (idx != null && idx.startsWith(auditIndexPrefix)) {
                         chain.proceed(task, action, request, listener);
                         return;
                     }
@@ -124,8 +134,7 @@ public class AuditActionFilter implements ActionFilter {
         }
 
         // Bulk request handling — log each sub-operation separately
-        if (filter.shouldResolveBulkRequests() && request instanceof BulkShardRequest) {
-            BulkShardRequest bulkRequest = (BulkShardRequest) request;
+        if (filter.shouldResolveBulkRequests() && (request instanceof BulkShardRequest || request instanceof BulkRequest)) {
             TransportAddress remoteAddress = request.remoteAddress();
             if (remoteAddress == null) {
                 remoteAddress = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
@@ -140,34 +149,66 @@ public class AuditActionFilter implements ActionFilter {
                 }
             }
 
-            for (BulkItemRequest item : bulkRequest.items()) {
-                DocWriteRequest<?> innerRequest = item.request();
-                AuditMessage msg = new AuditMessage(AuditCategory.REQUEST_AUDIT, clusterService, Origin.REST, Origin.TRANSPORT);
+            if (request instanceof BulkShardRequest) {
+                BulkShardRequest bulkShardRequest = (BulkShardRequest) request;
+                for (BulkItemRequest item : bulkShardRequest.items()) {
+                    DocWriteRequest<?> innerRequest = item.request();
+                    AuditMessage msg = new AuditMessage(AuditCategory.REQUEST_AUDIT, clusterService, Origin.REST, Origin.TRANSPORT);
 
-                msg.addRemoteAddress(remoteAddress);
-                msg.addPrivilege(action);
-                msg.addRequestType(innerRequest.getClass().getSimpleName());
-                msg.addIndices(new String[] { innerRequest.index() });
-                msg.addId(innerRequest.id());
-                msg.addShardId(bulkRequest.shardId());
+                    msg.addRemoteAddress(remoteAddress);
+                    msg.addPrivilege(action);
+                    msg.addRequestType(innerRequest.getClass().getSimpleName());
+                    msg.addIndices(new String[] { innerRequest.index() });
+                    msg.addId(innerRequest.id());
+                    msg.addShardId(bulkShardRequest.shardId());
 
-                if (task != null) {
-                    msg.addTaskId(task.getId());
-                }
-                if (effectiveUser != null) {
-                    msg.addEffectiveUser(effectiveUser);
-                }
-                if (filteredHeaders != null) {
-                    msg.addRestHeaders(filteredHeaders, false, null);
-                }
-                if (filter.shouldLogRequestBody() && innerRequest instanceof IndexRequest) {
-                    IndexRequest ir = (IndexRequest) innerRequest;
-                    if (ir.source() != null) {
-                        msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(ir.getContentType(), ir.source()));
+                    if (task != null) {
+                        msg.addTaskId(task.getId());
                     }
-                }
+                    if (effectiveUser != null) {
+                        msg.addEffectiveUser(effectiveUser);
+                    }
+                    if (filteredHeaders != null) {
+                        msg.addRestHeaders(filteredHeaders, false, null);
+                    }
+                    if (filter.shouldLogRequestBody() && innerRequest instanceof IndexRequest) {
+                        IndexRequest ir = (IndexRequest) innerRequest;
+                        if (ir.source() != null) {
+                            msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(ir.getContentType(), ir.source()));
+                        }
+                    }
 
-                auditLog.logRequestAudit(msg);
+                    auditLog.logRequestAudit(msg);
+                }
+            } else {
+                BulkRequest bulkRequest = (BulkRequest) request;
+                for (DocWriteRequest<?> innerRequest : bulkRequest.requests()) {
+                    AuditMessage msg = new AuditMessage(AuditCategory.REQUEST_AUDIT, clusterService, Origin.REST, Origin.TRANSPORT);
+
+                    msg.addRemoteAddress(remoteAddress);
+                    msg.addPrivilege(action);
+                    msg.addRequestType(innerRequest.getClass().getSimpleName());
+                    msg.addIndices(new String[] { innerRequest.index() });
+                    msg.addId(innerRequest.id());
+
+                    if (task != null) {
+                        msg.addTaskId(task.getId());
+                    }
+                    if (effectiveUser != null) {
+                        msg.addEffectiveUser(effectiveUser);
+                    }
+                    if (filteredHeaders != null) {
+                        msg.addRestHeaders(filteredHeaders, false, null);
+                    }
+                    if (filter.shouldLogRequestBody() && innerRequest instanceof IndexRequest) {
+                        IndexRequest ir = (IndexRequest) innerRequest;
+                        if (ir.source() != null) {
+                            msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(ir.getContentType(), ir.source()));
+                        }
+                    }
+
+                    auditLog.logRequestAudit(msg);
+                }
             }
 
             chain.proceed(task, action, request, listener);

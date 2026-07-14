@@ -27,6 +27,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
@@ -71,7 +72,14 @@ public class AuditActionFilterTest {
         when(clusterService.localNode()).thenReturn(node);
         when(clusterService.getClusterName()).thenReturn(new ClusterName("test-cluster"));
 
-        filter = new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT);
+        filter = new AuditActionFilter(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.Filter.DEFAULT,
+            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
+            "security-auditlog"
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -270,7 +278,9 @@ public class AuditActionFilterTest {
             auditLog,
             clusterService,
             threadPool,
-            AuditConfig.from(ignoreSettings).getFilter()
+            AuditConfig.from(ignoreSettings).getFilter(),
+            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
+            "security-auditlog"
         );
 
         User ignoredUser = new User("ignored_admin");
@@ -298,7 +308,9 @@ public class AuditActionFilterTest {
             auditLog,
             clusterService,
             threadPool,
-            AuditConfig.from(ignoreSettings).getFilter()
+            AuditConfig.from(ignoreSettings).getFilter(),
+            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
+            "security-auditlog"
         );
 
         SearchRequest request = new SearchRequest("my-index");
@@ -323,7 +335,9 @@ public class AuditActionFilterTest {
             auditLog,
             clusterService,
             threadPool,
-            AuditConfig.from(ignoreSettings).getFilter()
+            AuditConfig.from(ignoreSettings).getFilter(),
+            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
+            "security-auditlog"
         );
 
         SearchRequest request = new SearchRequest("my-index");
@@ -335,5 +349,46 @@ public class AuditActionFilterTest {
         // Should NOT log — class name "SearchRequest" matches
         verify(auditLog, never()).logRequestAudit(any());
         verify(chain).proceed(null, "indices:data/read/search", request, listener);
+    }
+
+    // =====================================================================
+    // getAuditIndexPrefix — self-loop guard prefix extraction
+    // =====================================================================
+
+    @Test
+    public void testGetAuditIndexPrefixExtractsFromJodaPattern() {
+        Settings settings = Settings.builder().put("plugins.security.audit.config.index", "'my-custom-audit-'YYYY.MM.dd").build();
+        assertThat(OpenSearchSecurityPlugin.getAuditIndexPrefix(settings), equalTo("my-custom-audit-"));
+    }
+
+    @Test
+    public void testGetAuditIndexPrefixUsesDefaultWhenNotConfigured() {
+        Settings settings = Settings.EMPTY;
+        assertThat(OpenSearchSecurityPlugin.getAuditIndexPrefix(settings), equalTo("security-auditlog-"));
+    }
+
+    @Test
+    public void testGetAuditIndexPrefixHandlesPlainIndexName() {
+        Settings settings = Settings.builder().put("plugins.security.audit.config.index", "static-audit-index").build();
+        // No quotes — datastream fallback not set, returns raw pattern
+        assertThat(OpenSearchSecurityPlugin.getAuditIndexPrefix(settings), equalTo("static-audit-index"));
+    }
+
+    @Test
+    public void testGetAuditIndexPrefixFallsBackToDatastreamName() {
+        Settings settings = Settings.builder()
+            .put("plugins.security.audit.config.index", "no-quotes-here")
+            .put("plugins.security.audit.config.data_stream.name", "opensearch-security-auditlog")
+            .build();
+        assertThat(OpenSearchSecurityPlugin.getAuditIndexPrefix(settings), equalTo("opensearch-security-auditlog"));
+    }
+
+    @Test
+    public void testGetAuditIndexPrefixNoQuotesNoDatastreamReturnsRawPattern() {
+        // Edge case: Joda pattern without quotes (e.g., "audit-YYYY.MM.dd")
+        // Falls back to raw pattern — self-loop guard will use this as prefix.
+        // This is a known limitation: the prefix won't match resolved index names.
+        Settings settings = Settings.builder().put("plugins.security.audit.config.index", "audit-YYYY.MM.dd").build();
+        assertThat(OpenSearchSecurityPlugin.getAuditIndexPrefix(settings), equalTo("audit-YYYY.MM.dd"));
     }
 }

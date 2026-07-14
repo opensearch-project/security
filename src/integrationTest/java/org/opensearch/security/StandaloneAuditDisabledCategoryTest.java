@@ -61,4 +61,34 @@ public class StandaloneAuditDisabledCategoryTest {
         auditLogsRule.waitForAuditLogs();
         auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT);
     }
+
+    // --- Cluster with REQUEST_AUDIT disabled via disabled_rest_categories only ---
+    @ClassRule
+    public static LocalCluster restCategoryCluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+        .anonymousAuth(false)
+        .loadConfigurationIntoIndex(false)
+        .nodeSettings(
+            Map.of(
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName(),
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                List.of("REQUEST_AUDIT")
+            )
+        )
+        .sslOnly(true)
+        .build();
+
+    @Test
+    public void shouldSuppressEventsWhenRequestAuditIsDisabledViaRestCategories() {
+        try (TestRestClient client = restCategoryCluster.getRestClient()) {
+            client.get("_cluster/health");
+            client.putJson("rest-cat-test/_doc/1?refresh=true", "{\"field\": \"value\"}");
+        }
+
+        // Wait then assert no REQUEST_AUDIT events were produced
+        auditLogsRule.waitForAuditLogs();
+        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> msg.getCategory() == AuditCategory.REQUEST_AUDIT);
+    }
 }
