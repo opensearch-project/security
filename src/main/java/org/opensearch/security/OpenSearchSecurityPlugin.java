@@ -311,6 +311,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
+    private final Settings pluginSettings;
     private volatile SecurityTokenManager tokenManager;
     private volatile DynamicConfigFactory dcf;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
@@ -559,6 +560,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public OpenSearchSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
 
+        this.pluginSettings = settings;
         disabled = isDisabled(settings);
         sslCertReloadEnabled = isSslCertReloadEnabled(settings);
 
@@ -1208,7 +1210,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     threadPool,
                     ((AbstractAuditLog) auditLog).getFilter(),
                     new IndexNameExpressionResolver(threadPool.getThreadContext()),
-                    getAuditIndexPrefix(settings)
+                    getAuditIndexPrefix(pluginSettings)
                 )
             );
         }
@@ -1228,7 +1230,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     cs,
                     threadPool,
                     ((AbstractAuditLog) auditLog).getFilter(),
-                    getAuditIndexPrefix(settings)
+                    getAuditIndexPrefix(pluginSettings)
                 )
             );
         }
