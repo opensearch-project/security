@@ -157,17 +157,17 @@ public class GrpcHelpers {
         return createChannelWithAuthorization(channel, createBasicAuthHeader(username, password));
     }
 
-    protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(
+    public static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(
         "plugins.security.ssl.aux.secure-transport-grpc.clientauth_mode",
         "NONE"
     );
 
-    protected static final Map<String, Object> CLIENT_AUTH_OPT = Map.of(
+    public static final Map<String, Object> CLIENT_AUTH_OPT = Map.of(
         "plugins.security.ssl.aux.secure-transport-grpc.clientauth_mode",
         "OPTIONAL"
     );
 
-    protected static final Map<String, Object> CLIENT_AUTH_REQUIRE = Map.of(
+    public static final Map<String, Object> CLIENT_AUTH_REQUIRE = Map.of(
         "plugins.security.ssl.aux.secure-transport-grpc.clientauth_mode",
         "REQUIRE"
     );

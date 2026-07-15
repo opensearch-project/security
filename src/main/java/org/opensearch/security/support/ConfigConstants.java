@@ -379,6 +379,10 @@ public class ConfigConstants {
     public static final String SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = SECURITY_SETTINGS_PREFIX + "unsupported.load_static_resources";
     public static final String SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = SECURITY_SETTINGS_PREFIX + "unsupported.accept_invalid_config";
 
+    public static final String OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS_CONFIG = SECURITY_SETTINGS_PREFIX
+        + "unsupported.dls.allowed_request_headers";
+    public static final String OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS = OPENSEARCH_SECURITY_CONFIG_PREFIX + "dls_request_headers";
+
     public static final String SECURITY_PROTECTED_INDICES_ENABLED_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.enabled";
     public static final Boolean SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
     public static final String SECURITY_PROTECTED_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.indices";

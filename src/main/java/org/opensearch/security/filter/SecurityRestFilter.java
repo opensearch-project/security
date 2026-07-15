@@ -62,6 +62,7 @@ import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
+import org.opensearch.security.privileges.dlsfls.DlsRequestHeadersUtil;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.ssl.http.netty.Netty4HttpRequestHeaderVerifier;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -181,6 +182,8 @@ public class SecurityRestFilter {
             final SecurityRequestChannel requestChannel = SecurityRequestFactory.from(request, channel);
             // for audit logging
             final SecurityRequestChannel filteredRequestChannel = SecurityRequestFactory.from(filteredRequest, channel);
+
+            DlsRequestHeadersUtil.extractAndStoreDlsRequestHeaders(requestChannel, threadContext, settings);
 
             // Authenticate request
             if (!NettyAttribute.popFrom(request, Netty4HttpRequestHeaderVerifier.IS_AUTHENTICATED).orElse(false)) {
