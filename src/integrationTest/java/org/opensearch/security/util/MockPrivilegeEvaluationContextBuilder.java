@@ -14,6 +14,7 @@ package org.opensearch.security.util;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -100,7 +101,8 @@ public class MockPrivilegeEvaluationContextBuilder {
             indexNameExpressionResolver,
             new IndicesRequestResolver(indexNameExpressionResolver),
             () -> clusterState,
-            this.actionPrivileges
+            this.actionPrivileges,
+            List.of()
         );
     }
 }
