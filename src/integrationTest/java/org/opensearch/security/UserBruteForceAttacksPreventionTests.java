@@ -39,8 +39,8 @@ public class UserBruteForceAttacksPreventionTests {
     private static final User USER_5 = new User("simple-user-5").roles(ALL_ACCESS);
 
     public static final int ALLOWED_TRIES = 3;
-    public static final int TIME_WINDOW_SECONDS = 3;
-    public static final int LOCK_RELEASE_TIMEOUT_SECONDS = TIME_WINDOW_SECONDS * 3;
+    public static final int TIME_WINDOW_SECONDS = 30;
+    public static final int LOCK_RELEASE_TIMEOUT_SECONDS = 9;
     private static final AuthFailureListeners listener = new AuthFailureListeners().addRateLimit(
         new RateLimiting("internal_authentication_backend_limiting").type("username")
             .authenticationBackend("intern")

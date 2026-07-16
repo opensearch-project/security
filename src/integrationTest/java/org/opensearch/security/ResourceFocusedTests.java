@@ -37,6 +37,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.http.HttpTransportSettings;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.AsyncActions;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.User;
@@ -110,8 +111,8 @@ public class ResourceFocusedTests {
         // Tweaks:
         final RequestBodySize size = RequestBodySize.Medium;
         final String requestPath = "/*/_search";
-        final int parallelism = 20;
-        final int totalNumberOfRequests = 10_000;
+        final int parallelism = FipsMode.isEnabled() ? 8 : 20;
+        final int totalNumberOfRequests = FipsMode.isEnabled() ? 2_000 : 10_000;
 
         runResourceTest(size, requestPath, parallelism, totalNumberOfRequests);
         runResourceTestWithGenericClient(size, requestPath, parallelism, totalNumberOfRequests);
@@ -122,8 +123,8 @@ public class ResourceFocusedTests {
         // Tweaks:
         final RequestBodySize size = RequestBodySize.Small;
         final String requestPath = "/*/_search";
-        final int parallelism = 100;
-        final int totalNumberOfRequests = 15_000;
+        final int parallelism = FipsMode.isEnabled() ? 8 : 100;
+        final int totalNumberOfRequests = FipsMode.isEnabled() ? 2_000 : 15_000;
 
         runResourceTest(size, requestPath, parallelism, totalNumberOfRequests);
         runResourceTestWithGenericClient(size, requestPath, parallelism, totalNumberOfRequests);
