@@ -8,7 +8,6 @@
 
 package org.opensearch.security.filter;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +34,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
@@ -43,7 +43,6 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -60,7 +59,6 @@ import org.opensearch.threadpool.ThreadPool;
 public class AuditActionFilter implements ActionFilter {
 
     private static final Logger log = LogManager.getLogger(AuditActionFilter.class);
-    private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization").ignoreCase();
 
     private final AuditLog auditLog;
     private final ClusterService clusterService;
@@ -83,11 +81,38 @@ public class AuditActionFilter implements ActionFilter {
         this.filter = filter;
         this.resolver = resolver;
         this.auditIndexPrefix = auditIndexPrefix;
+
+        if (auditIndexPrefix == null || auditIndexPrefix.isEmpty()) {
+            log.warn(
+                "Audit index prefix is null or empty — self-loop guard is disabled. "
+                    + "Verify 'plugins.security.audit.config.index' is configured correctly."
+            );
+        }
     }
+
+    /**
+     * Returns true if the given index name belongs to the audit index (i.e., writes
+     * to it should not be audited to prevent self-referential loops).
+     * Returns false if the prefix is null/empty to avoid silently suppressing all events.
+     */
+    private boolean isAuditIndex(String idx) {
+        if (idx == null || auditIndexPrefix == null || auditIndexPrefix.isEmpty()) {
+            return false;
+        }
+        return idx.startsWith(auditIndexPrefix);
+    }
+
+    /**
+     * Run before authentication/authorization filters so audit captures the
+     * original request even if a later filter rejects it. The existing
+     * SecurityFilter uses Integer.MIN_VALUE; we use a less extreme value
+     * to leave room for other "must run early" filters without colliding.
+     */
+    private static final int AUDIT_FILTER_ORDER = -200;
 
     @Override
     public int order() {
-        return Integer.MIN_VALUE;
+        return AUDIT_FILTER_ORDER;
     }
 
     @Override
@@ -110,7 +135,7 @@ public class AuditActionFilter implements ActionFilter {
             String[] indices = ((IndicesRequest) request).indices();
             if (indices != null) {
                 for (String idx : indices) {
-                    if (idx != null && idx.startsWith(auditIndexPrefix)) {
+                    if (isAuditIndex(idx)) {
                         chain.proceed(task, action, request, listener);
                         return;
                     }
@@ -133,82 +158,42 @@ public class AuditActionFilter implements ActionFilter {
             return;
         }
 
-        // Bulk request handling — log each sub-operation separately
-        if (filter.shouldResolveBulkRequests() && (request instanceof BulkShardRequest || request instanceof BulkRequest)) {
-            TransportAddress remoteAddress = request.remoteAddress();
-            if (remoteAddress == null) {
-                remoteAddress = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-            }
-
-            Map<String, List<String>> headers = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REST_HEADERS);
-            Map<String, List<String>> filteredHeaders = null;
-            if (headers != null && !headers.isEmpty()) {
-                filteredHeaders = new HashMap<>(headers);
-                if (filter.shouldExcludeSensitiveHeaders()) {
-                    filteredHeaders.keySet().removeIf(AUTHORIZATION_HEADER);
+        // Bulk request handling — log each sub-operation separately.
+        // Short-circuit if REQUEST_AUDIT is disabled to avoid allocating per-item messages
+        // that would be immediately discarded downstream.
+        if (filter.shouldResolveBulkRequests()
+            && !filter.getDisabledCategories().contains(AuditCategory.REQUEST_AUDIT)
+            && (request instanceof BulkShardRequest || request instanceof BulkRequest)) {
+            try {
+                TransportAddress remoteAddress = request.remoteAddress();
+                if (remoteAddress == null) {
+                    remoteAddress = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
                 }
-            }
 
-            if (request instanceof BulkShardRequest) {
-                BulkShardRequest bulkShardRequest = (BulkShardRequest) request;
-                for (BulkItemRequest item : bulkShardRequest.items()) {
-                    DocWriteRequest<?> innerRequest = item.request();
-                    AuditMessage msg = new AuditMessage(AuditCategory.REQUEST_AUDIT, clusterService, Origin.REST, Origin.TRANSPORT);
+                Map<String, List<String>> headers = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REST_HEADERS);
+                Map<String, List<String>> filteredHeaders = AuditHeaderUtils.filterHeaders(headers, filter);
 
-                    msg.addRemoteAddress(remoteAddress);
-                    msg.addPrivilege(action);
-                    msg.addRequestType(innerRequest.getClass().getSimpleName());
-                    msg.addIndices(new String[] { innerRequest.index() });
-                    msg.addId(innerRequest.id());
-                    msg.addShardId(bulkShardRequest.shardId());
-
-                    if (task != null) {
-                        msg.addTaskId(task.getId());
+                if (request instanceof BulkShardRequest) {
+                    BulkShardRequest bulkShardRequest = (BulkShardRequest) request;
+                    for (BulkItemRequest item : bulkShardRequest.items()) {
+                        logBulkItem(
+                            item.request(),
+                            action,
+                            task,
+                            effectiveUser,
+                            remoteAddress,
+                            filteredHeaders,
+                            bulkShardRequest.shardId()
+                        );
                     }
-                    if (effectiveUser != null) {
-                        msg.addEffectiveUser(effectiveUser);
+                } else {
+                    BulkRequest bulkRequest = (BulkRequest) request;
+                    for (DocWriteRequest<?> innerRequest : bulkRequest.requests()) {
+                        logBulkItem(innerRequest, action, task, effectiveUser, remoteAddress, filteredHeaders, null);
                     }
-                    if (filteredHeaders != null) {
-                        msg.addRestHeaders(filteredHeaders, false, null);
-                    }
-                    if (filter.shouldLogRequestBody() && innerRequest instanceof IndexRequest) {
-                        IndexRequest ir = (IndexRequest) innerRequest;
-                        if (ir.source() != null) {
-                            msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(ir.getContentType(), ir.source()));
-                        }
-                    }
-
-                    auditLog.logRequestAudit(msg);
                 }
-            } else {
-                BulkRequest bulkRequest = (BulkRequest) request;
-                for (DocWriteRequest<?> innerRequest : bulkRequest.requests()) {
-                    AuditMessage msg = new AuditMessage(AuditCategory.REQUEST_AUDIT, clusterService, Origin.REST, Origin.TRANSPORT);
-
-                    msg.addRemoteAddress(remoteAddress);
-                    msg.addPrivilege(action);
-                    msg.addRequestType(innerRequest.getClass().getSimpleName());
-                    msg.addIndices(new String[] { innerRequest.index() });
-                    msg.addId(innerRequest.id());
-
-                    if (task != null) {
-                        msg.addTaskId(task.getId());
-                    }
-                    if (effectiveUser != null) {
-                        msg.addEffectiveUser(effectiveUser);
-                    }
-                    if (filteredHeaders != null) {
-                        msg.addRestHeaders(filteredHeaders, false, null);
-                    }
-                    if (filter.shouldLogRequestBody() && innerRequest instanceof IndexRequest) {
-                        IndexRequest ir = (IndexRequest) innerRequest;
-                        if (ir.source() != null) {
-                            msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(ir.getContentType(), ir.source()));
-                        }
-                    }
-
-                    auditLog.logRequestAudit(msg);
-                }
+            } catch (Exception e) {
+                log.error("Failed to log bulk audit events for action '{}': {}", action, e.getMessage(), e);
             }
 
             chain.proceed(task, action, request, listener);
@@ -268,11 +253,8 @@ public class AuditActionFilter implements ActionFilter {
 
             // REST headers (stashed by REST wrapper, filtered here)
             Map<String, List<String>> headers = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REST_HEADERS);
-            if (headers != null && !headers.isEmpty()) {
-                Map<String, List<String>> filteredHeaders = new HashMap<>(headers);
-                if (filter.shouldExcludeSensitiveHeaders()) {
-                    filteredHeaders.keySet().removeIf(AUTHORIZATION_HEADER);
-                }
+            Map<String, List<String>> filteredHeaders = AuditHeaderUtils.filterHeaders(headers, filter);
+            if (!filteredHeaders.isEmpty()) {
                 msg.addRestHeaders(filteredHeaders, false, null);
             }
 
@@ -286,6 +268,45 @@ public class AuditActionFilter implements ActionFilter {
             log.error("Failed to log audit event for action '{}': {}", action, e.getMessage(), e);
         }
         chain.proceed(task, action, request, listener);
+    }
+
+    private void logBulkItem(
+        DocWriteRequest<?> innerRequest,
+        String action,
+        Task task,
+        String effectiveUser,
+        TransportAddress remoteAddress,
+        Map<String, List<String>> filteredHeaders,
+        ShardId shardId
+    ) {
+        AuditMessage msg = new AuditMessage(AuditCategory.REQUEST_AUDIT, clusterService, Origin.REST, Origin.TRANSPORT);
+
+        msg.addRemoteAddress(remoteAddress);
+        msg.addPrivilege(action);
+        msg.addRequestType(innerRequest.getClass().getSimpleName());
+        msg.addIndices(new String[] { innerRequest.index() });
+        msg.addId(innerRequest.id());
+
+        if (shardId != null) {
+            msg.addShardId(shardId);
+        }
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+        if (effectiveUser != null) {
+            msg.addEffectiveUser(effectiveUser);
+        }
+        if (!filteredHeaders.isEmpty()) {
+            msg.addRestHeaders(filteredHeaders, false, null);
+        }
+        if (filter.shouldLogRequestBody() && innerRequest instanceof IndexRequest) {
+            IndexRequest ir = (IndexRequest) innerRequest;
+            if (ir.source() != null) {
+                msg.addTupleToRequestBody(new Tuple<>(ir.getContentType(), ir.source()));
+            }
+        }
+
+        auditLog.logRequestAudit(msg);
     }
 
     private void addRequestBody(AuditMessage msg, ActionRequest request) {

@@ -12,9 +12,15 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.action.IndicesRequest;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
@@ -39,6 +45,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -112,12 +120,24 @@ public class AuditTransportInterceptorTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testSkipsInternalActions() throws Exception {
+        // Configure ignore_requests with internal:* pattern
+        Settings ignoreSettings = Settings.builder()
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "internal:*")
+            .build();
+        AuditTransportInterceptor filteredInterceptor = new AuditTransportInterceptor(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.from(ignoreSettings).getFilter(),
+            "security-auditlog"
+        );
+
         TransportRequest request = mock(TransportRequest.class);
         TransportChannel channel = mock(TransportChannel.class);
         Task task = mock(Task.class);
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
-        TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
+        TransportRequestHandler<TransportRequest> wrappedHandler = filteredInterceptor.interceptHandler(
             "internal:coordination/fault_detection/follower_check",
             "generic",
             false,
@@ -136,12 +156,23 @@ public class AuditTransportInterceptorTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testSkipsClusterMonitorActions() throws Exception {
+        Settings ignoreSettings = Settings.builder()
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "cluster:monitor/*")
+            .build();
+        AuditTransportInterceptor filteredInterceptor = new AuditTransportInterceptor(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.from(ignoreSettings).getFilter(),
+            "security-auditlog"
+        );
+
         TransportRequest request = mock(TransportRequest.class);
         TransportChannel channel = mock(TransportChannel.class);
         Task task = mock(Task.class);
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
-        TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
+        TransportRequestHandler<TransportRequest> wrappedHandler = filteredInterceptor.interceptHandler(
             "cluster:monitor/nodes/stats",
             "generic",
             false,
@@ -157,12 +188,23 @@ public class AuditTransportInterceptorTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testSkipsIndicesMonitorActions() throws Exception {
+        Settings ignoreSettings = Settings.builder()
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "indices:monitor/*")
+            .build();
+        AuditTransportInterceptor filteredInterceptor = new AuditTransportInterceptor(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.from(ignoreSettings).getFilter(),
+            "security-auditlog"
+        );
+
         TransportRequest request = mock(TransportRequest.class);
         TransportChannel channel = mock(TransportChannel.class);
         Task task = mock(Task.class);
         TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
 
-        TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
+        TransportRequestHandler<TransportRequest> wrappedHandler = filteredInterceptor.interceptHandler(
             "indices:monitor/stats",
             "generic",
             false,
@@ -349,6 +391,163 @@ public class AuditTransportInterceptorTest {
         assertNull(fields.get(AuditMessage.TASK_ID));
 
         verify(actualHandler).messageReceived(request, channel, null);
+    }
+
+    // =====================================================================
+    // Self-loop guard — null/empty prefix safety
+    // =====================================================================
+
+    /** Helper interface to create a TransportRequest that also implements IndicesRequest */
+    private abstract static class IndicesTransportRequest extends TransportRequest implements IndicesRequest {}
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSelfLoopGuardSuppressesAuditIndexWrites() throws Exception {
+        IndicesTransportRequest request = mock(IndicesTransportRequest.class);
+        when(request.indices()).thenReturn(new String[] { "security-auditlog-2026.07.16" });
+        when(request.remoteAddress()).thenReturn(null);
+
+        TransportChannel channel = mock(TransportChannel.class);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        when(task.getParentTaskId()).thenReturn(null);
+        TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
+
+        TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
+            "indices:data/write/index",
+            "generic",
+            false,
+            actualHandler
+        );
+
+        wrappedHandler.messageReceived(request, channel, task);
+
+        // Should NOT log — request targets audit index
+        verify(auditLog, never()).logTransportAudit(org.mockito.ArgumentMatchers.any());
+        // Handler should still proceed
+        verify(actualHandler).messageReceived(request, channel, task);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testNullPrefixDoesNotSuppressEvents() throws Exception {
+        AuditTransportInterceptor nullPrefixInterceptor = new AuditTransportInterceptor(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.Filter.DEFAULT,
+            null
+        );
+
+        IndicesTransportRequest request = mock(IndicesTransportRequest.class);
+        when(request.indices()).thenReturn(new String[] { "security-auditlog-2026.07.16" });
+        when(request.remoteAddress()).thenReturn(null);
+
+        TransportChannel channel = mock(TransportChannel.class);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        when(task.getParentTaskId()).thenReturn(null);
+        TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
+
+        TransportRequestHandler<TransportRequest> wrappedHandler = nullPrefixInterceptor.interceptHandler(
+            "indices:data/write/index",
+            "generic",
+            false,
+            actualHandler
+        );
+
+        wrappedHandler.messageReceived(request, channel, task);
+
+        // Should still log — null prefix disables guard, doesn't suppress everything
+        verify(auditLog).logTransportAudit(org.mockito.ArgumentMatchers.any());
+        verify(actualHandler).messageReceived(request, channel, task);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testEmptyPrefixDoesNotSuppressEvents() throws Exception {
+        AuditTransportInterceptor emptyPrefixInterceptor = new AuditTransportInterceptor(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.Filter.DEFAULT,
+            ""
+        );
+
+        IndicesTransportRequest request = mock(IndicesTransportRequest.class);
+        when(request.indices()).thenReturn(new String[] { "any-index" });
+        when(request.remoteAddress()).thenReturn(null);
+
+        TransportChannel channel = mock(TransportChannel.class);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        when(task.getParentTaskId()).thenReturn(null);
+        TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
+
+        TransportRequestHandler<TransportRequest> wrappedHandler = emptyPrefixInterceptor.interceptHandler(
+            "indices:data/write/index",
+            "generic",
+            false,
+            actualHandler
+        );
+
+        wrappedHandler.messageReceived(request, channel, task);
+
+        // Should still log — empty prefix disables guard, doesn't suppress everything
+        verify(auditLog).logTransportAudit(org.mockito.ArgumentMatchers.any());
+        verify(actualHandler).messageReceived(request, channel, task);
+    }
+
+    @Test
+    public void testConstructorLogsWarnWhenPrefixIsNull() {
+        Logger logger = (Logger) LogManager.getLogger(AuditTransportInterceptor.class);
+        Appender mockAppender = mock(Appender.class);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
+        ArgumentCaptor<LogEvent> logCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        doNothing().when(mockAppender).append(logCaptor.capture());
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.WARN);
+
+        try {
+            new AuditTransportInterceptor(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT, null);
+
+            boolean foundWarning = logCaptor.getAllValues()
+                .stream()
+                .anyMatch(
+                    event -> event.getLevel() == Level.WARN
+                        && event.getMessage().getFormattedMessage().contains("Audit index prefix is null or empty")
+                );
+            assertTrue("Expected WARN about null/empty audit index prefix", foundWarning);
+        } finally {
+            logger.removeAppender(mockAppender);
+        }
+    }
+
+    @Test
+    public void testConstructorLogsWarnWhenPrefixIsEmpty() {
+        Logger logger = (Logger) LogManager.getLogger(AuditTransportInterceptor.class);
+        Appender mockAppender = mock(Appender.class);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
+        ArgumentCaptor<LogEvent> logCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        doNothing().when(mockAppender).append(logCaptor.capture());
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.WARN);
+
+        try {
+            new AuditTransportInterceptor(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT, "");
+
+            boolean foundWarning = logCaptor.getAllValues()
+                .stream()
+                .anyMatch(
+                    event -> event.getLevel() == Level.WARN
+                        && event.getMessage().getFormattedMessage().contains("Audit index prefix is null or empty")
+                );
+            assertTrue("Expected WARN about null/empty audit index prefix", foundWarning);
+        } finally {
+            logger.removeAppender(mockAppender);
+        }
     }
 
     @SuppressWarnings("unchecked")

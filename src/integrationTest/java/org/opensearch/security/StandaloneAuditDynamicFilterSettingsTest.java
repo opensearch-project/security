@@ -465,4 +465,53 @@ public class StandaloneAuditDynamicFilterSettingsTest {
             client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.disabled_rest_categories\": []}}");
         }
     }
+
+    // =====================================================================
+    // ignore_requests — unified suppression across REST and transport layers
+    // =====================================================================
+
+    @Test
+    public void shouldSuppressBothRestAndTransportEventsWithSameIgnorePattern() {
+        // Add a pattern that matches write actions — affects both layers
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson(
+                "_cluster/settings",
+                "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": [\"indices:data/write/*\"]}}"
+            );
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        // Send a write — should be suppressed at BOTH REQUEST_AUDIT and TRANSPORT_AUDIT
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("unified-ignore-test/_doc/1?refresh=true", "{\"data\": \"suppressed\"}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        // No REQUEST_AUDIT events for write actions on this index
+        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            if (msg.getPrivilege() == null || !msg.getPrivilege().startsWith("indices:data/write")) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object indices = fields.get(AuditMessage.INDICES);
+            if (indices == null) return false;
+            String[] indexArr = (String[]) indices;
+            for (String idx : indexArr) {
+                if ("unified-ignore-test".equals(idx)) return true;
+            }
+            return false;
+        });
+
+        // No TRANSPORT_AUDIT events for write actions either
+        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.TRANSPORT_AUDIT) return false;
+            return msg.getPrivilege() != null && msg.getPrivilege().startsWith("indices:data/write");
+        });
+
+        // Reset
+        try (TestRestClient client = cluster.getRestClient()) {
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_requests\": []}}");
+        }
+    }
 }

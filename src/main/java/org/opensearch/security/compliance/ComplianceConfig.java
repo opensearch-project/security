@@ -28,13 +28,13 @@ package org.opensearch.security.compliance;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
@@ -102,7 +102,21 @@ public class ComplianceConfig {
     private final WildcardMatcher ignoredComplianceUsersForWriteMatcher;
     private final String securityIndex;
 
-    private volatile Map<WildcardMatcher, Set<String>> readEnabledFields;
+    /**
+     * Immutable holder for watched-read state. Bundling these fields ensures readers always
+     * see a consistent pair — no partial updates visible between setter writes.
+     */
+    private static class WatchedReadState {
+        final Map<String, List<String>> watchedReadFields;
+        final Map<WildcardMatcher, Set<String>> readEnabledFields;
+
+        WatchedReadState(Map<String, List<String>> watchedReadFields, Map<WildcardMatcher, Set<String>> readEnabledFields) {
+            this.watchedReadFields = watchedReadFields;
+            this.readEnabledFields = readEnabledFields;
+        }
+    }
+
+    private volatile WatchedReadState watchedReadState = new WatchedReadState(Map.of(), Map.of());
     private volatile LoadingCache<String, WildcardMatcher> readEnabledFieldsCache;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
@@ -132,21 +146,22 @@ public class ComplianceConfig {
         this.logReadMetadataOnly = logReadMetadataOnly;
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
+        this.watchedReadFields = watchedReadFields;
         this.watchedWriteIndicesMatcher = WildcardMatcher.from(watchedWriteIndicesPatterns);
         this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
         this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
         this.securityIndex = securityIndex;
-        this.watchedReadFields = watchedReadFields;
         this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
         this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
         this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
 
-        this.readEnabledFields = watchedReadFields.entrySet()
+        final Map<WildcardMatcher, Set<String>> readEnabled = watchedReadFields.entrySet()
             .stream()
             .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
             .collect(
                 ImmutableMap.toImmutableMap(entry -> WildcardMatcher.from(entry.getKey()), entry -> ImmutableSet.copyOf(entry.getValue()))
             );
+        this.watchedReadState = new WatchedReadState(Map.copyOf(watchedReadFields), Map.copyOf(readEnabled));
 
         DateTimeFormatter auditLogPattern = null;
         String auditLogIndex = null;
@@ -219,7 +234,7 @@ public class ComplianceConfig {
         logger.info("Auditing of external configuration is {}.", logExternalConfig ? "enabled" : "disabled");
         logger.info("Auditing of internal configuration is {}.", logInternalConfig ? "enabled" : "disabled");
         logger.info("Auditing only metadata information for read request is {}.", logReadMetadataOnly ? "enabled" : "disabled");
-        logger.info("Auditing will watch {} for read requests.", readEnabledFields);
+        logger.info("Auditing will watch {} for read requests.", watchedReadState.readEnabledFields);
         logger.info("Auditing read operation requests from {} users is disabled.", ignoredComplianceUsersForReadMatcher);
         logger.info("Auditing only metadata information for write request is {}.", logWriteMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing diffs for write requests is {}.", logDiffsForWrite ? "enabled" : "disabled");
@@ -409,21 +424,21 @@ public class ComplianceConfig {
     }
 
     public void setWatchedReadFields(List<String> readFields) {
-        // Parse format: "indexpattern,field1,field2,..."
-        final Map<String, List<String>> parsed = readFields.stream()
-            .map(entry -> entry.split(","))
-            .filter(split -> split.length != 0 && !split[0].isEmpty())
-            .collect(
-                Collectors.toMap(
-                    split -> split[0],
-                    split -> split.length == 1 ? List.of("*") : Arrays.stream(split).skip(1).collect(Collectors.toList())
-                )
-            );
-        this.watchedReadFields = parsed;
-        this.readEnabledFields = parsed.entrySet()
-            .stream()
-            .filter(entry -> !entry.getKey().isEmpty())
-            .collect(Collectors.toMap(entry -> WildcardMatcher.from(entry.getKey()), entry -> Set.copyOf(entry.getValue())));
+        // Single-pass: parse format "indexpattern,field1,field2,..." and build both maps simultaneously
+        final Map<String, List<String>> parsed = new HashMap<>(readFields.size());
+        final Map<WildcardMatcher, Set<String>> enabled = new HashMap<>(readFields.size());
+        for (final String entry : readFields) {
+            final String[] split = entry.split(",");
+            if (split.length == 0 || split[0].isEmpty()) {
+                continue;
+            }
+            final List<String> fields = split.length == 1 ? List.of("*") : List.of(Arrays.copyOfRange(split, 1, split.length));
+            parsed.put(split[0], fields);
+            enabled.put(WildcardMatcher.from(split[0]), Set.copyOf(fields));
+        }
+        // Atomic swap — readers always see a consistent pair of maps
+        this.watchedReadFields = Map.copyOf(parsed);
+        this.watchedReadState = new WatchedReadState(Map.copyOf(parsed), Map.copyOf(enabled));
         this.readEnabledFieldsCache.invalidateAll();
     }
 
@@ -484,7 +499,7 @@ public class ComplianceConfig {
 
     @VisibleForTesting
     public Map<WildcardMatcher, Set<String>> getReadEnabledFields() {
-        return readEnabledFields;
+        return watchedReadState.readEnabledFields;
     }
 
     @VisibleForTesting
@@ -522,7 +537,7 @@ public class ComplianceConfig {
             }
         }
 
-        return readEnabledFields.entrySet()
+        return watchedReadState.readEnabledFields.entrySet()
             .stream()
             .filter(entry -> entry.getKey().test(index))
             .flatMap(entry -> entry.getValue().stream())

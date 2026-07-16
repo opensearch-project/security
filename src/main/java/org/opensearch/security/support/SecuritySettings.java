@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.opensearch.common.settings.Setting;
+import org.opensearch.security.auditlog.config.AuditConfig;
 
 public class SecuritySettings {
     public static final Setting<Boolean> LEGACY_OPENDISTRO_SSL_DUAL_MODE_SETTING = Setting.boolSetting(
@@ -225,7 +226,7 @@ public class SecuritySettings {
 
     public static final Setting<List<String>> COMPLIANCE_READ_IGNORE_USERS = Setting.listSetting(
         COMPLIANCE_PREFIX + "read_ignore_users",
-        Collections.emptyList(),
+        AuditConfig.DEFAULT_IGNORED_USERS,
         Function.identity(),
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
@@ -233,7 +234,7 @@ public class SecuritySettings {
 
     public static final Setting<List<String>> COMPLIANCE_WRITE_IGNORE_USERS = Setting.listSetting(
         COMPLIANCE_PREFIX + "write_ignore_users",
-        Collections.emptyList(),
+        AuditConfig.DEFAULT_IGNORED_USERS,
         Function.identity(),
         Setting.Property.NodeScope,
         Setting.Property.Dynamic

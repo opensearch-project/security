@@ -12,6 +12,11 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,7 +48,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -349,6 +356,140 @@ public class AuditActionFilterTest {
         // Should NOT log — class name "SearchRequest" matches
         verify(auditLog, never()).logRequestAudit(any());
         verify(chain).proceed(null, "indices:data/read/search", request, listener);
+    }
+
+    // =====================================================================
+    // Self-loop guard — null/empty prefix safety
+    // =====================================================================
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSelfLoopGuardSuppressesAuditIndexWrites() throws Exception {
+        // Request targeting the audit index should be skipped
+        SearchRequest request = new SearchRequest("security-auditlog-2026.07.16");
+        ActionFilterChain<SearchRequest, ActionResponse> chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        filter.apply(null, "indices:data/read/search", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // Should NOT log — request targets audit index
+        verify(auditLog, never()).logRequestAudit(any());
+        // Chain should still proceed
+        verify(chain).proceed(null, "indices:data/read/search", request, listener);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testNullPrefixDoesNotSuppressEvents() throws Exception {
+        // Construct filter with null prefix — should still log events (guard disabled)
+        AuditActionFilter nullPrefixFilter = new AuditActionFilter(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.Filter.DEFAULT,
+            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
+            null
+        );
+
+        SearchRequest request = new SearchRequest("security-auditlog-2026.07.16");
+        ActionFilterChain<SearchRequest, ActionResponse> chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        nullPrefixFilter.apply(null, "indices:data/read/search", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // Should still log — null prefix disables guard, doesn't suppress everything
+        verify(auditLog).logRequestAudit(any());
+        verify(chain).proceed(null, "indices:data/read/search", request, listener);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testEmptyPrefixDoesNotSuppressEvents() throws Exception {
+        // Construct filter with empty prefix — should still log events (guard disabled)
+        AuditActionFilter emptyPrefixFilter = new AuditActionFilter(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.Filter.DEFAULT,
+            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
+            ""
+        );
+
+        SearchRequest request = new SearchRequest("any-index");
+        ActionFilterChain<SearchRequest, ActionResponse> chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        emptyPrefixFilter.apply(null, "indices:data/read/search", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // Should still log — empty prefix disables guard, doesn't suppress everything
+        verify(auditLog).logRequestAudit(any());
+        verify(chain).proceed(null, "indices:data/read/search", request, listener);
+    }
+
+    @Test
+    public void testConstructorLogsWarnWhenPrefixIsNull() {
+        Logger logger = (Logger) LogManager.getLogger(AuditActionFilter.class);
+        Appender mockAppender = mock(Appender.class);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
+        ArgumentCaptor<LogEvent> logCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        doNothing().when(mockAppender).append(logCaptor.capture());
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.WARN);
+
+        try {
+            new AuditActionFilter(
+                auditLog,
+                clusterService,
+                threadPool,
+                AuditConfig.Filter.DEFAULT,
+                new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
+                null
+            );
+
+            boolean foundWarning = logCaptor.getAllValues()
+                .stream()
+                .anyMatch(
+                    event -> event.getLevel() == Level.WARN
+                        && event.getMessage().getFormattedMessage().contains("Audit index prefix is null or empty")
+                );
+            assertTrue("Expected WARN about null/empty audit index prefix", foundWarning);
+        } finally {
+            logger.removeAppender(mockAppender);
+        }
+    }
+
+    @Test
+    public void testConstructorLogsWarnWhenPrefixIsEmpty() {
+        Logger logger = (Logger) LogManager.getLogger(AuditActionFilter.class);
+        Appender mockAppender = mock(Appender.class);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
+        ArgumentCaptor<LogEvent> logCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        doNothing().when(mockAppender).append(logCaptor.capture());
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.WARN);
+
+        try {
+            new AuditActionFilter(
+                auditLog,
+                clusterService,
+                threadPool,
+                AuditConfig.Filter.DEFAULT,
+                new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
+                ""
+            );
+
+            boolean foundWarning = logCaptor.getAllValues()
+                .stream()
+                .anyMatch(
+                    event -> event.getLevel() == Level.WARN
+                        && event.getMessage().getFormattedMessage().contains("Audit index prefix is null or empty")
+                );
+            assertTrue("Expected WARN about null/empty audit index prefix", foundWarning);
+        } finally {
+            logger.removeAppender(mockAppender);
+        }
     }
 
     // =====================================================================

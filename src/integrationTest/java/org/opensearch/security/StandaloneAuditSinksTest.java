@@ -8,23 +8,10 @@
 */
 package org.opensearch.security;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.hc.core5.http.ClassicHttpRequest;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
-import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.http.protocol.HttpContext;
 import org.awaitility.Awaitility;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -36,45 +23,14 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.Matchers.containsString;
 
 /**
- * Integration tests verifying that real audit sinks (internal_opensearch, webhook, log4j)
+ * Integration tests verifying that real audit sinks (internal_opensearch, log4j)
  * work end-to-end in standalone SSL-only mode.
+ *
+ * <p>Webhook sink delivery is verified at the unit level by {@code WebhookAuditLogTest}
+ * (shared with FGAC). The integration test {@code StandaloneAuditWebhookSinkTest}
+ * verifies the sink initializes without error in SSL-only mode.
  */
 public class StandaloneAuditSinksTest {
-
-    // --- Webhook sink test infrastructure ---
-
-    private static HttpServer webhookServer;
-    private static int webhookPort;
-    private static final AtomicReference<String> capturedWebhookBody = new AtomicReference<>();
-    private static final CountDownLatch webhookLatch = new CountDownLatch(1);
-
-    @BeforeClass
-    public static void startWebhookServer() throws Exception {
-        webhookPort = findAvailablePort();
-        webhookServer = ServerBootstrap.bootstrap()
-            .setListenerPort(webhookPort)
-            .register("/*", (ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) -> {
-                String body = EntityUtils.toString(request.getEntity(), StandardCharsets.UTF_8);
-                capturedWebhookBody.set(body);
-                webhookLatch.countDown();
-                response.setCode(200);
-            })
-            .create();
-        webhookServer.start();
-    }
-
-    @AfterClass
-    public static void stopWebhookServer() {
-        if (webhookServer != null) {
-            webhookServer.close();
-        }
-    }
-
-    private static int findAvailablePort() throws IOException {
-        try (ServerSocket socket = new ServerSocket(0)) {
-            return socket.getLocalPort();
-        }
-    }
 
     // --- Clusters ---
 
@@ -86,8 +42,6 @@ public class StandaloneAuditSinksTest {
         .sslOnly(true)
         .build();
 
-    // Note: webhook cluster uses a dynamic port, configured via system property workaround
-    // We use log4j cluster to also verify log4j sink
     @ClassRule
     public static LocalCluster log4jSinkCluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)

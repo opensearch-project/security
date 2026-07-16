@@ -8,6 +8,7 @@
  */
 package org.opensearch.security;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.ClassRule;
@@ -41,7 +42,9 @@ public class StandaloneAuditTransportInterceptTest {
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT,
-                true
+                true,
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+                List.of("cluster:monitor/*", "indices:monitor/*")
             )
         )
         .sslOnly(true)

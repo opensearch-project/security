@@ -290,6 +290,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenSearchSecurityPlugin.class);
+    private static final java.util.concurrent.atomic.AtomicLong lastCertWarnTime = new java.util.concurrent.atomic.AtomicLong(0);
+    private static final long CERT_WARN_INTERVAL_MS = 60_000; // warn at most once per minute
 
     @Deprecated
     public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
@@ -982,7 +984,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                                     }
                                 }
                             } catch (Exception e) {
-                                // No peer cert available — client didn't present one (wantClientAuth case)
+                                long now = System.currentTimeMillis();
+                                if (now - lastCertWarnTime.get() > CERT_WARN_INTERVAL_MS) {
+                                    lastCertWarnTime.set(now);
+                                    log.warn(
+                                        "Failed to extract client certificate identity: {}. "
+                                            + "Audit events will have no effective_user. "
+                                            + "Enable DEBUG logging for full stack trace.",
+                                        e.getMessage()
+                                    );
+                                } else if (log.isDebugEnabled()) {
+                                    log.debug("Failed to extract client certificate identity", e);
+                                }
                             }
                         }
                     }

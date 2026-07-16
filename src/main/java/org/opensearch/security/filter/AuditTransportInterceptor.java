@@ -8,7 +8,6 @@
 
 package org.opensearch.security.filter;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +23,6 @@ import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -48,7 +46,6 @@ public class AuditTransportInterceptor implements TransportInterceptor {
     private final AuditLog auditLog;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
-    private final WildcardMatcher ignoreActionsMatcher;
     private final AuditConfig.Filter filter;
     private final String auditIndexPrefix;
 
@@ -65,8 +62,24 @@ public class AuditTransportInterceptor implements TransportInterceptor {
         this.filter = filter;
         this.auditIndexPrefix = auditIndexPrefix;
 
-        // Skip internal cluster noise by default
-        this.ignoreActionsMatcher = WildcardMatcher.from("internal:*", "cluster:monitor/*", "indices:monitor/*");
+        if (auditIndexPrefix == null || auditIndexPrefix.isEmpty()) {
+            log.warn(
+                "Audit index prefix is null or empty — self-loop guard is disabled. "
+                    + "Verify 'plugins.security.audit.config.index' is configured correctly."
+            );
+        }
+    }
+
+    /**
+     * Returns true if the given index name belongs to the audit index (i.e., writes
+     * to it should not be audited to prevent self-referential loops).
+     * Returns false if the prefix is null/empty to avoid silently suppressing all events.
+     */
+    private boolean isAuditIndex(String idx) {
+        if (idx == null || auditIndexPrefix == null || auditIndexPrefix.isEmpty()) {
+            return false;
+        }
+        return idx.startsWith(auditIndexPrefix);
     }
 
     @Override
@@ -79,21 +92,23 @@ public class AuditTransportInterceptor implements TransportInterceptor {
         return new TransportRequestHandler<T>() {
             @Override
             public void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
-                // Skip noisy internal actions
-                if (!ignoreActionsMatcher.test(action)) {
-                    // Skip if TRANSPORT_AUDIT is disabled
-                    if (!filter.getDisabledTransportCategories().contains(AuditCategory.TRANSPORT_AUDIT)
-                        && !filter.getDisabledCategories().contains(AuditCategory.TRANSPORT_AUDIT)) {
-                        // Skip ignored requests (action or class name)
-                        if (!filter.isRequestAuditDisabled(action) && !filter.isRequestAuditDisabled(request.getClass().getSimpleName())) {
-                            // Skip ignored users
-                            String principal = threadPool.getThreadContext()
-                                .getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
-                            User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                            String effectiveUser = user != null ? user.getName() : principal;
-                            if (effectiveUser == null || !filter.isAuditDisabled(effectiveUser)) {
-                                logTransportEvent(action, request, task);
-                            }
+                // Skip internal actions — cluster coordination traffic that should never be audited
+                if (action != null && action.startsWith("internal:")) {
+                    actualHandler.messageReceived(request, channel, task);
+                    return;
+                }
+
+                // Skip if TRANSPORT_AUDIT is disabled
+                if (!filter.getDisabledTransportCategories().contains(AuditCategory.TRANSPORT_AUDIT)
+                    && !filter.getDisabledCategories().contains(AuditCategory.TRANSPORT_AUDIT)) {
+                    // Skip ignored requests (action or class name)
+                    if (!filter.isRequestAuditDisabled(action) && !filter.isRequestAuditDisabled(request.getClass().getSimpleName())) {
+                        // Skip ignored users
+                        String principal = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
+                        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                        String effectiveUser = user != null ? user.getName() : principal;
+                        if (effectiveUser == null || !filter.isAuditDisabled(effectiveUser)) {
+                            logTransportEvent(action, request, task);
                         }
                     }
                 }
@@ -110,7 +125,7 @@ public class AuditTransportInterceptor implements TransportInterceptor {
                 String[] indices = ((IndicesRequest) request).indices();
                 if (indices != null) {
                     for (String idx : indices) {
-                        if (idx != null && idx.startsWith(auditIndexPrefix)) {
+                        if (isAuditIndex(idx)) {
                             return;
                         }
                     }
@@ -159,14 +174,13 @@ public class AuditTransportInterceptor implements TransportInterceptor {
 
             // REST headers (stashed in ThreadContext by REST wrapper)
             Map<String, List<String>> headers = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REST_HEADERS);
-            if (headers != null && !headers.isEmpty()) {
-                Map<String, List<String>> filteredHeaders = new HashMap<>(headers);
-                filteredHeaders.keySet().removeIf(k -> k.equalsIgnoreCase("authorization"));
+            Map<String, List<String>> filteredHeaders = AuditHeaderUtils.filterHeaders(headers, filter);
+            if (!filteredHeaders.isEmpty()) {
                 msg.addRestHeaders(filteredHeaders, false, null);
             }
 
             auditLog.logTransportAudit(msg);
-        } catch (Exception e) {
+        } catch (Exception | AssertionError e) {
             log.warn("Failed to log transport audit event for action {}: {}", action, e.getMessage());
         }
     }

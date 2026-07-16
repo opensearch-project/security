@@ -149,6 +149,17 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.auditConfigFilter.log(log);
     }
 
+    /**
+     * Returns the live audit filter configuration that controls event suppression,
+     * request body logging, index resolution, and other audit behavior.
+     *
+     * <p>This filter's fields are volatile and updated dynamically via cluster settings
+     * consumers, so callers always read the most recent configuration without restart.
+     * Used by {@code AuditActionFilter} and {@code AuditTransportInterceptor} to make
+     * per-request filtering decisions (ignore users, disabled categories, etc.).
+     *
+     * @return the current {@link AuditConfig.Filter} instance, never {@code null}
+     */
     public AuditConfig.Filter getFilter() {
         return auditConfigFilter;
     }
