@@ -42,6 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
@@ -322,6 +323,10 @@ public class WhoAmITests {
             } else if (key.equals("audit_request_layer")) {
                 assertThat(restMsgFields.get(key).toString(), equalTo("REST"));
                 assertThat(transportMsgFields.get(key).toString(), equalTo("TRANSPORT"));
+            } else if (key.equals(AuditMessage.REQUEST_ID)) {
+                // Request IDs are unique per request — skip equality check, just verify non-null
+                assertThat(restMsgFields.get(key), notNullValue());
+                assertThat(transportMsgFields.get(key), notNullValue());
             } else {
                 assertThat(restMsgFields.get(key), equalTo(transportMsgFields.get(key)));
             }

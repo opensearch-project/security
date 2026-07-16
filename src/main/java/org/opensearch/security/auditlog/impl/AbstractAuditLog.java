@@ -92,7 +92,7 @@ import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_
 public abstract class AbstractAuditLog implements AuditLog {
     protected final Logger log = LogManager.getLogger(this.getClass());
 
-    private final ThreadPool threadPool;
+    protected final ThreadPool threadPool;
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
     private final Settings settings;

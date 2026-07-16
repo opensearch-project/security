@@ -141,6 +141,8 @@ public final class AuditMessage {
 
     public static final String SPLIT_MESSAGE_IDENTIFIER = "audit_split_message_id";
 
+    public static final String REQUEST_ID = "audit_request_id";
+
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
     private final Map<String, Object> auditInfo = new HashMap<String, Object>(50);
     private final AuditCategory msgCategory;
@@ -169,6 +171,12 @@ public final class AuditMessage {
     public void addRemoteAddress(TransportAddress remoteAddress) {
         if (remoteAddress != null && remoteAddress.getAddress() != null) {
             auditInfo.put(REMOTE_ADDRESS, remoteAddress.getAddress());
+        }
+    }
+
+    public void addRequestId(String requestId) {
+        if (requestId != null) {
+            auditInfo.put(REQUEST_ID, requestId);
         }
     }
 

@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
@@ -71,6 +72,7 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
+import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -175,6 +177,21 @@ public class SecurityRestFilter {
                     request.param(unconsumedParam);
                 }
             });
+
+            // Stash audit correlation ID: use X-Request-Id header if present, otherwise generate UUID
+            if (threadContext.getTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID) == null) {
+                String requestId = threadContext.getHeader(Task.X_REQUEST_ID);
+                if (requestId == null || requestId.isEmpty()) {
+                    requestId = UUID.randomUUID().toString();
+                } else {
+                    // Sanitize: limit length and strip control characters to prevent log injection
+                    if (requestId.length() > 128) {
+                        requestId = requestId.substring(0, 128);
+                    }
+                    requestId = requestId.replaceAll("[\\p{Cntrl}]", "");
+                }
+                threadContext.putTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID, requestId);
+            }
 
             RestRequest filteredRequest = maybeFilterRestRequest(request);
 
