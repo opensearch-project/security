@@ -66,6 +66,7 @@ import org.opensearch.transport.client.Client;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.common.network.NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
+import static org.opensearch.security.dlic.rest.validation.PasswordValidator.FIPS_MIN_PASSWORD_LENGTH;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD;
@@ -423,7 +424,7 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testHttpsAndNodeSSLPemEnc() throws Exception {
-        final String keyPassword = randomAsciiAlphanumOfLength(CertificatesRule.FIPS_MIN_PASSWORD_LENGTH);
+        final String keyPassword = randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH);
         final CertificatesRule.PemFiles pem = certificatesRule.generatePemFiles(
             "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE",
             keyPassword
@@ -468,7 +469,7 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testSSLPemEncWithInsecureSettings() throws Exception {
-        final String keyPassword = randomAsciiAlphanumOfLength(CertificatesRule.FIPS_MIN_PASSWORD_LENGTH);
+        final String keyPassword = randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH);
         final CertificatesRule.PemFiles pem = certificatesRule.generatePemFiles(
             "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE",
             keyPassword

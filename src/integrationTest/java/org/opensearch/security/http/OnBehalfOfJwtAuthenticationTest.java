@@ -13,6 +13,7 @@ package org.opensearch.security.http;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
@@ -72,7 +73,14 @@ public class OnBehalfOfJwtAuthenticationTest {
             "alternativeSigningKeyalternativeSigningKeyalternativeSigningKeyalternativeSigningKey".getBytes(StandardCharsets.UTF_8)
         );
 
-    private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey!!".getBytes(StandardCharsets.UTF_8));
+    private static final String encryptionKey = fipsCompatibleEncryptionKey();
+
+    private static String fipsCompatibleEncryptionKey() {
+        final byte[] keyMaterial = new byte[32];
+        new SecureRandom().nextBytes(keyMaterial);
+        return Base64.getEncoder().encodeToString(keyMaterial);
+    }
+
     public static final String ADMIN_USER_NAME = "admin";
     public static final String OBO_USER_NAME_WITH_PERM = "obo_user";
     public static final String OBO_USER_NAME_NO_PERM = "obo_user_no_perm";

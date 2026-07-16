@@ -12,19 +12,24 @@
 package org.opensearch.security;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Objects;
 
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
+import org.opensearch.security.test.helper.file.FipsHashAdapter;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,9 +37,17 @@ import static org.hamcrest.Matchers.is;
 
 public class AdvancedSecurityMigrationTests extends SingleClusterTest {
 
+    @Rule
+    public TemporaryFolder configDirectory = new TemporaryFolder();
+
     @Before
-    public void setupBefore() {
-        ClusterHelper.updateDefaultDirectory(new File(TEST_RESOURCE_RELATIVE_PATH + "security_passive").getAbsolutePath());
+    public void setupBefore() throws Exception {
+        final File source = new File(TEST_RESOURCE_RELATIVE_PATH + "security_passive");
+        for (final File yml : Objects.requireNonNull(source.listFiles((dir, name) -> name.endsWith(".yml")))) {
+            Files.copy(yml.toPath(), configDirectory.getRoot().toPath().resolve(yml.getName()));
+        }
+        FipsHashAdapter.adaptConfigFile(new File(configDirectory.getRoot(), "internal_users.yml"));
+        ClusterHelper.updateDefaultDirectory(configDirectory.getRoot().getAbsolutePath());
     }
 
     @After

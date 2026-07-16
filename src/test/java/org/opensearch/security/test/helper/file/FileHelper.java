@@ -202,7 +202,11 @@ public class FileHelper {
         XContentParser parser = null;
         try {
             parser = XContentType.YAML.xContent()
-                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(loadFile(file)));
+                .createParser(
+                    NamedXContentRegistry.EMPTY,
+                    THROW_UNSUPPORTED_OPERATION,
+                    new StringReader(FipsHashAdapter.adaptConfig(loadFile(file)))
+                );
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -225,7 +229,11 @@ public class FileHelper {
         XContentParser parser = null;
         try {
             parser = XContentType.YAML.xContent()
-                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(yaml));
+                .createParser(
+                    NamedXContentRegistry.EMPTY,
+                    THROW_UNSUPPORTED_OPERATION,
+                    new StringReader(FipsHashAdapter.adaptConfig(yaml))
+                );
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);

@@ -88,6 +88,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.file.FipsHashAdapter;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
 import org.opensearch.threadpool.ThreadPool;
@@ -144,10 +145,10 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
     public final TestWatcher testWatcher = new SecurityTestWatcher();
 
     public static Header encodeBasicHeader(final String username, final String password) {
+        final String adaptedPassword = FipsHashAdapter.adaptPassword(Objects.requireNonNull(password));
         return new BasicHeader(
             "Authorization",
-            "Basic "
-                + Base64.getEncoder().encodeToString((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8))
+            "Basic " + Base64.getEncoder().encodeToString((username + ":" + adaptedPassword).getBytes(StandardCharsets.UTF_8))
         );
     }
 
@@ -314,6 +315,10 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             builder.put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
         builder.put("cluster.routing.allocation.disk.threshold_enabled", false);
+
+        if (FipsMode.isEnabled()) {
+            builder.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2);
+        }
         builder.put(other);
         return builder;
     }

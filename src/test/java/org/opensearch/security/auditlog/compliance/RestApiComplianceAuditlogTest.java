@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -24,6 +25,7 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
@@ -379,6 +381,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
 
     @Test
     public void testArgon2HashRedaction() {
+        Assume.assumeFalse("Argon2 is not supported in FIPS mode", FipsMode.isEnabled());
         final Settings settings = Settings.builder()
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
             .put(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")

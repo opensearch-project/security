@@ -24,6 +24,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.crypto.KDFCalculator;
 import org.bouncycastle.crypto.fips.FipsKDF;
 
+import org.opensearch.common.Randomness;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.util.KeyUtils;
@@ -43,7 +44,7 @@ public class EncryptionDecryptionUtil {
     private static final int MINIMUM_IKM_BYTES = AES_KEY_LENGTH_BYTES;
 
     private final SecretKey aesKey;
-    private final SecureRandom secureRandom = new SecureRandom();
+    private final SecureRandom secureRandom = Randomness.createSecure();
 
     /**
      * Resolves the encryption key from {@code <prefix>} in the given settings, supporting either a keystore
@@ -110,7 +111,10 @@ public class EncryptionDecryptionUtil {
     private static SecretKey deriveKey(final byte[] secretBytes) {
         if (FipsMode.isEnabled() && secretBytes.length < MINIMUM_IKM_BYTES) {
             throw new IllegalArgumentException(
-                "Configured encryption_key is not strong enough for FIPS mode. Please configure an encryption_key with more key material."
+                "Configured encryption_key decodes to %d bytes of key material, but FIPS mode requires at least %d bytes.".formatted(
+                    secretBytes.length,
+                    MINIMUM_IKM_BYTES
+                )
             );
         }
 

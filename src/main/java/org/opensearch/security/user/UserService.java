@@ -29,12 +29,12 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.crypto.fips.FipsDRBG;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Randomness;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
@@ -50,6 +50,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.transport.client.Client;
 
@@ -241,25 +242,17 @@ public class UserService {
     private static final String ALL_CHARS = LOWERCASE + UPPERCASE + DIGITS;
 
     /**
-     * Generate a 20 - 27 character password with 1+ lowercase, 1+ uppercase, 1+ digit.
-     * Uses a FIPS SP 800-90A HMAC-SHA-256 DRBG; the returned {@code char[]} must be zeroed by the caller after use.
+     * Generate a random password with 1+ lowercase, 1+ uppercase, 1+ digit. Under FIPS the length is 20-27
+     * characters (≥119 bits over the 62-char alphabet, exceeding the FIPS 112-bit requirement); otherwise 8-15.
+     * Uses {@link Randomness#createSecure()}, which resolves to the FIPS-approved SP 800-90A DRBG when FIPS is
+     * enabled. The returned {@code char[]} must be zeroed by the caller after use.
      *
-     * @return A password for a service account exceeding the FIPS 112-bit entropy requirement.
+     * @return A generated service-account password.
      */
     public static char[] generatePassword() {
-        SecureRandom seed = new SecureRandom();
-        SecureRandom drbg = FipsDRBG.SHA256_HMAC //
-            .fromEntropySource(seed, false) //
-            .build(seed.generateSeed(32), false);
-        return generatePassword(drbg);
-    }
-
-    /**
-     * Generate a password using the supplied {@link SecureRandom}.
-     * Exposed so callers can inject a seeded instance (e.g. in tests).
-     */
-    public static char[] generatePassword(SecureRandom random) {
-        int length = random.nextInt(8) + 20; // 20-27 chars → ≥119 bits with 62-char alphabet
+        final SecureRandom random = Randomness.createSecure();
+        final int base = FipsMode.isEnabled() ? 20 : 8;
+        int length = random.nextInt(8) + base; // FIPS: 20-27 chars (≥119 bits); otherwise: 8-15 chars
         char[] password = new char[length];
 
         // Guarantee at least one of each required type

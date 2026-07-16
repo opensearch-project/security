@@ -84,6 +84,39 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
     }
 
     @Test
+    public void testFipsModeWithPasswordMinLengthBelowFloorThrows() {
+        Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "pbkdf2")
+            .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 8)
+            .build();
+
+        IllegalStateException ex = assertThrows(
+            IllegalStateException.class,
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true)
+        );
+        assertThat(ex.getMessage(), containsString("FIPS mode requires at least 14 characters"));
+    }
+
+    @Test
+    public void testFipsModeWithPasswordMinLengthAtFloorSucceeds() {
+        Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "pbkdf2")
+            .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 14)
+            .build();
+
+        // At the floor is acceptable
+        OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true);
+    }
+
+    @Test
+    public void testFipsModeWithPasswordMinLengthUnsetSucceeds() {
+        // Unset (-1) is fine: additionalSettings() defaults it to the FIPS floor at boot.
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "pbkdf2").build();
+
+        OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true);
+    }
+
+    @Test
     public void testFipsModeEnabledWithoutApprovedOnlyModeThrows() {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "pbkdf2").build();
 

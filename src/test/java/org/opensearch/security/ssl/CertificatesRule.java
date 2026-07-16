@@ -53,14 +53,12 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.test.helper.file.FileHelper;
 
+import static org.opensearch.security.dlic.rest.validation.PasswordValidator.FIPS_MIN_PASSWORD_LENGTH;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
 public class CertificatesRule extends ExternalResource {
-
-    /** BC FIPS requires at least 14 characters for PKCS8 key-encryption passwords in approved-only mode. */
-    public static final int FIPS_MIN_PASSWORD_LENGTH = 14;
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 

@@ -393,6 +393,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 );
             }
 
+            // A configured minimum below that floor would let the API accept passwords the hasher then refuses at runtime.
+            final int minPasswordLength = settings.getAsInt(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, -1);
+            if (minPasswordLength >= 0 && minPasswordLength < PasswordValidator.FIPS_MIN_PASSWORD_LENGTH) {
+                violations.add(
+                    "Password minimum length '%s' is set to %d, but FIPS mode requires at least %d characters because shorter passwords cannot be hashed with PBKDF2."
+                        .formatted(
+                            ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH,
+                            minPasswordLength,
+                            PasswordValidator.FIPS_MIN_PASSWORD_LENGTH
+                        )
+                );
+            }
+
             if (!violations.isEmpty()) {
                 throw new IllegalStateException(
                     "FIPS mode is enabled (OPENSEARCH_FIPS_MODE=true) but the following configuration issues were found:\n- "
@@ -1474,6 +1487,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode()) {
             builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
             builder.put(NetworkModule.HTTP_TYPE_KEY, "org.opensearch.security.http.SecurityHttpServerTransport");
+            if (FipsMode.isEnabled() && !settings.hasValue(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH)) {
+                builder.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, PasswordValidator.FIPS_MIN_PASSWORD_LENGTH);
+            }
         }
         return builder.build();
     }

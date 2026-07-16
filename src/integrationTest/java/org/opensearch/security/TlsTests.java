@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.opensearch.security.auditlog.AuditLog.Origin.REST;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.auditPredicate;
@@ -55,7 +56,14 @@ public class TlsTests {
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .anonymousAuth(false)
-        .nodeSettings(Map.of(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of(SUPPORTED_CIPHER_SUIT)))
+        .nodeSettings(
+            Map.of(
+                SECURITY_SSL_HTTP_ENABLED_CIPHERS,
+                List.of(SUPPORTED_CIPHER_SUIT),
+                SECURITY_SSL_HTTP_ENABLED_PROTOCOLS,
+                List.of("TLSv1.2")
+            )
+        )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN)
         .audit(

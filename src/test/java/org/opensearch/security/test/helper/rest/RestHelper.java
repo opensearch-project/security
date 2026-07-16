@@ -85,6 +85,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.file.FipsHashAdapter;
 
 import tools.jackson.databind.JsonNode;
 
@@ -321,7 +322,10 @@ public class RestHelper {
         final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom();
 
         if (sendHTTPClientCredentials) {
-            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek".toCharArray());
+            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(
+                "sarek",
+                FipsHashAdapter.adaptPassword("sarek").toCharArray()
+            );
             BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
             credentialsProvider.setCredentials(new AuthScope(null, -1), credentials);
             hcb.setDefaultCredentialsProvider(credentialsProvider);

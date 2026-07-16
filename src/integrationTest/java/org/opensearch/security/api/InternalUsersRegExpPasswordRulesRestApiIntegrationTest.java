@@ -80,7 +80,7 @@ public class InternalUsersRegExpPasswordRulesRestApiIntegrationTest extends Abst
                 internalUsers(),
                 patch(
                     addOp("testuser1", internalUserWithPassword("$aA1234567890ab")),
-                    addOp("testuser2", internalUserWithPassword("testpassword2"))
+                    addOp("testuser2", internalUserWithPassword("testpassword23"))
                 )
             );
             assertThat(r, isBadRequest("/reason", PASSWORD_VALIDATION_ERROR_MESSAGE));

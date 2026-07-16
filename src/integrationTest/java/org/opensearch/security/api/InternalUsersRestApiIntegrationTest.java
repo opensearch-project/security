@@ -25,6 +25,7 @@ import java.util.concurrent.Future;
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -33,6 +34,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -127,6 +129,26 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     @Test
     public void availableForRESTAdminUser() throws Exception {
         super.availableForRESTAdminUser(localCluster);
+    }
+
+    @Test
+    public void changingPasswordBelowFipsFloorIsRejected() throws Exception {
+        Assume.assumeTrue("FIPS password floor only applies under FIPS", FipsMode.isEnabled());
+        try (TestRestClient client = localCluster.getAdminCertRestClient()) {
+            final var username = randomAsciiAlphanumOfLength(10);
+
+            // 1. Create the user with a password that clears the 14-char FIPS floor.
+            assertThat(
+                client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))),
+                isCreated()
+            );
+
+            // 2. Change the password to one below the floor -> clean 400, not a hang.
+            assertThat(
+                client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH - 1))),
+                isBadRequest()
+            );
+        }
     }
 
     static ToXContentObject internalUserWithPassword(final String password) {
@@ -811,11 +833,17 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                         URLEncoder.encode(randomAsciiAlphanumOfLength(4) + ":" + randomAsciiAlphanumOfLength(3), StandardCharsets.UTF_8)
                     )) {
                         assertThat(
-                            client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(10))),
+                            client.putJson(
+                                apiPath(username),
+                                internalUserWithPassword(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))
+                            ),
                             isBadRequest("/message", restrictedTerm)
                         );
                         assertThat(
-                            client.patch(apiPath(), patch(addOp(username, internalUserWithPassword(randomAsciiAlphanumOfLength(10))))),
+                            client.patch(
+                                apiPath(),
+                                patch(addOp(username, internalUserWithPassword(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))))
+                            ),
                             isBadRequest("/message", restrictedTerm)
                         );
                     }

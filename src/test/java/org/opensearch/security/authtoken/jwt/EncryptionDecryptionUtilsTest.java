@@ -99,7 +99,7 @@ public class EncryptionDecryptionUtilsTest {
         String weakSecret = Base64.getEncoder().encodeToString("mySecretKey12345".getBytes());
 
         IllegalArgumentException ex = Assert.assertThrows(IllegalArgumentException.class, () -> new EncryptionDecryptionUtil(weakSecret));
-        assertThat(ex.getMessage(), containsString("not strong enough for FIPS mode"));
+        assertThat(ex.getMessage(), containsString("decodes to 16 bytes of key material, but FIPS mode requires at least 32 bytes"));
     }
 
     @Test

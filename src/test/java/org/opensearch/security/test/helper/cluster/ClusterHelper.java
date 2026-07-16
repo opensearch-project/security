@@ -63,6 +63,7 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.http.HttpInfo;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
@@ -208,6 +209,7 @@ public final class ClusterHelper {
                 tcpPortsAllIt.next(),
                 httpPortsIt.next()
             );
+            applyFipsPasswordHashing(nodeSettingsBuilder, setting);
             final Settings settingsForNode;
             if (nodeSettingsSupplier != null) {
                 final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
@@ -246,6 +248,7 @@ public final class ClusterHelper {
                 tcpPortsAllIt.next(),
                 httpPortsIt.next()
             );
+            applyFipsPasswordHashing(nodeSettingsBuilder, setting);
             final Settings settingsForNode;
             if (nodeSettingsSupplier != null) {
                 final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
@@ -486,11 +489,13 @@ public final class ClusterHelper {
             .put("path.home", "./target")
             .put("bootstrap.serial_filter", true);
 
-        if (FipsMode.isEnabled()) {
+        return builder;
+    }
+
+    private static void applyFipsPasswordHashing(final Settings.Builder builder, final NodeSettings setting) {
+        if (FipsMode.isEnabled() && setting.getPlugins().contains(OpenSearchSecurityPlugin.class)) {
             builder.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2);
         }
-
-        return builder;
     }
 
     private enum ClusterState {
