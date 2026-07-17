@@ -10,15 +10,19 @@
 package org.opensearch.security.grpc;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.opensearch.Version;
 import org.opensearch.common.transport.PortsRange;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.plugins.PluginInfo;
 import org.opensearch.protobufs.BulkRequest;
 import org.opensearch.protobufs.BulkRequestBody;
 import org.opensearch.protobufs.BulkResponse;
@@ -32,11 +36,13 @@ import org.opensearch.protobufs.SearchRequestBody;
 import org.opensearch.protobufs.SearchResponse;
 import org.opensearch.protobufs.services.DocumentServiceGrpc;
 import org.opensearch.protobufs.services.SearchServiceGrpc;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
+import org.opensearch.transport.grpc.GrpcPlugin;
 import org.opensearch.transport.grpc.spi.GrpcInterceptorProvider;
 import org.opensearch.transport.grpc.ssl.SecureNetty4GrpcServerTransport;
 
@@ -59,6 +65,30 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import static io.grpc.internal.GrpcUtil.NOOP_PROXY_DETECTOR;
 
 public class GrpcHelpers {
+    public static final PluginInfo[] SECURITY_WITH_GRPC_PLUGIN = {
+        new PluginInfo(
+            GrpcPlugin.class.getName(),
+            "classpath plugin",
+            "NA",
+            Version.CURRENT,
+            "21",
+            GrpcPlugin.class.getName(),
+            null,
+            Collections.emptyList(),
+            false
+        ),
+        new PluginInfo(
+            OpenSearchSecurityPlugin.class.getName(),
+            "classpath plugin",
+            "NA",
+            Version.CURRENT,
+            "21",
+            OpenSearchSecurityPlugin.class.getName(),
+            null,
+            List.of("org.opensearch.transport.grpc.GrpcPlugin"),
+            false
+        ) };
+
     protected static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
     protected static final TestCertificates UN_TRUSTED_TEST_CERTIFICATES = new TestCertificates();
 
@@ -107,6 +137,24 @@ public class GrpcHelpers {
                 };
             }
         };
+    }
+
+    /**
+     * Creates a Basic Auth header value: "Basic base64(username:password)"
+     */
+    public static String createBasicAuthHeader(String username, String password) {
+        String credentials = username + ":" + password;
+        String base64Credentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+        return "Basic " + base64Credentials;
+    }
+
+    public static Channel createChannelWithAuthorization(final ManagedChannel channel, final String authorizationHeader) {
+        final var authInterceptor = createHeaderInterceptor(Map.of("Authorization", authorizationHeader));
+        return io.grpc.ClientInterceptors.intercept(channel, authInterceptor);
+    }
+
+    public static Channel createChannelWithBasicAuthorization(final ManagedChannel channel, final String username, final String password) {
+        return createChannelWithAuthorization(channel, createBasicAuthHeader(username, password));
     }
 
     protected static final Map<String, Object> CLIENT_AUTH_NONE = Map.of(
