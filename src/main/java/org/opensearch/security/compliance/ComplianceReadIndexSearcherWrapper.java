@@ -12,15 +12,16 @@ import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FilterDirectoryReader;
-import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.StoredFields;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.CheckedFunction;
+import org.opensearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexService;
@@ -132,7 +133,7 @@ public class ComplianceReadIndexSearcherWrapper implements CheckedFunction<Direc
         }
     }
 
-    static class ComplianceLeafReader extends FilterLeafReader {
+    static class ComplianceLeafReader extends SequentialStoredFieldsLeafReader {
 
         private final IndexService indexService;
         private final ThreadContext threadContext;
@@ -157,6 +158,11 @@ public class ComplianceReadIndexSearcherWrapper implements CheckedFunction<Direc
         }
 
         @Override
+        protected StoredFieldsReader doGetSequentialStoredFieldsReader(StoredFieldsReader reader) {
+            return new ComplianceStoredFieldsReader(reader);
+        }
+
+        @Override
         public StoredFields storedFields() throws IOException {
             return new ComplianceStoredFields(in.storedFields());
         }
@@ -169,6 +175,39 @@ public class ComplianceReadIndexSearcherWrapper implements CheckedFunction<Direc
         @Override
         public CacheHelper getReaderCacheHelper() {
             return in.getReaderCacheHelper();
+        }
+
+        private class ComplianceStoredFieldsReader extends StoredFieldsReader {
+            private final StoredFieldsReader in;
+
+            ComplianceStoredFieldsReader(StoredFieldsReader storedFieldsReader) {
+                this.in = storedFieldsReader;
+            }
+
+            @Override
+            public void document(int docID, StoredFieldVisitor visitor) throws IOException {
+                StoredFieldVisitor wrapped = new ComplianceFieldVisitor(visitor);
+                try {
+                    in.document(docID, wrapped);
+                } finally {
+                    ((ComplianceFieldVisitor) wrapped).finished();
+                }
+            }
+
+            @Override
+            public StoredFieldsReader clone() {
+                return new ComplianceStoredFieldsReader(in.clone());
+            }
+
+            @Override
+            public void checkIntegrity() throws IOException {
+                in.checkIntegrity();
+            }
+
+            @Override
+            public void close() throws IOException {
+                in.close();
+            }
         }
 
         private class ComplianceStoredFields extends StoredFields {
