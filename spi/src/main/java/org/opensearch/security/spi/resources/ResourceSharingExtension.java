@@ -10,6 +10,7 @@ package org.opensearch.security.spi.resources;
 
 import java.util.Set;
 
+import org.opensearch.common.Nullable;
 import org.opensearch.security.spi.SecurityConfigExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
@@ -32,7 +33,8 @@ public interface ResourceSharingExtension extends SecurityConfigExtension {
 
     /**
      * Assigns the ResourceSharingClient to the resource plugin. Plugins can then utilize this to call the methods for access control.
-     * @param client the ResourceSharingClient instance
+     * When the resource-sharing feature is disabled, this method is called with {@code null} to clear the client reference.
+     * @param client the ResourceSharingClient instance, or {@code null} when the feature is disabled
      */
-    void assignResourceSharingClient(ResourceSharingClient client);
+    void assignResourceSharingClient(@Nullable ResourceSharingClient client);
 }

@@ -7,7 +7,8 @@ So you want to contribute code to OpenSearch Security? Excellent! We're glad you
     - [Native platforms](#native-platforms)
   - [Building](#building)
   - [Using IntelliJ IDEA](#using-intellij-idea)
-  - [Running integration tests](#running-integration-tests)
+  - [Running locally](#running-locally)
+  - [Running tests in the integrationTest package](#running-integration-tests)
     - [Bulk test runs](#bulk-test-runs)
     - [Checkstyle Violations](#checkstyle-violations)
   - [Authorization in REST Layer](#authorization-in-rest-layer)
@@ -265,6 +266,26 @@ public RepeatRule repeatRule = new RepeatRule();
 public void testMethod() {
     ...
 }
+```
+
+## Running locally
+
+It is often quite handy to be able to run the OpenSearch distribution with the locally modified plugin bundle. To do that, you could use the following command:
+
+```
+./gradlew run  -Pcrypto.standard=any-supported
+```
+
+If you need the ability to attach the debugger to the running OpenSearch process, use the following command instead:
+
+```
+./gradlew run  -Pcrypto.standard=any-supported --debug-server-jvm
+```
+
+By default, the cluster will be accessible using `admin` / `admin` credentials, for example:
+
+```
+curl 'https://localhost:9200/' -k -u admin:admin
 ```
 
 ## Running tests in the integrationTest package

@@ -1801,6 +1801,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             Arrays.stream(FilterEntries.values()).map(filterEntry -> {
                 switch (filterEntry) {
+                    case DISABLE_CATEGORIES:
+                        return Setting.listSetting(
+                            filterEntry.getKeyWithNamespace(),
+                            Collections.emptyList(),
+                            Function.identity(),
+                            Property.NodeScope
+                        );
                     case DISABLE_REST_CATEGORIES:
                     case DISABLE_TRANSPORT_CATEGORIES:
                         return Setting.listSetting(
