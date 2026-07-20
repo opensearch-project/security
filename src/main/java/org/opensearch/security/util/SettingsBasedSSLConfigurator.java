@@ -78,7 +78,7 @@ public class SettingsBasedSSLConfigurator {
     public static final String VERIFY_HOSTNAMES = "verify_hostnames";
     public static final String TRUST_ALL = "trust_all";
 
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.of("TLSv1.2", "TLSv1.1");
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.copyOf(SSLConfigConstants.ALLOWED_SSL_PROTOCOLS);
 
     private SSLContextBuilder sslContextBuilder;
     private final Settings settings;
@@ -302,7 +302,7 @@ public class SettingsBasedSSLConfigurator {
         }
 
         try {
-            effectiveKeyPassword = PemKeyReader.randomChars(12);
+            effectiveKeyPassword = SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray();
             effectiveKeyAlias = "al";
             effectiveTruststore = PemKeyReader.toTruststore(effectiveKeyAlias, trustCertificates);
             effectiveKeystore = PemKeyReader.toKeystore(
@@ -514,14 +514,6 @@ public class SettingsBasedSSLConfigurator {
                 return null;
             } else {
                 return this.effectiveTruststoreAliases.toArray(new String[this.effectiveTruststoreAliases.size()]);
-            }
-        }
-
-        public String[] getEffectiveKeyAliasesArray() {
-            if (this.effectiveKeyAlias == null) {
-                return null;
-            } else {
-                return new String[] { this.effectiveKeyAlias };
             }
         }
 

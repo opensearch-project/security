@@ -30,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Randomness;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.configuration.TokenListener;
@@ -41,7 +42,7 @@ import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_
 
 public class ApiTokenRepository {
     public static final String TOKEN_PREFIX = "os_";
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final SecureRandom SECURE_RANDOM = Randomness.createSecure();
 
     private final ApiTokenIndexHandler apiTokenIndexHandler;
     private final List<TokenListener> tokenListener = new ArrayList<>();

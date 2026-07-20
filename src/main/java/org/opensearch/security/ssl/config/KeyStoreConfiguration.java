@@ -29,12 +29,21 @@ import com.google.common.collect.ImmutableList;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.security.support.PemKeyReader;
 
 public interface KeyStoreConfiguration {
 
     List<Path> files();
 
     List<Certificate> loadCertificates();
+
+    /**
+     * @return true when the key material is held in a PKCS#11 token. Such keys are non-exportable, so the
+     * TLS engine must delegate signing to the token's provider (SunPKCS11) rather than BouncyCastle FIPS.
+     */
+    default boolean isPkcs11() {
+        return false;
+    }
 
     default KeyManagerFactory createKeyManagerFactory(boolean validateCertificates) {
         final var keyStore = createKeyStore();
@@ -119,17 +128,24 @@ public interface KeyStoreConfiguration {
                 }
                 final var list = listBuilder.build();
                 if (list.isEmpty()) {
-                    throw new OpenSearchException("The file " + path + " does not contain any certificates");
+                    throw new OpenSearchException(
+                        "The keystore " + (path != null ? path : "(PKCS#11 token)") + " does not contain any certificates"
+                    );
                 }
                 return listBuilder.build();
             } catch (GeneralSecurityException e) {
-                throw new OpenSearchException("Couldn't load certificates from file " + path, e);
+                throw new OpenSearchException("Couldn't load certificates from " + (path != null ? path : "PKCS#11 token"), e);
             }
         }
 
         @Override
+        public boolean isPkcs11() {
+            return PemKeyReader.PKCS11.equalsIgnoreCase(type);
+        }
+
+        @Override
         public List<Path> files() {
-            return List.of(path);
+            return path != null ? List.of(path) : List.of();
         }
 
         @Override

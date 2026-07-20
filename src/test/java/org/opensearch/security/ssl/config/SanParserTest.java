@@ -30,10 +30,10 @@ import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -63,7 +63,7 @@ public class SanParserTest {
 
     @Test
     public void badIpSan_fipsMode_throwsRuntimeException() throws Exception {
-        Assume.assumeTrue(CryptoServicesRegistrar.isInApprovedOnlyMode());
+        Assume.assumeTrue(FipsMode.isEnabled());
         X509Certificate x509 = buildCertWithBadIpSan();
         RuntimeException ex = assertThrows(RuntimeException.class, () -> SanParser.parse(x509));
         assertThat(ex.getCause(), instanceOf(UnknownHostException.class));
@@ -71,7 +71,7 @@ public class SanParserTest {
 
     @Test
     public void badIpSan_nonFipsMode_returnsEmpty() throws Exception {
-        Assume.assumeFalse(CryptoServicesRegistrar.isInApprovedOnlyMode());
+        Assume.assumeFalse(FipsMode.isEnabled());
         assertThat(SanParser.parse(buildCertWithBadIpSan()), is(""));
     }
 
@@ -80,7 +80,7 @@ public class SanParserTest {
     /** Builds a self-signed cert with a 3-byte iPAddress SAN (invalid: must be 4 or 16 bytes). */
     private static X509Certificate buildCertWithBadIpSan() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-        kpg.initialize(1024);
+        kpg.initialize(2048);
         KeyPair kp = kpg.generateKeyPair();
         X500Name dn = new X500Name("CN=test");
         Date now = new Date();

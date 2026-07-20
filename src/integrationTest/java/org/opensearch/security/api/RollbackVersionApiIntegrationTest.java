@@ -11,6 +11,9 @@
 
 package org.opensearch.security.api;
 
+import java.util.concurrent.TimeUnit;
+
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,6 +52,14 @@ public class RollbackVersionApiIntegrationTest extends AbstractApiIntegrationTes
     public void setupConfigVersionsIndex() throws Exception {
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             assertThat(client.createUser(USER.getName(), USER), anyOf(isOk(), isCreated()));
+            // Version save triggered by user creation is async; wait until at least 2 versions
+            // exist so that rollback tests can find a previous version to roll back to.
+            Awaitility.await("at least 2 config versions persisted").atMost(15, TimeUnit.SECONDS).until(() -> {
+                var resp = client.get(ENDPOINT_PREFIX + "/versions");
+                if (resp.getStatusCode() != 200) return false;
+                var versions = resp.bodyAsJsonNode().get("versions");
+                return versions != null && versions.isArray() && versions.size() >= 2;
+            });
         }
     }
 

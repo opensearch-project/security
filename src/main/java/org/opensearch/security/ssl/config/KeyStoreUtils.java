@@ -212,14 +212,18 @@ final class KeyStoreUtils {
     public static KeyStore loadKeyStore(final Path path, final String type, final char[] password) {
         try {
             final var keyStore = KeyStore.getInstance(type);
-            try (final var in = Files.newInputStream(path)) {
-                keyStore.load(in, password);
-                return keyStore;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            if ("PKCS11".equalsIgnoreCase(type)) {
+                keyStore.load(null, password);
+            } else {
+                try (final var in = Files.newInputStream(path)) {
+                    keyStore.load(in, password);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
+            return keyStore;
         } catch (Exception e) {
-            throw new OpenSearchException("Failed to load keystore from " + path, e);
+            throw new OpenSearchException("Failed to load keystore from " + (path != null ? path : "PKCS#11 token"), e);
         }
     }
 

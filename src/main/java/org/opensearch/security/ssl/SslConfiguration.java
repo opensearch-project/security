@@ -12,6 +12,8 @@
 package org.opensearch.security.ssl;
 
 import java.nio.file.Path;
+import java.security.Provider;
+import java.security.Security;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -90,7 +92,7 @@ public class SslConfiguration {
             return AccessController.doPrivilegedChecked(() -> {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
                 Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
-                return SslContextBuilder.forServer(kmFactory)
+                final SslContextBuilder builder = SslContextBuilder.forServer(kmFactory)
                     .sslProvider(sslParameters.provider())
                     .clientAuth(sslParameters.clientAuth())
                     .protocols(sslParameters.allowedProtocols().toArray(new String[0]))
@@ -115,12 +117,30 @@ public class SslConfiguration {
                             ApplicationProtocolNames.HTTP_1_1
                         )
                     )
-                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
-                    .build();
+                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns));
+                routePkcs11ThroughSunJsse(builder);
+                return builder.build();
             });
         } catch (SSLException e) {
             throw new OpenSearchException("Failed to build server SSL context", e);
         }
+    }
+
+    /**
+     * A PKCS#11-resident private key is non-exportable, so the BouncyCastle FIPS JSSE provider cannot sign
+     * with it (it fails with "no encoding for key" during the TLS CertificateVerify). SunJSSE instead
+     * delegates the signature operation to the key's own provider (SunPKCS11), letting the token perform it.
+     * This only affects the TLS engine's handshake signing; the JDK {@link io.netty.handler.ssl.SslProvider} is unchanged.
+     */
+    private void routePkcs11ThroughSunJsse(final SslContextBuilder builder) {
+        if (!keyStoreConfiguration.isPkcs11()) {
+            return;
+        }
+        final Provider sunJSSE = Security.getProvider("SunJSSE");
+        if (sunJSSE == null) {
+            throw new OpenSearchException("SunJSSE provider not available; required for PKCS#11 key store support");
+        }
+        builder.sslContextProvider(sunJSSE);
     }
 
     SslContext buildClientSslContext(final boolean validateCertificates) {
@@ -128,7 +148,7 @@ public class SslConfiguration {
             return AccessController.doPrivilegedChecked(() -> {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
                 Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
-                return SslContextBuilder.forClient()
+                final SslContextBuilder builder = SslContextBuilder.forClient()
                     .sslProvider(sslParameters.provider())
                     .protocols(sslParameters.allowedProtocols())
                     .ciphers(sslParameters.allowedCiphers())
@@ -138,8 +158,9 @@ public class SslConfiguration {
                     .sslProvider(sslParameters.provider())
                     .keyManager(kmFactory)
                     .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
-                    .endpointIdentificationAlgorithm(null)
-                    .build();
+                    .endpointIdentificationAlgorithm(null);
+                routePkcs11ThroughSunJsse(builder);
+                return builder.build();
             });
         } catch (Exception e) {
             throw new OpenSearchException("Failed to build client SSL context", e);

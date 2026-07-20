@@ -15,10 +15,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpStatus;
+import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.RuleChain;
 
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -30,8 +34,7 @@ public class BCryptDefaultConfigHashingTests extends HashingTests {
 
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
-    @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+    private static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
         .anonymousAuth(false)
@@ -39,6 +42,14 @@ public class BCryptDefaultConfigHashingTests extends HashingTests {
             Map.of(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
         )
         .build();
+
+    @ClassRule
+    public static final RuleChain rules = RuleChain.outerRule(new ExternalResource() {
+        @Override
+        protected void before() {
+            Assume.assumeFalse("Skipping BCrypt hashing tests: BCrypt is not FIPS-compliant", FipsMode.isEnabled());
+        }
+    }).around(cluster);
 
     @Test
     public void shouldAuthenticateWithCorrectPassword() {

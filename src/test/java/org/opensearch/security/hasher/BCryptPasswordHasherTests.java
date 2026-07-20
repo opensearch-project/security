@@ -36,8 +36,8 @@ public class BCryptPasswordHasherTests extends AbstractPasswordHasherTests {
     @Test
     public void shouldBeBackwardsCompatible() {
         String legacyHash = "$2y$12$gdh2ecVBQmwpmcAeyReicuNtXyR6GMWSfXHxtcBBqFeFz2VQ8kDZe";
-        assertThat(passwordHasher.check(password.toCharArray(), legacyHash), is(true));
-        assertThat(passwordHasher.check(wrongPassword.toCharArray(), legacyHash), is(false));
+        assertThat(passwordHasher.check("testPassword".toCharArray(), legacyHash), is(true));
+        assertThat(passwordHasher.check("wrongTestPassword".toCharArray(), legacyHash), is(false));
     }
 
     @Test

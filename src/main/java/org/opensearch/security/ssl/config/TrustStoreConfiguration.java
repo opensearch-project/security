@@ -112,11 +112,13 @@ public interface TrustStoreConfiguration {
                 }
                 final var list = listBuilder.build();
                 if (list.isEmpty()) {
-                    throw new OpenSearchException("The file " + path + " does not contain any certificates");
+                    throw new OpenSearchException(
+                        "The truststore " + (path != null ? path : "(PKCS#11 token)") + " does not contain any certificates"
+                    );
                 }
                 return listBuilder.build();
             } catch (GeneralSecurityException e) {
-                throw new OpenSearchException("Couldn't load certificates from file " + path, e);
+                throw new OpenSearchException("Couldn't load certificates from " + (path != null ? path : "PKCS#11 token"), e);
             }
         }
 

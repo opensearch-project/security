@@ -345,10 +345,10 @@ public class SecurityRestFilterTests extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
 
-        String createUserBody = "{" + "\"password\": \"test-pass\"," + "\"backend_roles\": []" + "}";
+        String createUserBody = "{" + "\"password\": \"test-pass-1234x\"," + "\"backend_roles\": []" + "}";
 
         response = rh.executePutRequest("_plugins/_security/api/internalusers/test_user", createUserBody, adminCredsHeader);
-        Header testUserHeader = encodeBasicHeader("test_user", "test-pass");
+        Header testUserHeader = encodeBasicHeader("test_user", "test-pass-1234x");
         rh.sendAdminCertificate = false;
 
         // test_user has no permissions to GET /_cluster/health response accessAllowed:false

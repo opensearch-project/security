@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -60,6 +61,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 import org.bouncycastle.util.encoders.Hex;
 
 import org.opensearch.OpenSearchException;
@@ -220,6 +222,7 @@ import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.state.SecurityMetadata;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.GuardedSearchOperationWrapper;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.ModuleInfo;
@@ -362,19 +365,51 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return settings.getAsBoolean(SECURITY_SSL_CERTIFICATES_HOT_RELOAD_ENABLED, false);
     }
 
-    static void validateFipsMode(final String fipsModeEnvValue, final Settings settings) {
-        if ("true".equalsIgnoreCase(fipsModeEnvValue)) {
+    static void validateFipsMode(final Settings settings) {
+        validateFipsMode(settings, FipsMode.isEnabled(), CryptoServicesRegistrar::isInApprovedOnlyMode);
+    }
+
+    static void validateFipsMode(final Settings settings, final boolean isFipsMode, final BooleanSupplier isInApprovedOnlyMode) {
+        if (isFipsMode) {
+            List<String> violations = new ArrayList<>();
+
+            if (!isInApprovedOnlyMode.getAsBoolean()) {
+                violations.add(
+                    "BCFIPS security provider is not running in FIPS approved-only mode. Ensure cluster is starting with '-Dorg.bouncycastle.fips.approved_only=true'"
+                );
+            }
+
             String hashingAlgorithm = settings.get(
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
                 ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT
             );
             if (!ConfigConstants.PBKDF2.equalsIgnoreCase(hashingAlgorithm)) {
-                throw new IllegalStateException(
-                    "FIPS mode is enabled (OPENSEARCH_FIPS_MODE=true) but password hashing algorithm is set to '"
+                violations.add(
+                    "Password hashing algorithm is set to '"
                         + hashingAlgorithm
                         + "'. Only PBKDF2 is allowed in FIPS mode. Set '"
                         + ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM
                         + "' to 'pbkdf2'. Note: changing the hashing algorithm requires all existing passwords to be rehashed."
+                );
+            }
+
+            // A configured minimum below that floor would let the API accept passwords the hasher then refuses at runtime.
+            final int minPasswordLength = settings.getAsInt(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, -1);
+            if (minPasswordLength >= 0 && minPasswordLength < PasswordValidator.FIPS_MIN_PASSWORD_LENGTH) {
+                violations.add(
+                    "Password minimum length '%s' is set to %d, but FIPS mode requires at least %d characters because shorter passwords cannot be hashed with PBKDF2."
+                        .formatted(
+                            ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH,
+                            minPasswordLength,
+                            PasswordValidator.FIPS_MIN_PASSWORD_LENGTH
+                        )
+                );
+            }
+
+            if (!violations.isEmpty()) {
+                throw new IllegalStateException(
+                    "FIPS mode is enabled (OPENSEARCH_FIPS_MODE=true) but the following configuration issues were found:\n- "
+                        + String.join("\n- ", violations)
                 );
             }
         }
@@ -512,7 +547,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
         }
 
-        validateFipsMode(System.getenv("OPENSEARCH_FIPS_MODE"), settings);
+        validateFipsMode(settings);
 
         if (!client && !settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false)) {
             // check for demo certificates
@@ -1258,7 +1293,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             threadPool.getThreadContext()
         );
         this.roleMapper = roleMapper;
-        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper);
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper, this.configPath);
         apiTokenRepository = new ApiTokenRepository(localClient, clusterService);
 
         PrivilegesConfiguration privilegesConfiguration = new PrivilegesConfiguration(
@@ -1452,6 +1487,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode()) {
             builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
             builder.put(NetworkModule.HTTP_TYPE_KEY, "org.opensearch.security.http.SecurityHttpServerTransport");
+            if (FipsMode.isEnabled() && !settings.hasValue(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH)) {
+                builder.put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, PasswordValidator.FIPS_MIN_PASSWORD_LENGTH);
+            }
         }
         return builder.build();
     }

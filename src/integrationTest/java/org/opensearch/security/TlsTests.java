@@ -24,6 +24,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuditFilters;
@@ -37,6 +38,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.opensearch.security.auditlog.AuditLog.Origin.REST;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.auditPredicate;
@@ -47,14 +49,21 @@ public class TlsTests {
 
     private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
 
-    public static final String SUPPORTED_CIPHER_SUIT = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+    public static final String SUPPORTED_CIPHER_SUIT = "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384";
     public static final String NOT_SUPPORTED_CIPHER_SUITE = "TLS_RSA_WITH_AES_128_CBC_SHA";
     public static final String AUTH_INFO_ENDPOINT = "/_opendistro/_security/authinfo?pretty";
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .anonymousAuth(false)
-        .nodeSettings(Map.of(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of(SUPPORTED_CIPHER_SUIT)))
+        .nodeSettings(
+            Map.of(
+                SECURITY_SSL_HTTP_ENABLED_CIPHERS,
+                List.of(SUPPORTED_CIPHER_SUIT),
+                SECURITY_SSL_HTTP_ENABLED_PROTOCOLS,
+                List.of("TLSv1.2")
+            )
+        )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(USER_ADMIN)
         .audit(
@@ -95,7 +104,11 @@ public class TlsTests {
         try (CloseableHttpClient client = cluster.getClosableHttpClient(new String[] { NOT_SUPPORTED_CIPHER_SUITE })) {
             HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
 
-            assertThatThrownBy(() -> client.execute(httpGet), instanceOf(SSLHandshakeException.class));
+            if (FipsMode.isEnabled()) {
+                assertThatThrownBy(() -> client.execute(httpGet), instanceOf(IllegalStateException.class));
+            } else {
+                assertThatThrownBy(() -> client.execute(httpGet), instanceOf(SSLHandshakeException.class));
+            }
         }
     }
 }

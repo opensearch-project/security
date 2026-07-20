@@ -35,6 +35,7 @@ import org.apache.hc.core5.http.HttpVersion;
 import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -52,6 +53,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
@@ -282,6 +284,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testDefaultConfig() throws Exception {
+        Assume.assumeFalse("Shipped default config is not FIPS-compatible", FipsMode.isEnabled());
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();

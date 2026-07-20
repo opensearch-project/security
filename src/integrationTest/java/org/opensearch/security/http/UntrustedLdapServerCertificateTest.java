@@ -16,6 +16,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
@@ -94,7 +95,11 @@ public class UntrustedLdapServerCertificateTest {
 
             response.assertStatusCode(401);
         }
-        logsRule.assertThatStackTraceContain("javax.net.ssl.SSLHandshakeException");
+        if (FipsMode.isEnabled()) {
+            logsRule.assertThatStackTraceContain("org.bouncycastle.tls.TlsFatalAlert");
+        } else {
+            logsRule.assertThatStackTraceContain("javax.net.ssl.SSLHandshakeException");
+        }
     }
 
 }
