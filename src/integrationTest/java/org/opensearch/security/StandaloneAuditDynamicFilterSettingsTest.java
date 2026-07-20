@@ -43,7 +43,10 @@ public class StandaloneAuditDynamicFilterSettingsTest {
                 TestRuleAuditLogSink.class.getName(),
                 // Start with body enabled (default)
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
-                true
+                true,
+                // Enable client cert auth so mTLS tests can present a DN
+                "plugins.security.ssl.http.clientauth_mode",
+                "OPTIONAL"
             )
         )
         .sslOnly(true)
@@ -101,19 +104,44 @@ public class StandaloneAuditDynamicFilterSettingsTest {
 
     @Test
     public void shouldIgnoreUsersAddedAtRuntime() {
-        try (TestRestClient client = cluster.getRestClient()) {
-            // Add a wildcard ignore pattern at runtime
-            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_users\": [\"*\"]}}");
-
-            // This should be suppressed (wildcard matches all identified users)
-            // But since SSL-only with no client cert = null user, it will still log
-            // So we verify by checking that the setting was accepted (no error)
-            TestRestClient.HttpResponse response = client.get("_cluster/settings");
-            response.assertStatusCode(200);
+        // Step 1: Verify events WITH cert DN ARE produced before ignore
+        try (TestRestClient client = cluster.getRestClient(cluster.getTestCertificates().getAdminCertificateData())) {
+            client.get("ignore-user-before/_search");
         }
 
+        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            return msg.getEffectiveUser() != null && msg.getEffectiveUser().contains("CN=kirk");
+        });
+
+        // Step 2: Dynamically add the cert DN pattern to ignore_users
+        try (TestRestClient client = cluster.getRestClient(cluster.getTestCertificates().getAdminCertificateData())) {
+            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_users\": [\"*kirk*\"]}}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+
+        // Step 3: Issue a request with the same cert — should be suppressed
+        try (TestRestClient client = cluster.getRestClient(cluster.getTestCertificates().getAdminCertificateData())) {
+            client.get("ignore-user-after/_search");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> {
+            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            if (msg.getPrivilege() == null || !msg.getPrivilege().contains("indices:data/read/search")) return false;
+            Map<String, Object> fields = msg.getAsMap();
+            Object indices = fields.get(AuditMessage.INDICES);
+            if (indices == null) return false;
+            String[] indexArr = (String[]) indices;
+            for (String idx : indexArr) {
+                if ("ignore-user-after".equals(idx)) return true;
+            }
+            return false;
+        });
+
         // Reset
-        try (TestRestClient client = cluster.getRestClient()) {
+        try (TestRestClient client = cluster.getRestClient(cluster.getTestCertificates().getAdminCertificateData())) {
             client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.config.ignore_users\": []}}");
         }
     }

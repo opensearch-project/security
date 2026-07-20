@@ -158,12 +158,16 @@ public class AuditActionFilter implements ActionFilter {
             return;
         }
 
+        // Short-circuit if REQUEST_AUDIT is disabled — avoid building AuditMessage,
+        // resolving indices, and extracting body when the event would be discarded downstream.
+        // Mirrors AuditTransportInterceptor's behavior and covers both bulk and non-bulk paths.
+        if (filter.getDisabledCategories().contains(AuditCategory.REQUEST_AUDIT)) {
+            chain.proceed(task, action, request, listener);
+            return;
+        }
+
         // Bulk request handling — log each sub-operation separately.
-        // Short-circuit if REQUEST_AUDIT is disabled to avoid allocating per-item messages
-        // that would be immediately discarded downstream.
-        if (filter.shouldResolveBulkRequests()
-            && !filter.getDisabledCategories().contains(AuditCategory.REQUEST_AUDIT)
-            && (request instanceof BulkShardRequest || request instanceof BulkRequest)) {
+        if (filter.shouldResolveBulkRequests() && (request instanceof BulkShardRequest || request instanceof BulkRequest)) {
             try {
                 TransportAddress remoteAddress = request.remoteAddress();
                 if (remoteAddress == null) {
@@ -234,6 +238,19 @@ public class AuditActionFilter implements ActionFilter {
                         // Index resolution can fail if cluster state isn't ready — log raw indices only
                     }
                 }
+            } else if (request instanceof BulkRequest) {
+                // BulkRequest doesn't implement IndicesRequest, but we can still collect
+                // the distinct target indices from its sub-items for visibility
+                BulkRequest bulkRequest = (BulkRequest) request;
+                String[] distinctIndices = bulkRequest.requests()
+                    .stream()
+                    .map(r -> r.index())
+                    .filter(idx -> idx != null)
+                    .distinct()
+                    .toArray(String[]::new);
+                if (distinctIndices.length > 0) {
+                    msg.addIndices(distinctIndices);
+                }
             }
 
             // Task ID
@@ -279,6 +296,11 @@ public class AuditActionFilter implements ActionFilter {
         Map<String, List<String>> filteredHeaders,
         ShardId shardId
     ) {
+        // Skip items targeting the audit index (per-item self-loop guard for bulk)
+        if (isAuditIndex(innerRequest.index())) {
+            return;
+        }
+
         AuditMessage msg = new AuditMessage(AuditCategory.REQUEST_AUDIT, clusterService, Origin.REST, Origin.TRANSPORT);
 
         msg.addRemoteAddress(remoteAddress);
