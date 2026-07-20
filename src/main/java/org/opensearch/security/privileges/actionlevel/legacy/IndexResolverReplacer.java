@@ -39,6 +39,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -312,15 +313,9 @@ public class IndexResolverReplacer {
                 final Set<String> dateResolvedLocalRequestedPatterns = localRequestedPatterns.stream()
                     .map(resolver::resolveDateMathExpression)
                     .collect(Collectors.toSet());
-                final WildcardMatcher dateResolvedMatcher = WildcardMatcher.from(dateResolvedLocalRequestedPatterns);
                 // fill matchingAliases
-                final Map<String, IndexAbstraction> lookup = state.metadata().getIndicesLookup();
-                matchingAliases = lookup.entrySet()
-                    .stream()
-                    .filter(e -> e.getValue().getType() == ALIAS)
-                    .map(Map.Entry::getKey)
-                    .filter(dateResolvedMatcher)
-                    .collect(Collectors.toSet());
+                final SortedMap<String, IndexAbstraction> lookup = state.metadata().getIndicesLookup();
+                matchingAliases = resolveMatchingAliases(lookup, dateResolvedLocalRequestedPatterns);
 
                 final boolean isDebugEnabled = log.isDebugEnabled();
                 try {
@@ -426,6 +421,114 @@ public class IndexResolverReplacer {
 
             return resolved;
         }
+    }
+
+    /**
+     * Resolves the set of aliases matching the given (already date-math-resolved) patterns.
+     *
+     * The indices lookup ({@link org.opensearch.cluster.metadata.Metadata#getIndicesLookup()}) is a natural-ordering
+     * {@code TreeMap}. For exact names and simple prefix patterns ({@code "foo*"}) we can answer from a point lookup or a
+     * bounded {@code subMap} range instead of streaming and wildcard-matching the entire lookup (which can hold hundreds
+     * of thousands of abstractions). Any pattern that is not exact or a simple prefix (question marks, embedded stars,
+     * regex, etc.) forces the original full-scan path, so the result set is always identical to the legacy behavior.
+     *
+     * @param lookup the cluster indices lookup, sorted with natural String ordering
+     * @param dateResolvedLocalRequestedPatterns the requested patterns after date-math resolution
+     * @return the names of all aliases matching any of the patterns
+     */
+    static Set<String> resolveMatchingAliases(SortedMap<String, IndexAbstraction> lookup, Set<String> dateResolvedLocalRequestedPatterns) {
+        boolean canUseBoundedLookup = true;
+        for (String pattern : dateResolvedLocalRequestedPatterns) {
+            if (WildcardMatcher.isExact(pattern) == false && isSimplePrefixPattern(pattern) == false) {
+                canUseBoundedLookup = false;
+                break;
+            }
+        }
+
+        if (canUseBoundedLookup) {
+            final Set<String> matchingAliases = new HashSet<>();
+            for (String pattern : dateResolvedLocalRequestedPatterns) {
+                if (WildcardMatcher.isExact(pattern)) {
+                    // Exact name: a single point lookup, keep it only if it is actually an alias. A null pattern is
+                    // treated as WildcardMatcher.NONE by the full-scan path (matches nothing) and would NPE on the
+                    // natural-ordering TreeMap#get, so it is skipped to preserve identical semantics.
+                    if (pattern == null) {
+                        continue;
+                    }
+                    final IndexAbstraction indexAbstraction = lookup.get(pattern);
+                    if (indexAbstraction != null && indexAbstraction.getType() == ALIAS) {
+                        matchingAliases.add(pattern);
+                    }
+                } else {
+                    // Simple prefix "p*": PrefixMatcher matches via literal String.startsWith(prefix), so the matching
+                    // keys are exactly the range [prefix, prefixUpperBound). Note trailing "*" means zero-or-more, so
+                    // the prefix itself (e.g. "foo" for "foo*") is included because it is the inclusive lower bound.
+                    final String prefix = pattern.substring(0, pattern.length() - 1);
+                    final SortedMap<String, IndexAbstraction> range;
+                    final String upperBound = incrementForUpperBound(prefix);
+                    if (upperBound == null) {
+                        // prefix consists entirely of Character.MAX_VALUE; there is no strictly-greater bound, so every
+                        // key >= prefix is a candidate.
+                        range = lookup.tailMap(prefix);
+                    } else {
+                        range = lookup.subMap(prefix, upperBound);
+                    }
+                    for (Map.Entry<String, IndexAbstraction> entry : range.entrySet()) {
+                        if (entry.getValue().getType() == ALIAS) {
+                            matchingAliases.add(entry.getKey());
+                        }
+                    }
+                }
+            }
+            return matchingAliases;
+        }
+
+        // Fallback: complex patterns (embedded/multiple stars, "?", regex) require the original full scan.
+        final WildcardMatcher dateResolvedMatcher = WildcardMatcher.from(dateResolvedLocalRequestedPatterns);
+        return lookup.entrySet()
+            .stream()
+            .filter(e -> e.getValue().getType() == ALIAS)
+            .map(Map.Entry::getKey)
+            .filter(dateResolvedMatcher)
+            .collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns true only for a pattern of the form {@code "prefix*"} where the trailing {@code *} is the ONLY special
+     * character. This mirrors {@link WildcardMatcher#from(String)} routing such patterns to a literal-{@code startsWith}
+     * {@code PrefixMatcher}: no {@code ?}, no additional {@code *}, and not a {@code /regex/}. Any other pattern must go
+     * through the full-scan fallback. A bare {@code "*"} is excluded (length must be &gt; 1), so the prefix is never empty.
+     */
+    static boolean isSimplePrefixPattern(String pattern) {
+        if (pattern == null || pattern.length() <= 1) {
+            return false;
+        }
+        if (pattern.startsWith("/") && pattern.endsWith("/")) {
+            return false;
+        }
+        if (pattern.indexOf('?') != -1) {
+            return false;
+        }
+        // The single '*' must be the final character (and thus the only '*').
+        return pattern.indexOf('*') == pattern.length() - 1;
+    }
+
+    /**
+     * Computes the exclusive upper bound for a {@code subMap} range covering all strings that start with {@code prefix},
+     * by incrementing the last character that is not {@link Character#MAX_VALUE} and truncating after it. Returns
+     * {@code null} when the prefix is composed entirely of {@code Character.MAX_VALUE} code units, in which case no
+     * strictly-greater bound exists and callers must use {@code tailMap(prefix)} instead. {@code prefix} is guaranteed
+     * non-empty by {@link #isSimplePrefixPattern(String)}.
+     */
+    static String incrementForUpperBound(String prefix) {
+        final char[] chars = prefix.toCharArray();
+        for (int i = chars.length - 1; i >= 0; i--) {
+            if (chars[i] != Character.MAX_VALUE) {
+                chars[i]++;
+                return new String(chars, 0, i + 1);
+            }
+        }
+        return null;
     }
 
     // dnfof
