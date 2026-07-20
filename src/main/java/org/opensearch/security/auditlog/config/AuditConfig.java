@@ -149,11 +149,11 @@ public class AuditConfig {
         @JsonProperty("ignore_headers")
         private final Set<String> ignoredCustomHeaders;
         @JsonProperty("ignore_url_params")
-        private Set<String> ignoredUrlParams;
+        private volatile Set<String> ignoredUrlParams;
         private volatile WildcardMatcher ignoredAuditUsersMatcher;
         private volatile WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
-        private WildcardMatcher ignoredUrlParamsMatcher;
+        private volatile WildcardMatcher ignoredUrlParamsMatcher;
         @JsonProperty("disabled_categories")
         private volatile Set<AuditCategory> disabledCategories;
         @Deprecated
@@ -574,13 +574,17 @@ public class AuditConfig {
         }
 
         public void setIgnoredAuditUsers(List<String> users) {
-            this.ignoredAuditUsers = ImmutableSet.copyOf(users);
-            this.ignoredAuditUsersMatcher = WildcardMatcher.from(this.ignoredAuditUsers);
+            Set<String> newSet = ImmutableSet.copyOf(users);
+            WildcardMatcher newMatcher = WildcardMatcher.from(newSet);
+            this.ignoredAuditUsers = newSet;
+            this.ignoredAuditUsersMatcher = newMatcher;
         }
 
         public void setIgnoredAuditRequests(List<String> requests) {
-            this.ignoredAuditRequests = ImmutableSet.copyOf(requests);
-            this.ignoredAuditRequestsMatcher = WildcardMatcher.from(this.ignoredAuditRequests);
+            Set<String> newSet = ImmutableSet.copyOf(requests);
+            WildcardMatcher newMatcher = WildcardMatcher.from(newSet);
+            this.ignoredAuditRequests = newSet;
+            this.ignoredAuditRequestsMatcher = newMatcher;
         }
 
         public void setDisabledCategories(List<String> categories) {
