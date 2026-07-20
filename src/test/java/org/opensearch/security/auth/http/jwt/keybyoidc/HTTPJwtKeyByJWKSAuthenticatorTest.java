@@ -15,20 +15,20 @@ import java.util.HashMap;
 import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.http.jwt.keybyjwks.HTTPJwtKeyByJWKSAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.Logger;
+import org.mockito.ArgumentCaptor;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
