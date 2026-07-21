@@ -49,6 +49,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.grantedPrivilege;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.privilegePredicateRESTLayer;
 import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuthenticatedPredicate;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class WhoAmITests {
@@ -202,6 +203,8 @@ public class WhoAmITests {
                 transportSet.add(auditMessage);
             }
         }
+        assertFalse(restSet.isEmpty());
+        assertFalse(transportSet.isEmpty());
         // We pass 1 message from each layer to check for similarity
         checkForStructuralSimilarity(restSet.get(0), transportSet.get(0));
     }
