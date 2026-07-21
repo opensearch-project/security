@@ -1222,7 +1222,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     cs,
                     threadPool,
                     ((AbstractAuditLog) auditLog).getFilter(),
-                    new IndexNameExpressionResolver(threadPool.getThreadContext()),
                     getAuditIndexPrefix(pluginSettings)
                 )
             );

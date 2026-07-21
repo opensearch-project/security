@@ -107,7 +107,7 @@ public class AuditTransportInterceptor implements TransportInterceptor {
                         String principal = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
                         User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                         String effectiveUser = user != null ? user.getName() : principal;
-                        if (effectiveUser == null || !filter.isAuditDisabled(effectiveUser)) {
+                        if (effectiveUser == null || filter.isAuditEnabled(effectiveUser)) {
                             logTransportEvent(action, request, task);
                         }
                     }

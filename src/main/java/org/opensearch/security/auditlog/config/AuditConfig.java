@@ -459,11 +459,20 @@ public class AuditConfig {
 
         /**
          * Check if user is excluded from audit.
-         * @param user
+         * @param user effective user name (from FGAC user or SSL principal)
          * @return true if user is excluded from audit logging
          */
         public boolean isAuditDisabled(String user) {
             return ignoredAuditUsersMatcher.test(user);
+        }
+
+        /**
+         * Check if user is included in audit.
+         * @param user effective user name (from FGAC user or SSL principal)
+         * @return true if user is included in audit logging
+         */
+        public boolean isAuditEnabled(String user) {
+            return !ignoredAuditUsersMatcher.test(user);
         }
 
         @VisibleForTesting

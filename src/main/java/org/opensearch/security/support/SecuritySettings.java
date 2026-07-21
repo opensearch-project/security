@@ -67,7 +67,8 @@ public class SecuritySettings {
         ConfigConstants.SECURITY_AUDIT_ENABLED,
         true,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     // Dynamic audit filter settings
@@ -77,42 +78,48 @@ public class SecuritySettings {
         AUDIT_CONFIG_PREFIX + "log_request_body",
         true,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> AUDIT_RESOLVE_BULK_REQUESTS = Setting.boolSetting(
         AUDIT_CONFIG_PREFIX + "resolve_bulk_requests",
         false,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> AUDIT_RESOLVE_INDICES = Setting.boolSetting(
         AUDIT_CONFIG_PREFIX + "resolve_indices",
         true,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> AUDIT_EXCLUDE_SENSITIVE_HEADERS = Setting.boolSetting(
         AUDIT_CONFIG_PREFIX + "exclude_sensitive_headers",
         true,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> AUDIT_ENABLE_REST = Setting.boolSetting(
         AUDIT_CONFIG_PREFIX + "enable_rest",
         true,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> AUDIT_ENABLE_TRANSPORT = Setting.boolSetting(
         AUDIT_CONFIG_PREFIX + "enable_transport",
         true,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> AUDIT_DISABLED_CATEGORIES = Setting.listSetting(
@@ -120,7 +127,8 @@ public class SecuritySettings {
         Collections.emptyList(),
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> AUDIT_DISABLED_REST_CATEGORIES = Setting.listSetting(
@@ -128,7 +136,8 @@ public class SecuritySettings {
         List.of("AUTHENTICATED", "GRANTED_PRIVILEGES"),
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> AUDIT_DISABLED_TRANSPORT_CATEGORIES = Setting.listSetting(
@@ -136,7 +145,8 @@ public class SecuritySettings {
         List.of("AUTHENTICATED", "GRANTED_PRIVILEGES"),
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> AUDIT_IGNORE_USERS = Setting.listSetting(
@@ -144,7 +154,8 @@ public class SecuritySettings {
         List.of("kibanaserver"),
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> AUDIT_IGNORE_REQUESTS = Setting.listSetting(
@@ -152,7 +163,8 @@ public class SecuritySettings {
         Collections.emptyList(),
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> AUDIT_IGNORE_HEADERS = Setting.listSetting(
@@ -160,7 +172,8 @@ public class SecuritySettings {
         Collections.emptyList(),
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     // Dynamic compliance settings
@@ -170,7 +183,8 @@ public class SecuritySettings {
         COMPLIANCE_PREFIX + "enabled",
         true,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> COMPLIANCE_WRITE_WATCHED_INDICES = Setting.listSetting(
@@ -178,42 +192,48 @@ public class SecuritySettings {
         Collections.emptyList(),
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> COMPLIANCE_WRITE_METADATA_ONLY = Setting.boolSetting(
         COMPLIANCE_PREFIX + "write_metadata_only",
         false,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> COMPLIANCE_WRITE_LOG_DIFFS = Setting.boolSetting(
         COMPLIANCE_PREFIX + "write_log_diffs",
         false,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> COMPLIANCE_EXTERNAL_CONFIG_ENABLED = Setting.boolSetting(
         COMPLIANCE_PREFIX + "external_config",
         false,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> COMPLIANCE_INTERNAL_CONFIG_ENABLED = Setting.boolSetting(
         COMPLIANCE_PREFIX + "internal_config",
         false,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<Boolean> COMPLIANCE_READ_METADATA_ONLY = Setting.boolSetting(
         COMPLIANCE_PREFIX + "read_metadata_only",
         false,
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> COMPLIANCE_READ_WATCHED_FIELDS = Setting.listSetting(
@@ -221,7 +241,8 @@ public class SecuritySettings {
         Collections.emptyList(),
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> COMPLIANCE_READ_IGNORE_USERS = Setting.listSetting(
@@ -229,7 +250,8 @@ public class SecuritySettings {
         AuditConfig.DEFAULT_IGNORED_USERS,
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 
     public static final Setting<List<String>> COMPLIANCE_WRITE_IGNORE_USERS = Setting.listSetting(
@@ -237,6 +259,7 @@ public class SecuritySettings {
         AuditConfig.DEFAULT_IGNORED_USERS,
         Function.identity(),
         Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
     );
 }
