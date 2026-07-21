@@ -466,6 +466,15 @@ public class AuditConfig {
             return ignoredAuditUsersMatcher.test(user);
         }
 
+        /**
+         * Check if user is included in audit.
+         * @param user
+         * @return true if user is included in audit logging
+         */
+        public boolean isAuditEnabled(String user) {
+            return !ignoredAuditUsersMatcher.test(user);
+        }
+
         @VisibleForTesting
         WildcardMatcher getIgnoredAuditRequestsMatcher() {
             return ignoredAuditRequestsMatcher;

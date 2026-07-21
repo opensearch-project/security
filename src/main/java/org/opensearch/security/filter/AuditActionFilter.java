@@ -25,9 +25,9 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.support.ActionRequestMetadata;
-import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.core.action.ActionListener;
@@ -63,7 +63,6 @@ public class AuditActionFilter implements ActionFilter {
     private final AuditLog auditLog;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
-    private final IndexNameExpressionResolver resolver;
     private final AuditConfig.Filter filter;
     private final String auditIndexPrefix;
 
@@ -72,14 +71,12 @@ public class AuditActionFilter implements ActionFilter {
         ClusterService clusterService,
         ThreadPool threadPool,
         AuditConfig.Filter filter,
-        IndexNameExpressionResolver resolver,
         String auditIndexPrefix
     ) {
         this.auditLog = auditLog;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.filter = filter;
-        this.resolver = resolver;
         this.auditIndexPrefix = auditIndexPrefix;
 
         if (auditIndexPrefix == null || auditIndexPrefix.isEmpty()) {
@@ -226,17 +223,14 @@ public class AuditActionFilter implements ActionFilter {
                 String[] indices = ((IndicesRequest) request).indices();
                 msg.addIndices(indices);
 
-                // Resolve wildcards to actual index names
-                if (filter.shouldResolveIndices() && indices != null && indices.length > 0) {
-                    try {
-                        String[] resolved = resolver.concreteIndexNames(
-                            clusterService.state(),
-                            IndicesOptions.lenientExpandOpen(),
-                            indices
-                        );
-                        msg.addResolvedIndices(resolved);
-                    } catch (Exception e) {
-                        // Index resolution can fail if cluster state isn't ready — log raw indices only
+                // Resolve wildcards to actual index names using framework-resolved indices
+                if (filter.shouldResolveIndices()) {
+                    OptionallyResolvedIndices optionalResolved = actionRequestMetadata.resolvedIndices();
+                    if (optionalResolved instanceof ResolvedIndices resolvedIndices) {
+                        String[] resolved = resolvedIndices.local().namesOfIndices(clusterService.state()).toArray(String[]::new);
+                        if (resolved.length > 0) {
+                            msg.addResolvedIndices(resolved);
+                        }
                     }
                 }
             } else if (request instanceof BulkRequest) {

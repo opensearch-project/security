@@ -79,14 +79,7 @@ public class AuditActionFilterTest {
         when(clusterService.localNode()).thenReturn(node);
         when(clusterService.getClusterName()).thenReturn(new ClusterName("test-cluster"));
 
-        filter = new AuditActionFilter(
-            auditLog,
-            clusterService,
-            threadPool,
-            AuditConfig.Filter.DEFAULT,
-            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
-            "security-auditlog"
-        );
+        filter = new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT, "security-auditlog");
     }
 
     @SuppressWarnings("unchecked")
@@ -286,7 +279,6 @@ public class AuditActionFilterTest {
             clusterService,
             threadPool,
             AuditConfig.from(ignoreSettings).getFilter(),
-            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
             "security-auditlog"
         );
 
@@ -316,7 +308,6 @@ public class AuditActionFilterTest {
             clusterService,
             threadPool,
             AuditConfig.from(ignoreSettings).getFilter(),
-            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
             "security-auditlog"
         );
 
@@ -343,7 +334,6 @@ public class AuditActionFilterTest {
             clusterService,
             threadPool,
             AuditConfig.from(ignoreSettings).getFilter(),
-            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
             "security-auditlog"
         );
 
@@ -382,14 +372,7 @@ public class AuditActionFilterTest {
     @Test
     public void testNullPrefixDoesNotSuppressEvents() throws Exception {
         // Construct filter with null prefix — should still log events (guard disabled)
-        AuditActionFilter nullPrefixFilter = new AuditActionFilter(
-            auditLog,
-            clusterService,
-            threadPool,
-            AuditConfig.Filter.DEFAULT,
-            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
-            null
-        );
+        AuditActionFilter nullPrefixFilter = new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT, null);
 
         SearchRequest request = new SearchRequest("security-auditlog-2026.07.16");
         ActionFilterChain<SearchRequest, ActionResponse> chain = mock(ActionFilterChain.class);
@@ -406,14 +389,7 @@ public class AuditActionFilterTest {
     @Test
     public void testEmptyPrefixDoesNotSuppressEvents() throws Exception {
         // Construct filter with empty prefix — should still log events (guard disabled)
-        AuditActionFilter emptyPrefixFilter = new AuditActionFilter(
-            auditLog,
-            clusterService,
-            threadPool,
-            AuditConfig.Filter.DEFAULT,
-            new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
-            ""
-        );
+        AuditActionFilter emptyPrefixFilter = new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT, "");
 
         SearchRequest request = new SearchRequest("any-index");
         ActionFilterChain<SearchRequest, ActionResponse> chain = mock(ActionFilterChain.class);
@@ -438,14 +414,7 @@ public class AuditActionFilterTest {
         logger.setLevel(Level.WARN);
 
         try {
-            new AuditActionFilter(
-                auditLog,
-                clusterService,
-                threadPool,
-                AuditConfig.Filter.DEFAULT,
-                new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
-                null
-            );
+            new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT, null);
 
             boolean foundWarning = logCaptor.getAllValues()
                 .stream()
@@ -471,14 +440,7 @@ public class AuditActionFilterTest {
         logger.setLevel(Level.WARN);
 
         try {
-            new AuditActionFilter(
-                auditLog,
-                clusterService,
-                threadPool,
-                AuditConfig.Filter.DEFAULT,
-                new org.opensearch.cluster.metadata.IndexNameExpressionResolver(threadPool.getThreadContext()),
-                ""
-            );
+            new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.Filter.DEFAULT, "");
 
             boolean foundWarning = logCaptor.getAllValues()
                 .stream()
