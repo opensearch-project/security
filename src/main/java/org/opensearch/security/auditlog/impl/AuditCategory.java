@@ -33,7 +33,22 @@ public enum AuditCategory {
     COMPLIANCE_INTERNAL_CONFIG_WRITE,
     CLUSTER_SETTINGS_CHANGED,
     INDEX_SETTINGS_CHANGED,
-    API_TOKEN_WRITE;
+    API_TOKEN_WRITE,
+    REQUEST_AUDIT,
+    TRANSPORT_AUDIT;
+
+    /**
+     * Categories that require an authentication/authorization layer to produce events.
+     * These will never fire in SSL-only or disabled modes.
+     */
+    public static final Set<AuditCategory> AUTH_ONLY_CATEGORIES = ImmutableSet.of(
+        AUTHENTICATED,
+        FAILED_LOGIN,
+        GRANTED_PRIVILEGES,
+        MISSING_PRIVILEGES,
+        OPENDISTRO_SECURITY_INDEX_ATTEMPT,
+        API_TOKEN_WRITE
+    );
 
     public static Set<AuditCategory> parse(final Collection<String> categories) {
         if (categories.isEmpty()) return Collections.emptySet();

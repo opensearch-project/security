@@ -25,6 +25,7 @@ import com.google.common.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.logging.DeprecationLogger;
@@ -130,34 +131,35 @@ public class AuditConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
+        private static final Logger log = LogManager.getLogger(Filter.class);
         private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
 
-        private final boolean isRestApiAuditEnabled;
-        private final boolean isTransportApiAuditEnabled;
-        private final boolean resolveBulkRequests;
-        private final boolean logRequestBody;
-        private final boolean resolveIndices;
-        private final boolean excludeSensitiveHeaders;
+        private volatile boolean isRestApiAuditEnabled;
+        private volatile boolean isTransportApiAuditEnabled;
+        private volatile boolean resolveBulkRequests;
+        private volatile boolean logRequestBody;
+        private volatile boolean resolveIndices;
+        private volatile boolean excludeSensitiveHeaders;
         @JsonProperty("ignore_users")
-        private final Set<String> ignoredAuditUsers;
+        private volatile Set<String> ignoredAuditUsers;
         @JsonProperty("ignore_requests")
-        private final Set<String> ignoredAuditRequests;
+        private volatile Set<String> ignoredAuditRequests;
         @JsonProperty("ignore_headers")
         private final Set<String> ignoredCustomHeaders;
         @JsonProperty("ignore_url_params")
-        private Set<String> ignoredUrlParams;
-        private final WildcardMatcher ignoredAuditUsersMatcher;
-        private final WildcardMatcher ignoredAuditRequestsMatcher;
+        private volatile Set<String> ignoredUrlParams;
+        private volatile WildcardMatcher ignoredAuditUsersMatcher;
+        private volatile WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
-        private WildcardMatcher ignoredUrlParamsMatcher;
+        private volatile WildcardMatcher ignoredUrlParamsMatcher;
         @JsonProperty("disabled_categories")
-        private final Set<AuditCategory> disabledCategories;
+        private volatile Set<AuditCategory> disabledCategories;
         @Deprecated
-        private final Set<AuditCategory> disabledRestCategories;
+        private volatile Set<AuditCategory> disabledRestCategories;
         @Deprecated
-        private final Set<AuditCategory> disabledTransportCategories;
+        private volatile Set<AuditCategory> disabledTransportCategories;
 
         @VisibleForTesting
         Filter(
@@ -543,6 +545,58 @@ public class AuditConfig {
          */
         public Set<AuditCategory> getDisabledCategories() {
             return disabledCategories;
+        }
+
+        // Dynamic setters for cluster settings updates
+
+        public void setLogRequestBody(boolean logRequestBody) {
+            this.logRequestBody = logRequestBody;
+        }
+
+        public void setResolveBulkRequests(boolean resolveBulkRequests) {
+            this.resolveBulkRequests = resolveBulkRequests;
+        }
+
+        public void setResolveIndices(boolean resolveIndices) {
+            this.resolveIndices = resolveIndices;
+        }
+
+        public void setExcludeSensitiveHeaders(boolean excludeSensitiveHeaders) {
+            this.excludeSensitiveHeaders = excludeSensitiveHeaders;
+        }
+
+        public void setRestApiAuditEnabled(boolean enabled) {
+            this.isRestApiAuditEnabled = enabled;
+        }
+
+        public void setTransportApiAuditEnabled(boolean enabled) {
+            this.isTransportApiAuditEnabled = enabled;
+        }
+
+        public void setIgnoredAuditUsers(List<String> users) {
+            Set<String> newSet = ImmutableSet.copyOf(users);
+            WildcardMatcher newMatcher = WildcardMatcher.from(newSet);
+            this.ignoredAuditUsers = newSet;
+            this.ignoredAuditUsersMatcher = newMatcher;
+        }
+
+        public void setIgnoredAuditRequests(List<String> requests) {
+            Set<String> newSet = ImmutableSet.copyOf(requests);
+            WildcardMatcher newMatcher = WildcardMatcher.from(newSet);
+            this.ignoredAuditRequests = newSet;
+            this.ignoredAuditRequestsMatcher = newMatcher;
+        }
+
+        public void setDisabledCategories(List<String> categories) {
+            this.disabledCategories = AuditCategory.parse(categories);
+        }
+
+        public void setDisabledRestCategories(List<String> categories) {
+            this.disabledRestCategories = AuditCategory.parse(categories);
+        }
+
+        public void setDisabledTransportCategories(List<String> categories) {
+            this.disabledTransportCategories = AuditCategory.parse(categories);
         }
 
         public void log(Logger logger) {

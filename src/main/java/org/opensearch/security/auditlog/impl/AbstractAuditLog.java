@@ -149,6 +149,21 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.auditConfigFilter.log(log);
     }
 
+    /**
+     * Returns the live audit filter configuration that controls event suppression,
+     * request body logging, index resolution, and other audit behavior.
+     *
+     * <p>This filter's fields are volatile and updated dynamically via cluster settings
+     * consumers, so callers always read the most recent configuration without restart.
+     * Used by {@code AuditActionFilter} and {@code AuditTransportInterceptor} to make
+     * per-request filtering decisions (ignore users, disabled categories, etc.).
+     *
+     * @return the current {@link AuditConfig.Filter} instance, never {@code null}
+     */
+    public AuditConfig.Filter getFilter() {
+        return auditConfigFilter;
+    }
+
     protected void onComplianceConfigChanged(ComplianceConfig complianceConfig) {
         this.complianceConfig = complianceConfig;
         enableRoutes();
@@ -335,6 +350,27 @@ public abstract class AbstractAuditLog implements AuditLog {
         );
 
         msgs.forEach(this::save);
+    }
+
+    @Override
+    public void logRequestAudit(AuditMessage msg) {
+        if (auditConfigFilter != null
+            && (auditConfigFilter.getDisabledCategories().contains(msg.getCategory())
+                || auditConfigFilter.getDisabledTransportCategories().contains(msg.getCategory())
+                || auditConfigFilter.getDisabledRestCategories().contains(msg.getCategory()))) {
+            return;
+        }
+        save(msg);
+    }
+
+    @Override
+    public void logTransportAudit(AuditMessage msg) {
+        if (auditConfigFilter != null
+            && (auditConfigFilter.getDisabledCategories().contains(msg.getCategory())
+                || auditConfigFilter.getDisabledTransportCategories().contains(msg.getCategory()))) {
+            return;
+        }
+        save(msg);
     }
 
     // Routes settings change audit to the appropriate handler
