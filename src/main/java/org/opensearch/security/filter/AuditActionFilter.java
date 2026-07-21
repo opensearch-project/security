@@ -100,10 +100,11 @@ public class AuditActionFilter implements ActionFilter {
     }
 
     /**
-     * Run before authentication/authorization filters so audit captures the
-     * original request even if a later filter rejects it. The existing
-     * SecurityFilter uses Integer.MIN_VALUE; we use a less extreme value
-     * to leave room for other "must run early" filters without colliding.
+     * Only registered in SSL-only / disabled modes where SecurityFilter is not
+     * registered (see OpenSearchSecurityPlugin#getActionFilters). The two filters
+     * are mutually exclusive by design. The low order value is chosen so audit
+     * runs before any other action filter that might mutate the request; it does
+     * not (and cannot) precede SecurityFilter's Integer.MIN_VALUE.
      */
     private static final int AUDIT_FILTER_ORDER = -200;
 

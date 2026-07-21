@@ -30,7 +30,7 @@ import org.opensearch.index.shard.ShardUtils;
  * to a {@link FieldReadHandler}. Reusable for any feature that needs to
  * observe field-level reads (compliance tracking, access logging, analytics, etc.).
  *
- * @see ComplianceReadIndexSearcherWrapper for the compliance-specific consumer
+ * @see ComplianceReadIndexSearcherWrapper — the current compliance-specific consumer
  */
 public class ReadInterceptIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException> {
 
@@ -198,25 +198,25 @@ public class ReadInterceptIndexSearcherWrapper implements CheckedFunction<Direct
 
             @Override
             public void intField(org.apache.lucene.index.FieldInfo fieldInfo, int value) throws IOException {
-                handler.numericFieldRead(fieldInfo, value);
+                handler.intFieldRead(fieldInfo, value);
                 delegate.intField(fieldInfo, value);
             }
 
             @Override
             public void longField(org.apache.lucene.index.FieldInfo fieldInfo, long value) throws IOException {
-                handler.numericFieldRead(fieldInfo, value);
+                handler.longFieldRead(fieldInfo, value);
                 delegate.longField(fieldInfo, value);
             }
 
             @Override
             public void floatField(org.apache.lucene.index.FieldInfo fieldInfo, float value) throws IOException {
-                handler.numericFieldRead(fieldInfo, value);
+                handler.floatFieldRead(fieldInfo, value);
                 delegate.floatField(fieldInfo, value);
             }
 
             @Override
             public void doubleField(org.apache.lucene.index.FieldInfo fieldInfo, double value) throws IOException {
-                handler.numericFieldRead(fieldInfo, value);
+                handler.doubleFieldRead(fieldInfo, value);
                 delegate.doubleField(fieldInfo, value);
             }
 

@@ -21,7 +21,13 @@ public interface FieldReadHandler {
 
     void stringFieldRead(FieldInfo fieldInfo, String value);
 
-    void numericFieldRead(FieldInfo fieldInfo, Number value);
+    void intFieldRead(FieldInfo fieldInfo, int value);
+
+    void longFieldRead(FieldInfo fieldInfo, long value);
+
+    void floatFieldRead(FieldInfo fieldInfo, float value);
+
+    void doubleFieldRead(FieldInfo fieldInfo, double value);
 
     /**
      * Called after all fields for a single document have been read.

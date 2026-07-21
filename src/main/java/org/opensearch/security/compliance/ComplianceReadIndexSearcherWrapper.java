@@ -87,7 +87,22 @@ public class ComplianceReadIndexSearcherWrapper implements CheckedFunction<Direc
         }
 
         @Override
-        public void numericFieldRead(FieldInfo fieldInfo, Number value) {
+        public void intFieldRead(FieldInfo fieldInfo, int value) {
+            fieldReadCallback.numericFieldRead(fieldInfo, value);
+        }
+
+        @Override
+        public void longFieldRead(FieldInfo fieldInfo, long value) {
+            fieldReadCallback.numericFieldRead(fieldInfo, value);
+        }
+
+        @Override
+        public void floatFieldRead(FieldInfo fieldInfo, float value) {
+            fieldReadCallback.numericFieldRead(fieldInfo, value);
+        }
+
+        @Override
+        public void doubleFieldRead(FieldInfo fieldInfo, double value) {
             fieldReadCallback.numericFieldRead(fieldInfo, value);
         }
 
