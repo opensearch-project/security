@@ -161,7 +161,8 @@ public class AuditActionFilter implements ActionFilter {
         // Short-circuit if REQUEST_AUDIT is disabled — avoid building AuditMessage,
         // resolving indices, and extracting body when the event would be discarded downstream.
         // Mirrors AuditTransportInterceptor's behavior and covers both bulk and non-bulk paths.
-        if (filter.getDisabledCategories().contains(AuditCategory.REQUEST_AUDIT)) {
+        if (filter.getDisabledCategories().contains(AuditCategory.REQUEST_AUDIT)
+            || filter.getDisabledRestCategories().contains(AuditCategory.REQUEST_AUDIT)) {
             chain.proceed(task, action, request, listener);
             return;
         }
