@@ -229,7 +229,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
-
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -247,6 +247,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -262,6 +263,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
         msg.addPrivilege(privilege);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -275,6 +277,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRemoteAddress(getRemoteAddress());
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -311,6 +314,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         );
 
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg);
             save(msg);
         }
     }
@@ -348,6 +352,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         );
 
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg);
             save(msg);
         }
     }
@@ -385,7 +390,10 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
-        msgs.forEach(this::save);
+        msgs.forEach(msg -> {
+            enrichWithUserContext(msg);
+            save(msg);
+        });
     }
 
     @Override
@@ -465,6 +473,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             msg.addTaskId(task.getId());
         }
 
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -510,6 +519,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             msg.addTaskId(task.getId());
         }
 
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -657,6 +667,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         );
 
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg);
             save(msg);
         }
     }
@@ -1153,6 +1164,24 @@ public abstract class AbstractAuditLog implements AuditLog {
             );
         }
         return user == null ? null : user.getName();
+    }
+
+    /**
+     * Enriches the audit message with user roles and authentication method
+     * from the User object in ThreadContext (if available).
+     */
+    private void enrichWithUserContext(AuditMessage msg) {
+        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
+            user = this.userFactory.fromSerializedBase64(
+                threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
+            );
+        }
+        if (user == null) {
+            return;
+        }
+        msg.addUserRoles(user.getSecurityRoles());
+        msg.addAuthMethod(user.getAuthenticatedBy());
     }
 
     private Map<String, String> getThreadContextHeaders() {
