@@ -56,7 +56,7 @@ public class ResourcePluginInfoTests {
         registerProviders(List.of("monitor"), ".alerting-config", "monitor.type");
         resourcePluginInfo.updateProtectedTypes(List.of("monitor"));
 
-        Engine.Index indexOp = mockIndexOp(new StringField("monitor.type", "monitor", Field.Store.NO));
+        Engine.Index indexOp = mockMonitorDoc();
         String result = resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", indexOp);
         assertEquals("monitor", result);
     }
@@ -66,7 +66,7 @@ public class ResourcePluginInfoTests {
         registerProviders("monitor", "monitor.type", "workflow", "workflow.type", ".alerting-config");
         resourcePluginInfo.updateProtectedTypes(Arrays.asList("monitor", "workflow"));
 
-        Engine.Index indexOp = mockIndexOp(new StringField("monitor.type", "monitor", Field.Store.NO));
+        Engine.Index indexOp = mockMonitorDoc();
         String result = resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", indexOp);
         assertEquals("monitor", result);
     }
@@ -76,8 +76,7 @@ public class ResourcePluginInfoTests {
         registerProviders("monitor", "monitor.type", "workflow", "workflow.type", ".alerting-config");
         resourcePluginInfo.updateProtectedTypes(Arrays.asList("monitor", "workflow"));
 
-        // Only workflow.type present — monitor.type returns null
-        Engine.Index indexOp = mockIndexOp(new StringField("workflow.type", "workflow", Field.Store.NO));
+        Engine.Index indexOp = mockWorkflowDoc();
         String result = resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", indexOp);
         assertEquals("workflow", result);
     }
@@ -87,7 +86,8 @@ public class ResourcePluginInfoTests {
         registerProviders("monitor", "monitor.type", "workflow", "workflow.type", ".alerting-config");
         resourcePluginInfo.updateProtectedTypes(Arrays.asList("monitor", "workflow"));
 
-        Engine.Index indexOp = mockIndexOp(); // no type fields
+        // A metadata doc — no monitor.* or workflow.* fields, just top-level metadata.*
+        Engine.Index indexOp = mockIndexOp(new StringField("metadata.monitor_id", "abc123", Field.Store.NO));
         String result = resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", indexOp);
         assertNull(result);
     }
@@ -97,7 +97,7 @@ public class ResourcePluginInfoTests {
         registerProviders(List.of("monitor"), ".alerting-config", "monitor.type");
         resourcePluginInfo.updateProtectedTypes(List.of("monitor"));
 
-        Engine.Index indexOp = mockIndexOp(new StringField("monitor.type", "monitor", Field.Store.NO));
+        Engine.Index indexOp = mockMonitorDoc();
         String result = resourcePluginInfo.getResourceTypeForIndexOp(".some-other-index", indexOp);
         assertNull(result);
     }
@@ -131,8 +131,7 @@ public class ResourcePluginInfoTests {
             }
 
             @Override
-            public void assignResourceSharingClient(ResourceSharingClient client) {
-            }
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
         };
         resourcePluginInfo.setResourceSharingExtensions(Set.of(extension));
     }
@@ -148,8 +147,7 @@ public class ResourcePluginInfoTests {
             }
 
             @Override
-            public void assignResourceSharingClient(ResourceSharingClient client) {
-            }
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
         };
         resourcePluginInfo.setResourceSharingExtensions(Set.of(extension));
     }
@@ -173,11 +171,63 @@ public class ResourcePluginInfoTests {
         };
     }
 
+    /**
+     * Builds an {@link Engine.Index} mock whose {@code parsedDoc().rootDoc()} contains the flat
+     * set of Lucene fields that the alerting plugin's mapper would produce for a real monitor
+     * document. The source JSON stored in {@code .opendistro-alerting-config} for a monitor looks
+     * like:
+     *
+     * <pre>{@code
+     * {
+     *   "monitor": {
+     *     "type": "monitor",
+     *     "schema_version": 8,
+     *     "name": "my-monitor",
+     *     "monitor_type": "query_level_monitor",
+     *     "user": { "name": "alice", "backend_roles": ["engineering"] },
+     *     "enabled": true,
+     *     "schedule": { "period": { "interval": 5, "unit": "MINUTES" } },
+     *     ...
+     *   }
+     * }
+     * }</pre>
+     *
+     * After the mapper indexes this doc, {@code parsedDoc().rootDoc()} exposes each JSON leaf as
+     * a Lucene field with the JSON pointer path flattened onto a dot-joined field name — that's
+     * what {@code extractFieldFromIndexOp} reads via {@code rootDoc.getFields("monitor.type")}.
+     */
+    private Engine.Index mockMonitorDoc() {
+        return mockIndexOp(
+            new StringField("monitor.type", "monitor", Field.Store.NO),
+            new StringField("monitor.name", "my-monitor", Field.Store.NO),
+            new StringField("monitor.monitor_type", "query_level_monitor", Field.Store.NO),
+            new StringField("monitor.user.name", "alice", Field.Store.NO),
+            new StringField("monitor.user.backend_roles", "engineering", Field.Store.NO),
+            new StringField("monitor.enabled", "true", Field.Store.NO)
+        );
+    }
+
+    /**
+     * Same shape as {@link #mockMonitorDoc()}, but for a workflow document. Workflows and
+     * monitors share {@code .opendistro-alerting-config}, distinguished only by the wrapper key
+     * (and therefore by which {@code <wrapper>.type} Lucene field is present).
+     */
+    private Engine.Index mockWorkflowDoc() {
+        return mockIndexOp(
+            new StringField("workflow.type", "workflow", Field.Store.NO),
+            new StringField("workflow.name", "my-workflow", Field.Store.NO),
+            new StringField("workflow.workflow_type", "composite", Field.Store.NO),
+            new StringField("workflow.user.name", "bob", Field.Store.NO),
+            new StringField("workflow.user.backend_roles", "ml", Field.Store.NO),
+            new StringField("workflow.enabled", "true", Field.Store.NO),
+            new StringField("workflow.owner", "alerting", Field.Store.NO)
+        );
+    }
+
     private Engine.Index mockIndexOp(IndexableField... fields) {
         Engine.Index indexOp = mock(Engine.Index.class);
         ParsedDocument parsedDoc = mock(ParsedDocument.class);
-        org.opensearch.index.mapper.ParseContext.Document rootDoc =
-            new org.opensearch.index.mapper.ParseContext.Document();
+        org.opensearch.index.mapper.ParseContext.Document rootDoc = new org.opensearch.index.mapper.ParseContext.Document();
         for (IndexableField field : fields) {
             rootDoc.add(field);
         }
