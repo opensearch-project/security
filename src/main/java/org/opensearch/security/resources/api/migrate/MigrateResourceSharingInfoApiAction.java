@@ -172,7 +172,11 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             ? Collections.emptyMap()
             : Utils.toMapOfStrings(defaultAccessNode);
 
-        String typePath = null;
+        // Collect the type-field JSON pointer for each registered type. When multiple providers
+        // share an index, each provider may declare a type-specific path (e.g. `monitor.type` /
+        // `workflow.type`); the per-doc classifier below tries each candidate and picks the
+        // first non-null value.
+        List<String> typePaths = new ArrayList<>();
 
         // Validate each type + its accessLevel
         for (Map.Entry<String, String> entry : typeToDefaultAccessLevel.entrySet()) {
@@ -187,7 +191,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(message));
             }
 
-            typePath = provider.typeField();
+            if (provider.typeField() != null) {
+                typePaths.add(provider.typeField());
+            }
 
             // Allowed access-levels for this type
             Set<String> accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
@@ -249,9 +255,15 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         }
                     }
 
-                    String type;
-                    if (typePath != null) {
-                        type = rec.at("/" + typePath.replace(".", "/")).asText(null);
+                    String type = null;
+                    if (!typePaths.isEmpty()) {
+                        // Try each registered type-field path; first non-null value wins.
+                        for (String typePath : typePaths) {
+                            type = rec.at("/" + typePath.replace(".", "/")).asText(null);
+                            if (type != null) {
+                                break;
+                            }
+                        }
                     } else if (!typeToDefaultAccessLevel.isEmpty()) {
                         type = typeToDefaultAccessLevel.keySet().iterator().next();
                     } else {
