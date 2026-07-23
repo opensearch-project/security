@@ -14,7 +14,6 @@ package org.opensearch.security.grpc;
 import java.security.KeyPair;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -22,15 +21,11 @@ import java.util.Map;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.opensearch.Version;
-import org.opensearch.plugins.PluginInfo;
 import org.opensearch.protobufs.BulkResponse;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.JwtConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.transport.grpc.GrpcPlugin;
 
 import io.grpc.Channel;
 import io.grpc.ClientInterceptor;
@@ -48,6 +43,7 @@ import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER_NO_MAPPING;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_SEARCH_ROLE;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_SEARCH_USER;
+import static org.opensearch.security.grpc.GrpcHelpers.SECURITY_WITH_GRPC_PLUGIN;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
@@ -136,34 +132,7 @@ public class JWTGrpcInterceptorTest {
                 Arrays.asList("grpc_search_user", "grpc_user")
             )
         )
-        .plugin(
-            // Add GrpcPlugin
-            new PluginInfo(
-                GrpcPlugin.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "21",
-                GrpcPlugin.class.getName(),
-                null,
-                Collections.emptyList(),
-                false
-            )
-        )
-        .plugin(
-            // Override the default security plugin with one that declares extension relationship
-            new PluginInfo(
-                OpenSearchSecurityPlugin.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "21",
-                OpenSearchSecurityPlugin.class.getName(),
-                null,
-                List.of("org.opensearch.transport.grpc.GrpcPlugin"), // Extends GrpcPlugin
-                false
-            )
-        )
+        .plugin(SECURITY_WITH_GRPC_PLUGIN)
         .anonymousAuth(false)
         .users(GRPC_INDEX_USER, GRPC_INDEX_USER_NO_MAPPING, GRPC_SEARCH_USER, GRPC_IMPERSONATING_USER)
         .roles(GRPC_INDEX_ROLE, GRPC_INDEX_ROLE_NO_MAPPING, GRPC_SEARCH_ROLE)

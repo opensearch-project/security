@@ -28,6 +28,7 @@ package org.opensearch.security.transport;
 
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -42,10 +43,12 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.search.internal.ShardSearchRequest;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.UserSubjectImpl;
+import org.opensearch.security.privileges.dlsfls.DlsRequestHeadersUtil;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
@@ -62,6 +65,8 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
+
+import tools.jackson.core.type.TypeReference;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 
@@ -118,6 +123,17 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
         if (!Strings.isNullOrEmpty(originHeader)) {
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originHeader);
+        }
+
+        // restore headers used for DLS
+        final var dlsRequestHeadersAsString = getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS);
+        if (!Strings.isNullOrEmpty(dlsRequestHeadersAsString)) {
+            final List<DlsRequestHeadersUtil.DlsRequestHeader> dlsRequestHeaders = DefaultObjectMapper.readValue(
+                dlsRequestHeadersAsString,
+                new TypeReference<>() {
+                }
+            );
+            getThreadContext().putTransient(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS, dlsRequestHeaders);
         }
 
         try {

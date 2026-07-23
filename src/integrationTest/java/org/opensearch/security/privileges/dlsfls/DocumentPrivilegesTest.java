@@ -541,7 +541,8 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 () -> CLUSTER_STATE,
-                ActionPrivileges.EMPTY
+                ActionPrivileges.EMPTY,
+                List.of()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -844,7 +845,8 @@ public class DocumentPrivilegesTest {
                 INDEX_NAME_EXPRESSION_RESOLVER,
                 null,
                 () -> CLUSTER_STATE,
-                ActionPrivileges.EMPTY
+                ActionPrivileges.EMPTY,
+                List.of()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1146,7 +1148,8 @@ public class DocumentPrivilegesTest {
                 null,
                 () -> CLUSTER_STATE,
 
-                ActionPrivileges.EMPTY
+                ActionPrivileges.EMPTY,
+                List.of()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
