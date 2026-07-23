@@ -85,7 +85,7 @@ public class HTTPJwtKeyByJWKSAuthenticator extends AbstractHTTPJwtAuthenticator 
 
         // If jwks_uri is not configured, return null (will use static JWT fallback)
         if (jwksUri == null || jwksUri.isBlank()) {
-            log.info("jwks_uri is not configured, using static JWT authentication with the configured signing_key");
+            log.info("jwks_uri is not configured, skipping JWKS key provider initialization");
             return null;
         }
 
