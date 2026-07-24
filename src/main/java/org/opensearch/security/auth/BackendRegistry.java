@@ -372,7 +372,9 @@ public class BackendRegistry {
             2. If auth domain is challenging and no credentials are found -> present challenge.
             SAML and basic auth for example redirect/re-request credentials from clients.
              */
-            authCredentials = ac;
+            if (ac != null) {
+                authCredentials = ac;
+            }
             if (ac == null) {
                 // no credentials found in request
                 if (!gRPC && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
@@ -382,11 +384,17 @@ public class BackendRegistry {
                 if (authDomain.isChallenge()) {
                     final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
                     if (restResponse.isPresent()) {
+                        final String authenticatorType = authDomain.getHttpAuthenticator().getType();
                         // saml will always hit this to re-request authentication
-                        if (!authDomain.getHttpAuthenticator().getType().equals(SAML_TYPE)) {
-                            auditLog.logFailedLogin("<NONE>", false, null, request);
+                        if (!authenticatorType.equals(SAML_TYPE) || authCredentials != null) {
+                            auditLog.logFailedLogin(
+                                authCredentials == null ? "<NONE>" : authCredentials.getUsername(),
+                                false,
+                                null,
+                                request
+                            );
                         }
-                        if (authDomain.getHttpAuthenticator().getType().equals(BASIC_TYPE)) {
+                        if (authenticatorType.equals(BASIC_TYPE)) {
                             log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
