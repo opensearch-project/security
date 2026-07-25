@@ -8,11 +8,12 @@
 
 package org.opensearch.security.support;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.test.OpenSearchTestCase;
 
-public class HeaderHelperTests extends OpenSearchTestCase {
+public class HeaderHelperTests extends LuceneTestCase {
 
     public void testLocalClusterNodeRequest() {
         final ThreadContext context = new ThreadContext(Settings.EMPTY);
