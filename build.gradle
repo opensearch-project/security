@@ -603,7 +603,7 @@ allprojects {
                 integrationTestImplementation "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
                 integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
                 integrationTestImplementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
-                integrationTestImplementation('io.github.vishwakarma:zjsonpatch:0.6.2') {
+                integrationTestImplementation('io.github.vishwakarma:zjsonpatch:0.6.3') {
                     exclude(group: 'com.fasterxml.jackson.core')
                     exclude(group: 'org.apache.commons', module: 'commons-collections4')
                 }
@@ -713,7 +713,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // JSON patch
-    implementation 'io.github.vishwakarma:zjsonpatch:0.6.2'
+    implementation 'io.github.vishwakarma:zjsonpatch:0.6.3'
     implementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
