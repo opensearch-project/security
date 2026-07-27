@@ -299,7 +299,9 @@ public class DashboardMultiTenancyIntTests {
     static final TestSecurityConfig.User WILDCARD_TENANT_USER = new TestSecurityConfig.User("wildcard_tenant_user").description("r/w to *")
         .roles(
             TestSecurityConfig.Role.KIBANA_USER,
-            new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops")
+            new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops", "cluster_monitor")
+                .indexPermissions("indices:monitor/*")
+                .on("*")
                 .tenantPermissions("kibana_all_write")
                 .on("*")
         )
@@ -969,4 +971,62 @@ public class DashboardMultiTenancyIntTests {
             }
         }
     }
+
+    /**
+     * Verifies that broad index queries with a securitytenant header are NOT denied by the
+     * multi-tenancy interceptor. The cross-tenant check should only apply when the user explicitly
+     * targets a concrete tenant index, not when tenant indices are incidentally included in the
+     * resolved set (e.g., _cat/indices with a broad pattern that resolves to include .kibana_*
+     * tenant indices).
+     */
+    @Test
+    public void catIndices_withTenantHeader_shouldNotBeDenied() {
+        // Only run once (not for every parameterized user)
+        if (!user.equals(WILDCARD_TENANT_USER)) {
+            return;
+        }
+
+        try (TestRestClient restClient = cluster.getRestClient(WILDCARD_TENANT_USER)) {
+            // Use .kib* pattern which resolves to .kibana_* tenant indices but does not
+            // literally start with ".kibana_", so the interceptor should not deny it.
+            // This simulates a broad query that incidentally includes tenant indices.
+            TestRestClient.HttpResponse response = restClient.get(
+                "_cat/indices/.kib*?format=json",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isOk());
+        }
+    }
+
+    /**
+     * Verifies that deliberately targeting another tenant's concrete index in a multi-document
+     * request is denied. This is the cross-tenant protection that the interceptor provides:
+     * users should not be able to directly access .kibana_{hash}_{tenant} indices that belong
+     * to other tenants.
+     */
+    @Test
+    public void bulk_directlyTargetingOtherTenantConcreteIndex_shouldBeDenied() {
+        // Only run once (not for every parameterized user)
+        if (!user.equals(HR_EMPLOYEE)) {
+            return;
+        }
+
+        try (TestRestClient restClient = cluster.getRestClient(HR_EMPLOYEE)) {
+            // Directly target the business_intelligence tenant's concrete index
+            String bulkBody = """
+                { "index" : { "_index" : ".kibana_1592542612_businessintelligence", "_id" : "cross_tenant_doc" } }
+                { "type": "config", "config": { "buildNum": 99999 } }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.postJson(
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isForbidden());
+        }
+    }
+
 }

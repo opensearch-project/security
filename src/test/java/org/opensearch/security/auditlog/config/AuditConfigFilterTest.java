@@ -256,4 +256,81 @@ public class AuditConfigFilterTest {
             .build();
         assertThat(parse.apply(settingMultipleValues), equalTo(ImmutableSet.of(AUTHENTICATED, BAD_HEADERS)));
     }
+
+    @Test
+    public void testUnifiedDisabledCategoriesParsedCorrectly() {
+        // When disabled_categories is set, it should be parsed into the set
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_categories", "FAILED_LOGIN", "SSL_EXCEPTION")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(FAILED_LOGIN, SSL_EXCEPTION)));
+    }
+
+    @Test
+    public void testSplitSettingsWorkWhenUnifiedNotSet() {
+        // When disabled_categories is NOT set, split settings still work independently
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_rest_categories", "AUTHENTICATED")
+            .putList("plugins.security.audit.config.disabled_transport_categories", "FAILED_LOGIN")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertTrue(filter.getDisabledCategories().isEmpty());
+        assertThat(filter.getDisabledRestCategories(), equalTo(EnumSet.of(AUTHENTICATED)));
+        assertThat(filter.getDisabledTransportCategories(), equalTo(EnumSet.of(FAILED_LOGIN)));
+    }
+
+    @Test
+    public void testUnifiedAndSplitWorkInTandem() {
+        // When both unified and split are set, they work together (union)
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_categories", "BAD_HEADERS")
+            .putList("plugins.security.audit.config.disabled_rest_categories", "AUTHENTICATED")
+            .putList("plugins.security.audit.config.disabled_transport_categories", "FAILED_LOGIN")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        // Unified has BAD_HEADERS
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(BAD_HEADERS)));
+        // Split settings are still preserved independently
+        assertThat(filter.getDisabledRestCategories(), equalTo(EnumSet.of(AUTHENTICATED)));
+        assertThat(filter.getDisabledTransportCategories(), equalTo(EnumSet.of(FAILED_LOGIN)));
+    }
+
+    @Test
+    public void testDefaultDisabledCategoriesWhenNothingConfigured() {
+        // When nothing is configured, disabled_categories defaults to empty
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(Settings.EMPTY);
+
+        assertTrue(filter.getDisabledCategories().isEmpty());
+    }
+
+    @Test
+    public void testEmptyUnifiedDisabledCategories() {
+        // Explicitly setting disabled_categories to empty means it adds nothing
+        final Settings settings = Settings.builder().putList("plugins.security.audit.config.disabled_categories").build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertTrue(filter.getDisabledCategories().isEmpty());
+    }
+
+    @Test
+    public void testUnifiedAndSplitAreIndependent() {
+        // Unified has MISSING_PRIVILEGES, split has AUTHENTICATED (rest) and FAILED_LOGIN (transport)
+        // Both are stored independently — no override
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_categories", "MISSING_PRIVILEGES")
+            .putList("plugins.security.audit.config.disabled_rest_categories", "AUTHENTICATED")
+            .putList("plugins.security.audit.config.disabled_transport_categories", "FAILED_LOGIN")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        // Unified has only MISSING_PRIVILEGES
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(MISSING_PRIVILEGES)));
+        // Split settings remain as configured
+        assertThat(filter.getDisabledRestCategories(), equalTo(EnumSet.of(AUTHENTICATED)));
+        assertThat(filter.getDisabledTransportCategories(), equalTo(EnumSet.of(FAILED_LOGIN)));
+    }
 }

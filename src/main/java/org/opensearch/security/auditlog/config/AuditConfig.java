@@ -25,8 +25,10 @@ import com.google.common.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.impl.AuditCategory;
@@ -129,30 +131,35 @@ public class AuditConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
+        private static final Logger log = LogManager.getLogger(Filter.class);
         private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
 
-        private final boolean isRestApiAuditEnabled;
-        private final boolean isTransportApiAuditEnabled;
-        private final boolean resolveBulkRequests;
-        private final boolean logRequestBody;
-        private final boolean resolveIndices;
-        private final boolean excludeSensitiveHeaders;
+        private volatile boolean isRestApiAuditEnabled;
+        private volatile boolean isTransportApiAuditEnabled;
+        private volatile boolean resolveBulkRequests;
+        private volatile boolean logRequestBody;
+        private volatile boolean resolveIndices;
+        private volatile boolean excludeSensitiveHeaders;
         @JsonProperty("ignore_users")
-        private final Set<String> ignoredAuditUsers;
+        private volatile Set<String> ignoredAuditUsers;
         @JsonProperty("ignore_requests")
-        private final Set<String> ignoredAuditRequests;
+        private volatile Set<String> ignoredAuditRequests;
         @JsonProperty("ignore_headers")
         private final Set<String> ignoredCustomHeaders;
         @JsonProperty("ignore_url_params")
-        private Set<String> ignoredUrlParams;
-        private final WildcardMatcher ignoredAuditUsersMatcher;
-        private final WildcardMatcher ignoredAuditRequestsMatcher;
+        private volatile Set<String> ignoredUrlParams;
+        private volatile WildcardMatcher ignoredAuditUsersMatcher;
+        private volatile WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
-        private WildcardMatcher ignoredUrlParamsMatcher;
-        private final Set<AuditCategory> disabledRestCategories;
-        private final Set<AuditCategory> disabledTransportCategories;
+        private volatile WildcardMatcher ignoredUrlParamsMatcher;
+        @JsonProperty("disabled_categories")
+        private volatile Set<AuditCategory> disabledCategories;
+        @Deprecated
+        private volatile Set<AuditCategory> disabledRestCategories;
+        @Deprecated
+        private volatile Set<AuditCategory> disabledTransportCategories;
 
         @VisibleForTesting
         Filter(
@@ -167,7 +174,8 @@ public class AuditConfig {
             final Set<String> ignoredCustomHeaders,
             final Set<String> ignoredUrlParams,
             final Set<AuditCategory> disabledRestCategories,
-            final Set<AuditCategory> disabledTransportCategories
+            final Set<AuditCategory> disabledTransportCategories,
+            final Set<AuditCategory> disabledCategories
         ) {
             this.isRestApiAuditEnabled = isRestApiAuditEnabled;
             this.isTransportApiAuditEnabled = isTransportApiAuditEnabled;
@@ -185,6 +193,7 @@ public class AuditConfig {
             this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
+            this.disabledCategories = disabledCategories;
         }
 
         public enum FilterEntries {
@@ -194,6 +203,7 @@ public class AuditConfig {
             LOG_REQUEST_BODY("log_request_body", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY),
             RESOLVE_INDICES("resolve_indices", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES),
             EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS),
+            DISABLE_CATEGORIES("disabled_categories", ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES),
             DISABLE_REST_CATEGORIES("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES),
             DISABLE_TRANSPORT_CATEGORIES(
                 "disabled_transport_categories",
@@ -244,6 +254,9 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
+            final Set<AuditCategory> disabledCategories = AuditCategory.parse(
+                getOrDefault(properties, FilterEntries.DISABLE_CATEGORIES.getKey(), Collections.emptyList())
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
@@ -269,6 +282,11 @@ public class AuditConfig {
                 getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
+            final boolean unifiedPresent = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
+            final boolean splitPresent = properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
+                || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey());
+            warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
+
             return new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
@@ -281,7 +299,8 @@ public class AuditConfig {
                 ignoreHeaders,
                 new HashSet<>(),
                 disabledRestCategories,
-                disabledTransportCategories
+                disabledTransportCategories,
+                disabledCategories
             );
 
         }
@@ -298,6 +317,9 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
+            final Set<AuditCategory> disabledCategories = AuditCategory.parse(
+                fromSettingStringSet(settings, FilterEntries.DISABLE_CATEGORIES, Collections.emptyList())
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
@@ -315,6 +337,14 @@ public class AuditConfig {
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
             final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
+
+            final boolean unifiedPresent = settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace());
+            final boolean splitPresent = settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace());
+            warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
+
             return new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
@@ -327,7 +357,8 @@ public class AuditConfig {
                 ignoreHeaders,
                 new HashSet<>(),
                 disabledRestCategories,
-                disabledTransportCategories
+                disabledTransportCategories,
+                disabledCategories
             );
         }
 
@@ -354,6 +385,17 @@ public class AuditConfig {
 
             // Fallback to the legacy keyname
             return ConfigConstants.getSettingAsSet(settings, filterEntry.getLegacyKeyWithNamespace(), defaultValue, true);
+        }
+
+        private static void warnIfBothUnifiedAndSplitConfigured(boolean unifiedPresent, boolean splitPresent) {
+            if (unifiedPresent && splitPresent) {
+                final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
+                deprecationLogger.deprecate(
+                    "disabled_rest_transport_categories",
+                    "Both 'disabled_categories' and 'disabled_rest_categories'/'disabled_transport_categories' are configured. "
+                        + "They will work in tandem, but consider migrating to 'disabled_categories' only."
+                );
+            }
         }
 
         /**
@@ -417,11 +459,20 @@ public class AuditConfig {
 
         /**
          * Check if user is excluded from audit.
-         * @param user
+         * @param user effective user name (from FGAC user or SSL principal)
          * @return true if user is excluded from audit logging
          */
         public boolean isAuditDisabled(String user) {
             return ignoredAuditUsersMatcher.test(user);
+        }
+
+        /**
+         * Check if user is included in audit.
+         * @param user effective user name (from FGAC user or SSL principal)
+         * @return true if user is included in audit logging
+         */
+        public boolean isAuditEnabled(String user) {
+            return !ignoredAuditUsersMatcher.test(user);
         }
 
         @VisibleForTesting
@@ -495,6 +546,66 @@ public class AuditConfig {
         @JsonProperty("disabled_transport_categories")
         public Set<AuditCategory> getDisabledTransportCategories() {
             return disabledTransportCategories;
+        }
+
+        /**
+         * Unified disabled categories for both REST and Transport API auditing
+         * @return set of categories
+         */
+        public Set<AuditCategory> getDisabledCategories() {
+            return disabledCategories;
+        }
+
+        // Dynamic setters for cluster settings updates
+
+        public void setLogRequestBody(boolean logRequestBody) {
+            this.logRequestBody = logRequestBody;
+        }
+
+        public void setResolveBulkRequests(boolean resolveBulkRequests) {
+            this.resolveBulkRequests = resolveBulkRequests;
+        }
+
+        public void setResolveIndices(boolean resolveIndices) {
+            this.resolveIndices = resolveIndices;
+        }
+
+        public void setExcludeSensitiveHeaders(boolean excludeSensitiveHeaders) {
+            this.excludeSensitiveHeaders = excludeSensitiveHeaders;
+        }
+
+        public void setRestApiAuditEnabled(boolean enabled) {
+            this.isRestApiAuditEnabled = enabled;
+        }
+
+        public void setTransportApiAuditEnabled(boolean enabled) {
+            this.isTransportApiAuditEnabled = enabled;
+        }
+
+        public void setIgnoredAuditUsers(List<String> users) {
+            Set<String> newSet = ImmutableSet.copyOf(users);
+            WildcardMatcher newMatcher = WildcardMatcher.from(newSet);
+            this.ignoredAuditUsers = newSet;
+            this.ignoredAuditUsersMatcher = newMatcher;
+        }
+
+        public void setIgnoredAuditRequests(List<String> requests) {
+            Set<String> newSet = ImmutableSet.copyOf(requests);
+            WildcardMatcher newMatcher = WildcardMatcher.from(newSet);
+            this.ignoredAuditRequests = newSet;
+            this.ignoredAuditRequestsMatcher = newMatcher;
+        }
+
+        public void setDisabledCategories(List<String> categories) {
+            this.disabledCategories = AuditCategory.parse(categories);
+        }
+
+        public void setDisabledRestCategories(List<String> categories) {
+            this.disabledRestCategories = AuditCategory.parse(categories);
+        }
+
+        public void setDisabledTransportCategories(List<String> categories) {
+            this.disabledTransportCategories = AuditCategory.parse(categories);
         }
 
         public void log(Logger logger) {

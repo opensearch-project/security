@@ -89,6 +89,13 @@ public class AuditLogImpl extends AbstractAuditLog {
         onComplianceConfigChanged(auditConfig.getCompliance());
     }
 
+    /**
+     * Dynamically toggle audit logging on/off via cluster setting.
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     @Override
     protected void enableRoutes() {
         if (messageRouterEnabled) {

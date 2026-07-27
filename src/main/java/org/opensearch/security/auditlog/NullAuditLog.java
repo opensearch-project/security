@@ -36,6 +36,7 @@ import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
@@ -70,6 +71,16 @@ public class NullAuditLog implements AuditLog {
 
     @Override
     public void logIndexEvent(String privilege, TransportRequest request, Task task) {
+        // noop, intentionally left empty
+    }
+
+    @Override
+    public void logRequestAudit(AuditMessage msg) {
+        // noop, intentionally left empty
+    }
+
+    @Override
+    public void logTransportAudit(AuditMessage msg) {
         // noop, intentionally left empty
     }
 

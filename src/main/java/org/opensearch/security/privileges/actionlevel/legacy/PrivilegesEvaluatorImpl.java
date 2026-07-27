@@ -62,7 +62,6 @@ import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteAction;
-import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.index.IndexAction;
 import org.opensearch.action.search.MultiSearchAction;
@@ -699,31 +698,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     }
 
     private boolean checkDocAllowListHeader(User user, String action, ActionRequest request) {
-        String docAllowListHeader = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
-
-        if (docAllowListHeader == null) {
-            return false;
-        }
-
-        if (!(request instanceof GetRequest)) {
-            return false;
-        }
-
-        try {
-            DocumentAllowList documentAllowList = DocumentAllowList.parse(docAllowListHeader);
-            GetRequest getRequest = (GetRequest) request;
-
-            if (documentAllowList.isAllowed(getRequest.index(), getRequest.id())) {
-                log.debug("Request {} is allowed by {}", request, documentAllowList);
-                return true;
-            } else {
-                return false;
-            }
-
-        } catch (Exception e) {
-            log.error("Error while handling document allow list: {}", docAllowListHeader, e);
-            return false;
-        }
+        return DocumentAllowList.isAllowed(request, threadContext);
     }
 
     private List<String> toString(List<AliasMetadata> aliases) {
