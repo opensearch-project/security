@@ -1000,6 +1000,27 @@ public class DashboardMultiTenancyIntTests {
     }
 
     /**
+     * Verifies that the paginated list indices API is not denied when its internal monitor
+     * requests operate on a concrete page that includes dashboards tenant indices.
+     */
+    @Test
+    public void listIndices_withTenantHeader_shouldNotBeDenied() {
+        // Only run once (not for every parameterized user)
+        if (!user.equals(WILDCARD_TENANT_USER)) {
+            return;
+        }
+
+        try (TestRestClient restClient = cluster.getRestClient(WILDCARD_TENANT_USER)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                "_list/indices/.kib*",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isOk());
+        }
+    }
+
+    /**
      * Verifies that deliberately targeting another tenant's concrete index in a multi-document
      * request is denied. This is the cross-tenant protection that the interceptor provides:
      * users should not be able to directly access .kibana_{hash}_{tenant} indices that belong
