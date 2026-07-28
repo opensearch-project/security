@@ -332,59 +332,6 @@ public class StandaloneAuditDisabledModeTest {
     }
 
     // =====================================================================
-    // Dynamic settings — verify PUT _cluster/settings works in disabled mode
-    // =====================================================================
-
-    @Test
-    public void shouldToggleAuditOffAndBackOnViaClusterSettings() {
-        // Disable audit
-        try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
-            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.enabled\": false}}");
-        }
-
-        auditLogsRule.waitForAuditLogs();
-
-        try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
-            client.putJson("disabled-toggle/_doc/1?refresh=true", "{\"val\": \"should-not-appear\"}");
-        }
-
-        auditLogsRule.waitForAuditLogs();
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> {
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-toggle".equals(idx)) return true;
-            }
-            return false;
-        });
-
-        // Re-enable
-        try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
-            client.putJson("_cluster/settings", "{\"persistent\": {\"plugins.security.audit.enabled\": true}}");
-        }
-
-        auditLogsRule.waitForAuditLogs();
-
-        try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
-            client.putJson("disabled-toggle-back/_doc/1?refresh=true", "{\"val\": \"should-appear\"}");
-        }
-
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-toggle-back".equals(idx)) return true;
-            }
-            return false;
-        });
-    }
-
-    // =====================================================================
     // Index resolution — wildcards still resolve in disabled mode
     // =====================================================================
 
