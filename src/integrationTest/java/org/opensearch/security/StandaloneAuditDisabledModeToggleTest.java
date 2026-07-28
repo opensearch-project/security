@@ -16,12 +16,12 @@ import org.junit.Test;
 
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.audit.AuditLogsRule;
-import org.opensearch.test.framework.audit.TestRuleAuditLogSink;
-import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+
+import static org.opensearch.security.DisabledModeAuditTestUtils.messageHasIndex;
+import static org.opensearch.security.DisabledModeAuditTestUtils.messageMatchesIndex;
 
 /**
  * Integration tests for dynamically toggling audit settings via cluster settings
@@ -36,29 +36,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 public class StandaloneAuditDisabledModeToggleTest {
 
     @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(false)
-        .loadConfigurationIntoIndex(false)
-        .nodeSettings(
-            Map.of(
-                ConfigConstants.SECURITY_DISABLED,
-                true,
-                "plugins.security.audit.type",
-                TestRuleAuditLogSink.class.getName(),
-                "plugins.security.audit.config.log_request_body",
-                true,
-                "plugins.security.audit.config.resolve_indices",
-                true,
-                "plugins.security.audit.config.resolve_bulk_requests",
-                true,
-                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES,
-                "watched-*",
-                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
-                "read-watched"
-            )
-        )
-        .sslOnly(true)
-        .build();
+    public static LocalCluster cluster = DisabledModeAuditTestUtils.createDisabledModeAuditCluster();
 
     @Rule
     public AuditLogsRule auditLogsRule = new AuditLogsRule();
@@ -81,16 +59,7 @@ public class StandaloneAuditDisabledModeToggleTest {
         }
 
         auditLogsRule.waitForAuditLogs();
-        auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> {
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-toggle".equals(idx)) return true;
-            }
-            return false;
-        });
+        auditLogsRule.assertExactlyScanAll(0, msg -> messageHasIndex(msg, "disabled-toggle"));
 
         // Re-enable
         try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
@@ -103,17 +72,7 @@ public class StandaloneAuditDisabledModeToggleTest {
             client.putJson("disabled-toggle-back/_doc/1?refresh=true", "{\"val\": \"should-appear\"}");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-toggle-back".equals(idx)) return true;
-            }
-            return false;
-        });
+        auditLogsRule.assertAtLeast(1, msg -> messageMatchesIndex(msg, AuditCategory.REQUEST_AUDIT, "disabled-toggle-back"));
     }
 
     @Test
@@ -339,17 +298,7 @@ public class StandaloneAuditDisabledModeToggleTest {
         }
 
         // Should see per-item events with individual index names
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-dyn-bulk-a".equals(idx)) return true;
-            }
-            return false;
-        });
+        auditLogsRule.assertAtLeast(1, msg -> messageMatchesIndex(msg, AuditCategory.REQUEST_AUDIT, "disabled-dyn-bulk-a"));
 
         // Reset
         try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
@@ -386,17 +335,7 @@ public class StandaloneAuditDisabledModeToggleTest {
         }
 
         // Should still get REQUEST_AUDIT but no TRANSPORT_AUDIT for this second write
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-transport-dyn".equals(idx)) return true;
-            }
-            return false;
-        });
+        auditLogsRule.assertAtLeast(1, msg -> messageMatchesIndex(msg, AuditCategory.REQUEST_AUDIT, "disabled-transport-dyn"));
 
         // Reset
         try (TestRestClient client = cluster.getSecurityDisabledRestClient()) {
@@ -595,14 +534,7 @@ public class StandaloneAuditDisabledModeToggleTest {
         auditLogsRule.assertExactlyScanAll(0, (AuditMessage msg) -> {
             if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
             if (msg.getPrivilege() == null || !msg.getPrivilege().startsWith("indices:data/write")) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-unified-ignore".equals(idx)) return true;
-            }
-            return false;
+            return messageHasIndex(msg, "disabled-unified-ignore");
         });
 
         // No TRANSPORT_AUDIT events for write actions either

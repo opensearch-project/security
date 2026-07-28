@@ -16,12 +16,11 @@ import org.junit.Test;
 
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.audit.AuditLogsRule;
-import org.opensearch.test.framework.audit.TestRuleAuditLogSink;
-import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
+
+import static org.opensearch.security.DisabledModeAuditTestUtils.messageMatchesIndex;
 
 /**
  * Comprehensive integration tests for audit logging in disabled security mode
@@ -34,31 +33,8 @@ import org.opensearch.test.framework.cluster.TestRestClient;
  */
 public class StandaloneAuditDisabledModeTest {
 
-    // --- Cluster with security disabled + audit enabled ---
     @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(false)
-        .loadConfigurationIntoIndex(false)
-        .nodeSettings(
-            Map.of(
-                ConfigConstants.SECURITY_DISABLED,
-                true,
-                "plugins.security.audit.type",
-                TestRuleAuditLogSink.class.getName(),
-                "plugins.security.audit.config.log_request_body",
-                true,
-                "plugins.security.audit.config.resolve_indices",
-                true,
-                "plugins.security.audit.config.resolve_bulk_requests",
-                true,
-                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES,
-                "watched-*",
-                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
-                "read-watched"
-            )
-        )
-        .sslOnly(true)
-        .build();
+    public static LocalCluster cluster = DisabledModeAuditTestUtils.createDisabledModeAuditCluster();
 
     @Rule
     public AuditLogsRule auditLogsRule = new AuditLogsRule();
@@ -73,17 +49,7 @@ public class StandaloneAuditDisabledModeTest {
             client.putJson("disabled-test/_doc/1?refresh=true", "{\"msg\": \"hello from disabled mode\"}");
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-test".equals(idx)) return true;
-            }
-            return false;
-        });
+        auditLogsRule.assertAtLeast(1, msg -> messageMatchesIndex(msg, AuditCategory.REQUEST_AUDIT, "disabled-test"));
     }
 
     @Test
@@ -120,16 +86,8 @@ public class StandaloneAuditDisabledModeTest {
 
         // In disabled mode without mTLS client auth, there's no user identity
         auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
+            if (!messageMatchesIndex(msg, AuditCategory.REQUEST_AUDIT, "disabled-nouser")) return false;
             Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            boolean isOurs = false;
-            for (String idx : indexArr) {
-                if ("disabled-nouser".equals(idx)) isOurs = true;
-            }
-            if (!isOurs) return false;
             // effective_user should be absent (no auth in disabled mode)
             return fields.get(AuditMessage.REQUEST_EFFECTIVE_USER) == null;
         });
@@ -175,29 +133,8 @@ public class StandaloneAuditDisabledModeTest {
             client.postJson("_bulk?refresh=true", bulkBody);
         }
 
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-bulk-a".equals(idx)) return true;
-            }
-            return false;
-        });
-
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.REQUEST_AUDIT) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            Object indices = fields.get(AuditMessage.INDICES);
-            if (indices == null) return false;
-            String[] indexArr = (String[]) indices;
-            for (String idx : indexArr) {
-                if ("disabled-bulk-b".equals(idx)) return true;
-            }
-            return false;
-        });
+        auditLogsRule.assertAtLeast(1, msg -> messageMatchesIndex(msg, AuditCategory.REQUEST_AUDIT, "disabled-bulk-a"));
+        auditLogsRule.assertAtLeast(1, msg -> messageMatchesIndex(msg, AuditCategory.REQUEST_AUDIT, "disabled-bulk-b"));
     }
 
     // =====================================================================
