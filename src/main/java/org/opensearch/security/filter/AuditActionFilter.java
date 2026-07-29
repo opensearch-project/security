@@ -277,7 +277,7 @@ public class AuditActionFilter implements ActionFilter {
             }
 
             // Request body (extracted from transport request object)
-            if (filter.shouldLogRequestBody()) {
+            if (filter.shouldLogRequestBody() && !filter.isBodyExcluded(action)) {
                 addRequestBody(msg, request);
             }
 
@@ -322,7 +322,10 @@ public class AuditActionFilter implements ActionFilter {
         if (!filteredHeaders.isEmpty()) {
             msg.addRestHeaders(filteredHeaders, false, null);
         }
-        if (filter.shouldLogRequestBody() && innerRequest instanceof IndexRequest) {
+        // Note: isBodyExcluded checks against the parent bulk action (e.g. "indices:data/write/bulk[s]"),
+        // not the individual sub-item action. This makes bulk body exclusion all-or-nothing per request —
+        // you cannot selectively keep index-item bodies while dropping delete-item bodies within the same bulk.
+        if (filter.shouldLogRequestBody() && !filter.isBodyExcluded(action) && innerRequest instanceof IndexRequest) {
             IndexRequest ir = (IndexRequest) innerRequest;
             if (ir.source() != null) {
                 msg.addTupleToRequestBody(new Tuple<>(ir.getContentType(), ir.source()));

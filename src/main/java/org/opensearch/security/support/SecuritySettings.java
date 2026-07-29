@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.config.AuditConfig;
 
 public class SecuritySettings {
@@ -238,5 +239,20 @@ public class SecuritySettings {
         Function.identity(),
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
+    );
+
+    // Body logging exclusions — dynamic list of group names or raw patterns
+    public static final Setting<List<String>> AUDIT_BODY_LOGGING_EXCLUSIONS = Setting.listSetting(
+        AUDIT_CONFIG_PREFIX + "body_logging_exclusions",
+        Collections.emptyList(),
+        Function.identity(),
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    );
+
+    // Action groups prefix — registered as group setting to accept any sub-key
+    public static final Setting<Settings> AUDIT_ACTION_GROUPS = Setting.groupSetting(
+        AUDIT_CONFIG_PREFIX + "action_groups.",
+        Setting.Property.NodeScope
     );
 }
