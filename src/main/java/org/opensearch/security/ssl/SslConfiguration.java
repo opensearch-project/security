@@ -63,8 +63,7 @@ public class SslConfiguration {
     }
 
     public List<Path> dependentFiles() {
-        return Stream.concat(keyStoreConfiguration.files().stream(), Stream.of(trustStoreConfiguration.file()))
-            .collect(Collectors.toList());
+        return Stream.concat(keyStoreConfiguration.files().stream(), trustStoreConfiguration.files().stream()).collect(Collectors.toList());
     }
 
     public List<Certificate> certificates() {
@@ -133,7 +132,7 @@ public class SslConfiguration {
      * This only affects the TLS engine's handshake signing; the JDK {@link io.netty.handler.ssl.SslProvider} is unchanged.
      */
     private void routePkcs11ThroughSunJsse(final SslContextBuilder builder) {
-        if (!keyStoreConfiguration.isPkcs11()) {
+        if (!(keyStoreConfiguration instanceof KeyStoreConfiguration.Pkcs11KeyStoreConfiguration)) {
             return;
         }
         final Provider sunJSSE = Security.getProvider("SunJSSE");

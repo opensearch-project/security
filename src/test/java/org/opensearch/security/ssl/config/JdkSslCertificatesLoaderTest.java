@@ -17,11 +17,13 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
 import org.junit.Test;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.env.TestEnvironment;
@@ -30,11 +32,13 @@ import org.opensearch.security.support.FipsMode;
 import static java.util.Objects.isNull;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_PASSWORD;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_PASSWORD;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS;
@@ -53,10 +57,11 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_TYPE;
+import static org.junit.Assert.assertThrows;
 
 public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
 
-    static final Function<String, String> resolveKeyStoreType = s -> isNull(s) ? DEFAULT_STORE_TYPE : s;
+    static final Function<String, String> resolveKeyStoreType = s -> isNull(s) ? DEFAULT_STORE_TYPE : s.toUpperCase(Locale.ROOT);
 
     static final String SERVER_TRUSTSTORE_ALIAS = "server-truststore-alias";
 
@@ -179,6 +184,35 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
             List.of(keyStorePath),
             new Certificate(clientAccessCertificate, resolveKeyStoreType.apply(keyStoreType), CLIENT_KEYSTORE_ALIAS, true)
         );
+    }
+
+    @Test
+    public void failsWhenBothLegacyAndSecureKeyStorePasswordsAreSet() throws Exception {
+        final var keyStoreType = randomKeyStoreType();
+        final var keyStorePath = createKeyStore(
+            keyStoreType,
+            DEFAULT_STORE_PASSWORD,
+            Map.of(
+                "default-keystore-alias",
+                Tuple.tuple(certificatesRule.accessCertificatePrivateKey(), certificatesRule.x509AccessCertificate())
+            )
+        );
+
+        final var secureSettings = new MockSecureSettings();
+        secureSettings.setString(SSL_HTTP_PREFIX + "keystore_password_secure", DEFAULT_STORE_PASSWORD);
+
+        final var settings = defaultSettingsBuilder().put(SSL_HTTP_PREFIX + ENABLED, true)
+            .put(SSL_HTTP_PREFIX + KEYSTORE_FILEPATH, keyStorePath)
+            .put(SSL_HTTP_PREFIX + KEYSTORE_TYPE, keyStoreType)
+            .put(SSL_HTTP_PREFIX + KEYSTORE_PASSWORD, DEFAULT_STORE_PASSWORD) // the legacy setting
+            .setSecureSettings(secureSettings) // the secure setting
+            .build();
+
+        final var e = assertThrows(
+            OpenSearchException.class,
+            () -> new SslCertificatesLoader(SSL_HTTP_PREFIX).loadConfiguration(TestEnvironment.newEnvironment(settings))
+        );
+        assertThat(e.getMessage(), containsString("must be set not both"));
     }
 
     private void testJdkBasedSslConfiguration(final String sslConfigPrefix, final boolean useAuthorityCertificate) throws Exception {

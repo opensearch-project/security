@@ -14,46 +14,23 @@ package org.opensearch.security.ssl.config;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
 
-import com.google.common.collect.ImmutableList;
-
 import org.opensearch.OpenSearchException;
+import org.opensearch.security.support.PemKeyReader;
 
-public interface TrustStoreConfiguration {
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
-    TrustStoreConfiguration EMPTY_CONFIGURATION = new TrustStoreConfiguration() {
-        @Override
-        public Path file() {
-            return null;
-        }
+public sealed interface TrustStoreConfiguration {
 
-        @Override
-        public List<Certificate> loadCertificates() {
-            return List.of();
-        }
+    TrustStoreConfiguration EMPTY_CONFIGURATION = new EmptyTrustStoreConfiguration();
 
-        @Override
-        public KeyStore createTrustStore() {
-            return null;
-        }
-
-        @Override
-        public TrustManagerFactory createTrustManagerFactory(boolean validateCertificates, Set<X500Principal> issuerDns) {
-            return null;
-        }
-    };
-
-    Path file();
+    List<Path> files();
 
     List<Certificate> loadCertificates();
 
@@ -77,85 +54,100 @@ public interface TrustStoreConfiguration {
 
     KeyStore createTrustStore();
 
-    final class JdkTrustStoreConfiguration implements TrustStoreConfiguration {
+    /**
+     * No trust store configured at all - see {@link #EMPTY_CONFIGURATION}, the only instance worth holding.
+     * Returning a {@code null} trust manager factory leaves the peer verification to whatever the TLS engine
+     * defaults to; the empty file list keeps it out of the reload watch.
+     */
+    record EmptyTrustStoreConfiguration() implements TrustStoreConfiguration {
 
-        private final Path path;
-
-        private final String type;
-
-        private final String alias;
-
-        private final char[] password;
-
-        public JdkTrustStoreConfiguration(final Path path, final String type, final String alias, final char[] password) {
-            this.path = path;
-            this.type = type;
-            this.alias = alias;
-            this.password = password;
+        @Override
+        public List<Path> files() {
+            return List.of();
         }
 
         @Override
         public List<Certificate> loadCertificates() {
-            final var keyStore = KeyStoreUtils.loadKeyStore(path, type, password);
-            final var listBuilder = ImmutableList.<Certificate>builder();
-            try {
-                if (alias != null) {
-                    listBuilder.add(new Certificate((X509Certificate) keyStore.getCertificate(alias), type, alias, false));
-                } else {
-                    for (final var a : Collections.list(keyStore.aliases())) {
-                        if (!keyStore.isCertificateEntry(a)) continue;
-                        final var c = keyStore.getCertificate(a);
-                        if (c instanceof X509Certificate) {
-                            listBuilder.add(new Certificate((X509Certificate) c, type, a, false));
-                        }
-                    }
-                }
-                final var list = listBuilder.build();
-                if (list.isEmpty()) {
-                    throw new OpenSearchException(
-                        "The truststore " + (path != null ? path : "(PKCS#11 token)") + " does not contain any certificates"
-                    );
-                }
-                return listBuilder.build();
-            } catch (GeneralSecurityException e) {
-                throw new OpenSearchException("Couldn't load certificates from " + (path != null ? path : "PKCS#11 token"), e);
-            }
-        }
-
-        @Override
-        public Path file() {
-            return path;
+            return List.of();
         }
 
         @Override
         public KeyStore createTrustStore() {
-            return KeyStoreUtils.loadTrustStore(path, type, alias, password);
+            return null;
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            JdkTrustStoreConfiguration that = (JdkTrustStoreConfiguration) o;
-            return Objects.equals(path, that.path)
-                && Objects.equals(type, that.type)
-                && Objects.equals(alias, that.alias)
-                && Objects.deepEquals(password, that.password);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(path, type, alias, Arrays.hashCode(password));
+        public TrustManagerFactory createTrustManagerFactory(boolean validateCertificates, Set<X500Principal> issuerDns) {
+            return null;
         }
     }
 
-    final class PemTrustStoreConfiguration implements TrustStoreConfiguration {
+    /**
+     * A file-based trust store in any type a registered provider offers, e.g. JKS, JCEKS, PKCS12 or BCFKS.
+     *
+     * @param path location of the trust store file
+     * @param type store type, as resolved from the settings or detected from the file
+     * @param alias optional alias to narrow the trusted certificates down to
+     * @param password password of the store
+     */
+    record JdkTrustStoreConfiguration(Path path, String type, String alias, StorePassword password) implements TrustStoreConfiguration {
 
-        private final Path path;
-
-        public PemTrustStoreConfiguration(final Path path) {
-            this.path = path;
+        @Override
+        public List<Certificate> loadCertificates() {
+            final var trustStore = KeyStoreUtils.loadKeyStore(path, type, password.chars());
+            return KeyStoreUtils.loadTrustedCertificates(trustStore, type, alias, path.toString());
         }
+
+        @Override
+        public List<Path> files() {
+            return List.of(path);
+        }
+
+        @Override
+        public KeyStore createTrustStore() {
+            return KeyStoreUtils.loadTrustStore(path, type, alias, password.chars());
+        }
+
+    }
+
+    /**
+     * Trusted certificates held in a PKCS#11 token. There is no file on disk, so nothing to watch for reloads.
+     * Unlike private keys, certificates can be read out of a token, so narrowing down to {@link #alias()} is
+     * possible - it is done into an in-memory store rather than the token, which is never written to.
+     *
+     * @param alias optional alias to narrow the trusted certificates down to
+     * @param pin the token PIN, taken from the {@code truststore_password} setting
+     */
+    record Pkcs11TrustStoreConfiguration(String alias, StorePassword pin) implements TrustStoreConfiguration {
+
+        static final String TYPE = PemKeyReader.PKCS11;
+
+        private static final String SOURCE = "PKCS#11 token";
+
+        @Override
+        public List<Certificate> loadCertificates() {
+            return KeyStoreUtils.loadTrustedCertificates(KeyStoreUtils.loadPkcs11Store(pin.chars()), TYPE, alias, SOURCE);
+        }
+
+        @Override
+        public List<Path> files() {
+            return List.of();
+        }
+
+        @Override
+        public KeyStore createTrustStore() {
+            final var tokenStore = KeyStoreUtils.loadPkcs11Store(pin.chars());
+            return alias != null ? KeyStoreUtils.narrowToAlias(tokenStore, DEFAULT_STORE_TYPE, alias, SOURCE) : tokenStore;
+        }
+
+    }
+
+    /**
+     * Trusted certificates in PEM format.
+     *
+     * @param path location of the PEM file holding the trusted certificates
+     */
+    record PemTrustStoreConfiguration(Path path) implements TrustStoreConfiguration {
 
         @Override
         public List<Certificate> loadCertificates() {
@@ -163,26 +155,13 @@ public interface TrustStoreConfiguration {
         }
 
         @Override
-        public Path file() {
-            return path;
+        public List<Path> files() {
+            return List.of(path);
         }
 
         @Override
         public KeyStore createTrustStore() {
             return KeyStoreUtils.newTrustStoreFromPem(path);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PemTrustStoreConfiguration that = (PemTrustStoreConfiguration) o;
-            return Objects.equals(path, that.path);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(path);
         }
     }
 

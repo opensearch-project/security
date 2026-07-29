@@ -14,12 +14,8 @@ package org.opensearch.security.ssl.config;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.net.ssl.KeyManagerFactory;
@@ -31,19 +27,11 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.support.PemKeyReader;
 
-public interface KeyStoreConfiguration {
+public sealed interface KeyStoreConfiguration {
 
     List<Path> files();
 
     List<Certificate> loadCertificates();
-
-    /**
-     * @return true when the key material is held in a PKCS#11 token. Such keys are non-exportable, so the
-     * TLS engine must delegate signing to the token's provider (SunPKCS11) rather than BouncyCastle FIPS.
-     */
-    default boolean isPkcs11() {
-        return false;
-    }
 
     default KeyManagerFactory createKeyManagerFactory(boolean validateCertificates) {
         final var keyStore = createKeyStore();
@@ -60,131 +48,99 @@ public interface KeyStoreConfiguration {
             .collect(Collectors.toSet());
     }
 
-    default KeyManagerFactory buildKeyManagerFactory(final KeyStore keyStore, final char[] password) {
+    default KeyManagerFactory buildKeyManagerFactory(final KeyStore keyStore, final StorePassword password) {
         try {
             final var keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(keyStore, password);
+            keyManagerFactory.init(keyStore, password.chars());
             return keyManagerFactory;
         } catch (GeneralSecurityException e) {
             throw new OpenSearchException("Failed to create KeyManagerFactory", e);
         }
     }
 
-    Tuple<KeyStore, char[]> createKeyStore();
+    Tuple<KeyStore, StorePassword> createKeyStore();
 
-    final class JdkKeyStoreConfiguration implements KeyStoreConfiguration {
-        private final Path path;
-
-        private final String type;
-
-        private final String alias;
-
-        private final char[] keyStorePassword;
-
-        private final char[] keyPassword;
-
-        public JdkKeyStoreConfiguration(
-            final Path path,
-            final String type,
-            final String alias,
-            final char[] keyStorePassword,
-            final char[] keyPassword
-        ) {
-            this.path = path;
-            this.type = type;
-            this.alias = alias;
-            this.keyStorePassword = keyStorePassword;
-            this.keyPassword = keyPassword;
-        }
-
-        private void loadCertificateChain(final String alias, final KeyStore keyStore, final ImmutableList.Builder<Certificate> listBuilder)
-            throws KeyStoreException {
-            final var cc = keyStore.getCertificateChain(alias);
-            var first = true;
-            for (final var c : cc) {
-                if (c instanceof X509Certificate) {
-                    listBuilder.add(new Certificate((X509Certificate) c, type, alias, first));
-                    first = false;
-                }
-            }
-        }
+    /**
+     * A file-based key store in any type a registered provider offers, e.g. JKS, JCEKS, PKCS12 or BCFKS.
+     *
+     * @param path location of the key store file
+     * @param type store type, as resolved from the settings or detected from the file
+     * @param alias optional alias of the key entry to use
+     * @param keyStorePassword password of the store itself
+     * @param keyPassword password of the key entry
+     */
+    record JdkKeyStoreConfiguration(Path path, String type, String alias, StorePassword keyStorePassword, StorePassword keyPassword)
+        implements
+            KeyStoreConfiguration {
 
         @Override
         public List<Certificate> loadCertificates() {
-            final var keyStore = KeyStoreUtils.loadKeyStore(path, type, keyStorePassword);
-            final var listBuilder = ImmutableList.<Certificate>builder();
-
-            try {
-                if (alias != null) {
-                    if (keyStore.isKeyEntry(alias)) {
-                        loadCertificateChain(alias, keyStore, listBuilder);
-                    }
-                } else {
-                    for (final var a : Collections.list(keyStore.aliases())) {
-                        if (keyStore.isKeyEntry(a)) {
-                            loadCertificateChain(a, keyStore, listBuilder);
-                        }
-                    }
-                }
-                final var list = listBuilder.build();
-                if (list.isEmpty()) {
-                    throw new OpenSearchException(
-                        "The keystore " + (path != null ? path : "(PKCS#11 token)") + " does not contain any certificates"
-                    );
-                }
-                return listBuilder.build();
-            } catch (GeneralSecurityException e) {
-                throw new OpenSearchException("Couldn't load certificates from " + (path != null ? path : "PKCS#11 token"), e);
-            }
-        }
-
-        @Override
-        public boolean isPkcs11() {
-            return PemKeyReader.PKCS11.equalsIgnoreCase(type);
+            final var keyStore = KeyStoreUtils.loadKeyStore(path, type, keyStorePassword.chars());
+            return KeyStoreUtils.loadKeyEntryCertificates(keyStore, type, alias, path.toString());
         }
 
         @Override
         public List<Path> files() {
-            return path != null ? List.of(path) : List.of();
+            return List.of(path);
         }
 
         @Override
-        public Tuple<KeyStore, char[]> createKeyStore() {
-            final var keyStore = KeyStoreUtils.newKeyStore(path, type, alias, keyStorePassword, keyPassword);
-            return Tuple.tuple(keyStore, keyPassword);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            JdkKeyStoreConfiguration that = (JdkKeyStoreConfiguration) o;
-            return Objects.equals(path, that.path)
-                && Objects.equals(type, that.type)
-                && Objects.equals(alias, that.alias)
-                && Objects.deepEquals(keyStorePassword, that.keyStorePassword)
-                && Objects.deepEquals(keyPassword, that.keyPassword);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(path, type, alias, Arrays.hashCode(keyStorePassword), Arrays.hashCode(keyPassword));
+        public Tuple<KeyStore, StorePassword> createKeyStore() {
+            return Tuple.tuple(KeyStoreUtils.newKeyStore(path, type, alias, keyStorePassword.chars(), keyPassword.chars()), keyPassword);
         }
     }
 
-    final class PemKeyStoreConfiguration implements KeyStoreConfiguration {
+    /**
+     * Key material held in a PKCS#11 token: there is no file on disk, and the private key is non-exportable,
+     * so it can be neither copied into another store nor signed with by the BouncyCastle FIPS JSSE provider.
+     * {@link org.opensearch.security.ssl.SslConfiguration} recognizes this type and routes the handshake
+     * through SunJSSE, which delegates signing to the token's own provider (SunPKCS11).
+     *
+     * @param alias optional alias of the key entry to report certificates for
+     * @param pin the token PIN, taken from the {@code keystore_password} setting
+     * @param keyPassword password of the key entry, usually the PIN as well
+     */
+    record Pkcs11KeyStoreConfiguration(String alias, StorePassword pin, StorePassword keyPassword) implements KeyStoreConfiguration {
 
-        private final Path certificateChainPath;
+        static final String TYPE = PemKeyReader.PKCS11;
 
-        private final Path keyPath;
+        private static final String SOURCE = "PKCS#11 token";
 
-        private final char[] keyPassword;
-
-        public PemKeyStoreConfiguration(final Path certificateChainPath, final Path keyPath, final char[] keyPassword) {
-            this.certificateChainPath = certificateChainPath;
-            this.keyPath = keyPath;
-            this.keyPassword = keyPassword;
+        @Override
+        public List<Certificate> loadCertificates() {
+            return KeyStoreUtils.loadKeyEntryCertificates(loadToken(), TYPE, alias, SOURCE);
         }
+
+        /**
+         * @return no files - a token is not backed by anything on disk, hence nothing to watch for reloads
+         */
+        @Override
+        public List<Path> files() {
+            return List.of();
+        }
+
+        /**
+         * Returns the token store as it is. Unlike the file-based configurations this cannot narrow the store
+         * down to {@link #alias()}, because that requires extracting the key, which the token does not permit.
+         */
+        @Override
+        public Tuple<KeyStore, StorePassword> createKeyStore() {
+            return Tuple.tuple(loadToken(), keyPassword);
+        }
+
+        private KeyStore loadToken() {
+            return KeyStoreUtils.loadPkcs11Store(pin.chars());
+        }
+    }
+
+    /**
+     * A certificate chain and a private key, both in PEM format.
+     *
+     * @param certificateChainPath location of the certificate chain
+     * @param keyPath location of the private key
+     * @param keyPassword password of the private key, {@link StorePassword#NONE} when it is not encrypted
+     */
+    record PemKeyStoreConfiguration(Path certificateChainPath, Path keyPath, StorePassword keyPassword) implements KeyStoreConfiguration {
 
         @Override
         public List<Certificate> loadCertificates() {
@@ -203,24 +159,8 @@ public interface KeyStoreConfiguration {
         }
 
         @Override
-        public Tuple<KeyStore, char[]> createKeyStore() {
-            final var keyStore = KeyStoreUtils.newKeyStoreFromPem(certificateChainPath, keyPath, keyPassword);
-            return Tuple.tuple(keyStore, keyPassword);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PemKeyStoreConfiguration that = (PemKeyStoreConfiguration) o;
-            return Objects.equals(certificateChainPath, that.certificateChainPath)
-                && Objects.equals(keyPath, that.keyPath)
-                && Objects.deepEquals(keyPassword, that.keyPassword);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(certificateChainPath, keyPath, Arrays.hashCode(keyPassword));
+        public Tuple<KeyStore, StorePassword> createKeyStore() {
+            return Tuple.tuple(KeyStoreUtils.newKeyStoreFromPem(certificateChainPath, keyPath, keyPassword.chars()), keyPassword);
         }
     }
 
