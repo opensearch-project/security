@@ -289,10 +289,10 @@ public class AuditMessageTest {
     }
 
     @Test
-    public void testAddRequestIdEmptyStringIsStored() {
-        // Empty string is technically valid — the null check only skips null
+    public void testAddRequestIdEmptyStringIsIgnored() {
+        // Empty string is rejected — only non-empty values are stored
         message.addRequestId("");
-        assertThat(message.getAsMap().get(AuditMessage.REQUEST_ID), is(""));
+        assertNull(message.getAsMap().get(AuditMessage.REQUEST_ID));
     }
 
     @Test

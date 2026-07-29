@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
@@ -44,6 +43,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.common.UUIDs;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
@@ -180,16 +180,7 @@ public class SecurityRestFilter {
 
             // Stash audit correlation ID: use X-Request-Id header if present, otherwise generate UUID
             if (threadContext.getTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID) == null) {
-                String requestId = threadContext.getHeader(Task.X_REQUEST_ID);
-                if (requestId == null || requestId.isEmpty()) {
-                    requestId = UUID.randomUUID().toString();
-                } else {
-                    // Sanitize: limit length and strip control characters to prevent log injection
-                    if (requestId.length() > 128) {
-                        requestId = requestId.substring(0, 128);
-                    }
-                    requestId = requestId.replaceAll("[\\p{Cntrl}]", "");
-                }
+                String requestId = sanitizeRequestId(threadContext.getHeader(Task.X_REQUEST_ID));
                 threadContext.putTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID, requestId);
             }
 
@@ -424,5 +415,27 @@ public class SecurityRestFilter {
             }
         }
         return true;
+    }
+
+    /** Pre-compiled pattern for control character stripping — avoids recompilation on every call. */
+    private static final Pattern CONTROL_CHARS = Pattern.compile("\\p{Cntrl}");
+
+    /**
+     * Sanitizes a raw X-Request-Id header value for use as an audit correlation ID.
+     * Strips control characters to prevent log injection. Does not truncate — core's
+     * http.request_id.max_length setting already validates length before the header reaches us.
+     * Returns null if the input reduces to empty after sanitization (caller should skip storing).
+     */
+    public static String sanitizeRequestId(String rawRequestId) {
+        if (rawRequestId == null || rawRequestId.isEmpty()) {
+            return UUIDs.base64UUID();
+        }
+        rawRequestId = CONTROL_CHARS.matcher(rawRequestId).replaceAll("");
+        if (rawRequestId.isEmpty()) {
+            // Header was entirely control chars — unusable. Return null so each node
+            // doesn't independently generate a different ID (which defeats correlation).
+            return null;
+        }
+        return rawRequestId;
     }
 }

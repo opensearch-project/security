@@ -30,7 +30,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
@@ -95,7 +94,7 @@ public class AuditRequestIdCorrelationTest {
     }
 
     @Test
-    public void shouldGenerateUuidWhenNoXRequestIdHeader() throws Exception {
+    public void shouldGenerateIdWhenNoXRequestIdHeader() throws Exception {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             client.get("_cluster/health");
         }
@@ -105,10 +104,10 @@ public class AuditRequestIdCorrelationTest {
 
         assertThat(messages.size(), greaterThanOrEqualTo(1));
 
-        // Should have a generated UUID (36 chars: 8-4-4-4-12)
+        // Should have a generated ID (UUIDs.base64UUID() — ~20 chars, base64-encoded)
         String requestId = (String) messages.get(0).getAsMap().get(AuditMessage.REQUEST_ID);
         assertThat(requestId, notNullValue());
-        assertThat(requestId, matchesPattern("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"));
+        assertThat("Generated ID should be non-empty", requestId.length(), greaterThanOrEqualTo(1));
     }
 
     @Test
@@ -131,7 +130,7 @@ public class AuditRequestIdCorrelationTest {
     }
 
     @Test
-    public void shouldIncludeRequestIdInComplianceDocWriteEvent() throws Exception {
+    public void shouldShareRequestIdBetweenUserEventAndComplianceEvent() throws Exception {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
             client.putJson(
                 "watched-corr/_doc/1",
@@ -153,5 +152,31 @@ public class AuditRequestIdCorrelationTest {
         // Compliance event should have the client-provided request ID
         String complianceRequestId = (String) complianceWrites.get(0).getAsMap().get(AuditMessage.REQUEST_ID);
         assertThat("Compliance write event should have request ID", complianceRequestId, equalTo("compliance-trace-123"));
+
+        // User-initiated event (AUTHENTICATED or GRANTED_PRIVILEGES) should share the same ID
+        List<AuditMessage> userEvents = messages.stream()
+            .filter(msg -> msg.getCategory() == AuditCategory.AUTHENTICATED || msg.getCategory() == AuditCategory.GRANTED_PRIVILEGES)
+            .collect(Collectors.toList());
+        assertThat("Should produce a user-initiated event", userEvents.size(), greaterThanOrEqualTo(1));
+        String userEventRequestId = (String) userEvents.get(0).getAsMap().get(AuditMessage.REQUEST_ID);
+        assertThat("User event and compliance event must share the same request ID", userEventRequestId, equalTo(complianceRequestId));
+    }
+
+    @Test
+    public void shouldStampRequestIdOnAdminCertPath() throws Exception {
+        // Admin cert requests still go through SecurityRestFilter on the coordinating node,
+        // so they DO get a request ID. This verifies no NPE on the admin cert path.
+        try (TestRestClient client = cluster.getRestClient(cluster.getTestCertificates().getAdminCertificateData())) {
+            client.putJson("_cluster/settings", "{\"transient\": {\"cluster.routing.allocation.enable\": \"all\"}}");
+        }
+
+        auditLogsRule.waitForAuditLogs();
+        List<AuditMessage> messages = auditLogsRule.getCurrentTestAuditMessages();
+
+        for (AuditMessage msg : messages) {
+            Object requestId = msg.getAsMap().get(AuditMessage.REQUEST_ID);
+            // On single-node, all events go through SecurityRestFilter → should have an ID
+            assertThat("Events on single-node should have request ID", requestId, notNullValue());
+        }
     }
 }

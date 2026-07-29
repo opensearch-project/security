@@ -30,6 +30,7 @@ import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
@@ -135,11 +136,14 @@ public class AuditLogImpl extends AbstractAuditLog {
     @Override
     protected void save(final AuditMessage msg) {
         if (enabled) {
-            // Try transient first (coordinating node, includes server-generated UUID),
-            // fall back to X-Request-Id header (propagated by core to remote nodes)
-            String requestId = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID);
+            // Try transient first (coordinating node, already sanitized by SecurityRestFilter),
+            // fall back to X-Request-Id header (propagated by core to remote nodes — needs sanitization)
+            String requestId = getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID);
             if (requestId == null) {
-                requestId = threadPool.getThreadContext().getHeader(Task.X_REQUEST_ID);
+                String rawHeader = getThreadContext().getHeader(Task.X_REQUEST_ID);
+                if (rawHeader != null && !rawHeader.isEmpty()) {
+                    requestId = SecurityRestFilter.sanitizeRequestId(rawHeader);
+                }
             }
             msg.addRequestId(requestId);
             messageRouter.route(msg);

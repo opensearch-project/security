@@ -175,7 +175,7 @@ public final class AuditMessage {
     }
 
     public void addRequestId(String requestId) {
-        if (requestId != null) {
+        if (requestId != null && !requestId.isEmpty()) {
             auditInfo.put(REQUEST_ID, requestId);
         }
     }
