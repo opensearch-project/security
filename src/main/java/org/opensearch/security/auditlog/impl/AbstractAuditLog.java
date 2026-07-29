@@ -313,8 +313,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
-            enrichWithUserContext(msg);
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -351,8 +352,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
-            enrichWithUserContext(msg);
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -390,8 +392,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         msgs.forEach(msg -> {
-            enrichWithUserContext(msg);
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         });
     }
@@ -666,8 +669,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
-            enrichWithUserContext(msg);
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -1176,12 +1180,19 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     /**
-     * Enriches the audit message with user roles and authentication method
-     * from the User object in ThreadContext (if available).
-     * Uses resolveUser() to avoid duplicating deserialization logic.
+     * Enriches the audit message with user roles and authentication method.
+     * Resolves the User from ThreadContext — suitable for single-message REST paths.
      */
     private void enrichWithUserContext(AuditMessage msg) {
-        User user = resolveUser();
+        enrichWithUserContext(msg, resolveUser());
+    }
+
+    /**
+     * Enriches the audit message with a pre-resolved User object.
+     * Use this overload in loops to avoid redundant deserialization
+     * for bulk/multi-message transport paths.
+     */
+    private void enrichWithUserContext(AuditMessage msg, User user) {
         if (user == null) {
             return;
         }

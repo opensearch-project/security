@@ -419,7 +419,7 @@ public final class AuditMessage {
             // Respects the ignore_headers configuration — if an admin excludes "user-agent",
             // we skip extraction to stay consistent with the header exclusion in addRestHeaders().
             Map<String, List<String>> headers = request.getHeaders();
-            if (headers != null && (filter == null || !filter.shouldExcludeHeader("user-agent"))) {
+            if (headers != null && !filter.shouldExcludeHeader("user-agent")) {
                 List<String> userAgentValues = headers.entrySet()
                     .stream()
                     .filter(e -> "user-agent".equalsIgnoreCase(e.getKey()))
