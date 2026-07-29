@@ -1193,8 +1193,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }.toListener());
 
             indexModule.addIndexEventListener(cr);
-        } else if (!disabled && !client && auditLog != null && !(auditLog instanceof NullAuditLog)) {
-            // Non-FGAC mode: register compliance listener for standalone audit
+        } else if ((disabled || SSLConfig.isSslOnlyMode()) && !client && auditLog != null && !(auditLog instanceof NullAuditLog)) {
+            // Non-FGAC mode (SSL-only or disabled): register compliance listener for standalone audit
             final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog, threadPool);
             indexModule.addIndexOperationListener(ciol);
 
