@@ -1156,27 +1156,32 @@ public abstract class AbstractAuditLog implements AuditLog {
         return address;
     }
 
-    private String getUser() {
+    /**
+     * Resolves the current User from ThreadContext: first tries the transient slot,
+     * then falls back to deserializing from the serialized header (transport hops).
+     */
+    private User resolveUser() {
         User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
             user = this.userFactory.fromSerializedBase64(
                 threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
             );
         }
+        return user;
+    }
+
+    private String getUser() {
+        User user = resolveUser();
         return user == null ? null : user.getName();
     }
 
     /**
      * Enriches the audit message with user roles and authentication method
      * from the User object in ThreadContext (if available).
+     * Uses resolveUser() to avoid duplicating deserialization logic.
      */
     private void enrichWithUserContext(AuditMessage msg) {
-        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
-            user = this.userFactory.fromSerializedBase64(
-                threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
-            );
-        }
+        User user = resolveUser();
         if (user == null) {
             return;
         }

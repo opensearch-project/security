@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -414,9 +415,11 @@ public final class AuditMessage {
             addRestParams(request.params(), filter);
             addRestMethod(request.method());
 
-            // Extract User-Agent as a top-level field for easy filtering
+            // Extract User-Agent as a top-level field for easy filtering.
+            // Respects the ignore_headers configuration — if an admin excludes "user-agent",
+            // we skip extraction to stay consistent with the header exclusion in addRestHeaders().
             Map<String, List<String>> headers = request.getHeaders();
-            if (headers != null) {
+            if (headers != null && (filter == null || !filter.shouldExcludeHeader("user-agent"))) {
                 List<String> userAgentValues = headers.entrySet()
                     .stream()
                     .filter(e -> "user-agent".equalsIgnoreCase(e.getKey()))
@@ -498,7 +501,7 @@ public final class AuditMessage {
 
     public void addUserRoles(Set<String> roles) {
         if (roles != null && !roles.isEmpty()) {
-            auditInfo.put(USER_ROLES, Set.copyOf(roles));
+            auditInfo.put(USER_ROLES, List.copyOf(new TreeSet<>(roles)));
         }
     }
 
