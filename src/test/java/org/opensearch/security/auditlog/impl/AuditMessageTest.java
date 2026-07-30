@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -270,5 +271,261 @@ public class AuditMessageTest {
         assertThat(splitMessages.size(), is(2));
         // all messages share the same ID
         assertThat(splitMessages.stream().map(AuditMessageTest::getSplitMessageId).distinct().count(), is(1L));
+    }
+
+    // --- Resource Sharing audit field tests ---
+
+    @Test
+    public void testAddResourceIdPopulatesField() {
+        message.addResourceId("saved-query-123");
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_ID), is("saved-query-123"));
+    }
+
+    @Test
+    public void testAddResourceIdNullIsIgnored() {
+        message.addResourceId(null);
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_ID));
+    }
+
+    @Test
+    public void testAddResourceIdEmptyIsIgnored() {
+        message.addResourceId("");
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_ID));
+    }
+
+    @Test
+    public void testAddResourceTypePopulatesField() {
+        message.addResourceType("dashboard");
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_TYPE), is("dashboard"));
+    }
+
+    @Test
+    public void testAddResourceTypeNullIsIgnored() {
+        message.addResourceType(null);
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_TYPE));
+    }
+
+    @Test
+    public void testAddResourceIndexPopulatesField() {
+        message.addResourceIndex(".plugins-ml-resource-sharing");
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_INDEX), is(".plugins-ml-resource-sharing"));
+    }
+
+    @Test
+    public void testAddResourceIndexNullIsIgnored() {
+        message.addResourceIndex(null);
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_INDEX));
+    }
+
+    @Test
+    public void testAddResourceAccessResultPopulatesField() {
+        message.addResourceAccessResult("granted");
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_ACCESS_RESULT), is("granted"));
+    }
+
+    @Test
+    public void testAddResourceAccessResultDenied() {
+        message.addResourceAccessResult("denied");
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_ACCESS_RESULT), is("denied"));
+    }
+
+    @Test
+    public void testAddResourceSharingActionPopulatesField() {
+        message.addResourceSharingAction("share");
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_SHARING_ACTION), is("share"));
+    }
+
+    @Test
+    public void testAddResourceSharingActionPatch() {
+        message.addResourceSharingAction("patch");
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_SHARING_ACTION), is("patch"));
+    }
+
+    @Test
+    public void testAddResourceRecipientsAddedPopulatesField() {
+        String recipients = "ShareWith {read_write={users=[bob], roles=[analysts]}}";
+        message.addResourceRecipientsAdded(recipients);
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_RECIPIENTS_ADDED), is(recipients));
+    }
+
+    @Test
+    public void testAddResourceRecipientsAddedNullIsIgnored() {
+        message.addResourceRecipientsAdded(null);
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_RECIPIENTS_ADDED));
+    }
+
+    @Test
+    public void testAddResourceRecipientsRevokedPopulatesField() {
+        String recipients = "ShareWith {read_only={users=[charlie]}}";
+        message.addResourceRecipientsRevoked(recipients);
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_RECIPIENTS_REVOKED), is(recipients));
+    }
+
+    @Test
+    public void testAddResourceRecipientsRevokedNullIsIgnored() {
+        message.addResourceRecipientsRevoked(null);
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_RECIPIENTS_REVOKED));
+    }
+
+    @Test
+    public void testAddResourceShareWithPopulatesField() {
+        String shareWith = "ShareWith {read_write={users=[bob]}, general_access=read_only}";
+        message.addResourceShareWith(shareWith);
+        assertThat(message.getAsMap().get(AuditMessage.RESOURCE_SHARE_WITH), is(shareWith));
+    }
+
+    @Test
+    public void testAddResourceShareWithNullIsIgnored() {
+        message.addResourceShareWith(null);
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_SHARE_WITH));
+    }
+
+    @Test
+    public void testResourceAccessGrantedMessageHasCorrectCategory() {
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_ACCESS_GRANTED, clusterServiceMock, null, null);
+        msg.addResourceId("query-456");
+        msg.addResourceType("saved_query");
+        msg.addResourceAccessResult("granted");
+        msg.addEffectiveUser("bob");
+
+        Map<String, Object> fields = msg.getAsMap();
+        assertThat(fields.get(AuditMessage.CATEGORY), is(AuditCategory.RESOURCE_ACCESS_GRANTED));
+        assertThat(fields.get(AuditMessage.RESOURCE_ID), is("query-456"));
+        assertThat(fields.get(AuditMessage.RESOURCE_TYPE), is("saved_query"));
+        assertThat(fields.get(AuditMessage.RESOURCE_ACCESS_RESULT), is("granted"));
+        assertThat(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER), is("bob"));
+    }
+
+    @Test
+    public void testResourceSharingChangedMessageHasCorrectCategory() {
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_SHARING_CHANGED, clusterServiceMock, null, null);
+        msg.addResourceId("dashboard-789");
+        msg.addResourceType("dashboard");
+        msg.addResourceSharingAction("patch");
+        msg.addResourceRecipientsAdded("added-info");
+        msg.addResourceRecipientsRevoked("revoked-info");
+        msg.addEffectiveUser("alice");
+
+        Map<String, Object> fields = msg.getAsMap();
+        assertThat(fields.get(AuditMessage.CATEGORY), is(AuditCategory.RESOURCE_SHARING_CHANGED));
+        assertThat(fields.get(AuditMessage.RESOURCE_ID), is("dashboard-789"));
+        assertThat(fields.get(AuditMessage.RESOURCE_SHARING_ACTION), is("patch"));
+        assertThat(fields.get(AuditMessage.RESOURCE_RECIPIENTS_ADDED), is("added-info"));
+        assertThat(fields.get(AuditMessage.RESOURCE_RECIPIENTS_REVOKED), is("revoked-info"));
+        assertThat(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER), is("alice"));
+    }
+
+    @Test
+    public void testNewCategoriesParseFromStrings() {
+        Set<AuditCategory> parsed = AuditCategory.parse(
+            List.of("RESOURCE_ACCESS_GRANTED", "RESOURCE_ACCESS_DENIED", "RESOURCE_SHARING_CHANGED")
+        );
+        assertThat(parsed.size(), is(3));
+        assertThat(parsed.contains(AuditCategory.RESOURCE_ACCESS_GRANTED), is(true));
+        assertThat(parsed.contains(AuditCategory.RESOURCE_ACCESS_DENIED), is(true));
+        assertThat(parsed.contains(AuditCategory.RESOURCE_SHARING_CHANGED), is(true));
+    }
+
+    @Test
+    public void testNewCategoriesAreInAuthOnlySet() {
+        assertThat(AuditCategory.AUTH_ONLY_CATEGORIES.contains(AuditCategory.RESOURCE_ACCESS_GRANTED), is(true));
+        assertThat(AuditCategory.AUTH_ONLY_CATEGORIES.contains(AuditCategory.RESOURCE_ACCESS_DENIED), is(true));
+        assertThat(AuditCategory.AUTH_ONLY_CATEGORIES.contains(AuditCategory.RESOURCE_SHARING_CHANGED), is(true));
+    }
+
+    @Test
+    public void testNewCategoriesInDefaultDisabledRestList() {
+        List<String> defaults = org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT;
+        assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_GRANTED.toString()), is(true));
+        assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_DENIED.toString()), is(true));
+        assertThat(defaults.contains(AuditCategory.RESOURCE_SHARING_CHANGED.toString()), is(true));
+    }
+
+    @Test
+    public void testNewCategoriesInDefaultDisabledTransportList() {
+        List<String> defaults =
+            org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT;
+        assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_GRANTED.toString()), is(true));
+        assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_DENIED.toString()), is(true));
+        assertThat(defaults.contains(AuditCategory.RESOURCE_SHARING_CHANGED.toString()), is(true));
+    }
+
+    @Test
+    public void testResourceAccessDeniedMessageHasCorrectCategory() {
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_ACCESS_DENIED, clusterServiceMock, null, null);
+        msg.addResourceId("dashboard-999");
+        msg.addResourceType("dashboard");
+        msg.addResourceAccessResult("denied");
+        msg.addEffectiveUser("charlie");
+        msg.addAction("plugins:dashboard/get");
+
+        Map<String, Object> fields = msg.getAsMap();
+        assertThat(fields.get(AuditMessage.CATEGORY), is(AuditCategory.RESOURCE_ACCESS_DENIED));
+        assertThat(fields.get(AuditMessage.RESOURCE_ID), is("dashboard-999"));
+        assertThat(fields.get(AuditMessage.RESOURCE_ACCESS_RESULT), is("denied"));
+        assertThat(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER), is("charlie"));
+        assertThat(fields.get(AuditMessage.TRANSPORT_ACTION), is("plugins:dashboard/get"));
+    }
+
+    @Test
+    public void testAllResourceFieldsPopulatedSimultaneously() {
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_SHARING_CHANGED, clusterServiceMock, null, null);
+        msg.addResourceId("res-001");
+        msg.addResourceType("saved_query");
+        msg.addResourceIndex(".resource-sharing");
+        msg.addResourceSharingAction("patch");
+        msg.addResourceRecipientsAdded("added-users");
+        msg.addResourceRecipientsRevoked("revoked-users");
+        msg.addResourceShareWith("share-with-info");
+        msg.addResourceAccessResult("granted");
+        msg.addEffectiveUser("admin");
+
+        Map<String, Object> fields = msg.getAsMap();
+        assertThat(fields.get(AuditMessage.RESOURCE_ID), is("res-001"));
+        assertThat(fields.get(AuditMessage.RESOURCE_TYPE), is("saved_query"));
+        assertThat(fields.get(AuditMessage.RESOURCE_INDEX), is(".resource-sharing"));
+        assertThat(fields.get(AuditMessage.RESOURCE_SHARING_ACTION), is("patch"));
+        assertThat(fields.get(AuditMessage.RESOURCE_RECIPIENTS_ADDED), is("added-users"));
+        assertThat(fields.get(AuditMessage.RESOURCE_RECIPIENTS_REVOKED), is("revoked-users"));
+        assertThat(fields.get(AuditMessage.RESOURCE_SHARE_WITH), is("share-with-info"));
+        assertThat(fields.get(AuditMessage.RESOURCE_ACCESS_RESULT), is("granted"));
+        assertThat(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER), is("admin"));
+    }
+
+    @Test
+    public void testAddResourceAccessResultNullIsIgnored() {
+        message.addResourceAccessResult(null);
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_ACCESS_RESULT));
+    }
+
+    @Test
+    public void testAddResourceAccessResultEmptyIsIgnored() {
+        message.addResourceAccessResult("");
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_ACCESS_RESULT));
+    }
+
+    @Test
+    public void testAddResourceSharingActionNullIsIgnored() {
+        message.addResourceSharingAction(null);
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_SHARING_ACTION));
+    }
+
+    @Test
+    public void testAddResourceSharingActionEmptyIsIgnored() {
+        message.addResourceSharingAction("");
+        assertNull(message.getAsMap().get(AuditMessage.RESOURCE_SHARING_ACTION));
+    }
+
+    @Test
+    public void testResourceFieldsAppearInJson() {
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_ACCESS_GRANTED, clusterServiceMock, null, null);
+        msg.addResourceId("json-test-resource");
+        msg.addResourceType("saved_query");
+        msg.addResourceAccessResult("granted");
+
+        String json = msg.toJson();
+        assertThat(json, containsString("\"audit_resource_id\":\"json-test-resource\""));
+        assertThat(json, containsString("\"audit_resource_type\":\"saved_query\""));
+        assertThat(json, containsString("\"audit_resource_access_result\":\"granted\""));
     }
 }

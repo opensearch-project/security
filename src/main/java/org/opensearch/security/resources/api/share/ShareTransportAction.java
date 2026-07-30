@@ -12,6 +12,8 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.tasks.Task;
@@ -53,14 +55,61 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
                     request.getRevoke(),
                     request.isGeneralAccessPresent(),
                     request.getGeneralAccess(),
-                    sharingInfoListener
+                    auditingListener(sharingInfoListener, request, task, "patch")
                 );
                 break;
             case PUT:
-                resourceAccessHandler.share(request.id(), request.type(), request.getShareWith(), sharingInfoListener);
+                resourceAccessHandler.share(
+                    request.id(),
+                    request.type(),
+                    request.getShareWith(),
+                    auditingListener(sharingInfoListener, request, task, "share")
+                );
                 break;
         }
 
+    }
+
+    /**
+     * Wraps a listener to fire a RESOURCE_SHARING_CHANGED audit event after a successful mutation.
+     * Uses GuiceHolder to access the AuditLog since it's registered by concrete class in Guice
+     * and cannot be injected by interface type.
+     */
+    private ActionListener<ResourceSharing> auditingListener(
+        ActionListener<ResourceSharing> delegate,
+        ShareRequest request,
+        Task task,
+        String sharingAction
+    ) {
+        return ActionListener.wrap(resourceSharing -> {
+            AuditLog auditLog = OpenSearchSecurityPlugin.GuiceHolder.getAuditLog();
+            if (auditLog != null) {
+                auditLog.logResourceSharingChanged(
+                    request.id(),
+                    request.type(),
+                    sharingAction,
+                    request.getAdd() != null ? request.getAdd().toString() : null,
+                    request.getRevoke() != null ? request.getRevoke().toString() : null,
+                    request.getShareWith() != null ? request.getShareWith().toString() : null,
+                    task
+                );
+            }
+            delegate.onResponse(resourceSharing);
+        }, e -> {
+            AuditLog auditLog = OpenSearchSecurityPlugin.GuiceHolder.getAuditLog();
+            if (auditLog != null) {
+                auditLog.logResourceSharingChanged(
+                    request.id(),
+                    request.type(),
+                    sharingAction + "_denied",
+                    request.getAdd() != null ? request.getAdd().toString() : null,
+                    request.getRevoke() != null ? request.getRevoke().toString() : null,
+                    request.getShareWith() != null ? request.getShareWith().toString() : null,
+                    task
+                );
+            }
+            delegate.onFailure(e);
+        });
     }
 
 }

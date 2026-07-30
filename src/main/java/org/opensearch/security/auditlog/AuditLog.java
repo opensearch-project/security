@@ -91,6 +91,35 @@ public interface AuditLog extends Closeable {
 
     void logApiTokenRevoked(String tokenId, String revokedBy);
 
+    // Resource Sharing events
+    void logResourceAccessGranted(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    );
+
+    void logResourceAccessDenied(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    );
+
+    void logResourceSharingChanged(
+        String resourceId,
+        String resourceType,
+        String sharingAction,
+        String recipientsAdded,
+        String recipientsRevoked,
+        String shareWith,
+        Task task
+    );
+
     // compliance config
     ComplianceConfig getComplianceConfig();
 
