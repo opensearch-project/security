@@ -416,19 +416,19 @@ public final class AuditMessage {
             addRestMethod(request.method());
 
             // Extract User-Agent as a top-level field for easy filtering.
-            // Respects the ignore_headers configuration — if an admin excludes "user-agent",
-            // we skip extraction to stay consistent with the header exclusion in addRestHeaders().
+            // Respects the ignore_headers configuration — uses the actual header key from the
+            // request (e.g. "User-Agent") for the exclusion check, consistent with addRestHeaders().
             Map<String, List<String>> headers = request.getHeaders();
-            if (headers != null && !filter.shouldExcludeHeader("user-agent")) {
-                List<String> userAgentValues = headers.entrySet()
-                    .stream()
-                    .filter(e -> "user-agent".equalsIgnoreCase(e.getKey()))
-                    .map(Map.Entry::getValue)
-                    .findFirst()
-                    .orElse(null);
-                if (userAgentValues != null && !userAgentValues.isEmpty()) {
-                    addUserAgent(userAgentValues.get(0));
-                }
+            if (headers != null) {
+                headers.entrySet().stream().filter(e -> "user-agent".equalsIgnoreCase(e.getKey())).findFirst().ifPresent(entry -> {
+                    // Gate on the actual header key so casing matches what addRestHeaders() uses
+                    if (!filter.shouldExcludeHeader(entry.getKey())) {
+                        List<String> values = entry.getValue();
+                        if (values != null && !values.isEmpty()) {
+                            addUserAgent(values.get(0));
+                        }
+                    }
+                });
             }
 
             if (filter.shouldLogRequestBody() && !filter.isBodyExcluded(path)) {

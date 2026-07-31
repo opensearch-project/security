@@ -351,8 +351,9 @@ public class AuditMessageTest {
 
     @Test
     public void testUserAgentExtractionRespectsIgnoreHeaders() {
-        // When filter excludes "user-agent", addRestRequestInfo should NOT extract it
-        when(auditFilterMock.shouldExcludeHeader("user-agent")).thenReturn(true);
+        // When filter excludes "User-Agent" (the actual header key from the request),
+        // addRestRequestInfo should NOT extract it
+        when(auditFilterMock.shouldExcludeHeader("User-Agent")).thenReturn(true);
         when(auditFilterMock.shouldLogRequestBody()).thenReturn(false);
 
         HttpRequest httpRequest = mock(HttpRequest.class);
@@ -386,5 +387,51 @@ public class AuditMessageTest {
 
         message.addRestRequestInfo(request, auditFilterMock);
         assertThat(message.getAsMap().get(AuditMessage.USER_AGENT), is("opensearch-java/2.6.0"));
+    }
+
+    @Test
+    public void testUserAgentExclusionUsesActualHeaderKey() {
+        // Proves our code passes the actual header key ("User-Agent") to shouldExcludeHeader(),
+        // NOT a hardcoded lowercase "user-agent". The mock returns true only for the exact
+        // canonical casing — if our code still used the hardcoded lowercase, this test would FAIL.
+        when(auditFilterMock.shouldExcludeHeader("User-Agent")).thenReturn(true);
+        when(auditFilterMock.shouldExcludeHeader("user-agent")).thenReturn(false);
+        when(auditFilterMock.shouldLogRequestBody()).thenReturn(false);
+
+        HttpRequest httpRequest = mock(HttpRequest.class);
+        when(httpRequest.uri()).thenReturn("/_cluster/health");
+        when(httpRequest.content()).thenReturn(new BytesArray(new byte[0]));
+        Map<String, List<String>> headers = ImmutableMap.of("User-Agent", ImmutableList.of("curl/7.68.0"));
+        when(httpRequest.getHeaders()).thenReturn(headers);
+
+        RestRequest restRequest = RestRequest.request(mock(NamedXContentRegistry.class), httpRequest, mock(HttpChannel.class));
+        SecurityRequest request = SecurityRequestFactory.from(restRequest);
+
+        message.addRestRequestInfo(request, auditFilterMock);
+
+        // Should be excluded because our code passes "User-Agent" (the actual key) to the filter
+        assertNull("User-Agent should be excluded when filter excludes the actual header key",
+            message.getAsMap().get(AuditMessage.USER_AGENT));
+    }
+
+    @Test
+    public void testUserAgentExtractedWhenNotInIgnoreHeaders() {
+        // When the filter does not exclude any form of user-agent, it should be extracted normally
+        when(auditFilterMock.shouldExcludeHeader("User-Agent")).thenReturn(false);
+        when(auditFilterMock.shouldExcludeHeader("user-agent")).thenReturn(false);
+        when(auditFilterMock.shouldLogRequestBody()).thenReturn(false);
+
+        HttpRequest httpRequest = mock(HttpRequest.class);
+        when(httpRequest.uri()).thenReturn("/_cluster/health");
+        when(httpRequest.content()).thenReturn(new BytesArray(new byte[0]));
+        Map<String, List<String>> headers = ImmutableMap.of("User-Agent", ImmutableList.of("opensearch-py/2.4.0"));
+        when(httpRequest.getHeaders()).thenReturn(headers);
+
+        RestRequest restRequest = RestRequest.request(mock(NamedXContentRegistry.class), httpRequest, mock(HttpChannel.class));
+        SecurityRequest request = SecurityRequestFactory.from(restRequest);
+
+        message.addRestRequestInfo(request, auditFilterMock);
+
+        assertThat(message.getAsMap().get(AuditMessage.USER_AGENT), is("opensearch-py/2.4.0"));
     }
 }
