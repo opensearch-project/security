@@ -35,6 +35,8 @@ import static org.hamcrest.Matchers.notNullValue;
 @ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
 public abstract class SslCertificatesLoaderTest extends RandomizedTest {
 
+    static final String LOGGER_NAME = SslCertificatesLoader.class.getCanonicalName();
+
     @ClassRule
     public static CertificatesRule certificatesRule = new CertificatesRule();
 

@@ -14,9 +14,12 @@ package org.opensearch.security.ssl.config;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.net.ssl.KeyManagerFactory;
 import javax.security.auth.x500.X500Principal;
@@ -27,7 +30,32 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.support.PemKeyReader;
 
+import io.netty.handler.ssl.SslContextBuilder;
+
 public sealed interface KeyStoreConfiguration {
+
+    /**
+     * Picks the implementation the configured store {@code type} asks for: a PKCS#11 token when it names one,
+     * a file-based store otherwise.
+     *
+     * @param type store type as configured, {@code null} to detect it from the content of the file
+     * @param file resolves the key store file, evaluated only when the type turns out to be file-based - a
+     * token has no file setting to resolve, and asking for one would fail
+     */
+    static KeyStoreConfiguration buildKeyStoreConfiguration(
+        final String type,
+        final Supplier<Path> file,
+        final String alias,
+        final StorePassword keyStorePassword,
+        final StorePassword keyPassword
+    ) {
+        if (Pkcs11KeyStoreConfiguration.TYPE.equalsIgnoreCase(type)) {
+            return new Pkcs11KeyStoreConfiguration(alias, keyStorePassword, keyPassword);
+        }
+        final var path = file.get();
+        final var resolvedType = PemKeyReader.extractStoreType(path.toString(), type).toUpperCase(Locale.ROOT);
+        return new JdkKeyStoreConfiguration(path, resolvedType, alias, keyStorePassword, keyPassword);
+    }
 
     List<Path> files();
 
@@ -59,6 +87,11 @@ public sealed interface KeyStoreConfiguration {
     }
 
     Tuple<KeyStore, StorePassword> createKeyStore();
+
+    /**
+     * Adjusts the TLS context to how the key of this store has to be used.
+     */
+    default void configure(final SslContextBuilder builder) {}
 
     /**
      * A file-based key store in any type a registered provider offers, e.g. JKS, JCEKS, PKCS12 or BCFKS.
@@ -93,8 +126,7 @@ public sealed interface KeyStoreConfiguration {
     /**
      * Key material held in a PKCS#11 token: there is no file on disk, and the private key is non-exportable,
      * so it can be neither copied into another store nor signed with by the BouncyCastle FIPS JSSE provider.
-     * {@link org.opensearch.security.ssl.SslConfiguration} recognizes this type and routes the handshake
-     * through SunJSSE, which delegates signing to the token's own provider (SunPKCS11).
+     * {@link #configure(SslContextBuilder)} routes the handshake around that.
      *
      * @param alias optional alias of the key entry to report certificates for
      * @param pin the token PIN, taken from the {@code keystore_password} setting
@@ -126,6 +158,21 @@ public sealed interface KeyStoreConfiguration {
         @Override
         public Tuple<KeyStore, StorePassword> createKeyStore() {
             return Tuple.tuple(loadToken(), keyPassword);
+        }
+
+        /**
+         * A token-resident private key is non-exportable, so the BouncyCastle FIPS JSSE provider cannot sign with
+         * it (it fails with "no encoding for key" during the TLS CertificateVerify). SunJSSE instead delegates the
+         * signature operation to the key's own provider (SunPKCS11), letting the token perform it. This only
+         * affects the TLS engine's handshake signing; the JDK {@link io.netty.handler.ssl.SslProvider} is unchanged.
+         */
+        @Override
+        public void configure(final SslContextBuilder builder) {
+            final var sunJSSE = Security.getProvider("SunJSSE");
+            if (sunJSSE == null) {
+                throw new OpenSearchException("SunJSSE provider not available; required for PKCS#11 key store support");
+            }
+            builder.sslContextProvider(sunJSSE);
         }
 
         private KeyStore loadToken() {

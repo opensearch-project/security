@@ -15,7 +15,9 @@ import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.TrustManagerFactory;
@@ -29,6 +31,28 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_
 public sealed interface TrustStoreConfiguration {
 
     TrustStoreConfiguration EMPTY_CONFIGURATION = new EmptyTrustStoreConfiguration();
+
+    /**
+     * Picks the implementation the configured store {@code type} asks for: a PKCS#11 token when it names one,
+     * a file-based store otherwise.
+     *
+     * @param type store type as configured, {@code null} to detect it from the content of the file
+     * @param file resolves the trust store file, evaluated only when the type turns out to be file-based - a
+     * token has no file setting to resolve, and asking for one would fail
+     */
+    static TrustStoreConfiguration buildTrustStoreConfiguration(
+        final String type,
+        final Supplier<Path> file,
+        final String alias,
+        final StorePassword password
+    ) {
+        if (Pkcs11TrustStoreConfiguration.TYPE.equalsIgnoreCase(type)) {
+            return new Pkcs11TrustStoreConfiguration(alias, password);
+        }
+        final var path = file.get();
+        final var resolvedType = PemKeyReader.extractStoreType(path.toString(), type).toUpperCase(Locale.ROOT);
+        return new JdkTrustStoreConfiguration(path, resolvedType, alias, password);
+    }
 
     List<Path> files();
 

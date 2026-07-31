@@ -37,8 +37,6 @@ public class Pkcs11SslCertificatesLoaderTest extends SslCertificatesLoaderTest {
 
     static final String TOKEN_ALIAS = "token-key-alias";
 
-    static final String LOGGER_NAME = SslCertificatesLoader.class.getCanonicalName();
-
     @Test
     public void loadsKeyAndTrustStoreFromTheTokenWithoutAnyFile() throws Exception {
         final var settings = defaultSettingsBuilder().put(SECURITY_SSL_HTTP_KEYSTORE_TYPE, PemKeyReader.PKCS11)

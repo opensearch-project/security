@@ -21,6 +21,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -28,6 +30,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.support.FipsMode;
+import org.opensearch.test.MockLogAppender;
 
 import static java.util.Objects.isNull;
 import static org.hamcrest.CoreMatchers.is;
@@ -40,6 +43,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_ALIAS
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_PASSWORD;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_TYPE;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED;
@@ -213,6 +217,43 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
             () -> new SslCertificatesLoader(SSL_HTTP_PREFIX).loadConfiguration(TestEnvironment.newEnvironment(settings))
         );
         assertThat(e.getMessage(), containsString("must be set not both"));
+    }
+
+    @Test
+    public void warnsThatPemTrustedCasAreIgnoredAlongsideAKeyStore() throws Exception {
+        final var keyStoreType = randomKeyStoreType();
+        final var keyStorePath = createKeyStore(
+            keyStoreType,
+            DEFAULT_STORE_PASSWORD,
+            Map.of(
+                "default-keystore-alias",
+                Tuple.tuple(certificatesRule.accessCertificatePrivateKey(), certificatesRule.x509AccessCertificate())
+            )
+        );
+
+        final var settings = defaultSettingsBuilder().put(SSL_HTTP_PREFIX + ENABLED, true)
+            .put(SSL_HTTP_PREFIX + KEYSTORE_FILEPATH, keyStorePath)
+            .put(SSL_HTTP_PREFIX + KEYSTORE_TYPE, keyStoreType)
+            .put(SSL_HTTP_PREFIX + PEM_TRUSTED_CAS_FILEPATH, "root-ca.pem")
+            .build();
+
+        try (final var appender = MockLogAppender.createForLoggers(LogManager.getLogger(SslCertificatesLoader.class))) {
+            appender.addExpectation(
+                new MockLogAppender.SeenEventExpectation(
+                    "names the ignored setting and the one to configure instead",
+                    LOGGER_NAME,
+                    Level.WARN,
+                    "*" + SSL_HTTP_PREFIX + PEM_TRUSTED_CAS_FILEPATH + "*" + SSL_HTTP_PREFIX + TRUSTSTORE_FILEPATH + "*"
+                )
+            );
+
+            final var configuration = new SslCertificatesLoader(SSL_HTTP_PREFIX).loadConfiguration(
+                TestEnvironment.newEnvironment(settings)
+            );
+
+            assertThat(configuration.v1(), is(TrustStoreConfiguration.EMPTY_CONFIGURATION));
+            appender.assertAllExpectationsMatched();
+        }
     }
 
     private void testJdkBasedSslConfiguration(final String sslConfigPrefix, final boolean useAuthorityCertificate) throws Exception {

@@ -14,7 +14,6 @@ package org.opensearch.security.ssl.config;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.Locale;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,41 +61,47 @@ public class SslCertificatesLoader {
     public Tuple<TrustStoreConfiguration, KeyStoreConfiguration> loadConfiguration(final Environment environment) {
         final var settings = environment.settings();
         final var sslConfigSettings = settings.getByPrefix(fullSslConfigSuffix);
-        final boolean isPkcs11Keystore = PemKeyReader.PKCS11.equalsIgnoreCase(environment.settings().get(sslConfigSuffix + KEYSTORE_TYPE));
-        final boolean isPkcs11Truststore = PemKeyReader.PKCS11.equalsIgnoreCase(
-            environment.settings().get(sslConfigSuffix + TRUSTSTORE_TYPE)
-        );
-        if (settings.hasValue(sslConfigSuffix + KEYSTORE_FILEPATH) || isPkcs11Keystore) {
+        final var keyStoreType = settings.get(sslConfigSuffix + KEYSTORE_TYPE);
+        final var trustStoreType = settings.get(sslConfigSuffix + TRUSTSTORE_TYPE);
+        final boolean isPkcs11Keystore = PemKeyReader.PKCS11.equalsIgnoreCase(keyStoreType);
+        final boolean isPkcs11Truststore = PemKeyReader.PKCS11.equalsIgnoreCase(trustStoreType);
+        final boolean usesKeyStore = settings.hasValue(sslConfigSuffix + KEYSTORE_FILEPATH) || isPkcs11Keystore;
+        final boolean usesTrustStore = settings.hasValue(sslConfigSuffix + TRUSTSTORE_FILEPATH) || isPkcs11Truststore;
+        final boolean usesPemTrustedCas = sslConfigSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH);
+        if (usesKeyStore) {
+            warnIfPemTrustedCasAreIgnored(usesPemTrustedCas);
             final var keyStorePassword = resolvePassword(sslConfigSuffix + KEYSTORE_PASSWORD, settings, defaultStorePassword());
-            return Tuple.tuple(
-                environment.settings().hasValue(sslConfigSuffix + TRUSTSTORE_FILEPATH) || isPkcs11Truststore
-                    ? buildTrustStoreConfiguration(
-                        sslConfigSettings,
-                        environment,
-                        resolvePassword(sslConfigSuffix + TRUSTSTORE_PASSWORD, settings, defaultStorePassword())
-                    )
-                    : TrustStoreConfiguration.EMPTY_CONFIGURATION,
-                buildKeyStoreConfiguration(
-                    sslConfigSettings,
-                    environment,
-                    keyStorePassword,
-                    // the key password defaults to the store password, as keytool does when only one is given
-                    resolvePassword(fullSslConfigSuffix + KEYSTORE_KEY_PASSWORD, settings, keyStorePassword)
+            final var trustStoreConfiguration = usesTrustStore
+                ? TrustStoreConfiguration.buildTrustStoreConfiguration(
+                    trustStoreType,
+                    () -> resolvePath(settings.get(sslConfigSuffix + TRUSTSTORE_FILEPATH), environment),
+                    sslConfigSettings.get(TRUSTSTORE_ALIAS, null),
+                    resolvePassword(sslConfigSuffix + TRUSTSTORE_PASSWORD, settings, defaultStorePassword())
                 )
+                : TrustStoreConfiguration.EMPTY_CONFIGURATION;
+            final var keyStoreConfiguration = KeyStoreConfiguration.buildKeyStoreConfiguration(
+                keyStoreType,
+                () -> resolvePath(settings.get(sslConfigSuffix + KEYSTORE_FILEPATH), environment),
+                sslConfigSettings.get(KEYSTORE_ALIAS, null),
+                keyStorePassword,
+                // the key password defaults to the store password, as keytool does when only one is given
+                resolvePassword(fullSslConfigSuffix + KEYSTORE_KEY_PASSWORD, settings, keyStorePassword)
             );
+            warnIfTokenAliasCannotSelectTheKey(keyStoreConfiguration);
+            return Tuple.tuple(trustStoreConfiguration, keyStoreConfiguration);
         } else {
-            return Tuple.tuple(
-                sslConfigSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH)
-                    ? new TrustStoreConfiguration.PemTrustStoreConfiguration(
-                        resolvePath(sslConfigSettings.get(PEM_TRUSTED_CAS_FILEPATH), environment)
-                    )
-                    : TrustStoreConfiguration.EMPTY_CONFIGURATION,
-                buildPemKeyStoreConfiguration(
-                    sslConfigSettings,
-                    environment,
-                    resolvePassword(fullSslConfigSuffix + PEM_KEY_PASSWORD, settings, StorePassword.NONE)
+            warnIfTrustStoreSettingsAreIgnored(usesTrustStore);
+            final var trustStoreConfiguration = usesPemTrustedCas
+                ? new TrustStoreConfiguration.PemTrustStoreConfiguration(
+                    resolvePath(sslConfigSettings.get(PEM_TRUSTED_CAS_FILEPATH), environment)
                 )
+                : TrustStoreConfiguration.EMPTY_CONFIGURATION;
+            final var keyStoreConfiguration = new KeyStoreConfiguration.PemKeyStoreConfiguration(
+                resolvePath(sslConfigSettings.get(PEM_CERT_FILEPATH), environment),
+                resolvePath(sslConfigSettings.get(PEM_KEY_FILEPATH), environment),
+                resolvePassword(fullSslConfigSuffix + PEM_KEY_PASSWORD, settings, StorePassword.NONE)
             );
+            return Tuple.tuple(trustStoreConfiguration, keyStoreConfiguration);
         }
     }
 
@@ -143,57 +148,58 @@ public class SslCertificatesLoader {
         return defaultPassword;
     }
 
-    private KeyStoreConfiguration buildKeyStoreConfiguration(
-        final Settings settings,
-        final Environment environment,
-        final StorePassword keyStorePassword,
-        final StorePassword keyPassword
-    ) {
-        final String alias = settings.get(KEYSTORE_ALIAS, null);
-        final String explicitType = environment.settings().get(sslConfigSuffix + KEYSTORE_TYPE);
-        if (PemKeyReader.PKCS11.equalsIgnoreCase(explicitType)) {
-            if (alias != null) {
-                LOGGER.warn(
-                    "Setting [{}{}] selects the certificates reported for the PKCS#11 token, but not the key used to "
-                        + "handshake with - a token key cannot be extracted, so the key manager picks among all keys of the token. "
-                        + "Remove the setting to silence this warning, and let the token slot this node logs into hold only the "
-                        + "key it should use",
-                    fullSslConfigSuffix,
-                    KEYSTORE_ALIAS
-                );
-            }
-            return new KeyStoreConfiguration.Pkcs11KeyStoreConfiguration(alias, keyStorePassword, keyPassword);
+    /**
+     * The trusted certificates of a key store configuration are read from a store as well, so PEM ones are dropped -
+     * and the peer verification falls back to whatever the TLS engine defaults to, rather than using the certificates
+     * that were configured.
+     */
+    private void warnIfPemTrustedCasAreIgnored(final boolean usesPemTrustedCas) {
+        if (!usesPemTrustedCas) {
+            return;
         }
-        final Path path = resolvePath(environment.settings().get(sslConfigSuffix + KEYSTORE_FILEPATH), environment);
-        final String resolvedType = PemKeyReader.extractStoreType(path.toString(), explicitType).toUpperCase(Locale.ROOT);
-        return new KeyStoreConfiguration.JdkKeyStoreConfiguration(path, resolvedType, alias, keyStorePassword, keyPassword);
-    }
-
-    private TrustStoreConfiguration buildTrustStoreConfiguration(
-        final Settings settings,
-        final Environment environment,
-        final StorePassword trustStorePassword
-    ) {
-        final String alias = settings.get(TRUSTSTORE_ALIAS, null);
-        final String explicitType = environment.settings().get(sslConfigSuffix + TRUSTSTORE_TYPE);
-        if (PemKeyReader.PKCS11.equalsIgnoreCase(explicitType)) {
-            return new TrustStoreConfiguration.Pkcs11TrustStoreConfiguration(alias, trustStorePassword);
-        }
-        final Path path = resolvePath(environment.settings().get(sslConfigSuffix + TRUSTSTORE_FILEPATH), environment);
-        final String resolvedType = PemKeyReader.extractStoreType(path.toString(), explicitType).toUpperCase(Locale.ROOT);
-        return new TrustStoreConfiguration.JdkTrustStoreConfiguration(path, resolvedType, alias, trustStorePassword);
-    }
-
-    private KeyStoreConfiguration.PemKeyStoreConfiguration buildPemKeyStoreConfiguration(
-        final Settings settings,
-        final Environment environment,
-        final StorePassword pemKeyPassword
-    ) {
-        return new KeyStoreConfiguration.PemKeyStoreConfiguration(
-            resolvePath(settings.get(PEM_CERT_FILEPATH), environment),
-            resolvePath(settings.get(PEM_KEY_FILEPATH), environment),
-            pemKeyPassword
+        LOGGER.warn(
+            "Setting [{}{}] is ignored because the key material comes from a key store - configure the trusted "
+                + "certificates in [{}{}], or in a PKCS#11 token via [{}{}], to have this node actually use them",
+            fullSslConfigSuffix,
+            PEM_TRUSTED_CAS_FILEPATH,
+            sslConfigSuffix,
+            TRUSTSTORE_FILEPATH,
+            sslConfigSuffix,
+            TRUSTSTORE_TYPE
         );
+    }
+
+    /**
+     * The counterpart of {@link #warnIfPemTrustedCasAreIgnored(boolean)}: PEM key material reads its trusted
+     * certificates from a PEM file, so a trust store or token configured alongside it is dropped.
+     */
+    private void warnIfTrustStoreSettingsAreIgnored(final boolean usesTrustStore) {
+        if (!usesTrustStore) {
+            return;
+        }
+        LOGGER.warn(
+            "Settings [{}{}] and [{}{}] are ignored because the key material comes from PEM files - configure the "
+                + "trusted certificates in [{}{}] to have this node actually use them",
+            sslConfigSuffix,
+            TRUSTSTORE_FILEPATH,
+            sslConfigSuffix,
+            TRUSTSTORE_TYPE,
+            fullSslConfigSuffix,
+            PEM_TRUSTED_CAS_FILEPATH
+        );
+    }
+
+    private void warnIfTokenAliasCannotSelectTheKey(final KeyStoreConfiguration keyStoreConfiguration) {
+        if (keyStoreConfiguration instanceof KeyStoreConfiguration.Pkcs11KeyStoreConfiguration token && token.alias() != null) {
+            LOGGER.warn(
+                "Setting [{}{}] selects the certificates reported for the PKCS#11 token, but not the key used to "
+                    + "handshake with - a token key cannot be extracted, so the key manager picks among all keys of the token. "
+                    + "Remove the setting to silence this warning, and let the token slot this node logs into hold only the "
+                    + "key it should use",
+                fullSslConfigSuffix,
+                KEYSTORE_ALIAS
+            );
+        }
     }
 
     private Path resolvePath(final String filePath, final Environment environment) {
