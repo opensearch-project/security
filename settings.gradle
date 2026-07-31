@@ -7,6 +7,7 @@
 pluginManagement {
     repositories {
         maven { url = uri("https://ci.opensearch.org/maven2/") }
+        maven { url = uri("https://ci.opensearch.org/m2/") }
         gradlePluginPortal()
         mavenCentral()
     }
