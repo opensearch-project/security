@@ -71,6 +71,7 @@ public final class RequestResolver {
         final String effectiveUser,
         final Boolean securityadmin,
         final String initiatingUser,
+        final String tenant,
         final TransportAddress remoteAddress,
         final TransportRequest request,
         final Map<String, String> headers,
@@ -97,6 +98,7 @@ public final class RequestResolver {
                     effectiveUser,
                     securityadmin,
                     initiatingUser,
+                    tenant,
                     remoteAddress,
                     action,
                     privilege,
@@ -137,6 +139,7 @@ public final class RequestResolver {
                 effectiveUser,
                 securityadmin,
                 initiatingUser,
+                tenant,
                 remoteAddress,
                 action,
                 privilege,
@@ -161,6 +164,7 @@ public final class RequestResolver {
         final String effectiveUser,
         final Boolean securityadmin,
         final String initiatingUser,
+        final String tenant,
         final TransportAddress remoteAddress,
         final String action,
         final String priv,
@@ -181,6 +185,7 @@ public final class RequestResolver {
         final AuditMessage msg = new AuditMessage(category, cs, origin, Origin.TRANSPORT);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
+        msg.addTenant(tenant);
         msg.addRemoteAddress(remoteAddress);
         msg.addAction(action);
 
