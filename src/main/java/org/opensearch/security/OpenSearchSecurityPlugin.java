@@ -376,8 +376,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.localClient = localClient;
         final Settings settings = environment.settings();
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
+        final boolean standaloneEnabled = SecuritySettings.AUDIT_ENABLE_STANDALONE.get(settings);
         final String auditType = settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null);
-        if (auditType != null) {
+        if (standaloneEnabled && auditType != null) {
             AuditLogImpl auditLogImpl = new AuditLogImpl(
                 settings,
                 configPath,
@@ -469,6 +470,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 auditLogImpl.getComplianceConfig().setWatchedReadFields(newValue);
             });
         } else {
+            if (!standaloneEnabled && auditType != null) {
+                log.info(
+                    "Audit type '{}' is configured but standalone audit is not enabled. "
+                        + "Set '{}' to true to enable audit logging in non-FGAC modes.",
+                    auditType,
+                    ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE
+                );
+            }
             auditLog = new NullAuditLog();
         }
     }
@@ -1746,6 +1755,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // Dynamic audit toggle — works in all modes (FGAC, SSL-only, disabled)
         settings.add(SecuritySettings.AUDIT_ENABLED_SETTING);
+        settings.add(SecuritySettings.AUDIT_ENABLE_STANDALONE);
 
         // Protected index settings
         settings.add(

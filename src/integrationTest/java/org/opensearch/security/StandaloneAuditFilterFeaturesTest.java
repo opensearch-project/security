@@ -40,6 +40,8 @@ public class StandaloneAuditFilterFeaturesTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
@@ -64,6 +66,8 @@ public class StandaloneAuditFilterFeaturesTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
@@ -82,6 +86,8 @@ public class StandaloneAuditFilterFeaturesTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
@@ -99,6 +105,8 @@ public class StandaloneAuditFilterFeaturesTest {
         .nodeSettings(
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
                 true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
@@ -120,6 +128,8 @@ public class StandaloneAuditFilterFeaturesTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
@@ -139,6 +149,8 @@ public class StandaloneAuditFilterFeaturesTest {
         .nodeSettings(
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
                 true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
