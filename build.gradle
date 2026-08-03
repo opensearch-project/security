@@ -555,14 +555,25 @@ subprojects {
 allprojects {
     repositories {
         mavenLocal()
+        def shibbolethRepo = maven {
+            name = "shibboleth-releases"
+            url = "https://build.shibboleth.net/maven/releases"
+        }
         maven { url = "https://build.shibboleth.net/nexus/content/repositories/releases" }
-        maven { url = "build.shibboleth.net/maven/releases" }
         maven { url = "https://ci.opensearch.org/maven2/" }
         maven { url = "https://ci.opensearch.org/m2/" }
         mavenCentral()
         maven { url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url = "https://artifacts.opensearch.org/snapshots/lucene/" }
         maven { url = "https://plugins.gradle.org/m2/" }
+        exclusiveContent {
+            forRepositories(shibbolethRepo)
+            filter {
+                includeGroup "org.opensaml"
+                includeGroup "net.shibboleth"
+                includeGroup "net.shibboleth.utilities"
+            }
+        }
     }
 
     afterEvaluate {
