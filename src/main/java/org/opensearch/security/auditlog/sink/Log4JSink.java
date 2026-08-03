@@ -20,6 +20,7 @@ import org.apache.logging.log4j.ThreadContext;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.security.support.ConfigConstants;
 
 public final class Log4JSink extends AuditLogSink {
 
@@ -49,7 +50,7 @@ public final class Log4JSink extends AuditLogSink {
             Integer.MAX_VALUE
         );
         enabled = auditLogger.isEnabled(logLevel);
-        mdcRoutingEnabled = settings.getAsBoolean(settingsPrefix + ".log4j.enable_mdc_routing", false);
+        mdcRoutingEnabled = settings.getAsBoolean(settingsPrefix + "." + ConfigConstants.SECURITY_AUDIT_LOG4J_ENABLE_MDC_ROUTING, false);
     }
 
     public boolean isHandlingBackpressure() {
@@ -59,23 +60,29 @@ public final class Log4JSink extends AuditLogSink {
     public boolean doStore(final AuditMessage msg) {
         if (enabled) {
             if (mdcRoutingEnabled) {
+                // Track which keys this call actually set so we only remove those in finally,
+                // preserving any pre-existing values set by upstream code.
+                boolean setCategory = false;
+                boolean setAction = false;
+                boolean setUser = false;
+                boolean setRequestType = false;
                 try {
                     // Push audit attributes into Log4j MDC so operators can use
                     // RoutingAppender with $${ctx:audit_category} etc. to split logs.
                     // WARNING: Do not use audit_user as a RoutingAppender routing key for file paths —
                     // it is unbounded/attacker-influenceable and could cause inode/disk exhaustion.
                     // Prefer audit_category (bounded enum) for file-based routing.
-                    ThreadContext.put(MDC_CATEGORY, sanitizeForMdc(msg.getCategory() != null ? msg.getCategory().name() : null));
-                    ThreadContext.put(MDC_ACTION, sanitizeForMdc(msg.getPrivilege()));
-                    ThreadContext.put(MDC_USER, sanitizeForMdc(msg.getEffectiveUser()));
-                    ThreadContext.put(MDC_REQUEST_TYPE, sanitizeForMdc(msg.getRequestType()));
+                    setCategory = putIfAbsent(MDC_CATEGORY, sanitizeForMdc(msg.getCategory() != null ? msg.getCategory().name() : null));
+                    setAction = putIfAbsent(MDC_ACTION, sanitizeForMdc(msg.getPrivilege()));
+                    setUser = putIfAbsent(MDC_USER, sanitizeForMdc(msg.getEffectiveUser()));
+                    setRequestType = putIfAbsent(MDC_REQUEST_TYPE, sanitizeForMdc(msg.getRequestType()));
 
                     msg.toJsonSplitIndices(maximumIndexCharactersPerMessage).forEach(message -> auditLogger.log(logLevel, message));
                 } finally {
-                    ThreadContext.remove(MDC_CATEGORY);
-                    ThreadContext.remove(MDC_ACTION);
-                    ThreadContext.remove(MDC_USER);
-                    ThreadContext.remove(MDC_REQUEST_TYPE);
+                    if (setCategory) ThreadContext.remove(MDC_CATEGORY);
+                    if (setAction) ThreadContext.remove(MDC_ACTION);
+                    if (setUser) ThreadContext.remove(MDC_USER);
+                    if (setRequestType) ThreadContext.remove(MDC_REQUEST_TYPE);
                 }
             } else {
                 msg.toJsonSplitIndices(maximumIndexCharactersPerMessage).forEach(message -> auditLogger.log(logLevel, message));
@@ -96,5 +103,21 @@ public final class Log4JSink extends AuditLogSink {
             return "unknown";
         }
         return UNSAFE_MDC_CHARS.matcher(value).replaceAll("_");
+    }
+
+    /**
+     * Puts a value into the Log4j ThreadContext only if the key is not already set.
+     * This avoids blindly overwriting MDC headers that may have been set upstream.
+     *
+     * @return {@code true} if the key was actually set by this call, {@code false} if skipped
+     *         because a value was already present. Callers should only remove keys in finally
+     *         that this method actually inserted, to avoid clobbering upstream-set values.
+     */
+    private static boolean putIfAbsent(String key, String value) {
+        if (!ThreadContext.containsKey(key)) {
+            ThreadContext.put(key, value);
+            return true;
+        }
+        return false;
     }
 }
