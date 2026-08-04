@@ -11,7 +11,10 @@ package org.opensearch.security.resources;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
@@ -48,6 +51,18 @@ public class ResourceSharingDlsUtils {
             user.getRoles().forEach(br -> principals.add("backend:" + br));
         }
 
+        // Workspace principals: the workspaces this user can access, added as workspace:<id> so they
+        // intersect the workspace:<id> principals denormalized onto resources that belong to those
+        // workspaces (see ResourceSharing#getAllPrincipals). This keeps the read path I/O-free — required
+        // for the privilege hot path — by resolving the user's workspaces from in-memory User attributes
+        // rather than querying the sharing index here.
+        // SPIKE NOTE: the attribute key and the mechanism that populates it (workspace membership -> user
+        // attribute at authc time) are not yet defined. This reads a placeholder custom attribute so the
+        // end-to-end intersection can be exercised in tests; production wiring is an open item (see design doc).
+        for (String workspaceId : resolveUserWorkspaces(user)) {
+            principals.add("workspace:" + workspaceId);
+        }
+
         XContentBuilder builder = null;
         DlsRestriction restriction;
         try {
@@ -68,4 +83,33 @@ public class ResourceSharingDlsUtils {
         }
         return new IndexToRuleMap<>(mapBuilder.build());
     }
+
+    /**
+     * Resolves the set of workspace IDs the given user can access, without any I/O (required on the
+     * privilege hot path). Reads a comma-separated custom attribute off the in-memory {@link User}.
+     *
+     * <p>SPIKE: {@code WORKSPACES_ATTRIBUTE} and the authc-time mechanism that populates it are placeholders
+     * to make the DLS intersection testable end-to-end. Production design (where workspace membership is
+     * resolved and how it lands on the User) is an open question tracked in the design doc.
+     *
+     * @param user the authenticated user
+     * @return the set of workspace IDs, or an empty set if none are present
+     */
+    private static Set<String> resolveUserWorkspaces(User user) {
+        String raw = user.getCustomAttributesMap() == null ? null : user.getCustomAttributesMap().get(WORKSPACES_ATTRIBUTE);
+        if (raw == null || raw.isBlank()) {
+            return Collections.emptySet();
+        }
+        Set<String> workspaces = new HashSet<>();
+        for (String id : raw.split(",")) {
+            String trimmed = id.trim();
+            if (!trimmed.isEmpty()) {
+                workspaces.add(trimmed);
+            }
+        }
+        return workspaces;
+    }
+
+    /** SPIKE placeholder custom-attribute key carrying the user's accessible workspace IDs. */
+    private static final String WORKSPACES_ATTRIBUTE = "attr.internal.workspaces";
 }

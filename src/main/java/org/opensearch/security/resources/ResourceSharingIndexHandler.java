@@ -264,22 +264,22 @@ public class ResourceSharingIndexHandler {
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
                 ctx.restore();
                 LOGGER.info("Successfully created {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
-                updateResourceVisibility(
-                    resourceId,
-                    resourceIndex,
-                    List.of("user:" + createdBy.getUsername()),
-                    ActionListener.wrap((updateResponse) -> {
-                        LOGGER.debug(
-                            "postUpdate: Successfully updated visibility for resource {} within index {}",
-                            resourceId,
-                            resourceIndex
-                        );
-                        listener.onResponse(sharingInfo);
-                    }, (e) -> {
-                        LOGGER.error("Failed to create principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                        listener.onResponse(sharingInfo);
-                    })
-                );
+                // Seed visibility with the creator plus any workspace:<id> principals from workspace membership.
+                // Using getAllPrincipals() (rather than only the creator) ensures a resource created directly in
+                // one or more workspaces is immediately visible to those workspaces' members via DLS, before any
+                // explicit share call. For non-workspace resources with no shareWith yet, this resolves to just
+                // the creator — identical to the previous behavior.
+                List<String> initialPrincipals = new ArrayList<>(sharingInfo.getAllPrincipals());
+                if (initialPrincipals.isEmpty()) {
+                    initialPrincipals.add("user:" + createdBy.getUsername());
+                }
+                updateResourceVisibility(resourceId, resourceIndex, initialPrincipals, ActionListener.wrap((updateResponse) -> {
+                    LOGGER.debug("postUpdate: Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                    listener.onResponse(sharingInfo);
+                }, (e) -> {
+                    LOGGER.error("Failed to create principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                    listener.onResponse(sharingInfo);
+                }));
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
