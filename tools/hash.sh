@@ -15,6 +15,19 @@ else
     DIR="$( cd "$( dirname "$(realpath "$SCRIPT_PATH")" )" && pwd -P)"
 fi
 
+if [ -z "$OPENSEARCH_HOME" ]; then
+  OPENSEARCH_HOME="$DIR"
+  while [ "$OPENSEARCH_HOME" != "/" ] && [ -z "$(ls "$OPENSEARCH_HOME/lib/opensearch-"*.jar 2>/dev/null)" ]; do
+    OPENSEARCH_HOME="$(dirname "$OPENSEARCH_HOME")"
+  done
+  if [ "$OPENSEARCH_HOME" = "/" ]; then
+    echo "Could not locate OpenSearch home. Set OPENSEARCH_HOME manually." >&2
+    exit 1
+  fi
+fi
+
+PLUGIN_DIR="$OPENSEARCH_HOME/plugins/opensearch-security"
+
 BIN_PATH="java"
 
 # now set the path to java: first OPENSEARCH_JAVA_HOME, then JAVA_HOME
@@ -26,5 +39,4 @@ else
     echo "WARNING: nor OPENSEARCH_JAVA_HOME nor JAVA_HOME is set, will use $(which $BIN_PATH)"
 fi
 
-
-"$BIN_PATH" $JAVA_OPTS -cp "$DIR/../../opendistro_security_ssl/*:$DIR/../*:$DIR/../deps/*:$DIR/../../../lib/*" org.opensearch.security.tools.Hasher "$@"
+"$BIN_PATH" $JAVA_OPTS -cp "$PLUGIN_DIR/*:$PLUGIN_DIR/deps/*:$OPENSEARCH_HOME/lib/*" org.opensearch.security.tools.Hasher "$@"
