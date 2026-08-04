@@ -11,7 +11,9 @@
 
 package org.opensearch.security.resources;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -179,13 +181,9 @@ public class ResourceAccessHandler {
 
             Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
 
-            // no matching access level, either recurse up or fail fast
+            // no matching access level directly on this resource: fall back to its containers
             if (accessLevels.isEmpty()) {
-                if (sharingInfo.getParentId() != null) {
-                    hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-                } else {
-                    listener.onResponse(false);
-                }
+                checkContainers(sharingInfo, action, listener);
                 return;
             }
 
@@ -199,16 +197,84 @@ public class ResourceAccessHandler {
                 return;
             }
 
-            if (sharingInfo.getParentId() != null) {
-                hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-            } else {
-                listener.onResponse(false);
-            }
+            // resource is shared with the user but not at a level that permits this action: fall back to containers
+            checkContainers(sharingInfo, action, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
         }));
     }
+
+    /**
+     * Resolves access inherited from a resource's containers when the resource itself does not grant the action.
+     * <p>
+     * A resource can inherit access from two kinds of container:
+     * <ul>
+     *   <li>its single hierarchical parent ({@code parentId}/{@code parentType}), the pre-existing mechanism; and</li>
+     *   <li>the set of workspaces it belongs to — a resource may belong to <em>multiple</em> workspaces, so unlike the
+     *   single parent this is a fan-out. Each workspace is itself a sharing-protected resource of type {@code workspace}
+     *   whose {@code share_with} lists the workspace's collaborators and their access levels; delegating to
+     *   {@link #hasPermission} on the workspace record resolves the user's workspace access level and maps it through the
+     *   workspace type's action groups (per issue #6119).</li>
+     * </ul>
+     * Containers are checked sequentially and access is granted if <em>any</em> container grants the action (logical OR),
+     * mirroring the permissive semantics of the original parent recursion. Evaluation short-circuits on the first grant.
+     *
+     * <p>SPIKE NOTE: the workspace resource type name is a placeholder ({@link #WORKSPACE_RESOURCE_TYPE}); the real type
+     * is defined by the workspace provider registered via the SPI (see design doc). If no provider is registered for that
+     * type, {@link #hasPermission} denies the workspace branch cleanly (no index mapping), so this degrades safely.
+     *
+     * @param sharingInfo the sharing record of the resource whose containers should be consulted
+     * @param action      the action being authorized
+     * @param listener    notified with {@code true} if any container grants access, {@code false} otherwise
+     */
+    private void checkContainers(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
+        // Build the ordered list of containers to consult: the hierarchical parent (if any) followed by each workspace.
+        List<String[]> containers = new ArrayList<>(); // each entry: [containerId, containerType]
+        if (sharingInfo.getParentId() != null) {
+            containers.add(new String[] { sharingInfo.getParentId(), sharingInfo.getParentType() });
+        }
+        Set<String> workspaces = sharingInfo.getWorkspaces();
+        if (workspaces != null) {
+            for (String workspaceId : workspaces) {
+                containers.add(new String[] { workspaceId, WORKSPACE_RESOURCE_TYPE });
+            }
+        }
+
+        if (containers.isEmpty()) {
+            listener.onResponse(false);
+            return;
+        }
+
+        checkContainersSequentially(containers, 0, action, listener);
+    }
+
+    /**
+     * Sequentially evaluates {@link #hasPermission} against each container, granting on the first that permits the action
+     * and denying only after all containers have been exhausted. Sequential (rather than parallel) evaluation keeps the
+     * async control flow simple and short-circuits as soon as a grant is found.
+     */
+    private void checkContainersSequentially(List<String[]> containers, int idx, String action, ActionListener<Boolean> listener) {
+        if (idx >= containers.size()) {
+            listener.onResponse(false);
+            return;
+        }
+        String containerId = containers.get(idx)[0];
+        String containerType = containers.get(idx)[1];
+        hasPermission(containerId, containerType, action, ActionListener.wrap(granted -> {
+            if (Boolean.TRUE.equals(granted)) {
+                listener.onResponse(true);
+            } else {
+                checkContainersSequentially(containers, idx + 1, action, listener);
+            }
+        }, listener::onFailure));
+    }
+
+    /**
+     * SPIKE placeholder for the workspace resource type name. The authoritative value comes from the workspace
+     * provider registered through the resource-sharing SPI (issue #6119).
+     */
+    private static final String WORKSPACE_RESOURCE_TYPE = "workspace";
 
     /**
      * Patches the sharing info. It could be either or all 3 of the following possibilities:
