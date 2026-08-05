@@ -416,7 +416,7 @@ public final class AuditMessage {
             addRestParams(request.params(), filter);
             addRestMethod(request.method());
 
-            if (filter.shouldLogRequestBody()) {
+            if (filter.shouldLogRequestBody() && !filter.isBodyExcluded(path)) {
 
                 if (!(request instanceof OpenSearchRequest)) {
                     // The request body is only available on some request sources

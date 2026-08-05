@@ -38,6 +38,8 @@ public class StandaloneAuditDynamicComplianceSettingsTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 // Start with compliance enabled and watching "compliance-*" indices

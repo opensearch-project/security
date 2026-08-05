@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -104,6 +105,17 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
     private final Set<String> ignoredUrlParams = new HashSet<>();
+
+    /**
+     * Immutable snapshot of node-level audit exclusion config from opensearch.yml.
+     * Stored as an AtomicReference so both fields are always read/written atomically,
+     * even when setNodeActionGroups and setNodeBodyLoggingExclusions race.
+     */
+    private record NodeExclusionConfig(Map<String, List<String>> actionGroups, List<String> bodyLoggingExclusions) {
+        static final NodeExclusionConfig EMPTY = new NodeExclusionConfig(Collections.emptyMap(), Collections.emptyList());
+    }
+
+    private final AtomicReference<NodeExclusionConfig> nodeExclusionConfig = new AtomicReference<>(NodeExclusionConfig.EMPTY);
     private final UserFactory userFactory;
 
     protected abstract void enableRoutes();
@@ -146,8 +158,32 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     protected void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
         auditConfigFilter.setIgnoredUrlParams(ignoredUrlParams);
+        // Always re-apply node-level config so it survives filter reloads from security index.
+        // This must run even when empty — a dynamic update to [] should override whatever
+        // the security index provides.
+        NodeExclusionConfig config = this.nodeExclusionConfig.get();
+        auditConfigFilter.setActionGroups(config.actionGroups());
+        auditConfigFilter.setBodyLoggingExclusions(config.bodyLoggingExclusions());
         this.auditConfigFilter = auditConfigFilter;
         this.auditConfigFilter.log(log);
+    }
+
+    /**
+     * Stores action groups from opensearch.yml so they persist across filter reloads.
+     * Called once at startup from OpenSearchSecurityPlugin.
+     */
+    public void setNodeActionGroups(Map<String, List<String>> groups) {
+        Map<String, List<String>> safeGroups = groups != null ? groups : Collections.emptyMap();
+        this.nodeExclusionConfig.updateAndGet(current -> new NodeExclusionConfig(safeGroups, current.bodyLoggingExclusions()));
+    }
+
+    /**
+     * Stores body logging exclusions so they persist across filter reloads.
+     * Updated at startup and when the dynamic setting changes.
+     */
+    public void setNodeBodyLoggingExclusions(List<String> exclusions) {
+        List<String> safeExclusions = exclusions != null ? exclusions : Collections.emptyList();
+        this.nodeExclusionConfig.updateAndGet(current -> new NodeExclusionConfig(current.actionGroups(), safeExclusions));
     }
 
     /**
@@ -267,7 +303,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege != null ? privilege : action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -304,7 +340,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege != null ? privilege : action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -342,7 +378,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -561,7 +597,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -613,7 +649,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -650,7 +686,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
