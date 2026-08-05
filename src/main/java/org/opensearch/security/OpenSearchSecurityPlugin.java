@@ -376,8 +376,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.localClient = localClient;
         final Settings settings = environment.settings();
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
+        final boolean standaloneEnabled = SecuritySettings.AUDIT_ENABLE_STANDALONE.get(settings);
         final String auditType = settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null);
-        if (auditType != null) {
+        if (standaloneEnabled && auditType != null) {
             AuditLogImpl auditLogImpl = new AuditLogImpl(
                 settings,
                 configPath,
@@ -388,6 +389,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 environment,
                 new UserFactory.Simple()
             );
+
+            // Parse action groups and exclusions BEFORE setConfig so they're available
+            // when onAuditConfigFilterChanged fires from security index reload
+            Map<String, List<String>> actionGroups = parseActionGroups(settings);
+            auditLogImpl.setNodeActionGroups(actionGroups);
+            List<String> initialExclusions = SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS.get(settings);
+            auditLogImpl.setNodeBodyLoggingExclusions(initialExclusions);
+
             auditLogImpl.setConfig(AuditConfig.from(settings));
             auditLog = auditLogImpl;
             warnIfAuthCategoriesEnabled(settings);
@@ -468,7 +477,30 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 log.info("Compliance read_watched_fields dynamically updated");
                 auditLogImpl.getComplianceConfig().setWatchedReadFields(newValue);
             });
+
+            // Wire body logging exclusions dynamic setting (action groups already parsed above)
+            final AuditConfig.Filter auditFilter = auditLogImpl.getFilter();
+            auditFilter.setActionGroups(actionGroups);
+            auditFilter.setBodyLoggingExclusions(initialExclusions);
+
+            // Register dynamic consumer for runtime updates
+            clusterService.getClusterSettings().addSettingsUpdateConsumer(SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS, newValue -> {
+                log.info("Audit body_logging_exclusions dynamically updated to {}", newValue);
+                auditLogImpl.setNodeBodyLoggingExclusions(newValue);
+                AuditConfig.Filter currentFilter = auditLogImpl.getFilter();
+                if (currentFilter != null) {
+                    currentFilter.setBodyLoggingExclusions(newValue);
+                }
+            });
         } else {
+            if (!standaloneEnabled && auditType != null) {
+                log.info(
+                    "Audit type '{}' is configured but standalone audit is not enabled. "
+                        + "Set '{}' to true to enable audit logging in non-FGAC modes.",
+                    auditType,
+                    ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE
+                );
+            }
             auditLog = new NullAuditLog();
         }
     }
@@ -484,6 +516,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 enabledAuthOnly
             );
         }
+    }
+
+    /**
+     * Parses action groups from opensearch.yml settings.
+     * Delegates to {@link AuditConfig.Filter#parseActionGroupsFromSettings(Settings)}.
+     */
+    private static Map<String, List<String>> parseActionGroups(Settings settings) {
+        return AuditConfig.Filter.parseActionGroupsFromSettings(settings);
     }
 
     private static boolean isDisabled(final Settings settings) {
@@ -1118,10 +1158,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onNewReaderContext(ReaderContext readerContext) {
-                    final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                    final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
                         .equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                        && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
+                        && (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
                         readerContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);
@@ -1135,10 +1175,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onNewScrollContext(ReaderContext readerContext) {
-                    final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                    final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
                         .equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                        && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
+                        && (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
                         readerContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);
@@ -1508,7 +1548,36 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (SSLConfig.isSslOnlyMode()) {
             auditLog = new NullAuditLog();
         } else {
-            auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment, userFactory);
+            AuditLogImpl fgacAuditLogImpl = new AuditLogImpl(
+                settings,
+                configPath,
+                localClient,
+                threadPool,
+                resolver,
+                clusterService,
+                environment,
+                userFactory
+            );
+
+            // Parse action groups and body logging exclusions from opensearch.yml
+            // so they persist across security index reloads (onAuditConfigFilterChanged)
+            Map<String, List<String>> actionGroups = parseActionGroups(settings);
+            fgacAuditLogImpl.setNodeActionGroups(actionGroups);
+
+            List<String> bodyExclusions = SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS.get(settings);
+            fgacAuditLogImpl.setNodeBodyLoggingExclusions(bodyExclusions);
+
+            // Register dynamic consumer for runtime updates of body logging exclusions
+            clusterService.getClusterSettings().addSettingsUpdateConsumer(SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS, newValue -> {
+                log.info("Audit body_logging_exclusions dynamically updated to {}", newValue);
+                fgacAuditLogImpl.setNodeBodyLoggingExclusions(newValue);
+                AuditConfig.Filter currentFilter = fgacAuditLogImpl.getFilter();
+                if (currentFilter != null) {
+                    currentFilter.setBodyLoggingExclusions(newValue);
+                }
+            });
+
+            auditLog = fgacAuditLogImpl;
         }
 
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
@@ -1746,6 +1815,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // Dynamic audit toggle — works in all modes (FGAC, SSL-only, disabled)
         settings.add(SecuritySettings.AUDIT_ENABLED_SETTING);
+        settings.add(SecuritySettings.AUDIT_ENABLE_STANDALONE);
 
         // Protected index settings
         settings.add(
@@ -2015,6 +2085,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     throw new RuntimeException("Please add support for new FilterEntries value '" + filterEntry.name() + "'");
             }
         }).forEach(settings::add);
+
+        // Body logging exclusions (dynamic) and action groups (static)
+        settings.add(SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS);
+        settings.add(SecuritySettings.AUDIT_ACTION_GROUPS);
 
         // Security - Audit - Sink
         settings.add(
