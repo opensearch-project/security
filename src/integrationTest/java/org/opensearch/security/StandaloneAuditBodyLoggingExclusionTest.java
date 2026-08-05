@@ -37,6 +37,8 @@ public class StandaloneAuditBodyLoggingExclusionTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 "plugins.security.audit.config.log_request_body",
