@@ -50,12 +50,10 @@ import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.resolver.DefaultAddressResolverGroup;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.ParallelFlux;
 import reactor.netty.http.Http11SslContextSpec;
 import reactor.netty.http.Http2SslContextSpec;
 import reactor.netty.http.Http3SslContextSpec;
@@ -154,7 +152,7 @@ public class ReactorHttpClient implements Closeable {
                 .toArray(Mono[]::new);
 
             if (ordered == false) {
-                return ParallelFlux.from(monos).sequential().collectList().block();
+                return Flux.fromArray(monos).flatMap(mono -> mono, parallelism).collectList().block(Duration.ofMinutes(2));
             } else {
                 return Flux.concat(monos).flatMapSequential(r -> Mono.just(r)).collectList().block(Duration.ofMinutes(2));
             }
@@ -173,12 +171,8 @@ public class ReactorHttpClient implements Closeable {
 
         if (secure) {
             if (protocol == HttpProtocol.HTTP11) {
-                Consumer<SslContextBuilder> http11Configure = s -> {
-                    if (FipsMode.isEnabled()) {
-                        s.sslProvider(SslProvider.JDK);
-                    }
-                    s.clientAuth(ClientAuth.NONE).trustManager(InsecureTrustManagerFactory.INSTANCE);
-                };
+                Consumer<SslContextBuilder> http11Configure = s -> s.clientAuth(ClientAuth.NONE)
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE);
                 return client.protocol(protocol)
                     .secure(
                         spec -> spec.sslContext(Http11SslContextSpec.forClient().configure(http11Configure))
@@ -187,15 +181,15 @@ public class ReactorHttpClient implements Closeable {
             } else if (protocol == HttpProtocol.H2) {
                 Consumer<SslContextBuilder> h2Configure = s -> {
                     if (FipsMode.isEnabled()) {
-                        s.sslProvider(SslProvider.JDK)
-                            .applicationProtocolConfig(
-                                new ApplicationProtocolConfig(
-                                    Protocol.ALPN,
-                                    SelectorFailureBehavior.NO_ADVERTISE,
-                                    SelectedListenerFailureBehavior.ACCEPT,
-                                    ApplicationProtocolNames.HTTP_2
-                                )
-                            );
+                        // Advertise h2 only, matching the H2-only protocol list below.
+                        s.applicationProtocolConfig(
+                            new ApplicationProtocolConfig(
+                                Protocol.ALPN,
+                                SelectorFailureBehavior.NO_ADVERTISE,
+                                SelectedListenerFailureBehavior.ACCEPT,
+                                ApplicationProtocolNames.HTTP_2
+                            )
+                        );
                     }
                     s.clientAuth(ClientAuth.NONE).trustManager(InsecureTrustManagerFactory.INSTANCE);
                 };

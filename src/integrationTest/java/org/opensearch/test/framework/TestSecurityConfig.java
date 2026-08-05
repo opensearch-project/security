@@ -31,7 +31,6 @@ package org.opensearch.test.framework;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -53,6 +52,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.common.Randomness;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.Strings;
@@ -102,7 +102,7 @@ public class TestSecurityConfig {
 
     static {
         byte[] bytes = new byte[16]; // satisfies BC FIPS 112-bit minimum
-        new SecureRandom().nextBytes(bytes);
+        Randomness.createSecure().nextBytes(bytes);
         DEFAULT_TEST_PASSWORD = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 

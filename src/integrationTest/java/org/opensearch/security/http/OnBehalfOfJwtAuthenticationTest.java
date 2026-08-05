@@ -13,7 +13,6 @@ package org.opensearch.security.http;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
@@ -29,6 +28,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.common.Randomness;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
@@ -77,7 +77,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
     private static String fipsCompatibleEncryptionKey() {
         final byte[] keyMaterial = new byte[32];
-        new SecureRandom().nextBytes(keyMaterial);
+        Randomness.createSecure().nextBytes(keyMaterial);
         return Base64.getEncoder().encodeToString(keyMaterial);
     }
 

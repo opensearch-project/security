@@ -56,7 +56,6 @@ public class ApiTokenTest {
     private static final String OBO_DESCRIPTION = "{\"description\":\"Testing\", \"service\":\"self-issued\"}";
     private static final String signingKey = Base64.getEncoder()
         .encodeToString("jwt signing key for an on behalf of token authentication backend for testing".getBytes(StandardCharsets.UTF_8));
-    private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey!!".getBytes(StandardCharsets.UTF_8));
     public static final String NEW_PASSWORD = "testPassword123!!";
     public static final String TEST_TOKEN_PAYLOAD = """
         {
@@ -106,7 +105,7 @@ public class ApiTokenTest {
     }
 
     private static OnBehalfOfConfig defaultOnBehalfOfConfig() {
-        return new OnBehalfOfConfig().enabled(true).signingKey(signingKey).encryptionKey(encryptionKey);
+        return new OnBehalfOfConfig().enabled(true).signingKey(signingKey).encryptionKey(TestSecurityConfig.DEFAULT_TEST_PASSWORD);
     }
 
     @ClassRule
