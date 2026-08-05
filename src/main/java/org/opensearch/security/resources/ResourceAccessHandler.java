@@ -13,6 +13,7 @@ package org.opensearch.security.resources;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -138,6 +139,25 @@ public class ResourceAccessHandler {
         @NonNull String action,
         ActionListener<Boolean> listener
     ) {
+        // Entry point: start with an empty visited-set so container inheritance (parent + workspaces) cannot loop.
+        hasPermission(resourceId, resourceType, action, new HashSet<>(), listener);
+    }
+
+    /**
+     * Internal permission check that carries a {@code visited} set of {@code type:id} keys to prevent unbounded
+     * recursion when resources inherit access from containers (a hierarchical parent and/or workspaces). Container
+     * inheritance walks a graph that is expected to be acyclic, but a malformed graph (e.g. a workspace that
+     * transitively contains itself) would otherwise loop forever. Re-encountering an already-visited resource
+     * short-circuits to {@code false}: it was (or is being) evaluated on another branch, so the OR-semantics of the
+     * fan-out already account for any access it grants.
+     */
+    private void hasPermission(
+        @NonNull String resourceId,
+        @NonNull String resourceType,
+        @NonNull String action,
+        @NonNull Set<String> visited,
+        ActionListener<Boolean> listener
+    ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
@@ -145,6 +165,15 @@ public class ResourceAccessHandler {
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Access to resource {} is not authorized.", resourceId);
+            listener.onResponse(false);
+            return;
+        }
+
+        // Cycle/duplicate guard: if we've already evaluated this exact resource on this authorization walk, do not
+        // re-evaluate it. Returning false is safe under the fan-out's OR semantics (the first visit's result stands).
+        final String visitKey = resourceType + ":" + resourceId;
+        if (!visited.add(visitKey)) {
+            LOGGER.debug("Skipping already-visited resource '{}' of type '{}' to avoid a container cycle", resourceId, resourceType);
             listener.onResponse(false);
             return;
         }
@@ -183,7 +212,7 @@ public class ResourceAccessHandler {
 
             // no matching access level directly on this resource: fall back to its containers
             if (accessLevels.isEmpty()) {
-                checkContainers(sharingInfo, action, listener);
+                checkContainers(sharingInfo, action, visited, listener);
                 return;
             }
 
@@ -198,7 +227,7 @@ public class ResourceAccessHandler {
             }
 
             // resource is shared with the user but not at a level that permits this action: fall back to containers
-            checkContainers(sharingInfo, action, listener);
+            checkContainers(sharingInfo, action, visited, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
@@ -226,9 +255,10 @@ public class ResourceAccessHandler {
      *
      * @param sharingInfo the sharing record of the resource whose containers should be consulted
      * @param action      the action being authorized
+     * @param visited     the set of already-visited {@code type:id} keys, propagated to guard against container cycles
      * @param listener    notified with {@code true} if any container grants access, {@code false} otherwise
      */
-    private void checkContainers(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
+    private void checkContainers(ResourceSharing sharingInfo, String action, Set<String> visited, ActionListener<Boolean> listener) {
         // Build the ordered list of containers to consult: the hierarchical parent (if any) followed by each workspace.
         List<String[]> containers = new ArrayList<>(); // each entry: [containerId, containerType]
         if (sharingInfo.getParentId() != null) {
@@ -246,26 +276,34 @@ public class ResourceAccessHandler {
             return;
         }
 
-        checkContainersSequentially(containers, 0, action, listener);
+        checkContainersSequentially(containers, 0, action, visited, listener);
     }
 
     /**
      * Sequentially evaluates {@link #hasPermission} against each container, granting on the first that permits the action
      * and denying only after all containers have been exhausted. Sequential (rather than parallel) evaluation keeps the
-     * async control flow simple and short-circuits as soon as a grant is found.
+     * async control flow simple and short-circuits as soon as a grant is found. The {@code visited} set is shared across
+     * all container checks on this authorization walk so a resource reachable via multiple container paths is evaluated
+     * at most once.
      */
-    private void checkContainersSequentially(List<String[]> containers, int idx, String action, ActionListener<Boolean> listener) {
+    private void checkContainersSequentially(
+        List<String[]> containers,
+        int idx,
+        String action,
+        Set<String> visited,
+        ActionListener<Boolean> listener
+    ) {
         if (idx >= containers.size()) {
             listener.onResponse(false);
             return;
         }
         String containerId = containers.get(idx)[0];
         String containerType = containers.get(idx)[1];
-        hasPermission(containerId, containerType, action, ActionListener.wrap(granted -> {
+        hasPermission(containerId, containerType, action, visited, ActionListener.wrap(granted -> {
             if (Boolean.TRUE.equals(granted)) {
                 listener.onResponse(true);
             } else {
-                checkContainersSequentially(containers, idx + 1, action, listener);
+                checkContainersSequentially(containers, idx + 1, action, visited, listener);
             }
         }, listener::onFailure));
     }

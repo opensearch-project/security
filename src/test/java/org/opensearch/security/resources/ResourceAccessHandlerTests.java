@@ -249,6 +249,52 @@ public class ResourceAccessHandlerTests {
     }
 
     @Test
+    public void testHasPermission_containerCycleTerminatesAndDenies() {
+        // Malformed graph: the resource belongs to workspace "ws-loop", whose own record (incorrectly) lists
+        // itself as one of its workspaces. Without the visited-set guard this would recurse forever. With it,
+        // the walk terminates and denies (no container actually grants access).
+        User user = new User("gwen", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        final String workspaceIndex = "workspace-index";
+        final String loopWs = "ws-loop";
+        when(resourcePluginInfo.indexByType("workspace")).thenReturn(workspaceIndex);
+
+        // Resource: no direct access, belongs to ws-loop.
+        ResourceSharing resourceDoc = mock(ResourceSharing.class);
+        when(resourceDoc.isCreatedBy("gwen")).thenReturn(false);
+        when(resourceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+        when(resourceDoc.getParentId()).thenReturn(null);
+        when(resourceDoc.getWorkspaces()).thenReturn(Set.of(loopWs));
+
+        // Workspace ws-loop: grants nothing and (malformed) contains itself.
+        ResourceSharing loopDoc = mock(ResourceSharing.class);
+        when(loopDoc.isCreatedBy("gwen")).thenReturn(false);
+        when(loopDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+        when(loopDoc.getParentId()).thenReturn(null);
+        when(loopDoc.getWorkspaces()).thenReturn(Set.of(loopWs));
+
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(resourceDoc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(loopDoc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(workspaceIndex), eq(loopWs), any());
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
+
+        // Must terminate (no StackOverflow / infinite loop) and deny.
+        verify(listener).onResponse(false);
+    }
+
+    @Test
     public void testHasPermission_nullDocumentDenied() {
         User user = new User("dave", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
         injectUser(user);
