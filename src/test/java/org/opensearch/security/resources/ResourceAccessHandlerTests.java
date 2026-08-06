@@ -177,7 +177,6 @@ public class ResourceAccessHandlerTests {
         ResourceSharing resourceDoc = mock(ResourceSharing.class);
         when(resourceDoc.isCreatedBy("erin")).thenReturn(false);
         when(resourceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
-        when(resourceDoc.getParentId()).thenReturn(null);
         when(resourceDoc.getWorkspaces()).thenReturn(Set.of(workspaceId));
 
         // The workspace record: shares "read" with the user.
@@ -195,11 +194,12 @@ public class ResourceAccessHandlerTests {
             return null;
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
+        // Workspaces are resolved in a single batched mget, not per-workspace GETs.
         doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(2);
-            l.onResponse(workspaceDoc);
+            ActionListener<java.util.Map<String, ResourceSharing>> l = inv.getArgument(2);
+            l.onResponse(java.util.Map.of(workspaceId, workspaceDoc));
             return null;
-        }).when(sharingIndexHandler).fetchSharingInfo(eq(workspaceIndex), eq(workspaceId), any());
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(workspaceIndex), any(), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
@@ -227,8 +227,6 @@ public class ResourceAccessHandlerTests {
         ResourceSharing workspaceDoc = mock(ResourceSharing.class);
         when(workspaceDoc.isCreatedBy("frank")).thenReturn(false);
         when(workspaceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
-        when(workspaceDoc.getParentId()).thenReturn(null);
-        when(workspaceDoc.getWorkspaces()).thenReturn(Collections.emptySet());
 
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);
@@ -237,10 +235,10 @@ public class ResourceAccessHandlerTests {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(2);
-            l.onResponse(workspaceDoc);
+            ActionListener<java.util.Map<String, ResourceSharing>> l = inv.getArgument(2);
+            l.onResponse(java.util.Map.of(workspaceId, workspaceDoc));
             return null;
-        }).when(sharingIndexHandler).fetchSharingInfo(eq(workspaceIndex), eq(workspaceId), any());
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(workspaceIndex), any(), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
@@ -272,8 +270,6 @@ public class ResourceAccessHandlerTests {
         ResourceSharing loopDoc = mock(ResourceSharing.class);
         when(loopDoc.isCreatedBy("gwen")).thenReturn(false);
         when(loopDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
-        when(loopDoc.getParentId()).thenReturn(null);
-        when(loopDoc.getWorkspaces()).thenReturn(Set.of(loopWs));
 
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);
@@ -282,10 +278,10 @@ public class ResourceAccessHandlerTests {
         }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
 
         doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(2);
-            l.onResponse(loopDoc);
+            ActionListener<java.util.Map<String, ResourceSharing>> l = inv.getArgument(2);
+            l.onResponse(java.util.Map.of(loopWs, loopDoc));
             return null;
-        }).when(sharingIndexHandler).fetchSharingInfo(eq(workspaceIndex), eq(loopWs), any());
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(workspaceIndex), any(), any());
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
