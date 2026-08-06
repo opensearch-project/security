@@ -21,7 +21,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.Version;
 import org.opensearch.core.common.io.stream.NamedWriteable;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
@@ -46,16 +45,6 @@ import org.opensearch.security.user.User;
  */
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private final Logger log = LogManager.getLogger(this.getClass());
-
-    /**
-     * Transport version in which the {@link #workspaces} field was introduced. Used to gate stream
-     * serialization for wire compatibility with older nodes.
-     *
-     * <p>SPIKE PLACEHOLDER: this must be set to the real release version (e.g. {@code Version.V_3_9_0} or
-     * {@code Version.CURRENT}) when this change is actually targeted at a release. {@code V_3_1_0} is used
-     * here only so the prototype compiles against the current core; it is intentionally NOT correct for merge.
-     */
-    private static final Version WORKSPACES_INTRODUCED_VERSION = Version.V_3_1_0;
 
     /**
      * The unique identifier of the resource and the resource sharing entry
@@ -273,17 +262,13 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         } else {
             out.writeBoolean(false);
         }
-        // BWC: workspaces added in <VERSION>. Only serialize to nodes on or after the version that
-        // introduced the field so mixed-version clusters remain wire-compatible.
-        // SPIKE NOTE: WORKSPACES_INTRODUCED_VERSION is a placeholder — set to the actual release version
-        // (e.g. Version.V_3_9_0 / Version.CURRENT) at merge time.
+        // No version guard needed: workspaces ships within the resource-sharing feature (introduced in 3.3),
+        // which is not yet GA, so there is no older node that speaks the old wire format without this field.
         // PRE-EXISTING GAP (not introduced here): ResourceSharing has no StreamInput constructor and is not
         // registered in OpenSearchSecurityPlugin#getNamedWriteables, yet ShareResponse reads it via
-        // readNamedWriteable(ResourceSharing.class). Wiring a symmetric reader (that also reads this field
-        // under the same version guard) is a required follow-up before relying on transport round-trips.
-        if (out.getVersion().onOrAfter(WORKSPACES_INTRODUCED_VERSION)) {
-            out.writeOptionalStringCollection(workspaces == null ? null : new ArrayList<>(workspaces));
-        }
+        // readNamedWriteable(ResourceSharing.class). Wiring a symmetric reader (that also reads this field) is a
+        // required follow-up before relying on transport round-trips.
+        out.writeOptionalStringCollection(workspaces == null ? null : new ArrayList<>(workspaces));
     }
 
     @Override
