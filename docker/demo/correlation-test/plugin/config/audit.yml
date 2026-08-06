@@ -1,0 +1,73 @@
+_meta:
+  type: "audit"
+  config_version: 2
+
+config:
+  # enable/disable audit logging
+  enabled: true
+
+  audit:
+    # Enable/disable REST API auditing
+    enable_rest: true
+
+    # ALL categories enabled (nothing disabled)
+    disabled_rest_categories: []
+
+    # Enable/disable Transport API auditing
+    enable_transport: true
+
+    # ALL categories enabled (nothing disabled)
+    disabled_transport_categories: []
+
+    # Users to be excluded from auditing
+    ignore_users: []
+
+    # Requests to be excluded from auditing
+    ignore_requests: []
+
+    # Log individual operations in a bulk request
+    resolve_bulk_requests: true
+
+    # Include the body of the request (if available) for both REST and the transport layer
+    log_request_body: true
+
+    # Logs all indices affected by a request. Resolves aliases and wildcards/date patterns
+    resolve_indices: true
+
+    # Exclude sensitive headers from being included in the logs. Eg: Authorization
+    exclude_sensitive_headers: true
+
+  compliance:
+    # enable/disable compliance
+    enabled: true
+
+    # Log updates to internal security changes
+    internal_config: true
+
+    # Log external config files for the node
+    external_config: true
+
+    # Log only metadata of the document for read events
+    read_metadata_only: false
+
+    # Watch all demo-* indices for read events
+    read_watched_fields:
+      "corr-*": ["*"]
+      "demo-*": ["*"]
+
+    # List of users to ignore for read events
+    read_ignore_users: []
+
+    # Log only metadata of the document for write events
+    write_metadata_only: false
+
+    # Log diffs for document updates
+    write_log_diffs: true
+
+    # Watch all demo-* indices for write events
+    write_watched_indices:
+      - "corr-*"
+      - "demo-*"
+
+    # List of users to ignore for write events
+    write_ignore_users: []

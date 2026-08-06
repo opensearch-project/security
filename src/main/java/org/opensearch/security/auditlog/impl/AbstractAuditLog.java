@@ -230,7 +230,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
-
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -248,6 +248,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -263,6 +264,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
         msg.addPrivilege(privilege);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -276,6 +278,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRemoteAddress(getRemoteAddress());
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -311,7 +314,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -348,7 +353,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -386,7 +393,11 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
-        msgs.forEach(this::save);
+        User resolvedUser = resolveUser();
+        msgs.forEach(msg -> {
+            enrichWithUserContext(msg, resolvedUser);
+            save(msg);
+        });
     }
 
     @Override
@@ -466,6 +477,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             msg.addTaskId(task.getId());
         }
 
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -511,6 +523,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             msg.addTaskId(task.getId());
         }
 
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -657,7 +670,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -1146,14 +1161,44 @@ public abstract class AbstractAuditLog implements AuditLog {
         return address;
     }
 
-    private String getUser() {
+    /**
+     * Resolves the current User from ThreadContext: first tries the transient slot,
+     * then falls back to deserializing from the serialized header (transport hops).
+     */
+    private User resolveUser() {
         User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
             user = this.userFactory.fromSerializedBase64(
                 threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
             );
         }
+        return user;
+    }
+
+    private String getUser() {
+        User user = resolveUser();
         return user == null ? null : user.getName();
+    }
+
+    /**
+     * Enriches the audit message with user roles and authentication method.
+     * Resolves the User from ThreadContext — suitable for single-message REST paths.
+     */
+    private void enrichWithUserContext(AuditMessage msg) {
+        enrichWithUserContext(msg, resolveUser());
+    }
+
+    /**
+     * Enriches the audit message with a pre-resolved User object.
+     * Use this overload in loops to avoid redundant deserialization
+     * for bulk/multi-message transport paths.
+     */
+    private void enrichWithUserContext(AuditMessage msg, User user) {
+        if (user == null) {
+            return;
+        }
+        msg.addUserRoles(user.getSecurityRoles());
+        msg.addAuthMethod(user.getAuthenticatedBy());
     }
 
     private Map<String, String> getThreadContextHeaders() {

@@ -402,7 +402,8 @@ public class User implements Serializable, CustomAttributesAware {
         new ObjectStreamField("securityRoles", Collections.synchronizedSet(Collections.emptySet()).getClass()),
         new ObjectStreamField("requestedTenant", String.class),
         new ObjectStreamField("attributes", Collections.synchronizedMap(Collections.emptyMap()).getClass()),
-        new ObjectStreamField("isInjected", Boolean.TYPE) };
+        new ObjectStreamField("isInjected", Boolean.TYPE),
+        new ObjectStreamField("authenticatedBy", String.class) };
 
     /**
      * Creates a backwards compatible object that can be used for serialization
@@ -416,6 +417,7 @@ public class User implements Serializable, CustomAttributesAware {
         fields.put("requestedTenant", requestedTenant);
         fields.put("attributes", Collections.synchronizedMap(new HashMap<>(this.attributes)));
         fields.put("isInjected", this.isInjected);
+        fields.put("authenticatedBy", this.authenticatedBy);
 
         out.writeFields();
     }
