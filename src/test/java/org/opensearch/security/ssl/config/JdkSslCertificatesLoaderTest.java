@@ -29,7 +29,6 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.env.TestEnvironment;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.MockLogAppender;
 
 import static java.util.Objects.isNull;
@@ -346,9 +345,7 @@ public class JdkSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     }
 
     String randomKeyStoreType() {
-        return FipsMode.isEnabled()
-            ? randomFrom(new String[] { "bcfks", null })
-            : randomFrom(new String[] { "bcfks", "jks", "pkcs12", null });
+        return randomFrom(new String[] { "bcfks", "jks", "pkcs12", null });
     }
 
     String randomKeyStorePassword(final boolean useSecurePassword) {

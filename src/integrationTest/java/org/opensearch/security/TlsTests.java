@@ -24,7 +24,6 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.AuditCompliance;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuditFilters;
@@ -104,11 +103,11 @@ public class TlsTests {
         try (CloseableHttpClient client = cluster.getClosableHttpClient(new String[] { NOT_SUPPORTED_CIPHER_SUITE })) {
             HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
 
-            if (FipsMode.isEnabled()) {
-                assertThatThrownBy(() -> client.execute(httpGet), instanceOf(IllegalStateException.class));
-            } else {
-                assertThatThrownBy(() -> client.execute(httpGet), instanceOf(SSLHandshakeException.class));
-            }
+            assertThatThrownBy(() -> client.execute(httpGet), instanceOf(getUnsupportedCipherSuiteException()));
         }
+    }
+
+    protected Class<? extends Throwable> getUnsupportedCipherSuiteException() {
+        return SSLHandshakeException.class;
     }
 }

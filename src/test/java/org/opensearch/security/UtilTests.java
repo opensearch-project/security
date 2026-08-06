@@ -34,7 +34,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -42,7 +41,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 
 public class UtilTests {
 
@@ -158,7 +156,6 @@ public class UtilTests {
 
     @Test
     public void testEnvReplacePBKDF2() {
-        assumeFalse("BCFIPS requires password to be at least 14 chars long", FipsMode.isEnabled());
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2).build();
         final PasswordHasher passwordHasherPBKDF2 = PasswordHasherFactory.createPasswordHasher(settings);
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));

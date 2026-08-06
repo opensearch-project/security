@@ -25,7 +25,6 @@ import java.util.concurrent.Future;
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -34,7 +33,6 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -129,26 +127,6 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     @Test
     public void availableForRESTAdminUser() throws Exception {
         super.availableForRESTAdminUser(localCluster);
-    }
-
-    @Test
-    public void changingPasswordBelowFipsFloorIsRejected() throws Exception {
-        Assume.assumeTrue("FIPS password floor only applies under FIPS", FipsMode.isEnabled());
-        try (TestRestClient client = localCluster.getAdminCertRestClient()) {
-            final var username = randomAsciiAlphanumOfLength(10);
-
-            // 1. Create the user with a password that clears the 14-char FIPS floor.
-            assertThat(
-                client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))),
-                isCreated()
-            );
-
-            // 2. Change the password to one below the floor -> clean 400, not a hang.
-            assertThat(
-                client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH - 1))),
-                isBadRequest()
-            );
-        }
     }
 
     static ToXContentObject internalUserWithPassword(final String password) {
@@ -933,7 +911,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         }
     }
 
-    private String randomAsciiAlphanumOfLength(int length) {
+    protected String randomAsciiAlphanumOfLength(int length) {
         final var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         final var random = new Random();
         final var sb = new StringBuilder(length);

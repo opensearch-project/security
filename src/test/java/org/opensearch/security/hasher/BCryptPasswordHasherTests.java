@@ -43,21 +43,21 @@ public class BCryptPasswordHasherTests extends AbstractPasswordHasherTests {
     @Test
     public void shouldGenerateAValidHashForParameters() {
         PasswordHasher hasher = new BCryptPasswordHasher("A", 8);
-        String hash = hasher.hash(password.toCharArray());
+        String hash = hasher.hash(getPassword().toCharArray());
         assertThat(hash, startsWith("$2a$08"));
-        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(getPassword().toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
         hasher = new BCryptPasswordHasher("B", 10);
-        hash = hasher.hash(password.toCharArray());
+        hash = hasher.hash(getPassword().toCharArray());
         assertThat(hash, startsWith("$2b$10"));
-        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(getPassword().toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
 
         hasher = new BCryptPasswordHasher("Y", 13);
-        hash = hasher.hash(password.toCharArray());
+        hash = hasher.hash(getPassword().toCharArray());
         assertThat(hash, startsWith("$2y$13"));
-        assertThat(hasher.check(password.toCharArray(), hash), is(true));
+        assertThat(hasher.check(getPassword().toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
     }
 

@@ -61,12 +61,10 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.bouncycastle.tls.TlsFatalAlert;
 
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.security.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
@@ -136,8 +134,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
             ) {
 
-                Class<? extends Throwable> exceptionClass = FipsMode.isEnabled() ? TlsFatalAlert.class : SSLHandshakeException.class;
-                thrown.expect(exceptionClass);
+                thrown.expect(getWrongTrustExceptionClass());
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     Assert.fail("Connection should have failed due to wrong trust");
@@ -145,6 +142,10 @@ public class SettingsBasedSSLConfiguratorV4Test {
             }
 
         }
+    }
+
+    protected Class<? extends Throwable> getWrongTrustExceptionClass() {
+        return SSLHandshakeException.class;
     }
 
     @Test
@@ -360,8 +361,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
             ) {
 
-                Class<? extends Throwable> exceptionClass = FipsMode.isEnabled() ? TlsFatalAlert.class : SSLHandshakeException.class;
-                thrown.expect(exceptionClass);
+                thrown.expect(getWrongTrustExceptionClass());
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     Assert.fail("Connection should have failed due to wrong trust");

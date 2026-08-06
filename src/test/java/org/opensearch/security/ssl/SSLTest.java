@@ -55,7 +55,6 @@ import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -626,9 +625,7 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testHttpsV3Fail() throws Exception {
-        assumeFalse("SSLv3 is not FIPS-approved", FipsMode.isEnabled());
-
-        thrown.expect(SSLHandshakeException.class);
+        expectSslV3Rejection();
 
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
@@ -649,6 +646,15 @@ public class SSLTest extends SingleClusterTest {
         rh.enableHTTPClientSSLv3Only = true;
 
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
+    }
+
+    /**
+     * Declares how an SSLv3-only client is expected to be rejected. The JDK provider offers the
+     * protocol and fails during the handshake; providers that refuse to configure SSLv3 at all
+     * override this to state their own failure.
+     */
+    protected void expectSslV3Rejection() {
+        thrown.expect(SSLHandshakeException.class);
     }
 
     @Test

@@ -19,15 +19,12 @@ import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -54,11 +51,6 @@ public class BCryptCustomConfigHashingTests extends HashingTests {
     @Parameterized.Parameters(name = "minor={0}, rounds={1}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] { { "A", 4 }, { "B", 6 }, { "Y", 10 }, { "A", 10 }, { "B", 4 }, { "Y", 6 } });
-    }
-
-    @BeforeClass
-    public static void skipInFipsMode() {
-        Assume.assumeFalse("Skipping BCrypt hashing tests: BCrypt is not FIPS-compliant", FipsMode.isEnabled());
     }
 
     @Before

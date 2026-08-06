@@ -37,7 +37,6 @@ import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
@@ -51,7 +50,6 @@ import org.ldaptive.ReturnAttributes;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assume.assumeFalse;
 
 @RunWith(Parameterized.class)
 public class LdapBackendTestOldStyleConfig2 {
@@ -277,8 +275,6 @@ public class LdapBackendTestOldStyleConfig2 {
 
     @Test
     public void testLdapAuthenticationSSLSSLv3() throws Exception {
-        assumeFalse("SSLv3 is not FIPS-approved", FipsMode.isEnabled());
-
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
@@ -293,8 +289,7 @@ public class LdapBackendTestOldStyleConfig2 {
             Assert.fail("Expected Exception");
         } catch (Exception e) {
             assertThat(e.getCause().getClass(), is(org.ldaptive.provider.ConnectionException.class));
-            var message = FipsMode.isEnabled() ? "'protocols' cannot be null, or contain unsupported protocols" : "No appropriate protocol";
-            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains(message));
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains("No appropriate protocol"));
         }
 
     }
@@ -315,10 +310,13 @@ public class LdapBackendTestOldStyleConfig2 {
             Assert.fail("Expected Exception");
         } catch (Exception e) {
             assertThat(e.getCause().getClass(), is(org.ldaptive.provider.ConnectionException.class));
-            var message = FipsMode.isEnabled() ? "No usable cipher suites enabled" : "Unsupported CipherSuite: AAA";
-            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains(message));
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains(getUnsupportedCipherMessage()));
         }
 
+    }
+
+    protected String getUnsupportedCipherMessage() {
+        return "Unsupported CipherSuite: AAA";
     }
 
     @Test

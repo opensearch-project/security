@@ -17,37 +17,37 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.security.support.FipsMode;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThrows;
 
 public abstract class AbstractPasswordHasherTests extends LuceneTestCase {
 
     PasswordHasher passwordHasher;
 
-    final String password = FipsMode.isEnabled() ? "notarealpassword" : "testPassword";
     final String wrongPassword = "wrongTestPassword";
+
+    protected String getPassword() {
+        return "testPassword";
+    }
 
     @Test
     public void shouldMatchHashToCorrectPassword() {
-        String hashedPassword = passwordHasher.hash(password.toCharArray());
-        assertThat(passwordHasher.check(password.toCharArray(), hashedPassword), is(true));
+        String hashedPassword = passwordHasher.hash(getPassword().toCharArray());
+        assertThat(passwordHasher.check(getPassword().toCharArray(), hashedPassword), is(true));
     }
 
     @Test
     public void shouldNotMatchHashToWrongPassword() {
-        String hashedPassword = passwordHasher.hash(password.toCharArray());
+        String hashedPassword = passwordHasher.hash(getPassword().toCharArray());
         assertThat(passwordHasher.check(wrongPassword.toCharArray(), hashedPassword), is(false));
 
     }
 
     @Test
     public void shouldGenerateDifferentHashesForTheSamePassword() {
-        String hash1 = passwordHasher.hash(password.toCharArray());
-        String hash2 = passwordHasher.hash(password.toCharArray());
+        String hash1 = passwordHasher.hash(getPassword().toCharArray());
+        String hash2 = passwordHasher.hash(getPassword().toCharArray());
         assertThat(hash1, is(not(hash2)));
     }
 
@@ -66,29 +66,29 @@ public abstract class AbstractPasswordHasherTests extends LuceneTestCase {
     @Test
     public void shouldHandleEmptyHashWhenChecking() {
         String emptyHash = "";
-        assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(password.toCharArray(), emptyHash); });
+        assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(getPassword().toCharArray(), emptyHash); });
     }
 
     @Test
     public void shouldHandleNullHashWhenChecking() {
         String nullHash = null;
-        assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(password.toCharArray(), nullHash); });
+        assertThrows(OpenSearchSecurityException.class, () -> { passwordHasher.check(getPassword().toCharArray(), nullHash); });
     }
 
     @Test
     public void shouldCleanupPasswordCharArray() {
-        char[] passwordAsChar = password.toCharArray();
+        char[] passwordAsChar = getPassword().toCharArray();
         passwordHasher.hash(passwordAsChar);
-        assertThat("\0".repeat(password.length()), is(new String(passwordAsChar)));
+        assertThat("\0".repeat(getPassword().length()), is(new String(passwordAsChar)));
     }
 
     @Test
     public void shouldCleanupPasswordCharBuffer() {
-        char[] passwordAsChar = password.toCharArray();
+        char[] passwordAsChar = getPassword().toCharArray();
         CharBuffer passwordBuffer = CharBuffer.wrap(passwordAsChar);
         passwordHasher.hash(passwordAsChar);
-        assertThat("\0".repeat(password.length()), is(new String(passwordAsChar)));
-        assertThat("\0".repeat(password.length()), is(passwordBuffer.toString()));
+        assertThat("\0".repeat(getPassword().length()), is(new String(passwordAsChar)));
+        assertThat("\0".repeat(getPassword().length()), is(passwordBuffer.toString()));
     }
 
 }

@@ -31,7 +31,6 @@ import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
@@ -43,7 +42,6 @@ import org.ldaptive.ReturnAttributes;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assume.assumeFalse;
 
 public class LdapBackendTestNewStyleConfig {
 
@@ -216,8 +214,6 @@ public class LdapBackendTestNewStyleConfig {
 
     @Test
     public void testLdapAuthenticationSSLSSLv3() throws Exception {
-        assumeFalse("SSLv3 is not FIPS-approved", FipsMode.isEnabled());
-
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put("users.u1.search", "(uid={0})")

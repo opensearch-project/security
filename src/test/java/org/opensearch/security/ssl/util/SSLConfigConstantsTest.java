@@ -16,7 +16,6 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.config.CertType;
-import org.opensearch.security.support.FipsMode;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS;
@@ -24,22 +23,20 @@ import static org.junit.Assert.assertArrayEquals;
 
 public class SSLConfigConstantsTest {
 
+    protected String[] getDefaultProtocols() {
+        return new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
+    }
+
     @Test
     public void testDefaultTLSProtocols() {
         final var tlsDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.TRANSPORT);
-        final var expected = FipsMode.isEnabled()
-            ? new String[] { "TLSv1.3", "TLSv1.2" }
-            : new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
-        assertArrayEquals(expected, tlsDefaultProtocols);
+        assertArrayEquals(getDefaultProtocols(), tlsDefaultProtocols);
     }
 
     @Test
     public void testDefaultSSLProtocols() {
         final var sslDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.HTTP);
-        final var expected = FipsMode.isEnabled()
-            ? new String[] { "TLSv1.3", "TLSv1.2" }
-            : new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
-        assertArrayEquals(expected, sslDefaultProtocols);
+        assertArrayEquals(getDefaultProtocols(), sslDefaultProtocols);
     }
 
     @Test

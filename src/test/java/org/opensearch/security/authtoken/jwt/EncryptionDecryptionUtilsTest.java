@@ -16,13 +16,9 @@ import java.util.Base64;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 
-import org.opensearch.security.support.FipsMode;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class EncryptionDecryptionUtilsTest {
@@ -90,28 +86,6 @@ public class EncryptionDecryptionUtilsTest {
 
         EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(secret);
         util.encrypt(data);
-    }
-
-    @Test
-    public void testFipsModeRejectsWeakEncryptionKey() {
-        Assume.assumeTrue(FipsMode.isEnabled());
-        // 16-byte (128-bit) key material — below the 256-bit minimum required to back the derived AES-256 key
-        String weakSecret = Base64.getEncoder().encodeToString("mySecretKey12345".getBytes());
-
-        IllegalArgumentException ex = Assert.assertThrows(IllegalArgumentException.class, () -> new EncryptionDecryptionUtil(weakSecret));
-        assertThat(ex.getMessage(), containsString("decodes to 16 bytes of key material, but FIPS mode requires at least 32 bytes"));
-    }
-
-    @Test
-    public void testFipsModeAcceptsStrongEncryptionKey() {
-        FipsMode.envSupplier = () -> "true";
-        // 32-byte (256-bit) key material satisfies the FIPS minimum
-        String strongSecret = Base64.getEncoder().encodeToString("mySecretKey12345mySecretKey12345".getBytes());
-        String data = "Hello, OpenSearch!";
-
-        EncryptionDecryptionUtil util = new EncryptionDecryptionUtil(strongSecret);
-
-        assertThat(util.decrypt(util.encrypt(data)), is(data));
     }
 
     @Test

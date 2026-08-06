@@ -16,7 +16,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
@@ -88,6 +87,11 @@ public class UntrustedLdapServerCertificateTest {
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend");
 
+    /** Exception the JSSE provider logs for an untrusted server certificate; BCJSSE raises its own. */
+    protected String getUntrustedCertificateExceptionName() {
+        return "javax.net.ssl.SSLHandshakeException";
+    }
+
     @Test
     public void shouldNotAuthenticateUserWithLdap() {
         try (TestRestClient client = cluster.getRestClient(USER_SPOCK, PASSWORD_SPOCK)) {
@@ -95,11 +99,7 @@ public class UntrustedLdapServerCertificateTest {
 
             response.assertStatusCode(401);
         }
-        if (FipsMode.isEnabled()) {
-            logsRule.assertThatStackTraceContain("org.bouncycastle.tls.TlsFatalAlert");
-        } else {
-            logsRule.assertThatStackTraceContain("javax.net.ssl.SSLHandshakeException");
-        }
+        logsRule.assertThatStackTraceContain(getUntrustedCertificateExceptionName());
     }
 
 }

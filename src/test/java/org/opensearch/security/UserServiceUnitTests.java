@@ -17,7 +17,6 @@ import java.nio.file.Files;
 import java.util.Optional;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,7 +29,6 @@ import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 import org.opensearch.transport.client.Client;
@@ -43,7 +41,6 @@ import tools.jackson.dataformat.yaml.YAMLFactory;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -122,10 +119,19 @@ public class UserServiceUnitTests {
         );
     }
 
+    /** Length window {@link UserService#generatePassword()} draws from; FIPS raises the floor. */
+    protected int getMinGeneratedPasswordLength() {
+        return 8;
+    }
+
+    protected int getMaxGeneratedPasswordLength() {
+        return 15;
+    }
+
     @Test
     public void testGeneratedPasswordContents() {
-        final int min = FipsMode.isEnabled() ? 20 : 8;
-        final int max = FipsMode.isEnabled() ? 27 : 15;
+        final int min = getMinGeneratedPasswordLength();
+        final int max = getMaxGeneratedPasswordLength();
         char[] password = UserService.generatePassword();
         assertThat(password.length >= min && password.length <= max, is(true));
         assertThat(new String(password).chars().anyMatch(Character::isLowerCase), is(true));
@@ -134,32 +140,6 @@ public class UserServiceUnitTests {
 
         char[] password2 = UserService.generatePassword();
         assertNotEquals(new String(password), new String(password2));
-    }
-
-    @Test
-    public void testGeneratedPasswordEntropyMeetsFipsRequirement() {
-        Assume.assumeTrue("Password entropy floor only applies under FIPS", FipsMode.isEnabled());
-        // FIPS 140-2/3 requires minimum 112 bits of entropy for cryptographic keys
-        final double FIPS_MIN_ENTROPY_BITS = 112.0;
-        final int CHARSET_SIZE = 62; // a-z (26) + A-Z (26) + 0-9 (10)
-        final int MIN_PASSWORD_LENGTH = 20;
-
-        double entropyPerChar = Math.log(CHARSET_SIZE) / Math.log(2);
-        double minEntropy = entropyPerChar * MIN_PASSWORD_LENGTH;
-
-        assertTrue(
-            String.format("Password entropy %.2f bits must be >= %.2f bits (FIPS minimum)", minEntropy, FIPS_MIN_ENTROPY_BITS),
-            minEntropy >= FIPS_MIN_ENTROPY_BITS
-        );
-
-        char[] password = UserService.generatePassword();
-        assertTrue("Generated password must be >= " + MIN_PASSWORD_LENGTH + " chars", password.length >= MIN_PASSWORD_LENGTH);
-
-        double actualEntropy = entropyPerChar * password.length;
-        assertTrue(
-            String.format("Actual password entropy %.2f bits must be >= %.2f bits", actualEntropy, FIPS_MIN_ENTROPY_BITS),
-            actualEntropy >= FIPS_MIN_ENTROPY_BITS
-        );
     }
 
 }

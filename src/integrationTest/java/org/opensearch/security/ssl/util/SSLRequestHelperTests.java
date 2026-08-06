@@ -45,7 +45,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.filter.SecurityRequest;
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
@@ -59,8 +58,8 @@ import static org.junit.Assert.assertThrows;
 
 public class SSLRequestHelperTests {
 
-    private static final String STORE_NAME = FipsMode.isEnabled() ? "truststore.bcfks" : "truststore.jks";
-    private static final String STORE_TYPE = FipsMode.isEnabled() ? "BCFKS" : "JKS";
+    protected static String storeName;
+    protected static String storeType;
     private static final char[] INTERNAL_STORE_PASSWORD = DEFAULT_STORE_PASSWORD.toCharArray();
 
     /** Minimum TLS packet buffer size used when the engine reports a smaller value. */
@@ -81,6 +80,13 @@ public class SSLRequestHelperTests {
 
     @BeforeClass
     public static void setUpCerts() throws Exception {
+        setUpCerts("truststore.jks", "JKS");
+    }
+
+    protected static void setUpCerts(final String truststoreName, final String truststoreType) throws Exception {
+        storeName = truststoreName;
+        storeType = truststoreType;
+
         certs = new TestCertificates();
         TestCertificates wrongCerts = new TestCertificates();
 
@@ -91,7 +97,7 @@ public class SSLRequestHelperTests {
 
         writeCrl(certs.getRootCertificateData(), configDir.resolve("empty.crl"));
         writeCrl(certs.getRootCertificateData(), configDir.resolve("revoked.crl"), certs.getAdminCertificateData().certificate());
-        writeTruststore(certs.getRootCertificateData().certificate(), configDir.resolve(STORE_NAME));
+        writeTruststore(certs.getRootCertificateData().certificate(), configDir.resolve(storeName));
     }
 
     // ── SSLContext helpers ────────────────────────────────────────────────────
@@ -252,7 +258,7 @@ public class SSLRequestHelperTests {
 
     /** Writes a truststore of the given {@code type} containing {@code caCert} with no password. */
     private static void writeTruststore(X509Certificate caCert, Path target) throws Exception {
-        KeyStore ts = KeyStore.getInstance(STORE_TYPE);
+        KeyStore ts = KeyStore.getInstance(storeType);
         ts.load(null, null);
         ts.setCertificateEntry("ca", caCert);
         try (FileOutputStream fos = new FileOutputStream(target.toFile())) {
@@ -340,7 +346,7 @@ public class SSLRequestHelperTests {
         Settings settings = Settings.builder()
             .put("path.home", configDir.getParent().toString())
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, STORE_NAME)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, storeName)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, "INVALID_TYPE")
             .build();
 
@@ -401,8 +407,8 @@ public class SSLRequestHelperTests {
             .put("path.home", configDir.getParent().toString())
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_FILE, "empty.crl")
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, STORE_NAME)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, STORE_TYPE)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, storeName)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, storeType)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, true)
             .build();

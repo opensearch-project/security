@@ -17,7 +17,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
 
-import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -72,11 +71,11 @@ public class TlsHostnameVerificationTests {
                 );
             clusterFuture.cancel(true);
         } catch (Exception e) {
-            if (FipsMode.isEnabled()) {
-                logsRule.assertThatStackTraceContain("No subject alternative name found matching IP address 127.0.0.1");
-            } else {
-                logsRule.assertThatContain("No subject alternative names matching IP address 127.0.0.1 found");
-            }
+            assertHostnameVerificationFailureLogged();
         }
+    }
+
+    protected void assertHostnameVerificationFailureLogged() {
+        logsRule.assertThatContain("No subject alternative names matching IP address 127.0.0.1 found");
     }
 }
