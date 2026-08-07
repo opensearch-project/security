@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Strings;
@@ -46,6 +47,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,6 +61,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.identity.UserSubject;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
+import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
@@ -110,6 +113,8 @@ public class BackendRegistry {
     private final ClusterInfoHolder clusterInfoHolder;
     private int ttlInMin;
     private Cache<AuthCredentials, User> userCache; // rest standard
+    private Cache<AuthCredentials, Boolean> incorrectCredentialCache;
+    private volatile Semaphore bcryptSemaphore;
     private Cache<String, User> restImpersonationCache; // used for rest impersonation
     private Cache<User, Set<String>> restRoleCache; //
 
@@ -123,6 +128,33 @@ public class BackendRegistry {
                 }
             })
             .build();
+
+        incorrectCredentialCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(
+                opensearchSettings.getAsInt(
+                    ConfigConstants.SECURITY_CACHE_INCORRECT_CREDENTIAL_TTL_MINUTES,
+                    ConfigConstants.SECURITY_CACHE_INCORRECT_CREDENTIAL_TTL_MINUTES_DEFAULT
+                ),
+                TimeUnit.MINUTES
+            )
+            .maximumSize(
+                opensearchSettings.getAsInt(
+                    ConfigConstants.SECURITY_CACHE_INCORRECT_CREDENTIAL_MAX_SIZE,
+                    ConfigConstants.SECURITY_CACHE_INCORRECT_CREDENTIAL_MAX_SIZE_DEFAULT
+                )
+            )
+            .build();
+
+        int defaultMaxConcurrent = Math.max(1, Runtime.getRuntime().availableProcessors() / 4);
+        int maxConcurrentBcrypt = opensearchSettings.getAsInt(ConfigConstants.SECURITY_AUTH_MAX_CONCURRENT_BCRYPT, defaultMaxConcurrent);
+        this.bcryptSemaphore = (maxConcurrentBcrypt > ConfigConstants.SECURITY_AUTH_MAX_CONCURRENT_BCRYPT_DISABLED)
+            ? new Semaphore(maxConcurrentBcrypt)
+            : null;
+        if (this.bcryptSemaphore != null) {
+            log.info("BCrypt concurrency limiter enabled with {} permits", maxConcurrentBcrypt);
+        } else {
+            log.info("BCrypt concurrency limiter disabled");
+        }
 
         restImpersonationCache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
@@ -191,6 +223,7 @@ public class BackendRegistry {
 
     public void invalidateCache() {
         userCache.invalidateAll();
+        incorrectCredentialCache.invalidateAll();
         restImpersonationCache.invalidateAll();
         restRoleCache.invalidateAll();
     }
@@ -303,6 +336,7 @@ public class BackendRegistry {
         /*
         Iterate through configured auth domains.
          */
+        boolean authenticationThrottled = false;
         for (final AuthDomain authDomain : restAuthDomains) {
             if (isDebugEnabled) {
                 log.debug(
@@ -421,7 +455,49 @@ public class BackendRegistry {
             Validates extracted credentials against an authentication backend.
             Populates associated roles for the authenticated user.
              */
-            authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
+            // Pre-increment IP rate limiter for non-existent users before BCrypt runs
+            boolean earlyFailureNotified = false;
+            if (ac != null) {
+                Optional<Boolean> userExistsResult = authDomain.getBackend().userExists(ac.getUsername());
+                if (userExistsResult.isPresent() && !userExistsResult.get()) {
+                    if (isDebugEnabled) {
+                        log.debug(
+                            "User {} does not exist in backend {}, notifying failure listeners early",
+                            ac.getUsername(),
+                            authDomain.getBackend().getType()
+                        );
+                    }
+                    for (AuthFailureListener authFailureListener : this.authBackendFailureListeners.get(
+                        authDomain.getBackend().getClass().getName()
+                    )) {
+                        authFailureListener.onAuthFailure(
+                            request.getRemoteAddress().map(InetSocketAddress::getAddress).orElse(null),
+                            ac,
+                            request
+                        );
+                    }
+                    earlyFailureNotified = true;
+                }
+            }
+
+            try {
+                authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
+            } catch (AuthBackendThrottledException throttled) {
+                if (isDebugEnabled) {
+                    log.debug(
+                        "Authentication throttled for user {} on backend {}: {}",
+                        ac != null ? ac.getUsername() : null,
+                        authDomain.getBackend().getType(),
+                        throttled.getMessage()
+                    );
+                }
+                authenticationThrottled = true;
+                // continue (not break): subsequent auth domains (LDAP, SAML, etc.)
+                // do not run BCrypt and may still authenticate this user. The
+                // post-loop 503 handler only fires when authenticatedUser remains
+                // null, so a successful later domain harmlessly clears the throttle.
+                continue;
+            }
 
             /*
             In the case where credentials are not validated by the auth backend notify failure listeners and continue.
@@ -436,14 +512,16 @@ public class BackendRegistry {
                         restAuthDomains
                     );
                 }
-                for (AuthFailureListener authFailureListener : this.authBackendFailureListeners.get(
-                    authDomain.getBackend().getClass().getName()
-                )) {
-                    authFailureListener.onAuthFailure(
-                        request.getRemoteAddress().map(InetSocketAddress::getAddress).orElse(null),
-                        ac,
-                        request
-                    );
+                if (!earlyFailureNotified) {
+                    for (AuthFailureListener authFailureListener : this.authBackendFailureListeners.get(
+                        authDomain.getBackend().getClass().getName()
+                    )) {
+                        authFailureListener.onAuthFailure(
+                            request.getRemoteAddress().map(InetSocketAddress::getAddress).orElse(null),
+                            ac,
+                            request
+                        );
+                    }
                 }
                 continue;
             }
@@ -527,6 +605,18 @@ public class BackendRegistry {
             Handle anonymous auth.
             Populate thread context with anonymous user is anonymous login requested and no other credentials provided.
              */
+            if (authenticationThrottled) {
+                log.warn(
+                    "Authentication throttled due to BCrypt concurrency limit for {} from {}",
+                    authCredentials == null ? null : authCredentials.getUsername(),
+                    remoteAddress
+                );
+                request.queueForSending(
+                    new SecurityResponse(SC_SERVICE_UNAVAILABLE, "Authentication service temporarily unavailable, please retry later")
+                );
+                return false;
+            }
+
             if (authCredentials == null && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
                 if (gRPC) {
                     log.error("Anonymous auth not supported over gRPC");
@@ -785,20 +875,87 @@ public class BackendRegistry {
                 return authBackend.authenticate(context);
             }
 
-            return cache.get(ac, new Callable<User>() {
-                @Override
-                public User call() throws Exception {
-                    if (log.isTraceEnabled()) {
-                        log.trace(
-                            "Credentials for user {} not cached, return from {} backend directly",
-                            ac.getUsername(),
-                            authBackend.getType()
-                        );
-                    }
-                    final User authenticatedUser = authBackend.authenticate(context);
-                    return authz(context, authenticatedUser, roleCache, authorizers);
+            // Incorrect-credential cache: reject immediately if these exact credentials recently failed.
+            // Guarded by `authBackend instanceof InternalAuthenticationBackend` for symmetry
+            // with the cache-put path: only InternalAuthenticationBackend throws
+            // InvalidCredentialsException (and therefore is the only backend that can
+            // populate this cache). Reading it for other backends (LDAP, SAML, Kerberos)
+            // would incorrectly reject users who exist there but not in internal_users.
+            if (authBackend instanceof InternalAuthenticationBackend && incorrectCredentialCache.getIfPresent(ac) != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Credentials for user {} found in incorrect-credential cache, rejecting", ac.getUsername());
                 }
-            });
+                return null;
+            }
+
+            // Success cache hit — return without acquiring semaphore
+            User cachedUser = cache.getIfPresent(ac);
+            if (cachedUser != null) {
+                return cachedUser;
+            }
+
+            // Delegate to the Guava cache to authenticate. The BCrypt semaphore is
+            // acquired INSIDE the Callable so only the thread actually running BCrypt
+            // holds a permit (Guava's cache-loading deduplication blocks concurrent
+            // callers on the same key — acquiring before cache.get() would waste
+            // permits on those waiting threads). It is also only applied to
+            // backends that actually perform BCrypt (InternalAuthenticationBackend);
+            // LDAP, SAML, Kerberos etc. are not throttled.
+            try {
+                return cache.get(ac, new Callable<User>() {
+                    @Override
+                    public User call() throws Exception {
+                        if (log.isTraceEnabled()) {
+                            log.trace(
+                                "Credentials for user {} not cached, return from {} backend directly",
+                                ac.getUsername(),
+                                authBackend.getType()
+                            );
+                        }
+                        final Semaphore semaphore = bcryptSemaphore;
+                        final boolean shouldAcquire = (semaphore != null && authBackend instanceof InternalAuthenticationBackend);
+                        if (shouldAcquire && !semaphore.tryAcquire()) {
+                            log.warn("BCrypt concurrency limit reached, rejecting auth for user {}", ac.getUsername());
+                            throw new AuthBackendThrottledException("BCrypt concurrency limit reached for user " + ac.getUsername());
+                        }
+                        try {
+                            // Narrow catch: only wrap authenticate(). authz() exceptions
+                            // (e.g. "role not found") must NOT poison the incorrect-credential cache.
+                            final User authenticatedUser;
+                            try {
+                                authenticatedUser = authBackend.authenticate(context);
+                            } catch (InvalidCredentialsException e) {
+                                // Definitive credential failure (wrong user / wrong password /
+                                // empty password) thrown only by InternalAuthenticationBackend.
+                                // Transient errors (e.g. "not configured" during startup/reload)
+                                // keep throwing plain OpenSearchSecurityException and are NOT cached.
+                                incorrectCredentialCache.put(ac, Boolean.TRUE);
+                                throw e;
+                            }
+                            return authz(context, authenticatedUser, roleCache, authorizers);
+                        } finally {
+                            if (shouldAcquire) {
+                                semaphore.release();
+                            }
+                        }
+                    }
+                });
+            } catch (UncheckedExecutionException e) {
+                // Guava wraps the Callable's RuntimeExceptions; unwrap so the
+                // throttle exception propagates to the caller for 503 handling
+                // and security exceptions follow the original null-return path.
+                if (e.getCause() instanceof AuthBackendThrottledException) {
+                    throw (AuthBackendThrottledException) e.getCause();
+                }
+                if (e.getCause() instanceof OpenSearchSecurityException) {
+                    throw (OpenSearchSecurityException) e.getCause();
+                }
+                throw e;
+            }
+        } catch (AuthBackendThrottledException t) {
+            // Propagate capacity rejection so the caller can respond with 503
+            // and skip AuthFailureListener notification (do not penalize IP)
+            throw t;
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Can not authenticate {} due to exception", ac.getUsername(), e);
