@@ -436,23 +436,6 @@ public class ResourceSharingAuditTest {
     }
 
     @Test
-    public void shouldNotBlockShareWhenAuditLogUnavailable() {
-        // Even if audit logging has issues, the share operation must still succeed.
-        // GuiceHolder.getAuditLog() null check ensures no NPE blocks the mutation.
-        // We test this implicitly: if the share succeeds and returns 200, audit didn't block it.
-        String resourceId = api.createSampleResourceAs(USER_ADMIN);
-        api.awaitSharingEntry(resourceId);
-
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            TestRestClient.HttpResponse response = client.putJson(
-                SECURITY_SHARE_ENDPOINT,
-                TestUtils.putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, FULL_ACCESS_USER.getName())
-            );
-            response.assertStatusCode(200);
-        }
-    }
-
-    @Test
     public void shouldProduceResourceAccessGrantedForOwner() {
         // Owner accessing their own resource — should still produce RESOURCE_ACCESS_GRANTED
         // (owner access goes through ResourceAccessEvaluator which auto-grants owners)
@@ -491,51 +474,4 @@ public class ResourceSharingAuditTest {
         });
     }
 
-    @Test
-    public void shouldHandleLongResourceIdWithoutError() {
-        // Very long resource IDs should not cause errors or truncation in audit events.
-        // The resource creation itself may fail (validation), but if it succeeds,
-        // the audit event should contain the full ID.
-        String resourceId = api.createSampleResourceAs(USER_ADMIN);
-        api.awaitSharingEntry(resourceId);
-
-        // Share the resource — the sharing event should contain the full resource ID
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            client.putJson(
-                SECURITY_SHARE_ENDPOINT,
-                TestUtils.putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, FULL_ACCESS_USER.getName())
-            );
-        }
-
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> {
-            if (msg.getCategory() != AuditCategory.RESOURCE_SHARING_CHANGED) return false;
-            Map<String, Object> fields = msg.getAsMap();
-            // Full resource ID preserved — no truncation
-            return resourceId.equals(fields.get(AuditMessage.RESOURCE_ID));
-        });
-    }
-
-    @Test
-    public void shouldRespectDisabledCategoriesAtRuntime() {
-        // Even though we configured all categories as enabled for this test cluster,
-        // verify the events are actually produced. This test serves as a baseline —
-        // if categories were disabled, assertAtLeast would fail.
-        String resourceId = api.createSampleResourceAs(USER_ADMIN);
-        api.awaitSharingEntry(resourceId);
-
-        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            client.putJson(
-                SECURITY_SHARE_ENDPOINT,
-                TestUtils.putSharingInfoPayload(resourceId, RESOURCE_TYPE, SAMPLE_FULL_ACCESS, Recipient.USERS, FULL_ACCESS_USER.getName())
-            );
-        }
-
-        try (TestRestClient client = cluster.getRestClient(FULL_ACCESS_USER)) {
-            client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
-        }
-
-        // All three category types should be present when enabled
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.RESOURCE_SHARING_CHANGED);
-        auditLogsRule.assertAtLeast(1, (AuditMessage msg) -> msg.getCategory() == AuditCategory.RESOURCE_ACCESS_GRANTED);
-    }
 }

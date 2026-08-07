@@ -8,12 +8,16 @@
 
 package org.opensearch.security.resources.api.share;
 
+import java.util.function.Supplier;
+
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.tasks.Task;
@@ -24,15 +28,20 @@ import org.opensearch.transport.TransportService;
  */
 public class ShareTransportAction extends HandledTransportAction<ShareRequest, ShareResponse> {
     private final ResourceAccessHandler resourceAccessHandler;
+    private final AuditLog auditLog;
+    private final ThreadContext threadContext;
 
     @Inject
     public ShareTransportAction(
         TransportService transportService,
         ActionFilters actionFilters,
-        ResourceAccessHandler resourceAccessHandler
+        ResourceAccessHandler resourceAccessHandler,
+        AuditLogImpl auditLog
     ) {
         super(ShareAction.NAME, transportService, actionFilters, ShareRequest::new);
         this.resourceAccessHandler = resourceAccessHandler;
+        this.auditLog = auditLog;
+        this.threadContext = transportService.getThreadPool().getThreadContext();
     }
 
     @Override
@@ -71,9 +80,13 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
     }
 
     /**
-     * Wraps a listener to fire a RESOURCE_SHARING_CHANGED audit event after a successful mutation.
-     * Uses GuiceHolder to access the AuditLog since it's registered by concrete class in Guice
-     * and cannot be injected by interface type.
+     * Wraps a listener to fire a RESOURCE_SHARING_CHANGED audit event after a successful mutation,
+     * or a RESOURCE_SHARING_CHANGED event with result "failed" when the mutation fails after
+     * authorization.
+     *
+     * Uses ContextPreservingActionListener to ensure the security user ThreadContext transients
+     * (set at doExecute time) are available when the async callback fires, even if the callback
+     * runs on a different threadpool thread after stashContext in ResourceSharingIndexHandler.
      */
     private ActionListener<ResourceSharing> auditingListener(
         ActionListener<ResourceSharing> delegate,
@@ -81,35 +94,38 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
         Task task,
         String sharingAction
     ) {
-        return ActionListener.wrap(resourceSharing -> {
-            AuditLog auditLog = OpenSearchSecurityPlugin.GuiceHolder.getAuditLog();
-            if (auditLog != null) {
-                auditLog.logResourceSharingChanged(
-                    request.id(),
-                    request.type(),
-                    sharingAction,
-                    request.getAdd() != null ? request.getAdd().toString() : null,
-                    request.getRevoke() != null ? request.getRevoke().toString() : null,
-                    request.getShareWith() != null ? request.getShareWith().toString() : null,
-                    task
-                );
-            }
+        // Capture the current thread context (including security user) before async operations
+        Supplier<ThreadContext.StoredContext> contextSupplier = threadContext.newRestorableContext(true);
+
+        ActionListener<ResourceSharing> auditListener = ActionListener.wrap(resourceSharing -> {
+            auditLog.logResourceSharingChanged(
+                request.id(),
+                request.type(),
+                sharingAction,
+                "success",
+                request.getAdd() != null ? request.getAdd().toString() : null,
+                request.getRevoke() != null ? request.getRevoke().toString() : null,
+                request.getShareWith() != null ? request.getShareWith().toString() : null,
+                request,
+                task
+            );
             delegate.onResponse(resourceSharing);
         }, e -> {
-            AuditLog auditLog = OpenSearchSecurityPlugin.GuiceHolder.getAuditLog();
-            if (auditLog != null) {
-                auditLog.logResourceSharingChanged(
-                    request.id(),
-                    request.type(),
-                    sharingAction + "_denied",
-                    request.getAdd() != null ? request.getAdd().toString() : null,
-                    request.getRevoke() != null ? request.getRevoke().toString() : null,
-                    request.getShareWith() != null ? request.getShareWith().toString() : null,
-                    task
-                );
-            }
+            auditLog.logResourceSharingChanged(
+                request.id(),
+                request.type(),
+                sharingAction,
+                "failed",
+                request.getAdd() != null ? request.getAdd().toString() : null,
+                request.getRevoke() != null ? request.getRevoke().toString() : null,
+                request.getShareWith() != null ? request.getShareWith().toString() : null,
+                request,
+                task
+            );
             delegate.onFailure(e);
         });
+
+        return new ContextPreservingActionListener<>(contextSupplier, auditListener);
     }
 
 }

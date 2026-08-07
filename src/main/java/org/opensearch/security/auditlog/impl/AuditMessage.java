@@ -147,6 +147,7 @@ public final class AuditMessage {
     public static final String RESOURCE_INDEX = "audit_resource_index";
     public static final String RESOURCE_ACCESS_RESULT = "audit_resource_access_result";
     public static final String RESOURCE_SHARING_ACTION = "audit_resource_sharing_action";
+    public static final String RESOURCE_SHARING_RESULT = "audit_resource_sharing_result";
     public static final String RESOURCE_RECIPIENTS_ADDED = "audit_resource_recipients_added";
     public static final String RESOURCE_RECIPIENTS_REVOKED = "audit_resource_recipients_revoked";
     public static final String RESOURCE_SHARE_WITH = "audit_resource_share_with";
@@ -507,6 +508,12 @@ public final class AuditMessage {
     public void addResourceSharingAction(String action) {
         if (action != null && !action.isEmpty()) {
             auditInfo.put(RESOURCE_SHARING_ACTION, action);
+        }
+    }
+
+    public void addResourceSharingResult(String result) {
+        if (result != null && !result.isEmpty()) {
+            auditInfo.put(RESOURCE_SHARING_RESULT, result);
         }
     }
 

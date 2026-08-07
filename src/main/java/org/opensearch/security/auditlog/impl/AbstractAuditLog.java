@@ -1131,21 +1131,25 @@ public abstract class AbstractAuditLog implements AuditLog {
         String resourceId,
         String resourceType,
         String sharingAction,
+        String sharingResult,
         String recipientsAdded,
         String recipientsRevoked,
         String shareWith,
+        TransportRequest request,
         Task task
     ) {
-        if (!checkTransportFilter(AuditCategory.RESOURCE_SHARING_CHANGED, sharingAction, getUser(), null)) {
+        if (!checkTransportFilter(AuditCategory.RESOURCE_SHARING_CHANGED, sharingAction, getUser(), request)) {
             return;
         }
 
         AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_SHARING_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
         msg.addEffectiveUser(getUser());
         msg.addRemoteAddress(getRemoteAddress());
+        msg.addAction(sharingAction);
         msg.addResourceId(resourceId);
         msg.addResourceType(resourceType);
         msg.addResourceSharingAction(sharingAction);
+        msg.addResourceSharingResult(sharingResult);
         msg.addResourceRecipientsAdded(recipientsAdded);
         msg.addResourceRecipientsRevoked(recipientsRevoked);
         msg.addResourceShareWith(shareWith);

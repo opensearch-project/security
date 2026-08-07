@@ -297,13 +297,25 @@ public class AuditLogImpl extends AbstractAuditLog {
         String resourceId,
         String resourceType,
         String sharingAction,
+        String sharingResult,
         String recipientsAdded,
         String recipientsRevoked,
         String shareWith,
+        TransportRequest request,
         Task task
     ) {
         if (enabled) {
-            super.logResourceSharingChanged(resourceId, resourceType, sharingAction, recipientsAdded, recipientsRevoked, shareWith, task);
+            super.logResourceSharingChanged(
+                resourceId,
+                resourceType,
+                sharingAction,
+                sharingResult,
+                recipientsAdded,
+                recipientsRevoked,
+                shareWith,
+                request,
+                task
+            );
         }
     }
 

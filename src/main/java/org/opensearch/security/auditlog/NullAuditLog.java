@@ -178,9 +178,11 @@ public class NullAuditLog implements AuditLog {
         String resourceId,
         String resourceType,
         String sharingAction,
+        String sharingResult,
         String recipientsAdded,
         String recipientsRevoked,
         String shareWith,
+        TransportRequest request,
         Task task
     ) {
         // noop
