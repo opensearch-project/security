@@ -267,8 +267,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             // if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless
             // of beeing a internal: or shard request)
             // also allow when issued from a remote cluster for cross cluster search
-            if (!HeaderHelper.isInterClusterRequest(getThreadContext())
-                && !HeaderHelper.isTrustedClusterRequest(getThreadContext())
+            if (!HeaderHelper.isLocalClusterNodeRequest(getThreadContext())
+                && !HeaderHelper.isRemoteClusterNodeRequest(getThreadContext())
                 && !HeaderHelper.isExtensionRequest(getThreadContext())
                 && !task.getAction().equals("internal:transport/handshake")
                 && (task.getAction().startsWith("internal:") || task.getAction().contains("["))) {
@@ -310,9 +310,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
                 }
 
-                // network intercluster request or cross search cluster request
-                if (!(HeaderHelper.isInterClusterRequest(getThreadContext())
-                    || HeaderHelper.isTrustedClusterRequest(getThreadContext())
+                // local cluster node request or cross-cluster request
+                if (!(HeaderHelper.isLocalClusterNodeRequest(getThreadContext())
+                    || HeaderHelper.isRemoteClusterNodeRequest(getThreadContext())
                     || HeaderHelper.isExtensionRequest(getThreadContext()))) {
                     final OpenSearchException exception = ExceptionUtils.clusterWrongNodeCertConfigException(principal);
                     log.error(exception.toString());
@@ -379,13 +379,13 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final String principal
     ) throws Exception {
 
-        boolean isInterClusterRequest = requestEvalProvider.isInterClusterRequest(request, localCerts, peerCerts, principal);
+        boolean isNodeCertificateRequest = requestEvalProvider.isInterClusterRequest(request, localCerts, peerCerts, principal);
         final boolean isTraceEnabled = log.isTraceEnabled();
-        if (isInterClusterRequest) {
+        if (isNodeCertificateRequest) {
             if (cs.getClusterName().value().equals(getThreadContext().getHeader("_opendistro_security_remotecn"))) {
 
                 if (isTraceEnabled && !action.startsWith("internal:")) {
-                    log.trace("Is inter cluster request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
+                    log.trace("Is local cluster node request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
                 }
 
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST, Boolean.TRUE);
@@ -395,7 +395,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
         } else {
             if (isTraceEnabled) {
-                log.trace("Is not an inter cluster request");
+                log.trace("Is not a node certificate request");
             }
         }
 

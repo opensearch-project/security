@@ -222,14 +222,14 @@ public class SecurityFilter implements ActionFilter {
                 threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
-            final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
-            final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
+            final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadContext);
+            final boolean remoteClusterNodeRequest = HeaderHelper.isRemoteClusterNodeRequest(threadContext);
             final boolean confRequest = "true".equals(
                 HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
             );
             final boolean passThroughRequest = action.startsWith("indices:admin/seq_no") || action.equals(WhoAmIAction.NAME);
 
-            final boolean internalRequest = (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+            final boolean internalRequest = (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadContext))
                 && action.startsWith("internal:")
                 && !action.startsWith("internal:transport/proxy");
 
@@ -337,7 +337,7 @@ public class SecurityFilter implements ActionFilter {
             }
 
             if (Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+                && (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadContext))
                 && (injectedRoles == null)
                 && (user == null)) {
 
@@ -355,12 +355,14 @@ public class SecurityFilter implements ActionFilter {
                 boolean skipSecurityIfDualMode = threadContext.getTransient(
                     ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY
                 ) == Boolean.TRUE;
-                if ((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null)
+                if ((localClusterNodeRequest || remoteClusterNodeRequest || request.remoteAddress() == null)
                     && !compatConfig.transportInterClusterAuthEnabled()) {
                     chain.proceed(task, action, request, listener);
                     return;
-                } else if ((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null || skipSecurityIfDualMode)
-                    && compatConfig.transportInterClusterPassiveAuthEnabled()) {
+                } else if ((localClusterNodeRequest
+                    || remoteClusterNodeRequest
+                    || request.remoteAddress() == null
+                    || skipSecurityIfDualMode) && compatConfig.transportInterClusterPassiveAuthEnabled()) {
                         log.info("Transport auth in passive mode and no user found. Injecting default user");
                         user = User.DEFAULT_TRANSPORT_USER;
                         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);

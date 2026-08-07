@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -103,6 +104,17 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
     private final Set<String> ignoredUrlParams = new HashSet<>();
+
+    /**
+     * Immutable snapshot of node-level audit exclusion config from opensearch.yml.
+     * Stored as an AtomicReference so both fields are always read/written atomically,
+     * even when setNodeActionGroups and setNodeBodyLoggingExclusions race.
+     */
+    private record NodeExclusionConfig(Map<String, List<String>> actionGroups, List<String> bodyLoggingExclusions) {
+        static final NodeExclusionConfig EMPTY = new NodeExclusionConfig(Collections.emptyMap(), Collections.emptyList());
+    }
+
+    private final AtomicReference<NodeExclusionConfig> nodeExclusionConfig = new AtomicReference<>(NodeExclusionConfig.EMPTY);
     private final UserFactory userFactory;
 
     protected abstract void enableRoutes();
@@ -145,8 +157,32 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     protected void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
         auditConfigFilter.setIgnoredUrlParams(ignoredUrlParams);
+        // Always re-apply node-level config so it survives filter reloads from security index.
+        // This must run even when empty — a dynamic update to [] should override whatever
+        // the security index provides.
+        NodeExclusionConfig config = this.nodeExclusionConfig.get();
+        auditConfigFilter.setActionGroups(config.actionGroups());
+        auditConfigFilter.setBodyLoggingExclusions(config.bodyLoggingExclusions());
         this.auditConfigFilter = auditConfigFilter;
         this.auditConfigFilter.log(log);
+    }
+
+    /**
+     * Stores action groups from opensearch.yml so they persist across filter reloads.
+     * Called once at startup from OpenSearchSecurityPlugin.
+     */
+    public void setNodeActionGroups(Map<String, List<String>> groups) {
+        Map<String, List<String>> safeGroups = groups != null ? groups : Collections.emptyMap();
+        this.nodeExclusionConfig.updateAndGet(current -> new NodeExclusionConfig(safeGroups, current.bodyLoggingExclusions()));
+    }
+
+    /**
+     * Stores body logging exclusions so they persist across filter reloads.
+     * Updated at startup and when the dynamic setting changes.
+     */
+    public void setNodeBodyLoggingExclusions(List<String> exclusions) {
+        List<String> safeExclusions = exclusions != null ? exclusions : Collections.emptyList();
+        this.nodeExclusionConfig.updateAndGet(current -> new NodeExclusionConfig(current.actionGroups(), safeExclusions));
     }
 
     /**
@@ -193,7 +229,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
-
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -211,6 +247,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -226,6 +263,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
         msg.addPrivilege(privilege);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -239,6 +277,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRemoteAddress(getRemoteAddress());
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -266,7 +305,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege != null ? privilege : action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -274,7 +313,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -303,7 +344,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege != null ? privilege : action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -311,7 +352,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -341,7 +384,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -349,7 +392,11 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
-        msgs.forEach(this::save);
+        User resolvedUser = resolveUser();
+        msgs.forEach(msg -> {
+            enrichWithUserContext(msg, resolvedUser);
+            save(msg);
+        });
     }
 
     @Override
@@ -429,6 +476,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             msg.addTaskId(task.getId());
         }
 
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -474,6 +522,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             msg.addTaskId(task.getId());
         }
 
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -560,7 +609,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -612,7 +661,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -620,7 +669,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -649,7 +700,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -1109,14 +1160,44 @@ public abstract class AbstractAuditLog implements AuditLog {
         return address;
     }
 
-    private String getUser() {
+    /**
+     * Resolves the current User from ThreadContext: first tries the transient slot,
+     * then falls back to deserializing from the serialized header (transport hops).
+     */
+    private User resolveUser() {
         User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
             user = this.userFactory.fromSerializedBase64(
                 threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
             );
         }
+        return user;
+    }
+
+    private String getUser() {
+        User user = resolveUser();
         return user == null ? null : user.getName();
+    }
+
+    /**
+     * Enriches the audit message with user roles and authentication method.
+     * Resolves the User from ThreadContext — suitable for single-message REST paths.
+     */
+    private void enrichWithUserContext(AuditMessage msg) {
+        enrichWithUserContext(msg, resolveUser());
+    }
+
+    /**
+     * Enriches the audit message with a pre-resolved User object.
+     * Use this overload in loops to avoid redundant deserialization
+     * for bulk/multi-message transport paths.
+     */
+    private void enrichWithUserContext(AuditMessage msg, User user) {
+        if (user == null) {
+            return;
+        }
+        msg.addUserRoles(user.getSecurityRoles());
+        msg.addAuthMethod(user.getAuthenticatedBy());
     }
 
     private Map<String, String> getThreadContextHeaders() {

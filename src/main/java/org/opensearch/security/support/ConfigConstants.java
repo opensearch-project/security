@@ -205,6 +205,7 @@ public class ConfigConstants {
     public static final int SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT = 19;
 
     public static final String SECURITY_AUDIT_TYPE_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.type";
+    public static final String SECURITY_AUDIT_ENABLE_STANDALONE = SECURITY_SETTINGS_PREFIX + "audit.enable_standalone";
     public static final String SECURITY_AUDIT_ENABLED = SECURITY_SETTINGS_PREFIX + "audit.enabled";
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.config";
     public static final String SECURITY_AUDIT_CONFIG_ROUTES = SECURITY_SETTINGS_PREFIX + "audit.routes";
@@ -281,6 +282,7 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
     public static final String SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE = "log4j.maximum_index_characters_per_message";
+    public static final String SECURITY_AUDIT_LOG4J_ENABLE_MDC_ROUTING = "log4j.enable_mdc_routing";
 
     // retry
     public static final String SECURITY_AUDIT_RETRY_COUNT = SECURITY_SETTINGS_PREFIX + "audit.config.retry_count";
