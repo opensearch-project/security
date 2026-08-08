@@ -1088,6 +1088,93 @@ public abstract class AbstractAuditLog implements AuditLog {
         save(msg);
     }
 
+    @Override
+    public void logResourceAccessGranted(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        if (!checkTransportFilter(AuditCategory.RESOURCE_ACCESS_GRANTED, action, getUser(), request)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_ACCESS_GRANTED, clusterService, getOrigin(), Origin.TRANSPORT);
+        msg.addEffectiveUser(getUser());
+        msg.addRemoteAddress(getRemoteAddress());
+        msg.addAction(action);
+        msg.addResourceId(resourceId);
+        msg.addResourceType(resourceType);
+        msg.addResourceIndex(resourceIndex);
+        msg.addResourceAccessResult("granted");
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+        save(msg);
+    }
+
+    @Override
+    public void logResourceAccessDenied(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        if (!checkTransportFilter(AuditCategory.RESOURCE_ACCESS_DENIED, action, getUser(), request)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_ACCESS_DENIED, clusterService, getOrigin(), Origin.TRANSPORT);
+        msg.addEffectiveUser(getUser());
+        msg.addRemoteAddress(getRemoteAddress());
+        msg.addAction(action);
+        msg.addResourceId(resourceId);
+        msg.addResourceType(resourceType);
+        msg.addResourceIndex(resourceIndex);
+        msg.addResourceAccessResult("denied");
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+        save(msg);
+    }
+
+    @Override
+    public void logResourceSharingChanged(
+        String resourceId,
+        String resourceType,
+        String sharingAction,
+        String sharingResult,
+        String recipientsAdded,
+        String recipientsRevoked,
+        String shareWith,
+        TransportRequest request,
+        Task task
+    ) {
+        if (!checkTransportFilter(AuditCategory.RESOURCE_SHARING_CHANGED, sharingAction, getUser(), request)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_SHARING_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
+        msg.addEffectiveUser(getUser());
+        msg.addRemoteAddress(getRemoteAddress());
+        msg.addAction(sharingAction);
+        msg.addResourceId(resourceId);
+        msg.addResourceType(resourceType);
+        msg.addResourceSharingAction(sharingAction);
+        msg.addResourceSharingResult(sharingResult);
+        msg.addResourceRecipientsAdded(recipientsAdded);
+        msg.addResourceRecipientsRevoked(recipientsRevoked);
+        msg.addResourceShareWith(shareWith);
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+        save(msg);
+    }
+
     protected void logExternalConfig() {
 
         final ComplianceConfig complianceConfig = getComplianceConfig();

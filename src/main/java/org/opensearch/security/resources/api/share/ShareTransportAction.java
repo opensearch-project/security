@@ -8,10 +8,16 @@
 
 package org.opensearch.security.resources.api.share;
 
+import java.util.function.Supplier;
+
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.tasks.Task;
@@ -22,15 +28,20 @@ import org.opensearch.transport.TransportService;
  */
 public class ShareTransportAction extends HandledTransportAction<ShareRequest, ShareResponse> {
     private final ResourceAccessHandler resourceAccessHandler;
+    private final AuditLog auditLog;
+    private final ThreadContext threadContext;
 
     @Inject
     public ShareTransportAction(
         TransportService transportService,
         ActionFilters actionFilters,
-        ResourceAccessHandler resourceAccessHandler
+        ResourceAccessHandler resourceAccessHandler,
+        AuditLogImpl auditLog
     ) {
         super(ShareAction.NAME, transportService, actionFilters, ShareRequest::new);
         this.resourceAccessHandler = resourceAccessHandler;
+        this.auditLog = auditLog;
+        this.threadContext = transportService.getThreadPool().getThreadContext();
     }
 
     @Override
@@ -53,14 +64,68 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
                     request.getRevoke(),
                     request.isGeneralAccessPresent(),
                     request.getGeneralAccess(),
-                    sharingInfoListener
+                    auditingListener(sharingInfoListener, request, task, "patch")
                 );
                 break;
             case PUT:
-                resourceAccessHandler.share(request.id(), request.type(), request.getShareWith(), sharingInfoListener);
+                resourceAccessHandler.share(
+                    request.id(),
+                    request.type(),
+                    request.getShareWith(),
+                    auditingListener(sharingInfoListener, request, task, "share")
+                );
                 break;
         }
 
+    }
+
+    /**
+     * Wraps a listener to fire a RESOURCE_SHARING_CHANGED audit event after a successful mutation,
+     * or a RESOURCE_SHARING_CHANGED event with result "failed" when the mutation fails after
+     * authorization.
+     *
+     * Uses ContextPreservingActionListener to ensure the security user ThreadContext transients
+     * (set at doExecute time) are available when the async callback fires, even if the callback
+     * runs on a different threadpool thread after stashContext in ResourceSharingIndexHandler.
+     */
+    private ActionListener<ResourceSharing> auditingListener(
+        ActionListener<ResourceSharing> delegate,
+        ShareRequest request,
+        Task task,
+        String sharingAction
+    ) {
+        // Capture the current thread context (including security user) before async operations
+        Supplier<ThreadContext.StoredContext> contextSupplier = threadContext.newRestorableContext(true);
+
+        ActionListener<ResourceSharing> auditListener = ActionListener.wrap(resourceSharing -> {
+            auditLog.logResourceSharingChanged(
+                request.id(),
+                request.type(),
+                sharingAction,
+                "success",
+                request.getAdd() != null ? request.getAdd().toString() : null,
+                request.getRevoke() != null ? request.getRevoke().toString() : null,
+                request.getShareWith() != null ? request.getShareWith().toString() : null,
+                request,
+                task
+            );
+            delegate.onResponse(resourceSharing);
+        }, e -> {
+            auditLog.logResourceSharingChanged(
+                request.id(),
+                request.type(),
+                sharingAction,
+                "failed",
+                request.getAdd() != null ? request.getAdd().toString() : null,
+                request.getRevoke() != null ? request.getRevoke().toString() : null,
+                request.getShareWith() != null ? request.getShareWith().toString() : null,
+                request,
+                task
+            );
+            delegate.onFailure(e);
+        });
+
+        return new ContextPreservingActionListener<>(contextSupplier, auditListener);
     }
 
 }
