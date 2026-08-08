@@ -271,4 +271,197 @@ public class AuditMessageTest {
         // all messages share the same ID
         assertThat(splitMessages.stream().map(AuditMessageTest::getSplitMessageId).distinct().count(), is(1L));
     }
+
+    // =====================================================================
+    // audit_request_id — correlation field tests
+    // =====================================================================
+
+    @Test
+    public void testAddRequestIdPopulatesField() {
+        message.addRequestId("4bf92f3577b34da6a3ce929d0e0e4736");
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_ID), is("4bf92f3577b34da6a3ce929d0e0e4736"));
+    }
+
+    @Test
+    public void testAddRequestIdNullIsIgnored() {
+        message.addRequestId(null);
+        assertNull(message.getAsMap().get(AuditMessage.REQUEST_ID));
+    }
+
+    @Test
+    public void testAddRequestIdEmptyStringIsIgnored() {
+        // Empty string is rejected — only non-empty values are stored
+        message.addRequestId("");
+        assertNull(message.getAsMap().get(AuditMessage.REQUEST_ID));
+    }
+
+    @Test
+    public void testAddRequestIdAppearsInJson() throws Exception {
+        message.addRequestId("trace-abc-123");
+        String json = message.toJson();
+        assertThat(json, containsString("\"audit_request_id\":\"trace-abc-123\""));
+    }
+
+    // --- Tests for audit field enrichment methods ---
+
+    @Test
+    public void testAddUserRolesNull() {
+        message.addUserRoles(null);
+        assertNull(message.getAsMap().get(AuditMessage.USER_ROLES));
+    }
+
+    @Test
+    public void testAddUserRolesEmpty() {
+        message.addUserRoles(Collections.emptySet());
+        assertNull(message.getAsMap().get(AuditMessage.USER_ROLES));
+    }
+
+    @Test
+    public void testAddUserRolesDeterministicOrder() {
+        // Roles should be sorted alphabetically regardless of insertion order
+        java.util.Set<String> roles = new java.util.LinkedHashSet<>();
+        roles.add("zebra_role");
+        roles.add("admin");
+        roles.add("data_engineer");
+
+        message.addUserRoles(roles);
+        Object result = message.getAsMap().get(AuditMessage.USER_ROLES);
+        assertThat(result, is(List.of("admin", "data_engineer", "zebra_role")));
+    }
+
+    @Test
+    public void testAddUserRolesSingleRole() {
+        message.addUserRoles(java.util.Set.of("only_role"));
+        Object result = message.getAsMap().get(AuditMessage.USER_ROLES);
+        assertThat(result, is(List.of("only_role")));
+    }
+
+    @Test
+    public void testAddAuthMethodNull() {
+        message.addAuthMethod(null);
+        assertNull(message.getAsMap().get(AuditMessage.AUTH_METHOD));
+    }
+
+    @Test
+    public void testAddAuthMethodEmpty() {
+        message.addAuthMethod("");
+        assertNull(message.getAsMap().get(AuditMessage.AUTH_METHOD));
+    }
+
+    @Test
+    public void testAddAuthMethodValid() {
+        message.addAuthMethod("internal");
+        assertThat(message.getAsMap().get(AuditMessage.AUTH_METHOD), is("internal"));
+    }
+
+    @Test
+    public void testAddUserAgentNull() {
+        message.addUserAgent(null);
+        assertNull(message.getAsMap().get(AuditMessage.USER_AGENT));
+    }
+
+    @Test
+    public void testAddUserAgentEmpty() {
+        message.addUserAgent("");
+        assertNull(message.getAsMap().get(AuditMessage.USER_AGENT));
+    }
+
+    @Test
+    public void testAddUserAgentValid() {
+        message.addUserAgent("curl/7.68.0");
+        assertThat(message.getAsMap().get(AuditMessage.USER_AGENT), is("curl/7.68.0"));
+    }
+
+    @Test
+    public void testAddUserAgentSpecialCharacters() {
+        String complexAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0";
+        message.addUserAgent(complexAgent);
+        assertThat(message.getAsMap().get(AuditMessage.USER_AGENT), is(complexAgent));
+    }
+
+    @Test
+    public void testUserAgentExtractionRespectsIgnoreHeaders() {
+        // When filter excludes "User-Agent" (the actual header key from the request),
+        // addRestRequestInfo should NOT extract it
+        when(auditFilterMock.shouldExcludeHeader("User-Agent")).thenReturn(true);
+        when(auditFilterMock.shouldLogRequestBody()).thenReturn(false);
+
+        HttpRequest httpRequest = mock(HttpRequest.class);
+        when(httpRequest.uri()).thenReturn("/_cluster/health");
+        when(httpRequest.content()).thenReturn(new BytesArray(new byte[0]));
+        Map<String, List<String>> headers = ImmutableMap.of("User-Agent", ImmutableList.of("curl/7.68.0"));
+        when(httpRequest.getHeaders()).thenReturn(headers);
+
+        RestRequest restRequest = RestRequest.request(mock(NamedXContentRegistry.class), httpRequest, mock(HttpChannel.class));
+        SecurityRequest request = SecurityRequestFactory.from(restRequest);
+
+        message.addRestRequestInfo(request, auditFilterMock);
+        assertNull(message.getAsMap().get(AuditMessage.USER_AGENT));
+    }
+
+    @Test
+    public void testUserAgentExtractionWhenNotExcluded() {
+        // When filter does NOT exclude "user-agent", it should be extracted
+        when(auditFilterMock.shouldExcludeHeader("user-agent")).thenReturn(false);
+        when(auditFilterMock.shouldExcludeHeader("User-Agent")).thenReturn(false);
+        when(auditFilterMock.shouldLogRequestBody()).thenReturn(false);
+
+        HttpRequest httpRequest = mock(HttpRequest.class);
+        when(httpRequest.uri()).thenReturn("/_cluster/health");
+        when(httpRequest.content()).thenReturn(new BytesArray(new byte[0]));
+        Map<String, List<String>> headers = ImmutableMap.of("User-Agent", ImmutableList.of("opensearch-java/2.6.0"));
+        when(httpRequest.getHeaders()).thenReturn(headers);
+
+        RestRequest restRequest = RestRequest.request(mock(NamedXContentRegistry.class), httpRequest, mock(HttpChannel.class));
+        SecurityRequest request = SecurityRequestFactory.from(restRequest);
+
+        message.addRestRequestInfo(request, auditFilterMock);
+        assertThat(message.getAsMap().get(AuditMessage.USER_AGENT), is("opensearch-java/2.6.0"));
+    }
+
+    @Test
+    public void testUserAgentExclusionUsesActualHeaderKey() {
+        // Proves our code passes the actual header key ("User-Agent") to shouldExcludeHeader(),
+        // NOT a hardcoded lowercase "user-agent". The mock returns true only for the exact
+        // canonical casing — if our code still used the hardcoded lowercase, this test would FAIL.
+        when(auditFilterMock.shouldExcludeHeader("User-Agent")).thenReturn(true);
+        when(auditFilterMock.shouldExcludeHeader("user-agent")).thenReturn(false);
+        when(auditFilterMock.shouldLogRequestBody()).thenReturn(false);
+
+        HttpRequest httpRequest = mock(HttpRequest.class);
+        when(httpRequest.uri()).thenReturn("/_cluster/health");
+        when(httpRequest.content()).thenReturn(new BytesArray(new byte[0]));
+        Map<String, List<String>> headers = ImmutableMap.of("User-Agent", ImmutableList.of("curl/7.68.0"));
+        when(httpRequest.getHeaders()).thenReturn(headers);
+
+        RestRequest restRequest = RestRequest.request(mock(NamedXContentRegistry.class), httpRequest, mock(HttpChannel.class));
+        SecurityRequest request = SecurityRequestFactory.from(restRequest);
+
+        message.addRestRequestInfo(request, auditFilterMock);
+
+        // Should be excluded because our code passes "User-Agent" (the actual key) to the filter
+        assertNull("User-Agent should be excluded when filter excludes the actual header key",
+            message.getAsMap().get(AuditMessage.USER_AGENT));
+    }
+
+    @Test
+    public void testUserAgentExtractedWhenNotInIgnoreHeaders() {
+        // When the filter does not exclude any form of user-agent, it should be extracted normally
+        when(auditFilterMock.shouldExcludeHeader("User-Agent")).thenReturn(false);
+        when(auditFilterMock.shouldExcludeHeader("user-agent")).thenReturn(false);
+        when(auditFilterMock.shouldLogRequestBody()).thenReturn(false);
+
+        HttpRequest httpRequest = mock(HttpRequest.class);
+        when(httpRequest.uri()).thenReturn("/_cluster/health");
+        when(httpRequest.content()).thenReturn(new BytesArray(new byte[0]));
+        Map<String, List<String>> headers = ImmutableMap.of("User-Agent", ImmutableList.of("opensearch-py/2.4.0"));
+        when(httpRequest.getHeaders()).thenReturn(headers);
+
+        RestRequest restRequest = RestRequest.request(mock(NamedXContentRegistry.class), httpRequest, mock(HttpChannel.class));
+        SecurityRequest request = SecurityRequestFactory.from(restRequest);
+
+        message.addRestRequestInfo(request, auditFilterMock);
+
+        assertThat(message.getAsMap().get(AuditMessage.USER_AGENT), is("opensearch-py/2.4.0"));
+    }
 }

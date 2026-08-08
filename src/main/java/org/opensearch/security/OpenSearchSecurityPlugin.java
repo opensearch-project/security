@@ -1158,10 +1158,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onNewReaderContext(ReaderContext readerContext) {
-                    final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                    final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
                         .equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                        && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
+                        && (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
                         readerContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);
@@ -1175,10 +1175,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onNewScrollContext(ReaderContext readerContext) {
-                    final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                    final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
                         .equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                        && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
+                        && (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
                         readerContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);

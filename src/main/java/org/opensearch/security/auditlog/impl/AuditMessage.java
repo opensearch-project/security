@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -141,6 +143,13 @@ public final class AuditMessage {
 
     public static final String SPLIT_MESSAGE_IDENTIFIER = "audit_split_message_id";
 
+    public static final String REQUEST_ID = "audit_request_id";
+
+    // Audit field enrichment — high-value fields for investigability
+    public static final String USER_AGENT = "audit_request_user_agent";
+    public static final String USER_ROLES = "audit_request_user_roles";
+    public static final String AUTH_METHOD = "audit_request_auth_method";
+
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
     private final Map<String, Object> auditInfo = new HashMap<String, Object>(50);
     private final AuditCategory msgCategory;
@@ -169,6 +178,12 @@ public final class AuditMessage {
     public void addRemoteAddress(TransportAddress remoteAddress) {
         if (remoteAddress != null && remoteAddress.getAddress() != null) {
             auditInfo.put(REMOTE_ADDRESS, remoteAddress.getAddress());
+        }
+    }
+
+    public void addRequestId(String requestId) {
+        if (requestId != null && !requestId.isEmpty()) {
+            auditInfo.put(REQUEST_ID, requestId);
         }
     }
 
@@ -408,6 +423,22 @@ public final class AuditMessage {
             addRestParams(request.params(), filter);
             addRestMethod(request.method());
 
+            // Extract User-Agent as a top-level field for easy filtering.
+            // Respects the ignore_headers configuration — uses the actual header key from the
+            // request (e.g. "User-Agent") for the exclusion check, consistent with addRestHeaders().
+            Map<String, List<String>> headers = request.getHeaders();
+            if (headers != null) {
+                headers.entrySet().stream().filter(e -> "user-agent".equalsIgnoreCase(e.getKey())).findFirst().ifPresent(entry -> {
+                    // Gate on the actual header key so casing matches what addRestHeaders() uses
+                    if (!filter.shouldExcludeHeader(entry.getKey())) {
+                        List<String> values = entry.getValue();
+                        if (values != null && !values.isEmpty()) {
+                            addUserAgent(values.get(0));
+                        }
+                    }
+                });
+            }
+
             if (filter.shouldLogRequestBody() && !filter.isBodyExcluded(path)) {
 
                 if (!(request instanceof OpenSearchRequest)) {
@@ -465,6 +496,26 @@ public final class AuditMessage {
     public void addSettingsChanges(List<Map<String, Object>> changes) {
         if (changes != null && !changes.isEmpty()) {
             auditInfo.put(SETTINGS_CHANGES, changes);
+        }
+    }
+
+    // --- Audit field enrichment methods ---
+
+    public void addUserAgent(String userAgent) {
+        if (userAgent != null && !userAgent.isEmpty()) {
+            auditInfo.put(USER_AGENT, userAgent);
+        }
+    }
+
+    public void addUserRoles(Set<String> roles) {
+        if (roles != null && !roles.isEmpty()) {
+            auditInfo.put(USER_ROLES, List.copyOf(new TreeSet<>(roles)));
+        }
+    }
+
+    public void addAuthMethod(String method) {
+        if (method != null && !method.isEmpty()) {
+            auditInfo.put(AUTH_METHOD, method);
         }
     }
 
