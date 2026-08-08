@@ -118,7 +118,7 @@ public class NodesDnApiAction extends AbstractApiAction {
 
     @Override
     protected void consumeParameters(final RestRequest request) {
-        request.param("name");
+        super.consumeParameters(request);
         request.param("show_all");
     }
 
