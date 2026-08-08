@@ -13,6 +13,10 @@ package org.opensearch.security.dlic.rest.api.pagination;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Objects;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -26,10 +30,10 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 
 /**
  * Pagination cursor for Security API collection GETs.
- *
  */
 public final class PaginationCursor {
 
+    private static final Logger LOGGER = LogManager.getLogger(PaginationCursor.class);
     static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String FIELD_CTYPE = "ctype";
@@ -56,13 +60,18 @@ public final class PaginationCursor {
      * @return a new {@link PaginationCursor}
      */
     public static PaginationCursor encode(final CType<?> ctype, final String sort, final String lastKey) {
+        Objects.requireNonNull(lastKey, "lastKey must not be null");
         final ObjectNode node = MAPPER.createObjectNode();
         node.put(FIELD_CTYPE, ctype.toLCString());
         node.put(FIELD_SORT, sort);
         node.put(FIELD_LAST_KEY, lastKey);
-        final String json = MAPPER.writeValueAsString(node);
-        final String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(json.getBytes(StandardCharsets.UTF_8));
-        return new PaginationCursor(encoded, lastKey);
+        try {
+            final String json = MAPPER.writeValueAsString(node);
+            final String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+            return new PaginationCursor(encoded, lastKey);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to encode pagination cursor", e);
+        }
     }
 
     /**
@@ -107,7 +116,8 @@ public final class PaginationCursor {
             }
             return ValidationResult.success(new PaginationCursor(encoded, tokenLastKey));
         } catch (Exception e) {
-            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Invalid next_token: " + e.getMessage()));
+            LOGGER.debug("Failed to decode pagination cursor", e);
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Invalid next_token."));
         }
     }
 }

@@ -21,6 +21,7 @@ public final class PaginationParams {
     public static final String SORT_ASC = PageParams.PARAM_ASC_SORT_VALUE;
     public static final String SORT_DESC = PageParams.PARAM_DESC_SORT_VALUE;
     public static final int DEFAULT_SIZE = 100;
+    public static final int MAX_SIZE = 1000;
 
     /** Page size requested by the caller. */
     public final int size;

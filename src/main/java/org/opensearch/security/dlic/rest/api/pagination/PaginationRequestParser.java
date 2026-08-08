@@ -73,10 +73,10 @@ public final class PaginationRequestParser {
                     badRequestMessage("Invalid size parameter '" + sizeParam + "'. Must be a positive integer.")
                 );
             }
-            if (size <= 0) {
+            if (size <= 0 || size > PaginationParams.MAX_SIZE) {
                 return ValidationResult.error(
                     RestStatus.BAD_REQUEST,
-                    badRequestMessage("Invalid size parameter '" + size + "'. Must be a positive integer.")
+                    badRequestMessage("Invalid size parameter '" + size + "'. Must be between 1 and " + PaginationParams.MAX_SIZE + ".")
                 );
             }
         }

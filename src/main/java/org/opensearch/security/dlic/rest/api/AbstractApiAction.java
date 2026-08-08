@@ -179,7 +179,10 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                     badRequestMessage("Pagination parameters are not supported for single-entity GET requests.")
                 );
             }
-            return loadConfiguration(getConfigType(), true, true).map(configuration -> {
+            return loadConfiguration(getConfigType(), true, true).map(
+                configuration -> ValidationResult.success(SecurityConfiguration.of(null, configuration))
+            ).map(endpointValidator::onConfigLoad).map(securityConfiguration -> {
+                final SecurityDynamicConfiguration<?> configuration = securityConfiguration.configuration();
                 if (params.hasCursor()) {
                     return PaginationCursor.decode(params.nextToken, getConfigType(), params.sort)
                         .map(cursor -> buildPaginatedPage(configuration, params, cursor));
