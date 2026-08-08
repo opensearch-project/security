@@ -59,7 +59,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
 
     @Override
     protected void consumeParameters(final RestRequest request) {
-        request.param("name");
+        super.consumeParameters(request);
         request.param("filterBy");
     }
 
