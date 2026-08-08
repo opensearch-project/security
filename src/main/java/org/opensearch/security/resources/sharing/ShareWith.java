@@ -39,8 +39,6 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
  *   }
  * }
  * </pre>
- *
- * @opensearch.experimental
  */
 
 public class ShareWith implements ToXContentFragment, NamedWriteable {
