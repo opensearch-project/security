@@ -143,6 +143,8 @@ public final class AuditMessage {
 
     public static final String SPLIT_MESSAGE_IDENTIFIER = "audit_split_message_id";
 
+    public static final String REQUEST_ID = "audit_request_id";
+
     // Audit field enrichment — high-value fields for investigability
     public static final String USER_AGENT = "audit_request_user_agent";
     public static final String USER_ROLES = "audit_request_user_roles";
@@ -176,6 +178,12 @@ public final class AuditMessage {
     public void addRemoteAddress(TransportAddress remoteAddress) {
         if (remoteAddress != null && remoteAddress.getAddress() != null) {
             auditInfo.put(REMOTE_ADDRESS, remoteAddress.getAddress());
+        }
+    }
+
+    public void addRequestId(String requestId) {
+        if (requestId != null && !requestId.isEmpty()) {
+            auditInfo.put(REQUEST_ID, requestId);
         }
     }
 

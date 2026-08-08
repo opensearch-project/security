@@ -49,6 +49,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -1202,6 +1203,13 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     private Map<String, String> getThreadContextHeaders() {
         return threadPool.getThreadContext().getHeaders();
+    }
+
+    /**
+     * Provides subclass access to the ThreadContext without exposing the full ThreadPool.
+     */
+    protected ThreadContext getThreadContext() {
+        return threadPool.getThreadContext();
     }
 
     @VisibleForTesting

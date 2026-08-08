@@ -272,6 +272,36 @@ public class AuditMessageTest {
         assertThat(splitMessages.stream().map(AuditMessageTest::getSplitMessageId).distinct().count(), is(1L));
     }
 
+    // =====================================================================
+    // audit_request_id — correlation field tests
+    // =====================================================================
+
+    @Test
+    public void testAddRequestIdPopulatesField() {
+        message.addRequestId("4bf92f3577b34da6a3ce929d0e0e4736");
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_ID), is("4bf92f3577b34da6a3ce929d0e0e4736"));
+    }
+
+    @Test
+    public void testAddRequestIdNullIsIgnored() {
+        message.addRequestId(null);
+        assertNull(message.getAsMap().get(AuditMessage.REQUEST_ID));
+    }
+
+    @Test
+    public void testAddRequestIdEmptyStringIsIgnored() {
+        // Empty string is rejected — only non-empty values are stored
+        message.addRequestId("");
+        assertNull(message.getAsMap().get(AuditMessage.REQUEST_ID));
+    }
+
+    @Test
+    public void testAddRequestIdAppearsInJson() throws Exception {
+        message.addRequestId("trace-abc-123");
+        String json = message.toJson();
+        assertThat(json, containsString("\"audit_request_id\":\"trace-abc-123\""));
+    }
+
     // --- Tests for audit field enrichment methods ---
 
     @Test
