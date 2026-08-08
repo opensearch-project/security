@@ -291,6 +291,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     // Extract parent ID if the provider declares a parentIdField
                     String parentId = null;
+                    // Extract the set of workspace IDs if the provider declares a workspacesField (see extractWorkspaces).
+                    // Backfills workspace membership for content that predates RP.
+                    Set<String> workspaces = Collections.emptySet();
                     if (type != null) {
                         ResourceProvider hitProvider = resourcePluginInfo.getResourceProvider(type);
                         if (hitProvider != null && hitProvider.parentIdField() != null) {
@@ -299,9 +302,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 parentId = null;
                             }
                         }
+                        if (hitProvider != null && hitProvider.workspacesField() != null) {
+                            workspaces = extractWorkspaces(rec, hitProvider.workspacesField());
+                        }
                     }
 
-                    results.add(new SourceDoc(id, username, backendRoles, type, parentId));
+                    results.add(new SourceDoc(id, username, backendRoles, type, parentId, workspaces));
                 }
                 // 4) fetch next batch
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
@@ -434,6 +440,11 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     .resourceType(provider.resourceType());
                 if (doc.parentId != null && provider.parentType() != null) {
                     sharingBuilder.parentId(doc.parentId).parentType(provider.parentType());
+                }
+                // Carry over workspace membership so getAllPrincipals() emits workspace:<id> and DLS/write-path
+                // inheritance work for backfilled records exactly as they do for records indexed while RP is on.
+                if (doc.workspaces != null && !doc.workspaces.isEmpty()) {
+                    sharingBuilder.workspaces(doc.workspaces);
                 }
                 ResourceSharing sharingInfo = sharingBuilder.build();
 
@@ -571,6 +582,39 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     /**
+     * Extracts the set of workspace IDs from a source document at {@code workspacesField}. A resource may belong to
+     * multiple workspaces, so an array is read fully; a single textual value is tolerated (mirroring keyword mappings
+     * that may be authored as a scalar or an array). Blank/empty ids are ignored. This is the migrate-path counterpart
+     * of {@link org.opensearch.security.resources.ResourcePluginInfo#extractMultiValuedFieldFromIndexOp} (which reads
+     * from a live index op); here we read from the JSON of a search hit. Package-private for testability.
+     *
+     * @param rec             the parsed source document
+     * @param workspacesField the provider-declared field path (dot-notation or JSON pointer)
+     * @return the set of workspace IDs, or an empty set if the field is absent/empty
+     */
+    static Set<String> extractWorkspaces(JsonNode rec, String workspacesField) {
+        if (workspacesField == null) {
+            return Collections.emptySet();
+        }
+        JsonNode wsNode = rec.at(jsonPointer(workspacesField));
+        Set<String> workspaces = new HashSet<>();
+        if (wsNode.isArray()) {
+            for (JsonNode ws : wsNode) {
+                addIfPresent(workspaces, ws.asText(null));
+            }
+        } else if (wsNode.isTextual()) {
+            addIfPresent(workspaces, wsNode.asText(null));
+        }
+        return workspaces;
+    }
+
+    private static void addIfPresent(Set<String> set, String value) {
+        if (value != null && !value.isEmpty()) {
+            set.add(value);
+        }
+    }
+
+    /**
      * Determine a document's resource type using, in order:
      * <ol>
      *   <li>the JSON pointer at each registered type-field path (first non-null value wins);</li>
@@ -605,7 +649,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             .orElse(null);
     }
 
-    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId) {
+    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId, Set<String> workspaces) {
     }
 
     record ValidationResultArg(String sourceIndex, String defaultOwnerName, Map<String, String> typeToDefaultAccessLevel, List<
