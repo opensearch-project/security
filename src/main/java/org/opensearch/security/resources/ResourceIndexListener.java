@@ -129,6 +129,13 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 builder.parentType(provider.parentType())
                     .parentId(ResourcePluginInfo.extractFieldFromIndexOp(provider.parentIdField(), index));
             }
+            // Workspace-aware sharing: if the provider declares a workspaces field, read the (multi-valued) set
+            // of workspace IDs off the indexed document and stamp them onto the sharing record. These are later
+            // projected into all_shared_principals as workspace:<id> so DLS can grant access via workspace
+            // membership. Providers that don't declare workspacesField() are unaffected (additive).
+            if (provider.workspacesField() != null) {
+                builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
+            }
             ResourceSharing sharingInfo = builder.build();
             // User.getRequestedTenant() is null if multi-tenancy is disabled
 
