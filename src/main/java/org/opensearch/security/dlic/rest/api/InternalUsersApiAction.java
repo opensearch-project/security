@@ -167,7 +167,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
                     .map(securityConfiguration -> createOrUpdateAccount(request, securityConfiguration))
                     .map(this::validateAndUpdatePassword)
                     .map(this::addEntityToConfig)
-            );
+            )
+            .withPaginatedGetRequest(this::routeGetRequest);
 
     }
 

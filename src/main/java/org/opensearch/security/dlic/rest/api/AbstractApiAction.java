@@ -139,7 +139,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
      * or falls back to the legacy handler.
      *
      */
-    private ValidationResult<ToXContent> routeGetRequest(final RestRequest request) throws IOException {
+    protected ValidationResult<ToXContent> routeGetRequest(final RestRequest request) throws IOException {
         if (PaginationRequestParser.isPaginationRequested(request)) {
             return processPaginatedGetRequest(request);
         }
