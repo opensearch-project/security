@@ -147,16 +147,17 @@ public class ResourceAccessHandler {
      * Internal permission check that carries a {@code visited} set of {@code type:id} keys to prevent unbounded
      * recursion when resources inherit access from containers (a hierarchical parent and/or workspaces). Container
      * inheritance walks a graph that is expected to be acyclic, but a malformed graph (e.g. a workspace that
-     * transitively contains itself) would otherwise loop forever. Re-encountering an already-visited resource
-     * short-circuits to {@code false}: it was (or is being) evaluated on another branch, so the OR-semantics of the
-     * fan-out already account for any access it grants.
+     * transitively contains itself) would otherwise loop forever. The set tracks the current ancestor (parent)
+     * chain only — each key is removed when its node's evaluation completes — so it detects a genuine on-path
+     * cycle without falsely denying a node reachable from more than one branch. Workspaces are leaf-evaluated and
+     * never added to this set.
      */
     private void hasPermission(
         @NonNull String resourceId,
         @NonNull String resourceType,
         @NonNull String action,
-        @NonNull Set<String> visited,
-        ActionListener<Boolean> listener
+        @NonNull Set<String> visitedAncestors,
+        ActionListener<Boolean> outerListener
     ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
@@ -165,18 +166,24 @@ public class ResourceAccessHandler {
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Access to resource {} is not authorized.", resourceId);
-            listener.onResponse(false);
+            outerListener.onResponse(false);
             return;
         }
 
-        // Cycle/duplicate guard: if we've already evaluated this exact resource on this authorization walk, do not
-        // re-evaluate it. Returning false is safe under the fan-out's OR semantics (the first visit's result stands).
+        // Ancestor-cycle guard: block only if this resource is already on the current parent chain (an actual
+        // cycle, e.g. A -> parent B -> parent A). This is a DFS-path guard, not a global visited set: a resource
+        // seen and released on one branch must stay evaluable on another, so the key is removed once this node's
+        // evaluation completes (via the runBefore wrapper below). Denying a true on-path repeat is safe — the
+        // ancestor that first introduced it is still being evaluated and will contribute its own grant.
         final String visitKey = resourceType + ":" + resourceId;
-        if (!visited.add(visitKey)) {
-            LOGGER.debug("Skipping already-visited resource '{}' of type '{}' to avoid a container cycle", resourceId, resourceType);
-            listener.onResponse(false);
+        if (!visitedAncestors.add(visitKey)) {
+            LOGGER.debug("Skipping resource '{}' of type '{}' already on the parent chain to avoid a cycle", resourceId, resourceType);
+            outerListener.onResponse(false);
             return;
         }
+        // Keep the guard scoped to the current ancestor chain: remove the key when this node resolves so sibling
+        // branches (and later, unrelated walks sharing the set) are not falsely denied.
+        final ActionListener<Boolean> listener = ActionListener.runBefore(outerListener, () -> visitedAncestors.remove(visitKey));
 
         LOGGER.info("Checking if user '{}' has permission to resource '{}'", user.getName(), resourceId);
 
@@ -209,7 +216,7 @@ public class ResourceAccessHandler {
             }
 
             // resource itself does not grant the action: fall back to its containers (parent and/or workspaces)
-            checkContainers(sharingInfo, action, visited, listener);
+            checkContainers(sharingInfo, action, visitedAncestors, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
@@ -260,23 +267,25 @@ public class ResourceAccessHandler {
      *
      * @param sharingInfo the sharing record of the resource whose containers should be consulted
      * @param action      the action being authorized
-     * @param visited     the set of already-visited {@code type:id} keys, propagated to guard against container cycles
+     * @param visitedAncestors the current parent-chain {@code type:id} keys, propagated to guard against ancestor cycles
      * @param listener    notified with {@code true} if any container grants access, {@code false} otherwise
      */
-    private void checkContainers(ResourceSharing sharingInfo, String action, Set<String> visited, ActionListener<Boolean> listener) {
+    private void checkContainers(
+        ResourceSharing sharingInfo,
+        String action,
+        Set<String> visitedAncestors,
+        ActionListener<Boolean> listener
+    ) {
         final User user = getAuthenticatedUser();
         if (user == null) {
             listener.onResponse(false);
             return;
         }
 
-        // Filter out already-visited workspaces up front (cycle guard) and skip the whole mget when nothing remains.
-        final List<String> workspaceIds = new ArrayList<>();
-        for (String workspaceId : sharingInfo.getWorkspaces()) {
-            if (visited.add(WORKSPACE_RESOURCE_TYPE + ":" + workspaceId)) {
-                workspaceIds.add(workspaceId);
-            }
-        }
+        // Workspaces are evaluated as leaves (their own share_with) and are never recursed into, so they cannot
+        // form a cycle and MUST NOT touch the ancestor-path guard: doing so could let one branch's visit of a
+        // shared node falsely deny another branch under OR semantics. Deduplicate ids only (a Set), then batch.
+        final List<String> workspaceIds = new ArrayList<>(sharingInfo.getWorkspaces());
 
         final String workspaceIndex = workspaceIds.isEmpty() ? null : resourcePluginInfo.indexByType(WORKSPACE_RESOURCE_TYPE);
 
@@ -289,10 +298,10 @@ public class ResourceAccessHandler {
                         return;
                     }
                 }
-                checkParent(sharingInfo, action, visited, listener);
+                checkParent(sharingInfo, action, visitedAncestors, listener);
             }, listener::onFailure));
         } else {
-            checkParent(sharingInfo, action, visited, listener);
+            checkParent(sharingInfo, action, visitedAncestors, listener);
         }
     }
 
@@ -300,9 +309,9 @@ public class ResourceAccessHandler {
      * Resolves access inherited from the single hierarchical parent (if any), recursing via {@link #hasPermission} so
      * grandparent chains continue to work. Denies when there is no parent.
      */
-    private void checkParent(ResourceSharing sharingInfo, String action, Set<String> visited, ActionListener<Boolean> listener) {
+    private void checkParent(ResourceSharing sharingInfo, String action, Set<String> visitedAncestors, ActionListener<Boolean> listener) {
         if (sharingInfo.getParentId() != null) {
-            hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, visited, listener);
+            hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, visitedAncestors, listener);
         } else {
             listener.onResponse(false);
         }
