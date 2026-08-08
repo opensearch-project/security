@@ -88,6 +88,12 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address";
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address_header";
 
+    /**
+     * ThreadContext transient key for the audit request correlation ID.
+     * Set at REST entry point from X-Request-Id header or generated UUID.
+     */
+    public static final String SECURITY_AUDIT_REQUEST_ID = OPENDISTRO_SECURITY_CONFIG_PREFIX + "audit_request_id";
+
     public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "initial_action_class_header";
 
@@ -288,6 +294,7 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
     public static final String SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE = "log4j.maximum_index_characters_per_message";
+    public static final String SECURITY_AUDIT_LOG4J_ENABLE_MDC_ROUTING = "log4j.enable_mdc_routing";
 
     // retry
     public static final String SECURITY_AUDIT_RETRY_COUNT = SECURITY_SETTINGS_PREFIX + "audit.config.retry_count";
