@@ -129,26 +129,31 @@ public class AuditActionFilter implements ActionFilter {
         }
 
         // Skip requests targeting the audit index (prevent self-referential loop).
-        // BulkRequest does not implement IndicesRequest, so its target indices are
-        // gathered from its sub-items; a single-doc write to the audit index arrives
-        // here as a BulkRequest (via TransportSingleItemBulkWriteAction) and must be
-        // guarded too, otherwise the standard summary path below would leak an event.
-        String[] targetIndices = null;
+        // IndicesRequest guard: any-match (e.g., BulkShardRequest whose shard belongs
+        // to the audit index is suppressed entirely — matches FGAC's behavior where
+        // internal/system writes are never audited).
+        // BulkRequest guard: all-match — only suppress when EVERY sub-item targets the
+        // audit index. A single-doc write to the audit index arrives here as a
+        // BulkRequest (via TransportSingleItemBulkWriteAction) with one item, so
+        // all-match catches it. Mixed BulkRequests (normal + audit-index items) still
+        // produce a summary event; the per-item guard in logBulkItem() and the
+        // IndicesRequest guard on the BulkShardRequest handle individual audit-index
+        // items at the shard level.
         if (request instanceof IndicesRequest) {
-            targetIndices = ((IndicesRequest) request).indices();
-        } else if (request instanceof BulkRequest) {
-            targetIndices = ((BulkRequest) request).requests()
-                .stream()
-                .map(DocWriteRequest::index)
-                .filter(idx -> idx != null)
-                .toArray(String[]::new);
-        }
-        if (targetIndices != null) {
-            for (String idx : targetIndices) {
-                if (isAuditIndex(idx)) {
-                    chain.proceed(task, action, request, listener);
-                    return;
+            String[] indices = ((IndicesRequest) request).indices();
+            if (indices != null) {
+                for (String idx : indices) {
+                    if (isAuditIndex(idx)) {
+                        chain.proceed(task, action, request, listener);
+                        return;
+                    }
                 }
+            }
+        } else if (request instanceof BulkRequest) {
+            List<? extends DocWriteRequest<?>> bulkItems = ((BulkRequest) request).requests();
+            if (!bulkItems.isEmpty() && bulkItems.stream().allMatch(r -> r.index() != null && isAuditIndex(r.index()))) {
+                chain.proceed(task, action, request, listener);
+                return;
             }
         }
 

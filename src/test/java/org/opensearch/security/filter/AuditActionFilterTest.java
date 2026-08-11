@@ -763,13 +763,44 @@ public class AuditActionFilterTest {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
-    public void testBulkRequestWithAnyAuditIndexItemIsSuppressed() throws Exception {
-        // If a BulkRequest mixes normal and audit-index sub-items, the top-level guard's
-        // any-match semantics suppress the whole request (mirrors IndicesRequest behavior).
+    public void testBulkRequestWithMixedAuditIndexItemsProducesSummaryEvent() throws Exception {
+        // A mixed BulkRequest (normal + audit-index sub-items) is NOT suppressed by
+        // the top-level guard because it uses all-match semantics: only suppress when
+        // ALL items target the audit index. Mixed requests fall through to the standard
+        // summary path, producing one event listing all distinct target indices. The
+        // audit-index items are handled later at the shard level (BulkShardRequest
+        // IndicesRequest guard + per-item guard in logBulkItem).
         AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
 
         BulkRequest request = new BulkRequest();
         request.add(new IndexRequest("my-index").id("1").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON));
+        request.add(
+            new IndexRequest("security-auditlog-2026.08.10").id("2").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON)
+        );
+
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // Mixed BulkRequest produces a summary event (not suppressed by all-match guard)
+        verify(auditLog).logRequestAudit(any(AuditMessage.class));
+        verify(chain).proceed(task, "indices:data/write/bulk", request, listener);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkRequestWithAllAuditIndexItemsIsSuppressed() throws Exception {
+        // A BulkRequest where ALL sub-items target the audit index is suppressed by
+        // the all-match guard. This covers multi-item bulk writes from the audit sink.
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkRequest request = new BulkRequest();
+        request.add(
+            new IndexRequest("security-auditlog-2026.08.10").id("1").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON)
+        );
         request.add(
             new IndexRequest("security-auditlog-2026.08.10").id("2").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON)
         );
