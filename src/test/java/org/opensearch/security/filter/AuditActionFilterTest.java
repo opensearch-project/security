@@ -646,8 +646,10 @@ public class AuditActionFilterTest {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
-    public void testBulkShardRequestSkipsAuditIndexItems() throws Exception {
-        // Items targeting the audit index should be skipped in per-item iteration
+    public void testBulkShardRequestTargetingAuditIndexSuppressedByTopLevelGuard() throws Exception {
+        // A BulkShardRequest whose shard belongs to the audit index is caught by the
+        // top-level self-loop guard (BulkShardRequest implements IndicesRequest, and its
+        // indices() returns the audit index), so it returns early before per-item iteration.
         AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
 
         BulkShardRequest request = mock(BulkShardRequest.class);
@@ -655,7 +657,7 @@ public class AuditActionFilterTest {
         when(request.shardId()).thenReturn(shardId);
         when(request.indices()).thenReturn(new String[] { "security-auditlog-2026.08.10" });
 
-        // All items target the audit index
+        // All items target the audit index (matches the shard's index in a real request)
         BulkItemRequest[] items = new BulkItemRequest[2];
         for (int i = 0; i < 2; i++) {
             IndexRequest indexRequest = new IndexRequest("security-auditlog-2026.08.10").id("doc-" + i);
@@ -670,8 +672,7 @@ public class AuditActionFilterTest {
 
         bulkFilter.apply(task, "indices:data/write/bulk[s]", request, ActionRequestMetadata.empty(), listener, chain);
 
-        // The top-level self-loop guard catches it (indices() returns audit index)
-        // so no audit events at all
+        // Top-level guard fires (indices() returns the audit index) — no events, chain proceeds.
         verify(auditLog, never()).logRequestAudit(any(AuditMessage.class));
         verify(chain).proceed(task, "indices:data/write/bulk[s]", request, listener);
     }
@@ -737,9 +738,10 @@ public class AuditActionFilterTest {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Test
-    public void testBulkRequestTargetingAuditIndexNotSuppressedByTopLevelGuard() throws Exception {
-        // BulkRequest doesn't implement IndicesRequest, so the top-level self-loop guard
-        // won't catch it. It produces a single summary event (documenting known behavior).
+    public void testBulkRequestTargetingAuditIndexIsSuppressedByTopLevelGuard() throws Exception {
+        // A single-doc write to the audit index arrives here as a BulkRequest (via
+        // TransportSingleItemBulkWriteAction). BulkRequest doesn't implement IndicesRequest,
+        // so the top-level guard inspects its sub-item indices to prevent a self-referential loop.
         AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
 
         BulkRequest request = new BulkRequest();
@@ -754,9 +756,32 @@ public class AuditActionFilterTest {
 
         bulkFilter.apply(task, "indices:data/write/bulk", request, ActionRequestMetadata.empty(), listener, chain);
 
-        // BulkRequest falls through to standard path — top-level guard doesn't fire
-        // because BulkRequest doesn't implement IndicesRequest. One summary event logged.
-        verify(auditLog, times(1)).logRequestAudit(any(AuditMessage.class));
+        // Top-level guard fires on the audit-index sub-item — no event, chain still proceeds.
+        verify(auditLog, never()).logRequestAudit(any(AuditMessage.class));
+        verify(chain).proceed(task, "indices:data/write/bulk", request, listener);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkRequestWithAnyAuditIndexItemIsSuppressed() throws Exception {
+        // If a BulkRequest mixes normal and audit-index sub-items, the top-level guard's
+        // any-match semantics suppress the whole request (mirrors IndicesRequest behavior).
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkRequest request = new BulkRequest();
+        request.add(new IndexRequest("my-index").id("1").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON));
+        request.add(
+            new IndexRequest("security-auditlog-2026.08.10").id("2").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON)
+        );
+
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk", request, ActionRequestMetadata.empty(), listener, chain);
+
+        verify(auditLog, never()).logRequestAudit(any(AuditMessage.class));
         verify(chain).proceed(task, "indices:data/write/bulk", request, listener);
     }
 }

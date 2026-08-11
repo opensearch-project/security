@@ -128,15 +128,26 @@ public class AuditActionFilter implements ActionFilter {
             return;
         }
 
-        // Skip requests targeting the audit index (prevent self-referential loop)
+        // Skip requests targeting the audit index (prevent self-referential loop).
+        // BulkRequest does not implement IndicesRequest, so its target indices are
+        // gathered from its sub-items; a single-doc write to the audit index arrives
+        // here as a BulkRequest (via TransportSingleItemBulkWriteAction) and must be
+        // guarded too, otherwise the standard summary path below would leak an event.
+        String[] targetIndices = null;
         if (request instanceof IndicesRequest) {
-            String[] indices = ((IndicesRequest) request).indices();
-            if (indices != null) {
-                for (String idx : indices) {
-                    if (isAuditIndex(idx)) {
-                        chain.proceed(task, action, request, listener);
-                        return;
-                    }
+            targetIndices = ((IndicesRequest) request).indices();
+        } else if (request instanceof BulkRequest) {
+            targetIndices = ((BulkRequest) request).requests()
+                .stream()
+                .map(DocWriteRequest::index)
+                .filter(idx -> idx != null)
+                .toArray(String[]::new);
+        }
+        if (targetIndices != null) {
+            for (String idx : targetIndices) {
+                if (isAuditIndex(idx)) {
+                    chain.proceed(task, action, request, listener);
+                    return;
                 }
             }
         }
