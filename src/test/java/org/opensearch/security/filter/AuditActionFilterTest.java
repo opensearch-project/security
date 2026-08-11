@@ -21,6 +21,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.bulk.BulkItemRequest;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkShardRequest;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.support.ActionRequestMetadata;
@@ -32,6 +36,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.index.Index;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -54,6 +60,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -493,5 +500,263 @@ public class AuditActionFilterTest {
         // This is a known limitation: the prefix won't match resolved index names.
         Settings settings = Settings.builder().put("plugins.security.audit.config.index", "audit-YYYY.MM.dd").build();
         assertThat(OpenSearchSecurityPlugin.getAuditIndexPrefix(settings), equalTo("audit-YYYY.MM.dd"));
+    }
+
+    // =====================================================================
+    // Bulk request handling — dedup (only BulkShardRequest iterates items)
+    // =====================================================================
+
+    private AuditActionFilter createFilterWithResolveBulk(boolean resolveBulk) {
+        Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, resolveBulk).build();
+        return new AuditActionFilter(auditLog, clusterService, threadPool, AuditConfig.from(settings).getFilter(), "security-auditlog");
+    }
+
+    private BulkShardRequest mockBulkShardRequest(String index, int itemCount) {
+        BulkShardRequest request = mock(BulkShardRequest.class);
+        ShardId shardId = new ShardId(new Index(index, "uuid"), 0);
+        when(request.shardId()).thenReturn(shardId);
+        when(request.indices()).thenReturn(new String[] { index });
+
+        BulkItemRequest[] items = new BulkItemRequest[itemCount];
+        for (int i = 0; i < itemCount; i++) {
+            IndexRequest indexRequest = new IndexRequest(index).id("doc-" + i);
+            items[i] = new BulkItemRequest(i, indexRequest);
+        }
+        when(request.items()).thenReturn(items);
+        return request;
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkShardRequestLogsPerItem() throws Exception {
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkShardRequest request = mockBulkShardRequest("my-index", 3);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk[s]", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // Should log 3 per-item audit events (one per BulkItemRequest)
+        verify(auditLog, times(3)).logRequestAudit(any(AuditMessage.class));
+        // Chain should proceed
+        verify(chain).proceed(task, "indices:data/write/bulk[s]", request, listener);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkShardRequestPerItemContainsShardId() throws Exception {
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkShardRequest request = mockBulkShardRequest("my-index", 1);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk[s]", request, ActionRequestMetadata.empty(), listener, chain);
+
+        ArgumentCaptor<AuditMessage> captor = ArgumentCaptor.forClass(AuditMessage.class);
+        verify(auditLog).logRequestAudit(captor.capture());
+
+        AuditMessage msg = captor.getValue();
+        Map<String, Object> fields = msg.getAsMap();
+        // Shard ID should be present in the per-item event
+        assertThat(fields.get(AuditMessage.SHARD_ID), notNullValue());
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkRequestDoesNotIterateItems() throws Exception {
+        // BulkRequest should NOT produce per-item events — it falls through to standard path
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkRequest request = new BulkRequest();
+        request.add(
+            new IndexRequest("my-index").id("doc-1").source("{\"field\":\"val1\"}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON)
+        );
+        request.add(
+            new IndexRequest("my-index").id("doc-2").source("{\"field\":\"val2\"}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON)
+        );
+        request.add(
+            new IndexRequest("other-index").id("doc-3").source("{\"field\":\"val3\"}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON)
+        );
+
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // Should log exactly 1 summary audit event (NOT 3 per-item events)
+        verify(auditLog, times(1)).logRequestAudit(any(AuditMessage.class));
+        verify(chain).proceed(task, "indices:data/write/bulk", request, listener);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkRequestSummaryContainsDistinctIndices() throws Exception {
+        // The single summary event for BulkRequest should list distinct target indices
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkRequest request = new BulkRequest();
+        request.add(new IndexRequest("index-a").id("1").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON));
+        request.add(new IndexRequest("index-b").id("2").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON));
+        request.add(new IndexRequest("index-a").id("3").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON));
+
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk", request, ActionRequestMetadata.empty(), listener, chain);
+
+        ArgumentCaptor<AuditMessage> captor = ArgumentCaptor.forClass(AuditMessage.class);
+        verify(auditLog).logRequestAudit(captor.capture());
+
+        AuditMessage msg = captor.getValue();
+        Map<String, Object> fields = msg.getAsMap();
+        String[] indices = (String[]) fields.get(AuditMessage.INDICES);
+        // Should contain distinct indices: index-a, index-b (not duplicated)
+        assertThat(indices, notNullValue());
+        assertThat(indices.length, equalTo(2));
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkShardRequestSkipsWhenResolveBulkDisabled() throws Exception {
+        // When resolve_bulk_requests is false, BulkShardRequest falls through to standard path
+        AuditActionFilter noResolveFilter = createFilterWithResolveBulk(false);
+
+        BulkShardRequest request = mockBulkShardRequest("my-index", 3);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        noResolveFilter.apply(task, "indices:data/write/bulk[s]", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // Should log exactly 1 event (standard path), NOT 3 per-item events
+        verify(auditLog, times(1)).logRequestAudit(any(AuditMessage.class));
+        verify(chain).proceed(task, "indices:data/write/bulk[s]", request, listener);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkShardRequestSkipsAuditIndexItems() throws Exception {
+        // Items targeting the audit index should be skipped in per-item iteration
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkShardRequest request = mock(BulkShardRequest.class);
+        ShardId shardId = new ShardId(new Index("security-auditlog-2026.08.10", "uuid"), 0);
+        when(request.shardId()).thenReturn(shardId);
+        when(request.indices()).thenReturn(new String[] { "security-auditlog-2026.08.10" });
+
+        // All items target the audit index
+        BulkItemRequest[] items = new BulkItemRequest[2];
+        for (int i = 0; i < 2; i++) {
+            IndexRequest indexRequest = new IndexRequest("security-auditlog-2026.08.10").id("doc-" + i);
+            items[i] = new BulkItemRequest(i, indexRequest);
+        }
+        when(request.items()).thenReturn(items);
+
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk[s]", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // The top-level self-loop guard catches it (indices() returns audit index)
+        // so no audit events at all
+        verify(auditLog, never()).logRequestAudit(any(AuditMessage.class));
+        verify(chain).proceed(task, "indices:data/write/bulk[s]", request, listener);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkShardRequestMixedItemsSkipsOnlyAuditIndexItems() throws Exception {
+        // Mix of normal and audit-index items — only normal items get logged
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkShardRequest request = mock(BulkShardRequest.class);
+        ShardId shardId = new ShardId(new Index("my-index", "uuid"), 0);
+        when(request.shardId()).thenReturn(shardId);
+        // indices() returns a non-audit index so top-level guard doesn't fire
+        when(request.indices()).thenReturn(new String[] { "my-index" });
+
+        BulkItemRequest[] items = new BulkItemRequest[3];
+        // Item 0: normal index
+        items[0] = new BulkItemRequest(0, new IndexRequest("my-index").id("doc-0"));
+        // Item 1: audit index — should be skipped
+        items[1] = new BulkItemRequest(1, new IndexRequest("security-auditlog-2026.08.10").id("audit-doc"));
+        // Item 2: normal index
+        items[2] = new BulkItemRequest(2, new IndexRequest("my-index").id("doc-2"));
+
+        when(request.items()).thenReturn(items);
+
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk[s]", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // Only 2 events logged (items 0 and 2); item 1 (audit index) is skipped
+        verify(auditLog, times(2)).logRequestAudit(any(AuditMessage.class));
+        verify(chain).proceed(task, "indices:data/write/bulk[s]", request, listener);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkShardRequestWithEmptyItems() throws Exception {
+        // Empty items array — no audit events, but chain still proceeds and returns early
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkShardRequest request = mock(BulkShardRequest.class);
+        ShardId shardId = new ShardId(new Index("my-index", "uuid"), 0);
+        when(request.shardId()).thenReturn(shardId);
+        when(request.indices()).thenReturn(new String[] { "my-index" });
+        when(request.items()).thenReturn(new BulkItemRequest[0]);
+
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk[s]", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // No items to iterate — no audit events
+        verify(auditLog, never()).logRequestAudit(any(AuditMessage.class));
+        // Chain should still proceed (early return after bulk block)
+        verify(chain).proceed(task, "indices:data/write/bulk[s]", request, listener);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testBulkRequestTargetingAuditIndexNotSuppressedByTopLevelGuard() throws Exception {
+        // BulkRequest doesn't implement IndicesRequest, so the top-level self-loop guard
+        // won't catch it. It produces a single summary event (documenting known behavior).
+        AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
+
+        BulkRequest request = new BulkRequest();
+        request.add(
+            new IndexRequest("security-auditlog-2026.08.10").id("audit-1").source("{}", org.opensearch.core.xcontent.MediaTypeRegistry.JSON)
+        );
+
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        ActionFilterChain chain = mock(ActionFilterChain.class);
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+
+        bulkFilter.apply(task, "indices:data/write/bulk", request, ActionRequestMetadata.empty(), listener, chain);
+
+        // BulkRequest falls through to standard path — top-level guard doesn't fire
+        // because BulkRequest doesn't implement IndicesRequest. One summary event logged.
+        verify(auditLog, times(1)).logRequestAudit(any(AuditMessage.class));
+        verify(chain).proceed(task, "indices:data/write/bulk", request, listener);
     }
 }

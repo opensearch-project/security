@@ -166,7 +166,10 @@ public class AuditActionFilter implements ActionFilter {
         }
 
         // Bulk request handling — log each sub-operation separately.
-        if (filter.shouldResolveBulkRequests() && (request instanceof BulkShardRequest || request instanceof BulkRequest)) {
+        // Only iterates on BulkShardRequest (shard-level), not BulkRequest (coordinating node),
+        // to avoid duplicate audit events. A bulk request traverses the action chain twice:
+        // first as BulkRequest at the coordinating node, then as BulkShardRequest at the data node.
+        if (filter.shouldResolveBulkRequests() && request instanceof BulkShardRequest) {
             try {
                 TransportAddress remoteAddress = request.remoteAddress();
                 if (remoteAddress == null) {
@@ -176,24 +179,9 @@ public class AuditActionFilter implements ActionFilter {
                 Map<String, List<String>> headers = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REST_HEADERS);
                 Map<String, List<String>> filteredHeaders = AuditHeaderUtils.filterHeaders(headers, filter);
 
-                if (request instanceof BulkShardRequest) {
-                    BulkShardRequest bulkShardRequest = (BulkShardRequest) request;
-                    for (BulkItemRequest item : bulkShardRequest.items()) {
-                        logBulkItem(
-                            item.request(),
-                            action,
-                            task,
-                            effectiveUser,
-                            remoteAddress,
-                            filteredHeaders,
-                            bulkShardRequest.shardId()
-                        );
-                    }
-                } else {
-                    BulkRequest bulkRequest = (BulkRequest) request;
-                    for (DocWriteRequest<?> innerRequest : bulkRequest.requests()) {
-                        logBulkItem(innerRequest, action, task, effectiveUser, remoteAddress, filteredHeaders, null);
-                    }
+                BulkShardRequest bulkShardRequest = (BulkShardRequest) request;
+                for (BulkItemRequest item : bulkShardRequest.items()) {
+                    logBulkItem(item.request(), action, task, effectiveUser, remoteAddress, filteredHeaders, bulkShardRequest.shardId());
                 }
             } catch (Exception e) {
                 log.error("Failed to log bulk audit events for action '{}': {}", action, e.getMessage(), e);
