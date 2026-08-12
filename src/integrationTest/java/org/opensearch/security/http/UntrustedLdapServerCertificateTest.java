@@ -87,6 +87,11 @@ public class UntrustedLdapServerCertificateTest {
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend");
 
+    /** Exception the JSSE provider logs for an untrusted server certificate; BCJSSE raises its own. */
+    protected String getUntrustedCertificateExceptionName() {
+        return "javax.net.ssl.SSLHandshakeException";
+    }
+
     @Test
     public void shouldNotAuthenticateUserWithLdap() {
         try (TestRestClient client = cluster.getRestClient(USER_SPOCK, PASSWORD_SPOCK)) {
@@ -94,7 +99,7 @@ public class UntrustedLdapServerCertificateTest {
 
             response.assertStatusCode(401);
         }
-        logsRule.assertThatStackTraceContain("javax.net.ssl.SSLHandshakeException");
+        logsRule.assertThatStackTraceContain(getUntrustedCertificateExceptionName());
     }
 
 }
