@@ -9,6 +9,7 @@
  */
 package org.opensearch.security;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,10 +45,15 @@ public abstract class AbstractDefaultConfigurationTests {
         this.cluster = cluster;
     }
 
+    private static final Duration AWAIT_TIMEOUT = Duration.ofSeconds(30);
+
     @Test
     public void shouldLoadDefaultConfiguration() {
         try (TestRestClient client = cluster.getRestClient(NEW_USER)) {
-            Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+            Awaitility.await()
+                .alias("Load default configuration")
+                .timeout(AWAIT_TIMEOUT)
+                .until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
         }
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             client.confirmCorrectCredentials(ADMIN_USER.getName());
@@ -103,7 +109,10 @@ public abstract class AbstractDefaultConfigurationTests {
     public void securityUpgrade() throws Exception {
         try (var client = cluster.getRestClient(ADMIN_USER)) {
             // Setup: Make sure the config is ready before starting modifications
-            Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+            Awaitility.await()
+                .alias("Load default configuration")
+                .timeout(AWAIT_TIMEOUT)
+                .until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
             // Setup: Collect default roles after cluster start
             final var expectedRoles = client.get("_plugins/_security/api/roles/");
             final var expectedRoleNames = extractFieldNames(expectedRoles.getBodyAs(JsonNode.class));
@@ -143,7 +152,10 @@ public abstract class AbstractDefaultConfigurationTests {
     public void securityRolesUpgrade() throws Exception {
         try (var client = cluster.getRestClient(ADMIN_USER)) {
             // Setup: Make sure the config is ready before starting modifications
-            Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+            Awaitility.await()
+                .alias("Load default configuration")
+                .timeout(AWAIT_TIMEOUT)
+                .until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
 
             // Setup: Collect default roles after cluster start
             final var expectedRoles = client.get("_plugins/_security/api/roles/");
@@ -185,7 +197,10 @@ public abstract class AbstractDefaultConfigurationTests {
     public void securityRolesUpgradeSpecifyingRoles() throws Exception {
         try (var client = cluster.getRestClient(ADMIN_USER)) {
             // Setup: Make sure the config is ready before starting modifications
-            Awaitility.await().alias("Load default configuration").until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+            Awaitility.await()
+                .alias("Load default configuration")
+                .timeout(AWAIT_TIMEOUT)
+                .until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
 
             // Setup: Collect default roles after cluster start
             final var expectedRoles = client.get("_plugins/_security/api/roles/");

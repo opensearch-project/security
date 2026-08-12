@@ -10,9 +10,6 @@
 package org.opensearch.test.framework.certificate;
 
 import java.security.Provider;
-import java.util.Optional;
-
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import static org.opensearch.test.framework.certificate.AlgorithmKit.ecdsaSha256withEcdsa;
 import static org.opensearch.test.framework.certificate.AlgorithmKit.rsaSha256withRsa;
@@ -30,8 +27,6 @@ class CertificatesIssuerFactory {
 
     }
 
-    private static final Provider DEFAULT_SECURITY_PROVIDER = new BouncyCastleFipsProvider();;
-
     /**
     * @see {@link #rsaBaseCertificateIssuer(Provider)}
     */
@@ -45,8 +40,7 @@ class CertificatesIssuerFactory {
     * @return new instance of {@link CertificatesIssuer}
     */
     public static CertificatesIssuer rsaBaseCertificateIssuer(Provider securityProvider) {
-        Provider provider = Optional.ofNullable(securityProvider).orElse(DEFAULT_SECURITY_PROVIDER);
-        return new CertificatesIssuer(provider, rsaSha256withRsa(provider, KEY_SIZE));
+        return new CertificatesIssuer(rsaSha256withRsa(securityProvider, KEY_SIZE));
     }
 
     /**
@@ -62,7 +56,6 @@ class CertificatesIssuerFactory {
     * @return new instance of {@link CertificatesIssuer}
     */
     public static CertificatesIssuer ecdsaBaseCertificatesIssuer(Provider securityProvider) {
-        Provider provider = Optional.ofNullable(securityProvider).orElse(DEFAULT_SECURITY_PROVIDER);
-        return new CertificatesIssuer(provider, ecdsaSha256withEcdsa(securityProvider, "P-384"));
+        return new CertificatesIssuer(ecdsaSha256withEcdsa(securityProvider, "P-384"));
     }
 }

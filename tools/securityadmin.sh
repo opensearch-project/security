@@ -1,5 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
+
+set -e -o pipefail
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 if ! [ -x "$(command -v realpath)" ]; then
@@ -27,17 +29,21 @@ if [ -z "$OPENSEARCH_HOME" ]; then
   fi
 fi
 
-PLUGIN_DIR="$OPENSEARCH_HOME/plugins/opensearch-security"
+CALLER_DIR="$PWD"
 
-BIN_PATH="java"
+# Forward JAVA_OPTS into OPENSEARCH_JAVA_OPTS for backward compatibility
+OPENSEARCH_JAVA_OPTS="${JAVA_OPTS:+${JAVA_OPTS} }${OPENSEARCH_JAVA_OPTS}"
+unset JAVA_OPTS
 
-# now set the path to java: first OPENSEARCH_JAVA_HOME, then JAVA_HOME
-if [ ! -z "$OPENSEARCH_JAVA_HOME" ]; then
-    BIN_PATH="$OPENSEARCH_JAVA_HOME/bin/java"
-elif [ ! -z "$JAVA_HOME" ]; then
-    BIN_PATH="$JAVA_HOME/bin/java"
-else
-    echo "WARNING: nor OPENSEARCH_JAVA_HOME nor JAVA_HOME is set, will use $(which $BIN_PATH)"
-fi
+# Core launcher environment: java lookup and version check, OPENSEARCH_PATH_CONF and,
+# with OPENSEARCH_FIPS_MODE=true, the FIPS JVM options. It ends with `cd "$OPENSEARCH_HOME"`;
+# return to the caller's directory so relative -cd/-f/-backup paths resolve as documented.
+source "$OPENSEARCH_HOME/bin/opensearch-env"
+cd "$CALLER_DIR"
 
-"$BIN_PATH" $JAVA_OPTS -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$PLUGIN_DIR/*:$PLUGIN_DIR/deps/*:$OPENSEARCH_HOME/lib/*" org.opensearch.security.tools.SecurityAdmin "$@" 2>/dev/null
+exec "$JAVA" "$XSHARE" -Xms4m -Xmx64m -XX:+UseSerialGC $OPENSEARCH_JAVA_OPTS \
+  -Dopensearch.path.home="$OPENSEARCH_HOME" \
+  -Dopensearch.path.conf="$OPENSEARCH_PATH_CONF" \
+  -Dopensearch.distribution.type="$OPENSEARCH_DISTRIBUTION_TYPE" \
+  -cp "$OPENSEARCH_CLASSPATH:$OPENSEARCH_HOME/plugins/opensearch-security/*" \
+  org.opensearch.security.tools.SecurityAdmin "$@"

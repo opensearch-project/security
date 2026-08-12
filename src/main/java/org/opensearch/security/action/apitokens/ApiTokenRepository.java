@@ -31,6 +31,7 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Randomness;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.discovery.ClusterManagerNotDiscoveredException;
@@ -46,7 +47,7 @@ import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_
 public class ApiTokenRepository {
     public static final String TOKEN_PREFIX = "os_";
     private static final TimeValue STARTUP_RELOAD_RETRY_DELAY = TimeValue.timeValueSeconds(1);
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final SecureRandom SECURE_RANDOM = Randomness.createSecure();
 
     private final ApiTokenIndexHandler apiTokenIndexHandler;
     private final ThreadPool threadPool;

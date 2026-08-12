@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasherFactory;
+import org.opensearch.security.support.ConfigConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -29,7 +30,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
-            () -> OpenSearchSecurityPlugin.validateFipsMode("true", settings)
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true)
         );
         assertThat(ex.getMessage(), containsString("FIPS mode is enabled"));
         assertThat(ex.getMessage(), containsString("Only PBKDF2 is allowed in FIPS mode"));
@@ -42,7 +43,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
-            () -> OpenSearchSecurityPlugin.validateFipsMode("true", settings)
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true)
         );
         assertThat(ex.getMessage(), containsString("bcrypt"));
         assertThat(ex.getMessage(), containsString("FIPS mode is enabled"));
@@ -54,7 +55,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
-            () -> OpenSearchSecurityPlugin.validateFipsMode("true", settings)
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true)
         );
         assertThat(ex.getMessage(), containsString("argon2"));
     }
@@ -64,7 +65,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
         Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2").build();
 
         // Should not throw
-        OpenSearchSecurityPlugin.validateFipsMode("true", settings);
+        OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true);
     }
 
     @Test
@@ -72,7 +73,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
         Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "PBKDF2").build();
 
         // Should not throw
-        OpenSearchSecurityPlugin.validateFipsMode("true", settings);
+        OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true);
     }
 
     @Test
@@ -80,14 +81,62 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
         Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "bcrypt").build();
 
         // Should not throw when FIPS mode is not enabled
-        OpenSearchSecurityPlugin.validateFipsMode("false", settings);
+        OpenSearchSecurityPlugin.validateFipsMode(settings, false, () -> false);
     }
 
     @Test
-    public void testFipsModeNullEnvAllowsAnyAlgorithm() {
+    public void testFipsModeWithPasswordMinLengthBelowFloorThrows() {
+        Settings settings = Settings.builder()
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2")
+            .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 8)
+            .build();
+
+        IllegalStateException ex = assertThrows(
+            IllegalStateException.class,
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true)
+        );
+        assertThat(ex.getMessage(), containsString("FIPS mode requires at least 14 characters"));
+    }
+
+    @Test
+    public void testFipsModeWithPasswordMinLengthAtFloorSucceeds() {
+        Settings settings = Settings.builder()
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2")
+            .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 14)
+            .build();
+
+        // At the floor is acceptable
+        OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true);
+    }
+
+    @Test
+    public void testFipsModeWithPasswordMinLengthUnsetSucceeds() {
+        // Unset (-1) is fine: additionalSettings() defaults it to the FIPS floor at boot.
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2").build();
+
+        OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true);
+    }
+
+    @Test
+    public void testFipsModeEnabledWithoutApprovedOnlyModeThrows() {
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2").build();
+
+        IllegalStateException ex = assertThrows(
+            IllegalStateException.class,
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> false)
+        );
+        assertThat(ex.getMessage(), containsString("BCFIPS security provider is not running in FIPS approved-only mode"));
+    }
+
+    @Test
+    public void testFipsModeEnabledWithBothViolationsThrows() {
         Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "bcrypt").build();
 
-        // Should not throw when env var is null
-        OpenSearchSecurityPlugin.validateFipsMode(null, settings);
+        IllegalStateException ex = assertThrows(
+            IllegalStateException.class,
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> false)
+        );
+        assertThat(ex.getMessage(), containsString("BCFIPS security provider is not running in FIPS approved-only mode"));
+        assertThat(ex.getMessage(), containsString("Only PBKDF2 is allowed in FIPS mode"));
     }
 }
