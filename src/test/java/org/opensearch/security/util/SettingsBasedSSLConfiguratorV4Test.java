@@ -134,7 +134,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
             ) {
 
-                thrown.expect(SSLHandshakeException.class);
+                thrown.expect(getWrongTrustExceptionClass());
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     Assert.fail("Connection should have failed due to wrong trust");
@@ -142,6 +142,10 @@ public class SettingsBasedSSLConfiguratorV4Test {
             }
 
         }
+    }
+
+    protected Class<? extends Throwable> getWrongTrustExceptionClass() {
+        return SSLHandshakeException.class;
     }
 
     @Test
@@ -159,7 +163,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .put("prefix.enable_ssl_client_auth", "true")
                 .put("prefix.pemcert_filepath", "kirk.pem")
                 .put("prefix.pemkey_filepath", "kirk.key")
-                .put("prefix.pemkey_password", "secret")
+                .put("prefix.pemkey_password", "notarealpassword")
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
@@ -194,7 +198,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 .put("prefix.enable_ssl_client_auth", "true")
                 .put("prefix.pemcert_filepath", "wrong-kirk.pem")
                 .put("prefix.pemkey_filepath", "wrong-kirk.key")
-                .put("prefix.pemkey_password", "G0CVtComen4a")
+                .put("prefix.pemkey_password", "notarealpassword")
                 .build();
             Path configPath = rootCaPemPath.getParent();
 
@@ -357,7 +361,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
             ) {
 
-                thrown.expect(SSLHandshakeException.class);
+                thrown.expect(getWrongTrustExceptionClass());
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     Assert.fail("Connection should have failed due to wrong trust");

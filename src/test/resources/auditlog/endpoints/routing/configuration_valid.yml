@@ -7,7 +7,6 @@ plugins.security:
       username: auditloguser
       password: auditlogpassword
       enable_ssl: false
-      verify_hostnames: false
       enable_ssl_client_auth: false
     endpoints:
       endpoint1:
@@ -36,7 +35,6 @@ plugins.security:
           username: auditloguser
           password: auditlogpassword
           enable_ssl: false
-          verify_hostnames: false
           enable_ssl_client_auth: false
       endpoint3:
         type: debug

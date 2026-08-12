@@ -30,7 +30,6 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.Provider;
 import java.security.PublicKey;
 import java.util.Calendar;
 import java.util.Date;
@@ -86,12 +85,10 @@ class CertificatesIssuer {
 
     private static final AtomicLong ID_COUNTER = new AtomicLong(System.currentTimeMillis());
 
-    private final Provider securityProvider;
     private final AlgorithmKit algorithmKit;
     private final JcaX509ExtensionUtils extUtils;
 
-    CertificatesIssuer(Provider securityProvider, AlgorithmKit algorithmKit) {
-        this.securityProvider = securityProvider;
+    CertificatesIssuer(AlgorithmKit algorithmKit) {
         this.algorithmKit = algorithmKit;
         this.extUtils = getExtUtils();
     }
@@ -164,7 +161,7 @@ class CertificatesIssuer {
     }
 
     private ContentSigner createContentSigner(PrivateKey privateKey) throws OperatorCreationException {
-        return new JcaContentSignerBuilder(algorithmKit.getSignatureAlgorithmName()).setProvider(securityProvider).build(privateKey);
+        return new JcaContentSignerBuilder(algorithmKit.getSignatureAlgorithmName()).build(privateKey);
     }
 
     private void addExtendedKeyUsageExtension(X509v3CertificateBuilder builder, CertificateMetadata certificateMetadata)

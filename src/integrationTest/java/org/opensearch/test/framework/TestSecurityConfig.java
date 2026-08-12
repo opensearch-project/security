@@ -33,6 +33,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -51,6 +52,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.common.Randomness;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.Strings;
@@ -69,6 +71,7 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.transport.client.Client;
@@ -94,10 +97,23 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 */
 public class TestSecurityConfig {
 
+    public static final String DEFAULT_TEST_PASSWORD;
+
+    static {
+        byte[] bytes = new byte[16]; // satisfies BC FIPS 112-bit minimum
+        Randomness.createSecure().nextBytes(bytes);
+        DEFAULT_TEST_PASSWORD = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
     private static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
+        Settings.builder()
+            .put(
+                PasswordHasherFactory.ALGORITHM.getKey(),
+                FipsMode.isEnabled() ? PasswordHasherFactory.PBKDF2 : PasswordHasherFactory.BCRYPT
+            )
+            .build()
     );
 
     private Config config = new Config();
@@ -508,7 +524,7 @@ public class TestSecurityConfig {
 
         public User(String name) {
             this.name = name;
-            this.password = "secret";
+            this.password = DEFAULT_TEST_PASSWORD;
         }
 
         public User description(String description) {
@@ -1327,7 +1343,7 @@ public class TestSecurityConfig {
         }
     }
 
-    static String hashPassword(final String clearTextPassword) {
+    public static String hashPassword(final String clearTextPassword) {
         return passwordHasher.hash(clearTextPassword.toCharArray());
     }
 

@@ -31,7 +31,8 @@ import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.OtherName;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
+
+import org.opensearch.security.support.FipsMode;
 
 public class SanParser {
 
@@ -69,7 +70,7 @@ public class SanParser {
             return sans.isEmpty() ? "" : sans.toString();
         } catch (final CertificateEncodingException | UnknownHostException e) {
             LOGGER.error("Couldn't parse subject alternative names", e);
-            if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+            if (FipsMode.isEnabled()) {
                 throw new RuntimeException("Couldn't parse subject alternative names", e);
             }
             return "";

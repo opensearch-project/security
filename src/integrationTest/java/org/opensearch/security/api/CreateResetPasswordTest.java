@@ -40,7 +40,7 @@ public class CreateResetPasswordTest {
 
     public static final String INVALID_PASSWORD_REGEX = "user 1 fair password";
 
-    public static final String VALID_WEAK_PASSWORD = "Asdfghjkl1!";
+    public static final String VALID_WEAK_PASSWORD = "Password1234!!";
 
     public static final String VALID_SIMILAR_PASSWORD = "456Additional00001_1234!";
 

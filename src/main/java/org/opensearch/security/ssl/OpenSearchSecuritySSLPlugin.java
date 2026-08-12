@@ -19,7 +19,6 @@
 package org.opensearch.security.ssl;
 
 import java.nio.file.Path;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +32,6 @@ import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.Version;
@@ -212,8 +210,6 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         if (!sslConfig.httpEnabled() && !sslConfig.transportEnabled()) {
             log.error("SSL not activated for http and/or transport.");
         }
-
-        tryAddSecurityProvider();
 
         this.sslSettingsManager = new SslSettingsManager(new Environment(settings, configPath));
     }
@@ -743,15 +739,5 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     public ThreadPool getThreadPool() {
         return this.threadPool;
-    }
-
-    private void tryAddSecurityProvider() {
-        AccessController.doPrivileged(() -> {
-            if (Security.getProvider("BCFIPS") == null) {
-                Security.addProvider(new BouncyCastleFipsProvider());
-                log.debug("Bouncy Castle FIPS Provider added");
-            }
-            return null;
-        });
     }
 }
