@@ -51,7 +51,6 @@ import javax.crypto.SecretKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.rules.TemporaryFolder;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.common.io.Streams;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -144,7 +143,7 @@ public class FileHelper {
      * <p>
      * The format is chosen based on the runtime environment:
      * <ul>
-     *   <li>FIPS approved-only mode ({@link CryptoServicesRegistrar#isInApprovedOnlyMode()}) →
+     *   <li>FIPS mode ({@link FipsMode#isEnabled()}) →
      *       {@code .bcfks} / {@code "BCFKS"}</li>
      *   <li>Non-FIPS → {@code .jks} / {@code "JKS"} if a JKS variant exists on the classpath,
      *       otherwise {@code .p12} / {@code "PKCS12"}</li>
@@ -155,13 +154,21 @@ public class FileHelper {
      * @throws IllegalStateException if no matching file is found on the classpath
      */
     public static TypedStore resolveStore(final String baseName) {
-        if (CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+        if (FipsMode.isEnabled()) {
             return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".bcfks"), "BCFKS");
         }
         if (classpathResourceExists(baseName + ".jks")) {
             return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".jks"), "JKS");
         }
         return new TypedStore(getAbsoluteFilePathFromClassPath(baseName + ".p12"), "PKCS12");
+    }
+
+    public static TypedStore resolveStore(final Path dir, final String baseName, final String nonFipsExtension) {
+        if (FipsMode.isEnabled()) {
+            return new TypedStore(dir.resolve(baseName + ".bcfks"), "BCFKS");
+        }
+        Path path = dir.resolve(baseName + nonFipsExtension);
+        return new TypedStore(path, inferStoreType(path));
     }
 
     public static boolean classpathResourceExists(final String name) {
@@ -195,7 +202,11 @@ public class FileHelper {
         XContentParser parser = null;
         try {
             parser = XContentType.YAML.xContent()
-                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(loadFile(file)));
+                .createParser(
+                    NamedXContentRegistry.EMPTY,
+                    THROW_UNSUPPORTED_OPERATION,
+                    new StringReader(FipsHashAdapter.adaptConfig(loadFile(file)))
+                );
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -218,7 +229,11 @@ public class FileHelper {
         XContentParser parser = null;
         try {
             parser = XContentType.YAML.xContent()
-                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(yaml));
+                .createParser(
+                    NamedXContentRegistry.EMPTY,
+                    THROW_UNSUPPORTED_OPERATION,
+                    new StringReader(FipsHashAdapter.adaptConfig(yaml))
+                );
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);

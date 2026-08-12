@@ -39,8 +39,6 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
 
     private LocalCluster cluster;
 
-    private static final String PASSWORD = "top$ecret1234!";
-
     private final String function;
     private final int iterations;
     private final int length;
@@ -65,9 +63,9 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
 
     @Before
     public void startCluster() {
-
         TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
-            .hash(generatePBKDF2Hash("secret", function, iterations, length));
+            .password(TestSecurityConfig.DEFAULT_TEST_PASSWORD)
+            .hash(generatePBKDF2Hash(TestSecurityConfig.DEFAULT_TEST_PASSWORD, function, iterations, length));
         cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(ADMIN_USER)
@@ -89,7 +87,7 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
             .build();
         cluster.before();
 
-        try (TestRestClient client = cluster.getRestClient(ADMIN_USER.getName(), "secret")) {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER.getName(), TestSecurityConfig.DEFAULT_TEST_PASSWORD)) {
             Awaitility.await()
                 .alias("Load default configuration")
                 .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));

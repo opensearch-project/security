@@ -63,6 +63,9 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.http.HttpInfo;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
+import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.NodeSettingsSupplier;
 import org.opensearch.security.test.SingleClusterTest;
@@ -206,6 +209,7 @@ public final class ClusterHelper {
                 tcpPortsAllIt.next(),
                 httpPortsIt.next()
             );
+            applyFipsPasswordHashing(nodeSettingsBuilder, setting);
             final Settings settingsForNode;
             if (nodeSettingsSupplier != null) {
                 final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
@@ -244,6 +248,7 @@ public final class ClusterHelper {
                 tcpPortsAllIt.next(),
                 httpPortsIt.next()
             );
+            applyFipsPasswordHashing(nodeSettingsBuilder, setting);
             final Settings settingsForNode;
             if (nodeSettingsSupplier != null) {
                 final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
@@ -466,7 +471,7 @@ public final class ClusterHelper {
         int httpPort
     ) {
 
-        return AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), isClusterManagerNode, isDataNode)
+        Settings.Builder builder = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), isClusterManagerNode, isDataNode)
             .put("node.name", "node_" + clustername + "_num" + nodenum)
             .put("cluster.name", clustername)
             .put("path.data", "./target/data/" + clustername + "/data")
@@ -483,6 +488,14 @@ public final class ClusterHelper {
             .put("http.cors.enabled", true)
             .put("path.home", "./target")
             .put("bootstrap.serial_filter", true);
+
+        return builder;
+    }
+
+    private static void applyFipsPasswordHashing(final Settings.Builder builder, final NodeSettings setting) {
+        if (FipsMode.isEnabled() && setting.getPlugins().contains(OpenSearchSecurityPlugin.class)) {
+            builder.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2);
+        }
     }
 
     private enum ClusterState {

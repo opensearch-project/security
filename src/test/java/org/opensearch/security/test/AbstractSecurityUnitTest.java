@@ -83,10 +83,12 @@ import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.file.FipsHashAdapter;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
 import org.opensearch.threadpool.ThreadPool;
@@ -143,10 +145,10 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
     public final TestWatcher testWatcher = new SecurityTestWatcher();
 
     public static Header encodeBasicHeader(final String username, final String password) {
+        final String adaptedPassword = FipsHashAdapter.adaptPassword(Objects.requireNonNull(password));
         return new BasicHeader(
             "Authorization",
-            "Basic "
-                + Base64.getEncoder().encodeToString((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8))
+            "Basic " + Base64.getEncoder().encodeToString((username + ":" + adaptedPassword).getBytes(StandardCharsets.UTF_8))
         );
     }
 
@@ -167,7 +169,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             var typedKeyStore = FileHelper.resolveStore(prefix + keyStoreName);
             File keyStoreFile = typedKeyStore.path().toFile();
             KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
-            keyStore.load(new FileInputStream(keyStoreFile), null);
+            keyStore.load(new FileInputStream(keyStoreFile), "changeit".toCharArray());
             sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
 
             var typedTrustStore = FileHelper.resolveStore(prefix + trustStoreName);
@@ -179,11 +181,13 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             SSLContext sslContext = sslContextBuilder.build();
 
             HttpHost httpHost = new HttpHost("https", info.httpHost, info.httpPort);
-
+            String[] tlsVersions = FipsMode.isEnabled()
+                ? new String[] { "TLSv1.2", "TLSv1.3" }
+                : new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" };
             RestClientBuilder restClientBuilder = RestClient.builder(httpHost).setHttpClientConfigCallback(builder -> {
                 TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
                     .setSslContext(sslContext)
-                    .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
+                    .setTlsVersions(tlsVersions)
                     .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
                     // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
                     .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
@@ -311,6 +315,10 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             builder.put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
         builder.put("cluster.routing.allocation.disk.threshold_enabled", false);
+
+        if (FipsMode.isEnabled()) {
+            builder.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2);
+        }
         builder.put(other);
         return builder;
     }

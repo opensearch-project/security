@@ -85,6 +85,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.file.FipsHashAdapter;
 
 import tools.jackson.databind.JsonNode;
 
@@ -100,6 +101,8 @@ public class RestHelper {
     public boolean enableHTTPClientSSLv3Only = false;
     public boolean sendAdminCertificate = false;
     public boolean trustHTTPServerCertificate = true;
+    public FileHelper.TypedStore customTrustStoreFile = null;
+    public String customTrustStorePassword = null;
     public boolean sendHTTPClientCredentials = false;
     public String keystore = "node-0-keystore";
     public final String prefix;
@@ -319,7 +322,10 @@ public class RestHelper {
         final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom();
 
         if (sendHTTPClientCredentials) {
-            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek".toCharArray());
+            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(
+                "sarek",
+                FipsHashAdapter.adaptPassword("sarek").toCharArray()
+            );
             BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
             credentialsProvider.setCredentials(new AuthScope(null, -1), credentials);
             hcb.setDefaultCredentialsProvider(credentialsProvider);
@@ -339,8 +345,15 @@ public class RestHelper {
             String keystoreDir = ksParent != null ? ksParent + "/" : "";
             var resolvedTrustStore = FileHelper.resolveStore(keystoreDir + "truststore");
 
-            final KeyStore myTrustStore = KeyStore.getInstance(resolvedTrustStore.type());
-            myTrustStore.load(new FileInputStream(resolvedTrustStore.path().toFile()), "changeit".toCharArray());
+            final KeyStore myTrustStore;
+            if (customTrustStoreFile != null) {
+                myTrustStore = KeyStore.getInstance(customTrustStoreFile.type());
+                char[] tsPass = customTrustStorePassword != null ? customTrustStorePassword.toCharArray() : null;
+                myTrustStore.load(new FileInputStream(customTrustStoreFile.path().toFile()), tsPass);
+            } else {
+                myTrustStore = KeyStore.getInstance(resolvedTrustStore.type());
+                myTrustStore.load(new FileInputStream(resolvedTrustStore.path().toFile()), "changeit".toCharArray());
+            }
 
             final KeyStore keyStore = KeyStore.getInstance(resolvedKeyStore.type());
             keyStore.load(new FileInputStream(resolvedKeyStore.path().toFile()), "changeit".toCharArray());

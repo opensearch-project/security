@@ -30,6 +30,7 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -57,8 +58,9 @@ public class SecuritySettingsConfigurer {
 
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
+        String hashingAlgorithm = FipsMode.isEnabled() ? ConfigConstants.PBKDF2 : ConfigConstants.BCRYPT;
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(
-            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, hashingAlgorithm).build()
         );
     }
 
@@ -248,8 +250,9 @@ public class SecuritySettingsConfigurer {
      */
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
         JsonNode internalUsers = yamlMapper().readTree(new FileInputStream(internalUsersFile));
-        return internalUsers.has("admin")
-            && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asString());
+        if (!internalUsers.has("admin")) return false;
+        String hash = internalUsers.get("admin").get("hash").asString();
+        return passwordHasher.check(passwordHasher.defaultAdminPassword().toCharArray(), hash);
     }
 
     /**
