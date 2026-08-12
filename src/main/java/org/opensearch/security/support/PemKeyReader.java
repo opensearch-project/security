@@ -39,8 +39,10 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.KeyException;
 import java.security.KeyFactory;
 import java.security.KeyStore;
@@ -213,6 +215,55 @@ public final class PemKeyReader {
             }
         }
         return store;
+    }
+
+    /**
+     * Loads a {@link SecretKey} entry from a keystore by alias.
+     * Delegates to {@link #loadKeyStore}, so keystore-type enforcement applies automatically.
+     *
+     * @param keyPassword key-level password; falls back to {@code keyStorePassword} when {@code null},
+     *                    consistent with {@code keytool} convention where both passwords default to the same value
+     * @throws IllegalArgumentException for any failure: keystore I/O error, missing alias, or wrong entry type
+     */
+    public static SecretKey loadSecretKeyFromKeystore(
+        final String storePath,
+        final String keyStorePassword,
+        final String type,
+        final String alias,
+        final String keyPassword
+    ) {
+        final KeyStore store;
+        try {
+            store = loadKeyStore(storePath, keyStorePassword, type);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                "Failed to load secret key from keystore-type '%s' at path '%s'".formatted(type, storePath),
+                e
+            );
+        }
+        if (store == null) {
+            throw new IllegalArgumentException("Failed to load secret key from keystore-type '%s' at path '%s'".formatted(type, storePath));
+        }
+        try {
+            final char[] kp = keyPassword != null
+                ? keyPassword.toCharArray()
+                : (keyStorePassword != null ? keyStorePassword.toCharArray() : null);
+            final Key key = store.getKey(alias, kp);
+            if (key == null) {
+                throw new IllegalArgumentException("No key found at alias '" + alias + "' in keystore");
+            }
+            if (!(key instanceof SecretKey secretKey)) {
+                throw new IllegalArgumentException(
+                    "Entry at alias '" + alias + "' is not a SecretKey (found " + key.getClass().getName() + ")"
+                );
+            }
+            return secretKey;
+        } catch (GeneralSecurityException e) {
+            throw new IllegalArgumentException(
+                "Failed to load secret key from keystore-type '%s' at path '%s'".formatted(type, storePath),
+                e
+            );
+        }
     }
 
     public static PrivateKey loadKeyFromFile(String password, String keyFile) throws Exception {
