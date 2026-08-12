@@ -61,8 +61,7 @@ public class SslConfiguration {
     }
 
     public List<Path> dependentFiles() {
-        return Stream.concat(keyStoreConfiguration.files().stream(), Stream.of(trustStoreConfiguration.file()))
-            .collect(Collectors.toList());
+        return Stream.concat(keyStoreConfiguration.files().stream(), trustStoreConfiguration.files().stream()).collect(Collectors.toList());
     }
 
     public List<Certificate> certificates() {
@@ -90,7 +89,7 @@ public class SslConfiguration {
             return AccessController.doPrivilegedChecked(() -> {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
                 Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
-                return SslContextBuilder.forServer(kmFactory)
+                final SslContextBuilder builder = SslContextBuilder.forServer(kmFactory)
                     .sslProvider(sslParameters.provider())
                     .clientAuth(sslParameters.clientAuth())
                     .protocols(sslParameters.allowedProtocols().toArray(new String[0]))
@@ -115,8 +114,9 @@ public class SslConfiguration {
                             ApplicationProtocolNames.HTTP_1_1
                         )
                     )
-                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
-                    .build();
+                    .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns));
+                keyStoreConfiguration.configure(builder);
+                return builder.build();
             });
         } catch (SSLException e) {
             throw new OpenSearchException("Failed to build server SSL context", e);
@@ -128,7 +128,7 @@ public class SslConfiguration {
             return AccessController.doPrivilegedChecked(() -> {
                 KeyManagerFactory kmFactory = keyStoreConfiguration.createKeyManagerFactory(validateCertificates);
                 Set<X500Principal> issuerDns = keyStoreConfiguration.getIssuerDns();
-                return SslContextBuilder.forClient()
+                final SslContextBuilder builder = SslContextBuilder.forClient()
                     .sslProvider(sslParameters.provider())
                     .protocols(sslParameters.allowedProtocols())
                     .ciphers(sslParameters.allowedCiphers())
@@ -138,8 +138,9 @@ public class SslConfiguration {
                     .sslProvider(sslParameters.provider())
                     .keyManager(kmFactory)
                     .trustManager(trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns))
-                    .endpointIdentificationAlgorithm(null)
-                    .build();
+                    .endpointIdentificationAlgorithm(null);
+                keyStoreConfiguration.configure(builder);
+                return builder.build();
             });
         } catch (Exception e) {
             throw new OpenSearchException("Failed to build client SSL context", e);
