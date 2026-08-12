@@ -23,16 +23,20 @@ import static org.junit.Assert.assertArrayEquals;
 
 public class SSLConfigConstantsTest {
 
+    protected String[] getDefaultProtocols() {
+        return new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" };
+    }
+
     @Test
     public void testDefaultTLSProtocols() {
         final var tlsDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.TRANSPORT);
-        assertArrayEquals(new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" }, tlsDefaultProtocols);
+        assertArrayEquals(getDefaultProtocols(), tlsDefaultProtocols);
     }
 
     @Test
     public void testDefaultSSLProtocols() {
         final var sslDefaultProtocols = SSLConfigConstants.getSecureSSLProtocols(Settings.EMPTY, CertType.HTTP);
-        assertArrayEquals(new String[] { "TLSv1.3", "TLSv1.2", "TLSv1.1" }, sslDefaultProtocols);
+        assertArrayEquals(getDefaultProtocols(), sslDefaultProtocols);
     }
 
     @Test

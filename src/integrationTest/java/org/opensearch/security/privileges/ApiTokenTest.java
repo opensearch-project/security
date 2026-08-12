@@ -56,10 +56,6 @@ public class ApiTokenTest {
     private static final String OBO_DESCRIPTION = "{\"description\":\"Testing\", \"service\":\"self-issued\"}";
     private static final String signingKey = Base64.getEncoder()
         .encodeToString("jwt signing key for an on behalf of token authentication backend for testing".getBytes(StandardCharsets.UTF_8));
-    private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
-    public static final String ADMIN_USER_NAME = "admin";
-    public static final String REGULAR_USER_NAME = "regular_user";
-    public static final String DEFAULT_PASSWORD = "secret";
     public static final String NEW_PASSWORD = "testPassword123!!";
     public static final String TEST_TOKEN_PAYLOAD = """
         {
@@ -99,7 +95,7 @@ public class ApiTokenTest {
         """;
 
     public static final String CURRENT_AND_NEW_PASSWORDS = "{ \"current_password\": \""
-        + DEFAULT_PASSWORD
+        + TestSecurityConfig.DEFAULT_TEST_PASSWORD
         + "\", \"password\": \""
         + NEW_PASSWORD
         + "\" }";
@@ -109,7 +105,7 @@ public class ApiTokenTest {
     }
 
     private static OnBehalfOfConfig defaultOnBehalfOfConfig() {
-        return new OnBehalfOfConfig().enabled(true).signingKey(signingKey).encryptionKey(encryptionKey);
+        return new OnBehalfOfConfig().enabled(true).signingKey(signingKey).encryptionKey(TestSecurityConfig.DEFAULT_TEST_PASSWORD);
     }
 
     @ClassRule

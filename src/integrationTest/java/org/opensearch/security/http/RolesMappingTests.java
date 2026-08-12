@@ -27,8 +27,11 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 public class RolesMappingTests {
-    static final TestSecurityConfig.User USER_A = new TestSecurityConfig.User("userA").password("s3cret").backendRoles("mapsToRoleA");
-    static final TestSecurityConfig.User USER_B = new TestSecurityConfig.User("userB").password("P@ssw0rd").backendRoles("mapsToRoleB");
+    // passwords must be >=14 chars (112 bits) to satisfy FIPS PBKDF2 minimum
+    static final TestSecurityConfig.User USER_A = new TestSecurityConfig.User("userA").password("s3cr3t-user-a-pw")
+        .backendRoles("mapsToRoleA");
+    static final TestSecurityConfig.User USER_B = new TestSecurityConfig.User("userB").password("P@ssw0rd-user-b-pw")
+        .backendRoles("mapsToRoleB");
 
     private static final TestSecurityConfig.Role ROLE_A = new TestSecurityConfig.Role("roleA").clusterPermissions("cluster_all");
 

@@ -75,6 +75,7 @@ import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBuilder;
 import org.opensearch.client.util.ApiTypeHelper;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
@@ -337,7 +338,12 @@ public interface OpenSearchClientProvider {
             if (useCertificateData != null) {
                 Certificate[] chainOfTrust = { useCertificateData.certificate() };
                 ks.setKeyEntry("admin-certificate", useCertificateData.getKey(), null, chainOfTrust);
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                KeyManagerFactory keyManagerFactory;
+                if (FipsMode.isEnabled()) {
+                    keyManagerFactory = KeyManagerFactory.getInstance("PKIX", "BCJSSE");
+                } else {
+                    keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                }
                 keyManagerFactory.init(ks, null);
                 keyManagers = keyManagerFactory.getKeyManagers();
             }

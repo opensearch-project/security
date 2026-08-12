@@ -1,4 +1,9 @@
 @echo off
+
+setlocal enabledelayedexpansion
+setlocal enableextensions
+
+set "CALLER_DIR=%CD%"
 set DIR=%~dp0
 
 if not defined OPENSEARCH_HOME goto find_home_start
@@ -8,7 +13,7 @@ goto find_home_done
 :find_home_start
 set "OPENSEARCH_HOME=%DIR%"
 :find_home
-if exist "%OPENSEARCH_HOME%lib\opensearch-*.jar" goto find_home_done
+if exist "%OPENSEARCH_HOME%lib\opensearch-*.jar" goto find_home_found
 for %%I in ("%OPENSEARCH_HOME%.") do set "PARENT=%%~dpI"
 if "%PARENT%" == "%OPENSEARCH_HOME%" (
   echo Could not locate OpenSearch home. Set OPENSEARCH_HOME manually. 1>&2
@@ -16,18 +21,34 @@ if "%PARENT%" == "%OPENSEARCH_HOME%" (
 )
 set "OPENSEARCH_HOME=%PARENT%"
 goto find_home
+:find_home_found
+rem Drop the trailing backslash left by %%~dp: a trailing backslash would escape the
+rem closing quote in -Dopensearch.path.home="...\".
+set "OPENSEARCH_HOME=%OPENSEARCH_HOME:~0,-1%"
 :find_home_done
 
-set "PLUGIN_DIR=%OPENSEARCH_HOME%plugins\opensearch-security"
-
-if defined OPENSEARCH_JAVA_HOME (
-  set BIN_PATH="%OPENSEARCH_JAVA_HOME%\bin\java.exe"
-) else if defined JAVA_HOME (
-  set BIN_PATH="%JAVA_HOME%\bin\java.exe"
-) else (
-  echo Unable to find java runtime
-  echo OPENSEARCH_JAVA_HOME or JAVA_HOME must be defined
-  exit /b 1
+rem Forward JAVA_OPTS into OPENSEARCH_JAVA_OPTS for backward compatibility
+if defined JAVA_OPTS (
+    set OPENSEARCH_JAVA_OPTS=%JAVA_OPTS% %OPENSEARCH_JAVA_OPTS%
 )
+set JAVA_OPTS=
 
-%BIN_PATH% -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "%PLUGIN_DIR%\*;%PLUGIN_DIR%\deps\*;%OPENSEARCH_HOME%lib\*" org.opensearch.security.tools.SecurityAdmin %* 2> nul
+rem Core launcher environment: java lookup and version check, OPENSEARCH_PATH_CONF and,
+rem with OPENSEARCH_FIPS_MODE=true, the FIPS JVM options. It changes into OPENSEARCH_HOME;
+rem return to the caller's directory so relative -cd/-f/-backup paths resolve as documented.
+call "%OPENSEARCH_HOME%\bin\opensearch-env.bat" || exit /b 1
+cd /d "%CALLER_DIR%"
+
+"%JAVA%" ^
+  -Xms4m -Xmx64m -XX:+UseSerialGC ^
+  %OPENSEARCH_JAVA_OPTS% ^
+  -Dopensearch.path.home="%OPENSEARCH_HOME%" ^
+  -Dopensearch.path.conf="%OPENSEARCH_PATH_CONF%" ^
+  -Dopensearch.distribution.type="%OPENSEARCH_DISTRIBUTION_TYPE%" ^
+  -cp "%OPENSEARCH_CLASSPATH%;%OPENSEARCH_HOME%\plugins\opensearch-security\*" ^
+  org.opensearch.security.tools.SecurityAdmin ^
+  %*
+
+endlocal
+endlocal
+exit /b %ERRORLEVEL%

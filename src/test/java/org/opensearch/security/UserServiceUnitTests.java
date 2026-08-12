@@ -119,21 +119,27 @@ public class UserServiceUnitTests {
         );
     }
 
+    /** Length window {@link UserService#generatePassword()} draws from; FIPS raises the floor. */
+    protected int getMinGeneratedPasswordLength() {
+        return 8;
+    }
+
+    protected int getMaxGeneratedPasswordLength() {
+        return 15;
+    }
+
     @Test
     public void testGeneratedPasswordContents() {
-        String password = UserService.generatePassword();
+        final int min = getMinGeneratedPasswordLength();
+        final int max = getMaxGeneratedPasswordLength();
+        char[] password = UserService.generatePassword();
+        assertThat(password.length >= min && password.length <= max, is(true));
+        assertThat(new String(password).chars().anyMatch(Character::isLowerCase), is(true));
+        assertThat(new String(password).chars().anyMatch(Character::isUpperCase), is(true));
+        assertThat(new String(password).chars().anyMatch(Character::isDigit), is(true));
 
-        // Verify length is 8-16
-        assertThat(password.length() >= 8 && password.length() <= 16, is(true));
-
-        // Verify at least 1 lowercase, 1 uppercase, 1 digit
-        assertThat(password.chars().anyMatch(Character::isLowerCase), is(true));
-        assertThat(password.chars().anyMatch(Character::isUpperCase), is(true));
-        assertThat(password.chars().anyMatch(Character::isDigit), is(true));
-
-        // Verify two generated passwords are different
-        String password2 = UserService.generatePassword();
-        assertNotEquals(password, password2);
+        char[] password2 = UserService.generatePassword();
+        assertNotEquals(new String(password), new String(password2));
     }
 
 }

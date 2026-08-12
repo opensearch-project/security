@@ -652,7 +652,7 @@ tasks.register("integrationTest", Test) {
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
         if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
-            exclude '**/ResourceFocusedTests.class'
+            exclude '**/ResourceFocused*.class'
         }
         if (System.getenv('DISABLE_RETRY') != 'true') {
             retry {
