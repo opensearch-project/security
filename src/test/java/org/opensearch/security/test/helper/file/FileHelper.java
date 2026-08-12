@@ -29,6 +29,7 @@ package org.opensearch.security.test.helper.file;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -43,10 +44,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import javax.crypto.SecretKey;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.rules.TemporaryFolder;
 import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.common.io.Streams;
@@ -56,8 +60,10 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.security.support.FipsMode;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomFrom;
 
 public class FileHelper {
 
@@ -87,6 +93,37 @@ public class FileHelper {
             .map(Map.Entry::getKey)
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Unknown keystore type for file path: " + filePath));
+    }
+
+    /** Writes a single {@link SecretKey} entry into a new keystore file of the given type and returns it. */
+    public static TypedStore storeSecretKey(TemporaryFolder tempDir, String alias, SecretKey key, String storePassword, String keyPassword)
+        throws Exception {
+        final String storeType = randomKeyStoreType();
+        final File file = tempDir.newFile(alias + "." + storeType.toLowerCase(Locale.ROOT));
+        final KeyStore ks = KeyStore.getInstance(storeType);
+        ks.load(null, null);
+        ks.setKeyEntry(alias, key, keyPassword.toCharArray(), null);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            ks.store(fos, storePassword.toCharArray());
+        }
+        return new TypedStore(file.toPath(), storeType);
+    }
+
+    /**
+     * Returns a randomly chosen keystore type that supports {@link SecretKey} entries.
+     * <ul>
+     *   <li>JKS is excluded: its {@code engineSetKeyEntry} enforces {@code instanceof PrivateKey} (the
+     *       asymmetric-key interface), so {@code SecretKey} entries are rejected with "Cannot store
+     *       non-PrivateKeys".</li>
+     *   <li>JCEKS was introduced specifically to extend JKS with {@code SecretKey} support.</li>
+     *   <li>BCFKS (BC FIPS) also supports {@code SecretKey}.</li>
+     * </ul>
+     * Requires the calling test to run under {@code @RunWith(RandomizedRunner.class)}.
+     */
+    public static String randomKeyStoreType() {
+        return FipsMode.isEnabled() //
+            ? randomFrom(new String[] { "bcfks" }) //
+            : randomFrom(new String[] { "bcfks", "jceks", "pkcs12" });
     }
 
     public record TypedStore(Path path, String type) {
