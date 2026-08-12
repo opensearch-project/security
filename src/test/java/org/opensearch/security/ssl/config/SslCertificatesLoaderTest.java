@@ -35,6 +35,8 @@ import static org.hamcrest.Matchers.notNullValue;
 @ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
 public abstract class SslCertificatesLoaderTest extends RandomizedTest {
 
+    static final String LOGGER_NAME = SslCertificatesLoader.class.getCanonicalName();
+
     @ClassRule
     public static CertificatesRule certificatesRule = new CertificatesRule();
 
@@ -52,7 +54,7 @@ public abstract class SslCertificatesLoaderTest extends RandomizedTest {
         final Certificate... expectedCertificates
     ) {
         assertThat("Truststore configuration created", nonNull(trustStoreConfiguration));
-        assertThat(trustStoreConfiguration.file(), is(expectedFile));
+        assertThat(trustStoreConfiguration.files(), contains(expectedFile));
         assertThat(trustStoreConfiguration.loadCertificates(), containsInAnyOrder(expectedCertificates));
         assertThat(trustStoreConfiguration.createTrustManagerFactory(true, Set.of()), is(notNullValue()));
     }
