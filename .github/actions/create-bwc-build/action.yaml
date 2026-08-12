@@ -38,12 +38,15 @@ runs:
         distribution: temurin # Temurin is a distribution of adoptium
         java-version: 21
 
-    - name: Build
+    - name: Setup Gradle
       uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
       with:
         cache-disabled: true
-        arguments: assemble
-        build-root-directory: ${{ inputs.plugin-branch }}
+
+    - name: Build
+      run: ./gradlew assemble
+      working-directory: ${{ inputs.plugin-branch }}
+      shell: bash
 
     - id: get-opensearch-version
       run: |
