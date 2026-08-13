@@ -15,6 +15,7 @@ import java.util.Map;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.awaitility.Awaitility;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -179,9 +180,9 @@ public class ResourceSharingAuditRuntimeConfigTest {
                     response.assertStatusCode(200);
                     List<String> disabled = response.getTextArrayFromJsonBody("/config/audit/disabled_transport_categories");
                     if (shouldBePresent) {
-                        assert disabled.contains(category) : "expected " + category + " to be disabled, got " + disabled;
+                        Assert.assertTrue("expected " + category + " to be disabled, got " + disabled, disabled.contains(category));
                     } else {
-                        assert !disabled.contains(category) : "expected " + category + " to be enabled, got " + disabled;
+                        Assert.assertFalse("expected " + category + " to be enabled, got " + disabled, disabled.contains(category));
                     }
                 });
         }

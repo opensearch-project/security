@@ -1161,7 +1161,6 @@ public abstract class AbstractAuditLog implements AuditLog {
         AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_SHARING_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
         msg.addEffectiveUser(getUser());
         msg.addRemoteAddress(getRemoteAddress());
-        msg.addAction(sharingAction);
         msg.addResourceId(resourceId);
         msg.addResourceType(resourceType);
         msg.addResourceSharingAction(sharingAction);

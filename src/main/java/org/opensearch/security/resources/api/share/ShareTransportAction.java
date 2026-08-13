@@ -98,34 +98,28 @@ public class ShareTransportAction extends HandledTransportAction<ShareRequest, S
         Supplier<ThreadContext.StoredContext> contextSupplier = threadContext.newRestorableContext(true);
 
         ActionListener<ResourceSharing> auditListener = ActionListener.wrap(resourceSharing -> {
-            auditLog.logResourceSharingChanged(
-                request.id(),
-                request.type(),
-                sharingAction,
-                "success",
-                request.getAdd() != null ? request.getAdd().toString() : null,
-                request.getRevoke() != null ? request.getRevoke().toString() : null,
-                request.getShareWith() != null ? request.getShareWith().toString() : null,
-                request,
-                task
-            );
+            logSharingAudit(request, task, sharingAction, "success");
             delegate.onResponse(resourceSharing);
         }, e -> {
-            auditLog.logResourceSharingChanged(
-                request.id(),
-                request.type(),
-                sharingAction,
-                "failed",
-                request.getAdd() != null ? request.getAdd().toString() : null,
-                request.getRevoke() != null ? request.getRevoke().toString() : null,
-                request.getShareWith() != null ? request.getShareWith().toString() : null,
-                request,
-                task
-            );
+            logSharingAudit(request, task, sharingAction, "failed");
             delegate.onFailure(e);
         });
 
         return new ContextPreservingActionListener<>(contextSupplier, auditListener);
+    }
+
+    private void logSharingAudit(ShareRequest request, Task task, String sharingAction, String result) {
+        auditLog.logResourceSharingChanged(
+            request.id(),
+            request.type(),
+            sharingAction,
+            result,
+            request.getAdd() != null ? request.getAdd().toString() : null,
+            request.getRevoke() != null ? request.getRevoke().toString() : null,
+            request.getShareWith() != null ? request.getShareWith().toString() : null,
+            request,
+            task
+        );
     }
 
 }

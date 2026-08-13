@@ -110,6 +110,22 @@ public interface AuditLog extends Closeable {
         Task task
     );
 
+    /**
+     * Logs a resource sharing mutation event (RESOURCE_SHARING_CHANGED category).
+     * This method is called for both successful and failed sharing operations:
+     * successful mutations use sharingAction "share" or "patch" with result "success",
+     * while internal failures after authorization use the same action with result "failed".
+     *
+     * @param resourceId        the ID of the resource being shared
+     * @param resourceType      the type of the resource (e.g., "saved_query", "dashboard")
+     * @param sharingAction     the mutation action: "share" for PUT, "patch" for PATCH/POST
+     * @param sharingResult     the outcome: "success" or "failed"
+     * @param recipientsAdded   serialized recipients added (for PATCH), or null
+     * @param recipientsRevoked serialized recipients revoked (for PATCH), or null
+     * @param shareWith         serialized full sharing target (for PUT), or null
+     * @param request           the originating transport request
+     * @param task              the task associated with the request
+     */
     void logResourceSharingChanged(
         String resourceId,
         String resourceType,
