@@ -17,7 +17,7 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.8.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.9.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -63,7 +63,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.5"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.5.9"
+    id "com.github.spotbugs" version "6.5.10"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -805,7 +805,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-test-common-runtime:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-test-common-internal-api:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-transaction-coordinator:${kafka_version}"
-    testImplementation 'commons-validator:commons-validator:1.10.1'
+    testImplementation 'commons-validator:commons-validator:1.11.0'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.4'
     testImplementation('org.awaitility:awaitility:4.3.0') {
