@@ -182,9 +182,13 @@ public class AuditActionFilter implements ActionFilter {
         }
 
         // Bulk request handling — log each sub-operation separately.
-        // Only iterates on BulkShardRequest (shard-level), not BulkRequest (coordinating node),
-        // to avoid duplicate audit events. A bulk request traverses the action chain twice:
-        // first as BulkRequest at the coordinating node, then as BulkShardRequest at the data node.
+        // Only iterates on BulkShardRequest (shard-level), not BulkRequest, to avoid
+        // duplicate audit events. Both passes run through ActionFilters on the coordinating
+        // node: TransportBulkAction first handles the BulkRequest, then fans out to
+        // shardBulkAction.execute() with a BulkShardRequest before TransportReplicationAction
+        // reroutes to the primary shard. The reroute to the (possibly remote) data node goes
+        // through the transport request handler, which does not re-run ActionFilters, so the
+        // data node never re-audits.
         if (filter.shouldResolveBulkRequests() && request instanceof BulkShardRequest) {
             try {
                 TransportAddress remoteAddress = request.remoteAddress();
@@ -245,7 +249,7 @@ public class AuditActionFilter implements ActionFilter {
                 String[] distinctIndices = bulkRequest.requests()
                     .stream()
                     .map(r -> r.index())
-                    .filter(idx -> idx != null)
+                    .filter(idx -> idx != null && !isAuditIndex(idx))
                     .distinct()
                     .toArray(String[]::new);
                 if (distinctIndices.length > 0) {

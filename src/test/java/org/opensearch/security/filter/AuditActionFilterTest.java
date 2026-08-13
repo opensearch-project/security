@@ -767,8 +767,9 @@ public class AuditActionFilterTest {
         // A mixed BulkRequest (normal + audit-index sub-items) is NOT suppressed by
         // the top-level guard because it uses all-match semantics: only suppress when
         // ALL items target the audit index. Mixed requests fall through to the standard
-        // summary path, producing one event listing all distinct target indices. The
-        // audit-index items are handled later at the shard level (BulkShardRequest
+        // summary path, producing one event listing the distinct target indices. The
+        // audit index is filtered out of that summary so it never leaks into the event;
+        // the audit-index items are handled later at the shard level (BulkShardRequest
         // IndicesRequest guard + per-item guard in logBulkItem).
         AuditActionFilter bulkFilter = createFilterWithResolveBulk(true);
 
@@ -786,8 +787,16 @@ public class AuditActionFilterTest {
         bulkFilter.apply(task, "indices:data/write/bulk", request, ActionRequestMetadata.empty(), listener, chain);
 
         // Mixed BulkRequest produces a summary event (not suppressed by all-match guard)
-        verify(auditLog).logRequestAudit(any(AuditMessage.class));
+        ArgumentCaptor<AuditMessage> captor = ArgumentCaptor.forClass(AuditMessage.class);
+        verify(auditLog).logRequestAudit(captor.capture());
         verify(chain).proceed(task, "indices:data/write/bulk", request, listener);
+
+        // The summary's INDICES lists only the normal index — the audit index is
+        // filtered out and must not appear in the summary event.
+        AuditMessage msg = captor.getValue();
+        String[] indices = (String[]) msg.getAsMap().get(AuditMessage.INDICES);
+        assertThat(indices, notNullValue());
+        assertThat(indices, arrayContaining("my-index"));
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
