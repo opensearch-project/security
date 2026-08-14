@@ -71,6 +71,12 @@ public class SecuritySettings {
         Setting.Property.Sensitive
     );
 
+    public static final Setting<Boolean> AUDIT_ENABLE_STANDALONE = Setting.boolSetting(
+        ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+        false,
+        Setting.Property.NodeScope
+    );
+
     // Dynamic audit filter settings
     private static final String AUDIT_CONFIG_PREFIX = "plugins.security.audit.config.";
 
