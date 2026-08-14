@@ -448,6 +448,8 @@ public class ConfigConstants {
     public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
                                                                                                       // protected
 
+    public static final String SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES = SECURITY_SETTINGS_PREFIX + "ccs.ignore_source_security_roles";
+
     public static Set<String> getSettingAsSet(
         final Settings settings,
         final String key,

@@ -1599,10 +1599,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         rsIndexHandler = new ResourceSharingIndexHandler(localClient, threadPool, resourcePluginInfo);
 
-        RoleMapper roleMapper = new RolesInjector.InjectedRoleMapper(
-            new ConfigurableRoleMapper(cr, settings),
-            threadPool.getThreadContext()
-        );
+        ConfigurableRoleMapper configurableRoleMapper = new ConfigurableRoleMapper(cr, settings, threadPool.getThreadContext());
+        clusterService.getClusterSettings()
+            .addSettingsUpdateConsumer(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING, newValue -> {
+                log.info("CCS ignore source security roles dynamically set to {}", newValue);
+                configurableRoleMapper.setCcsIgnoreSourceSecurityRoles(newValue);
+            });
+        RoleMapper roleMapper = new RolesInjector.InjectedRoleMapper(configurableRoleMapper, threadPool.getThreadContext());
         this.roleMapper = roleMapper;
         tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper);
         apiTokenRepository = new ApiTokenRepository(localClient, clusterService);
@@ -1808,6 +1811,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         settings.addAll(super.getSettings());
 
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
+
+        // CCS: allow remote cluster to ignore source-propagated security roles
+        settings.add(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING);
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
         settings.add(SecuritySettings.SSL_DUAL_MODE_SETTING);

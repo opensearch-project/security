@@ -25,6 +25,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -36,7 +37,10 @@ import org.opensearch.security.user.User;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ ConfigurableRoleMapperTest.ResolutionModeTest.class, ConfigurableRoleMapperTest.CompiledConfigurationTest.class, })
+@Suite.SuiteClasses({
+    ConfigurableRoleMapperTest.ResolutionModeTest.class,
+    ConfigurableRoleMapperTest.CompiledConfigurationTest.class,
+    ConfigurableRoleMapperTest.CcsSkipSourceSecurityRolesTest.class, })
 public class ConfigurableRoleMapperTest {
 
     public static class ResolutionModeTest {
@@ -222,6 +226,151 @@ public class ConfigurableRoleMapperTest {
             return result;
         }
 
+    }
+
+    public static class CcsSkipSourceSecurityRolesTest {
+
+        @Test
+        public void map_skipSourceSecurityRoles_excludesSourceRoles() throws Exception {
+            User user = new User("ccs_user").withRoles("backend_role_1").withSecurityRoles(Arrays.asList("all_access"));
+
+            SecurityDynamicConfiguration<RoleMappingsV7> roleMapping = SecurityDynamicConfiguration.fromYaml("""
+                read_only:
+                  backend_roles:
+                  - backend_role_1
+                """, CType.ROLESMAPPING);
+
+            ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
+                roleMapping,
+                HostResolverMode.IP_HOSTNAME,
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+            );
+
+            TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
+
+            // With skipSourceSecurityRoles=true: source cluster's all_access should NOT be included
+            ImmutableSet<String> mappedRoles = compiled.map(user, caller, true);
+
+            // Should only contain the role mapped by Domain B's own roles_mapping (read_only from backend_role_1)
+            assertEquals(ImmutableSet.of("read_only"), mappedRoles);
+        }
+
+        @Test
+        public void map_skipSourceSecurityRoles_false_includesSourceRoles() throws Exception {
+            User user = new User("ccs_user").withRoles("backend_role_1").withSecurityRoles(Arrays.asList("all_access"));
+
+            SecurityDynamicConfiguration<RoleMappingsV7> roleMapping = SecurityDynamicConfiguration.fromYaml("""
+                read_only:
+                  backend_roles:
+                  - backend_role_1
+                """, CType.ROLESMAPPING);
+
+            ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
+                roleMapping,
+                HostResolverMode.IP_HOSTNAME,
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+            );
+
+            TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
+
+            // With skipSourceSecurityRoles=false: source cluster's all_access SHOULD be included (current behavior)
+            ImmutableSet<String> mappedRoles = compiled.map(user, caller, false);
+
+            // Should contain both: source's all_access + Domain B's read_only
+            assertEquals(ImmutableSet.of("all_access", "read_only"), mappedRoles);
+        }
+
+        @Test
+        public void map_skipSourceSecurityRoles_noBackendRoles_emptyResult() throws Exception {
+            User user = new User("ccs_user_no_backend").withSecurityRoles(Arrays.asList("all_access"));
+
+            SecurityDynamicConfiguration<RoleMappingsV7> roleMapping = SecurityDynamicConfiguration.fromYaml("""
+                read_only:
+                  backend_roles:
+                  - some_other_role
+                """, CType.ROLESMAPPING);
+
+            ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
+                roleMapping,
+                HostResolverMode.IP_HOSTNAME,
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+            );
+
+            TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
+
+            // With skip=true and no matching backend_roles, user gets no roles on remote
+            ImmutableSet<String> mappedRoles = compiled.map(user, caller, true);
+
+            assertEquals(ImmutableSet.of(), mappedRoles);
+        }
+
+        @Test
+        public void map_skipSourceSecurityRoles_withUsernameMapping() throws Exception {
+            User user = new User("specific_user").withSecurityRoles(Arrays.asList("all_access"));
+
+            SecurityDynamicConfiguration<RoleMappingsV7> roleMapping = SecurityDynamicConfiguration.fromYaml("""
+                limited_role:
+                  users:
+                  - specific_user
+                """, CType.ROLESMAPPING);
+
+            ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
+                roleMapping,
+                HostResolverMode.IP_HOSTNAME,
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+            );
+
+            TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
+
+            // With skip=true: source's all_access excluded, but username mapping still works
+            ImmutableSet<String> mappedRoles = compiled.map(user, caller, true);
+
+            assertEquals(ImmutableSet.of("limited_role"), mappedRoles);
+        }
+
+        @Test
+        public void setCcsIgnoreSourceSecurityRoles_dynamicUpdate_changesMapBehavior() throws Exception {
+            // Start with flag=false (default)
+            Settings settingsOff = Settings.builder().put(ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES, false).build();
+
+            SecurityDynamicConfiguration<RoleMappingsV7> roleMapping = SecurityDynamicConfiguration.fromYaml("""
+                read_only:
+                  backend_roles:
+                  - backend_role_1
+                """, CType.ROLESMAPPING);
+
+            ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
+
+            ConfigurableRoleMapper mapper = new ConfigurableRoleMapper(
+                null,
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY,
+                threadContext,
+                settingsOff
+            );
+            // Manually set active configuration since we passed null for configurationRepository
+            mapper.setActiveConfiguration(
+                new ConfigurableRoleMapper.CompiledConfiguration(
+                    roleMapping,
+                    HostResolverMode.IP_HOSTNAME,
+                    ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+                )
+            );
+
+            User user = new User("ccs_user").withRoles("backend_role_1").withSecurityRoles(Arrays.asList("all_access"));
+            TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
+
+            // Flag=false: source roles included
+            ImmutableSet<String> rolesBeforeUpdate = mapper.map(user, caller);
+            assertEquals(ImmutableSet.of("all_access", "read_only"), rolesBeforeUpdate);
+
+            // Simulate dynamic cluster settings update
+            mapper.setCcsIgnoreSourceSecurityRoles(true);
+
+            // Flag=true: source roles stripped
+            ImmutableSet<String> rolesAfterUpdate = mapper.map(user, caller);
+            assertEquals(ImmutableSet.of("read_only"), rolesAfterUpdate);
+        }
     }
 
 }
