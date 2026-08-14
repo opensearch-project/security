@@ -31,7 +31,7 @@ public class BCryptDefaultConfigHashingTests extends HashingTests {
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
     @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
         .anonymousAuth(false)

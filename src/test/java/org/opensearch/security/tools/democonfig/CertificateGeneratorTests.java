@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
@@ -137,7 +138,7 @@ public class CertificateGeneratorTests {
                 x509Certificate.checkValidity();
                 verifyExpiryAtLeastAYearFromNow(expiry);
 
-                assertThat(x509Certificate.getSigAlgName(), is(equalTo("SHA256withRSA")));
+                assertThat(x509Certificate.getSigAlgName(), is(equalToIgnoringCase("SHA256withRSA")));
             }
         }
     }

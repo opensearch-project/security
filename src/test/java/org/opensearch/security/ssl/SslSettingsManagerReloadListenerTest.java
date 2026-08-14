@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -36,6 +37,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
+import org.opensearch.test.BouncyCastleThreadFilter;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -54,6 +58,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_FIL
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_TYPE;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
 
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
 public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
 
     @ClassRule
@@ -84,8 +89,8 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
         );
     }
 
-    static Path path(final String fileName) {
-        return certificatesRule.configRootFolder().resolve(fileName);
+    static Path path(final String filename) {
+        return certificatesRule.configRootFolder().resolve(filename);
     }
 
     @After
@@ -144,6 +149,16 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
         final String keyStorePathSetting = settingPrefix + KEYSTORE_FILEPATH;
         final String keyStoreTypeSetting = settingPrefix + KEYSTORE_TYPE;
         final String certTypeFilePrefix = certType.id().toLowerCase(Locale.ROOT);
+        FileHelper.TypedStore typedTrustStore = FileHelper.resolveStore(
+            certificatesRule.configRootFolder(),
+            certTypeFilePrefix + "_truststore",
+            ".jks"
+        );
+        FileHelper.TypedStore typedKeyStore = FileHelper.resolveStore(
+            certificatesRule.configRootFolder(),
+            certTypeFilePrefix + "_keystore",
+            ".p12"
+        );
         final var keyStorePassword = randomAsciiAlphanumOfLength(10);
         final var secureSettings = new MockSecureSettings();
         secureSettings.setString(settingPrefix + "truststore_password_secure", keyStorePassword);
@@ -156,18 +171,18 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
                 // If certType is TRANSPORT the following line will re-enable it.
                 .put(SECURITY_SSL_TRANSPORT_ENABLED, false)
                 .put(enabledSetting, true)
-                .put(trustStorePathSetting, path(certTypeFilePrefix + "_truststore.jks"))
-                .put(trustStoreTypeSetting, "jks")
-                .put(keyStorePathSetting, path(certTypeFilePrefix + "_keystore.p12"))
-                .put(keyStoreTypeSetting, "pkcs12")
+                .put(trustStorePathSetting, typedTrustStore.path())
+                .put(trustStoreTypeSetting, typedTrustStore.type())
+                .put(keyStorePathSetting, typedKeyStore.path())
+                .put(keyStoreTypeSetting, typedKeyStore.type())
                 .setSecureSettings(secureSettings)
                 .build(),
             (filePrefix, caCertificate, accessKeyAndCertificate) -> {
-                final var trustStore = KeyStore.getInstance("jks");
+                final var trustStore = KeyStore.getInstance(typedTrustStore.type());
                 trustStore.load(null, null);
                 trustStore.setCertificateEntry("ca", certificatesRule.toX509Certificate(caCertificate));
-                writeStore(trustStore, path(String.format("%s_truststore.jks", filePrefix)), keyStorePassword);
-                final var keyStore = KeyStore.getInstance("pkcs12");
+                writeStore(trustStore, typedTrustStore.path(), keyStorePassword);
+                final var keyStore = KeyStore.getInstance(typedKeyStore.type());
                 keyStore.load(null, null);
                 keyStore.setKeyEntry(
                     "pk",
@@ -175,7 +190,7 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
                     certificatesRule.privateKeyPassword().toCharArray(),
                     new X509Certificate[] { certificatesRule.toX509Certificate(accessKeyAndCertificate.v2()) }
                 );
-                writeStore(keyStore, path(String.format("%s_keystore.p12", filePrefix)), keyStorePassword);
+                writeStore(keyStore, typedKeyStore.path(), keyStorePassword);
             }
         );
     }

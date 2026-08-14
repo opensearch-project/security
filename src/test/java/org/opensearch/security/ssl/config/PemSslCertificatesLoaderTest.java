@@ -15,6 +15,8 @@ import java.security.SecureRandom;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
@@ -22,16 +24,25 @@ import org.bouncycastle.openssl.PKCS8Generator;
 import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder;
 
 import org.opensearch.common.settings.MockSecureSettings;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.env.TestEnvironment;
+import org.opensearch.security.support.PemKeyReader;
+import org.opensearch.test.MockLogAppender;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.security.dlic.rest.validation.PasswordValidator.FIPS_MIN_PASSWORD_LENGTH;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_CERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_KEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH;
@@ -61,7 +72,7 @@ public class PemSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
             path(PEM_CERTIFICATE_PRIVATE_KEY_FILE_NAME),
             new PKCS8Generator(
                 PrivateKeyInfo.getInstance(certificatesRule.accessCertificatePrivateKey().getEncoded()),
-                new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.PBE_SHA1_3DES).setRandom(new SecureRandom())
+                new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC).setRandom(new SecureRandom())
                     .setPassword(certificatesRule.privateKeyPassword().toCharArray())
                     .build()
             ).generate()
@@ -112,6 +123,48 @@ public class PemSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
     }
 
     @Test
+    public void warnsThatAPkcs11TrustStoreIsIgnoredAlongsidePemKeyMaterial() throws Exception {
+        final var settings = defaultSettingsBuilder().put(SSL_HTTP_PREFIX + ENABLED, true)
+            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, path(PEM_KEY_CERTIFICATE_FILE_NAME))
+            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, path(PEM_CERTIFICATE_PRIVATE_KEY_FILE_NAME))
+            .put(SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, PemKeyReader.PKCS11)
+            .build();
+
+        assertTrustStoreSettingsAreReportedAsIgnored(settings, SECURITY_SSL_HTTP_TRUSTSTORE_TYPE);
+    }
+
+    @Test
+    public void warnsThatATrustStoreFileIsIgnoredAlongsidePemKeyMaterial() throws Exception {
+        final var settings = defaultSettingsBuilder().put(SSL_HTTP_PREFIX + ENABLED, true)
+            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, path(PEM_KEY_CERTIFICATE_FILE_NAME))
+            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, path(PEM_CERTIFICATE_PRIVATE_KEY_FILE_NAME))
+            .put(SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, path(PEM_CA_CERTIFICATE_FILE_NAME))
+            .build();
+
+        assertTrustStoreSettingsAreReportedAsIgnored(settings, SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH);
+    }
+
+    private void assertTrustStoreSettingsAreReportedAsIgnored(final Settings settings, final String ignoredSetting) throws Exception {
+        try (final var appender = MockLogAppender.createForLoggers(LogManager.getLogger(SslCertificatesLoader.class))) {
+            appender.addExpectation(
+                new MockLogAppender.SeenEventExpectation(
+                    "names the ignored setting and the one to configure instead",
+                    LOGGER_NAME,
+                    Level.WARN,
+                    "*" + ignoredSetting + "*" + SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH + "*"
+                )
+            );
+
+            final var configuration = new SslCertificatesLoader(SSL_HTTP_PREFIX).loadConfiguration(
+                TestEnvironment.newEnvironment(settings)
+            );
+
+            assertThat(configuration.v1(), is(TrustStoreConfiguration.EMPTY_CONFIGURATION));
+            appender.assertAllExpectationsMatched();
+        }
+    }
+
+    @Test
     public void loadExtendedTransportSslConfigurationFromPemFiles() throws Exception {
         final var keyPair = certificatesRule.generateKeyPair();
         final var clientCaCertificate = certificatesRule.generateCaCertificate(keyPair);
@@ -119,7 +172,7 @@ public class PemSslCertificatesLoaderTest extends SslCertificatesLoaderTest {
         final var clientCaCertificatePath = "client_ca_certificate.pem";
         final var clientKeyCertificatePath = "client_key_certificate.pem";
         final var clientPrivateKeyCertificatePath = "client_private_key_certificate.pem";
-        final var clientPrivateKeyPassword = RandomStringUtils.randomAlphabetic(10);
+        final var clientPrivateKeyPassword = RandomStringUtils.secure().nextAlphanumeric(FIPS_MIN_PASSWORD_LENGTH);
 
         writePemContent(path(clientCaCertificatePath), clientCaCertificate);
         writePemContent(path(clientKeyCertificatePath), keyAndCertificate.v2());

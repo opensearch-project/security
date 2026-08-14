@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLEngine;
@@ -43,7 +44,6 @@ import javax.net.ssl.SSLSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
@@ -55,6 +55,7 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
 public class SSLRequestHelper {
 
@@ -245,12 +246,19 @@ public class SSLRequestHelper {
         final Collection<? extends CRL> crls,
         final String truststore
     ) throws IOException, GeneralSecurityException {
-        final String defaultStoreType = CryptoServicesRegistrar.isInApprovedOnlyMode() ? "BCFKS" : "JKS";
+        final String defaultStoreType = DEFAULT_STORE_TYPE;
         final String truststoreType = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, defaultStoreType);
-        final String truststorePassword = SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings);
+        final char[] truststorePassword = Optional.ofNullable(SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings))
+            .filter(p -> !p.isEmpty())
+            .map(String::toCharArray)
+            .orElse(null);
         final KeyStore ts = KeyStore.getInstance(truststoreType);
-        try (FileInputStream fin = new FileInputStream(env.configDir().resolve(truststore).toAbsolutePath().toString())) {
-            ts.load(fin, (truststorePassword == null || truststorePassword.isEmpty()) ? null : truststorePassword.toCharArray());
+        if ("PKCS11".equalsIgnoreCase(truststoreType)) {
+            ts.load(null, truststorePassword);
+        } else {
+            try (final var fin = new FileInputStream(env.configDir().resolve(truststore).toAbsolutePath().toString())) {
+                ts.load(fin, truststorePassword);
+            }
         }
         return new CertificateValidator(trustAnchorsFrom(ts), crls);
     }

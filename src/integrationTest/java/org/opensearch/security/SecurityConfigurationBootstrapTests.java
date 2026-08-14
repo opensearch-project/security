@@ -139,17 +139,21 @@ public class SecurityConfigurationBootstrapTests {
                     }
                 });
 
-                Awaitility.await().alias("Load default configuration").pollInterval(Duration.ofMillis(100)).until(() -> {
-                    // After the configuration has been loaded, the rest clients should be able to connect successfully
-                    cluster.triggerConfigurationReloadForCTypes(
-                        internalNodeClient,
-                        List.of(CType.ACTIONGROUPS, CType.CONFIG, CType.ROLES, CType.ROLESMAPPING, CType.TENANTS),
-                        true
-                    );
-                    try (final TestRestClient freshClient = cluster.getRestClient(USER_ADMIN)) {
-                        return client.getAuthInfo().getStatusCode();
-                    }
-                }, equalTo(200));
+                Awaitility.await()
+                    .alias("Load default configuration")
+                    .pollInterval(Duration.ofMillis(100))
+                    .timeout(Duration.ofSeconds(30))
+                    .until(() -> {
+                        // After the configuration has been loaded, the rest clients should be able to connect successfully
+                        cluster.triggerConfigurationReloadForCTypes(
+                            internalNodeClient,
+                            List.of(CType.ACTIONGROUPS, CType.CONFIG, CType.ROLES, CType.ROLESMAPPING, CType.TENANTS),
+                            true
+                        );
+                        try (final TestRestClient freshClient = cluster.getRestClient(USER_ADMIN)) {
+                            return client.getAuthInfo().getStatusCode();
+                        }
+                    }, equalTo(200));
             }
         }
     }

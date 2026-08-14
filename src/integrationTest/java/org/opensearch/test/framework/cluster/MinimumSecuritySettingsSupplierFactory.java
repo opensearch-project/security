@@ -32,6 +32,7 @@ import java.util.Map;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
 public class MinimumSecuritySettingsSupplierFactory {
@@ -83,6 +84,9 @@ public class MinimumSecuritySettingsSupplierFactory {
             testCertificates.getNodeKey(node, PRIVATE_KEY_HTTP_PASSWORD).getAbsolutePath()
         );
         builder.put("plugins.security.ssl.http.pemkey_password", PRIVATE_KEY_HTTP_PASSWORD);
+        if (FipsMode.isEnabled()) {
+            builder.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2);
+        }
         if (sslOnly == false) {
             builder.put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
             builder.putList("plugins.security.authcz.admin_dn", testCertificates.getAdminDNs());
