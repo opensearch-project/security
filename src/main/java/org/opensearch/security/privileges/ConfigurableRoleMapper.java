@@ -48,7 +48,6 @@ public class ConfigurableRoleMapper implements RoleMapper {
     private final AtomicReference<CompiledConfiguration> activeConfiguration = new AtomicReference<>();
     private final AtomicBoolean ccsIgnoreSourceSecurityRoles = new AtomicBoolean(false);
     private final ThreadContext threadContext;
-    private final Settings settings;
 
     public ConfigurableRoleMapper(
         ConfigurationRepository configurationRepository,
@@ -57,7 +56,6 @@ public class ConfigurableRoleMapper implements RoleMapper {
         Settings settings
     ) {
         this.threadContext = threadContext;
-        this.settings = settings;
         this.ccsIgnoreSourceSecurityRoles.set(settings.getAsBoolean(ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES, false));
 
         if (configurationRepository != null) {
@@ -70,7 +68,15 @@ public class ConfigurableRoleMapper implements RoleMapper {
                     rawRoleMappingConfiguration = SecurityDynamicConfiguration.empty(CType.ROLESMAPPING);
                 }
 
-                this.activeConfiguration.set(new CompiledConfiguration(rawRoleMappingConfiguration, hostResolverMode, resolutionMode));
+                this.activeConfiguration.set(
+                    new CompiledConfiguration(
+                        rawRoleMappingConfiguration,
+                        hostResolverMode,
+                        resolutionMode,
+                        ccsIgnoreSourceSecurityRoles,
+                        threadContext
+                    )
+                );
             });
         }
     }
@@ -96,10 +102,7 @@ public class ConfigurableRoleMapper implements RoleMapper {
         CompiledConfiguration activeConfiguration = this.activeConfiguration.get();
 
         if (activeConfiguration != null) {
-            boolean isTrustedClusterRequest = HeaderHelper.isRemoteClusterNodeRequest(threadContext);
-            boolean ignoreSourceRoles = ccsIgnoreSourceSecurityRoles.get();
-
-            return activeConfiguration.map(user, caller, isTrustedClusterRequest && ignoreSourceRoles);
+            return activeConfiguration.map(user, caller);
         } else {
             return ImmutableSet.of();
         }
@@ -160,6 +163,8 @@ public class ConfigurableRoleMapper implements RoleMapper {
 
         private final ResolutionMode resolutionMode;
         private final HostResolverMode hostResolverMode;
+        private final AtomicBoolean ccsIgnoreSourceSecurityRoles;
+        private final ThreadContext threadContext;
 
         private ListMultimap<String, String> users;
         private ListMultimap<List<WildcardMatcher>, String> abars;
@@ -170,14 +175,29 @@ public class ConfigurableRoleMapper implements RoleMapper {
         private List<WildcardMatcher> barMatchers;
         private List<WildcardMatcher> hostMatchers;
 
+        /**
+         * Convenience constructor for non-CCS contexts (CCS flag defaults to false).
+         */
         CompiledConfiguration(
             SecurityDynamicConfiguration<RoleMappingsV7> rolemappings,
             HostResolverMode hostResolverMode,
             ResolutionMode resolutionMode
         ) {
+            this(rolemappings, hostResolverMode, resolutionMode, new AtomicBoolean(false), null);
+        }
+
+        CompiledConfiguration(
+            SecurityDynamicConfiguration<RoleMappingsV7> rolemappings,
+            HostResolverMode hostResolverMode,
+            ResolutionMode resolutionMode,
+            AtomicBoolean ccsIgnoreSourceSecurityRoles,
+            ThreadContext threadContext
+        ) {
 
             this.hostResolverMode = hostResolverMode;
             this.resolutionMode = resolutionMode;
+            this.ccsIgnoreSourceSecurityRoles = ccsIgnoreSourceSecurityRoles;
+            this.threadContext = threadContext;
 
             users = ArrayListMultimap.create();
             abars = ArrayListMultimap.create();
@@ -215,14 +235,14 @@ public class ConfigurableRoleMapper implements RoleMapper {
 
         @Override
         public ImmutableSet<String> map(final User user, final TransportAddress caller) {
-            return map(user, caller, false);
-        }
-
-        public ImmutableSet<String> map(final User user, final TransportAddress caller, boolean skipSourceSecurityRoles) {
 
             if (user == null) {
                 return ImmutableSet.of();
             }
+
+            boolean skipSourceSecurityRoles = ccsIgnoreSourceSecurityRoles.get()
+                && threadContext != null
+                && HeaderHelper.isRemoteClusterNodeRequest(threadContext);
 
             ImmutableSet.Builder<String> result;
 

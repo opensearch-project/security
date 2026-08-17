@@ -36,11 +36,14 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
  * Proves:
  * 1. With flag=true, source-propagated securityRoles are stripped (CCS query denied for unmapped user)
  * 2. With flag=true, roles_mapping on the remote still grants access independently (mapped user succeeds)
+ * 3. With flag=false, legacy union behavior is preserved (source roles propagate)
+ * 4. Dynamic setting update via PUT _cluster/settings works at runtime
  */
 public class CcsIgnoreSourceSecurityRolesIntTests {
 
     private static final String REMOTE_CLUSTER_FLAG_ON = "remote_flag_on";
     private static final String REMOTE_CLUSTER_FLAG_OFF = "remote_flag_off";
+    private static final String REMOTE_CLUSTER_DYNAMIC = "remote_dynamic";
     private static final String INDEX_NAME = "index_r1";
     private static final String MAPPED_USER_NAME = "mapped_user";
     private static final String UNMAPPED_USER_NAME = "unmapped_user";
@@ -103,12 +106,26 @@ public class CcsIgnoreSourceSecurityRolesIntTests {
         .indices(REMOTE_INDEX)
         .build();
 
-    // Local cluster: connects to BOTH remotes
+    // Dedicated remote cluster for dynamic setting test: starts with flag=FALSE, flipped to TRUE at runtime
+    @ClassRule
+    public static final LocalCluster remoteClusterDynamic = new LocalCluster.Builder().certificates(TEST_CERTIFICATES)
+        .clusterManager(ClusterManager.SINGLENODE)
+        .clusterName(REMOTE_CLUSTER_DYNAMIC)
+        .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .privilegesEvaluationType("v4")
+        .users(USERS)
+        .roles(UNLIMITED_ROLE, READ_ROLE_REMOTE)
+        .nodeSetting(ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES, false)
+        .indices(REMOTE_INDEX)
+        .build();
+
+    // Local cluster: connects to all three remotes
     @ClassRule
     public static final LocalCluster localCluster = new LocalCluster.Builder().certificates(TEST_CERTIFICATES)
         .clusterManager(ClusterManager.SINGLE_REMOTE_CLIENT)
         .remote(REMOTE_CLUSTER_FLAG_ON, remoteClusterFlagOn)
         .remote(REMOTE_CLUSTER_FLAG_OFF, remoteClusterFlagOff)
+        .remote(REMOTE_CLUSTER_DYNAMIC, remoteClusterDynamic)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .privilegesEvaluationType("v4")
         .users(USERS)
@@ -156,40 +173,31 @@ public class CcsIgnoreSourceSecurityRolesIntTests {
     }
 
     /**
-     * Dynamic setting update: flip flag from false to true at runtime via PUT _cluster/settings.
+     * Dynamic setting update on a dedicated cluster: flip flag from false to true at runtime.
      * CCS query that previously succeeded should now be forbidden.
+     * Uses a dedicated remote cluster so no other test depends on its state.
      */
     @Test
     public void ccsQuery_withFlagDynamicallyEnabled_shouldBeForbidden() throws Exception {
         // First: confirm CCS works with flag=false (source roles propagate)
         try (TestRestClient restClient = localCluster.getRestClient(UNMAPPED_USER)) {
-            TestRestClient.HttpResponse response = restClient.get(REMOTE_CLUSTER_FLAG_OFF + ":" + INDEX_NAME + "/_search");
+            TestRestClient.HttpResponse response = restClient.get(REMOTE_CLUSTER_DYNAMIC + ":" + INDEX_NAME + "/_search");
             assertThat(response, isOk());
         }
 
-        // Dynamically enable the flag on the remote cluster
-        try (TestRestClient remoteClient = remoteClusterFlagOff.getRestClient(MAPPED_USER)) {
+        // Dynamically enable the flag on the dedicated remote cluster
+        try (TestRestClient remoteClient = remoteClusterDynamic.getRestClient(MAPPED_USER)) {
             TestRestClient.HttpResponse updateResponse = remoteClient.putJson(
                 "_cluster/settings",
-                "{\"persistent\": {\"plugins.security.ccs.ignore_source_security_roles\": true}}"
+                "{\"transient\": {\"plugins.security.ccs.ignore_source_security_roles\": true}}"
             );
             assertThat(updateResponse, isOk());
         }
 
-        try {
-            // Now the same CCS query should be forbidden (source roles stripped)
-            try (TestRestClient restClient = localCluster.getRestClient(UNMAPPED_USER)) {
-                TestRestClient.HttpResponse response = restClient.get(REMOTE_CLUSTER_FLAG_OFF + ":" + INDEX_NAME + "/_search");
-                assertThat(response, isForbidden());
-            }
-        } finally {
-            // Reset the flag to not affect other tests
-            try (TestRestClient remoteClient = remoteClusterFlagOff.getRestClient(MAPPED_USER)) {
-                remoteClient.putJson(
-                    "_cluster/settings",
-                    "{\"persistent\": {\"plugins.security.ccs.ignore_source_security_roles\": false}}"
-                );
-            }
+        // Now the same CCS query should be forbidden (source roles stripped)
+        try (TestRestClient restClient = localCluster.getRestClient(UNMAPPED_USER)) {
+            TestRestClient.HttpResponse response = restClient.get(REMOTE_CLUSTER_DYNAMIC + ":" + INDEX_NAME + "/_search");
+            assertThat(response, isForbidden());
         }
     }
 }

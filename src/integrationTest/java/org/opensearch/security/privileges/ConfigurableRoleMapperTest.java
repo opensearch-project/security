@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
@@ -230,6 +231,12 @@ public class ConfigurableRoleMapperTest {
 
     public static class CcsSkipSourceSecurityRolesTest {
 
+        private static ThreadContext createTrustedClusterThreadContext() {
+            ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
+            return threadContext;
+        }
+
         @Test
         public void map_skipSourceSecurityRoles_excludesSourceRoles() throws Exception {
             User user = new User("ccs_user").withRoles("backend_role_1").withSecurityRoles(Arrays.asList("all_access"));
@@ -243,13 +250,15 @@ public class ConfigurableRoleMapperTest {
             ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
                 roleMapping,
                 HostResolverMode.IP_HOSTNAME,
-                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY,
+                new AtomicBoolean(true),
+                createTrustedClusterThreadContext()
             );
 
             TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
 
             // With skipSourceSecurityRoles=true: source cluster's all_access should NOT be included
-            ImmutableSet<String> mappedRoles = compiled.map(user, caller, true);
+            ImmutableSet<String> mappedRoles = compiled.map(user, caller);
 
             // Should only contain the role mapped by Domain B's own roles_mapping (read_only from backend_role_1)
             assertEquals(ImmutableSet.of("read_only"), mappedRoles);
@@ -268,13 +277,15 @@ public class ConfigurableRoleMapperTest {
             ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
                 roleMapping,
                 HostResolverMode.IP_HOSTNAME,
-                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY,
+                new AtomicBoolean(false),
+                createTrustedClusterThreadContext()
             );
 
             TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
 
             // With skipSourceSecurityRoles=false: source cluster's all_access SHOULD be included (current behavior)
-            ImmutableSet<String> mappedRoles = compiled.map(user, caller, false);
+            ImmutableSet<String> mappedRoles = compiled.map(user, caller);
 
             // Should contain both: source's all_access + Domain B's read_only
             assertEquals(ImmutableSet.of("all_access", "read_only"), mappedRoles);
@@ -293,13 +304,15 @@ public class ConfigurableRoleMapperTest {
             ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
                 roleMapping,
                 HostResolverMode.IP_HOSTNAME,
-                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY,
+                new AtomicBoolean(true),
+                createTrustedClusterThreadContext()
             );
 
             TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
 
             // With skip=true and no matching backend_roles, user gets no roles on remote
-            ImmutableSet<String> mappedRoles = compiled.map(user, caller, true);
+            ImmutableSet<String> mappedRoles = compiled.map(user, caller);
 
             assertEquals(ImmutableSet.of(), mappedRoles);
         }
@@ -317,13 +330,15 @@ public class ConfigurableRoleMapperTest {
             ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
                 roleMapping,
                 HostResolverMode.IP_HOSTNAME,
-                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+                ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY,
+                new AtomicBoolean(true),
+                createTrustedClusterThreadContext()
             );
 
             TransportAddress caller = new TransportAddress(InetAddress.getByAddress(new byte[] { 10, 0, 1, 50 }), 9300);
 
             // With skip=true: source's all_access excluded, but username mapping still works
-            ImmutableSet<String> mappedRoles = compiled.map(user, caller, true);
+            ImmutableSet<String> mappedRoles = compiled.map(user, caller);
 
             assertEquals(ImmutableSet.of("limited_role"), mappedRoles);
         }
@@ -348,12 +363,15 @@ public class ConfigurableRoleMapperTest {
                 threadContext,
                 settingsOff
             );
-            // Manually set active configuration since we passed null for configurationRepository
+            // Manually set active configuration with shared ccsIgnoreSourceSecurityRoles and threadContext
+            AtomicBoolean ccsFlag = new AtomicBoolean(false);
             mapper.setActiveConfiguration(
                 new ConfigurableRoleMapper.CompiledConfiguration(
                     roleMapping,
                     HostResolverMode.IP_HOSTNAME,
-                    ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY
+                    ConfigurableRoleMapper.ResolutionMode.MAPPING_ONLY,
+                    ccsFlag,
+                    threadContext
                 )
             );
 
@@ -365,7 +383,7 @@ public class ConfigurableRoleMapperTest {
             assertEquals(ImmutableSet.of("all_access", "read_only"), rolesBeforeUpdate);
 
             // Simulate dynamic cluster settings update
-            mapper.setCcsIgnoreSourceSecurityRoles(true);
+            ccsFlag.set(true);
 
             // Flag=true: source roles stripped
             ImmutableSet<String> rolesAfterUpdate = mapper.map(user, caller);
