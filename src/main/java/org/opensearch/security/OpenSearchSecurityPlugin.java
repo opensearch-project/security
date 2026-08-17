@@ -144,7 +144,9 @@ import org.opensearch.security.action.apitokens.ApiTokenAction;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.apitokens.ApiTokenUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
+import org.opensearch.security.action.configupdate.SecurityConfigWriteAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
+import org.opensearch.security.action.configupdate.TransportSecurityConfigWriteAction;
 import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
@@ -1064,6 +1066,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if (!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+            actions.add(new ActionHandler<>(SecurityConfigWriteAction.INSTANCE, TransportSecurityConfigWriteAction.class));
             actions.add(new ActionHandler<>(ApiTokenUpdateAction.INSTANCE, ApiTokenUpdateAction.TransportAction.class));
             // external storage does not support reload and does not provide SSL certs info
             if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
