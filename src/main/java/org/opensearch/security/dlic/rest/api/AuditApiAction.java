@@ -155,7 +155,10 @@ public class AuditApiAction extends AbstractApiAction {
             AuditCategory.AUTHENTICATED,
             AuditCategory.FAILED_LOGIN,
             AuditCategory.GRANTED_PRIVILEGES,
-            AuditCategory.MISSING_PRIVILEGES
+            AuditCategory.MISSING_PRIVILEGES,
+            AuditCategory.RESOURCE_ACCESS_GRANTED,
+            AuditCategory.RESOURCE_ACCESS_DENIED,
+            AuditCategory.RESOURCE_SHARING_CHANGED
         );
 
         public static final Set<AuditCategory> DISABLED_TRANSPORT_CATEGORIES = Set.of(
@@ -168,7 +171,10 @@ public class AuditApiAction extends AbstractApiAction {
             AuditCategory.INDEX_EVENT,
             AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT,
             AuditCategory.CLUSTER_SETTINGS_CHANGED,
-            AuditCategory.INDEX_SETTINGS_CHANGED
+            AuditCategory.INDEX_SETTINGS_CHANGED,
+            AuditCategory.RESOURCE_ACCESS_GRANTED,
+            AuditCategory.RESOURCE_ACCESS_DENIED,
+            AuditCategory.RESOURCE_SHARING_CHANGED
         );
 
         protected AuditRequestContentValidator(ValidationContext validationContext) {

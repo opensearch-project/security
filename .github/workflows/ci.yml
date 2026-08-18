@@ -27,13 +27,13 @@ jobs:
       separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
     steps:
       - name: Set up JDK for build and test
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
 
       - name: Checkout security
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Generate list of tasks
         id: set-matrix
@@ -53,13 +53,13 @@ jobs:
 
     steps:
       - name: Set up JDK for build and test
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
@@ -98,13 +98,13 @@ jobs:
       - name: Run start commands
         run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
       - name: Set up JDK for build and test
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
       - name: Build and Test
@@ -121,7 +121,7 @@ jobs:
     needs: ["test-windows", "test-linux", "integration-tests-windows", "integration-tests-linux", "sample-plugin-integration-tests-linux", "sample-plugin-integration-tests-windows"]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: downloaded-artifacts
@@ -148,13 +148,13 @@ jobs:
 
     steps:
       - name: Set up JDK for build and test
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
@@ -193,13 +193,13 @@ jobs:
         run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
 
       - name: Set up JDK for build and test
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
       - name: Build and Test
@@ -233,13 +233,13 @@ jobs:
         run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
 
       - name: Set up JDK for build and test
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
       - name: Run SampleResourcePlugin Integration Tests
@@ -263,13 +263,13 @@ jobs:
 
     steps:
       - name: Set up JDK for build and test
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
@@ -297,13 +297,13 @@ jobs:
 
     steps:
       - name: Set up JDK for build and test
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout security
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
@@ -316,13 +316,13 @@ jobs:
   backward-compatibility-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
 
       - name: Checkout Security Repo
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
@@ -341,13 +341,13 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
 
       - name: Checkout Security Repo
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - id: build-previous
         uses: ./.github/actions/run-bwc-suite
@@ -365,22 +365,22 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
-      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
-      - uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+      - uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           languages: java
       - run: ./gradlew clean assemble
-      - uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+      - uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
 
   build-health:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
-      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
@@ -397,10 +397,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Environment
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Configure Java
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: 21

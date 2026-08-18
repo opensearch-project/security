@@ -39,6 +39,8 @@ public class StandaloneAuditDynamicFilterSettingsTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 // Start with body enabled (default)

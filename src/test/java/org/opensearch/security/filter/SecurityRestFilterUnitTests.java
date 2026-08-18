@@ -37,7 +37,10 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -112,5 +115,68 @@ public class SecurityRestFilterUnitTests extends LuceneTestCase {
     }
 
     // unit tests for restPathMatches are in RestPathMatchesTests.java
+
+    // --- Tests for sanitizeRequestId ---
+
+    @Test
+    public void testSanitizeRequestIdNullGeneratesId() {
+        String result = SecurityRestFilter.sanitizeRequestId(null);
+        assertNotNull(result);
+        // UUIDs.base64UUID() produces a 22-char base64-encoded ID (not standard UUID format)
+        assertTrue(result.length() > 0);
+    }
+
+    @Test
+    public void testSanitizeRequestIdEmptyGeneratesId() {
+        String result = SecurityRestFilter.sanitizeRequestId("");
+        assertNotNull(result);
+        assertTrue(result.length() > 0);
+    }
+
+    @Test
+    public void testSanitizeRequestIdPreservesValidInput() {
+        String result = SecurityRestFilter.sanitizeRequestId("my-trace-id-123");
+        assertEquals("my-trace-id-123", result);
+    }
+
+    @Test
+    public void testSanitizeRequestIdExactly128CharsPreserved() {
+        String input = "a".repeat(128);
+        String result = SecurityRestFilter.sanitizeRequestId(input);
+        assertEquals(128, result.length());
+        assertEquals(input, result);
+    }
+
+    @Test
+    public void testSanitizeRequestIdOver128CharsNotTruncated() {
+        // No truncation — core's http.request_id.max_length validates before header reaches us
+        String input = "b".repeat(200);
+        String result = SecurityRestFilter.sanitizeRequestId(input);
+        assertEquals(200, result.length());
+        assertEquals(input, result);
+    }
+
+    @Test
+    public void testSanitizeRequestIdStripsControlChars() {
+        String result = SecurityRestFilter.sanitizeRequestId("valid\u0000id\u001F\nhere");
+        assertEquals("valididhere", result);
+    }
+
+    @Test
+    public void testSanitizeRequestIdAllControlCharsReturnsNull() {
+        // Input entirely control characters → empty after stripping → null (not UUID)
+        // Prevents different nodes from generating different IDs for the same request
+        String result = SecurityRestFilter.sanitizeRequestId("\u0000\u0001\u0002\n\r\t");
+        assertNull(result);
+    }
+
+    @Test
+    public void testSanitizeRequestIdStripsControlCharsPreservesLength() {
+        // 5 control chars + 200 valid chars → strip → 200 chars (no truncation)
+        String input = "\u0000\u0001\u0002\u0003\u0004" + "c".repeat(200);
+        String result = SecurityRestFilter.sanitizeRequestId(input);
+        assertEquals(200, result.length());
+        assertEquals("c".repeat(200), result);
+    }
 
 }

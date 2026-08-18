@@ -128,7 +128,17 @@ public class AuditActionFilter implements ActionFilter {
             return;
         }
 
-        // Skip requests targeting the audit index (prevent self-referential loop)
+        // Skip requests targeting the audit index (prevent self-referential loop).
+        // IndicesRequest guard: any-match (e.g., BulkShardRequest whose shard belongs
+        // to the audit index is suppressed entirely — matches FGAC's behavior where
+        // internal/system writes are never audited).
+        // BulkRequest guard: all-match — only suppress when EVERY sub-item targets the
+        // audit index. A single-doc write to the audit index arrives here as a
+        // BulkRequest (via TransportSingleItemBulkWriteAction) with one item, so
+        // all-match catches it. Mixed BulkRequests (normal + audit-index items) still
+        // produce a summary event; the per-item guard in logBulkItem() and the
+        // IndicesRequest guard on the BulkShardRequest handle individual audit-index
+        // items at the shard level.
         if (request instanceof IndicesRequest) {
             String[] indices = ((IndicesRequest) request).indices();
             if (indices != null) {
@@ -138,6 +148,12 @@ public class AuditActionFilter implements ActionFilter {
                         return;
                     }
                 }
+            }
+        } else if (request instanceof BulkRequest) {
+            List<? extends DocWriteRequest<?>> bulkItems = ((BulkRequest) request).requests();
+            if (!bulkItems.isEmpty() && bulkItems.stream().allMatch(r -> r.index() != null && isAuditIndex(r.index()))) {
+                chain.proceed(task, action, request, listener);
+                return;
             }
         }
 
@@ -166,7 +182,14 @@ public class AuditActionFilter implements ActionFilter {
         }
 
         // Bulk request handling — log each sub-operation separately.
-        if (filter.shouldResolveBulkRequests() && (request instanceof BulkShardRequest || request instanceof BulkRequest)) {
+        // Only iterates on BulkShardRequest (shard-level), not BulkRequest, to avoid
+        // duplicate audit events. Both passes run through ActionFilters on the coordinating
+        // node: TransportBulkAction first handles the BulkRequest, then fans out to
+        // shardBulkAction.execute() with a BulkShardRequest before TransportReplicationAction
+        // reroutes to the primary shard. The reroute to the (possibly remote) data node goes
+        // through the transport request handler, which does not re-run ActionFilters, so the
+        // data node never re-audits.
+        if (filter.shouldResolveBulkRequests() && request instanceof BulkShardRequest) {
             try {
                 TransportAddress remoteAddress = request.remoteAddress();
                 if (remoteAddress == null) {
@@ -176,24 +199,9 @@ public class AuditActionFilter implements ActionFilter {
                 Map<String, List<String>> headers = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REST_HEADERS);
                 Map<String, List<String>> filteredHeaders = AuditHeaderUtils.filterHeaders(headers, filter);
 
-                if (request instanceof BulkShardRequest) {
-                    BulkShardRequest bulkShardRequest = (BulkShardRequest) request;
-                    for (BulkItemRequest item : bulkShardRequest.items()) {
-                        logBulkItem(
-                            item.request(),
-                            action,
-                            task,
-                            effectiveUser,
-                            remoteAddress,
-                            filteredHeaders,
-                            bulkShardRequest.shardId()
-                        );
-                    }
-                } else {
-                    BulkRequest bulkRequest = (BulkRequest) request;
-                    for (DocWriteRequest<?> innerRequest : bulkRequest.requests()) {
-                        logBulkItem(innerRequest, action, task, effectiveUser, remoteAddress, filteredHeaders, null);
-                    }
+                BulkShardRequest bulkShardRequest = (BulkShardRequest) request;
+                for (BulkItemRequest item : bulkShardRequest.items()) {
+                    logBulkItem(item.request(), action, task, effectiveUser, remoteAddress, filteredHeaders, bulkShardRequest.shardId());
                 }
             } catch (Exception e) {
                 log.error("Failed to log bulk audit events for action '{}': {}", action, e.getMessage(), e);
@@ -241,7 +249,7 @@ public class AuditActionFilter implements ActionFilter {
                 String[] distinctIndices = bulkRequest.requests()
                     .stream()
                     .map(r -> r.index())
-                    .filter(idx -> idx != null)
+                    .filter(idx -> idx != null && !isAuditIndex(idx))
                     .distinct()
                     .toArray(String[]::new);
                 if (distinctIndices.length > 0) {
@@ -272,7 +280,7 @@ public class AuditActionFilter implements ActionFilter {
             }
 
             // Request body (extracted from transport request object)
-            if (filter.shouldLogRequestBody()) {
+            if (filter.shouldLogRequestBody() && !filter.isBodyExcluded(action)) {
                 addRequestBody(msg, request);
             }
 
@@ -317,7 +325,10 @@ public class AuditActionFilter implements ActionFilter {
         if (!filteredHeaders.isEmpty()) {
             msg.addRestHeaders(filteredHeaders, false, null);
         }
-        if (filter.shouldLogRequestBody() && innerRequest instanceof IndexRequest) {
+        // Note: isBodyExcluded checks against the parent bulk action (e.g. "indices:data/write/bulk[s]"),
+        // not the individual sub-item action. This makes bulk body exclusion all-or-nothing per request —
+        // you cannot selectively keep index-item bodies while dropping delete-item bodies within the same bulk.
+        if (filter.shouldLogRequestBody() && !filter.isBodyExcluded(action) && innerRequest instanceof IndexRequest) {
             IndexRequest ir = (IndexRequest) innerRequest;
             if (ir.source() != null) {
                 msg.addTupleToRequestBody(new Tuple<>(ir.getContentType(), ir.source()));
