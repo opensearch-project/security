@@ -240,6 +240,7 @@ import org.opensearch.security.support.ReflectionHelper;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
+import org.opensearch.security.transport.RemoteClusterIdentityPolicy;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
@@ -1599,13 +1600,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         rsIndexHandler = new ResourceSharingIndexHandler(localClient, threadPool, resourcePluginInfo);
 
-        ConfigurableRoleMapper configurableRoleMapper = new ConfigurableRoleMapper(cr, settings, threadPool.getThreadContext());
-        clusterService.getClusterSettings()
-            .addSettingsUpdateConsumer(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING, newValue -> {
-                log.info("CCS ignore source security roles dynamically set to {}", newValue);
-                configurableRoleMapper.setCcsIgnoreSourceSecurityRoles(newValue);
-            });
-        RoleMapper roleMapper = new RolesInjector.InjectedRoleMapper(configurableRoleMapper, threadPool.getThreadContext());
+        RoleMapper roleMapper = new RolesInjector.InjectedRoleMapper(
+            new ConfigurableRoleMapper(cr, settings),
+            threadPool.getThreadContext()
+        );
         this.roleMapper = roleMapper;
         tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper);
         apiTokenRepository = new ApiTokenRepository(localClient, clusterService);
@@ -1716,6 +1714,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         cr.setDynamicConfigFactory(dcf);
 
+        RemoteClusterIdentityPolicy remoteClusterIdentityPolicy = new RemoteClusterIdentityPolicy(
+            settings.getAsBoolean(ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES, false)
+        );
+        clusterService.getClusterSettings()
+            .addSettingsUpdateConsumer(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING, newValue -> {
+                log.info("CCS ignore source security roles dynamically set to {}", newValue);
+                remoteClusterIdentityPolicy.setIgnoreSourceSecurityRoles(newValue);
+            });
+
         si = new SecurityInterceptor(
             settings,
             threadPool,
@@ -1728,7 +1735,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             Objects.requireNonNull(cih),
             SSLConfig,
             OpenSearchSecurityPlugin::isActionTraceEnabled,
-            userFactory
+            userFactory,
+            remoteClusterIdentityPolicy
         );
         components.add(principalExtractor);
 

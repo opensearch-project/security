@@ -15,10 +15,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
@@ -26,7 +24,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.impl.CType;
@@ -34,7 +31,6 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.HostResolverMode;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
@@ -46,18 +42,8 @@ public class ConfigurableRoleMapper implements RoleMapper {
     private final static Logger log = LogManager.getLogger(ConfigurableRoleMapper.class);
 
     private final AtomicReference<CompiledConfiguration> activeConfiguration = new AtomicReference<>();
-    private final AtomicBoolean ccsIgnoreSourceSecurityRoles = new AtomicBoolean(false);
-    private final ThreadContext threadContext;
 
-    public ConfigurableRoleMapper(
-        ConfigurationRepository configurationRepository,
-        ResolutionMode resolutionMode,
-        ThreadContext threadContext,
-        Settings settings
-    ) {
-        this.threadContext = threadContext;
-        this.ccsIgnoreSourceSecurityRoles.set(settings.getAsBoolean(ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES, false));
-
+    public ConfigurableRoleMapper(ConfigurationRepository configurationRepository, ResolutionMode resolutionMode) {
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
                 HostResolverMode hostResolverMode = getHostResolverMode(configurationRepository.getConfiguration(CType.CONFIG));
@@ -68,33 +54,13 @@ public class ConfigurableRoleMapper implements RoleMapper {
                     rawRoleMappingConfiguration = SecurityDynamicConfiguration.empty(CType.ROLESMAPPING);
                 }
 
-                this.activeConfiguration.set(
-                    new CompiledConfiguration(
-                        rawRoleMappingConfiguration,
-                        hostResolverMode,
-                        resolutionMode,
-                        ccsIgnoreSourceSecurityRoles,
-                        threadContext
-                    )
-                );
+                this.activeConfiguration.set(new CompiledConfiguration(rawRoleMappingConfiguration, hostResolverMode, resolutionMode));
             });
         }
     }
 
-    public ConfigurableRoleMapper(ConfigurationRepository configurationRepository, Settings settings, ThreadContext threadContext) {
-        this(configurationRepository, ResolutionMode.fromSettings(settings), threadContext, settings);
-    }
-
-    /**
-     * Called by the cluster settings update consumer when the setting changes at runtime.
-     */
-    public void setCcsIgnoreSourceSecurityRoles(boolean value) {
-        this.ccsIgnoreSourceSecurityRoles.set(value);
-    }
-
-    @VisibleForTesting
-    void setActiveConfiguration(CompiledConfiguration config) {
-        this.activeConfiguration.set(config);
+    public ConfigurableRoleMapper(ConfigurationRepository configurationRepository, Settings settings) {
+        this(configurationRepository, ResolutionMode.fromSettings(settings));
     }
 
     @Override
@@ -163,8 +129,6 @@ public class ConfigurableRoleMapper implements RoleMapper {
 
         private final ResolutionMode resolutionMode;
         private final HostResolverMode hostResolverMode;
-        private final AtomicBoolean ccsIgnoreSourceSecurityRoles;
-        private final ThreadContext threadContext;
 
         private ListMultimap<String, String> users;
         private ListMultimap<List<WildcardMatcher>, String> abars;
@@ -178,15 +142,11 @@ public class ConfigurableRoleMapper implements RoleMapper {
         CompiledConfiguration(
             SecurityDynamicConfiguration<RoleMappingsV7> rolemappings,
             HostResolverMode hostResolverMode,
-            ResolutionMode resolutionMode,
-            AtomicBoolean ccsIgnoreSourceSecurityRoles,
-            ThreadContext threadContext
+            ResolutionMode resolutionMode
         ) {
 
             this.hostResolverMode = hostResolverMode;
             this.resolutionMode = resolutionMode;
-            this.ccsIgnoreSourceSecurityRoles = ccsIgnoreSourceSecurityRoles;
-            this.threadContext = threadContext;
 
             users = ArrayListMultimap.create();
             abars = ArrayListMultimap.create();
@@ -229,20 +189,11 @@ public class ConfigurableRoleMapper implements RoleMapper {
                 return ImmutableSet.of();
             }
 
-            boolean skipSourceSecurityRoles = ccsIgnoreSourceSecurityRoles.get()
-                && threadContext != null
-                && HeaderHelper.isRemoteClusterNodeRequest(threadContext);
+            ImmutableSet.Builder<String> result = ImmutableSet.builderWithExpectedSize(
+                user.getSecurityRoles().size() + user.getRoles().size()
+            );
 
-            ImmutableSet.Builder<String> result;
-
-            if (skipSourceSecurityRoles) {
-                // CCS request with ignore_source_security_roles enabled:
-                // Do not include security roles propagated from the source cluster
-                result = ImmutableSet.builderWithExpectedSize(user.getRoles().size());
-            } else {
-                result = ImmutableSet.builderWithExpectedSize(user.getSecurityRoles().size() + user.getRoles().size());
-                result.addAll(user.getSecurityRoles());
-            }
+            result.addAll(user.getSecurityRoles());
 
             if (resolutionMode == ResolutionMode.BOTH || resolutionMode == ResolutionMode.BACKENDROLES_ONLY) {
                 result.addAll(user.getRoles());

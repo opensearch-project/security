@@ -71,6 +71,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
     private final UserFactory userFactory;
+    private final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy;
 
     SecurityRequestHandler(
         String action,
@@ -82,13 +83,15 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final ClusterService cs,
         final SSLConfig SSLConfig,
         final SslExceptionHandler sslExceptionHandler,
-        final UserFactory userFactory
+        final UserFactory userFactory,
+        final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
     ) {
         super(action, actualHandler, threadPool, principalExtractor, SSLConfig, sslExceptionHandler);
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
         this.userFactory = userFactory;
+        this.remoteClusterIdentityPolicy = remoteClusterIdentityPolicy;
     }
 
     @Override
@@ -206,7 +209,10 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
-                    user = user != null ? user : this.userFactory.fromSerializedBase64(userHeader);
+                    if (user == null) {
+                        user = this.userFactory.fromSerializedBase64(userHeader);
+                    }
+                    user = remoteClusterIdentityPolicy.sanitize(user, getThreadContext());
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                 }
 
