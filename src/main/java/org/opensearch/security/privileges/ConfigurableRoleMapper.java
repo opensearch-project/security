@@ -175,17 +175,6 @@ public class ConfigurableRoleMapper implements RoleMapper {
         private List<WildcardMatcher> barMatchers;
         private List<WildcardMatcher> hostMatchers;
 
-        /**
-         * Convenience constructor for non-CCS contexts (CCS flag defaults to false).
-         */
-        CompiledConfiguration(
-            SecurityDynamicConfiguration<RoleMappingsV7> rolemappings,
-            HostResolverMode hostResolverMode,
-            ResolutionMode resolutionMode
-        ) {
-            this(rolemappings, hostResolverMode, resolutionMode, new AtomicBoolean(false), null);
-        }
-
         CompiledConfiguration(
             SecurityDynamicConfiguration<RoleMappingsV7> rolemappings,
             HostResolverMode hostResolverMode,

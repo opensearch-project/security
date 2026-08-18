@@ -87,7 +87,9 @@ public class ConfigurableRoleMapperTest {
             ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
                 roleMapping,
                 HostResolverMode.IP_HOSTNAME,
-                resolutionMode
+                resolutionMode,
+                new AtomicBoolean(false),
+                null
             );
 
             ImmutableSet<String> mappedRoles = compiled.map(user, transportAddress);
@@ -120,7 +122,9 @@ public class ConfigurableRoleMapperTest {
             ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
                 roleMapping,
                 HostResolverMode.IP_HOSTNAME,
-                resolutionMode
+                resolutionMode,
+                new AtomicBoolean(false),
+                null
             );
 
             ImmutableSet<String> mappedRoles = compiled.map(user, transportAddress);
@@ -149,7 +153,9 @@ public class ConfigurableRoleMapperTest {
             ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
                 roleMapping,
                 HostResolverMode.IP_HOSTNAME_LOOKUP,
-                resolutionMode
+                resolutionMode,
+                new AtomicBoolean(false),
+                null
             );
 
             ImmutableSet<String> mappedRoles = compiled.map(user, transportAddress);
@@ -179,7 +185,9 @@ public class ConfigurableRoleMapperTest {
             ConfigurableRoleMapper.CompiledConfiguration compiled = new ConfigurableRoleMapper.CompiledConfiguration(
                 roleMapping,
                 HostResolverMode.IP_HOSTNAME,
-                resolutionMode
+                resolutionMode,
+                new AtomicBoolean(false),
+                null
             );
 
             ImmutableSet<String> mappedRoles = compiled.map(user, transportAddress);
