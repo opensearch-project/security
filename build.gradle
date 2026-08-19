@@ -25,7 +25,7 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", '3.2.0.0')
+        common_utils_version = System.getProperty("common_utils.version", '3.8.0.0')
 
         kafka_version = '4.3.1'
 
@@ -519,7 +519,7 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
             force "org.checkerframework:checker-qual:3.55.1"
-            force "ch.qos.logback:logback-classic:1.6.1"
+            force "ch.qos.logback:logback-classic:1.6.3"
             force "commons-io:commons-io:2.22.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.1"
             force "org.hamcrest:hamcrest:2.2"

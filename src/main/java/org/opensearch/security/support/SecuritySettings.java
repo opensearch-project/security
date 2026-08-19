@@ -184,7 +184,7 @@ public class SecuritySettings {
     );
 
     // Dynamic compliance settings
-    private static final String COMPLIANCE_PREFIX = "plugins.security.audit.compliance.";
+    public static final String COMPLIANCE_PREFIX = "plugins.security.audit.compliance.";
 
     public static final Setting<Boolean> COMPLIANCE_ENABLED = Setting.boolSetting(
         COMPLIANCE_PREFIX + "enabled",
