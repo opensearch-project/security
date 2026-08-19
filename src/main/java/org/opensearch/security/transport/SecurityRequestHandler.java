@@ -175,21 +175,27 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 String authUsrHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
                 String shouldUseUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
                 String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+
+                // Deserialize and sanitize users.
                 User user = null;
+                if (userHeader != null) {
+                    user = this.userFactory.fromSerializedBase64(userHeader);
+                    user = remoteClusterIdentityPolicy.sanitize(user, getThreadContext());
+                }
+                User authUser = null;
+                if (authUsrHdr != null) {
+                    authUser = this.userFactory.fromSerializedBase64(authUsrHdr);
+                    authUser = remoteClusterIdentityPolicy.sanitize(authUser, getThreadContext());
+                }
 
-                // restore a persistent user-subject from subject header
+                // Store persistent subject (if not already set)
                 if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                    // when auth subject user is same request user.
-                    if (Boolean.parseBoolean(shouldUseUserHeader) && userHeader != null) {
-                        user = this.userFactory.fromSerializedBase64(userHeader);
-
+                    if (Boolean.parseBoolean(shouldUseUserHeader) && user != null) {
                         getThreadContext().putPersistent(
                             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
                             new UserSubjectImpl(getThreadPool(), user)
                         );
-                    } else if (authUsrHdr != null) {
-                        User authUser = this.userFactory.fromSerializedBase64(authUsrHdr);
-
+                    } else if (authUser != null) {
                         getThreadContext().putPersistent(
                             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
                             new UserSubjectImpl(getThreadPool(), authUser)
@@ -197,6 +203,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     }
                 }
 
+                // Store transient user or injected roles
                 final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                 final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
@@ -209,10 +216,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
-                    if (user == null) {
-                        user = this.userFactory.fromSerializedBase64(userHeader);
-                    }
-                    user = remoteClusterIdentityPolicy.sanitize(user, getThreadContext());
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                 }
 
