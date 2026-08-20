@@ -114,9 +114,7 @@ public class SystemContextChildResourceTests {
     public void testParentlessResourceWrittenWithoutUserIsSkipped() throws Exception {
         // A resource-group has no parent declared: with no user in context there
         // is nothing to attribute the sharing entry to, so none must be created.
-        String orphanId = indexResourceWithoutUser(
-            "{\"name\":\"system-created-group\",\"resource_type\":\"" + RESOURCE_GROUP_TYPE + "\"}"
-        );
+        String orphanId = indexResourceWithoutUser("{\"name\":\"system-created-group\",\"resource_type\":\"" + RESOURCE_GROUP_TYPE + "\"}");
 
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             Awaitility.await("sharing entry must not appear for parent-less user-less resource " + orphanId)
