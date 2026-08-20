@@ -304,7 +304,11 @@ public class DlsFilterLevelActionHandler {
             searchSource.query(filterLevelQueryBuilder);
         } else if (applyDlsFilterToHybridQuery && isHybridQuery(query)) {
             // Hybrid queries must remain top-level, so apply filter level DLS query directly
-            searchSource.query(query.filter(filterLevelQueryBuilder));
+            QueryBuilder filteredHybridQuery = query.filter(filterLevelQueryBuilder);
+            if (filteredHybridQuery == null) {
+                throw new OpenSearchSecurityException("Hybrid query returned no query after applying the DLS filter");
+            }
+            searchSource.query(filteredHybridQuery);
         } else {
             // Wrap the query in a bool query and apply filter level DLS query to it
             filterLevelQueryBuilder.must(query);
@@ -312,6 +316,12 @@ public class DlsFilterLevelActionHandler {
         }
     }
 
+    /**
+     * Neural Search is an optional plugin, so Security identifies its hybrid query through the public query type name
+     * instead of depending on its query builder class. {@link QueryBuilder#getName()} is OpenSearch's unique query type
+     * identifier. A query builder registered as {@code hybrid} must honor {@link QueryBuilder#filter(QueryBuilder)} by
+     * applying the supplied filter to every subquery.
+     */
     static boolean isHybridQuery(QueryBuilder query) {
         return query != null && HYBRID_QUERY_NAME.equals(query.getName());
     }
