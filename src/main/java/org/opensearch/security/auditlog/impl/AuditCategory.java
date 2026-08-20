@@ -35,7 +35,10 @@ public enum AuditCategory {
     INDEX_SETTINGS_CHANGED,
     API_TOKEN_WRITE,
     REQUEST_AUDIT,
-    TRANSPORT_AUDIT;
+    TRANSPORT_AUDIT,
+    RESOURCE_ACCESS_GRANTED,
+    RESOURCE_ACCESS_DENIED,
+    RESOURCE_SHARING_CHANGED;
 
     /**
      * Categories that require an authentication/authorization layer to produce events.
@@ -47,7 +50,10 @@ public enum AuditCategory {
         GRANTED_PRIVILEGES,
         MISSING_PRIVILEGES,
         OPENDISTRO_SECURITY_INDEX_ATTEMPT,
-        API_TOKEN_WRITE
+        API_TOKEN_WRITE,
+        RESOURCE_ACCESS_GRANTED,
+        RESOURCE_ACCESS_DENIED,
+        RESOURCE_SHARING_CHANGED
     );
 
     public static Set<AuditCategory> parse(final Collection<String> categories) {
