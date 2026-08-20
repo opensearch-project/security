@@ -13,6 +13,7 @@ package org.opensearch.security.configuration;
 
 import org.junit.Test;
 
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -95,6 +96,20 @@ public class DlsFilterLevelActionHandlerTest {
 
         DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, false);
 
+        assertThat(searchSource.query(), sameInstance(dlsQuery));
+        assertThat(dlsQuery.must(), empty());
+        assertThat(dlsQuery.should(), hasSize(1));
+    }
+
+    @Test
+    public void createsSearchSourceAndAppliesDlsWhenSearchHasNoSource() {
+        SearchRequest searchRequest = new SearchRequest();
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+
+        SearchSourceBuilder searchSource = DlsFilterLevelActionHandler.getOrCreateSearchSource(searchRequest);
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, false);
+
+        assertThat(searchRequest.source(), sameInstance(searchSource));
         assertThat(searchSource.query(), sameInstance(dlsQuery));
         assertThat(dlsQuery.must(), empty());
         assertThat(dlsQuery.should(), hasSize(1));

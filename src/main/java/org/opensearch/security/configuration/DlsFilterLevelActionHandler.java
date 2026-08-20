@@ -186,7 +186,12 @@ public class DlsFilterLevelActionHandler {
                 }
 
                 if (log.isDebugEnabled()) {
-                    log.debug("Created filter-level DLS query for request type {}", request.getClass().getSimpleName());
+                    // Do not log the request or query builder: either can contain sensitive request or DLS rule data.
+                    log.debug(
+                        "Created filter-level DLS query for request type {}; index scoping required: {}",
+                        request.getClass().getSimpleName(),
+                        requiresIndexScoping
+                    );
                 }
 
             } catch (Exception e) {
@@ -236,7 +241,8 @@ public class DlsFilterLevelActionHandler {
             }
         }
 
-        QueryBuilder query = searchRequest.source().query();
+        SearchSourceBuilder searchSource = getOrCreateSearchSource(searchRequest);
+        QueryBuilder query = searchSource.query();
         if (query != null) {
             if (ParentChildrenQueryDetector.hasParentOrChildQuery(query)) {
                 listener.onFailure(new OpenSearchSecurityException("Unable to handle filter level DLS for parent or child queries"));
@@ -244,7 +250,7 @@ public class DlsFilterLevelActionHandler {
             }
         }
 
-        applyFilterLevelDls(searchRequest.source(), filterLevelQueryBuilder, applyDlsFilterToHybridQuery);
+        applyFilterLevelDls(searchSource, filterLevelQueryBuilder, applyDlsFilterToHybridQuery);
 
         nodeClient.search(searchRequest, new ActionListener<SearchResponse>() {
             @Override
@@ -268,6 +274,15 @@ public class DlsFilterLevelActionHandler {
         });
 
         return false;
+    }
+
+    static SearchSourceBuilder getOrCreateSearchSource(SearchRequest searchRequest) {
+        SearchSourceBuilder searchSource = searchRequest.source();
+        if (searchSource == null) {
+            searchSource = SearchSourceBuilder.searchSource();
+            searchRequest.source(searchSource);
+        }
+        return searchSource;
     }
 
     /**
