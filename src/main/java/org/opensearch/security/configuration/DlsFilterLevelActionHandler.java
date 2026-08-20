@@ -177,7 +177,7 @@ public class DlsFilterLevelActionHandler {
                 applyDlsFilterToHybridQuery
                     ? ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED
                     : ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-                log.isDebugEnabled() ? request.toString() : "true"
+                "true"
             );
 
             try {
@@ -186,7 +186,7 @@ public class DlsFilterLevelActionHandler {
                 }
 
                 if (log.isDebugEnabled()) {
-                    log.debug("Created filterLevelQuery for " + request + ":\n" + filterLevelQueryBuilder);
+                    log.debug("Created filter-level DLS query for request type {}", request.getClass().getSimpleName());
                 }
 
             } catch (Exception e) {
