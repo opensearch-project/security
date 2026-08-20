@@ -13,10 +13,10 @@ package org.opensearch.security.configuration;
 
 import org.junit.Test;
 
+import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -27,44 +27,51 @@ import static org.mockito.Mockito.when;
 public class DlsFlsValveImplTest {
 
     @Test
-    public void usesFilterLevelDlsForTopLevelHybridQueryInAdaptiveMode() {
+    public void appliesDlsFilterToTopLevelHybridQueryInAdaptiveMode() {
         QueryBuilder hybridQuery = mock(QueryBuilder.class);
         when(hybridQuery.getName()).thenReturn("hybrid");
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
-        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(searchRequest, true, false);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true);
 
         assertThat(result, is(true));
     }
 
     @Test
     public void usesFilterLevelDlsForTermLookupQueryInAdaptiveMode() {
-        SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(QueryBuilders.matchAllQuery()));
-
-        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(searchRequest, true, true);
+        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(true, true);
 
         assertThat(result, is(true));
     }
 
     @Test
-    public void usesLuceneLevelDlsForRegularQueryInAdaptiveMode() {
-        SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(QueryBuilders.matchAllQuery()));
+    public void doesNotApplyHybridQueryFilterForTermLookupQuery() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        when(hybridQuery.getName()).thenReturn("hybrid");
+        SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
-        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(searchRequest, true, false);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, true, true);
+
+        assertThat(result, is(false));
+    }
+
+    @Test
+    public void usesLuceneLevelDlsForRegularQueryInAdaptiveMode() {
+        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(true, false);
 
         assertThat(result, is(false));
     }
 
     @Test
     public void usesLuceneLevelDlsWhenSearchHasNoSourceInAdaptiveMode() {
-        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(new SearchRequest(), true, false);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(new SearchRequest(), true, false, true);
 
         assertThat(result, is(false));
     }
 
     @Test
     public void usesLuceneLevelDlsForNonSearchRequestInAdaptiveMode() {
-        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(mock(ActionRequest.class), true, false);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(mock(ActionRequest.class), true, false, true);
 
         assertThat(result, is(false));
     }
@@ -75,8 +82,26 @@ public class DlsFlsValveImplTest {
         when(hybridQuery.getName()).thenReturn("hybrid");
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
-        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(searchRequest, false, false);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, false, false, true);
 
         assertThat(result, is(false));
+    }
+
+    @Test
+    public void doesNotApplyHybridQueryFilterWhenClusterContainsOlderNode() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        when(hybridQuery.getName()).thenReturn("hybrid");
+        SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
+
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, false);
+
+        assertThat(result, is(false));
+    }
+
+    @Test
+    public void hybridQueryDlsFilterRequiresOpenSearchThreeNineOnEveryNode() {
+        assertThat(DlsFlsValveImpl.isHybridQueryDlsFilterSupported(null), is(false));
+        assertThat(DlsFlsValveImpl.isHybridQueryDlsFilterSupported(Version.V_3_8_0), is(false));
+        assertThat(DlsFlsValveImpl.isHybridQueryDlsFilterSupported(Version.V_3_9_0), is(true));
     }
 }

@@ -435,6 +435,8 @@ public class SecurityInterceptorTests {
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, "fake masked field header");
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER, "fake doc allowlist header");
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, "fake filter level dls header");
+        threadPool.getThreadContext()
+            .putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, "fake dls query filter applied header");
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER, "fake dls mode header");
         threadPool.getThreadContext()
             .putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER, "fake dls filter header");
@@ -446,6 +448,31 @@ public class SecurityInterceptorTests {
 
         // this is a local request
         completableRequestDecorate(sender, connection1, action, request, options, handler, localNode);
+    }
+
+    @Test
+    public void testDlsQueryFilterAppliedHeaderIsCopied() {
+        String headerValue = "hybrid DLS query filter applied";
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, headerValue);
+
+        AsyncSender headerVerifyingSender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                assertThat(
+                    threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED),
+                    is(headerValue)
+                );
+                senderLatch.get().countDown();
+            }
+        };
+
+        completableRequestDecorate(headerVerifyingSender, connection1, action, request, options, handler, localNode);
     }
 
     @Test

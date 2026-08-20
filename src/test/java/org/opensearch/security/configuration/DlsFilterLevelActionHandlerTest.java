@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,7 +39,7 @@ public class DlsFilterLevelActionHandlerTest {
         when(hybridQuery.getName()).thenReturn("hybrid");
         when(hybridQuery.filter(dlsQuery)).thenReturn(hybridQuery);
 
-        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery);
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
 
         assertThat(searchSource.query(), sameInstance(hybridQuery));
         assertThat(dlsQuery.must(), empty());
@@ -56,7 +57,7 @@ public class DlsFilterLevelActionHandlerTest {
         when(hybridQuery.getName()).thenReturn("hybrid");
         when(hybridQuery.filter(dlsQuery)).thenReturn(filteredHybridQuery);
 
-        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery);
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
 
         assertThat(searchSource.query(), sameInstance(filteredHybridQuery));
         verify(hybridQuery).filter(dlsQuery);
@@ -68,7 +69,7 @@ public class DlsFilterLevelActionHandlerTest {
         BoolQueryBuilder dlsQuery = createDlsQuery();
         SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(originalQuery);
 
-        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery);
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, false);
 
         assertThat(searchSource.query(), sameInstance(dlsQuery));
         assertThat(dlsQuery.must(), contains(sameInstance(originalQuery)));
@@ -80,11 +81,26 @@ public class DlsFilterLevelActionHandlerTest {
         BoolQueryBuilder dlsQuery = createDlsQuery();
         SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource();
 
-        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery);
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, false);
 
         assertThat(searchSource.query(), sameInstance(dlsQuery));
         assertThat(dlsQuery.must(), empty());
         assertThat(dlsQuery.should(), hasSize(1));
+    }
+
+    @Test
+    public void wrapsHybridQueryWhenReaderLevelDlsIsNotPreserved() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        when(hybridQuery.getName()).thenReturn("hybrid");
+
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, false);
+
+        assertThat(searchSource.query(), sameInstance(dlsQuery));
+        assertThat(dlsQuery.must(), contains(sameInstance(hybridQuery)));
+        verify(hybridQuery, never()).filter(dlsQuery);
     }
 
     private static BoolQueryBuilder createDlsQuery() {
