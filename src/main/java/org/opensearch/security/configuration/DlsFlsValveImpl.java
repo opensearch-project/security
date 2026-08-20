@@ -257,13 +257,21 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     doFilterLevelDls = true;
                     log.debug("Doing filter-level DLS due to header");
                 } else {
-                    doFilterLevelDls = dlsRestrictionMap.containsAny(DlsRestriction::containsTermLookupQuery);
+                    doFilterLevelDls = shouldUseFilterLevelDlsInAdaptiveMode(
+                        request,
+                        hasDlsRestrictions,
+                        dlsRestrictionMap.containsAny(DlsRestriction::containsTermLookupQuery)
+                    );
 
                     if (doFilterLevelDls) {
                         setDlsModeHeader(Mode.FILTER_LEVEL);
-                        log.debug("Doing filter-level DLS because the query contains a TLQ");
+                        if (isTopLevelHybridQuery(request)) {
+                            log.debug("Doing filter-level DLS because the search contains a top-level hybrid query");
+                        } else {
+                            log.debug("Doing filter-level DLS because the query contains a TLQ");
+                        }
                     } else {
-                        log.debug("Doing lucene-level DLS because the query does not contain a TLQ");
+                        log.debug("Not using filter-level DLS because it is not required for this request");
                     }
                 }
             }
@@ -431,6 +439,23 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             log.error(e);
             throw e;
         }
+    }
+
+    static boolean shouldUseFilterLevelDlsInAdaptiveMode(
+        ActionRequest request,
+        boolean hasDlsRestrictions,
+        boolean containsTermLookupQuery
+    ) {
+        return hasDlsRestrictions && (containsTermLookupQuery || isTopLevelHybridQuery(request));
+    }
+
+    private static boolean isTopLevelHybridQuery(ActionRequest request) {
+        if (!(request instanceof SearchRequest searchRequest)) {
+            return false;
+        }
+
+        SearchSourceBuilder source = searchRequest.source();
+        return source != null && DlsFilterLevelActionHandler.isHybridQuery(source.query());
     }
 
     @Override
