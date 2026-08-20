@@ -341,4 +341,94 @@ public class ResourceSharingTests extends LuceneTestCase {
             assertEquals("owner", sharing.getCreatedBy().getUsername());
         }
     }
+
+    // --- Workspace-awareness (spike) ---------------------------------------------------------------
+
+    @Test
+    public void getWorkspaces_defaultsToEmptyWhenAbsent() {
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(mockCreatedBy("owner")).build();
+        assertNotNull(rs.getWorkspaces());
+        assertTrue(rs.getWorkspaces().isEmpty());
+    }
+
+    @Test
+    public void getAllPrincipals_includesWorkspacePrincipalsForMultipleWorkspaces() {
+        // A single resource belonging to two workspaces must contribute a workspace:<id> principal for each.
+        ResourceSharing rs = ResourceSharing.builder()
+            .resourceId("dash-1")
+            .resourceType("dashboard")
+            .createdBy(mockCreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-analytics", "ws-executive")))
+            .build();
+
+        List<String> principals = rs.getAllPrincipals();
+        assertTrue(principals.contains("user:owner"));
+        assertTrue(principals.contains("workspace:ws-analytics"));
+        assertTrue(principals.contains("workspace:ws-executive"));
+    }
+
+    @Test
+    public void getAllPrincipals_emitsNoWorkspacePrincipalsForNonWorkspaceResource() {
+        // BWC: a resource with no workspaces must behave exactly as before (creator only, no workspace: entries).
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(mockCreatedBy("owner")).build();
+        List<String> principals = rs.getAllPrincipals();
+        assertEquals(List.of("user:owner"), principals);
+        assertTrue(principals.stream().noneMatch(p -> p.startsWith("workspace:")));
+    }
+
+    @Test
+    public void toXContent_omitsWorkspacesWhenEmpty_andRoundTripsWhenPresent() throws Exception {
+        // Uses a real CreatedBy (not a mock) because this test drives the real toXContent serialization.
+        // Empty -> field omitted (byte-identical to pre-change records).
+        ResourceSharing empty = ResourceSharing.builder()
+            .resourceId("r")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .build();
+        assertFalse(toJson(empty).contains("workspaces"));
+
+        // Present -> serialized and round-trips through fromXContent.
+        ResourceSharing withWs = ResourceSharing.builder()
+            .resourceId("r")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-a", "ws-b")))
+            .build();
+        String json = toJson(withWs);
+        assertTrue(json.contains("workspaces"));
+
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing parsed = ResourceSharing.fromXContent(parser);
+            assertEquals(Set.of("ws-a", "ws-b"), parsed.getWorkspaces());
+        }
+    }
+
+    // ResourceSharing is a ToXContentFragment that opens/closes its own object, so serialize with a bare
+    // builder rather than XContentHelper (which would open an outer object and double-wrap).
+    private static String toJson(ResourceSharing rs) throws Exception {
+        org.opensearch.core.xcontent.XContentBuilder builder = JsonXContent.contentBuilder();
+        rs.toXContent(builder, org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS);
+        return builder.toString();
+    }
+
+    @Test
+    public void fromXContent_parsesWorkspacesArray() throws Exception {
+        String json = """
+            {
+              "resource_id": "r1",
+              "resource_type": "dashboard",
+              "workspaces": ["ws-1", "ws-2"],
+              "created_by": {
+                "user": "owner"
+              }
+            }
+            """;
+
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing sharing = ResourceSharing.fromXContent(parser);
+            assertEquals(Set.of("ws-1", "ws-2"), sharing.getWorkspaces());
+        }
+    }
 }

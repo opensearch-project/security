@@ -11,7 +11,10 @@
 
 package org.opensearch.security.resources;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -136,6 +139,26 @@ public class ResourceAccessHandler {
         @NonNull String action,
         ActionListener<Boolean> listener
     ) {
+        // Entry point: start with an empty visited-set so container inheritance (parent + workspaces) cannot loop.
+        hasPermission(resourceId, resourceType, action, new HashSet<>(), listener);
+    }
+
+    /**
+     * Internal permission check that carries a {@code visited} set of {@code type:id} keys to prevent unbounded
+     * recursion when resources inherit access from containers (a hierarchical parent and/or workspaces). Container
+     * inheritance walks a graph that is expected to be acyclic, but a malformed graph (e.g. a workspace that
+     * transitively contains itself) would otherwise loop forever. The set tracks the current ancestor (parent)
+     * chain only — each key is removed when its node's evaluation completes — so it detects a genuine on-path
+     * cycle without falsely denying a node reachable from more than one branch. Workspaces are leaf-evaluated and
+     * never added to this set.
+     */
+    private void hasPermission(
+        @NonNull String resourceId,
+        @NonNull String resourceType,
+        @NonNull String action,
+        @NonNull Set<String> visitedAncestors,
+        ActionListener<Boolean> outerListener
+    ) {
         final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
             ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
         );
@@ -143,9 +166,24 @@ public class ResourceAccessHandler {
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Access to resource {} is not authorized.", resourceId);
-            listener.onResponse(false);
+            outerListener.onResponse(false);
             return;
         }
+
+        // Ancestor-cycle guard: block only if this resource is already on the current parent chain (an actual
+        // cycle, e.g. A -> parent B -> parent A). This is a DFS-path guard, not a global visited set: a resource
+        // seen and released on one branch must stay evaluable on another, so the key is removed once this node's
+        // evaluation completes (via the runBefore wrapper below). Denying a true on-path repeat is safe — the
+        // ancestor that first introduced it is still being evaluated and will contribute its own grant.
+        final String visitKey = resourceType + ":" + resourceId;
+        if (!visitedAncestors.add(visitKey)) {
+            LOGGER.debug("Skipping resource '{}' of type '{}' already on the parent chain to avoid a cycle", resourceId, resourceType);
+            outerListener.onResponse(false);
+            return;
+        }
+        // Keep the guard scoped to the current ancestor chain: remove the key when this node resolves so sibling
+        // branches (and later, unrelated walks sharing the set) are not falsely denied.
+        final ActionListener<Boolean> listener = ActionListener.runBefore(outerListener, () -> visitedAncestors.remove(visitKey));
 
         LOGGER.info("Checking if user '{}' has permission to resource '{}'", user.getName(), resourceId);
 
@@ -172,43 +210,128 @@ public class ResourceAccessHandler {
                 return;
             }
 
-            if (sharingInfo.isCreatedBy(user.getName())) {
+            if (recordGrantsAction(sharingInfo, resourceType, user, action)) {
                 listener.onResponse(true);
                 return;
             }
 
-            Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
-
-            // no matching access level, either recurse up or fail fast
-            if (accessLevels.isEmpty()) {
-                if (sharingInfo.getParentId() != null) {
-                    hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-                } else {
-                    listener.onResponse(false);
-                }
-                return;
-            }
-
-            // Fetch the static action-groups registered by plugins on bootstrap and check whether any match
-            final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
-            final Set<String> allowedActions = agForType.resolve(accessLevels);
-            final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
-
-            if (matcher.test(action)) {
-                listener.onResponse(true);
-                return;
-            }
-
-            if (sharingInfo.getParentId() != null) {
-                hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-            } else {
-                listener.onResponse(false);
-            }
+            // resource itself does not grant the action: fall back to its containers (parent and/or workspaces)
+            checkContainers(sharingInfo, action, visitedAncestors, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
         }));
     }
+
+    /**
+     * Returns whether a single sharing record grants the given user the requested action directly — i.e. the user is
+     * the creator, or is shared with at an access level whose resolved action-group matches {@code action}. This is a
+     * pure, in-memory computation (no I/O), factored out so it can be reused both for the resource itself and for each
+     * container record fetched in a batch.
+     */
+    private boolean recordGrantsAction(ResourceSharing sharingInfo, String resourceType, User user, String action) {
+        if (sharingInfo.isCreatedBy(user.getName())) {
+            return true;
+        }
+        Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
+        if (accessLevels.isEmpty()) {
+            return false;
+        }
+        final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
+        final Set<String> allowedActions = agForType.resolve(accessLevels);
+        return WildcardMatcher.from(allowedActions).test(action);
+    }
+
+    /**
+     * Resolves access inherited from a resource's containers when the resource itself does not grant the action.
+     * <p>
+     * A resource can inherit access from two kinds of container:
+     * <ul>
+     *   <li>its single hierarchical parent ({@code parentId}/{@code parentType}), the pre-existing mechanism, resolved
+     *   via {@link #hasPermission} (which itself recurses into the parent's own containers); and</li>
+     *   <li>the set of workspaces it belongs to — a resource may belong to <em>multiple</em> workspaces. Each workspace
+     *   is a sharing-protected resource of type {@code workspace} whose {@code share_with} lists collaborators and their
+     *   access levels (per issue #6119).</li>
+     * </ul>
+     * Access is granted if <em>any</em> container grants the action (logical OR), mirroring the permissive semantics of
+     * the original parent recursion.
+     *
+     * <p>Performance: the workspace records all live in the same sharing index with known ids, so they are fetched in a
+     * single {@link ResourceSharingIndexHandler#fetchSharingInfoForIds mget} and evaluated in memory, rather than one
+     * sequential GET per workspace (which would be an N+1 pattern on the privilege hot path). The single parent, if any,
+     * is still resolved recursively so parent-of-parent chains keep working.
+     *
+     * <p>SPIKE NOTE: the workspace resource type name is a placeholder ({@link #WORKSPACE_RESOURCE_TYPE}); the real type
+     * is defined by the workspace provider registered via the SPI (see design doc). If no provider is registered for that
+     * type, {@code indexByType} returns null and the workspace branch denies cleanly, so this degrades safely.
+     *
+     * @param sharingInfo the sharing record of the resource whose containers should be consulted
+     * @param action      the action being authorized
+     * @param visitedAncestors the current parent-chain {@code type:id} keys, propagated to guard against ancestor cycles
+     * @param listener    notified with {@code true} if any container grants access, {@code false} otherwise
+     */
+    private void checkContainers(
+        ResourceSharing sharingInfo,
+        String action,
+        Set<String> visitedAncestors,
+        ActionListener<Boolean> listener
+    ) {
+        final User user = getAuthenticatedUser();
+        if (user == null) {
+            listener.onResponse(false);
+            return;
+        }
+
+        // Workspaces are evaluated as leaves (their own share_with) and are never recursed into, so they cannot
+        // form a cycle and MUST NOT touch the ancestor-path guard: doing so could let one branch's visit of a
+        // shared node falsely deny another branch under OR semantics. Deduplicate ids only (a Set), then batch.
+        final List<String> workspaceIds = new ArrayList<>(sharingInfo.getWorkspaces());
+
+        final String workspaceIndex = workspaceIds.isEmpty() ? null : resourcePluginInfo.indexByType(WORKSPACE_RESOURCE_TYPE);
+
+        // Evaluate workspaces (batched) first; fall back to the single parent (recursive) only if no workspace grants.
+        if (workspaceIndex != null) {
+            resourceSharingIndexHandler.fetchSharingInfoForIds(workspaceIndex, workspaceIds, ActionListener.wrap(records -> {
+                for (ResourceSharing wsRecord : records.values()) {
+                    if (recordGrantsAction(wsRecord, WORKSPACE_RESOURCE_TYPE, user, action)) {
+                        listener.onResponse(true);
+                        return;
+                    }
+                }
+                checkParent(sharingInfo, action, visitedAncestors, listener);
+            }, listener::onFailure));
+        } else {
+            checkParent(sharingInfo, action, visitedAncestors, listener);
+        }
+    }
+
+    /**
+     * Resolves access inherited from the single hierarchical parent (if any), recursing via {@link #hasPermission} so
+     * grandparent chains continue to work. Denies when there is no parent.
+     */
+    private void checkParent(ResourceSharing sharingInfo, String action, Set<String> visitedAncestors, ActionListener<Boolean> listener) {
+        if (sharingInfo.getParentId() != null) {
+            hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, visitedAncestors, listener);
+        } else {
+            listener.onResponse(false);
+        }
+    }
+
+    /**
+     * Returns the currently authenticated user from the thread context, or {@code null} if none.
+     */
+    private User getAuthenticatedUser() {
+        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
+            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
+        );
+        return (userSubject == null) ? null : userSubject.getUser();
+    }
+
+    /**
+     * SPIKE placeholder for the workspace resource type name. The authoritative value comes from the workspace
+     * provider registered through the resource-sharing SPI (issue #6119).
+     */
+    private static final String WORKSPACE_RESOURCE_TYPE = "workspace";
 
     /**
      * Patches the sharing info. It could be either or all 3 of the following possibilities:

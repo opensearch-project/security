@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -264,22 +265,22 @@ public class ResourceSharingIndexHandler {
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
                 ctx.restore();
                 LOGGER.info("Successfully created {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
-                updateResourceVisibility(
-                    resourceId,
-                    resourceIndex,
-                    List.of("user:" + createdBy.getUsername()),
-                    ActionListener.wrap((updateResponse) -> {
-                        LOGGER.debug(
-                            "postUpdate: Successfully updated visibility for resource {} within index {}",
-                            resourceId,
-                            resourceIndex
-                        );
-                        listener.onResponse(sharingInfo);
-                    }, (e) -> {
-                        LOGGER.error("Failed to create principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                        listener.onResponse(sharingInfo);
-                    })
-                );
+                // Seed visibility with the creator plus any workspace:<id> principals from workspace membership.
+                // Using getAllPrincipals() (rather than only the creator) ensures a resource created directly in
+                // one or more workspaces is immediately visible to those workspaces' members via DLS, before any
+                // explicit share call. For non-workspace resources with no shareWith yet, this resolves to just
+                // the creator — identical to the previous behavior.
+                List<String> initialPrincipals = new ArrayList<>(sharingInfo.getAllPrincipals());
+                if (initialPrincipals.isEmpty()) {
+                    initialPrincipals.add("user:" + createdBy.getUsername());
+                }
+                updateResourceVisibility(resourceId, resourceIndex, initialPrincipals, ActionListener.wrap((updateResponse) -> {
+                    LOGGER.debug("postUpdate: Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                    listener.onResponse(sharingInfo);
+                }, (e) -> {
+                    LOGGER.error("Failed to create principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                    listener.onResponse(sharingInfo);
+                }));
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // already exists → skipping
@@ -550,6 +551,67 @@ public class ResourceSharingIndexHandler {
      * }
      * </pre>
      */
+    /**
+     * Fetches multiple resource-sharing records from the sharing index for {@code resourceIndex} in a single
+     * {@link MultiGetRequest} round-trip, rather than one {@link #fetchSharingInfo} GET per id.
+     * <p>
+     * This is used on the authorization path when a resource inherits access from a set of container resources
+     * (e.g. the workspaces it belongs to): all containers live in the same sharing index with known ids, so a single
+     * mget avoids an N+1 sequential-GET pattern on the privilege hot path.
+     * <p>
+     * Records that do not exist or fail to parse are simply omitted from the result map; the operation only fails if the
+     * mget itself fails.
+     *
+     * @param resourceIndex the source resource index whose sharing index should be queried
+     * @param resourceIds   the ids of the sharing records to fetch
+     * @param listener      notified with a map of {@code resourceId -> ResourceSharing} for the records that exist
+     */
+    public void fetchSharingInfoForIds(
+        String resourceIndex,
+        Collection<String> resourceIds,
+        ActionListener<Map<String, ResourceSharing>> listener
+    ) {
+        if (StringUtils.isBlank(resourceIndex) || resourceIds == null || resourceIds.isEmpty()) {
+            listener.onResponse(Collections.emptyMap());
+            return;
+        }
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            final MultiGetRequest mget = new MultiGetRequest();
+            for (String id : resourceIds) {
+                mget.add(new MultiGetRequest.Item(resourceSharingIndex, id));
+            }
+
+            client.multiGet(mget, ActionListener.wrap(mres -> {
+                ctx.restore();
+                Map<String, ResourceSharing> records = new HashMap<>();
+                for (MultiGetItemResponse item : mres.getResponses()) {
+                    if (item == null || item.isFailed()) continue;
+                    final GetResponse gr = item.getResponse();
+                    if (gr == null || !gr.isExists()) continue;
+                    try (
+                        XContentParser parser = XContentType.JSON.xContent()
+                            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, gr.getSourceAsString())
+                    ) {
+                        parser.nextToken();
+                        ResourceSharing rs = ResourceSharing.fromXContent(parser);
+                        rs.setResourceId(gr.getId());
+                        records.put(gr.getId(), rs);
+                    } catch (Exception ex) {
+                        LOGGER.warn("Failed to parse resource-sharing doc id={} from {}", gr.getId(), resourceSharingIndex, ex);
+                    }
+                }
+                listener.onResponse(records);
+            }, exception -> {
+                ctx.restore();
+                String failureResponse = "Something went wrong while batch-fetching resource sharing records from " + resourceSharingIndex;
+                LOGGER.error(failureResponse, exception);
+                listener.onFailure(new OpenSearchStatusException(failureResponse, RestStatus.INTERNAL_SERVER_ERROR));
+            }));
+        }
+    }
+
     public void fetchSharingInfo(String resourceIndex, String resourceId, ActionListener<ResourceSharing> listener) {
         if (StringUtils.isBlank(resourceIndex) || StringUtils.isBlank(resourceId)) {
             listener.onFailure(new IllegalArgumentException("resourceIndex and resourceId must not be null or empty"));
