@@ -11,12 +11,14 @@
 
 package org.opensearch.security.configuration;
 
+import org.apache.lucene.search.BooleanClause;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilderVisitor;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
@@ -27,6 +29,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -83,6 +87,32 @@ public class DlsFilterLevelActionHandlerTest {
 
         assertThat(exception.getMessage(), is("Hybrid query returned no query after applying the DLS filter"));
         assertThat(searchSource.query(), sameInstance(hybridQuery));
+    }
+
+    @Test
+    public void failsClosedWhenHybridQueryContainsParentChildClause() {
+        QueryBuilder parentChildQuery = mock(QueryBuilder.class);
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        when(parentChildQuery.getWriteableName()).thenReturn("has_child");
+        when(hybridQuery.getName()).thenReturn("hybrid");
+        doAnswer(invocation -> {
+            QueryBuilderVisitor visitor = invocation.getArgument(0);
+            visitor.accept(hybridQuery);
+            visitor.getChildVisitor(BooleanClause.Occur.MUST).accept(parentChildQuery);
+            return null;
+        }).when(hybridQuery).visit(any(QueryBuilderVisitor.class));
+
+        OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true)
+        );
+
+        assertThat(exception.getMessage(), is("Unable to handle filter level DLS for hybrid queries with parent or child clauses"));
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+        verify(hybridQuery, never()).filter(dlsQuery);
     }
 
     @Test

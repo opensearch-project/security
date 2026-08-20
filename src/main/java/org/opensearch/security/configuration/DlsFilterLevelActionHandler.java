@@ -171,6 +171,9 @@ public class DlsFilterLevelActionHandler {
 
     private boolean handle() {
 
+        // Snapshot the outer context without clearing the current one. The internal header added below remains active
+        // while nodeClient dispatches the child request and is propagated to local search work; closing the stored
+        // context restores the caller's headers.
         try (StoredContext ctx = threadContext.newStoredContext(true)) {
 
             threadContext.putHeader(
@@ -279,6 +282,8 @@ public class DlsFilterLevelActionHandler {
     static SearchSourceBuilder getOrCreateSearchSource(SearchRequest searchRequest) {
         SearchSourceBuilder searchSource = searchRequest.source();
         if (searchSource == null) {
+            // A source-less search is an implicit match-all. Materialize its source so filter-level DLS can replace that
+            // implicit query with the DLS restriction while retaining SearchSourceBuilder's normal defaults.
             searchSource = SearchSourceBuilder.searchSource();
             searchRequest.source(searchSource);
         }
@@ -303,6 +308,9 @@ public class DlsFilterLevelActionHandler {
             // No query set, apply filter level DLS query directly
             searchSource.query(filterLevelQueryBuilder);
         } else if (applyDlsFilterToHybridQuery && isHybridQuery(query)) {
+            if (ParentChildrenQueryDetector.hasParentOrChildQuery(query)) {
+                throw new OpenSearchSecurityException("Unable to handle filter level DLS for hybrid queries with parent or child clauses");
+            }
             // Hybrid queries must remain top-level, so apply filter level DLS query directly
             QueryBuilder filteredHybridQuery = query.filter(filterLevelQueryBuilder);
             if (filteredHybridQuery == null) {
@@ -320,7 +328,8 @@ public class DlsFilterLevelActionHandler {
      * Neural Search is an optional plugin, so Security identifies its hybrid query through the public query type name
      * instead of depending on its query builder class. {@link QueryBuilder#getName()} is OpenSearch's unique query type
      * identifier. A query builder registered as {@code hybrid} must honor {@link QueryBuilder#filter(QueryBuilder)} by
-     * applying the supplied filter to every subquery.
+     * applying the supplied filter to every subquery and must expose every subquery through its visitor. Reader-level DLS
+     * remains active whenever this special path is selected, independently of the query builder's filter implementation.
      */
     static boolean isHybridQuery(QueryBuilder query) {
         return query != null && HYBRID_QUERY_NAME.equals(query.getName());
