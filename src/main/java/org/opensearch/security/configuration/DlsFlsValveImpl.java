@@ -88,6 +88,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.util.ParentChildrenQueryDetector;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -269,7 +270,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         request,
                         hasDlsRestrictions,
                         containsTermLookupQuery,
-                        isHybridQueryDlsFilterSupported(clusterService.state().nodes().getMinNodeVersion())
+                        isHybridQueryDlsFilterSupported(clusterService.state().nodes().getMinNodeVersion()),
+                        isLocalOnlyRequest(resolved)
                     );
 
                     if (doFilterLevelDls) {
@@ -463,22 +465,33 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ActionRequest request,
         boolean hasDlsRestrictions,
         boolean containsTermLookupQuery,
-        boolean hybridQueryDlsFilterSupported
+        boolean hybridQueryDlsFilterSupported,
+        boolean localOnlyRequest
     ) {
-        return hasDlsRestrictions && !containsTermLookupQuery && hybridQueryDlsFilterSupported && isTopLevelHybridQuery(request);
+        return hasDlsRestrictions
+            && !containsTermLookupQuery
+            && hybridQueryDlsFilterSupported
+            && localOnlyRequest
+            && isTopLevelHybridQueryWithoutParentChildClauses(request);
     }
 
     static boolean isHybridQueryDlsFilterSupported(Version minNodeVersion) {
         return minNodeVersion != null && minNodeVersion.onOrAfter(HYBRID_QUERY_DLS_FILTER_SUPPORTED_SINCE);
     }
 
-    private static boolean isTopLevelHybridQuery(ActionRequest request) {
+    private static boolean isLocalOnlyRequest(OptionallyResolvedIndices resolved) {
+        return resolved instanceof ResolvedIndices resolvedIndices && resolvedIndices.remote().isEmpty();
+    }
+
+    private static boolean isTopLevelHybridQueryWithoutParentChildClauses(ActionRequest request) {
         if (!(request instanceof SearchRequest searchRequest)) {
             return false;
         }
 
         SearchSourceBuilder source = searchRequest.source();
-        return source != null && DlsFilterLevelActionHandler.isHybridQuery(source.query());
+        return source != null
+            && DlsFilterLevelActionHandler.isHybridQuery(source.query())
+            && !ParentChildrenQueryDetector.hasParentOrChildQuery(source.query());
     }
 
     @Override
