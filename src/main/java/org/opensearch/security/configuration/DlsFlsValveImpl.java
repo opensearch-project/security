@@ -494,13 +494,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 return;
             }
 
-            if (dlsFlsBaseContext.isDlsQueryFilterApplied()) {
-                // The DLS filter is already present in every hybrid subquery. Reader-level DLS remains active to protect
-                // aggregations, suggestions, and other search features which do not use the top-level query.
-                log.trace("handleSearchContext(): DLS is applied to the hybrid query; preserving reader-level DLS");
-                return;
-            }
-
             if (dlsFlsBaseContext.isDlsDoneOnFilterLevel() || mode == Mode.FILTER_LEVEL) {
                 // For filter level DLS, the query was already modified to include the DLS restrictions.
                 // Thus, we can exist here early.
@@ -552,6 +545,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
             if (!dlsRestriction.isUnrestricted()) {
+                if (dlsFlsBaseContext.isDlsQueryFilterApplied()) {
+                    // The DLS filter is already present in every hybrid subquery. Reader-level DLS remains active to protect
+                    // aggregations, suggestions, and other search features which do not use the top-level query. This check
+                    // intentionally follows the star-tree safeguard above.
+                    log.trace("handleSearchContext(): DLS is applied to the hybrid query; preserving reader-level DLS");
+                    return;
+                }
+
                 if (mode == Mode.ADAPTIVE && dlsRestriction.containsTermLookupQuery()) {
                     // Special case for scroll operations:
                     // Normally, the check dlsFlsBaseContext.isDlsDoneOnFilterLevel() already aborts early if DLS filter level mode
