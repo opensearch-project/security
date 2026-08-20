@@ -5,7 +5,6 @@
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
- *
  */
 package org.opensearch.security.resources;
 
@@ -84,8 +83,6 @@ import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_
 /**
  * This class handles the creation and management of the resource sharing index.
  * It provides methods to create the index, index resource sharing entries along with updates and deletion, retrieve shared resources.
- *
- * @opensearch.experimental
  */
 public class ResourceSharingIndexHandler {
 
