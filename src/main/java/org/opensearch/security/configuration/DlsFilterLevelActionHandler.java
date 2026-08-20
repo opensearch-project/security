@@ -85,10 +85,12 @@ public class DlsFilterLevelActionHandler {
         Client nodeClient,
         ClusterService clusterService,
         IndicesService indicesService,
-        ThreadContext threadContext
+        ThreadContext threadContext,
+        boolean applyDlsFilterToHybridQuery
     ) {
 
-        if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
+        if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null
+            || threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED) != null) {
             return true;
         }
 
@@ -122,7 +124,8 @@ public class DlsFilterLevelActionHandler {
             nodeClient,
             clusterService,
             indicesService,
-            threadContext
+            threadContext,
+            applyDlsFilterToHybridQuery
         ).handle();
     }
 
@@ -136,6 +139,7 @@ public class DlsFilterLevelActionHandler {
     private final ClusterService clusterService;
     private final IndicesService indicesService;
     private final ThreadContext threadContext;
+    private final boolean applyDlsFilterToHybridQuery;
     private BoolQueryBuilder filterLevelQueryBuilder;
     private DocumentAllowList documentAllowlist;
 
@@ -146,7 +150,8 @@ public class DlsFilterLevelActionHandler {
         Client nodeClient,
         ClusterService clusterService,
         IndicesService indicesService,
-        ThreadContext threadContext
+        ThreadContext threadContext,
+        boolean applyDlsFilterToHybridQuery
     ) {
         this.action = context.getAction();
         this.request = context.getRequest();
@@ -157,6 +162,7 @@ public class DlsFilterLevelActionHandler {
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.threadContext = threadContext;
+        this.applyDlsFilterToHybridQuery = applyDlsFilterToHybridQuery;
 
         this.requiresIndexScoping = resolved instanceof ResolvedIndices resolvedIndices
             ? resolvedIndices.local().names().size() != 1
@@ -168,7 +174,9 @@ public class DlsFilterLevelActionHandler {
         try (StoredContext ctx = threadContext.newStoredContext(true)) {
 
             threadContext.putHeader(
-                ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
+                applyDlsFilterToHybridQuery
+                    ? ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED
+                    : ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
                 log.isDebugEnabled() ? request.toString() : "true"
             );
 
@@ -236,7 +244,7 @@ public class DlsFilterLevelActionHandler {
             }
         }
 
-        applyFilterLevelDls(searchRequest.source(), filterLevelQueryBuilder);
+        applyFilterLevelDls(searchRequest.source(), filterLevelQueryBuilder, applyDlsFilterToHybridQuery);
 
         nodeClient.search(searchRequest, new ActionListener<SearchResponse>() {
             @Override
@@ -263,17 +271,23 @@ public class DlsFilterLevelActionHandler {
     }
 
     /**
-     * Applies the filter level DLS query without wrapping hybrid queries. Hybrid queries must remain top-level.
-     * Their filter method propagates the DLS restriction to every subquery.
+     * Applies the filter level DLS query. When {@code applyDlsFilterToHybridQuery} is true, hybrid queries remain top-level
+     * and their filter method propagates the DLS restriction to every subquery. Reader-level DLS must remain active in
+     * that case to protect search features which do not use the top-level query.
      * @param searchSource
      * @param filterLevelQueryBuilder
+     * @param applyDlsFilterToHybridQuery whether to push the DLS filter into a top-level hybrid query
      */
-    static void applyFilterLevelDls(SearchSourceBuilder searchSource, BoolQueryBuilder filterLevelQueryBuilder) {
+    static void applyFilterLevelDls(
+        SearchSourceBuilder searchSource,
+        BoolQueryBuilder filterLevelQueryBuilder,
+        boolean applyDlsFilterToHybridQuery
+    ) {
         QueryBuilder query = searchSource.query();
         if (query == null) {
             // No query set, apply filter level DLS query directly
             searchSource.query(filterLevelQueryBuilder);
-        } else if (isHybridQuery(query)) {
+        } else if (applyDlsFilterToHybridQuery && isHybridQuery(query)) {
             // Hybrid queries must remain top-level, so apply filter level DLS query directly
             searchSource.query(query.filter(filterLevelQueryBuilder));
         } else {

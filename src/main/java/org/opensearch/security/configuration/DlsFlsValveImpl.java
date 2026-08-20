@@ -30,6 +30,7 @@ import org.apache.lucene.util.BytesRef;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.admin.indices.shrink.ResizeRequest;
@@ -96,6 +97,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_DLS_WRITE
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     private static final String MAP_EXECUTION_HINT = "map";
+    private static final Version HYBRID_QUERY_DLS_FILTER_SUPPORTED_SINCE = Version.V_3_9_0;
     private static final Logger log = LogManager.getLogger(DlsFlsValveImpl.class);
 
     private final Client nodeClient;
@@ -197,7 +199,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         nodeClient,
                         clusterService,
                         OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
-                        threadContext
+                        threadContext,
+                        false
                     );
                 }
             }
@@ -230,11 +233,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 return true;
             }
 
-            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
+            String filterLevelDlsDone = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+            String dlsQueryFilterApplied = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
+            if (filterLevelDlsDone != null || dlsQueryFilterApplied != null) {
                 if (log.isDebugEnabled()) {
                     log.debug(
-                        "DLS is already done for: {}",
-                        threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
+                        "DLS query handling is already done for: {}",
+                        Objects.requireNonNullElse(filterLevelDlsDone, dlsQueryFilterApplied)
                     );
                 }
 
@@ -243,6 +248,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             IndexToRuleMap<DlsRestriction> dlsRestrictionMap = null;
             boolean doFilterLevelDls;
+            boolean applyDlsFilterToHybridQuery = false;
 
             if (mode == Mode.FILTER_LEVEL) {
                 doFilterLevelDls = true;
@@ -257,19 +263,20 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     doFilterLevelDls = true;
                     log.debug("Doing filter-level DLS due to header");
                 } else {
-                    doFilterLevelDls = shouldUseFilterLevelDlsInAdaptiveMode(
+                    boolean containsTermLookupQuery = dlsRestrictionMap.containsAny(DlsRestriction::containsTermLookupQuery);
+                    doFilterLevelDls = shouldUseFilterLevelDlsInAdaptiveMode(hasDlsRestrictions, containsTermLookupQuery);
+                    applyDlsFilterToHybridQuery = shouldApplyDlsFilterToHybridQueryInAdaptiveMode(
                         request,
                         hasDlsRestrictions,
-                        dlsRestrictionMap.containsAny(DlsRestriction::containsTermLookupQuery)
+                        containsTermLookupQuery,
+                        isHybridQueryDlsFilterSupported(clusterService.state().nodes().getMinNodeVersion())
                     );
 
                     if (doFilterLevelDls) {
                         setDlsModeHeader(Mode.FILTER_LEVEL);
-                        if (isTopLevelHybridQuery(request)) {
-                            log.debug("Doing filter-level DLS because the search contains a top-level hybrid query");
-                        } else {
-                            log.debug("Doing filter-level DLS because the query contains a TLQ");
-                        }
+                        log.debug("Doing filter-level DLS because the query contains a TLQ");
+                    } else if (applyDlsFilterToHybridQuery) {
+                        log.debug("Applying DLS to the top-level hybrid query while preserving reader-level DLS");
                     } else {
                         log.debug("Not using filter-level DLS because it is not required for this request");
                     }
@@ -277,7 +284,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
             if (DlsFlsLegacyHeaders.possiblyRequired(clusterService)) {
-                DlsFlsLegacyHeaders.prepare(threadContext, context, config, clusterService.state().metadata(), doFilterLevelDls);
+                DlsFlsLegacyHeaders.prepare(
+                    threadContext,
+                    context,
+                    config,
+                    clusterService.state().metadata(),
+                    doFilterLevelDls && !applyDlsFilterToHybridQuery
+                );
             }
 
             if (request instanceof RealtimeRequest) {
@@ -417,7 +430,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 }
             }
 
-            if (doFilterLevelDls && hasDlsRestrictions) {
+            if ((doFilterLevelDls || applyDlsFilterToHybridQuery) && hasDlsRestrictions) {
                 return DlsFilterLevelActionHandler.handle(
                     context,
                     dlsRestrictionMap,
@@ -425,7 +438,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     nodeClient,
                     clusterService,
                     OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
-                    threadContext
+                    threadContext,
+                    applyDlsFilterToHybridQuery
                 );
             } else {
                 return true;
@@ -441,12 +455,21 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
     }
 
-    static boolean shouldUseFilterLevelDlsInAdaptiveMode(
+    static boolean shouldUseFilterLevelDlsInAdaptiveMode(boolean hasDlsRestrictions, boolean containsTermLookupQuery) {
+        return hasDlsRestrictions && containsTermLookupQuery;
+    }
+
+    static boolean shouldApplyDlsFilterToHybridQueryInAdaptiveMode(
         ActionRequest request,
         boolean hasDlsRestrictions,
-        boolean containsTermLookupQuery
+        boolean containsTermLookupQuery,
+        boolean hybridQueryDlsFilterSupported
     ) {
-        return hasDlsRestrictions && (containsTermLookupQuery || isTopLevelHybridQuery(request));
+        return hasDlsRestrictions && !containsTermLookupQuery && hybridQueryDlsFilterSupported && isTopLevelHybridQuery(request);
+    }
+
+    static boolean isHybridQueryDlsFilterSupported(Version minNodeVersion) {
+        return minNodeVersion != null && minNodeVersion.onOrAfter(HYBRID_QUERY_DLS_FILTER_SUPPORTED_SINCE);
     }
 
     private static boolean isTopLevelHybridQuery(ActionRequest request) {
@@ -468,6 +491,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
             if (searchContext.suggest() != null) {
+                return;
+            }
+
+            if (dlsFlsBaseContext.isDlsQueryFilterApplied()) {
+                // The DLS filter is already present in every hybrid subquery. Reader-level DLS remains active to protect
+                // aggregations, suggestions, and other search features which do not use the top-level query.
+                log.trace("handleSearchContext(): DLS is applied to the hybrid query; preserving reader-level DLS");
                 return;
             }
 
