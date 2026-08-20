@@ -13,6 +13,7 @@ package org.opensearch.security.configuration;
 
 import org.junit.Test;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -23,7 +24,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -62,6 +65,24 @@ public class DlsFilterLevelActionHandlerTest {
 
         assertThat(searchSource.query(), sameInstance(filteredHybridQuery));
         verify(hybridQuery).filter(dlsQuery);
+    }
+
+    @Test
+    public void failsClosedWhenHybridFilterReturnsNull() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        when(hybridQuery.getName()).thenReturn("hybrid");
+        when(hybridQuery.filter(dlsQuery)).thenReturn(null);
+
+        OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true)
+        );
+
+        assertThat(exception.getMessage(), is("Hybrid query returned no query after applying the DLS filter"));
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
     }
 
     @Test
