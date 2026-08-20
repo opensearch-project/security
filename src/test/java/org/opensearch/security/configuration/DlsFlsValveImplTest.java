@@ -22,6 +22,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilderVisitor;
 import org.opensearch.index.query.QueryShardContext;
@@ -96,6 +97,15 @@ public class DlsFlsValveImplTest {
     }
 
     @Test
+    public void usesLuceneLevelDlsWhenSearchSourceHasNoQueryInAdaptiveMode() {
+        SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource());
+
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true, true);
+
+        assertThat(result, is(false));
+    }
+
+    @Test
     public void usesLuceneLevelDlsForNonSearchRequestInAdaptiveMode() {
         boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(
             mock(ActionRequest.class),
@@ -137,6 +147,18 @@ public class DlsFlsValveImplTest {
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
         boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true, false);
+
+        assertThat(result, is(false));
+    }
+
+    @Test
+    public void doesNotApplyHybridQueryFilterWhenHybridQueryIsNotTopLevel() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        when(hybridQuery.getName()).thenReturn("hybrid");
+        BoolQueryBuilder outerQuery = new BoolQueryBuilder().must(hybridQuery);
+        SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(outerQuery));
+
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true, true);
 
         assertThat(result, is(false));
     }

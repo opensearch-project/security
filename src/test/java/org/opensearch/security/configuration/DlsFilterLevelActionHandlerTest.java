@@ -77,6 +77,18 @@ public class DlsFilterLevelActionHandlerTest {
     }
 
     @Test
+    public void wrapsNonHybridQueryEvenWhenHybridFilterFlagIsSet() {
+        QueryBuilder originalQuery = QueryBuilders.matchAllQuery();
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(originalQuery);
+
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
+
+        assertThat(searchSource.query(), sameInstance(dlsQuery));
+        assertThat(dlsQuery.must(), contains(sameInstance(originalQuery)));
+    }
+
+    @Test
     public void usesDlsQueryWhenSearchHasNoQuery() {
         BoolQueryBuilder dlsQuery = createDlsQuery();
         SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource();
