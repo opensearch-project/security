@@ -298,6 +298,13 @@ public class User implements Serializable, CustomAttributesAware {
         }
     }
 
+    public User withoutSecurityRoles() {
+        if (this.securityRoles.isEmpty()) {
+            return this;
+        }
+        return new User(this.name, this.roles, ImmutableSet.of(), this.requestedTenant, this.attributes, this.isInjected);
+    }
+
     public ImmutableSet<String> getSecurityRoles() {
         return this.securityRoles;
     }

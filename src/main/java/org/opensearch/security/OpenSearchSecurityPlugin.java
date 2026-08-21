@@ -240,6 +240,7 @@ import org.opensearch.security.support.ReflectionHelper;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
+import org.opensearch.security.transport.RemoteClusterIdentityPolicy;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
@@ -1713,6 +1714,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         cr.setDynamicConfigFactory(dcf);
 
+        RemoteClusterIdentityPolicy remoteClusterIdentityPolicy = new RemoteClusterIdentityPolicy(
+            settings.getAsBoolean(ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES, false)
+        );
+        clusterService.getClusterSettings()
+            .addSettingsUpdateConsumer(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING, newValue -> {
+                log.info("CCS ignore source security roles dynamically set to {}", newValue);
+                remoteClusterIdentityPolicy.setIgnoreSourceSecurityRoles(newValue);
+            });
+
         si = new SecurityInterceptor(
             settings,
             threadPool,
@@ -1725,7 +1735,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             Objects.requireNonNull(cih),
             SSLConfig,
             OpenSearchSecurityPlugin::isActionTraceEnabled,
-            userFactory
+            userFactory,
+            remoteClusterIdentityPolicy
         );
         components.add(principalExtractor);
 
@@ -1808,6 +1819,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         settings.addAll(super.getSettings());
 
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
+
+        // CCS: allow remote cluster to ignore source-propagated security roles
+        settings.add(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING);
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
         settings.add(SecuritySettings.SSL_DUAL_MODE_SETTING);
