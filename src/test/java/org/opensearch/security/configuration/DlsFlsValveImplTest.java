@@ -17,9 +17,11 @@ import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -39,6 +41,8 @@ import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -87,6 +91,71 @@ public class DlsFlsValveImplTest {
         boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(true, false);
 
         assertThat(result, is(false));
+    }
+
+    @Test
+    public void doesNotUseFilterLevelDlsWithoutDlsRestrictions() {
+        boolean result = DlsFlsValveImpl.shouldUseFilterLevelDlsInAdaptiveMode(false, true);
+
+        assertThat(result, is(false));
+    }
+
+    @Test
+    public void hybridQueryDlsMarkerPreventsValveReentry() throws Exception {
+        assertDlsMarkerPreventsValveReentry(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
+    }
+
+    @Test
+    public void filterLevelDlsMarkerPreventsValveReentry() throws Exception {
+        assertDlsMarkerPreventsValveReentry(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+    }
+
+    private static void assertDlsMarkerPreventsValveReentry(String header) throws Exception {
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putHeader(header, "true");
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("test-user"));
+        ThreadPool threadPool = mock(ThreadPool.class);
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+
+        PrivilegesEvaluationContext context = mock(PrivilegesEvaluationContext.class);
+        OptionallyResolvedIndices resolved = mock(OptionallyResolvedIndices.class);
+        when(context.getAction()).thenReturn("indices:data/read/search[phase/query]");
+        when(context.getRequest()).thenReturn(new SearchRequest());
+        when(context.getResolvedIndices()).thenReturn(resolved);
+
+        DocumentPrivileges documentPrivileges = mock(DocumentPrivileges.class);
+        when(documentPrivileges.isUnrestricted(context, resolved)).thenReturn(false);
+        FieldPrivileges fieldPrivileges = mock(FieldPrivileges.class);
+        when(fieldPrivileges.isUnrestricted(context, resolved)).thenReturn(true);
+        FieldMasking fieldMasking = mock(FieldMasking.class);
+        when(fieldMasking.isUnrestricted(context, resolved)).thenReturn(true);
+        DlsFlsProcessedConfig config = mock(DlsFlsProcessedConfig.class);
+        when(config.getDocumentPrivileges()).thenReturn(documentPrivileges);
+        when(config.getFieldPrivileges()).thenReturn(fieldPrivileges);
+        when(config.getFieldMasking()).thenReturn(fieldMasking);
+        DlsFlsBaseContext baseContext = mock(DlsFlsBaseContext.class);
+        when(baseContext.config()).thenReturn(config);
+
+        ClusterService clusterService = mock(ClusterService.class);
+        @SuppressWarnings("unchecked")
+        OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting = mock(OpensearchDynamicSetting.class);
+        when(resourceSharingEnabledSetting.getDynamicSettingValue()).thenReturn(false);
+        DlsFlsValveImpl valve = new DlsFlsValveImpl(
+            Settings.EMPTY,
+            mock(Client.class),
+            clusterService,
+            NamedXContentRegistry.EMPTY,
+            threadPool,
+            baseContext,
+            mock(AdminDNs.class),
+            mock(ResourcePluginInfo.class),
+            resourceSharingEnabledSetting
+        );
+
+        boolean result = valve.invoke(context, mock(ActionListener.class));
+
+        assertThat(result, is(true));
+        verify(clusterService, never()).state();
     }
 
     @Test

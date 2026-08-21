@@ -35,4 +35,15 @@ public class DlsFlsBaseContextTest {
         assertThat(context.isDlsQueryFilterApplied(), is(true));
         assertThat(context.isDlsDoneOnFilterLevel(), is(false));
     }
+
+    @Test
+    public void filterLevelDlsMarkerDoesNotMarkHybridQueryFilterAsApplied() {
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        DlsFlsBaseContext context = new DlsFlsBaseContext(mock(PrivilegesConfiguration.class), threadContext, mock(AdminDNs.class));
+
+        threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, "true");
+
+        assertThat(context.isDlsDoneOnFilterLevel(), is(true));
+        assertThat(context.isDlsQueryFilterApplied(), is(false));
+    }
 }

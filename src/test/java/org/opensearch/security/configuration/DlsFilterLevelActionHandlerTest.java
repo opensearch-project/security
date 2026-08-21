@@ -16,11 +16,15 @@ import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilderVisitor;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.support.ConfigConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -167,6 +171,38 @@ public class DlsFilterLevelActionHandlerTest {
     }
 
     @Test
+    public void preservesExistingSearchSource() {
+        SearchSourceBuilder existingSearchSource = SearchSourceBuilder.searchSource().query(QueryBuilders.matchAllQuery());
+        SearchRequest searchRequest = new SearchRequest().source(existingSearchSource);
+
+        SearchSourceBuilder searchSource = DlsFilterLevelActionHandler.getOrCreateSearchSource(searchRequest);
+
+        assertThat(searchSource, sameInstance(existingSearchSource));
+        assertThat(searchRequest.source(), sameInstance(existingSearchSource));
+    }
+
+    @Test
+    public void filterLevelDlsMarkerPreventsReentry() {
+        assertDlsMarkerPreventsReentry(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+    }
+
+    @Test
+    public void hybridQueryDlsMarkerPreventsReentry() {
+        assertDlsMarkerPreventsReentry(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
+    }
+
+    @Test
+    public void unmarkedClusterActionUsesNormalDispatchChecks() {
+        PrivilegesEvaluationContext context = mock(PrivilegesEvaluationContext.class);
+        when(context.getAction()).thenReturn("cluster:test");
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+
+        boolean result = DlsFilterLevelActionHandler.handle(context, null, null, null, null, null, threadContext, false);
+
+        assertThat(result, is(true));
+    }
+
+    @Test
     public void wrapsHybridQueryWhenReaderLevelDlsIsNotPreserved() {
         QueryBuilder hybridQuery = mock(QueryBuilder.class);
         BoolQueryBuilder dlsQuery = createDlsQuery();
@@ -183,5 +219,14 @@ public class DlsFilterLevelActionHandlerTest {
 
     private static BoolQueryBuilder createDlsQuery() {
         return QueryBuilders.boolQuery().minimumShouldMatch(1).should(QueryBuilders.termQuery("tenant", "allowed"));
+    }
+
+    private static void assertDlsMarkerPreventsReentry(String header) {
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putHeader(header, "true");
+
+        boolean result = DlsFilterLevelActionHandler.handle(null, null, null, null, null, null, threadContext, false);
+
+        assertThat(result, is(true));
     }
 }
