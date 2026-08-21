@@ -318,6 +318,9 @@ public class DlsFilterLevelActionHandler {
             if (filteredHybridQuery == null) {
                 throw new OpenSearchSecurityException("Hybrid query returned no query after applying the DLS filter");
             }
+            if (!isHybridQuery(filteredHybridQuery)) {
+                throw new OpenSearchSecurityException("Hybrid query was not preserved after applying the DLS filter");
+            }
             searchSource.query(filteredHybridQuery);
         } else {
             // Wrap the query in a bool query and apply filter level DLS query to it
