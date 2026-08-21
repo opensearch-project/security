@@ -37,6 +37,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -176,6 +177,10 @@ public class SecurityInterceptor {
                 getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS).split(",")
             );
             requestHeadersToCopy.removeAll(Task.REQUEST_HEADERS); // Special case where this header is preserved during stashContext.
+        }
+
+        if (!Strings.isNullOrEmpty(getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS))) {
+            requestHeadersToCopy.add(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS);
         }
 
         final Supplier<ThreadContext.StoredContext> restorableContextSupplier = getThreadContext().newRestorableContext(true);
