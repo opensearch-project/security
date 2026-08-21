@@ -253,7 +253,9 @@ public class DlsFilterLevelActionHandler {
             }
         }
 
-        applyFilterLevelDls(searchSource, filterLevelQueryBuilder, applyDlsFilterToHybridQuery);
+        if (!tryApplyFilterLevelDls(searchSource, filterLevelQueryBuilder, applyDlsFilterToHybridQuery, listener)) {
+            return false;
+        }
 
         nodeClient.search(searchRequest, new ActionListener<SearchResponse>() {
             @Override
@@ -321,6 +323,24 @@ public class DlsFilterLevelActionHandler {
             // Wrap the query in a bool query and apply filter level DLS query to it
             filterLevelQueryBuilder.must(query);
             searchSource.query(filterLevelQueryBuilder);
+        }
+    }
+
+    static boolean tryApplyFilterLevelDls(
+        SearchSourceBuilder searchSource,
+        BoolQueryBuilder filterLevelQueryBuilder,
+        boolean applyDlsFilterToHybridQuery,
+        ActionListener<?> listener
+    ) {
+        try {
+            applyFilterLevelDls(searchSource, filterLevelQueryBuilder, applyDlsFilterToHybridQuery);
+            return true;
+        } catch (Exception e) {
+            log.error("Unable to apply filter-level DLS", e);
+            listener.onFailure(
+                e instanceof OpenSearchSecurityException ? e : new OpenSearchSecurityException("Unable to apply filter-level DLS", e)
+            );
+            return false;
         }
     }
 
