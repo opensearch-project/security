@@ -68,6 +68,7 @@ public class DlsFilterLevelActionHandlerTest {
         SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
 
         when(hybridQuery.getName()).thenReturn("hybrid");
+        when(filteredHybridQuery.getName()).thenReturn("hybrid");
         when(hybridQuery.filter(dlsQuery)).thenReturn(filteredHybridQuery);
 
         DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
@@ -91,6 +92,26 @@ public class DlsFilterLevelActionHandlerTest {
         );
 
         assertThat(exception.getMessage(), is("Hybrid query returned no query after applying the DLS filter"));
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+    }
+
+    @Test
+    public void failsClosedWhenHybridFilterReturnsNonHybridQuery() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        QueryBuilder nonHybridQuery = mock(QueryBuilder.class);
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        when(hybridQuery.getName()).thenReturn("hybrid");
+        when(nonHybridQuery.getName()).thenReturn("bool");
+        when(hybridQuery.filter(dlsQuery)).thenReturn(nonHybridQuery);
+
+        OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true)
+        );
+
+        assertThat(exception.getMessage(), is("Hybrid query was not preserved after applying the DLS filter"));
         assertThat(searchSource.query(), sameInstance(hybridQuery));
     }
 
