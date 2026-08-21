@@ -295,7 +295,7 @@ public class DlsFilterLevelActionHandler {
     /**
      * Applies the filter level DLS query. When {@code applyDlsFilterToHybridQuery} is true, hybrid queries remain top-level
      * and their filter method propagates the DLS restriction to every subquery. Reader-level DLS must remain active in
-     * that case to protect search features which do not use the top-level query.
+     * that case to retain existing DLS behavior for search features which do not use the top-level query.
      * @param searchSource
      * @param filterLevelQueryBuilder
      * @param applyDlsFilterToHybridQuery whether to push the DLS filter into a top-level hybrid query
