@@ -51,6 +51,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.query.ParsedQuery;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.script.mustache.RenderSearchTemplateAction;
 import org.opensearch.search.DocValueFormat;
@@ -234,14 +235,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 return true;
             }
 
-            String filterLevelDlsDone = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
-            String dlsQueryFilterApplied = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
-            if (filterLevelDlsDone != null || dlsQueryFilterApplied != null) {
+            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null
+                || threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED) != null) {
                 if (log.isDebugEnabled()) {
-                    log.debug(
-                        "DLS query handling is already done for: {}",
-                        Objects.requireNonNullElse(filterLevelDlsDone, dlsQueryFilterApplied)
-                    );
+                    log.debug("DLS query handling is already done for this request");
                 }
 
                 return true;
@@ -489,9 +486,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         SearchSourceBuilder source = searchRequest.source();
-        return source != null
-            && DlsFilterLevelActionHandler.isHybridQuery(source.query())
-            && !ParentChildrenQueryDetector.hasParentOrChildQuery(source.query());
+        if (source == null) {
+            return false;
+        }
+        QueryBuilder query = source.query();
+        return DlsFilterLevelActionHandler.isHybridQuery(query) && !ParentChildrenQueryDetector.hasParentOrChildQuery(query);
     }
 
     @Override

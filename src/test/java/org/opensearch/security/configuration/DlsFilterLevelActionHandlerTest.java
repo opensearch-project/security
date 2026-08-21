@@ -18,6 +18,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilderVisitor;
@@ -90,6 +91,29 @@ public class DlsFilterLevelActionHandlerTest {
         );
 
         assertThat(exception.getMessage(), is("Hybrid query returned no query after applying the DLS filter"));
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+    }
+
+    @Test
+    public void reportsHybridFilterFailureToActionListener() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+        @SuppressWarnings("unchecked")
+        ActionListener<Object> listener = mock(ActionListener.class);
+
+        when(hybridQuery.getName()).thenReturn("hybrid");
+        when(hybridQuery.filter(dlsQuery)).thenReturn(null);
+
+        boolean applied = DlsFilterLevelActionHandler.tryApplyFilterLevelDls(searchSource, dlsQuery, true, listener);
+
+        assertThat(applied, is(false));
+        verify(listener).onFailure(
+            org.mockito.ArgumentMatchers.argThat(
+                exception -> exception instanceof OpenSearchSecurityException
+                    && exception.getMessage().equals("Hybrid query returned no query after applying the DLS filter")
+            )
+        );
         assertThat(searchSource.query(), sameInstance(hybridQuery));
     }
 
