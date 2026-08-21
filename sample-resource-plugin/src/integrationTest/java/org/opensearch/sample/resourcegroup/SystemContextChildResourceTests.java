@@ -44,9 +44,13 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 /**
  * Tests sharing-entry creation for resources written WITHOUT an authenticated
  * user in the thread context — the situation plugins are in when they index
- * resource documents under a plugin/system subject (e.g. reporting's
- * on-demand report instances via PluginClient, or scheduled jobs running
- * under job-scheduler).
+ * resource documents under a genuinely user-less subject, e.g. scheduled jobs
+ * running under job-scheduler or system/provisioning-context writes.
+ *
+ * (Note: request-driven writes that stash-then-restore the caller's context —
+ * such as reporting's on-demand report instances — do carry the authenticated
+ * user, so postIndex attributes them normally; they are not the user-less case
+ * exercised here.)
  *
  * Child resources (provider declares parentType/parentIdField) must still
  * receive a sharing entry, inheriting ownership from the parent's record.
