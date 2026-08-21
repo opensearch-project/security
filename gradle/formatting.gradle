@@ -14,7 +14,7 @@ allprojects {
 				'\\#java|\\#org.apache|\\#org.hamcrest|\\#org.opensearch|\\#'
 			)
 			removeUnusedImports()
-			eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
+			eclipse().withP2Mirrors(Map.of("https://download.eclipse.org/", "https://ci.opensearch.org/")).configFile rootProject.file('formatter/formatterConfig.xml')
 			trimTrailingWhitespace()
 			endWithNewline();
 
