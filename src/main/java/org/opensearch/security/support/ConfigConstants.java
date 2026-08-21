@@ -454,6 +454,14 @@ public class ConfigConstants {
     public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
                                                                                                       // protected
 
+    // ── DoS fix: incorrect-credential cache + bcrypt semaphore ──────────────────
+    public static final String SECURITY_CACHE_INCORRECT_CREDENTIAL_TTL_MINUTES = "plugins.security.cache.incorrect_credential_ttl_minutes";
+    public static final int SECURITY_CACHE_INCORRECT_CREDENTIAL_TTL_MINUTES_DEFAULT = 10;
+    public static final String SECURITY_CACHE_INCORRECT_CREDENTIAL_MAX_SIZE = "plugins.security.cache.incorrect_credential_max_size";
+    public static final int SECURITY_CACHE_INCORRECT_CREDENTIAL_MAX_SIZE_DEFAULT = 10_000;
+    public static final String SECURITY_AUTH_MAX_CONCURRENT_BCRYPT = "plugins.security.auth.max_concurrent_bcrypt";
+    public static final int SECURITY_AUTH_MAX_CONCURRENT_BCRYPT_DISABLED = 0;
+
     public static Set<String> getSettingAsSet(
         final Settings settings,
         final String key,
