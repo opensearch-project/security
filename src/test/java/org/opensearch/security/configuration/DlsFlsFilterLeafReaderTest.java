@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 public class DlsFlsFilterLeafReaderTest {
 
@@ -36,5 +37,10 @@ public class DlsFlsFilterLeafReaderTest {
     @Test
     public void appliesDlsToReaderForNonSearchActions() {
         assertThat(DlsFlsFilterLeafReader.shouldApplyDlsToReader(false, false, false, "indices:data/read/get"), is(true));
+    }
+
+    @Test
+    public void rejectsMissingActionWhenReaderDlsIsNotOtherwiseRequired() {
+        assertThrows(AssertionError.class, () -> DlsFlsFilterLeafReader.shouldApplyDlsToReader(false, false, false, null));
     }
 }
