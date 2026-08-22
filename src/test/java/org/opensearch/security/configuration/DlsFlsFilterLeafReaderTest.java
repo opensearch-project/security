@@ -10,6 +10,10 @@ package org.opensearch.security.configuration;
 
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.support.ConfigConstants;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -17,6 +21,22 @@ import static org.junit.Assert.assertThrows;
 public class DlsFlsFilterLeafReaderTest {
 
     private static final String SEARCH_ACTION = "indices:data/read/search[phase/query]";
+
+    @Test
+    public void identifiesHybridQueryDlsCompletionState() {
+        ThreadContext unmarkedContext = new ThreadContext(Settings.EMPTY);
+        ThreadContext filterLevelContext = new ThreadContext(Settings.EMPTY);
+        filterLevelContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, "true");
+        ThreadContext hybridContext = new ThreadContext(Settings.EMPTY);
+        hybridContext.putHeader(
+            ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
+            ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
+        );
+
+        assertThat(DlsFlsFilterLeafReader.isDlsQueryFilterApplied(unmarkedContext), is(false));
+        assertThat(DlsFlsFilterLeafReader.isDlsQueryFilterApplied(filterLevelContext), is(false));
+        assertThat(DlsFlsFilterLeafReader.isDlsQueryFilterApplied(hybridContext), is(true));
+    }
 
     @Test
     public void appliesDlsToReaderWhenHybridQueryFilterWasApplied() {

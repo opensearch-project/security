@@ -475,7 +475,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return minNodeVersion != null && minNodeVersion.onOrAfter(HYBRID_QUERY_DLS_FILTER_SUPPORTED_SINCE);
     }
 
-    private static boolean isLocalOnlyRequest(OptionallyResolvedIndices resolved) {
+    static boolean isLocalOnlyRequest(OptionallyResolvedIndices resolved) {
         return resolved instanceof ResolvedIndices resolvedIndices && resolvedIndices.remote().isEmpty();
     }
 

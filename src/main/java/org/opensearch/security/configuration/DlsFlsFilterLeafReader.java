@@ -906,14 +906,14 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         return threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY) == Boolean.TRUE;
     }
 
-    private boolean isDlsQueryFilterApplied() {
+    static boolean isDlsQueryFilterApplied(ThreadContext threadContext) {
         return ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE.equals(
             threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
         );
     }
 
     private boolean applyDlsHere() {
-        return shouldApplyDlsToReader(isSuggest(), isParentChildQuery(), isDlsQueryFilterApplied(), getRuntimeActionName());
+        return shouldApplyDlsToReader(isSuggest(), isParentChildQuery(), isDlsQueryFilterApplied(threadContext), getRuntimeActionName());
     }
 
     static boolean shouldApplyDlsToReader(boolean suggest, boolean parentChildQuery, boolean dlsQueryFilterApplied, String action) {
