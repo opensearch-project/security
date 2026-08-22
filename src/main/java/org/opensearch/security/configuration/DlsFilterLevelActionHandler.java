@@ -89,8 +89,7 @@ public class DlsFilterLevelActionHandler {
         boolean applyDlsFilterToHybridQuery
     ) {
 
-        if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null
-            || threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED) != null) {
+        if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
             return true;
         }
 
@@ -177,10 +176,8 @@ public class DlsFilterLevelActionHandler {
         try (StoredContext ctx = threadContext.newStoredContext(true)) {
 
             threadContext.putHeader(
-                applyDlsFilterToHybridQuery
-                    ? ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED
-                    : ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-                "true"
+                ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
+                applyDlsFilterToHybridQuery ? ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE : "true"
             );
 
             try {

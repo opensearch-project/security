@@ -202,7 +202,6 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)
                             || k.equals(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS)
@@ -231,7 +230,6 @@ public class SecurityInterceptor {
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER);
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
             }

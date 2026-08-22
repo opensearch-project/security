@@ -228,12 +228,12 @@ public class DlsFilterLevelActionHandlerTest {
 
     @Test
     public void filterLevelDlsMarkerPreventsReentry() {
-        assertDlsMarkerPreventsReentry(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+        assertDlsMarkerPreventsReentry("true");
     }
 
     @Test
     public void hybridQueryDlsMarkerPreventsReentry() {
-        assertDlsMarkerPreventsReentry(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
+        assertDlsMarkerPreventsReentry(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE);
     }
 
     @Test
@@ -266,9 +266,9 @@ public class DlsFilterLevelActionHandlerTest {
         return QueryBuilders.boolQuery().minimumShouldMatch(1).should(QueryBuilders.termQuery("tenant", "allowed"));
     }
 
-    private static void assertDlsMarkerPreventsReentry(String header) {
+    private static void assertDlsMarkerPreventsReentry(String value) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putHeader(header, "true");
+        threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, value);
 
         boolean result = DlsFilterLevelActionHandler.handle(null, null, null, null, null, null, threadContext, false);
 

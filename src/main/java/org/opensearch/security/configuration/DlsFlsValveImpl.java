@@ -235,8 +235,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 return true;
             }
 
-            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null
-                || threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED) != null) {
+            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
                 if (log.isDebugEnabled()) {
                     log.debug("DLS query handling is already done for this request");
                 }
@@ -559,9 +558,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if (!dlsRestriction.isUnrestricted()) {
                 if (dlsFlsBaseContext.isDlsQueryFilterApplied()) {
                     // The top-level hybrid filter already protects hits, so parsed-query rewriting is not needed here.
-                    // DlsFlsFilterLeafReader sees OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED and retains the existing
-                    // reader-level DLS behavior for aggregations, suggestions, and other paths. This check intentionally
-                    // follows the star-tree safeguard above.
+                    // DlsFlsFilterLeafReader sees the hybrid value on OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE and
+                    // retains the existing reader-level DLS behavior for aggregations, suggestions, and other paths.
+                    // This check intentionally follows the star-tree safeguard above.
                     log.trace("handleSearchContext(): DLS is applied to the hybrid query; preserving reader-level DLS");
                     return;
                 }
