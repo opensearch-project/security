@@ -218,10 +218,21 @@ public class SecurityInterceptor {
                 dlsFlsLegacyHeaders.performHeaderDecoration(connection, request, headerMap);
             }
 
-            if (isCrossClusterSearchEnabled()
-                && clusterInfoHolder.isInitialized()
-                && (action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME))
-                && !clusterInfoHolder.hasNode(connection.getNode())) {
+            boolean isSearchAction = action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME);
+            boolean isDestinationOutsideLocalCluster = clusterInfoHolder.isInitialized()
+                && !clusterInfoHolder.hasNode(connection.getNode());
+
+            if (isSearchAction
+                && isDestinationOutsideLocalCluster
+                && ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE.equals(
+                    headerMap.get(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
+                )) {
+                // The top-level query filter is only valid within the coordinating cluster. Strip its marker from any
+                // unrecognized destination even if RemoteClusterService does not currently report CCS as enabled.
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+            }
+
+            if (isCrossClusterSearchEnabled() && isSearchAction && isDestinationOutsideLocalCluster) {
                 if (isDebugEnabled) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
                 }

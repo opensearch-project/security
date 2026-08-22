@@ -514,6 +514,15 @@ public class SecurityInterceptorTests {
     @Test
     public void testHybridQueryDlsStateIsRemovedForRemoteCluster() {
         enableCrossClusterSearch();
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode();
+    }
+
+    @Test
+    public void testHybridQueryDlsStateIsRemovedWhenCrossClusterSearchIsDisabled() {
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode();
+    }
+
+    private void assertHybridQueryDlsStateIsRemovedForUnrecognizedNode() {
         threadPool.getThreadContext()
             .putHeader(
                 ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
