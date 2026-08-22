@@ -174,7 +174,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -194,7 +193,6 @@ public class LdapBackendTest {
                 ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").toFile().getName()
             )
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .put("path.conf", FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").getParent())
             .build();
@@ -216,7 +214,6 @@ public class LdapBackendTest {
 
     @Test
     public void testLdapAuthenticationSSLSSLv3() throws Exception {
-
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
@@ -244,7 +241,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_ciphers", "AAA")
             .put("path.home", ".")
             .build();
@@ -266,7 +262,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "TLSv1.2")
             .putList("enabled_ssl_ciphers", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA")
             .put("path.home", ".")
@@ -286,7 +281,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -721,7 +715,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
