@@ -45,7 +45,6 @@ import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
@@ -180,17 +179,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     if (Boolean.parseBoolean(shouldUseUserHeader) && userHeader != null) {
                         user = this.userFactory.fromSerializedBase64(userHeader);
 
-                        getThreadContext().putPersistent(
-                            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                            new UserSubjectImpl(getThreadPool(), user)
-                        );
+                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
                     } else if (authUsrHdr != null) {
                         User authUser = this.userFactory.fromSerializedBase64(authUsrHdr);
 
-                        getThreadContext().putPersistent(
-                            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                            new UserSubjectImpl(getThreadPool(), authUser)
-                        );
+                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, authUser);
                     }
                 }
 

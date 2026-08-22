@@ -17,7 +17,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
@@ -104,9 +103,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
             return;
         }
 
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadPool.getThreadContext()
-            .getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadPool.getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         final String parentType = provider.parentType();
         final String parentId = (parentType != null) ? ResourcePluginInfo.extractFieldFromIndexOp(provider.parentIdField(), index) : null;

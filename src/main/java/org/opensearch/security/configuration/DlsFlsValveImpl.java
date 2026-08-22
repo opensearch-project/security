@@ -70,7 +70,6 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
@@ -87,6 +86,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -170,8 +170,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return true;
         }
 
-        UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        if (userSubject != null && adminDNs.isAdmin(userSubject.getUser())) {
+        User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        if (user != null && adminDNs.isAdmin(user)) {
             return true;
         }
         OptionallyResolvedIndices resolved = context.getResolvedIndices();
@@ -187,7 +187,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
                         namedXContentRegistry,
                         resolvedIndexNames,
-                        userSubject.getUser()
+                        user
                     );
 
                     return DlsFilterLevelActionHandler.handle(
