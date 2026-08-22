@@ -47,6 +47,7 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.startree.StarTreeQueryContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
+import org.opensearch.security.privileges.dlsfls.DlsFlsLegacyHeaders;
 import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
@@ -61,7 +62,9 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -306,10 +309,46 @@ public class DlsFlsValveImplTest {
         invokeAdaptiveDlsValve(new BoolQueryBuilder(), null, true);
     }
 
-    private static void invokeAdaptiveDlsValve(QueryBuilder query, QueryBuilder expectedQuery, boolean expectedResult) throws Exception {
+    @Test
+    public void preparesLegacyHeadersForFilterLevelDls() throws Exception {
+        ThreadContext threadContext = invokeAdaptiveDlsValve(
+            new BoolQueryBuilder(),
+            null,
+            false,
+            Version.V_2_19_0,
+            DlsFlsValveImpl.Mode.FILTER_LEVEL.name(),
+            "true"
+        );
+
+        assertThat(threadContext.getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER), instanceOf(DlsFlsLegacyHeaders.class));
+    }
+
+    private static ThreadContext invokeAdaptiveDlsValve(QueryBuilder query, QueryBuilder expectedQuery, boolean expectedResult)
+        throws Exception {
+        return invokeAdaptiveDlsValve(
+            query,
+            expectedQuery,
+            expectedResult,
+            Version.V_3_9_0,
+            null,
+            ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
+        );
+    }
+
+    private static ThreadContext invokeAdaptiveDlsValve(
+        QueryBuilder query,
+        QueryBuilder expectedQuery,
+        boolean expectedResult,
+        Version minNodeVersion,
+        String dlsModeHeader,
+        String expectedCompletionMarker
+    ) throws Exception {
         String index = "index";
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("test-user"));
+        if (dlsModeHeader != null) {
+            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER, dlsModeHeader);
+        }
         ThreadPool threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
 
@@ -335,8 +374,22 @@ public class DlsFlsValveImplTest {
         when(documentPrivileges.getRestrictions(context, resolved.local().names(clusterState))).thenReturn(restrictions);
         FieldPrivileges fieldPrivileges = mock(FieldPrivileges.class);
         when(fieldPrivileges.isUnrestricted(context, resolved)).thenReturn(true);
+        when(
+            fieldPrivileges.getRestrictions(
+                org.mockito.ArgumentMatchers.eq(context),
+                org.mockito.ArgumentMatchers.eq(Metadata.EMPTY_METADATA.indices().keySet()),
+                org.mockito.ArgumentMatchers.nullable(FieldPrivileges.FlsRule.class)
+            )
+        ).thenReturn(IndexToRuleMap.unrestricted());
         FieldMasking fieldMasking = mock(FieldMasking.class);
         when(fieldMasking.isUnrestricted(context, resolved)).thenReturn(true);
+        when(
+            fieldMasking.getRestrictions(
+                org.mockito.ArgumentMatchers.eq(context),
+                org.mockito.ArgumentMatchers.eq(Metadata.EMPTY_METADATA.indices().keySet()),
+                org.mockito.ArgumentMatchers.nullable(FieldMasking.FieldMaskingRule.class)
+            )
+        ).thenReturn(IndexToRuleMap.unrestricted());
         DlsFlsProcessedConfig config = mock(DlsFlsProcessedConfig.class);
         when(config.getDocumentPrivileges()).thenReturn(documentPrivileges);
         when(config.getFieldPrivileges()).thenReturn(fieldPrivileges);
@@ -345,7 +398,7 @@ public class DlsFlsValveImplTest {
         when(baseContext.config()).thenReturn(config);
 
         DiscoveryNodes nodes = mock(DiscoveryNodes.class);
-        when(nodes.getMinNodeVersion()).thenReturn(Version.V_3_9_0);
+        when(nodes.getMinNodeVersion()).thenReturn(minNodeVersion);
         when(clusterState.nodes()).thenReturn(nodes);
         ClusterService clusterService = mock(ClusterService.class);
         when(clusterService.state()).thenReturn(clusterState);
@@ -356,10 +409,7 @@ public class DlsFlsValveImplTest {
         @SuppressWarnings("unchecked")
         ActionListener<Object> listener = mock(ActionListener.class);
         doAnswer(invocation -> {
-            assertThat(
-                threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE),
-                is(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE)
-            );
+            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is(expectedCompletionMarker));
             return null;
         }).when(nodeClient).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
         DlsFlsValveImpl valve = new DlsFlsValveImpl(
@@ -385,9 +435,14 @@ public class DlsFlsValveImplTest {
             );
         } else {
             verify(nodeClient).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
-            assertThat(searchRequest.source().query(), sameInstance(expectedQuery));
+            if (expectedQuery != null) {
+                assertThat(searchRequest.source().query(), sameInstance(expectedQuery));
+            } else {
+                assertThat(searchRequest.source().query(), not(sameInstance(query)));
+            }
         }
         assertThat(result, is(expectedResult));
+        return threadContext;
     }
 
     @Test
