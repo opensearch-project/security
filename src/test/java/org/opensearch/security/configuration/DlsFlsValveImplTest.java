@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
+import org.apache.lucene.search.BooleanClause;
 import org.junit.Test;
 
 import org.opensearch.Version;
@@ -40,6 +41,7 @@ import org.opensearch.index.IndexSettings;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilderVisitor;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.shard.IndexShard;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -297,9 +299,14 @@ public class DlsFlsValveImplTest {
     public void routesEligibleHybridQueriesThroughFilterLevelDls() throws Exception {
         QueryBuilder hybridQuery = mock(QueryBuilder.class);
         QueryBuilder filteredHybridQuery = mock(QueryBuilder.class);
-        when(hybridQuery.getName()).thenReturn("hybrid");
-        when(filteredHybridQuery.getName()).thenReturn("hybrid");
-        when(hybridQuery.filter(any(QueryBuilder.class))).thenReturn(filteredHybridQuery);
+        QueryBuilder originalSubquery = QueryBuilders.matchAllQuery();
+        QueryBuilder[] filteredSubqueries = new QueryBuilder[1];
+        stubHybridQuery(hybridQuery, originalSubquery);
+        stubHybridQuery(filteredHybridQuery, filteredSubqueries);
+        when(hybridQuery.filter(any(QueryBuilder.class))).thenAnswer(invocation -> {
+            filteredSubqueries[0] = originalSubquery.filter(invocation.getArgument(0));
+            return filteredHybridQuery;
+        });
 
         invokeAdaptiveDlsValve(hybridQuery, filteredHybridQuery, false);
     }
@@ -499,5 +506,18 @@ public class DlsFlsValveImplTest {
 
         verify(queryShardContext).setStarTreeQueryContext(null);
         verify(dlsRestriction, never()).toBooleanQueryBuilder(any(), any());
+    }
+
+    private static void stubHybridQuery(QueryBuilder hybridQuery, QueryBuilder... subqueries) {
+        when(hybridQuery.getName()).thenReturn("hybrid");
+        doAnswer(invocation -> {
+            QueryBuilderVisitor visitor = invocation.getArgument(0);
+            visitor.accept(hybridQuery);
+            QueryBuilderVisitor subqueryVisitor = visitor.getChildVisitor(BooleanClause.Occur.MUST);
+            for (QueryBuilder subquery : subqueries) {
+                subquery.visit(subqueryVisitor);
+            }
+            return null;
+        }).when(hybridQuery).visit(any(QueryBuilderVisitor.class));
     }
 }

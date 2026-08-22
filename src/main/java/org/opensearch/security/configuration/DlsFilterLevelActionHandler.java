@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.BooleanClause;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
@@ -50,6 +51,7 @@ import org.opensearch.index.get.GetResult;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilderVisitor;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.index.seqno.SequenceNumbers;
@@ -310,6 +312,10 @@ public class DlsFilterLevelActionHandler {
             if (ParentChildrenQueryDetector.hasParentOrChildQuery(query)) {
                 throw new OpenSearchSecurityException("Unable to handle filter level DLS for hybrid queries with parent or child clauses");
             }
+            List<QueryBuilder> originalSubqueries = directSubqueries(query);
+            if (originalSubqueries.isEmpty()) {
+                throw new OpenSearchSecurityException("Hybrid query does not expose subqueries for DLS verification");
+            }
             // Hybrid queries must remain top-level, so apply filter level DLS query directly
             QueryBuilder filteredHybridQuery = query.filter(filterLevelQueryBuilder);
             if (filteredHybridQuery == null) {
@@ -317,6 +323,9 @@ public class DlsFilterLevelActionHandler {
             }
             if (!isHybridQuery(filteredHybridQuery)) {
                 throw new OpenSearchSecurityException("Hybrid query was not preserved after applying the DLS filter");
+            }
+            if (!isDlsFilterAppliedToEverySubquery(filteredHybridQuery, filterLevelQueryBuilder, originalSubqueries)) {
+                throw new OpenSearchSecurityException("Hybrid query did not apply the DLS filter to every subquery");
             }
             searchSource.query(filteredHybridQuery);
         } else {
@@ -347,12 +356,62 @@ public class DlsFilterLevelActionHandler {
     /**
      * Neural Search is an optional plugin, so Security identifies its hybrid query through the public query type name
      * instead of depending on its query builder class. {@link QueryBuilder#getName()} is OpenSearch's unique query type
-     * identifier. A query builder registered as {@code hybrid} must honor {@link QueryBuilder#filter(QueryBuilder)} by
-     * applying the supplied filter to every subquery and must expose every subquery through its visitor. Reader-level DLS
-     * remains active whenever this special path is selected, independently of the query builder's filter implementation.
+     * identifier. A query builder registered as {@code hybrid} must expose every execution branch through its visitor.
+     * Security verifies after filtering that the number of branches is unchanged and that each branch preserves its
+     * original query while placing the exact supplied DLS query in a conjunctive boolean filter clause. Reader-level DLS
+     * remains active whenever this special path is selected.
      */
     static boolean isHybridQuery(QueryBuilder query) {
         return query != null && HYBRID_QUERY_NAME.equals(query.getName());
+    }
+
+    private static boolean isDlsFilterAppliedToEverySubquery(
+        QueryBuilder filteredHybridQuery,
+        QueryBuilder filterLevelQueryBuilder,
+        List<QueryBuilder> originalSubqueries
+    ) {
+        List<QueryBuilder> filteredSubqueries = directSubqueries(filteredHybridQuery);
+        if (filteredSubqueries.size() != originalSubqueries.size()) {
+            return false;
+        }
+        for (int i = 0; i < filteredSubqueries.size(); i++) {
+            QueryBuilder originalSubquery = originalSubqueries.get(i);
+            QueryBuilder filteredSubquery = filteredSubqueries.get(i);
+            if (!(filteredSubquery instanceof BoolQueryBuilder boolQuery)
+                || boolQuery.filter().stream().noneMatch(query -> query == filterLevelQueryBuilder)
+                || (filteredSubquery != originalSubquery && boolQuery.must().stream().noneMatch(query -> query == originalSubquery))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static List<QueryBuilder> directSubqueries(QueryBuilder query) {
+        List<QueryBuilder> directSubqueries = new ArrayList<>();
+        query.visit(new DirectSubqueryCollector(directSubqueries, false));
+        return directSubqueries;
+    }
+
+    private static final class DirectSubqueryCollector implements QueryBuilderVisitor {
+        private final List<QueryBuilder> directSubqueries;
+        private final boolean collect;
+
+        private DirectSubqueryCollector(List<QueryBuilder> directSubqueries, boolean collect) {
+            this.directSubqueries = directSubqueries;
+            this.collect = collect;
+        }
+
+        @Override
+        public void accept(QueryBuilder queryBuilder) {
+            if (collect) {
+                directSubqueries.add(queryBuilder);
+            }
+        }
+
+        @Override
+        public QueryBuilderVisitor getChildVisitor(BooleanClause.Occur occur) {
+            return collect ? QueryBuilderVisitor.NO_OP_VISITOR : new DirectSubqueryCollector(directSubqueries, true);
+        }
     }
 
     private boolean handle(GetRequest getRequest, StoredContext ctx) {
