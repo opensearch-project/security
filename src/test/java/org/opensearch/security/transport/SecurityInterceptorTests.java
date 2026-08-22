@@ -8,7 +8,6 @@
 
 package org.opensearch.security.transport;
 
-import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -50,7 +49,6 @@ import org.opensearch.security.user.UserFactory;
 import org.opensearch.telemetry.tracing.noop.NoopTracer;
 import org.opensearch.test.transport.MockTransport;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportException;
 import org.opensearch.transport.TransportInterceptor.AsyncSender;
@@ -137,6 +135,7 @@ public class SecurityInterceptorTests {
     private AsyncSender jdkSerializedSender;
     private AsyncSender customSerializedSender;
     private AtomicReference<CountDownLatch> senderLatch = new AtomicReference<>(new CountDownLatch(1));
+    private boolean crossClusterSearchEnabled;
 
     @Before
     public void setup() {
@@ -148,6 +147,7 @@ public class SecurityInterceptorTests {
             .put("request.headers.default", "1")
             .build();
         threadPool = new ThreadPool(settings);
+        crossClusterSearchEnabled = false;
         securityInterceptor = new SecurityInterceptor(
             settings,
             threadPool,
@@ -162,7 +162,12 @@ public class SecurityInterceptorTests {
             () -> true,
             new UserFactory.Simple(),
             new RemoteClusterIdentityPolicy(false)
-        );
+        ) {
+            @Override
+            boolean isCrossClusterSearchEnabled() {
+                return crossClusterSearchEnabled;
+            }
+        };
 
         clusterName = ClusterName.DEFAULT;
         when(clusterService.getClusterName()).thenReturn(clusterName);
@@ -312,16 +317,27 @@ public class SecurityInterceptorTests {
     }
 
     private void enableCrossClusterSearch() {
-        try {
-            RemoteClusterService remoteClusterService = OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService();
-            Field remoteClustersField = RemoteClusterService.class.getDeclaredField("remoteClusters");
-            remoteClustersField.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            Map<String, Object> remoteClusters = (Map<String, Object>) remoteClustersField.get(remoteClusterService);
-            remoteClusters.put("test-remote-cluster", new Object());
-        } catch (ReflectiveOperationException e) {
-            throw new AssertionError("Could not configure the test remote cluster", e);
-        }
+        crossClusterSearchEnabled = true;
+    }
+
+    @Test
+    public void testCrossClusterSearchStatusUsesRemoteClusterService() {
+        SecurityInterceptor interceptor = new SecurityInterceptor(
+            settings,
+            threadPool,
+            backendRegistry,
+            auditLog,
+            principalExtractor,
+            requestEvalProvider,
+            clusterService,
+            sslExceptionHandler,
+            clusterInfoHolder,
+            sslConfig,
+            () -> true,
+            new UserFactory.Simple()
+        );
+
+        assertFalse(interceptor.isCrossClusterSearchEnabled());
     }
 
     @Test
