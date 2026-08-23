@@ -76,6 +76,7 @@ import org.opensearch.transport.client.Client;
 public class DlsFilterLevelActionHandler {
     private static final Logger log = LogManager.getLogger(DlsFilterLevelActionHandler.class);
     private static final String HYBRID_QUERY_NAME = "hybrid";
+    private static final String NEURAL_QUERY_NAME = "neural";
 
     private static final Function<SearchRequest, String> LOCAL_CLUSTER_ALIAS_GETTER = ReflectiveAttributeAccessors.protectedObjectAttr(
         "localClusterAlias",
@@ -366,9 +367,10 @@ public class DlsFilterLevelActionHandler {
      * Neural Search is an optional plugin, so Security identifies its hybrid query through the public query type name
      * instead of depending on its query builder class. {@link QueryBuilder#getName()} is OpenSearch's unique query type
      * identifier. A query builder registered as {@code hybrid} must expose every execution branch through its visitor.
-     * Security verifies after filtering that the identity-based multiset of branches is unchanged and that each branch
-     * preserves one original query while placing the exact supplied DLS query in a conjunctive boolean filter clause.
-     * Branch order is deliberately ignored. Reader-level DLS remains active whenever this special path is selected.
+     * Security verifies after filtering that every original branch is preserved exactly once. Neural query builders
+     * apply their filter in place and return themselves; other builders return or remain a conjunctive boolean query
+     * which contains the original branch and the exact supplied DLS query. Branch order is deliberately ignored.
+     * Reader-level DLS remains active whenever this special path is selected.
      */
     static boolean isHybridQuery(QueryBuilder query) {
         return query != null && HYBRID_QUERY_NAME.equals(query.getName());
@@ -412,6 +414,10 @@ public class DlsFilterLevelActionHandler {
         QueryBuilder originalSubquery,
         QueryBuilder filterLevelQueryBuilder
     ) {
+        // NeuralQueryBuilder's public filter contract stores the filter internally and returns the same builder.
+        if (filteredSubquery == originalSubquery && NEURAL_QUERY_NAME.equals(filteredSubquery.getName())) {
+            return true;
+        }
         if (filteredSubquery instanceof BoolQueryBuilder boolQuery) {
             return boolQuery.filter().stream().anyMatch(query -> query == filterLevelQueryBuilder)
                 && (filteredSubquery == originalSubquery || boolQuery.must().stream().anyMatch(query -> query == originalSubquery));
