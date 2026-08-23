@@ -508,21 +508,34 @@ public class SecurityInterceptorTests {
         };
 
         completableRequestDecorate(headerVerifyingSender, connection1, SearchAction.NAME, request, options, handler, localNode);
-        completableRequestDecorate(headerVerifyingSender, connection2, SearchAction.NAME, request, options, handler, localNode);
+        completableRequestDecorate(headerVerifyingSender, connection2, "internal:hybrid-follow-up", request, options, handler, localNode);
     }
 
     @Test
     public void testHybridQueryDlsStateIsRemovedForRemoteCluster() {
         enableCrossClusterSearch();
-        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode();
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(SearchAction.NAME);
     }
 
     @Test
     public void testHybridQueryDlsStateIsRemovedWhenCrossClusterSearchIsDisabled() {
-        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode();
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(SearchAction.NAME);
     }
 
-    private void assertHybridQueryDlsStateIsRemovedForUnrecognizedNode() {
+    @Test
+    public void testHybridQueryDlsStateIsRemovedForNonSearchAction() {
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode("internal:hybrid-follow-up");
+    }
+
+    @Test
+    public void testUnrecognizedNonSearchDestinationWithoutHybridMarkerUsesNormalHeaders() {
+        when(clusterInfoHolder.isInitialized()).thenReturn(true);
+        when(clusterInfoHolder.hasNode(remoteNode)).thenReturn(false);
+
+        completableRequestDecorate(jdkSerializedSender, connection3, action, request, options, handler, localNode);
+    }
+
+    private void assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(String action) {
         threadPool.getThreadContext()
             .putHeader(
                 ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
@@ -545,7 +558,7 @@ public class SecurityInterceptorTests {
             }
         };
 
-        completableRequestDecorate(headerVerifyingSender, connection3, SearchAction.NAME, request, options, handler, localNode);
+        completableRequestDecorate(headerVerifyingSender, connection3, action, request, options, handler, localNode);
     }
 
     @Test

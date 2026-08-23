@@ -222,13 +222,12 @@ public class SecurityInterceptor {
             boolean isDestinationOutsideLocalCluster = clusterInfoHolder.isInitialized()
                 && !clusterInfoHolder.hasNode(connection.getNode());
 
-            if (isSearchAction
-                && isDestinationOutsideLocalCluster
+            if (isDestinationOutsideLocalCluster
                 && ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE.equals(
                     headerMap.get(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
                 )) {
-                // The top-level query filter is only valid within the coordinating cluster. Strip its marker from any
-                // unrecognized destination even if RemoteClusterService does not currently report CCS as enabled.
+                // The top-level query filter is only valid within the coordinating cluster. Strip its marker from every
+                // action sent to an unrecognized destination, even if RemoteClusterService does not report CCS as enabled.
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
             }
 

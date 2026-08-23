@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -357,9 +358,9 @@ public class DlsFilterLevelActionHandler {
      * Neural Search is an optional plugin, so Security identifies its hybrid query through the public query type name
      * instead of depending on its query builder class. {@link QueryBuilder#getName()} is OpenSearch's unique query type
      * identifier. A query builder registered as {@code hybrid} must expose every execution branch through its visitor.
-     * Security verifies after filtering that the number of branches is unchanged and that each branch preserves its
-     * original query while placing the exact supplied DLS query in a conjunctive boolean filter clause. Reader-level DLS
-     * remains active whenever this special path is selected.
+     * Security verifies after filtering that the identity-based multiset of branches is unchanged and that each branch
+     * preserves one original query while placing the exact supplied DLS query in a conjunctive boolean filter clause.
+     * Branch order is deliberately ignored. Reader-level DLS remains active whenever this special path is selected.
      */
     static boolean isHybridQuery(QueryBuilder query) {
         return query != null && HYBRID_QUERY_NAME.equals(query.getName());
@@ -374,14 +375,31 @@ public class DlsFilterLevelActionHandler {
         if (filteredSubqueries.size() != originalSubqueries.size()) {
             return false;
         }
-        for (int i = 0; i < filteredSubqueries.size(); i++) {
-            QueryBuilder originalSubquery = originalSubqueries.get(i);
-            QueryBuilder filteredSubquery = filteredSubqueries.get(i);
+
+        Map<QueryBuilder, Integer> unmatchedOriginalSubqueries = new IdentityHashMap<>();
+        originalSubqueries.forEach(originalSubquery -> unmatchedOriginalSubqueries.merge(originalSubquery, 1, Integer::sum));
+        for (QueryBuilder filteredSubquery : filteredSubqueries) {
             if (!(filteredSubquery instanceof BoolQueryBuilder boolQuery)
-                || boolQuery.filter().stream().noneMatch(query -> query == filterLevelQueryBuilder)
-                || (filteredSubquery != originalSubquery && boolQuery.must().stream().noneMatch(query -> query == originalSubquery))) {
+                || boolQuery.filter().stream().noneMatch(query -> query == filterLevelQueryBuilder)) {
                 return false;
             }
+
+            QueryBuilder preservedOriginalSubquery = null;
+            for (Map.Entry<QueryBuilder, Integer> entry : unmatchedOriginalSubqueries.entrySet()) {
+                QueryBuilder originalSubquery = entry.getKey();
+                if (entry.getValue() > 0
+                    && (filteredSubquery == originalSubquery || boolQuery.must().stream().anyMatch(query -> query == originalSubquery))) {
+                    if (preservedOriginalSubquery != null) {
+                        // A filtered branch must not merge multiple original hybrid execution branches.
+                        return false;
+                    }
+                    preservedOriginalSubquery = originalSubquery;
+                }
+            }
+            if (preservedOriginalSubquery == null) {
+                return false;
+            }
+            unmatchedOriginalSubqueries.computeIfPresent(preservedOriginalSubquery, (query, count) -> count - 1);
         }
         return true;
     }
