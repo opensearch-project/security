@@ -330,6 +330,20 @@ public class DlsFlsValveImplTest {
         assertThat(threadContext.getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER), instanceOf(DlsFlsLegacyHeaders.class));
     }
 
+    @Test
+    public void doesNotApplyFilterLevelDlsWhenOnlyFlsIsRestricted() throws Exception {
+        invokeAdaptiveDlsValve(
+            new BoolQueryBuilder(),
+            null,
+            true,
+            Version.V_3_9_0,
+            DlsFlsValveImpl.Mode.FILTER_LEVEL.name(),
+            null,
+            false,
+            true
+        );
+    }
+
     private static ThreadContext invokeAdaptiveDlsValve(QueryBuilder query, QueryBuilder expectedQuery, boolean expectedResult)
         throws Exception {
         return invokeAdaptiveDlsValve(
@@ -349,6 +363,28 @@ public class DlsFlsValveImplTest {
         Version minNodeVersion,
         String dlsModeHeader,
         String expectedCompletionMarker
+    ) throws Exception {
+        return invokeAdaptiveDlsValve(
+            query,
+            expectedQuery,
+            expectedResult,
+            minNodeVersion,
+            dlsModeHeader,
+            expectedCompletionMarker,
+            true,
+            false
+        );
+    }
+
+    private static ThreadContext invokeAdaptiveDlsValve(
+        QueryBuilder query,
+        QueryBuilder expectedQuery,
+        boolean expectedResult,
+        Version minNodeVersion,
+        String dlsModeHeader,
+        String expectedCompletionMarker,
+        boolean hasDlsRestrictions,
+        boolean hasFlsRestrictions
     ) throws Exception {
         String index = "index";
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
@@ -377,10 +413,10 @@ public class DlsFlsValveImplTest {
         when(dlsRestriction.containsTermLookupQuery()).thenReturn(false);
         IndexToRuleMap<DlsRestriction> restrictions = new IndexToRuleMap<>(ImmutableMap.of(index, dlsRestriction));
         DocumentPrivileges documentPrivileges = mock(DocumentPrivileges.class);
-        when(documentPrivileges.isUnrestricted(context, resolved)).thenReturn(false);
+        when(documentPrivileges.isUnrestricted(context, resolved)).thenReturn(!hasDlsRestrictions);
         when(documentPrivileges.getRestrictions(context, resolved.local().names(clusterState))).thenReturn(restrictions);
         FieldPrivileges fieldPrivileges = mock(FieldPrivileges.class);
-        when(fieldPrivileges.isUnrestricted(context, resolved)).thenReturn(true);
+        when(fieldPrivileges.isUnrestricted(context, resolved)).thenReturn(!hasFlsRestrictions);
         when(
             fieldPrivileges.getRestrictions(
                 org.mockito.ArgumentMatchers.eq(context),

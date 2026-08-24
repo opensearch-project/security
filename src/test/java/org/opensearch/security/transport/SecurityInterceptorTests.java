@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.Version;
+import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsAction;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchAction;
@@ -515,6 +516,11 @@ public class SecurityInterceptorTests {
     public void testHybridQueryDlsStateIsRemovedForRemoteCluster() {
         enableCrossClusterSearch();
         assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(SearchAction.NAME);
+    }
+
+    @Test
+    public void testHybridQueryDlsStateIsRemovedForClusterSearchShardsAction() {
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(ClusterSearchShardsAction.NAME);
     }
 
     @Test
