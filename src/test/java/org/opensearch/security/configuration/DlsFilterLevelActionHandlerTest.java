@@ -29,6 +29,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.ConstantScoreQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilderVisitor;
 import org.opensearch.index.query.QueryBuilders;
@@ -76,6 +77,52 @@ public class DlsFilterLevelActionHandlerTest {
         assertThat(dlsQuery.must(), empty());
         assertThat(dlsQuery.should(), hasSize(1));
         verify(hybridQuery).filter(dlsQuery);
+    }
+
+    @Test
+    public void preservesImplicitMinimumShouldMatchWhenFilteringHybridBoolSubquery() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        BoolQueryBuilder originalSubquery = QueryBuilders.boolQuery().should(QueryBuilders.termQuery("signal", "first"));
+        QueryBuilder[] subqueries = { originalSubquery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        when(hybridQuery.filter(dlsQuery)).thenAnswer(invocation -> {
+            subqueries[0] = originalSubquery.filter(dlsQuery);
+            return hybridQuery;
+        });
+
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
+
+        assertThat(originalSubquery.minimumShouldMatch(), is("1"));
+        assertThat(originalSubquery.filter(), contains(sameInstance(dlsQuery)));
+    }
+
+    @Test
+    public void preservesConstantScoreHybridSubqueryWhenFiltering() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        ConstantScoreQueryBuilder originalSubquery = QueryBuilders.constantScoreQuery(QueryBuilders.termQuery("signal", "first"));
+        originalSubquery.boost(2.0f);
+        originalSubquery.queryName("original-constant-score");
+        QueryBuilder[] subqueries = { originalSubquery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        when(hybridQuery.filter(dlsQuery)).thenAnswer(invocation -> {
+            subqueries[0] = originalSubquery.filter(dlsQuery);
+            return hybridQuery;
+        });
+
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
+
+        ConstantScoreQueryBuilder filteredSubquery = (ConstantScoreQueryBuilder) subqueries[0];
+        BoolQueryBuilder filteredInnerQuery = (BoolQueryBuilder) filteredSubquery.innerQuery();
+        assertThat(filteredSubquery.boost(), is(2.0f));
+        assertThat(filteredSubquery.queryName(), is("original-constant-score"));
+        assertThat(filteredInnerQuery.must(), contains(sameInstance(originalSubquery.innerQuery())));
+        assertThat(filteredInnerQuery.filter(), contains(sameInstance(dlsQuery)));
     }
 
     @Test

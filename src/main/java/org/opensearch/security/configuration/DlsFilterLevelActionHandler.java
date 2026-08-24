@@ -51,6 +51,7 @@ import org.opensearch.index.IndexService;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.ConstantScoreQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilderVisitor;
 import org.opensearch.index.query.QueryBuilders;
@@ -317,6 +318,9 @@ public class DlsFilterLevelActionHandler {
             if (originalSubqueries.isEmpty()) {
                 throw new OpenSearchSecurityException("Hybrid query does not expose subqueries for DLS verification");
             }
+            Set<BoolQueryBuilder> boolQueriesWithImplicitMinimumShouldMatch = findBoolQueriesWithImplicitMinimumShouldMatch(
+                originalSubqueries
+            );
             // Hybrid queries must remain top-level, so apply filter level DLS query directly
             QueryBuilder filteredHybridQuery = query.filter(filterLevelQueryBuilder);
             if (filteredHybridQuery == null) {
@@ -325,6 +329,7 @@ public class DlsFilterLevelActionHandler {
             if (!isHybridQuery(filteredHybridQuery)) {
                 throw new OpenSearchSecurityException("Hybrid query was not preserved after applying the DLS filter");
             }
+            preserveImplicitMinimumShouldMatch(boolQueriesWithImplicitMinimumShouldMatch, filterLevelQueryBuilder);
             if (!isDlsFilterAppliedToEverySubquery(filteredHybridQuery, filterLevelQueryBuilder, originalSubqueries)) {
                 throw new OpenSearchSecurityException("Hybrid query did not apply the DLS filter to every subquery");
             }
@@ -379,16 +384,10 @@ public class DlsFilterLevelActionHandler {
         Map<QueryBuilder, Integer> unmatchedOriginalSubqueries = new IdentityHashMap<>();
         originalSubqueries.forEach(originalSubquery -> unmatchedOriginalSubqueries.merge(originalSubquery, 1, Integer::sum));
         for (QueryBuilder filteredSubquery : filteredSubqueries) {
-            if (!(filteredSubquery instanceof BoolQueryBuilder boolQuery)
-                || boolQuery.filter().stream().noneMatch(query -> query == filterLevelQueryBuilder)) {
-                return false;
-            }
-
             QueryBuilder preservedOriginalSubquery = null;
             for (Map.Entry<QueryBuilder, Integer> entry : unmatchedOriginalSubqueries.entrySet()) {
                 QueryBuilder originalSubquery = entry.getKey();
-                if (entry.getValue() > 0
-                    && (filteredSubquery == originalSubquery || boolQuery.must().stream().anyMatch(query -> query == originalSubquery))) {
+                if (entry.getValue() > 0 && isDlsFilterAppliedToSubquery(filteredSubquery, originalSubquery, filterLevelQueryBuilder)) {
                     if (preservedOriginalSubquery != null) {
                         // A filtered branch must not merge multiple original hybrid execution branches.
                         return false;
@@ -399,9 +398,76 @@ public class DlsFilterLevelActionHandler {
             if (preservedOriginalSubquery == null) {
                 return false;
             }
+            preserveQueryMetadata(filteredSubquery, preservedOriginalSubquery);
             unmatchedOriginalSubqueries.computeIfPresent(preservedOriginalSubquery, (query, count) -> count - 1);
         }
         return true;
+    }
+
+    private static boolean isDlsFilterAppliedToSubquery(
+        QueryBuilder filteredSubquery,
+        QueryBuilder originalSubquery,
+        QueryBuilder filterLevelQueryBuilder
+    ) {
+        if (filteredSubquery instanceof BoolQueryBuilder boolQuery) {
+            return boolQuery.filter().stream().anyMatch(query -> query == filterLevelQueryBuilder)
+                && (filteredSubquery == originalSubquery || boolQuery.must().stream().anyMatch(query -> query == originalSubquery));
+        }
+        if (filteredSubquery instanceof ConstantScoreQueryBuilder filteredConstantScore
+            && originalSubquery instanceof ConstantScoreQueryBuilder originalConstantScore) {
+            return isDlsFilterAppliedToSubquery(
+                filteredConstantScore.innerQuery(),
+                originalConstantScore.innerQuery(),
+                filterLevelQueryBuilder
+            );
+        }
+        return false;
+    }
+
+    private static Set<BoolQueryBuilder> findBoolQueriesWithImplicitMinimumShouldMatch(List<QueryBuilder> originalSubqueries) {
+        Set<BoolQueryBuilder> boolQueriesWithImplicitMinimumShouldMatch = Collections.newSetFromMap(new IdentityHashMap<>());
+        QueryBuilderVisitor visitor = new QueryBuilderVisitor() {
+            @Override
+            public void accept(QueryBuilder queryBuilder) {
+                if (queryBuilder instanceof BoolQueryBuilder boolQuery
+                    && boolQuery.minimumShouldMatch() == null
+                    && !boolQuery.should().isEmpty()
+                    && boolQuery.must().isEmpty()
+                    && boolQuery.filter().isEmpty()) {
+                    boolQueriesWithImplicitMinimumShouldMatch.add(boolQuery);
+                }
+            }
+
+            @Override
+            public QueryBuilderVisitor getChildVisitor(BooleanClause.Occur occur) {
+                return this;
+            }
+        };
+        originalSubqueries.forEach(queryBuilder -> queryBuilder.visit(visitor));
+        return boolQueriesWithImplicitMinimumShouldMatch;
+    }
+
+    // BoolQueryBuilder.filter mutates the existing query. A filter makes otherwise optional should clauses optional
+    // in Lucene, while a bool query containing only should clauses implicitly requires one should clause to match.
+    private static void preserveImplicitMinimumShouldMatch(
+        Set<BoolQueryBuilder> boolQueriesWithImplicitMinimumShouldMatch,
+        QueryBuilder filterLevelQueryBuilder
+    ) {
+        for (BoolQueryBuilder boolQuery : boolQueriesWithImplicitMinimumShouldMatch) {
+            if (boolQuery.filter().stream().anyMatch(query -> query == filterLevelQueryBuilder)) {
+                boolQuery.minimumShouldMatch(1);
+            }
+        }
+    }
+
+    // ConstantScoreQueryBuilder.filter can return a new builder without copying its boost or query name.
+    private static void preserveQueryMetadata(QueryBuilder filteredSubquery, QueryBuilder originalSubquery) {
+        if (filteredSubquery instanceof ConstantScoreQueryBuilder filteredConstantScore
+            && originalSubquery instanceof ConstantScoreQueryBuilder originalConstantScore) {
+            filteredConstantScore.boost(originalConstantScore.boost());
+            filteredConstantScore.queryName(originalConstantScore.queryName());
+            preserveQueryMetadata(filteredConstantScore.innerQuery(), originalConstantScore.innerQuery());
+        }
     }
 
     private static List<QueryBuilder> directSubqueries(QueryBuilder query) {
