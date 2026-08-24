@@ -157,7 +157,8 @@ public class SecurityInterceptorTests {
             clusterInfoHolder,
             sslConfig,
             () -> true,
-            new UserFactory.Simple()
+            new UserFactory.Simple(),
+            new RemoteClusterIdentityPolicy(false)
         );
 
         clusterName = ClusterName.DEFAULT;

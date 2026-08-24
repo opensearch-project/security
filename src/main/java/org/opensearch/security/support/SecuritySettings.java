@@ -284,4 +284,12 @@ public class SecuritySettings {
         AUDIT_CONFIG_PREFIX + "action_groups.",
         Setting.Property.NodeScope
     );
+
+    // CCS: ignore source-propagated security roles on the remote cluster
+    public static final Setting<Boolean> CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING = Setting.boolSetting(
+        ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES,
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    );
 }
