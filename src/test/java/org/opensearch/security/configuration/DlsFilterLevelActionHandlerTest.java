@@ -179,6 +179,58 @@ public class DlsFilterLevelActionHandlerTest {
     }
 
     @Test
+    public void acceptsKnnHybridSubqueryWithFilterCopy() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        QueryBuilder originalSubquery = mock(QueryBuilder.class);
+        QueryBuilder filteredSubquery = mock(QueryBuilder.class);
+        QueryBuilder[] subqueries = { originalSubquery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        stubDirectSubquery(originalSubquery);
+        stubDirectSubquery(filteredSubquery);
+        when(originalSubquery.getName()).thenReturn("knn");
+        when(filteredSubquery.getName()).thenReturn("knn");
+        when(originalSubquery.filter(dlsQuery)).thenReturn(filteredSubquery);
+        when(hybridQuery.filter(dlsQuery)).thenAnswer(invocation -> {
+            subqueries[0] = originalSubquery.filter(dlsQuery);
+            return hybridQuery;
+        });
+
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
+
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+        verify(originalSubquery).filter(dlsQuery);
+    }
+
+    @Test
+    public void failsClosedWhenKnnFilterDoesNotMatchOriginalSubquery() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        QueryBuilder originalSubquery = QueryBuilders.termQuery("signal", "original");
+        QueryBuilder filteredSubquery = mock(QueryBuilder.class);
+        QueryBuilder[] subqueries = { originalSubquery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        stubDirectSubquery(filteredSubquery);
+        when(filteredSubquery.getName()).thenReturn("knn");
+        when(hybridQuery.filter(dlsQuery)).thenAnswer(invocation -> {
+            subqueries[0] = filteredSubquery;
+            return hybridQuery;
+        });
+
+        OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true)
+        );
+
+        assertThat(exception.getMessage(), is("Hybrid query did not apply the DLS filter to every subquery"));
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+    }
+
+    @Test
     public void usesQueryReturnedByHybridFilter() {
         QueryBuilder hybridQuery = mock(QueryBuilder.class);
         QueryBuilder filteredHybridQuery = mock(QueryBuilder.class);
@@ -733,6 +785,13 @@ public class DlsFilterLevelActionHandlerTest {
             }
             return null;
         }).when(hybridQuery).visit(any(QueryBuilderVisitor.class));
+    }
+
+    private static void stubDirectSubquery(QueryBuilder subquery) {
+        doAnswer(invocation -> {
+            invocation.<QueryBuilderVisitor>getArgument(0).accept(subquery);
+            return null;
+        }).when(subquery).visit(any(QueryBuilderVisitor.class));
     }
 
     private static void assertDlsMarkerPreventsReentry(String header) {
