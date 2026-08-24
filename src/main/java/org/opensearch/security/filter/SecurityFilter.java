@@ -85,7 +85,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
@@ -220,7 +219,7 @@ public class SecurityFilter implements ActionFilter {
                 }
             }
             if (user != null && threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadContext);
@@ -368,10 +367,7 @@ public class SecurityFilter implements ActionFilter {
                         user = User.DEFAULT_TRANSPORT_USER;
                         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                         if (threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                            threadContext.putPersistent(
-                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                                new UserSubjectImpl(threadPool, user)
-                            );
+                            threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
                         }
                     } else {
                         log.error(

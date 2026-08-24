@@ -33,6 +33,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamField;
 import java.io.Serial;
 import java.io.Serializable;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,6 +46,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.identity.Subject;
 import org.opensearch.security.support.Base64Helper;
 
 /**
@@ -56,7 +58,7 @@ import org.opensearch.security.support.Base64Helper;
  * <b>Do not subclass from this class; do not add attributes that can be modified using publicly visible methods!</b>
  *
  */
-public class User implements Serializable, CustomAttributesAware {
+public class User implements Serializable, CustomAttributesAware, Principal, Subject {
 
     public static final User ANONYMOUS = new User("opendistro_security_anonymous").withRoles("opendistro_security_anonymous_backendrole");
 
@@ -150,8 +152,14 @@ public class User implements Serializable, CustomAttributesAware {
         this.estimatedByteSize = calcEstimatedByteSize();
     }
 
+    @Override
     public final String getName() {
         return name;
+    }
+
+    @Override
+    public Principal getPrincipal() {
+        return this;
     }
 
     /**

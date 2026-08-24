@@ -58,7 +58,6 @@ import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.dlsfls.DlsFlsLegacyHeaders;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -165,9 +164,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
         final DlsFlsLegacyHeaders dlsFlsLegacyHeaders = getThreadContext().getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER);
 
-        final UserSubjectImpl authUserSubj = (UserSubjectImpl) getThreadContext().getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
+        final User authUserSubj = (User) getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isStreamChannel = options != null && TransportRequestOptions.Type.STREAM.equals(options.type());
@@ -295,7 +292,7 @@ public class SecurityInterceptor {
     private void ensureCorrectHeaders(
         final Object remoteAdr,
         final User origUser,
-        final UserSubjectImpl authSubject,
+        final User authSubject,
         final String origin,
         final String injectedUserString,
         final String injectedRolesString,
@@ -348,7 +345,7 @@ public class SecurityInterceptor {
             String authSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
             String sameSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
             if (authSubjectHeader == null && authSubject != null) {
-                if (origUser != null && origUser.equals(authSubject.getUser())) {
+                if (origUser != null && origUser.equals(authSubject)) {
                     if (sameSubjectHeader == null) {
                         getThreadContext().putHeader(
                             ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER,
@@ -358,7 +355,7 @@ public class SecurityInterceptor {
                 } else {
                     getThreadContext().putHeader(
                         ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER,
-                        authSubject.getUser().toSerializedBase64()
+                        authSubject.toSerializedBase64()
                     );
                 }
             }
