@@ -152,6 +152,33 @@ public class DlsFilterLevelActionHandlerTest {
     }
 
     @Test
+    public void acceptsNeuralSparseHybridSubqueryWithDefaultFilter() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        QueryBuilder originalSubquery = mock(QueryBuilder.class);
+        QueryBuilder[] subqueries = { originalSubquery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        BoolQueryBuilder filteredSubquery = QueryBuilders.boolQuery().must(originalSubquery).filter(dlsQuery);
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        doAnswer(invocation -> {
+            invocation.<QueryBuilderVisitor>getArgument(0).accept(originalSubquery);
+            return null;
+        }).when(originalSubquery).visit(any(QueryBuilderVisitor.class));
+        when(originalSubquery.getName()).thenReturn("neural_sparse");
+        when(originalSubquery.filter(dlsQuery)).thenReturn(filteredSubquery);
+        when(hybridQuery.filter(dlsQuery)).thenAnswer(invocation -> {
+            subqueries[0] = originalSubquery.filter(dlsQuery);
+            return hybridQuery;
+        });
+
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
+
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+        verify(originalSubquery).filter(dlsQuery);
+    }
+
+    @Test
     public void usesQueryReturnedByHybridFilter() {
         QueryBuilder hybridQuery = mock(QueryBuilder.class);
         QueryBuilder filteredHybridQuery = mock(QueryBuilder.class);
