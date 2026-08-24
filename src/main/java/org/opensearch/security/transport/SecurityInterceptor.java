@@ -93,6 +93,7 @@ public class SecurityInterceptor {
     private final SSLConfig SSLConfig;
     private final Supplier<Boolean> actionTraceEnabled;
     private final UserFactory userFactory;
+    private final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy;
 
     public SecurityInterceptor(
         final Settings settings,
@@ -106,7 +107,8 @@ public class SecurityInterceptor {
         final ClusterInfoHolder clusterInfoHolder,
         final SSLConfig SSLConfig,
         final Supplier<Boolean> actionTraceSupplier,
-        final UserFactory userFactory
+        final UserFactory userFactory,
+        final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
     ) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
@@ -120,6 +122,7 @@ public class SecurityInterceptor {
         this.SSLConfig = SSLConfig;
         this.actionTraceEnabled = actionTraceSupplier;
         this.userFactory = userFactory;
+        this.remoteClusterIdentityPolicy = remoteClusterIdentityPolicy;
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {
@@ -133,7 +136,8 @@ public class SecurityInterceptor {
             cs,
             SSLConfig,
             sslExceptionHandler,
-            userFactory
+            userFactory,
+            remoteClusterIdentityPolicy
         );
     }
 
