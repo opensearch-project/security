@@ -282,13 +282,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
 
             if (DlsFlsLegacyHeaders.possiblyRequired(clusterService)) {
-                DlsFlsLegacyHeaders.prepare(
-                    threadContext,
-                    context,
-                    config,
-                    clusterService.state().metadata(),
-                    doFilterLevelDls && !applyDlsFilterToHybridQuery
-                );
+                DlsFlsLegacyHeaders.prepare(threadContext, context, config, clusterService.state().metadata(), doFilterLevelDls);
             }
 
             if (request instanceof RealtimeRequest) {
@@ -471,6 +465,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             && isTopLevelHybridQueryWithoutParentChildClauses(request);
     }
 
+    /**
+     * The minimum OpenSearch version is only a lower bound for the Neural Search hybrid-query contract. If a future
+     * Neural Search release changes its {@code filter()} or {@code visit()} behavior, the verification in
+     * {@link DlsFilterLevelActionHandler} rejects the request rather than applying DLS incompletely. Keep the
+     * cross-plugin {@code HybridQueryDlsIT} coverage in sync with that contract.
+     */
     static boolean isHybridQueryDlsFilterSupported(Version minNodeVersion) {
         return minNodeVersion != null && minNodeVersion.onOrAfter(HYBRID_QUERY_DLS_FILTER_SUPPORTED_SINCE);
     }
