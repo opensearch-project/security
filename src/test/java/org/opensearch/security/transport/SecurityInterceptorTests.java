@@ -335,7 +335,8 @@ public class SecurityInterceptorTests {
             clusterInfoHolder,
             sslConfig,
             () -> true,
-            new UserFactory.Simple()
+            new UserFactory.Simple(),
+            new RemoteClusterIdentityPolicy(false)
         );
 
         assertFalse(interceptor.isCrossClusterSearchEnabled());
