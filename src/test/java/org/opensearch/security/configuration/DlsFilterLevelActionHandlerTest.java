@@ -13,6 +13,7 @@ package org.opensearch.security.configuration;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.Level;
@@ -52,6 +53,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -185,6 +187,28 @@ public class DlsFilterLevelActionHandlerTest {
     }
 
     @Test
+    public void failsClosedWhenNeuralFilterAccessorIsUnavailable() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        QueryBuilder neuralQuery = mock(QueryBuilder.class);
+        QueryBuilder[] subqueries = { neuralQuery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        stubDirectSubquery(neuralQuery);
+        when(neuralQuery.getName()).thenReturn("neural");
+
+        RuntimeException exception = assertThrows(
+            RuntimeException.class,
+            () -> DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true)
+        );
+
+        assertThat(exception.getMessage().startsWith("Error while invoking queryfilter on "), is(true));
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+        verify(hybridQuery, never()).filter(dlsQuery);
+    }
+
+    @Test
     public void preservesImplicitMinimumShouldMatchInNeuralFilter() {
         QueryBuilder hybridQuery = mock(QueryBuilder.class);
         NeuralQueryBuilderContract originalSubquery = mock(NeuralQueryBuilderContract.class);
@@ -262,6 +286,66 @@ public class DlsFilterLevelActionHandlerTest {
 
         assertThat(searchSource.query(), sameInstance(hybridQuery));
         verify(originalSubquery).filter(dlsQuery);
+    }
+
+    @Test
+    public void acceptsKnnHybridSubqueryWithOpaqueSnapshotValues() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        KnnQueryBuilderContract originalSubquery = mock(KnnQueryBuilderContract.class);
+        KnnQueryBuilderContract filteredSubquery = mock(KnnQueryBuilderContract.class);
+        QueryBuilder[] subqueries = { originalSubquery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        stubKnnQuery(originalSubquery, "embedding", "opaque-vector", 10, null);
+        stubKnnQuery(filteredSubquery, "embedding", "opaque-vector", 10, dlsQuery);
+        when(originalSubquery.getMethodParameters()).thenReturn(null);
+        when(filteredSubquery.getMethodParameters()).thenReturn(null);
+        when(originalSubquery.filter(dlsQuery)).thenReturn(filteredSubquery);
+        when(hybridQuery.filter(dlsQuery)).thenAnswer(invocation -> {
+            subqueries[0] = originalSubquery.filter(dlsQuery);
+            return hybridQuery;
+        });
+
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
+
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+    }
+
+    @Test
+    public void acceptsKnnHybridSubqueryWithStructuralFallback() {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        KnnQueryBuilderContract originalSubquery = mock(KnnQueryBuilderContract.class);
+        QueryBuilder[] subqueries = { originalSubquery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        BoolQueryBuilder filteredSubquery = QueryBuilders.boolQuery().must(originalSubquery).filter(dlsQuery);
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        stubKnnQuery(originalSubquery, "embedding", new float[] { 1.0f, 2.0f }, 10, null);
+        when(originalSubquery.filter(dlsQuery)).thenReturn(filteredSubquery);
+        when(hybridQuery.filter(dlsQuery)).thenAnswer(invocation -> {
+            subqueries[0] = originalSubquery.filter(dlsQuery);
+            return hybridQuery;
+        });
+
+        DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true);
+
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
+    }
+
+    @Test
+    public void failsClosedWhenAnyKnnQueryParameterChanges() {
+        assertKnnSemanticChangeRejected((original, filtered) -> when(filtered.fieldName()).thenReturn("other_embedding"));
+        assertKnnSemanticChangeRejected((original, filtered) -> when(filtered.vector()).thenReturn(new float[] { 9.0f, 9.0f }));
+        assertKnnSemanticChangeRejected((original, filtered) -> when(filtered.getK()).thenReturn(20));
+        assertKnnSemanticChangeRejected((original, filtered) -> when(filtered.getMaxDistance()).thenReturn(0.5f));
+        assertKnnSemanticChangeRejected((original, filtered) -> when(filtered.getMinScore()).thenReturn(0.5f));
+        assertKnnSemanticChangeRejected((original, filtered) -> doReturn(Map.of("ef_search", 100)).when(filtered).getMethodParameters());
+        assertKnnSemanticChangeRejected((original, filtered) -> when(filtered.isIgnoreUnmapped()).thenReturn(true));
+        assertKnnSemanticChangeRejected((original, filtered) -> when(filtered.getRescoreContext()).thenReturn(new Object()));
+        assertKnnSemanticChangeRejected((original, filtered) -> when(filtered.getExpandNested()).thenReturn(true));
     }
 
     @Test
@@ -1115,6 +1199,33 @@ public class DlsFilterLevelActionHandlerTest {
         when(query.getMethodParameters()).thenReturn(Map.of());
         when(query.getFilter()).thenReturn(filter);
         when(query.boost()).thenReturn(1.0f);
+    }
+
+    private static void assertKnnSemanticChangeRejected(BiConsumer<KnnQueryBuilderContract, KnnQueryBuilderContract> semanticChange) {
+        QueryBuilder hybridQuery = mock(QueryBuilder.class);
+        KnnQueryBuilderContract originalSubquery = mock(KnnQueryBuilderContract.class);
+        KnnQueryBuilderContract filteredSubquery = mock(KnnQueryBuilderContract.class);
+        QueryBuilder[] subqueries = { originalSubquery };
+        BoolQueryBuilder dlsQuery = createDlsQuery();
+        SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
+
+        stubHybridQuery(hybridQuery, subqueries);
+        stubKnnQuery(originalSubquery, "embedding", new float[] { 1.0f, 2.0f }, 10, null);
+        stubKnnQuery(filteredSubquery, "embedding", new float[] { 1.0f, 2.0f }, 10, dlsQuery);
+        semanticChange.accept(originalSubquery, filteredSubquery);
+        when(originalSubquery.filter(dlsQuery)).thenReturn(filteredSubquery);
+        when(hybridQuery.filter(dlsQuery)).thenAnswer(invocation -> {
+            subqueries[0] = originalSubquery.filter(dlsQuery);
+            return hybridQuery;
+        });
+
+        OpenSearchSecurityException exception = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> DlsFilterLevelActionHandler.applyFilterLevelDls(searchSource, dlsQuery, true)
+        );
+
+        assertThat(exception.getMessage(), is("Hybrid query did not apply the DLS filter to every subquery"));
+        assertThat(searchSource.query(), sameInstance(hybridQuery));
     }
 
     private interface NeuralQueryBuilderContract extends QueryBuilder {
