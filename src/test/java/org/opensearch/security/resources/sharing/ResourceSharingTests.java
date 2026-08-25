@@ -17,7 +17,9 @@ import java.util.Set;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
+import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.xcontent.XContentParser;
 
 import static org.junit.Assert.assertEquals;
@@ -410,6 +412,49 @@ public class ResourceSharingTests extends LuceneTestCase {
         org.opensearch.core.xcontent.XContentBuilder builder = JsonXContent.contentBuilder();
         rs.toXContent(builder, org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS);
         return builder.toString();
+    }
+
+    // Note: CreatedBy/ShareWith use identity equality (no value equals), so these assert fields explicitly
+    // rather than whole-object ResourceSharing equality.
+    @Test
+    public void streamSerialization_roundTripsIncludingWorkspaces() throws Exception {
+        ResourceSharing original = ResourceSharing.builder()
+            .resourceId("r1")
+            .resourceType("dashboard")
+            .tenant("t1")
+            .createdBy(new CreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-a", "ws-b")))
+            .build();
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            original.writeTo(out);
+            try (StreamInput in = out.bytes().streamInput()) {
+                ResourceSharing read = new ResourceSharing(in);
+                assertEquals("r1", read.getResourceId());
+                assertEquals("t1", read.getTenant());
+                assertEquals("owner", read.getCreatedBy().getUsername());
+                assertEquals(Set.of("ws-a", "ws-b"), read.getWorkspaces());
+            }
+        }
+    }
+
+    @Test
+    public void streamSerialization_roundTripsWithNoWorkspaces() throws Exception {
+        ResourceSharing original = ResourceSharing.builder()
+            .resourceId("r1")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .build();
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            original.writeTo(out);
+            try (StreamInput in = out.bytes().streamInput()) {
+                ResourceSharing read = new ResourceSharing(in);
+                assertEquals("r1", read.getResourceId());
+                assertEquals("owner", read.getCreatedBy().getUsername());
+                assertTrue(read.getWorkspaces().isEmpty());
+            }
+        }
     }
 
     @Test

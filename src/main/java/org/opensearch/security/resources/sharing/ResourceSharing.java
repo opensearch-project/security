@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.core.common.io.stream.NamedWriteable;
+import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -45,6 +46,9 @@ import org.opensearch.security.user.User;
  */
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private final Logger log = LogManager.getLogger(this.getClass());
+
+    /** NamedWriteable name; used both by {@link #getWriteableName()} and the registry entry. */
+    public static final String NAME = "resource_sharing";
 
     /**
      * The unique identifier of the resource and the resource sharing entry
@@ -106,6 +110,22 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.workspaces = b.workspaces;
         this.createdBy = b.createdBy;
         this.shareWith = b.shareWith;
+    }
+
+    /**
+     * Stream constructor, symmetric with {@link #writeTo(StreamOutput)}. Registered as the reader for the
+     * {@code resource_sharing} NamedWriteable so {@code readNamedWriteable(ResourceSharing.class)} round-trips.
+     */
+    public ResourceSharing(StreamInput in) throws IOException {
+        this.resourceId = in.readString();
+        this.resourceType = in.readString();
+        this.tenant = in.readOptionalString();
+        this.parentType = in.readOptionalString();
+        this.parentId = in.readOptionalString();
+        this.createdBy = new CreatedBy(in);
+        this.shareWith = in.readBoolean() ? new ShareWith(in) : null;
+        List<String> ws = in.readOptionalStringList();
+        this.workspaces = ws == null ? null : new HashSet<>(ws);
     }
 
     public static Builder builder() {
@@ -245,7 +265,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public String getWriteableName() {
-        return "resource_sharing";
+        return NAME;
     }
 
     @Override
@@ -264,10 +284,8 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
         // No version guard needed: workspaces ships within the resource-sharing feature (introduced in 3.3),
         // which is not yet GA, so there is no older node that speaks the old wire format without this field.
-        // PRE-EXISTING GAP (not introduced here): ResourceSharing has no StreamInput constructor and is not
-        // registered in OpenSearchSecurityPlugin#getNamedWriteables, yet ShareResponse reads it via
-        // readNamedWriteable(ResourceSharing.class). Wiring a symmetric reader (that also reads this field) is a
-        // required follow-up before relying on transport round-trips.
+        // The symmetric read lives in the ResourceSharing(StreamInput) constructor, registered as the
+        // resource_sharing NamedWriteable in OpenSearchSecurityPlugin#getNamedWriteables.
         out.writeOptionalStringCollection(workspaces == null ? null : new ArrayList<>(workspaces));
     }
 
