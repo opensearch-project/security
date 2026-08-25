@@ -460,6 +460,7 @@ public class DlsFilterLevelActionHandler {
                 return false;
             }
             preserveQueryMetadata(filteredSubquery, preservedOriginalSubquery.query());
+            preserveEmbeddedFilterMetadata(filteredSubquery, preservedOriginalSubquery);
             unmatchedOriginalSubqueries.remove(preservedOriginalSubqueryIndex);
         }
         return unmatchedOriginalSubqueries.isEmpty();
@@ -562,7 +563,19 @@ public class DlsFilterLevelActionHandler {
         }
     }
 
-    // ConstantScoreQueryBuilder.filter can return a new builder without copying its boost or query name.
+    private static void preserveEmbeddedFilterMetadata(QueryBuilder filteredSubquery, OriginalSubqueryState originalSubquery) {
+        if (originalSubquery.embeddedFilter() == null) {
+            return;
+        }
+        if (filteredSubquery == originalSubquery.query() && NEURAL_QUERY_NAME.equals(filteredSubquery.getName())) {
+            preserveQueryMetadata(NEURAL_FILTER_GETTER.apply(filteredSubquery), originalSubquery.embeddedFilter());
+        } else if (originalSubquery.knnSnapshot() != null && isKnnQuery(filteredSubquery)) {
+            preserveQueryMetadata(KNN_FILTER_GETTER.apply(filteredSubquery), originalSubquery.embeddedFilter());
+        }
+    }
+
+    // ConstantScoreQueryBuilder.filter can return a new builder without copying its boost or query name. This applies
+    // both to hybrid subqueries and to the filters embedded in neural or k-NN subqueries.
     private static void preserveQueryMetadata(QueryBuilder filteredSubquery, QueryBuilder originalSubquery) {
         if (filteredSubquery instanceof ConstantScoreQueryBuilder filteredConstantScore
             && originalSubquery instanceof ConstantScoreQueryBuilder originalConstantScore) {
