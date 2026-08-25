@@ -164,7 +164,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
         final DlsFlsLegacyHeaders dlsFlsLegacyHeaders = getThreadContext().getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER);
 
-        final User authUserSubj = (User) getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+        final User authenticatedUser = (User) getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isStreamChannel = options != null && TransportRequestOptions.Type.STREAM.equals(options.type());
@@ -268,7 +268,15 @@ public class SecurityInterceptor {
 
             getThreadContext().putHeader(headerMap);
 
-            ensureCorrectHeaders(remoteAddress0, user0, authUserSubj, origin0, injectedUserString, injectedRolesString, isSameNodeRequest);
+            ensureCorrectHeaders(
+                remoteAddress0,
+                user0,
+                authenticatedUser,
+                origin0,
+                injectedUserString,
+                injectedRolesString,
+                isSameNodeRequest
+            );
 
             if (actionTraceEnabled.get()) {
                 getThreadContext().putHeader(
@@ -292,7 +300,7 @@ public class SecurityInterceptor {
     private void ensureCorrectHeaders(
         final Object remoteAdr,
         final User origUser,
-        final User authSubject,
+        final User authenticatedUser,
         final String origin,
         final String injectedUserString,
         final String injectedRolesString,
@@ -341,12 +349,14 @@ public class SecurityInterceptor {
                 );
             }
 
-            // put user as userSubject, we'll recreate it in messageReceivedDecorate
-            String authSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
-            String sameSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
-            if (authSubjectHeader == null && authSubject != null) {
-                if (origUser != null && origUser.equals(authSubject)) {
-                    if (sameSubjectHeader == null) {
+            // Propagate the authenticated user so it can be restored when the request is received.
+            String authenticatedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
+            String userSameAsAuthenticatedUserHeader = getThreadContext().getHeader(
+                ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER
+            );
+            if (authenticatedUserHeader == null && authenticatedUser != null) {
+                if (origUser != null && origUser.equals(authenticatedUser)) {
+                    if (userSameAsAuthenticatedUserHeader == null) {
                         getThreadContext().putHeader(
                             ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER,
                             Boolean.TRUE.toString()
@@ -355,7 +365,7 @@ public class SecurityInterceptor {
                 } else {
                     getThreadContext().putHeader(
                         ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER,
-                        authSubject.toSerializedBase64()
+                        authenticatedUser.toSerializedBase64()
                     );
                 }
             }

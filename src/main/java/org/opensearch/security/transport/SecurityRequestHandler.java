@@ -171,8 +171,12 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
             } else {
-                String authUsrHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
-                String shouldUseUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
+                String authenticatedUserHeader = getThreadContext().getHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER
+                );
+                String userSameAsAuthenticatedUserHeader = getThreadContext().getHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER
+                );
                 String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
                 // Deserialize and sanitize users.
@@ -181,18 +185,18 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     user = this.userFactory.fromSerializedBase64(userHeader);
                     user = remoteClusterIdentityPolicy.sanitize(user, getThreadContext());
                 }
-                User authUser = null;
-                if (authUsrHdr != null) {
-                    authUser = this.userFactory.fromSerializedBase64(authUsrHdr);
-                    authUser = remoteClusterIdentityPolicy.sanitize(authUser, getThreadContext());
+                User authenticatedUser = null;
+                if (authenticatedUserHeader != null) {
+                    authenticatedUser = this.userFactory.fromSerializedBase64(authenticatedUserHeader);
+                    authenticatedUser = remoteClusterIdentityPolicy.sanitize(authenticatedUser, getThreadContext());
                 }
 
-                // Store persistent subject (if not already set)
+                // Store the authenticated user in persistent context (if not already set).
                 if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                    if (Boolean.parseBoolean(shouldUseUserHeader) && user != null) {
+                    if (Boolean.parseBoolean(userSameAsAuthenticatedUserHeader) && user != null) {
                         getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
-                    } else if (authUser != null) {
-                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, authUser);
+                    } else if (authenticatedUser != null) {
+                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, authenticatedUser);
                     }
                 }
 
