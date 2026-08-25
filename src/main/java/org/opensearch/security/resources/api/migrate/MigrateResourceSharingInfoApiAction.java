@@ -88,7 +88,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *          default_access_level: "<some-default-access-level>"     // optional: overrides the default access-level defined in resource-access-levels.yml
  *      }
  *   - Response:
- *      200 OK Migration Complete. migrated %d; skippedNoType %s; skippedExisting %s; failed %d // migrate -> successful migration count, skippedNoType -> records with no type, skippedExisting -> records that were already migrated, failed -> records that failed to migrate
+ *      200 OK Migration Complete. migrated %d; backfilledExisting %d; skippedNoType %s; skippedExisting %s; failed %d // migrate -> newly created records, backfilledExisting -> pre-existing records that gained workspace membership, skippedNoType -> records with no type, skippedExisting -> records already migrated with nothing to backfill, failed -> records that failed to migrate
  */
 public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
@@ -351,6 +351,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     private ValidationResult<MigrationStats> createNewSharingRecords(ValidationResultArg sourceInfo) throws IOException {
         AtomicInteger migratedCount = new AtomicInteger();
         AtomicInteger skippedExisting = new AtomicInteger();
+        AtomicInteger backfilledExisting = new AtomicInteger();
         AtomicInteger failureCount = new AtomicInteger();
 
         // Thread-safe sets that we can mutate directly from listeners
@@ -409,6 +410,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 }
 
                 // 5) index the new record
+                final Set<String> docWorkspaces = doc.workspaces;
                 ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
                     if (entry != null) {
                         LOGGER.debug(
@@ -418,6 +420,28 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                             sourceInfo.sourceIndex
                         );
                         migratedCount.getAndIncrement();
+                        migrationStatsLatch.countDown();
+                    } else if (docWorkspaces != null && !docWorkspaces.isEmpty()) {
+                        // A record already exists (create was a no-op) but the source doc has workspace membership.
+                        // Backfill the workspaces field + refresh all_shared_principals so the pre-existing record is
+                        // not left workspace-blind. Idempotent: a no-op if the workspaces are already present.
+                        sharingIndexHandler.backfillWorkspacesOnExisting(
+                            sourceInfo.sourceIndex,
+                            resourceId,
+                            docWorkspaces,
+                            ActionListener.wrap(changed -> {
+                                if (Boolean.TRUE.equals(changed)) {
+                                    backfilledExisting.getAndIncrement();
+                                } else {
+                                    skippedExisting.getAndIncrement();
+                                }
+                                migrationStatsLatch.countDown();
+                            }, e -> {
+                                LOGGER.warn("Failed to backfill workspaces for existing record [{}]: {}", resourceId, e.getMessage());
+                                failureCount.getAndIncrement();
+                                migrationStatsLatch.countDown();
+                            })
+                        );
                     } else {
                         LOGGER.debug(
                             "Skipping migration of resource sharing record for resource {} within index {} as an entry already exists",
@@ -425,8 +449,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                             sourceInfo.sourceIndex
                         );
                         skippedExisting.getAndIncrement();
+                        migrationStatsLatch.countDown();
                     }
-                    migrationStatsLatch.countDown();
                 }, e -> {
                     LOGGER.debug(e.getMessage());
                     failureCount.getAndIncrement();
@@ -465,8 +489,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         }
 
         String summary = String.format(
-            "Migration complete. migrated %d; skippedNoType %s; skippedExisting %s; failed %d",
+            "Migration complete. migrated %d; backfilledExisting %d; skippedNoType %s; skippedExisting %s; failed %d",
             migratedCount.get(),
+            backfilledExisting.get(),
             skippedNoType.size(),
             skippedExisting.get(),
             failureCount.get()

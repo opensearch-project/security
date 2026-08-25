@@ -157,6 +157,67 @@ public class ResourceSharingIndexHandler {
      * The supplied {@link ActionListener} will be invoked with the {@link UpdateResponse}
      * on success, or with an exception on failure.
      *
+     * Backfills workspace membership onto an <em>existing</em> sharing record and refreshes the resource's
+     * {@code all_shared_principals} accordingly. This is the update-path counterpart to migration's create-only path:
+     * records that were migrated for ownership before workspace-awareness existed (and are therefore skipped by the
+     * {@code OpType.CREATE} indexing) would otherwise stay workspace-blind.
+     * <p>
+     * The operation is idempotent: it merges {@code workspaces} into the record's current set and only writes when that
+     * adds something new. {@code created_by} and {@code share_with} on the existing record are left untouched — only the
+     * {@code workspaces} field (on the sharing record) and {@code all_shared_principals} (on the resource doc) change.
+     *
+     * @param resourceIndex the source resource index whose sharing record should be updated
+     * @param resourceId    the id of the resource whose sharing record should be backfilled
+     * @param workspaces    the workspace IDs to merge in
+     * @param listener      notified with {@code true} if the record was updated, {@code false} if nothing changed
+     *                      (no existing record, empty input, or already-present)
+     */
+    public void backfillWorkspacesOnExisting(
+        String resourceIndex,
+        String resourceId,
+        Set<String> workspaces,
+        ActionListener<Boolean> listener
+    ) {
+        if (workspaces == null || workspaces.isEmpty()) {
+            listener.onResponse(false);
+            return;
+        }
+        fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(existing -> {
+            if (existing == null) {
+                listener.onResponse(false);
+                return;
+            }
+            Set<String> merged = new HashSet<>(existing.getWorkspaces());
+            if (!merged.addAll(workspaces)) {
+                // nothing new to add; leave the record untouched (idempotent)
+                listener.onResponse(false);
+                return;
+            }
+            existing.setWorkspaces(merged);
+            String resourceSharingIndex = getSharingIndex(resourceIndex);
+            try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+                UpdateRequest ur = client.prepareUpdate(resourceSharingIndex, resourceId)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setDoc(Map.of("workspaces", merged))
+                    .request();
+                client.update(ur, ActionListener.wrap(updateResponse -> {
+                    ctx.restore();
+                    // Refresh the resource doc's principals from the now-workspace-aware record.
+                    updateResourceVisibility(
+                        resourceId,
+                        resourceIndex,
+                        existing.getAllPrincipals(),
+                        ActionListener.wrap(r -> listener.onResponse(true), listener::onFailure)
+                    );
+                }, e -> {
+                    ctx.restore();
+                    listener.onFailure(e);
+                }));
+            }
+        }, listener::onFailure));
+    }
+
+    /**
      * @param resourceId     the unique identifier of the resource document to update
      * @param resourceIndex  the name of the index containing the resource
      * @param principals     the list of principals (e.g. {@code user:alice}, {@code role:admin})

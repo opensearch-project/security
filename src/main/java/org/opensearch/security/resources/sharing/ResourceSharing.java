@@ -168,6 +168,10 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         return workspaces == null ? Collections.emptySet() : workspaces;
     }
 
+    public void setWorkspaces(Set<String> workspaces) {
+        this.workspaces = workspaces;
+    }
+
     public void share(String accessLevel, Recipients target) {
         if (shareWith == null) {
             Map<String, Recipients> recs = new HashMap<>();
