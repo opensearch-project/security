@@ -109,7 +109,7 @@ public class DisabledCategoriesTest {
 
         Assert.assertTrue(
             AuditCategory.values() + "#" + result,
-            categoriesPresentInLog(result, filterComplianceCategories(AuditCategory.values()))
+            categoriesPresentInLog(result, filterUntestableCategories(AuditCategory.values()))
         );
 
         Assert.assertThat(result, containsString("testuser.rest.succeededlogin"));
@@ -178,7 +178,7 @@ public class DisabledCategoriesTest {
 
         Assert.assertFalse(categoriesPresentInLog(result, disabledCategories));
         Assert.assertTrue(
-            categoriesPresentInLog(result, filterComplianceCategories(allButDisablesCategories.toArray(new AuditCategory[] {})))
+            categoriesPresentInLog(result, filterUntestableCategories(allButDisablesCategories.toArray(new AuditCategory[] {})))
         );
     }
 
@@ -270,13 +270,21 @@ public class DisabledCategoriesTest {
         auditLog.logSettingsChange("indices:admin/settings/update", request, null);
     }
 
-    private static final AuditCategory[] filterComplianceCategories(AuditCategory[] cats) {
+    /**
+     * Filters out categories that logAll() does not generate events for:
+     * compliance categories (tested separately), API_TOKEN_WRITE, REQUEST_AUDIT,
+     * TRANSPORT_AUDIT, and RESOURCE_* categories (require resource sharing subsystem).
+     */
+    private static final AuditCategory[] filterUntestableCategories(AuditCategory[] cats) {
         List<AuditCategory> retval = new ArrayList<AuditCategory>();
         for (AuditCategory c : cats) {
             if (!c.toString().startsWith("COMPLIANCE")
                 && c != AuditCategory.API_TOKEN_WRITE
                 && c != AuditCategory.REQUEST_AUDIT
-                && c != AuditCategory.TRANSPORT_AUDIT) {
+                && c != AuditCategory.TRANSPORT_AUDIT
+                && c != AuditCategory.RESOURCE_ACCESS_GRANTED
+                && c != AuditCategory.RESOURCE_ACCESS_DENIED
+                && c != AuditCategory.RESOURCE_SHARING_CHANGED) {
                 retval.add(c);
             }
         }

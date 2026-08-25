@@ -9,7 +9,6 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,7 +17,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.shard.IndexingOperationListener;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
@@ -105,45 +103,108 @@ public class ResourceIndexListener implements IndexingOperationListener {
             return;
         }
 
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadPool.getThreadContext()
-            .getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        final User user = userSubject.getUser();
+        final User user = (User) threadPool.getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
-        try {
-            Objects.requireNonNull(user);
-            ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
-                log.debug(
-                    "postIndex: Successfully created a resource sharing entry {} for resource {} within index {}",
-                    entry,
+        final String parentType = provider.parentType();
+        final String parentId = (parentType != null) ? ResourcePluginInfo.extractFieldFromIndexOp(provider.parentIdField(), index) : null;
+
+        ActionListener<ResourceSharing> listener = ActionListener.wrap(
+            entry -> log.debug(
+                "postIndex: Successfully created a resource sharing entry {} for resource {} within index {}",
+                entry,
+                resourceId,
+                resourceIndex
+            ),
+            e -> log.warn("postIndex: Failed to create a resource sharing entry for resource {}: {}", resourceId, e.getMessage())
+        );
+
+        if (user != null) {
+            try {
+                // User.getRequestedTenant() is null if multi-tenancy is disabled
+                ResourceSharing.Builder builder = ResourceSharing.builder()
+                    .resourceId(resourceId)
+                    .resourceType(resourceType)
+                    .tenant(user.getRequestedTenant())
+                    .createdBy(new CreatedBy(user.getName()));
+                if (parentType != null) {
+                    builder.parentType(parentType).parentId(parentId);
+                }
+                // Workspace-aware sharing: if the provider declares a workspaces field, read the (multi-valued)
+                // set of workspace IDs off the indexed document and stamp them onto the sharing record. These are
+                // projected into all_shared_principals as workspace:<id> so DLS can grant access via workspace
+                // membership. Providers that don't declare workspacesField() are unaffected (additive).
+                if (provider.workspacesField() != null) {
+                    builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
+                }
+                this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, builder.build(), listener);
+            } catch (IOException e) {
+                log.warn("Failed to create a resource sharing entry for resource: {}", resourceId, e);
+            }
+            return;
+        }
+
+        // No authenticated user in the thread context. This happens when the
+        // resource is written under a plugin/system subject (e.g. reporting's
+        // on-demand report instances via PluginClient, or scheduled jobs running
+        // under job-scheduler). For child resources we can still create the
+        // sharing entry by inheriting ownership from the parent's sharing record;
+        // for standalone resources there is nothing to attribute the entry to.
+        if (parentType == null || parentId == null) {
+            log.warn(
+                "Skipping resource-sharing entry creation for resource {} in index {}: no authenticated user found in the thread "
+                    + "context and the resource does not declare a parent to inherit ownership from. The resource will not be "
+                    + "visible through resource-sharing APIs.",
+                resourceId,
+                resourceIndex
+            );
+            return;
+        }
+
+        final String parentResourceIndex = resourcePluginInfo.indexByType(parentType);
+        if (parentResourceIndex == null) {
+            log.warn(
+                "Skipping resource-sharing entry creation for resource {} in index {}: parent type {} has no registered resource index.",
+                resourceId,
+                resourceIndex,
+                parentType
+            );
+            return;
+        }
+
+        this.resourceSharingIndexHandler.fetchSharingInfo(parentResourceIndex, parentId, ActionListener.wrap(parentSharing -> {
+            if (parentSharing == null) {
+                log.warn(
+                    "Skipping resource-sharing entry creation for resource {} in index {}: no sharing record found for parent {} ({}).",
                     resourceId,
-                    resourceIndex
+                    resourceIndex,
+                    parentId,
+                    parentType
                 );
-            }, e -> { log.debug(e.getMessage()); });
-            // User.getRequestedTenant() is null if multi-tenancy is disabled
-            ResourceSharing.Builder builder = ResourceSharing.builder()
+                return;
+            }
+            ResourceSharing.Builder childBuilder = ResourceSharing.builder()
                 .resourceId(resourceId)
                 .resourceType(resourceType)
-                .tenant(user.getRequestedTenant())
-                .createdBy(new CreatedBy(user.getName()));
-            if (provider.parentType() != null) {
-                builder.parentType(provider.parentType())
-                    .parentId(ResourcePluginInfo.extractFieldFromIndexOp(provider.parentIdField(), index));
-            }
-            // Workspace-aware sharing: if the provider declares a workspaces field, read the (multi-valued) set
-            // of workspace IDs off the indexed document and stamp them onto the sharing record. These are later
-            // projected into all_shared_principals as workspace:<id> so DLS can grant access via workspace
-            // membership. Providers that don't declare workspacesField() are unaffected (additive).
+                .tenant(parentSharing.getTenant())
+                .createdBy(parentSharing.getCreatedBy())
+                .parentType(parentType)
+                .parentId(parentId);
+            // Workspace-aware sharing: read the child's own (multi-valued) workspaces field off the indexed
+            // document, if the provider declares one, so its workspace:<id> principals are denormalized just as
+            // on the authenticated-user path. Ownership is still inherited from the parent above.
             if (provider.workspacesField() != null) {
-                builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
+                childBuilder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
             }
-            ResourceSharing sharingInfo = builder.build();
-            // User.getRequestedTenant() is null if multi-tenancy is disabled
-
-            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, listener);
-
-        } catch (IOException e) {
-            log.debug("Failed to create a resource sharing entry for resource: {}", resourceId, e);
-        }
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, childBuilder.build(), listener);
+        },
+            e -> log.warn(
+                "Failed to create a resource sharing entry for child resource {} in index {}: could not fetch parent {} sharing record: {}",
+                resourceId,
+                resourceIndex,
+                parentId,
+                e.getMessage()
+            )
+        ));
     }
 
     /**
