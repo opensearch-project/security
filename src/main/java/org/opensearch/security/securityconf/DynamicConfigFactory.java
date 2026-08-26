@@ -35,13 +35,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
@@ -69,6 +69,7 @@ import org.opensearch.transport.client.Client;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.EventBusBuilder;
 import org.greenrobot.eventbus.Logger.JavaLogger;
+import tools.jackson.databind.JsonNode;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 
@@ -88,19 +89,16 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     }
 
     private void loadStaticConfig() throws IOException {
-        JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml")
-        );
+        JsonNode staticRolesJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
         staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
 
-        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml")
-        );
+        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
         staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
 
-        JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml")
-        );
+        JsonNode staticTenantsJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
         staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
     }
 
@@ -146,6 +144,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final ClusterInfoHolder cih;
     private final ThreadPool threadPool;
     private final Client client;
+    private final ApiTokenRepository apiTokenRepository;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -156,7 +155,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         Client client,
         ThreadPool threadPool,
         ClusterInfoHolder cih,
-        PasswordHasher passwordHasher
+        PasswordHasher passwordHasher,
+        ApiTokenRepository apiTokenRepository
     ) {
         super();
         this.cr = cr;
@@ -166,6 +166,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.iab = new InternalAuthenticationBackend(passwordHasher);
         this.threadPool = threadPool;
         this.client = client;
+        this.apiTokenRepository = apiTokenRepository;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -273,7 +274,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         );
 
         // rebuild v7 Models
-        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih);
+        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih, apiTokenRepository);
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
 
         // notify subscribers

@@ -22,7 +22,6 @@ import java.util.stream.IntStream;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.service.ClusterService;
@@ -42,6 +41,8 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authc;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
@@ -119,8 +120,8 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
@@ -137,24 +138,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        // Provide basic type information for backward compatibility
-                        return ImmutableMap.of(
-                            DEFAULT_TENANT_JSON_PROPERTY,
-                            DataType.STRING,
-                            PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
-                            DataType.BOOLEAN,
-                            MULTITENANCY_ENABLED_JSON_PROPERTY,
-                            DataType.BOOLEAN,
-                            SIGN_IN_OPTIONS,
-                            DataType.ARRAY,
-                            PREFERRED_TENANTS,
-                            DataType.ARRAY
-                        );
-                    }
-
-                    @Override
-                    public Map<String, FieldConfiguration> allowedKeysWithConfig() {
+                    public Map<String, FieldConfiguration> allowedKeys() {
                         return ImmutableMap.<String, FieldConfiguration>builder()
                             .put(
                                 DEFAULT_TENANT_JSON_PROPERTY,
@@ -222,10 +206,10 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
     private void updateAndValidatesValues(final ConfigV7 config, final JsonNode jsonContent) {
         if (Objects.nonNull(jsonContent.findValue(DEFAULT_TENANT_JSON_PROPERTY))) {
-            config.dynamic.kibana.default_tenant = jsonContent.findValue(DEFAULT_TENANT_JSON_PROPERTY).asText();
+            config.dynamic.kibana.default_tenant = jsonContent.findValue(DEFAULT_TENANT_JSON_PROPERTY).asString();
         }
         if (Objects.nonNull(jsonContent.findValue(PRIVATE_TENANT_ENABLED_JSON_PROPERTY))) {
-            config.dynamic.kibana.private_tenant_enabled = jsonContent.findValue(PRIVATE_TENANT_ENABLED_JSON_PROPERTY).booleanValue();
+            config.dynamic.kibana.private_tenant_enabled = jsonContent.findValue(PRIVATE_TENANT_ENABLED_JSON_PROPERTY).asBoolean();
         }
         if (Objects.nonNull(jsonContent.findValue(MULTITENANCY_ENABLED_JSON_PROPERTY))) {
             config.dynamic.kibana.multitenancy_enabled = jsonContent.findValue(MULTITENANCY_ENABLED_JSON_PROPERTY).asBoolean();
@@ -268,19 +252,37 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
     private List<DashboardSignInOption> getNewSignInOptions(JsonNode newOptions, Authc authc) {
 
-        Set<String> domains = authc.getDomains().keySet();
+        Set<String> authenticatorTypes = authc.getDomains()
+            .values()
+            .stream()
+            .filter(domain -> domain.http_enabled)
+            .map(domain -> domain.http_authenticator.type.toLowerCase())
+            .collect(Collectors.toSet());
 
-        return IntStream.range(0, newOptions.size()).mapToObj(newOptions::get).map(JsonNode::asText).filter(option -> {
-            // Checking if the new sign-in options are set in backend.
-            if (option.equals(DashboardSignInOption.ANONYMOUS.toString())
-                || domains.stream().anyMatch(domain -> domain.contains(option.toLowerCase()))) {
-                return true;
-            } else {
+        return IntStream.range(0, newOptions.size()).mapToObj(newOptions::get).map(JsonNode::asText).map(option -> {
+            DashboardSignInOption resolved = resolveSignInOption(option);
+            if (resolved == null) {
+                throw new IllegalArgumentException("Validation failure: " + option + " is not a recognized sign-in option.");
+            }
+            if (resolved == DashboardSignInOption.ANONYMOUS) {
+                return resolved;
+            }
+            if (!authenticatorTypes.contains(resolved.getOption())) {
                 throw new IllegalArgumentException(
-                    "Validation failure: " + option.toUpperCase() + " authentication provider is not available for this cluster."
+                    "Validation failure: " + resolved + " authentication provider is not available for this cluster."
                 );
             }
-        }).map(DashboardSignInOption::valueOf).collect(Collectors.toList());
+            return resolved;
+        }).collect(Collectors.toList());
+    }
+
+    private DashboardSignInOption resolveSignInOption(String option) {
+        for (DashboardSignInOption e : DashboardSignInOption.values()) {
+            if (e.name().equalsIgnoreCase(option) || e.getOption().equalsIgnoreCase(option)) {
+                return e;
+            }
+        }
+        return null;
     }
 
     private List<String> getPreferredTenants(JsonNode preferredTenants) {

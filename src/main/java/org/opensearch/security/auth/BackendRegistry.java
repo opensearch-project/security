@@ -56,7 +56,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.identity.UserSubject;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
@@ -272,8 +271,7 @@ public class BackendRegistry {
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
             User superuser = new User(sslPrincipal);
-            UserSubject subject = new UserSubjectImpl(threadPool, superuser);
-            threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+            threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, superuser);
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
             return true;
         }
@@ -452,6 +450,8 @@ public class BackendRegistry {
             Disallow superuser authentication through auth domain.
             Only client cert authentication is allowed for this user.
              */
+            authenticatedUser.setAuthenticatedBy(authDomain.getHttpAuthenticator().getType());
+
             if (adminDns.isAdmin(authenticatedUser)) {
                 log.error("Cannot authenticate user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
@@ -494,8 +494,7 @@ public class BackendRegistry {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, effectiveUser);
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INITIATING_USER, authenticatedUser.getName());
 
-            UserSubject subject = new UserSubjectImpl(threadPool, effectiveUser);
-            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, effectiveUser);
         } else {
             if (isDebugEnabled) {
                 log.debug("User still not authenticated after checking {} auth domains", restAuthDomains.size());
@@ -539,10 +538,8 @@ public class BackendRegistry {
                     anonymousUser = anonymousUser.withRequestedTenant(tenant);
                 }
 
-                UserSubject subject = new UserSubjectImpl(threadPool, anonymousUser);
-
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
-                threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+                threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, anonymousUser);
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");
                 }

@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -25,9 +24,6 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -54,9 +50,9 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.transport.client.Client;
 
-import org.passay.CharacterRule;
-import org.passay.EnglishCharacterData;
-import org.passay.PasswordGenerator;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * This class handles user registration and operations on behalf of the Security Plugin.
@@ -232,23 +228,40 @@ public class UserService {
         }
     }
 
+    private static final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
+    private static final String UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final String DIGITS = "0123456789";
+    private static final String ALL_CHARS = LOWERCASE + UPPERCASE + DIGITS;
+
     /**
-     * Use Passay to generate an 8 - 16 character password with 1+ lowercase, 1+ uppercase, 1+ digit, 1+ special character
+     * Generate an 8 - 16 character password with 1+ lowercase, 1+ uppercase, 1+ digit.
      *
      * @return A password for a service account.
      */
     public static String generatePassword() {
-
-        CharacterRule lowercaseCharacterRule = new CharacterRule(EnglishCharacterData.LowerCase, 1);
-        CharacterRule uppercaseCharacterRule = new CharacterRule(EnglishCharacterData.UpperCase, 1);
-        CharacterRule numericCharacterRule = new CharacterRule(EnglishCharacterData.Digit, 1);
-
-        List<CharacterRule> rules = Arrays.asList(lowercaseCharacterRule, uppercaseCharacterRule, numericCharacterRule);
-        PasswordGenerator passwordGenerator = new PasswordGenerator();
-
         Random random = Randomness.get();
+        int length = random.nextInt(8) + 8;
+        char[] password = new char[length];
 
-        return passwordGenerator.generatePassword(random.nextInt(8) + 8, rules);
+        // Guarantee at least one of each required type
+        password[0] = LOWERCASE.charAt(random.nextInt(LOWERCASE.length()));
+        password[1] = UPPERCASE.charAt(random.nextInt(UPPERCASE.length()));
+        password[2] = DIGITS.charAt(random.nextInt(DIGITS.length()));
+
+        // Fill remaining with random chars from all pools
+        for (int i = 3; i < length; i++) {
+            password[i] = ALL_CHARS.charAt(random.nextInt(ALL_CHARS.length()));
+        }
+
+        // Shuffle to avoid predictable positions
+        for (int i = length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char tmp = password[i];
+            password[i] = password[j];
+            password[j] = tmp;
+        }
+
+        return new String(password);
     }
 
     /**
@@ -301,7 +314,7 @@ public class UserService {
             authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
             return new BasicAuthToken("Basic " + authToken);
 
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
         } catch (Exception e) {
             throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);

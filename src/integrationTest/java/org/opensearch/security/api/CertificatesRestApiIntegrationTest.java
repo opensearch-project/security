@@ -18,7 +18,6 @@ import java.util.Random;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -30,11 +29,13 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
+import tools.jackson.databind.JsonNode;
+
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;

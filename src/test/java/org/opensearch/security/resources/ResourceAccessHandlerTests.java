@@ -21,7 +21,6 @@ import org.opensearch.OpenSearchStatusException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
@@ -74,9 +73,7 @@ public class ResourceAccessHandlerTests {
     }
 
     private void injectUser(User user) {
-        UserSubjectImpl subject = mock(UserSubjectImpl.class);
-        when(subject.getUser()).thenReturn(user);
-        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
     }
 
     @Test
@@ -280,13 +277,13 @@ public class ResourceAccessHandlerTests {
 
         ResourceSharing doc = mock(ResourceSharing.class);
         doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(4);
+            ActionListener<ResourceSharing> l = inv.getArgument(6);
             l.onResponse(doc);
             return null;
-        }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(add), eq(revoke), any());
+        }).when(sharingIndexHandler).patchSharingInfo(eq(RESOURCE_ID), eq(INDEX), eq(add), eq(revoke), eq(false), eq(null), any());
 
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, TYPE, add, revoke, listener);
+        handler.patchSharingInfo(RESOURCE_ID, TYPE, add, revoke, false, null, listener);
 
         verify(listener).onResponse(doc);
     }
@@ -295,7 +292,7 @@ public class ResourceAccessHandlerTests {
     public void testPatchSharingInfoFailsIfNoUser() {
         ShareWith x = new ShareWith(ImmutableMap.of());
         ActionListener<ResourceSharing> listener = mock(ActionListener.class);
-        handler.patchSharingInfo(RESOURCE_ID, TYPE, x, x, listener);
+        handler.patchSharingInfo(RESOURCE_ID, TYPE, x, x, false, null, listener);
 
         verify(listener).onFailure(any(OpenSearchStatusException.class));
     }

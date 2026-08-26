@@ -249,7 +249,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
                 }
 
                 if (dynamicConfig.get_meta() != null) {
-                    Map<String, Object> metaMap = DefaultObjectMapper.objectMapper.convertValue(dynamicConfig.get_meta(), Map.class);
+                    Map<String, Object> metaMap = DefaultObjectMapper.objectMapper().convertValue(dynamicConfig.get_meta(), Map.class);
                     configData.put("_meta", metaMap);
                 }
             }
@@ -309,7 +309,7 @@ public class SecurityConfigVersionHandler implements ConfigurationChangeListener
     private void writeSecurityConfigVersion(SecurityConfigVersionDocument document, long currentSeqNo, long currentPrimaryTerm)
         throws IOException {
         Map<String, Object> updatedDocMap = document.toMap();
-        String json = DefaultObjectMapper.objectMapper.writeValueAsString(updatedDocMap);
+        String json = DefaultObjectMapper.objectMapper().writeValueAsString(updatedDocMap);
 
         var indexRequest = new org.opensearch.action.index.IndexRequest(securityConfigVersionsIndex).id(
             "opensearch_security_config_versions"

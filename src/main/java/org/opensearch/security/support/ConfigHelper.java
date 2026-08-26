@@ -98,7 +98,7 @@ public class ConfigHelper {
 
                 if (!configType.equals(res)) {
                     throw new Exception(
-                        "   FAIL: Configuration for '" + configType + "' failed for unknown reasons. Pls. consult logfile of opensearch"
+                        "   FAIL: Configuration for '" + configType + "' failed for unknown reasons. Please consult logfile of opensearch"
                     );
                 }
                 LOGGER.info("Doc with id '{}' and version {} is updated in {} index.", configType, configVersion, index);
@@ -132,7 +132,7 @@ public class ConfigHelper {
     }
 
     public static String createEmptySdcYaml(CType<?> cType, int configVersion) throws Exception {
-        return DefaultObjectMapper.YAML_MAPPER.writeValueAsString(createEmptySdc(cType, configVersion));
+        return DefaultObjectMapper.yamlMapper().writeValueAsString(createEmptySdc(cType, configVersion));
     }
 
     public static BytesReference readXContent(final Reader reader, final MediaType mediaType) throws IOException {
@@ -161,7 +161,7 @@ public class ConfigHelper {
     ) throws IOException {
         try {
             return SecurityDynamicConfiguration.fromNode(
-                DefaultObjectMapper.YAML_MAPPER.readTree(yamlReader),
+                DefaultObjectMapper.yamlMapper().readTree(yamlReader),
                 ctype,
                 version,
                 seqNo,

@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,7 +23,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
-public class JsonFlattenerTest {
+public class JsonFlattenerTest extends LuceneTestCase {
     @Test
     public void testFlattenAsMapBasic() {
         Map<String, Object> flattenedMap1 = JsonFlattener.flattenAsMap("{\"key\": {\"nested\": 1}, \"another.key\": [\"one\", \"two\"] }");

@@ -147,7 +147,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     }
 
     private void flattenClaimsToAttributes(String prefix, Object value, AuthCredentials ac) {
-        log.warn("flattenClaimsToAttributes: " + prefix);
         if (value instanceof Map<?, ?> mapValue) {
             // Recursively traverse nested maps
             for (Map.Entry<?, ?> entry : mapValue.entrySet()) {

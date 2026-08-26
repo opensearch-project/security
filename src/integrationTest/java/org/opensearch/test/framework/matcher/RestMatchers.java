@@ -12,11 +12,12 @@ package org.opensearch.test.framework.matcher;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
 
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+
+import tools.jackson.databind.JsonNode;
 
 public class RestMatchers {
 

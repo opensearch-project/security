@@ -19,10 +19,13 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Set;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
+import org.opensearch.common.xcontent.XObjectReadContext;
+import org.opensearch.common.xcontent.XObjectWriteContext;
+
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.json.JsonFactory;
 
 /**
  * Implements document transformation for FLS and field masking using a chained streaming parser and generator.
@@ -55,7 +58,10 @@ class FlsDocumentFilter {
         FieldMasking.FieldMaskingRule fieldMaskingRule,
         Set<String> metaFields
     ) throws IOException {
-        try (JsonParser parser = JSON_FACTORY.createParser(in); JsonGenerator generator = JSON_FACTORY.createGenerator(out)) {
+        try (
+            JsonParser parser = JSON_FACTORY.createParser(XObjectReadContext.create(), in);
+            JsonGenerator generator = JSON_FACTORY.createGenerator(XObjectWriteContext.create(false), out)
+        ) {
             new FlsDocumentFilter(parser, generator, flsRule, fieldMaskingRule, metaFields).copy();
         }
     }
@@ -117,7 +123,7 @@ class FlsDocumentFilter {
                 if (metaFields.contains(fullQueuedFieldName)
                     || flsRule.isAllowedAssumingParentsAreAllowed(fullQueuedFieldName)
                     || (startOfObjectOrArray && flsRule.isObjectAllowedAssumingParentsAreAllowed(fullQueuedFieldName))) {
-                    generator.writeFieldName(parser.currentName());
+                    generator.writeName(parser.currentName());
                     fullCurrentName = fullQueuedFieldName;
                 } else {
                     // If the current field name is disallowed by FLS, we will skip the next token.
@@ -130,7 +136,7 @@ class FlsDocumentFilter {
             }
 
             switch (token) {
-                case FIELD_NAME:
+                case PROPERTY_NAME:
                     // We do not immediately write field names, because we need to know the type of the value
                     // when checking FLS rules
                     queuedFieldName = parser.currentName();
@@ -186,9 +192,9 @@ class FlsDocumentFilter {
                     FieldMasking.FieldMaskingRule.Field field = fieldMaskingRule.get(fullCurrentName);
 
                     if (field != null) {
-                        generator.writeString(field.apply(parser.getText()));
+                        generator.writeString(field.apply(parser.getString()));
                     } else {
-                        generator.writeString(parser.getText());
+                        generator.writeString(parser.getString());
                     }
                     break;
 

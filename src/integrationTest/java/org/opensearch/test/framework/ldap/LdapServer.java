@@ -48,6 +48,8 @@ import com.unboundid.ldap.sdk.schema.Schema;
 import com.unboundid.ldif.LDIFReader;
 import com.unboundid.util.ssl.SSLUtil;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
+
 /**
 * Based on class org.opensearch.security.auth.ldap.srv.LdapServer from older tests
 */
@@ -154,7 +156,7 @@ final class LdapServer {
     }
 
     private static KeyStore createEmptyKeyStore() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        KeyStore keyStore = KeyStore.getInstance(DEFAULT_STORE_TYPE);
         keyStore.load(null);
         return keyStore;
     }

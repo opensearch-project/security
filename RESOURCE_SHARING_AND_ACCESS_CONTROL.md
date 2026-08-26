@@ -159,6 +159,7 @@ Each plugin receives its own sharing index, centrally managed by security plugin
 |**Field**  |**Type** | Description                                                                            |
 |---  |---  |----------------------------------------------------------------------------------------|
 |`resource_id`  |String | Unique ID of the resource within resource index.                                      |
+|`tenant` |String | Tenant where the resource lives, if multi-tenancy is enabled.                          |
 |`created_by` |Object | Information about the user or backend role that created the resource.                  |
 |`share_with` |Object | Contains multiple objects with **access-levels** as keys and access details as values. |
 
@@ -171,14 +172,12 @@ NOTE: **action-groups** and **access-levels** are used inter-changeably througho
 | **Field** |**Type** | Description                                                  |
 |-----------|---  |--------------------------------------------------------------|
 | user      |String | The username of the creator.                                 |
-| tenant    |String | The tenant where resource sits. If multi-tenancy is enabled. |
 
 **Example:**
 
 ```
 "created_by": {
-   "user": "darshit",
-   "tenant": "some_tenant"
+   "user": "darshit"
 }
 ```
 
@@ -234,9 +233,9 @@ Each **action-group** entry contains the following access definitions:
 ```
 {
    "resource_id": "model-group-123",
+   "tenant": "some-tenant",
    "created_by": {
-      "user": "darshit",
-      "tenant": "some-tenant"
+      "user": "darshit"
    },
    "share_with": {
       "action-group1": {
@@ -687,7 +686,8 @@ Creates or replaces sharing settings for a resource.
 {
   "sharing_info": {
     "resource_id": "resource-123",
-    "created_by": { "username": "admin" },
+    "tenant": "some-tenant",
+    "created_by": { "user": "admin" },
     "share_with": {
       "read_only": {
         "users": ["alice"],
@@ -740,7 +740,8 @@ Can be used alternatively. POST version supports calls from dashboards.
 {
   "sharing_info": {
     "resource_id": "resource-123",
-    "created_by": { "username": "admin" },
+    "tenant": "some-tenant",
+    "created_by": { "user": "admin" },
     "share_with": {
       "read_only": {
         "users": ["charlie"],
@@ -775,7 +776,8 @@ GET /_plugins/_security/api/resource/share?resource_id=resource-123&resource_typ
 {
   "sharing_info": {
     "resource_id": "resource-123",
-    "created_by": { "username": "admin" },
+    "tenant": "some-tenant",
+    "created_by": { "user": "admin" },
     "share_with": {
       "read_only": {
         "users": ["charlie"],
@@ -831,9 +833,9 @@ GET /_plugins/_security/api/resource/list?resource_type=sample-resource
   "resources": [
     {
       "resource_id": "1",
+      "tenant": "some-tenant",
       "created_by":  {
-        "user": "darshit",
-        "tenant": "some-tenant"
+        "user": "darshit"
       },
       "share_with": {
         "sample_read_only": {

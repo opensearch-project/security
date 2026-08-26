@@ -17,8 +17,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.core5.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
@@ -32,6 +30,9 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -130,7 +131,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testNodesDnApiWithDynamicConfigDisabled() throws Exception {
         setup();
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
 
         testCrudScenarios(HttpStatus.SC_BAD_REQUEST);
@@ -149,34 +150,34 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
         {
             // No creds, no admin certificate - UNAUTHORIZED
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = false;
             testCrudScenarios(HttpStatus.SC_UNAUTHORIZED);
         }
 
         {
             // admin creds, no admin certificate - FORBIDDEN
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = false;
             testCrudScenarios(HttpStatus.SC_FORBIDDEN, adminCredsHeader);
         }
 
         {
             // any creds, admin certificate - OK
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = true;
             testCrudScenarios(HttpStatus.SC_OK, nonAdminCredsHeader);
         }
 
         {
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = true;
             checkNullElementsInArray(nonAdminCredsHeader);
         }
 
         {
             // any creds, admin certificate, disallowed key - FORBIDDEN
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = true;
 
             final int expectedStatus = HttpStatus.SC_FORBIDDEN;
@@ -298,7 +299,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
         {
             // any creds, admin certificate - OK
-            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.keystore = "restapi/kirk-keystore";
             rh.sendAdminCertificate = true;
             testCrudScenarios(HttpStatus.SC_OK, nonAdminCredsHeader);
         }

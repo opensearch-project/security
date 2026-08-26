@@ -9,13 +9,13 @@
  */
 package org.opensearch.security.dlic.rest.api;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 
 import org.mockito.Mockito;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

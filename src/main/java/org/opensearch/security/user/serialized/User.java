@@ -36,12 +36,13 @@ public class User implements Serializable {
     private String requestedTenant;
     private Map<String, String> attributes = Collections.synchronizedMap(new HashMap<>());
     private boolean isInjected = false;
+    private String authenticatedBy;
 
     /**
      * Converts this objects back to User, just after deserialization
      */
     protected Object readResolve() {
-        return new org.opensearch.security.user.User(
+        org.opensearch.security.user.User user = new org.opensearch.security.user.User(
             this.name,
             resolve(this.roles),
             resolve(this.securityRoles),
@@ -49,6 +50,8 @@ public class User implements Serializable {
             resolve(this.attributes),
             this.isInjected
         );
+        user.setAuthenticatedBy(this.authenticatedBy);
+        return user;
     }
 
     private static ImmutableSet<String> resolve(Set<String> set) {

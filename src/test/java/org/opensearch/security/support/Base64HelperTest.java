@@ -15,10 +15,11 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.stream.IntStream;
 
-import com.google.common.io.BaseEncoding;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -30,7 +31,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
-public class Base64HelperTest {
+public class Base64HelperTest extends LuceneTestCase {
 
     private static final class NotSafeSerializable implements Serializable {
         private static final long serialVersionUID = 5135559266828470092L;
@@ -107,7 +108,7 @@ public class Base64HelperTest {
         }
         final OpenSearchException exception = assertThrows(
             OpenSearchException.class,
-            () -> Base64Helper.deserializeObject(BaseEncoding.base64().encode(bos.toByteArray()))
+            () -> Base64Helper.deserializeObject(Base64.getEncoder().encodeToString(bos.toByteArray()))
         );
         assertThat(exception.getMessage(), containsString("Unauthorized deserialization attempt"));
     }

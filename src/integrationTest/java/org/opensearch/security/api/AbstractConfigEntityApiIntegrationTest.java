@@ -174,7 +174,7 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
         assertThat(resp, isOk());
         final var body = resp.bodyAsJsonNode();
         final var pretty = body.toPrettyString();
-        final var it = body.elements();
+        final var it = body.values().iterator();
         while (it.hasNext()) {
             final var e = it.next();
             assertThat(pretty, not(e.get("hidden").asBoolean()));

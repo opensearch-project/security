@@ -45,9 +45,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Streams;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -76,6 +73,10 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.transport.client.Client;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLFactory;
 
 import static java.util.Arrays.asList;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -153,6 +154,11 @@ public class TestSecurityConfig {
 
     public TestSecurityConfig onBehalfOf(OnBehalfOfConfig onBehalfOfConfig) {
         config.onBehalfOfConfig(onBehalfOfConfig);
+        return this;
+    }
+
+    public TestSecurityConfig apiToken(ApiTokenConfig apiTokenConfig) {
+        config.apiTokenConfig(apiTokenConfig);
         return this;
     }
 
@@ -253,18 +259,14 @@ public class TestSecurityConfig {
      * Can be used to simulate invalid configuration or legacy configuration.
      */
     public TestSecurityConfig rawConfigurationDocumentYaml(String configTypeId, String configDocumentAsYaml) {
-        try {
-            if (this.rawConfigurationDocuments == null) {
-                this.rawConfigurationDocuments = new LinkedHashMap<>();
-            }
-
-            JsonNode node = new ObjectMapper(new YAMLFactory()).readTree(configDocumentAsYaml);
-
-            this.rawConfigurationDocuments.put(configTypeId, new ObjectMapper().writeValueAsString(node));
-            return this;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (this.rawConfigurationDocuments == null) {
+            this.rawConfigurationDocuments = new LinkedHashMap<>();
         }
+
+        JsonNode node = new ObjectMapper(new YAMLFactory()).readTree(configDocumentAsYaml);
+
+        this.rawConfigurationDocuments.put(configTypeId, new ObjectMapper().writeValueAsString(node));
+        return this;
     }
 
     public static class Config implements ToXContentObject {
@@ -274,6 +276,7 @@ public class TestSecurityConfig {
         private String privilegesEvaluationType;
         private XffConfig xffConfig;
         private OnBehalfOfConfig onBehalfOfConfig;
+        private ApiTokenConfig apiTokenConfig;
         private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
         private AuthFailureListeners authFailureListeners;
@@ -304,6 +307,11 @@ public class TestSecurityConfig {
             return this;
         }
 
+        public Config apiTokenConfig(ApiTokenConfig apiTokenConfig) {
+            this.apiTokenConfig = apiTokenConfig;
+            return this;
+        }
+
         public Config authc(AuthcDomain authcDomain) {
             authcDomainMap.put(authcDomain.id, authcDomain);
             return this;
@@ -326,6 +334,10 @@ public class TestSecurityConfig {
 
             if (onBehalfOfConfig != null) {
                 xContentBuilder.field("on_behalf_of", onBehalfOfConfig);
+            }
+
+            if (apiTokenConfig != null) {
+                xContentBuilder.field("api_tokens", apiTokenConfig);
             }
 
             if (anonymousAuth || (xffConfig != null)) {

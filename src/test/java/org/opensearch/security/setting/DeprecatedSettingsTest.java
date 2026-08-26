@@ -5,7 +5,8 @@
 
 package org.opensearch.security.setting;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
+import java.io.IOException;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -154,7 +155,7 @@ public class DeprecatedSettingsTest {
                 0,
                 0
             );
-        } catch (JsonMappingException e) {
+        } catch (IOException e) {
             verifyNoInteractions(logger);
         }
     }

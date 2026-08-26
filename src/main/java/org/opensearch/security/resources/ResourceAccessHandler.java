@@ -12,7 +12,6 @@
 package org.opensearch.security.resources;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,7 +25,6 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
@@ -73,8 +71,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of accessible resource IDs.
      */
     public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceType, ActionListener<Set<String>> listener) {
-        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        User user = userSub == null ? null : userSub.getUser();
+        User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user; returning empty set of ids");
@@ -101,8 +98,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of resource sharing records.
      */
     public void getResourceSharingInfoForCurrentUser(@NonNull String resourceType, ActionListener<Set<SharingRecord>> listener) {
-        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        User user = userSub == null ? null : userSub.getUser();
+        User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user; returning empty set of resource-sharing records");
@@ -137,10 +133,7 @@ public class ResourceAccessHandler {
         @NonNull String action,
         ActionListener<Boolean> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Access to resource {} is not authorized.", resourceId);
@@ -228,12 +221,11 @@ public class ResourceAccessHandler {
         @NonNull String resourceType,
         @Nullable ShareWith add,
         @Nullable ShareWith revoke,
+        boolean generalAccessPresent,
+        @Nullable String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to patch resource sharing info {}", resourceId);
@@ -264,19 +256,27 @@ public class ResourceAccessHandler {
             revoke
         );
 
-        this.resourceSharingIndexHandler.patchSharingInfo(resourceId, resourceIndex, add, revoke, ActionListener.wrap(sharingInfo -> {
-            LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
-            listener.onResponse(sharingInfo);
-        }, e -> {
-            LOGGER.error(
-                "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
-                resourceId,
-                add,
-                revoke,
-                e.getMessage()
-            );
-            listener.onFailure(e);
-        }));
+        this.resourceSharingIndexHandler.patchSharingInfo(
+            resourceId,
+            resourceIndex,
+            add,
+            revoke,
+            generalAccessPresent,
+            generalAccess,
+            ActionListener.wrap(sharingInfo -> {
+                LOGGER.debug("Successfully patched sharing info for resource {} with add: {}, revoke: {}", resourceId, add, revoke);
+                listener.onResponse(sharingInfo);
+            }, e -> {
+                LOGGER.error(
+                    "Failed to patched sharing info for resource {} with add: {}, revoke: {} : {}",
+                    resourceId,
+                    add,
+                    revoke,
+                    e.getMessage()
+                );
+                listener.onFailure(e);
+            })
+        );
 
     }
 
@@ -287,10 +287,7 @@ public class ResourceAccessHandler {
      * @param listener      listener to be notified of final resource sharing record
      */
     public void getSharingInfo(@NonNull String resourceId, @NonNull String resourceType, ActionListener<ResourceSharing> listener) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to fetch resource sharing info {}", resourceId);
@@ -337,10 +334,7 @@ public class ResourceAccessHandler {
         @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to share resource {}", resourceId);
@@ -396,14 +390,10 @@ public class ResourceAccessHandler {
     private Set<String> getFlatPrincipals(User user) {
         // 1) collect all entities we’ll match against share_with arrays
         // for users:
-        Set<String> users = new HashSet<>();
-        users.add(user.getName());
-        users.add("*"); // for matching against publicly shared resource
-
         // return flattened principals to build the bool query
         return Stream.concat(
-            // users
-            users.stream().map(u -> "user:" + u),
+            // users, plus bare "public" sentinel for publicly shared resources
+            Stream.concat(Stream.of("user:" + user.getName(), "public"), Stream.empty()),
             // then roles and backend_roles
             Stream.concat(user.getSecurityRoles().stream().map(r -> "role:" + r), user.getRoles().stream().map(b -> "backend:" + b))
         ).collect(Collectors.toSet());

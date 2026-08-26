@@ -85,7 +85,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
     }
 
     public static RoleV7 fromYaml(Reader yamlReader) throws IOException {
-        return DefaultObjectMapper.YAML_MAPPER.readValue(yamlReader, RoleV7.class);
+        return DefaultObjectMapper.yamlMapper().readValue(yamlReader, RoleV7.class);
     }
 
     /**

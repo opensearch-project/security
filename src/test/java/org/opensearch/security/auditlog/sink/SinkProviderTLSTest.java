@@ -128,14 +128,16 @@ public class SinkProviderTLSTest {
     // for TLS support on our in-memory server
     private SSLContext createSSLContext() throws Exception {
         final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        final KeyStore trustStore = KeyStore.getInstance("JKS");
-        InputStream trustStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks").toFile());
+        var typedTrustStore = FileHelper.resolveStore("auditlog/truststore");
+        final KeyStore trustStore = KeyStore.getInstance(typedTrustStore.type());
+        InputStream trustStream = new FileInputStream(typedTrustStore.path().toFile());
         trustStore.load(trustStream, "changeit".toCharArray());
         tmf.init(trustStore);
 
         final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        final KeyStore keyStore = KeyStore.getInstance("JKS");
-        InputStream keyStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks").toFile());
+        var typedKeyStore = FileHelper.resolveStore("auditlog/node-0-keystore");
+        final KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
+        InputStream keyStream = new FileInputStream(typedKeyStore.path().toFile());
 
         keyStore.load(keyStream, "changeit".toCharArray());
         kmf.init(keyStore, "changeit".toCharArray());

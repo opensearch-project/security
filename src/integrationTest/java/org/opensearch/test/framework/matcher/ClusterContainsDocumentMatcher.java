@@ -44,7 +44,7 @@ class ClusterContainsDocumentMatcher extends TypeSafeDiagnosingMatcher<Client> {
             }
         } catch (InterruptedException | ExecutionException e) {
             log.error("Cannot verify if cluster contains document '{}' in index '{}'.", documentId, indexName, e);
-            mismatchDescription.appendText("Exception occured during verification if cluster contain document").appendValue(e);
+            mismatchDescription.appendText("Exception occurred during verification if cluster contain document").appendValue(e);
             return false;
         }
         return true;

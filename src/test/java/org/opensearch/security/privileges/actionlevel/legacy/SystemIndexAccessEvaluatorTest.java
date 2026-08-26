@@ -20,7 +20,6 @@ import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Test;
@@ -123,42 +122,32 @@ public class SystemIndexAccessEvaluatorTest {
         ThreadContext threadContext = createThreadContext();
         indexNameExpressionResolver = createIndexNameExpressionResolver(threadContext);
 
-        try {
-            SecurityDynamicConfiguration<RoleV7> rolesConfig = SecurityDynamicConfiguration.fromMap(
+        SecurityDynamicConfiguration<RoleV7> rolesConfig = SecurityDynamicConfiguration.fromMap(
+            ImmutableMap.of(
+                "role_a",
                 ImmutableMap.of(
-                    "role_a",
-                    ImmutableMap.of(
-                        "index_permissions",
-                        Arrays.asList(
-                            ImmutableMap.of(
-                                "index_patterns",
-                                Arrays.asList(index),
-                                "allowed_actions",
-                                createIndexPatternWithSystemIndexPermission ? Set.of("*", SYSTEM_INDEX_PERMISSION) : Set.of("*")
-                            )
-                        ),
-                        "cluster_permissions",
-                        Arrays.asList("*")
-                    )
-                ),
-                CType.ROLES
-            );
+                    "index_permissions",
+                    Arrays.asList(
+                        ImmutableMap.of(
+                            "index_patterns",
+                            Arrays.asList(index),
+                            "allowed_actions",
+                            createIndexPatternWithSystemIndexPermission ? Set.of("*", SYSTEM_INDEX_PERMISSION) : Set.of("*")
+                        )
+                    ),
+                    "cluster_permissions",
+                    Arrays.asList("*")
+                )
+            ),
+            CType.ROLES
+        );
 
-            this.actionPrivileges = new RoleBasedActionPrivileges(
-                new CompiledRoles(
-                    rolesConfig,
-                    FlattenedActionGroups.EMPTY,
-                    NamedXContentRegistry.EMPTY,
-                    FieldMasking.Config.DEFAULT,
-                    false
-                ),
-                RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
-                Settings.EMPTY,
-                true
-            );
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        this.actionPrivileges = new RoleBasedActionPrivileges(
+            new CompiledRoles(rolesConfig, FlattenedActionGroups.EMPTY, NamedXContentRegistry.EMPTY, FieldMasking.Config.DEFAULT, false),
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection.NONE,
+            Settings.EMPTY,
+            true
+        );
 
         // create a user and associate them with the role
         user = new User("user_a").withSecurityRoles(List.of("role_a"));

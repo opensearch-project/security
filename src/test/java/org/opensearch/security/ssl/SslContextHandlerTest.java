@@ -28,6 +28,7 @@ import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.cert.X509CertificateHolder;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.config.KeyStoreConfiguration;
@@ -116,7 +117,7 @@ public class SslContextHandlerTest {
 
         writeCertificates(newCaCertificate, certificatesRule.accessCertificateHolder(), certificatesRule.accessCertificatePrivateKey());
 
-        assertThrows(CertificateException.class, sslContextHandler::reloadSslContext);
+        assertThrows(OpenSearchException.class, sslContextHandler::reloadSslContext);
 
         newCaCertificate = certificatesRule.generateCaCertificate(
             keyPair,
@@ -125,7 +126,42 @@ public class SslContextHandlerTest {
         );
         writeCertificates(newCaCertificate, certificatesRule.accessCertificateHolder(), certificatesRule.accessCertificatePrivateKey());
 
-        assertThrows(CertificateException.class, sslContextHandler::reloadSslContext);
+        assertThrows(OpenSearchException.class, sslContextHandler::reloadSslContext);
+    }
+
+    @Test
+    public void sslContextReloadSucceedsWithValidIssuerAndExpiredIrrelevantCertificates() throws Exception {
+        final var sslContextHandler = sslContextHandler();
+
+        final var keyPair = certificatesRule.generateKeyPair();
+        final var validRelevantCA = certificatesRule.generateCaCertificate(
+            keyPair,
+            "CN=some_access,OU=client,O=client,L=test,C=de",
+            certificatesRule.generateSerialNumber(),
+            certificatesRule.caCertificateHolder().getNotBefore().toInstant(),
+            certificatesRule.caCertificateHolder().getNotAfter().toInstant()
+        );
+
+        final var newAccessCertificate = certificatesRule.generateAccessCertificate(keyPair);
+
+        final var irrelevantKeyPair = certificatesRule.generateKeyPair();
+        final var expiredIrrelevantCA = certificatesRule.generateCaCertificate(
+            irrelevantKeyPair,
+            "CN=irrelevant-ca,OU=irrelevant,O=irrelevant,L=irrelevant,C=XX",
+            certificatesRule.generateSerialNumber(),
+            certificatesRule.caCertificateHolder().getNotAfter().toInstant().minus(30, ChronoUnit.DAYS),
+            certificatesRule.caCertificateHolder().getNotAfter().toInstant().minus(10, ChronoUnit.DAYS)
+        );
+
+        writePemContent(accessCertificatePath, newAccessCertificate.v2());
+        writePemContent(
+            accessCertificatePrivateKeyPath,
+            privateKeyToPemObject(newAccessCertificate.v1(), certificatesRule.privateKeyPassword())
+        );
+        writePemContent(caCertificatePath, validRelevantCA, expiredIrrelevantCA);
+
+        final boolean hasChanges = sslContextHandler.reloadSslContext();
+        assertThat("SSL context should reload successfully", hasChanges, is(true));
     }
 
     @Test

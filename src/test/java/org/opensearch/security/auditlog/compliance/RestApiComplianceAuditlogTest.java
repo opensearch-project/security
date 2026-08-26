@@ -84,7 +84,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
 
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
@@ -113,7 +113,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
             assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
@@ -195,7 +195,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
 
         final AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
             HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
@@ -219,7 +219,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
             .build();
         setupAndReturnAuditMessages(settings);
         rh.sendAdminCertificate = true;
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
 
         // read internal users and verify no BCrypt hash is present in audit logs
         final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(() -> {
@@ -260,7 +260,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
         final DynamicSecurityConfig securityConfig = new DynamicSecurityConfig().setSecurityInternalUsers("internal_users_pbkdf2.yml");
         setupAndReturnAuditMessages(settings, securityConfig);
         rh.sendAdminCertificate = true;
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
 
         // read internal users and verify no PBKDF2 hash is present in audit logs
         final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(() -> {
@@ -391,7 +391,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
         final DynamicSecurityConfig securityConfig = new DynamicSecurityConfig().setSecurityInternalUsers("internal_users_argon2.yml");
         setupAndReturnAuditMessages(settings, securityConfig);
         rh.sendAdminCertificate = true;
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
 
         // read internal users and verify no Argon2 hash is present in audit logs
         final AuditMessage message1 = TestAuditlogImpl.doThenWaitForMessage(() -> {

@@ -76,10 +76,6 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
         }
     }
 
-    public boolean isPublic() {
-        return recipients.values().stream().anyMatch(recipients -> recipients.contains("*"));
-    }
-
     public boolean isSharedWithAny(Recipient recipientType, Set<String> targets) {
         return !Collections.disjoint(recipients.getOrDefault(recipientType, Collections.emptySet()), targets);
     }
@@ -143,15 +139,7 @@ public class Recipients implements ToXContentFragment, NamedWriteable {
                     // Validate element value if validator provided
                     // For "users" field, allow wildcard; for others, don't
                     if (elementValidator != null) {
-                        // Check if wildcard should be allowed based on recipient type
-                        boolean allowWildcard = (recipient == Recipient.USERS);
-                        if (allowWildcard) {
-                            // Use wildcard-enabled validator for users
-                            RequestContentValidator.principalValidator(true).validate(fieldName, value);
-                        } else {
-                            // Use standard validator for roles and backend_roles
-                            elementValidator.validate(fieldName, value);
-                        }
+                        elementValidator.validate(fieldName, value);
                     }
 
                     values.add(value);

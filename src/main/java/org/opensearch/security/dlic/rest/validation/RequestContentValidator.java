@@ -22,9 +22,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,7 +33,11 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 
-import com.flipkart.zjsonpatch.JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
@@ -55,18 +56,18 @@ public class RequestContentValidator implements ToXContent {
         }
 
         @Override
-        public Map<String, DataType> allowedKeys() {
+        public Map<String, FieldConfiguration> allowedKeys() {
             return Collections.emptyMap();
         }
     }) {
         @Override
         public ValidationResult<JsonNode> validate(RestRequest request) {
-            return ValidationResult.success(DefaultObjectMapper.objectMapper.createObjectNode());
+            return ValidationResult.success(DefaultObjectMapper.objectMapper().createObjectNode());
         }
 
         @Override
         public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonNode) {
-            return ValidationResult.success(DefaultObjectMapper.objectMapper.createObjectNode());
+            return ValidationResult.success(DefaultObjectMapper.objectMapper().createObjectNode());
         }
     };
 
@@ -177,16 +178,7 @@ public class RequestContentValidator implements ToXContent {
 
         Settings settings();
 
-        Map<String, DataType> allowedKeys();
-
-        /**
-         * Optional: Returns field configurations with validation rules.
-         * If not overridden, returns null and the validator will use allowedKeys() instead.
-         * This is an opt-in enhancement for more flexible validation.
-         */
-        default Map<String, FieldConfiguration> allowedKeysWithConfig() {
-            return null;
-        }
+        Map<String, FieldConfiguration> allowedKeys();
 
     }
 
@@ -208,6 +200,17 @@ public class RequestContentValidator implements ToXContent {
         this.validationContext = validationContext;
     }
 
+    private JsonNode originalContent;
+
+    /**
+     * Sets the original content for patch-aware validation.
+     * When set, the null/blank array element check will only validate fields that changed.
+     */
+    public RequestContentValidator withOriginalContent(final JsonNode originalContent) {
+        this.originalContent = originalContent;
+        return this;
+    }
+
     public ValidationResult<JsonNode> validate(final RestRequest request) throws IOException {
         return parseRequestContent(request).map(this::validateContentSize).map(jsonContent -> validate(request, jsonContent));
     }
@@ -216,18 +219,21 @@ public class RequestContentValidator implements ToXContent {
         return validateContentSize(jsonContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
+            .map(this::validateStringLength)
             .map(ignored -> validatePassword(request, jsonContent));
     }
 
     public ValidationResult<JsonNode> validate(final RestRequest request, final JsonNode patchedContent, final JsonNode originalContent)
         throws IOException {
-        JsonNode patch = JsonDiff.asJson(originalContent, patchedContent);
+        JsonNode patch = Jackson3JsonDiff.asJson(originalContent, patchedContent);
         if (patch.isEmpty()) {
             return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
         }
+        this.originalContent = originalContent;
         return validateContentSize(patchedContent).map(this::validateJsonKeys)
             .map(this::validateDataType)
             .map(this::nullValuesInArrayValidator)
+            .map(this::validateStringLength)
             .map(ignored -> validatePassword(request, patchedContent));
     }
 
@@ -251,7 +257,7 @@ public class RequestContentValidator implements ToXContent {
 
     protected ValidationResult<JsonNode> validateJsonKeys(final JsonNode jsonContent) {
         final Set<String> requestedKeys = new HashSet<>();
-        jsonContent.fieldNames().forEachRemaining(requestedKeys::add);
+        jsonContent.propertyNames().spliterator().forEachRemaining(requestedKeys::add);
         // mandatory settings, one of ...
         if (Collections.disjoint(requestedKeys, validationContext.mandatoryOrKeys())) {
             missingMandatoryOrKeys.addAll(validationContext.mandatoryOrKeys());
@@ -260,14 +266,7 @@ public class RequestContentValidator implements ToXContent {
         mandatory.removeAll(requestedKeys);
         missingMandatoryKeys.addAll(mandatory);
 
-        // Use allowedKeysWithConfig if provided, otherwise fall back to allowedKeys
-        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
-        final Set<String> allowed;
-        if (fieldConfigs != null) {
-            allowed = new HashSet<>(fieldConfigs.keySet());
-        } else {
-            allowed = new HashSet<>(validationContext.allowedKeys().keySet());
-        }
+        final Set<String> allowed = new HashSet<>(validationContext.allowedKeys().keySet());
         requestedKeys.removeAll(allowed);
         invalidKeys.addAll(requestedKeys);
 
@@ -279,27 +278,16 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> validateDataType(final JsonNode jsonContent) {
-        // Check if enhanced validation is available
-        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
-        final boolean useEnhancedValidation = (fieldConfigs != null);
+        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeys();
 
-        try (final JsonParser parser = DefaultObjectMapper.objectMapper.treeAsTokens(jsonContent)) {
+        try (final JsonParser parser = DefaultObjectMapper.objectMapper().treeAsTokens(jsonContent)) {
             JsonToken token;
             while ((token = parser.nextToken()) != null) {
-                if (token.equals(JsonToken.FIELD_NAME)) {
+                if (token.equals(JsonToken.PROPERTY_NAME)) {
                     String currentName = parser.currentName();
 
-                    // Get data type from either FieldConfiguration or simple DataType map
-                    final DataType dataType;
-                    final FieldConfiguration fieldConfig;
-
-                    if (useEnhancedValidation && fieldConfigs != null) {
-                        fieldConfig = fieldConfigs.get(currentName);
-                        dataType = (fieldConfig != null) ? fieldConfig.getDataType() : null;
-                    } else {
-                        fieldConfig = null;
-                        dataType = validationContext.allowedKeys().get(currentName);
-                    }
+                    final FieldConfiguration fieldConfig = fieldConfigs.get(currentName);
+                    final DataType dataType = (fieldConfig != null) ? fieldConfig.getDataType() : null;
 
                     if (dataType != null) {
                         JsonToken valueToken = parser.nextToken();
@@ -367,7 +355,7 @@ public class RequestContentValidator implements ToXContent {
                     }
                 }
             }
-        } catch (final IOException ioe) {
+        } catch (final JacksonException ioe) {
             LOGGER.error("Couldn't create JSON for payload {}", jsonContent, ioe);
             this.validationError = ValidationError.BODY_NOT_PARSEABLE;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
@@ -380,17 +368,20 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> nullValuesInArrayValidator(final JsonNode jsonContent) {
-        // Use allowedKeysWithConfig if provided, otherwise fall back to allowedKeys
-        final Map<String, FieldConfiguration> fieldConfigs = validationContext.allowedKeysWithConfig();
-        final Set<String> allowedKeys = (fieldConfigs != null) ? fieldConfigs.keySet() : validationContext.allowedKeys().keySet();
+        final Set<String> allowedKeys = validationContext.allowedKeys().keySet();
 
         for (final String key : allowedKeys) {
-            JsonNode value = jsonContent.get(key);
-            if (value != null) {
-                if (hasNullOrBlankArrayElement(value)) {
-                    this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
-                    return ValidationResult.error(RestStatus.BAD_REQUEST, this);
-                }
+            final JsonNode value = jsonContent.get(key);
+            if (value == null) {
+                continue;
+            }
+            // Skip validation if the field hasn't changed from the original
+            if (originalContent != null && value.equals(originalContent.get(key))) {
+                continue;
+            }
+            if (hasNullOrBlankArrayElement(value)) {
+                this.validationError = ValidationError.NULL_ARRAY_ELEMENT;
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
         }
         return ValidationResult.success(jsonContent);
@@ -402,7 +393,7 @@ public class RequestContentValidator implements ToXContent {
                 if (node.isArray()) {
                     return true;
                 }
-            } else if (element.isContainerNode()) {
+            } else if (element.isContainer()) {
                 if (hasNullOrBlankArrayElement(element)) {
                     return true;
                 }
@@ -411,10 +402,30 @@ public class RequestContentValidator implements ToXContent {
         return false;
     }
 
+    private ValidationResult<JsonNode> validateStringLength(final JsonNode jsonContent) {
+        if (exceedsMaxStringLength(jsonContent)) {
+            this.validationError = ValidationError.STRING_EXCEEDS_MAX_LENGTH;
+            return ValidationResult.error(RestStatus.BAD_REQUEST, this);
+        }
+        return ValidationResult.success(jsonContent);
+    }
+
+    private boolean exceedsMaxStringLength(final JsonNode node) {
+        if (node.isTextual() && node.asText().length() > MAX_STRING_LENGTH) {
+            return true;
+        }
+        for (final JsonNode child : node) {
+            if (exceedsMaxStringLength(child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ValidationResult<JsonNode> validatePassword(final RestRequest request, final JsonNode jsonContent) {
         if (jsonContent.has("password")) {
             final PasswordValidator passwordValidator = PasswordValidator.of(validationContext.settings());
-            final String password = jsonContent.get("password").asText();
+            final String password = jsonContent.get("password").asString();
             if (Strings.isNullOrEmpty(password)) {
                 this.validationError = ValidationError.INVALID_PASSWORD_TOO_SHORT;
                 return ValidationResult.error(RestStatus.BAD_REQUEST, this);
@@ -486,8 +497,7 @@ public class RequestContentValidator implements ToXContent {
 
             private final Set<String> mandatoryOrKeys = validationContext.mandatoryOrKeys();
 
-            private final Map<String, DataType> allowedKeys = validationContext.allowedKeys();
-            private final Map<String, FieldConfiguration> allowedKeysWithConfig = validationContext.allowedKeysWithConfig();
+            private final Map<String, FieldConfiguration> allowedKeys = validationContext.allowedKeys();
 
             @Override
             public Settings settings() {
@@ -510,13 +520,8 @@ public class RequestContentValidator implements ToXContent {
             }
 
             @Override
-            public Map<String, DataType> allowedKeys() {
+            public Map<String, FieldConfiguration> allowedKeys() {
                 return allowedKeys;
-            }
-
-            @Override
-            public Map<String, FieldConfiguration> allowedKeysWithConfig() {
-                return allowedKeysWithConfig;
             }
         });
     }
@@ -535,7 +540,8 @@ public class RequestContentValidator implements ToXContent {
         PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
         PAYLOAD_MANDATORY("Request body required for this action."),
         SECURITY_NOT_INITIALIZED("Security index not initialized"),
-        NULL_ARRAY_ELEMENT("`null` or blank values are not allowed as json array elements");
+        NULL_ARRAY_ELEMENT("`null` or blank values are not allowed as json array elements"),
+        STRING_EXCEEDS_MAX_LENGTH("String value exceeds the maximum allowed length of " + MAX_STRING_LENGTH + " characters");
 
         private final String message;
 
@@ -669,13 +675,13 @@ public class RequestContentValidator implements ToXContent {
             throw new IllegalArgumentException(fieldName + " must be an object");
         }
 
-        if (!node.fieldNames().hasNext()) {
+        if (!node.propertyNames().iterator().hasNext()) {
             throw new IllegalArgumentException(fieldName + " cannot be empty");
         }
 
-        node.fields().forEachRemaining(entry -> {
+        node.properties().spliterator().forEachRemaining(entry -> {
             JsonNode val = entry.getValue();
-            if (!val.isTextual() || val.asText().isEmpty()) {
+            if (!val.isString() || val.asString().isEmpty()) {
                 throw new IllegalArgumentException(fieldName + " for key [" + entry.getKey() + "] must be a non-empty string");
             }
         });

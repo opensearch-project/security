@@ -15,12 +15,13 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class HostAndCidrMatcherTest {
+public class HostAndCidrMatcherTest extends LuceneTestCase {
 
     private static final String OPENSEARCH_DOMAIN = "*.opensearch.org";
     private static final String OPENSEARCH_WWW = "www.opensearch.org";

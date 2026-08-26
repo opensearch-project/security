@@ -11,6 +11,7 @@ package org.opensearch.security.filter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -18,12 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class RestPathMatchesTests {
+public class RestPathMatchesTests extends LuceneTestCase {
     Method restPathMatches;
     SecurityRestFilter securityRestFilter;
 
     @Before
-    public void setUp() throws NoSuchMethodException {
+    public void setupRestPathMatches() throws NoSuchMethodException {
         securityRestFilter = mock(SecurityRestFilter.class);
         restPathMatches = SecurityRestFilter.class.getDeclaredMethod("restPathMatches", String.class, String.class);
         restPathMatches.setAccessible(true);

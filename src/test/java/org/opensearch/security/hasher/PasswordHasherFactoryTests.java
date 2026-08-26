@@ -11,6 +11,7 @@
 
 package org.opensearch.security.hasher;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
@@ -20,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
-public class PasswordHasherFactoryTests {
+public class PasswordHasherFactoryTests extends LuceneTestCase {
 
     @Test
     public void shouldReturnBCryptByDefault() {

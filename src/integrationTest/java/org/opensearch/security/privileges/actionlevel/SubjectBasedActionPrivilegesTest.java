@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -574,22 +573,16 @@ public class SubjectBasedActionPrivilegesTest {
             }
 
             RoleV7 toConfig(ActionSpec actionSpec) {
-                try {
-                    return SecurityDynamicConfiguration.fromMap(
+                return SecurityDynamicConfiguration.fromMap(
+                    ImmutableMap.of(
+                        "test_role",
                         ImmutableMap.of(
-                            "test_role",
-                            ImmutableMap.of(
-                                "index_permissions",
-                                Arrays.asList(
-                                    ImmutableMap.of("index_patterns", this.givenIndexPrivs, "allowed_actions", actionSpec.givenPrivs)
-                                )
-                            )
-                        ),
-                        CType.ROLES
-                    ).getCEntry("test_role");
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
+                            "index_permissions",
+                            Arrays.asList(ImmutableMap.of("index_patterns", this.givenIndexPrivs, "allowed_actions", actionSpec.givenPrivs))
+                        )
+                    ),
+                    CType.ROLES
+                ).getCEntry("test_role");
             }
 
             @Override

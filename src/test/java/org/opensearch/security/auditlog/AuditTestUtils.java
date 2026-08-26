@@ -13,8 +13,6 @@ package org.opensearch.security.auditlog;
 
 import java.nio.file.Path;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpStatus;
 
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -26,6 +24,8 @@ import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+
+import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -39,20 +39,20 @@ public class AuditTestUtils {
         final boolean sendAdminCertificate = rh.sendAdminCertificate;
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
-        rh.keystore = "auditlog/kirk-keystore.jks";
+        rh.keystore = "auditlog/kirk-keystore";
         RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/audit/config", payload);
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
     }
 
-    public static String createAuditPayload(final Settings settings) throws JsonProcessingException {
+    public static String createAuditPayload(final Settings settings) {
         final ObjectMapper objectMapper = new ObjectMapper();
         final AuditConfig audit = AuditConfig.from(settings);
         return objectMapper.writeValueAsString(audit);
     }
 
-    public static String createAuditPayload(final AuditConfig audit) throws JsonProcessingException {
+    public static String createAuditPayload(final AuditConfig audit) {
         final ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(audit);
     }

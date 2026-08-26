@@ -31,7 +31,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -124,34 +123,33 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
 
                 for (final List<?> ian : ianList) {
 
-                    if (ian == null) {
+                    if (ian == null || ian.size() < 2) {
                         continue;
                     }
 
-                    for (@SuppressWarnings("rawtypes")
-                    final Iterator iterator = ian.iterator(); iterator.hasNext();) {
-                        final int id = (int) iterator.next();
-                        if (id == 8) { // id 8 = OID, id 1 = name (as string or
-                                       // ASN.1 encoded byte[])
-                            Object value = iterator.next();
+                    final Object typeId = ian.get(0);
+                    if (!(typeId instanceof Integer)) {
+                        continue;
+                    }
+                    final int id = (Integer) typeId;
+                    if (id == 8) { // id 8 = OID, id 1 = name (as string or
+                                   // ASN.1 encoded byte[])
+                        Object value = ian.get(1);
 
-                            if (value == null) {
-                                continue;
-                            }
+                        if (value == null) {
+                            continue;
+                        }
 
-                            if (value instanceof String) {
-                                sb.append(id + "::" + value);
-                            } else if (value instanceof byte[]) {
-                                log.error(
-                                    "Unable to handle OID san {} with value {} of type byte[] (ASN.1 DER not supported here)",
-                                    id,
-                                    Arrays.toString((byte[]) value)
-                                );
-                            } else {
-                                log.error("Unable to handle OID san {} with value {} of type {}", id, value, value.getClass());
-                            }
+                        if (value instanceof String) {
+                            sb.append(id + "::" + value);
+                        } else if (value instanceof byte[]) {
+                            log.error(
+                                "Unable to handle OID san {} with value {} of type byte[] (ASN.1 DER not supported here)",
+                                id,
+                                Arrays.toString((byte[]) value)
+                            );
                         } else {
-                            iterator.next();
+                            log.error("Unable to handle OID san {} with value {} of type {}", id, value, value.getClass());
                         }
                     }
                 }

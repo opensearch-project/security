@@ -65,7 +65,15 @@ public class AuditCategoryTest {
                             "COMPLIANCE_DOC_WRITE",
                             "COMPLIANCE_EXTERNAL_CONFIG",
                             "COMPLIANCE_INTERNAL_CONFIG_READ",
-                            "COMPLIANCE_INTERNAL_CONFIG_WRITE"
+                            "COMPLIANCE_INTERNAL_CONFIG_WRITE",
+                            "CLUSTER_SETTINGS_CHANGED",
+                            "INDEX_SETTINGS_CHANGED",
+                            "API_TOKEN_WRITE",
+                            "REQUEST_AUDIT",
+                            "TRANSPORT_AUDIT",
+                            "RESOURCE_ACCESS_GRANTED",
+                            "RESOURCE_ACCESS_DENIED",
+                            "RESOURCE_SHARING_CHANGED"
                         ),
                         EnumSet.allOf(AuditCategory.class) }, }
             );

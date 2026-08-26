@@ -36,6 +36,7 @@ import org.opensearch.index.engine.Engine.Index;
 import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.tasks.Task;
@@ -70,6 +71,21 @@ public class NullAuditLog implements AuditLog {
 
     @Override
     public void logIndexEvent(String privilege, TransportRequest request, Task task) {
+        // noop, intentionally left empty
+    }
+
+    @Override
+    public void logRequestAudit(AuditMessage msg) {
+        // noop, intentionally left empty
+    }
+
+    @Override
+    public void logTransportAudit(AuditMessage msg) {
+        // noop, intentionally left empty
+    }
+
+    @Override
+    public void logSettingsChange(String action, TransportRequest request, Task task) {
         // noop, intentionally left empty
     }
 
@@ -121,6 +137,55 @@ public class NullAuditLog implements AuditLog {
     @Override
     public void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result, GetResult originalResult) {
         // noop, intentionally left empty
+    }
+
+    @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        // noop
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        // noop
+    }
+
+    @Override
+    public void logResourceAccessGranted(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        // noop
+    }
+
+    @Override
+    public void logResourceAccessDenied(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        // noop
+    }
+
+    @Override
+    public void logResourceSharingChanged(
+        String resourceId,
+        String resourceType,
+        String sharingAction,
+        String sharingResult,
+        String recipientsAdded,
+        String recipientsRevoked,
+        String shareWith,
+        TransportRequest request,
+        Task task
+    ) {
+        // noop
     }
 
     @Override

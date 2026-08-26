@@ -30,7 +30,7 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
         final var securityConfigApiAction = new SecurityConfigApiAction(
             clusterService,
             threadPool,
-            new SecurityApiDependencies(null, configurationRepository, null, null, restApiAdminPrivilegesEvaluator, null, Settings.EMPTY)
+            new SecurityApiDependencies(null, configurationRepository, null, restApiAuthorizationEvaluator, null, Settings.EMPTY)
         );
         assertTrue(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
         assertFalse(securityConfigApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
@@ -46,8 +46,7 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
                 null,
                 configurationRepository,
                 null,
-                null,
-                restApiAdminPrivilegesEvaluator,
+                restApiAuthorizationEvaluator,
                 null,
                 Settings.builder().put(SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build()
             )
@@ -59,7 +58,8 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
 
     @Test
     public void accessHandlerForRestAdmin() {
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.CONFIG, RestApiAdminPrivilegesEvaluator.SECURITY_CONFIG_UPDATE)).thenReturn(true);
+        when(restApiAuthorizationEvaluator.isCurrentUserAdminFor(Endpoint.CONFIG, RestApiAuthorizationEvaluator.SECURITY_CONFIG_UPDATE))
+            .thenReturn(true);
         final var securityConfigApiAction = new SecurityConfigApiAction(
                 clusterService,
                 threadPool,
@@ -67,8 +67,7 @@ public class SecurityConfigApiActionValidationTest extends AbstractApiActionVali
                         null,
                         configurationRepository,
                         null,
-                        null,
-                        restApiAdminPrivilegesEvaluator,
+                        restApiAuthorizationEvaluator,
                         null,
                         Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build()
                 )

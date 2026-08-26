@@ -30,11 +30,11 @@ import org.opensearch.security.user.User;
 
 /**
  * Represents a resource sharing configuration that manages access control for OpenSearch resources.
- * This class holds information about shared resources including their source, creator, and sharing permissions.
+ * This class holds information about shared resources including their creator and sharing permissions.
  * The class maintains information about:
  * <ul>
- *   <li>The source index where the resource is defined</li>
  *   <li>The unique identifier of the resource</li>
+ *   <li>The type of the resource</li>
  *   <li>The creator's information</li>
  *   <li>The sharing permissions and recipients</li>
  * </ul>
@@ -55,6 +55,13 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * The type of the resource
      */
     private String resourceType;
+
+    /**
+     * The tenant where the resource lives.
+     *
+     * Nullable when multi-tenancy is disabled.
+     */
+    private String tenant;
 
     /**
      * The type of the parent resource
@@ -83,6 +90,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private ResourceSharing(Builder b) {
         this.resourceId = b.resourceId;
         this.resourceType = b.resourceType;
+        this.tenant = b.tenant;
         this.parentType = b.parentType;
         this.parentId = b.parentId;
         this.createdBy = b.createdBy;
@@ -99,6 +107,10 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public void setResourceId(String resourceId) {
         this.resourceId = resourceId;
+    }
+
+    public String getTenant() {
+        return tenant;
     }
 
     public CreatedBy getCreatedBy() {
@@ -129,13 +141,24 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             return;
         }
         Recipients sharedWith = shareWith.atAccessLevel(accessLevel);
-        // sharedWith will be null when sharing at a new access-level
         if (sharedWith == null) {
-            // update the ShareWith object
             shareWith = shareWith.updateSharingInfo(accessLevel, target);
         } else {
             sharedWith.share(target);
         }
+    }
+
+    public void setGeneralAccess(String generalAccess) {
+        ShareWith current = getShareWith();
+        shareWith = new ShareWith(current.getSharingInfo(), generalAccess);
+    }
+
+    public void applyAdd(ShareWith add) {
+        shareWith = getShareWith().add(add);
+    }
+
+    public void applyRevoke(ShareWith revoke) {
+        shareWith = getShareWith().revoke(revoke);
     }
 
     public void revoke(String accessLevel, Recipients target) {
@@ -165,6 +188,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         ResourceSharing that = (ResourceSharing) o;
         return Objects.equals(resourceId, that.resourceId)
             && Objects.equals(resourceType, that.resourceType)
+            && Objects.equals(tenant, that.tenant)
             && Objects.equals(parentType, that.parentType)
             && Objects.equals(parentId, that.parentId)
             && Objects.equals(createdBy, that.createdBy)
@@ -173,7 +197,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourceId, resourceType, parentType, parentId, createdBy, shareWith);
+        return Objects.hash(resourceId, resourceType, tenant, parentType, parentId, createdBy, shareWith);
     }
 
     @Override
@@ -184,6 +208,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             + '\''
             + ", resourceType='"
             + resourceType
+            + '\''
+            + ", tenant='"
+            + tenant
             + '\''
             + ", parentType='"
             + parentType
@@ -207,6 +234,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(resourceId);
         out.writeString(resourceType);
+        out.writeOptionalString(tenant);
         out.writeOptionalString(parentType);
         out.writeOptionalString(parentId);
         createdBy.writeTo(out);
@@ -220,7 +248,11 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject().field("resource_id", resourceId).field("resource_type", resourceType).field("created_by");
+        builder.startObject().field("resource_id", resourceId).field("resource_type", resourceType);
+        if (tenant != null) {
+            builder.field("tenant", tenant);
+        }
+        builder.field("created_by");
         createdBy.toXContent(builder, params);
         if (parentType != null) {
             builder.field("parent_type", parentType);
@@ -253,6 +285,13 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
                             b.resourceType(null);
                         } else {
                             b.resourceType(parser.text());
+                        }
+                        break;
+                    case "tenant":
+                        if (token == XContentParser.Token.VALUE_NULL) {
+                            b.tenant(null);
+                        } else {
+                            b.tenant(parser.text());
                         }
                         break;
                     case "parent_type":
@@ -302,9 +341,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     }
 
     /**
-     * Checks if the given resource is shared with everyone, i.e. the entity list is "*"
+     * Checks if the given resource is shared with everyone via general access.
      *
-     * @return True if the resource is shared with everyone, false otherwise.
+     * @return True if the resource has general access set (i.e. publicly accessible), false otherwise.
      */
     public boolean isSharedWithEveryone() {
         return this.shareWith != null && this.shareWith.isPublic();
@@ -345,16 +384,15 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * @return a {@link Set} of access level identifiers granted to the user, never {@code null}.
      */
     public Set<String> getAccessLevelsForUser(User user) {
-        Set<String> userRoles = new HashSet<>(user.getSecurityRoles());
-        Set<String> userBackendRoles = new HashSet<>(user.getRoles());
-
-        userRoles.add("*");
-        userBackendRoles.add("*");
-
         Set<String> accessLevels = new HashSet<>();
-        accessLevels.addAll(fetchAccessLevels(Recipient.USERS, Set.of(user.getName(), "*")));
-        accessLevels.addAll(fetchAccessLevels(Recipient.ROLES, userRoles));
-        accessLevels.addAll(fetchAccessLevels(Recipient.BACKEND_ROLES, userBackendRoles));
+
+        if (shareWith != null && shareWith.getGeneralAccess() != null) {
+            accessLevels.add(shareWith.getGeneralAccess());
+        }
+
+        accessLevels.addAll(fetchAccessLevels(Recipient.USERS, Set.of(user.getName())));
+        accessLevels.addAll(fetchAccessLevels(Recipient.ROLES, user.getSecurityRoles()));
+        accessLevels.addAll(fetchAccessLevels(Recipient.BACKEND_ROLES, user.getRoles()));
         return accessLevels;
     }
 
@@ -362,7 +400,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      * Fetches all access-levels where at-least 1 recipient matches the given set of targets
      * @param recipientType the type of recipient to be matched against
      * @param entities targets to look for
-     * @return set of access-levels which contain given nay of the targets
+     * @return set of access-levels which contain any of the targets
      */
     public Set<String> fetchAccessLevels(Recipient recipientType, Set<String> entities) {
         if (shareWith == null) {
@@ -373,14 +411,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             String accessLevel = entry.getKey();
             Recipients recipients = entry.getValue();
 
-            Set<String> sharingRecipients = new HashSet<>(recipients.getRecipients().getOrDefault(recipientType, Set.of()));
+            Set<String> sharingRecipients = recipients.getRecipients().getOrDefault(recipientType, Set.of());
 
-            // if there’s a wildcard (i.e. the document is shared publicly at this access-level), or at least one entity in common, add the
-            // level to a final list of groups
-            boolean matchesWildcard = sharingRecipients.contains("*");
-            boolean intersects = !Collections.disjoint(sharingRecipients, entities);
-
-            if (matchesWildcard || intersects) {
+            if (!Collections.disjoint(sharingRecipients, entities)) {
                 matchingGroups.add(accessLevel);
             }
         }
@@ -403,6 +436,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
         // Add shared recipients
         if (shareWith != null) {
+            if (shareWith.isPublic()) {
+                principals.add("public");
+            }
             // shared with at any access level
             for (Recipients recipients : shareWith.getSharingInfo().values()) {
                 Map<Recipient, Set<String>> recipientMap = recipients.getRecipients();
@@ -433,6 +469,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     public static final class Builder {
         private String resourceId;
         private String resourceType;
+        private String tenant;
         private String parentType;
         private String parentId;
         private CreatedBy createdBy;
@@ -445,6 +482,11 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
         public Builder resourceType(String resourceType) {
             this.resourceType = resourceType;
+            return this;
+        }
+
+        public Builder tenant(String tenant) {
+            this.tenant = tenant;
             return this;
         }
 

@@ -39,7 +39,7 @@ public class SecurityApiAccessTest extends AbstractRestApiUnitTest {
         assertThat(rh.executeGetRequest(ENDPOINT, encodeBasicHeader("admin", "admin")).getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
 
         // test with non-admin cert, must fail
-        rh.keystore = "restapi/node-0-keystore.jks";
+        rh.keystore = "restapi/node-0-keystore";
         rh.sendAdminCertificate = true;
         assertThat(rh.executeGetRequest(ENDPOINT).getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
         assertThat(rh.executeGetRequest(ENDPOINT, encodeBasicHeader("admin", "admin")).getStatusCode(), is(HttpStatus.SC_FORBIDDEN));

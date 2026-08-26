@@ -41,8 +41,8 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.RELOAD_CERTS_ACTION;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -142,9 +142,9 @@ public class SecuritySSLCertsApiAction extends AbstractApiAction {
 
     boolean accessHandler(final RestRequest request) {
         if (request.method() == Method.GET) {
-            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
+            return securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
         } else if (request.method() == Method.PUT) {
-            return securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint, RELOAD_CERTS_ACTION);
+            return securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint, RELOAD_CERTS_ACTION);
         } else {
             return false;
         }

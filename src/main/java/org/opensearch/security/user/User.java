@@ -33,6 +33,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamField;
 import java.io.Serial;
 import java.io.Serializable;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,6 +46,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.identity.Subject;
 import org.opensearch.security.support.Base64Helper;
 
 /**
@@ -56,7 +58,7 @@ import org.opensearch.security.support.Base64Helper;
  * <b>Do not subclass from this class; do not add attributes that can be modified using publicly visible methods!</b>
  *
  */
-public class User implements Serializable, CustomAttributesAware {
+public class User implements Serializable, CustomAttributesAware, Principal, Subject {
 
     public static final User ANONYMOUS = new User("opendistro_security_anonymous").withRoles("opendistro_security_anonymous_backendrole");
 
@@ -104,6 +106,12 @@ public class User implements Serializable, CustomAttributesAware {
     private volatile transient String serializedBase64;
 
     /**
+     * The type of authenticator that authenticated this user (e.g., "basic", "obo", "apitoken").
+     * Transient — not serialized, only used for in-process authorization decisions.
+     */
+    private transient String authenticatedBy;
+
+    /**
      * Create a new authenticated user without roles and attributes
      *
      * @param name The username (must not be null or empty)
@@ -144,8 +152,14 @@ public class User implements Serializable, CustomAttributesAware {
         this.estimatedByteSize = calcEstimatedByteSize();
     }
 
+    @Override
     public final String getName() {
         return name;
+    }
+
+    @Override
+    public Principal getPrincipal() {
+        return this;
     }
 
     /**
@@ -292,6 +306,13 @@ public class User implements Serializable, CustomAttributesAware {
         }
     }
 
+    public User withoutSecurityRoles() {
+        if (this.securityRoles.isEmpty()) {
+            return this;
+        }
+        return new User(this.name, this.roles, ImmutableSet.of(), this.requestedTenant, this.attributes, this.isInjected);
+    }
+
     public ImmutableSet<String> getSecurityRoles() {
         return this.securityRoles;
     }
@@ -316,6 +337,13 @@ public class User implements Serializable, CustomAttributesAware {
     }
 
     /**
+     * @return true if the request is from an API token, otherwise false
+     */
+    public boolean isApiTokenRequest() {
+        return name != null && name.startsWith(org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX);
+    }
+
+    /**
      * If this user is a plugin user, returns the plugin Java class name. Otherwise, returns null.
      */
     public String getPluginName() {
@@ -323,6 +351,14 @@ public class User implements Serializable, CustomAttributesAware {
             return name.substring("plugin:".length());
         }
         return null;
+    }
+
+    public String getAuthenticatedBy() {
+        return authenticatedBy;
+    }
+
+    public void setAuthenticatedBy(String authenticatedBy) {
+        this.authenticatedBy = authenticatedBy;
     }
 
     /**
@@ -381,7 +417,8 @@ public class User implements Serializable, CustomAttributesAware {
         new ObjectStreamField("securityRoles", Collections.synchronizedSet(Collections.emptySet()).getClass()),
         new ObjectStreamField("requestedTenant", String.class),
         new ObjectStreamField("attributes", Collections.synchronizedMap(Collections.emptyMap()).getClass()),
-        new ObjectStreamField("isInjected", Boolean.TYPE) };
+        new ObjectStreamField("isInjected", Boolean.TYPE),
+        new ObjectStreamField("authenticatedBy", String.class) };
 
     /**
      * Creates a backwards compatible object that can be used for serialization
@@ -395,6 +432,7 @@ public class User implements Serializable, CustomAttributesAware {
         fields.put("requestedTenant", requestedTenant);
         fields.put("attributes", Collections.synchronizedMap(new HashMap<>(this.attributes)));
         fields.put("isInjected", this.isInjected);
+        fields.put("authenticatedBy", this.authenticatedBy);
 
         out.writeFields();
     }

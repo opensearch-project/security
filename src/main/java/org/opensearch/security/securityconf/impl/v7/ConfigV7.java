@@ -39,14 +39,13 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.setting.DeprecatedSettings;
+
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 public class ConfigV7 {
 
@@ -86,6 +85,7 @@ public class ConfigV7 {
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
         public OnBehalfOfSettings on_behalf_of = new OnBehalfOfSettings();
+        public ApiTokenSettings api_tokens = new ApiTokenSettings();
         @JsonInclude(JsonInclude.Include.NON_NULL)
         @JsonProperty("privileges_evaluation_type")
         public String privilegesEvaluationType = null;
@@ -116,6 +116,8 @@ public class ConfigV7 {
                 + authz
                 + ", on_behalf_of="
                 + on_behalf_of
+                + ", api_tokens="
+                + api_tokens
                 + "]";
         }
     }
@@ -132,8 +134,8 @@ public class ConfigV7 {
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
         public String index = ".kibana";
-        @JsonInclude(JsonInclude.Include.NON_NULL)
-        public List<DashboardSignInOption> sign_in_options = Arrays.asList(DashboardSignInOption.BASIC);
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public List<DashboardSignInOption> sign_in_options = Arrays.asList();
 
         @Override
         public String toString() {
@@ -221,11 +223,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String asJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(this, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(this, false);
         }
     }
 
@@ -302,7 +300,7 @@ public class ConfigV7 {
         }
 
         @JsonAnySetter
-        public void unknownPropertiesHandler(String name, Object value) throws JsonMappingException {
+        public void unknownPropertiesHandler(String name, Object value) {
             switch (name) {
                 case "transport_enabled":
                     DeprecatedSettings.logCustomDeprecationMessage(
@@ -340,11 +338,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(config, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(config, false);
         }
 
         @Override
@@ -364,11 +358,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(config, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(config, false);
         }
 
         @Override
@@ -388,11 +378,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(config, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(config, false);
         }
 
         @Override
@@ -445,7 +431,7 @@ public class ConfigV7 {
         }
 
         @JsonAnySetter
-        public void unknownPropertiesHandler(String name, Object value) throws JsonMappingException {
+        public void unknownPropertiesHandler(String name, Object value) {
             switch (name) {
                 case "transport_enabled":
                     DeprecatedSettings.logCustomDeprecationMessage(
@@ -476,11 +462,7 @@ public class ConfigV7 {
 
         @JsonIgnore
         public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(this, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            return DefaultObjectMapper.writeValueAsString(this, false);
         }
 
         public Boolean isEnabled() {
@@ -511,6 +493,60 @@ public class ConfigV7 {
         public String toString() {
             return "OnBehalfOfSettings [ enabled=" + enabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
         }
+    }
+
+    public static class ApiTokenSettings {
+        @JsonProperty("enabled")
+        private Boolean enabled = Boolean.FALSE;
+        @JsonProperty("max_tokens")
+        private int maxTokens = 100;
+        @JsonProperty("max_duration_seconds")
+        private long maxDurationSeconds = 7776000;
+
+        @JsonIgnore
+        public String configAsJson() {
+            return DefaultObjectMapper.writeValueAsString(this, false);
+        }
+
+        public Boolean getEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(Boolean apiTokensEnabled) {
+            this.enabled = apiTokensEnabled;
+        }
+
+        public int getMaxTokens() {
+            return Math.min(maxTokens, 1000);
+        }
+
+        public void setMaxTokens(int maxTokens) {
+            this.maxTokens = maxTokens;
+        }
+
+        /**
+         * Returns the maximum allowed expiration duration in seconds.
+         * A value of 0 means no limit on expiration (tokens can be non-expiring).
+         */
+        public long getMaxDurationSeconds() {
+            return maxDurationSeconds;
+        }
+
+        public void setMaxDurationSeconds(long maxDurationSeconds) {
+            this.maxDurationSeconds = maxDurationSeconds;
+        }
+
+        @Override
+        public String toString() {
+            return "ApiTokenSettings [ enabled="
+                + enabled
+                + ", max_tokens="
+                + maxTokens
+                + ", max_duration_seconds="
+                + maxDurationSeconds
+                + "]";
+        }
+
     }
 
 }
