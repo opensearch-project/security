@@ -26,6 +26,7 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -222,6 +223,24 @@ public class ResourcePluginInfoTests {
             new StringField("workflow.enabled", "true", Field.Store.NO),
             new StringField("workflow.owner", "alerting", Field.Store.NO)
         );
+    }
+
+    // ---------- extractMultiValuedFieldFromIndexOp --------------------------------------------------
+
+    @Test
+    public void extractMultiValued_collectsAllValuesOfAField() {
+        Engine.Index indexOp = mockIndexOp(
+            new StringField("workspaces", "ws-a", Field.Store.NO),
+            new StringField("workspaces", "ws-b", Field.Store.NO),
+            new StringField("name", "n", Field.Store.NO)
+        );
+        assertEquals(Set.of("ws-a", "ws-b"), ResourcePluginInfo.extractMultiValuedFieldFromIndexOp("workspaces", indexOp));
+    }
+
+    @Test
+    public void extractMultiValued_emptyWhenFieldAbsent() {
+        Engine.Index indexOp = mockIndexOp(new StringField("name", "n", Field.Store.NO));
+        assertTrue(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp("workspaces", indexOp).isEmpty());
     }
 
     // ---------- resolveWorkspacesForUser (SPI seam) --------------------------------------------------
