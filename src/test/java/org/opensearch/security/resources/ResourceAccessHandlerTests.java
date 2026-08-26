@@ -21,7 +21,6 @@ import org.opensearch.OpenSearchStatusException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
@@ -74,9 +73,7 @@ public class ResourceAccessHandlerTests {
     }
 
     private void injectUser(User user) {
-        UserSubjectImpl subject = mock(UserSubjectImpl.class);
-        when(subject.getUser()).thenReturn(user);
-        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
     }
 
     @Test

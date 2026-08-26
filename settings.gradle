@@ -7,13 +7,14 @@
 pluginManagement {
     repositories {
         maven { url = uri("https://ci.opensearch.org/maven2/") }
+        maven { url = uri("https://ci.opensearch.org/m2/") }
         gradlePluginPortal()
         mavenCentral()
     }
 }
 
 plugins {
-    id("com.autonomousapps.build-health") version "3.16.0"
+    id("com.autonomousapps.build-health") version "3.18.0"
 }
 dependencyResolutionManagement {
     versionCatalogs {

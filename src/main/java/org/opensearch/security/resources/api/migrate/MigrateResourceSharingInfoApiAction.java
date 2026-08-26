@@ -11,6 +11,7 @@ package org.opensearch.security.resources.api.migrate;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -157,6 +158,11 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
         // Extract fields - validation already done by RequestContentValidator framework via FieldConfiguration
         String sourceIndex = body.get("source_index").asText();
+
+        // Request-level owner paths (username_path / backend_roles_path) are still required at the
+        // schema layer, preserving backward compatibility for single-type-per-index callers.
+        // ResourceProviders may override them per-type via ownerNamePath() / ownerBackendRolesPath()
+        // when a single request needs to attribute owners for multiple types sharing an index.
         String userNamePath = body.get("username_path").asText();
         String backendRolesPath = body.get("backend_roles_path").asText();
 
@@ -172,7 +178,17 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             ? Collections.emptyMap()
             : Utils.toMapOfStrings(defaultAccessNode);
 
-        String typePath = null;
+        // Collect the type-field JSON pointer for each registered type. When multiple providers
+        // share an index, each provider may declare a type-specific path (e.g. `monitor.type` /
+        // `workflow.type`); the per-doc classifier below tries each candidate and picks the
+        // first non-null value.
+        List<String> typePaths = new ArrayList<>();
+
+        // Per-type owner paths. When a provider declares ownerNamePath()/ownerBackendRolesPath()
+        // these take precedence over the request-level username_path/backend_roles_path so a
+        // single migrate call can attribute owners for multiple types sharing one index.
+        Map<String, String> typeToOwnerNamePath = new HashMap<>();
+        Map<String, String> typeToOwnerBackendRolesPath = new HashMap<>();
 
         // Validate each type + its accessLevel
         for (Map.Entry<String, String> entry : typeToDefaultAccessLevel.entrySet()) {
@@ -187,7 +203,15 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(message));
             }
 
-            typePath = provider.typeField();
+            if (provider.typeField() != null) {
+                typePaths.add(provider.typeField());
+            }
+            if (provider.ownerNamePath() != null) {
+                typeToOwnerNamePath.put(type, provider.ownerNamePath());
+            }
+            if (provider.ownerBackendRolesPath() != null) {
+                typeToOwnerBackendRolesPath.put(type, provider.ownerBackendRolesPath());
+            }
 
             // Allowed access-levels for this type
             Set<String> accessLevels = resourcePluginInfo.flattenedForType(type).actionGroups();
@@ -238,29 +262,31 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 for (SearchHit hit : hits) {
                     JsonNode rec = Utils.toJsonNode(hit.getSourceAsString());
                     String id = hit.getId();
-                    String username = rec.at(userNamePath.startsWith("/") ? userNamePath : ("/" + userNamePath)).asText(null);
 
-                    // backend_roles as an actual array
-                    JsonNode backendRolesNode = rec.at(backendRolesPath.startsWith("/") ? backendRolesPath : ("/" + backendRolesPath));
+                    // 1) Classify the doc's type first — subsequent owner-path resolution may be
+                    // type-scoped via provider.ownerNamePath()/ownerBackendRolesPath(). A null
+                    // type is not an error here: createNewSharingRecords records the id under
+                    // MigrationStats#skippedNoType so the caller sees which docs were skipped.
+                    String type = classifyDocType(rec, typePaths, typeToDefaultAccessLevel, resourcePluginInfo, sourceIndex);
+
+                    // 2) Resolve owner paths: prefer per-provider (per-type) paths, fall back to
+                    // the request-level paths. When type is null we can't pick a per-type path,
+                    // so we degrade to the request-level fallback (which may itself be null).
+                    String effectiveUserNamePath = type != null ? typeToOwnerNamePath.getOrDefault(type, userNamePath) : userNamePath;
+                    String effectiveBackendRolesPath = type != null
+                        ? typeToOwnerBackendRolesPath.getOrDefault(type, backendRolesPath)
+                        : backendRolesPath;
+
+                    String username = effectiveUserNamePath == null ? null : rec.at(jsonPointer(effectiveUserNamePath)).asText(null);
+
                     List<String> backendRoles = new ArrayList<>();
-                    if (backendRolesNode.isArray()) {
-                        for (JsonNode br : backendRolesNode) {
-                            backendRoles.add(br.asText());
+                    if (effectiveBackendRolesPath != null) {
+                        JsonNode backendRolesNode = rec.at(jsonPointer(effectiveBackendRolesPath));
+                        if (backendRolesNode.isArray()) {
+                            for (JsonNode br : backendRolesNode) {
+                                backendRoles.add(br.asText());
+                            }
                         }
-                    }
-
-                    String type;
-                    if (typePath != null) {
-                        type = rec.at("/" + typePath.replace(".", "/")).asText(null);
-                    } else if (!typeToDefaultAccessLevel.isEmpty()) {
-                        type = typeToDefaultAccessLevel.keySet().iterator().next();
-                    } else {
-                        // no type field and no explicit access level map — infer from the single registered type for this index
-                        type = resourcePluginInfo.currentProtectedTypes()
-                            .stream()
-                            .filter(t -> sourceIndex.equals(resourcePluginInfo.indexByType(t)))
-                            .findFirst()
-                            .orElse(null);
                     }
 
                     // Extract parent ID if the provider declares a parentIdField
@@ -287,9 +313,14 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             ClearScrollRequest clear = new ClearScrollRequest();
             clear.addScrollId(scrollId);
             client.clearScroll(clear).actionGet();
-            // fail fast if any type in the results has no resolvable access level
+            // fail fast if any classifiable type in the results has no resolvable access level.
+            // Docs whose type couldn't be classified (type == null) are counted under
+            // MigrationStats#skippedNoType downstream and don't need an access level.
             for (SourceDoc doc : results) {
                 String type = doc.type();
+                if (type == null) {
+                    continue;
+                }
                 if (!typeToDefaultAccessLevel.containsKey(type) && resourcePluginInfo.getDefaultAccessLevel(type) == null) {
                     return ValidationResult.error(
                         RestStatus.BAD_REQUEST,
@@ -529,6 +560,49 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 });
             }
         };
+    }
+
+    /**
+     * Convert a caller-supplied path expression (either dot-notation or JSON pointer) to a
+     * JSON pointer suitable for {@link JsonNode#at(String)}. Package-private for testability.
+     */
+    static String jsonPointer(String path) {
+        return path.startsWith("/") ? path : ("/" + path.replace(".", "/"));
+    }
+
+    /**
+     * Determine a document's resource type using, in order:
+     * <ol>
+     *   <li>the JSON pointer at each registered type-field path (first non-null value wins);</li>
+     *   <li>the single key in {@code typeToDefaultAccessLevel} when no type paths are declared;</li>
+     *   <li>a single-type inference when neither of the above is available.</li>
+     * </ol>
+     * Returns {@code null} when the document can't be classified. Package-private for testability.
+     */
+    static String classifyDocType(
+        JsonNode rec,
+        List<String> typePaths,
+        Map<String, String> typeToDefaultAccessLevel,
+        ResourcePluginInfo resourcePluginInfo,
+        String sourceIndex
+    ) {
+        if (!typePaths.isEmpty()) {
+            for (String typePath : typePaths) {
+                String type = rec.at(jsonPointer(typePath)).asText(null);
+                if (type != null) {
+                    return type;
+                }
+            }
+            return null;
+        }
+        if (!typeToDefaultAccessLevel.isEmpty()) {
+            return typeToDefaultAccessLevel.keySet().iterator().next();
+        }
+        return resourcePluginInfo.currentProtectedTypes()
+            .stream()
+            .filter(t -> sourceIndex.equals(resourcePluginInfo.indexByType(t)))
+            .findFirst()
+            .orElse(null);
     }
 
     record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId) {

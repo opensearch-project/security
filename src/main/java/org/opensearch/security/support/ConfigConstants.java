@@ -72,6 +72,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "filter_level_dls_done";
+    public static final String OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "hybrid_query";
     public static final String OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY = OPENDISTRO_SECURITY_CONFIG_PREFIX + "is_parent_child_query";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query_ccs";
@@ -83,8 +84,16 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_CONF_REQUEST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "conf_request";
     public static final String OPENSEARCH_SECURITY_REQUEST_HEADERS = OPENSEARCH_SECURITY_CONFIG_PREFIX + "request_headers";
 
+    public static final String SECURITY_AUDIT_REST_HEADERS = OPENSEARCH_SECURITY_CONFIG_PREFIX + "audit_rest_headers";
+
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address";
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address_header";
+
+    /**
+     * ThreadContext transient key for the audit request correlation ID.
+     * Set at REST entry point from X-Request-Id header or generated UUID.
+     */
+    public static final String SECURITY_AUDIT_REQUEST_ID = OPENDISTRO_SECURITY_CONFIG_PREFIX + "audit_request_id";
 
     public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "initial_action_class_header";
@@ -203,6 +212,8 @@ public class ConfigConstants {
     public static final int SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT = 19;
 
     public static final String SECURITY_AUDIT_TYPE_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.type";
+    public static final String SECURITY_AUDIT_ENABLE_STANDALONE = SECURITY_SETTINGS_PREFIX + "audit.enable_standalone";
+    public static final String SECURITY_AUDIT_ENABLED = SECURITY_SETTINGS_PREFIX + "audit.enabled";
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.config";
     public static final String SECURITY_AUDIT_CONFIG_ROUTES = SECURITY_SETTINGS_PREFIX + "audit.routes";
     public static final String SECURITY_AUDIT_CONFIG_ENDPOINTS = SECURITY_SETTINGS_PREFIX + "audit.endpoints";
@@ -212,19 +223,26 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES = "opendistro_security.audit.resolve_indices";
     public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_REST = "opendistro_security.audit.enable_rest";
     public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT = "opendistro_security.audit.enable_transport";
+    public static final String SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES = "plugins.security.audit.config.disabled_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES =
         "opendistro_security.audit.config.disabled_transport_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES =
         "opendistro_security.audit.config.disabled_rest_categories";
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
-        AuditCategory.GRANTED_PRIVILEGES.toString()
+        AuditCategory.GRANTED_PRIVILEGES.toString(),
+        AuditCategory.RESOURCE_ACCESS_GRANTED.toString(),
+        AuditCategory.RESOURCE_ACCESS_DENIED.toString(),
+        AuditCategory.RESOURCE_SHARING_CHANGED.toString()
     );
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
         AuditCategory.GRANTED_PRIVILEGES.toString(),
         AuditCategory.CLUSTER_SETTINGS_CHANGED.toString(),
-        AuditCategory.INDEX_SETTINGS_CHANGED.toString()
+        AuditCategory.INDEX_SETTINGS_CHANGED.toString(),
+        AuditCategory.RESOURCE_ACCESS_GRANTED.toString(),
+        AuditCategory.RESOURCE_ACCESS_DENIED.toString(),
+        AuditCategory.RESOURCE_SHARING_CHANGED.toString()
     );
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
@@ -277,6 +295,7 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
     public static final String SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE = "log4j.maximum_index_characters_per_message";
+    public static final String SECURITY_AUDIT_LOG4J_ENABLE_MDC_ROUTING = "log4j.enable_mdc_routing";
 
     // retry
     public static final String SECURITY_AUDIT_RETRY_COUNT = SECURITY_SETTINGS_PREFIX + "audit.config.retry_count";
@@ -438,6 +457,8 @@ public class ConfigConstants {
         "plugins.security.experimental.resource_sharing.protected_types";
     public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
                                                                                                       // protected
+
+    public static final String SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES = SECURITY_SETTINGS_PREFIX + "ccs.ignore_source_security_roles";
 
     public static Set<String> getSettingAsSet(
         final Settings settings,
