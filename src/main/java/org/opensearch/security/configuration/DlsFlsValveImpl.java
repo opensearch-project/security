@@ -191,7 +191,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     IndexToRuleMap<DlsRestriction> sharedResourceMap = ResourceSharingDlsUtils.resourceRestrictions(
                         namedXContentRegistry,
                         resolvedIndexNames,
-                        user
+                        user,
+                        resourcePluginInfo
                     );
 
                     return DlsFilterLevelActionHandler.handle(

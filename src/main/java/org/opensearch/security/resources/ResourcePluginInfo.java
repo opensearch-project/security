@@ -224,6 +224,35 @@ public class ResourcePluginInfo {
         return ImmutableSet.copyOf(resourceSharingExtensions);
     }
 
+    /**
+     * Aggregates {@link ResourceSharingExtension#resolveWorkspacesForUser} across every registered extension into a
+     * single trusted set of workspace IDs for the user. Empty if no extension contributes any. Called on the DLS hot
+     * path — each extension's implementation is required by contract to be I/O-free.
+     *
+     * @param user the authenticated user
+     * @return the union of workspace IDs contributed by all registered extensions
+     */
+    public Set<String> resolveWorkspacesForUser(org.opensearch.security.user.User user) {
+        lock.readLock().lock();
+        try {
+            if (resourceSharingExtensions.isEmpty()) {
+                return java.util.Collections.emptySet();
+            }
+            Set<String> securityRoles = user.getSecurityRoles() == null ? java.util.Collections.emptySet() : user.getSecurityRoles();
+            Set<String> backendRoles = user.getRoles() == null ? java.util.Collections.emptySet() : user.getRoles();
+            Set<String> merged = new HashSet<>();
+            for (ResourceSharingExtension extension : resourceSharingExtensions) {
+                Set<String> contributed = extension.resolveWorkspacesForUser(user.getName(), securityRoles, backendRoles);
+                if (contributed != null && !contributed.isEmpty()) {
+                    merged.addAll(contributed);
+                }
+            }
+            return merged;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public void setResourceSharingClient(ResourceSharingClient resourceAccessControlClient) {
         this.resourceAccessControlClient = resourceAccessControlClient;
     }

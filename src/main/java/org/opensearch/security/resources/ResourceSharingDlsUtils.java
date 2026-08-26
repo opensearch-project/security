@@ -11,9 +11,7 @@ package org.opensearch.security.resources;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +31,8 @@ public class ResourceSharingDlsUtils {
     public static IndexToRuleMap<DlsRestriction> resourceRestrictions(
         NamedXContentRegistry xContentRegistry,
         Collection<String> resolvedIndices,
-        User user
+        User user,
+        ResourcePluginInfo resourcePluginInfo
     ) {
 
         List<String> principals = new ArrayList<>();
@@ -50,19 +49,15 @@ public class ResourceSharingDlsUtils {
             user.getRoles().forEach(br -> principals.add("backend:" + br));
         }
 
-        // Workspace principals: the workspaces this user can access, added as workspace:<id> so they
-        // intersect the workspace:<id> principals denormalized onto resources that belong to those
-        // workspaces (see ResourceSharing#getAllPrincipals). This keeps the read path I/O-free — required
-        // for the privilege hot path.
-        //
-        // SECURITY: workspace membership is an authorization input, so it MUST originate from a trusted,
-        // server-set source and MUST NOT be assertable by the requesting user (e.g. via JWT/proxy claims).
-        // The trusted resolution mechanism is not yet defined (see design doc), so this is DISABLED by
-        // default: resolveUserWorkspaces returns empty until a server-set source is wired behind an
-        // explicit trust boundary. This prevents a privilege-escalation vector where a user could claim
-        // arbitrary workspace membership and read those workspaces' resources.
-        for (String workspaceId : resolveUserWorkspaces(user)) {
-            principals.add("workspace:" + workspaceId);
+        // Workspace principals: the workspaces this user can access, added as workspace:<id> so they intersect the
+        // workspace:<id> principals denormalized onto resources that belong to those workspaces (see
+        // ResourceSharing#getAllPrincipals). The membership comes from ResourceSharingExtension.resolveWorkspacesForUser,
+        // whose SPI contract requires the source to be trusted (server-set, not user-assertable) and I/O-free — see
+        // that interface's javadoc. If no extension implements the resolver, this contributes nothing, which is safe.
+        if (resourcePluginInfo != null) {
+            for (String workspaceId : resourcePluginInfo.resolveWorkspacesForUser(user)) {
+                principals.add("workspace:" + workspaceId);
+            }
         }
 
         XContentBuilder builder = null;
@@ -86,24 +81,4 @@ public class ResourceSharingDlsUtils {
         return new IndexToRuleMap<>(mapBuilder.build());
     }
 
-    /**
-     * Resolves the set of workspace IDs the given user can access, without any I/O (required on the privilege
-     * hot path).
-     *
-     * <p><b>Intentionally disabled in this spike.</b> Because the result feeds authorization (via the
-     * {@code workspace:<id>} DLS principals), the workspace list MUST come from a trusted, server-set source
-     * that the requesting user cannot assert. That trusted mechanism (how workspace membership is resolved and
-     * safely attached to the {@link User} at authentication time) is not yet defined — see the design doc — so
-     * this returns an empty set rather than trusting a potentially user-influenced custom attribute. Wiring a
-     * server-set source behind an explicit trust boundary is a hard prerequisite before enabling this.
-     *
-     * @param user the authenticated user
-     * @return the set of trusted workspace IDs the user belongs to; empty until a server-set source is wired
-     */
-    private static Set<String> resolveUserWorkspaces(User user) {
-        // No trusted server-set source of workspace membership exists yet; do not derive it from user-assertable
-        // attributes. Returning empty keeps read-path behavior safe (no workspace-based visibility) until the
-        // trusted resolution is implemented.
-        return Collections.emptySet();
-    }
 }

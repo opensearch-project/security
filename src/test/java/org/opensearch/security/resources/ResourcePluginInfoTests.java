@@ -224,6 +224,97 @@ public class ResourcePluginInfoTests {
         );
     }
 
+    // ---------- resolveWorkspacesForUser (SPI seam) --------------------------------------------------
+
+    @Test
+    public void resolveWorkspaces_returnsEmptyWhenNoExtensionsRegistered() {
+        // No extensions -> nothing to resolve; must not throw and must not add workspace principals.
+        Set<String> result = resourcePluginInfo.resolveWorkspacesForUser(mockUser("alice", Set.of("r1"), Set.of()));
+        assertEquals(java.util.Collections.emptySet(), result);
+    }
+
+    @Test
+    public void resolveWorkspaces_returnsEmptyWhenExtensionUsesDefaultImplementation() {
+        // An extension that does not override the resolver -> empty (default returns Collections.emptySet()).
+        // This is what preserves BWC for all existing plugins.
+        registerProviders(List.of("monitor"), ".alerting-config", null);
+        Set<String> result = resourcePluginInfo.resolveWorkspacesForUser(mockUser("alice", Set.of("r1"), Set.of()));
+        assertEquals(java.util.Collections.emptySet(), result);
+    }
+
+    @Test
+    public void resolveWorkspaces_aggregatesAcrossExtensions() {
+        // Two extensions both override; the aggregator unions their contributions.
+        ResourceSharingExtension a = extensionWithResolver((u, sr, br) -> Set.of("ws-a1", "ws-a2"));
+        ResourceSharingExtension b = extensionWithResolver((u, sr, br) -> Set.of("ws-a2", "ws-b1"));
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(a, b));
+
+        Set<String> result = resourcePluginInfo.resolveWorkspacesForUser(mockUser("alice", Set.of("r1"), Set.of()));
+        assertEquals(Set.of("ws-a1", "ws-a2", "ws-b1"), result);
+    }
+
+    @Test
+    public void resolveWorkspaces_forwardsUserFieldsToResolver() {
+        // Extensions receive the user's name + role sets so a trusted server-set resolver can map on them.
+        java.util.concurrent.atomic.AtomicReference<String> capturedName = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicReference<Set<String>> capturedSecRoles = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicReference<Set<String>> capturedBackendRoles = new java.util.concurrent.atomic.AtomicReference<>();
+        ResourceSharingExtension ext = extensionWithResolver((u, sr, br) -> {
+            capturedName.set(u);
+            capturedSecRoles.set(sr);
+            capturedBackendRoles.set(br);
+            return Set.of("ws-x");
+        });
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(ext));
+
+        resourcePluginInfo.resolveWorkspacesForUser(mockUser("bob", Set.of("analyst"), Set.of("ldap-eng")));
+
+        assertEquals("bob", capturedName.get());
+        assertEquals(Set.of("analyst"), capturedSecRoles.get());
+        assertEquals(Set.of("ldap-eng"), capturedBackendRoles.get());
+    }
+
+    @Test
+    public void resolveWorkspaces_toleratesNullOrEmptyContributions() {
+        // An extension returning null (contract-violating but reachable) must not NPE the aggregation.
+        ResourceSharingExtension nullContrib = extensionWithResolver((u, sr, br) -> null);
+        ResourceSharingExtension emptyContrib = extensionWithResolver((u, sr, br) -> java.util.Collections.emptySet());
+        ResourceSharingExtension realContrib = extensionWithResolver((u, sr, br) -> Set.of("ws-real"));
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(nullContrib, emptyContrib, realContrib));
+
+        Set<String> result = resourcePluginInfo.resolveWorkspacesForUser(mockUser("alice", Set.of(), Set.of()));
+        assertEquals(Set.of("ws-real"), result);
+    }
+
+    @FunctionalInterface
+    private interface WorkspaceResolver {
+        Set<String> resolve(String username, Set<String> securityRoles, Set<String> backendRoles);
+    }
+
+    private ResourceSharingExtension extensionWithResolver(WorkspaceResolver resolver) {
+        return new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                return Set.of();
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+
+            @Override
+            public Set<String> resolveWorkspacesForUser(String username, Set<String> securityRoles, Set<String> backendRoles) {
+                return resolver.resolve(username, securityRoles, backendRoles);
+            }
+        };
+    }
+
+    private org.opensearch.security.user.User mockUser(String name, Set<String> securityRoles, Set<String> backendRoles) {
+        // Use a real User (not a mock) — User is a plain class and Mockito default-mocks trip on it.
+        return new org.opensearch.security.user.User(name).withRoles(backendRoles).withSecurityRoles(securityRoles);
+    }
+
+    // ---------- fixtures --------------------------------------------------------------------------
+
     private Engine.Index mockIndexOp(IndexableField... fields) {
         Engine.Index indexOp = mock(Engine.Index.class);
         ParsedDocument parsedDoc = mock(ParsedDocument.class);
