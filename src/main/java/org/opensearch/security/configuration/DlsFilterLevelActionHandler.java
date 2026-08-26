@@ -12,7 +12,6 @@
 package org.opensearch.security.configuration;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,53 +76,10 @@ import org.opensearch.transport.client.Client;
 public class DlsFilterLevelActionHandler {
     private static final Logger log = LogManager.getLogger(DlsFilterLevelActionHandler.class);
     private static final String HYBRID_QUERY_NAME = "hybrid";
-    private static final String NEURAL_QUERY_NAME = "neural";
-    private static final String KNN_QUERY_NAME = "knn";
 
     private static final Function<SearchRequest, String> LOCAL_CLUSTER_ALIAS_GETTER = ReflectiveAttributeAccessors.protectedObjectAttr(
         "localClusterAlias",
         String.class
-    );
-    private static final Function<QueryBuilder, QueryBuilder> NEURAL_FILTER_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "queryfilter",
-        QueryBuilder.class
-    );
-    private static final Function<QueryBuilder, QueryBuilder> KNN_FILTER_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "getFilter",
-        QueryBuilder.class
-    );
-    private static final Function<QueryBuilder, Object> KNN_FIELD_NAME_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "fieldName",
-        Object.class
-    );
-    private static final Function<QueryBuilder, Object> KNN_VECTOR_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "vector",
-        Object.class
-    );
-    private static final Function<QueryBuilder, Object> KNN_K_GETTER = ReflectiveAttributeAccessors.objectMethod("getK", Object.class);
-    private static final Function<QueryBuilder, Object> KNN_MAX_DISTANCE_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "getMaxDistance",
-        Object.class
-    );
-    private static final Function<QueryBuilder, Object> KNN_MIN_SCORE_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "getMinScore",
-        Object.class
-    );
-    private static final Function<QueryBuilder, Object> KNN_METHOD_PARAMETERS_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "getMethodParameters",
-        Object.class
-    );
-    private static final Function<QueryBuilder, Object> KNN_IGNORE_UNMAPPED_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "isIgnoreUnmapped",
-        Object.class
-    );
-    private static final Function<QueryBuilder, Object> KNN_RESCORE_CONTEXT_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "getRescoreContext",
-        Object.class
-    );
-    private static final Function<QueryBuilder, Object> KNN_EXPAND_NESTED_GETTER = ReflectiveAttributeAccessors.objectMethod(
-        "getExpandNested",
-        Object.class
     );
 
     public static boolean handle(
@@ -366,9 +322,6 @@ public class DlsFilterLevelActionHandler {
                 throw new OpenSearchSecurityException("Hybrid query does not expose subqueries for DLS verification");
             }
             List<OriginalSubqueryState> originalSubqueryStates = snapshotOriginalSubqueries(originalSubqueries);
-            if (hasParentOrChildQueryInEmbeddedFilters(originalSubqueryStates)) {
-                throw new OpenSearchSecurityException("Unable to handle filter level DLS for hybrid queries with parent or child clauses");
-            }
             Set<BoolQueryBuilder> boolQueriesWithImplicitMinimumShouldMatch = findBoolQueriesWithImplicitMinimumShouldMatch(
                 originalSubqueryStates
             );
@@ -412,13 +365,14 @@ public class DlsFilterLevelActionHandler {
 
     /**
      * Neural Search is an optional plugin, so Security identifies its hybrid query through the public query type name
-     * instead of depending on its query builder class. {@link QueryBuilder#getName()} is OpenSearch's unique query type
-     * identifier. A query builder registered as {@code hybrid} must expose every execution branch through its visitor.
-     * Security verifies after filtering that every original branch is preserved exactly once. For neural and k-NN
-     * builders, their public filter accessors are inspected reflectively to avoid an optional-plugin dependency. k-NN
-     * copies must retain all stable query parameters as well as the original embedded filter. Other builders return or
-     * remain a conjunctive boolean query which contains the original branch and the exact supplied DLS query. Branch
-     * order is deliberately ignored. Reader-level DLS remains active whenever this special path is selected.
+     * instead of depending on its query builder class. A query builder registered as {@code hybrid} must expose every
+     * execution branch through {@link QueryBuilder#visit(QueryBuilderVisitor)}, and a branch which stores a filter must
+     * expose that filter as a direct {@link BooleanClause.Occur#FILTER} child. Security relies on
+     * {@link QueryBuilder#filter(QueryBuilder)} to preserve query semantics, pairs every filtered branch with one
+     * original branch, and verifies that the exact supplied DLS query was stored. Builders which return filtered copies
+     * are paired in the stable order required by the hybrid query contract. Other builders return or remain a
+     * conjunctive boolean query which contains the original branch and the DLS query. Reader-level DLS remains active
+     * whenever this special path is selected.
      */
     static boolean isHybridQuery(QueryBuilder query) {
         return query != null && HYBRID_QUERY_NAME.equals(query.getName());
@@ -436,22 +390,27 @@ public class DlsFilterLevelActionHandler {
 
         List<OriginalSubqueryState> unmatchedOriginalSubqueries = new ArrayList<>(originalSubqueryStates);
         for (QueryBuilder filteredSubquery : filteredSubqueries) {
-            boolean filteredSubqueryIsKnn = isKnnQuery(filteredSubquery);
             OriginalSubqueryState preservedOriginalSubquery = null;
             int preservedOriginalSubqueryIndex = -1;
             for (int i = 0; i < unmatchedOriginalSubqueries.size(); i++) {
                 OriginalSubqueryState originalSubquery = unmatchedOriginalSubqueries.get(i);
-                if (isDlsFilterAppliedToSubquery(filteredSubquery, originalSubquery, filterLevelQueryBuilder)) {
-                    if (preservedOriginalSubquery != null
-                        && preservedOriginalSubquery.query() != originalSubquery.query()
-                        && !filteredSubqueryIsKnn) {
+                if (isDlsFilterAppliedStructurally(filteredSubquery, originalSubquery.query(), filterLevelQueryBuilder)) {
+                    if (preservedOriginalSubquery != null && preservedOriginalSubquery.query() != originalSubquery.query()) {
                         // A filtered branch must not merge multiple original hybrid execution branches.
                         return false;
                     }
                     preservedOriginalSubquery = originalSubquery;
                     preservedOriginalSubqueryIndex = i;
-                    if (filteredSubqueryIsKnn) {
-                        // k-NN copies lose metadata, so equal branches must retain the plugin's stable list order.
+                }
+            }
+            if (preservedOriginalSubquery == null) {
+                for (int i = 0; i < unmatchedOriginalSubqueries.size(); i++) {
+                    OriginalSubqueryState originalSubquery = unmatchedOriginalSubqueries.get(i);
+                    if (isSameQueryType(filteredSubquery, originalSubquery.query())
+                        && isEmbeddedDlsFilterApplied(filteredSubquery, originalSubquery, filterLevelQueryBuilder)) {
+                        preservedOriginalSubquery = originalSubquery;
+                        preservedOriginalSubqueryIndex = i;
+                        // Filtered copies cannot be matched by identity, so retain the hybrid builder's stable order.
                         break;
                     }
                 }
@@ -466,33 +425,20 @@ public class DlsFilterLevelActionHandler {
         return unmatchedOriginalSubqueries.isEmpty();
     }
 
-    private static boolean isDlsFilterAppliedToSubquery(
+    private static boolean isEmbeddedDlsFilterApplied(
         QueryBuilder filteredSubquery,
         OriginalSubqueryState originalSubquery,
         QueryBuilder filterLevelQueryBuilder
     ) {
-        if (filteredSubquery == originalSubquery.query() && NEURAL_QUERY_NAME.equals(filteredSubquery.getName())) {
-            return isEmbeddedDlsFilterApplied(
-                NEURAL_FILTER_GETTER.apply(filteredSubquery),
-                originalSubquery.embeddedFilter(),
-                filterLevelQueryBuilder
-            );
+        List<QueryBuilder> filteredEmbeddedFilters = directFilters(filteredSubquery);
+        if (filteredEmbeddedFilters.size() != 1 || originalSubquery.embeddedFilters().size() > 1) {
+            return false;
         }
-        if (originalSubquery.knnSnapshot() != null && isKnnQuery(filteredSubquery)) {
-            return originalSubquery.knnSnapshot().matches(filteredSubquery, filterLevelQueryBuilder);
-        }
-        return isDlsFilterAppliedStructurally(filteredSubquery, originalSubquery.query(), filterLevelQueryBuilder);
-    }
-
-    private static boolean isEmbeddedDlsFilterApplied(
-        QueryBuilder filteredEmbeddedFilter,
-        QueryBuilder originalEmbeddedFilter,
-        QueryBuilder filterLevelQueryBuilder
-    ) {
-        if (originalEmbeddedFilter == null) {
+        QueryBuilder filteredEmbeddedFilter = filteredEmbeddedFilters.get(0);
+        if (originalSubquery.embeddedFilters().isEmpty()) {
             return filteredEmbeddedFilter == filterLevelQueryBuilder;
         }
-        return isDlsFilterAppliedStructurally(filteredEmbeddedFilter, originalEmbeddedFilter, filterLevelQueryBuilder);
+        return isDlsFilterAppliedStructurally(filteredEmbeddedFilter, originalSubquery.embeddedFilters().get(0), filterLevelQueryBuilder);
     }
 
     private static boolean isDlsFilterAppliedStructurally(
@@ -513,13 +459,6 @@ public class DlsFilterLevelActionHandler {
             );
         }
         return false;
-    }
-
-    private static boolean hasParentOrChildQueryInEmbeddedFilters(List<OriginalSubqueryState> originalSubqueries) {
-        return originalSubqueries.stream()
-            .map(OriginalSubqueryState::embeddedFilter)
-            .filter(Objects::nonNull)
-            .anyMatch(ParentChildrenQueryDetector::hasParentOrChildQuery);
     }
 
     private static Set<BoolQueryBuilder> findBoolQueriesWithImplicitMinimumShouldMatch(List<OriginalSubqueryState> originalSubqueries) {
@@ -543,9 +482,6 @@ public class DlsFilterLevelActionHandler {
         };
         for (OriginalSubqueryState originalSubquery : originalSubqueries) {
             originalSubquery.query().visit(visitor);
-            if (NEURAL_QUERY_NAME.equals(originalSubquery.query().getName()) && originalSubquery.embeddedFilter() != null) {
-                originalSubquery.embeddedFilter().visit(visitor);
-            }
         }
         return boolQueriesWithImplicitMinimumShouldMatch;
     }
@@ -564,25 +500,21 @@ public class DlsFilterLevelActionHandler {
     }
 
     private static void preserveEmbeddedFilterMetadata(QueryBuilder filteredSubquery, OriginalSubqueryState originalSubquery) {
-        if (originalSubquery.embeddedFilter() == null) {
-            return;
-        }
-        if (filteredSubquery == originalSubquery.query() && NEURAL_QUERY_NAME.equals(filteredSubquery.getName())) {
-            preserveQueryMetadata(NEURAL_FILTER_GETTER.apply(filteredSubquery), originalSubquery.embeddedFilter());
-        } else if (originalSubquery.knnSnapshot() != null && isKnnQuery(filteredSubquery)) {
-            preserveQueryMetadata(KNN_FILTER_GETTER.apply(filteredSubquery), originalSubquery.embeddedFilter());
+        List<QueryBuilder> filteredEmbeddedFilters = directFilters(filteredSubquery);
+        if (originalSubquery.embeddedFilters().size() == 1 && filteredEmbeddedFilters.size() == 1) {
+            preserveQueryMetadata(filteredEmbeddedFilters.get(0), originalSubquery.embeddedFilters().get(0));
         }
     }
 
     // ConstantScoreQueryBuilder.filter can return a new builder without copying its boost or query name. This applies
-    // both to hybrid subqueries and to the filters embedded in neural or k-NN subqueries.
+    // both to hybrid subqueries and to filters embedded in plugin query builders.
     private static void preserveQueryMetadata(QueryBuilder filteredSubquery, QueryBuilder originalSubquery) {
         if (filteredSubquery instanceof ConstantScoreQueryBuilder filteredConstantScore
             && originalSubquery instanceof ConstantScoreQueryBuilder originalConstantScore) {
             filteredConstantScore.boost(originalConstantScore.boost());
             filteredConstantScore.queryName(originalConstantScore.queryName());
             preserveQueryMetadata(filteredConstantScore.innerQuery(), originalConstantScore.innerQuery());
-        } else if (isKnnQuery(filteredSubquery) && isKnnQuery(originalSubquery)) {
+        } else if (filteredSubquery != originalSubquery && isSameQueryType(filteredSubquery, originalSubquery)) {
             filteredSubquery.boost(originalSubquery.boost());
             filteredSubquery.queryName(originalSubquery.queryName());
         }
@@ -591,70 +523,25 @@ public class DlsFilterLevelActionHandler {
     private static List<OriginalSubqueryState> snapshotOriginalSubqueries(List<QueryBuilder> originalSubqueries) {
         List<OriginalSubqueryState> result = new ArrayList<>(originalSubqueries.size());
         for (QueryBuilder originalSubquery : originalSubqueries) {
-            if (NEURAL_QUERY_NAME.equals(originalSubquery.getName())) {
-                result.add(new OriginalSubqueryState(originalSubquery, NEURAL_FILTER_GETTER.apply(originalSubquery), null));
-            } else if (isKnnQuery(originalSubquery)) {
-                KnnQuerySnapshot knnSnapshot = KnnQuerySnapshot.from(originalSubquery);
-                result.add(new OriginalSubqueryState(originalSubquery, knnSnapshot.filter(), knnSnapshot));
-            } else {
-                result.add(new OriginalSubqueryState(originalSubquery, null, null));
-            }
+            result.add(new OriginalSubqueryState(originalSubquery, directFilters(originalSubquery)));
         }
         return result;
     }
 
-    private static boolean isKnnQuery(QueryBuilder query) {
-        return query != null && KNN_QUERY_NAME.equals(query.getName());
+    private static boolean isSameQueryType(QueryBuilder first, QueryBuilder second) {
+        return first != null
+            && second != null
+            && first.getClass() == second.getClass()
+            && Objects.equals(first.getName(), second.getName());
     }
 
-    private static Object snapshotMutableValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value.getClass().isArray()) {
-            int length = Array.getLength(value);
-            Object copy = Array.newInstance(value.getClass().getComponentType(), length);
-            System.arraycopy(value, 0, copy, 0, length);
-            return copy;
-        }
-        if (value instanceof Map<?, ?> map) {
-            return new HashMap<>(map);
-        }
-        return value;
+    private record OriginalSubqueryState(QueryBuilder query, List<QueryBuilder> embeddedFilters) {
     }
 
-    private record OriginalSubqueryState(QueryBuilder query, QueryBuilder embeddedFilter, KnnQuerySnapshot knnSnapshot) {
-    }
-
-    private record KnnQuerySnapshot(Object fieldName, Object vector, Object k, Object maxDistance, Object minScore, Object methodParameters,
-        Object ignoreUnmapped, Object rescoreContext, Object expandNested, QueryBuilder filter) {
-        private static KnnQuerySnapshot from(QueryBuilder query) {
-            return new KnnQuerySnapshot(
-                KNN_FIELD_NAME_GETTER.apply(query),
-                snapshotMutableValue(KNN_VECTOR_GETTER.apply(query)),
-                KNN_K_GETTER.apply(query),
-                KNN_MAX_DISTANCE_GETTER.apply(query),
-                KNN_MIN_SCORE_GETTER.apply(query),
-                snapshotMutableValue(KNN_METHOD_PARAMETERS_GETTER.apply(query)),
-                KNN_IGNORE_UNMAPPED_GETTER.apply(query),
-                KNN_RESCORE_CONTEXT_GETTER.apply(query),
-                KNN_EXPAND_NESTED_GETTER.apply(query),
-                KNN_FILTER_GETTER.apply(query)
-            );
-        }
-
-        private boolean matches(QueryBuilder filteredQuery, QueryBuilder filterLevelQueryBuilder) {
-            return Objects.equals(fieldName, KNN_FIELD_NAME_GETTER.apply(filteredQuery))
-                && Objects.deepEquals(vector, KNN_VECTOR_GETTER.apply(filteredQuery))
-                && Objects.equals(k, KNN_K_GETTER.apply(filteredQuery))
-                && Objects.equals(maxDistance, KNN_MAX_DISTANCE_GETTER.apply(filteredQuery))
-                && Objects.equals(minScore, KNN_MIN_SCORE_GETTER.apply(filteredQuery))
-                && Objects.equals(methodParameters, KNN_METHOD_PARAMETERS_GETTER.apply(filteredQuery))
-                && Objects.equals(ignoreUnmapped, KNN_IGNORE_UNMAPPED_GETTER.apply(filteredQuery))
-                && Objects.equals(rescoreContext, KNN_RESCORE_CONTEXT_GETTER.apply(filteredQuery))
-                && Objects.equals(expandNested, KNN_EXPAND_NESTED_GETTER.apply(filteredQuery))
-                && isEmbeddedDlsFilterApplied(KNN_FILTER_GETTER.apply(filteredQuery), filter, filterLevelQueryBuilder);
-        }
+    private static List<QueryBuilder> directFilters(QueryBuilder query) {
+        List<QueryBuilder> directFilters = new ArrayList<>();
+        query.visit(new DirectFilterCollector(directFilters, false));
+        return directFilters;
     }
 
     private static List<QueryBuilder> directSubqueries(QueryBuilder query) {
@@ -682,6 +569,31 @@ public class DlsFilterLevelActionHandler {
         @Override
         public QueryBuilderVisitor getChildVisitor(BooleanClause.Occur occur) {
             return collect ? QueryBuilderVisitor.NO_OP_VISITOR : new DirectSubqueryCollector(directSubqueries, true);
+        }
+    }
+
+    private static final class DirectFilterCollector implements QueryBuilderVisitor {
+        private final List<QueryBuilder> directFilters;
+        private final boolean collect;
+
+        private DirectFilterCollector(List<QueryBuilder> directFilters, boolean collect) {
+            this.directFilters = directFilters;
+            this.collect = collect;
+        }
+
+        @Override
+        public void accept(QueryBuilder queryBuilder) {
+            if (collect) {
+                directFilters.add(queryBuilder);
+            }
+        }
+
+        @Override
+        public QueryBuilderVisitor getChildVisitor(BooleanClause.Occur occur) {
+            if (collect || occur != BooleanClause.Occur.FILTER) {
+                return QueryBuilderVisitor.NO_OP_VISITOR;
+            }
+            return new DirectFilterCollector(directFilters, true);
         }
     }
 

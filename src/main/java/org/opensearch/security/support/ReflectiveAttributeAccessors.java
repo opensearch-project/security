@@ -30,10 +30,6 @@ public class ReflectiveAttributeAccessors {
         return new ProtectedReflectiveAttributeGetter<O, R>(name, type);
     }
 
-    public static <O, R> Function<O, R> objectMethod(String methodName, Class<R> type) {
-        return new ReflectiveMethodInvoker<O, R>(methodName, type);
-    }
-
     public static <O, V> BiFunction<O, V, Void> setObjectAttr(String name, Class<V> type) {
         return new ReflectiveAttributeSetter<O, V>(name, type);
     }
@@ -96,32 +92,6 @@ public class ReflectiveAttributeAccessors {
 
                 } catch (Exception e) {
                     throw new RuntimeException("Error while accessing " + attribute + " in " + object, e);
-                }
-            });
-        }
-    }
-
-    static class ReflectiveMethodInvoker<O, R> implements Function<O, R> {
-        private final String methodName;
-        private final Class<R> type;
-
-        ReflectiveMethodInvoker(String methodName, Class<R> type) {
-            this.methodName = methodName;
-            this.type = type;
-        }
-
-        @Override
-        public R apply(O object) {
-            return AccessController.doPrivileged(() -> {
-                if (object == null) {
-                    return null;
-                }
-
-                try {
-                    Method method = object.getClass().getMethod(methodName);
-                    return type.cast(method.invoke(object));
-                } catch (Exception e) {
-                    throw new RuntimeException("Error while invoking " + methodName + " on " + object.getClass().getName(), e);
                 }
             });
         }
