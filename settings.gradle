@@ -4,10 +4,25 @@
  * This project uses @Incubating APIs which are subject to change.
  */
 
-plugins {
-    id("com.autonomousapps.build-health") version "3.8.0"
+pluginManagement {
+    repositories {
+        maven { url = uri("https://ci.opensearch.org/maven2/") }
+        maven { url = uri("https://ci.opensearch.org/m2/") }
+        gradlePluginPortal()
+        mavenCentral()
+    }
 }
 
+plugins {
+    id("com.autonomousapps.build-health") version "3.18.0"
+}
+dependencyResolutionManagement {
+    versionCatalogs {
+        libraries {
+            from(files("gradle/libs.versions.toml"))
+        }
+    }
+}
 rootProject.name = 'opensearch-security'
 
 include "spi"
@@ -18,4 +33,6 @@ project(":sample-resource-plugin").name = "opensearch-sample-resource-plugin"
 
 include "bwc-test"
 project(":bwc-test").name = rootProject.name + "-bwc-test"
+
+
 include 'libs:opensaml'

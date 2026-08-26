@@ -10,16 +10,15 @@
  */
 package org.opensearch.security.privileges;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
-import org.opensearch.security.user.User;
+import org.apache.commons.text.StringSubstitutor;
 
 /**
  * Support for interpolating user attributes used in index patterns and DLS queries.
@@ -42,39 +41,24 @@ public class UserAttributes {
     }
 
     public static String replaceProperties(String orig, PrivilegesEvaluationContext context) {
-        User user = context.getUser();
+        final var user = context.getUser();
 
-        orig = orig.replace("${user.name}", user.getName()).replace("${user_name}", user.getName());
-        orig = replaceRoles(orig, user);
-        orig = replaceSecurityRoles(orig, context);
-        for (Map.Entry<String, String> entry : user.getCustomAttributesMap().entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            orig = orig.replace("${" + entry.getKey() + "}", entry.getValue());
-            orig = orig.replace("${" + entry.getKey().replace('.', '_') + "}", entry.getValue());
-        }
+        final var replacementsWithDots = new HashMap<String, String>();
+        replacementsWithDots.put("user.name", user.getName());
+        replacementsWithDots.put("user.roles", toQuotedCommaSeparatedString(user.getRoles()));
+        replacementsWithDots.put(
+            "user.securityRoles",
+            toQuotedCommaSeparatedString(Sets.union(context.getUser().getSecurityRoles(), context.getMappedRoles()))
+        );
+        replacementsWithDots.putAll(user.getCustomAttributesMap());
+
+        // we also support referencing variables with underscores instead of dots => we need both in our lookup table.
+        final var replacements = new HashMap<>(replacementsWithDots);
+        replacementsWithDots.forEach((k, v) -> replacements.put(k.replace(".", "_"), v));
+
+        final var stringSubstitutor = new StringSubstitutor(replacements).setEnableSubstitutionInVariables(true);
+        orig = stringSubstitutor.replace(orig);
         return orig;
-    }
-
-    private static String replaceSecurityRoles(final String orig, PrivilegesEvaluationContext context) {
-        String retVal = orig;
-        if (orig.contains("${user.securityRoles}") || orig.contains("${user_securityRoles}")) {
-            final String commaSeparatedRoles = toQuotedCommaSeparatedString(
-                Sets.union(context.getUser().getSecurityRoles(), context.getMappedRoles())
-            );
-            retVal = orig.replace("${user.securityRoles}", commaSeparatedRoles).replace("${user_securityRoles}", commaSeparatedRoles);
-        }
-        return retVal;
-    }
-
-    private static String replaceRoles(final String orig, final User user) {
-        String retVal = orig;
-        if (orig.contains("${user.roles}") || orig.contains("${user_roles}")) {
-            final String commaSeparatedRoles = toQuotedCommaSeparatedString(user.getRoles());
-            retVal = orig.replace("${user.roles}", commaSeparatedRoles).replace("${user_roles}", commaSeparatedRoles);
-        }
-        return retVal;
     }
 
     private static String toQuotedCommaSeparatedString(final Set<String> roles) {

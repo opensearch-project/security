@@ -58,9 +58,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
             setPrivateTenantAsDefaultResponse.getStatusCode(),
             equalTo(HttpStatus.SC_OK)
         );
-        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), hasItem(DashboardSignInOption.BASIC.toString()));
-        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), not(hasItem(DashboardSignInOption.SAML.toString())));
-        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options"), not(hasItem(DashboardSignInOption.OPENID.toString())));
+        assertThat(getDashboardsinfoResponse.findArrayInJson("sign_in_options").size(), equalTo(0));
 
         final HttpResponse updateDashboardSignInOptions = rh.executePutRequest(
             "/_plugins/_security/api/tenancy/config",
@@ -227,7 +225,7 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         assertThat(
             invalidSignInOption.getBody(),
             invalidSignInOption.findValueInJson("error.reason"),
-            containsString("authentication provider is not available for this cluster")
+            containsString("is not a recognized sign-in option")
         );
 
         final HttpResponse preferredTenantsNonArrayValue = rh.executePutRequest(

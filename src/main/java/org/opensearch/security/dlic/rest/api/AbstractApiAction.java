@@ -119,7 +119,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
     }
 
     private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
-        builder.withAccessHandler(request -> securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint))
+        builder.withAccessHandler(request -> securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint))
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
             .add(Method.POST, methodNotImplementedHandler)
             .add(Method.PATCH, methodNotImplementedHandler)
@@ -262,7 +262,11 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                 }
                 // create or update case of the entity. we need to verify new JSON configuration for them
                 if ((beforePatchEntity == null) || !Objects.equals(beforePatchEntity, patchedEntity)) {
-                    final var requestCheck = endpointValidator.createRequestContentValidator(entityName).validate(request, patchedEntity);
+                    final var validator = endpointValidator.createRequestContentValidator(entityName);
+                    if (beforePatchEntity != null) {
+                        validator.withOriginalContent(beforePatchEntity);
+                    }
+                    final var requestCheck = validator.validate(request, patchedEntity);
                     if (!requestCheck.isValid()) {
                         return ValidationResult.error(requestCheck.status(), requestCheck.errorMessage());
                     }
@@ -397,7 +401,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             );
         }
         if (omitSensitiveData) {
-            if (!securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint)) {
+            if (!securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint)) {
                 configuration.removeHidden();
             }
             configuration.clearHashes();
@@ -423,8 +427,8 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
@@ -594,7 +598,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         }
 
         // check if request is authorized
-        final String authError = securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, endpoint);
+        final String authError = securityApiDependencies.restApiAuthorizationEvaluator().checkAccessPermissions(request, endpoint);
 
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String userName = user == null ? null : user.getName();

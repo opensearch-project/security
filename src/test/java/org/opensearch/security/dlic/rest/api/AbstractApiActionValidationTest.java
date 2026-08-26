@@ -56,7 +56,7 @@ public abstract class AbstractApiActionValidationTest {
     ConfigurationRepository configurationRepository;
 
     @Mock
-    RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
+    RestApiAuthorizationEvaluator restApiAuthorizationEvaluator;
 
     SecurityApiDependencies securityApiDependencies;
 
@@ -75,8 +75,7 @@ public abstract class AbstractApiActionValidationTest {
             null,
             configurationRepository,
             null,
-            null,
-            restApiAdminPrivilegesEvaluator,
+            restApiAuthorizationEvaluator,
             null,
             Settings.EMPTY
         );

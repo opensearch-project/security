@@ -234,6 +234,26 @@ public class PrivilegesInterceptor {
                 log.trace(requestedResolved + " does not contain only " + dashboardsIndexName);
             }
 
+            // For multi-document actions (_mget, _bulk, _msearch, _mtv), deny any request
+            // that directly references a concrete dashboards tenant index.
+            // Legitimate Dashboards requests always go through the top-level alias which gets rewritten
+            // by the interceptor.
+            // We check originalRequested (what the user explicitly specified) rather than allIndices
+            // (the fully resolved set) to avoid false positives from broad queries like _cat/indices
+            // where tenant indices are incidentally included in the resolution.
+            if ((request instanceof BulkRequest
+                || request instanceof MultiGetRequest
+                || request instanceof MultiSearchRequest
+                || request instanceof MultiTermVectorsRequest) && !requestedResolved.isLocalAll()) {
+                final Set<String> originalRequested = requestedResolved.getOriginalRequested();
+
+                for (String idx : originalRequested) {
+                    if (idx.startsWith(dashboardsIndexName + "_")) {
+                        return ACCESS_DENIED_REPLACE_RESULT;
+                    }
+                }
+            }
+
         }
 
         return CONTINUE_EVALUATION_REPLACE_RESULT;
@@ -241,12 +261,12 @@ public class PrivilegesInterceptor {
 
     private void applyDocumentAllowList(String indexName) {
         DocumentAllowList documentAllowList = new DocumentAllowList();
-        documentAllowList.add(indexName, "*");
+        documentAllowList.add(indexName, DocumentAllowList.ANY_DOCUMENT_ID);
         IndexAbstraction indexAbstraction = clusterStateSupplier.get().getMetadata().getIndicesLookup().get(indexName);
 
         if (indexAbstraction instanceof IndexAbstraction.Alias) {
             for (IndexMetadata index : ((IndexAbstraction.Alias) indexAbstraction).getIndices()) {
-                documentAllowList.add(index.getIndex().getName(), "*");
+                documentAllowList.add(index.getIndex().getName(), DocumentAllowList.ANY_DOCUMENT_ID);
             }
         }
 

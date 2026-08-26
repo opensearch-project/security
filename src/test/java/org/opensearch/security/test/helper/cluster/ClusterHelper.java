@@ -271,6 +271,7 @@ public final class ClusterHelper {
         latch.await();
 
         if (err.get() != null) {
+            closeAllNodes();
             throw new RuntimeException("Could not start all nodes " + err.get(), err.get());
         }
 
@@ -342,7 +343,7 @@ public final class ClusterHelper {
     private static void closeNode(Node node) {
         try {
             node.close();
-            node.awaitClose(250, TimeUnit.MILLISECONDS);
+            node.awaitClose(5, TimeUnit.SECONDS);
         } catch (Throwable e) {
             // ignore
         }
@@ -480,7 +481,8 @@ public final class ClusterHelper {
             .put("transport.tcp.port", tcpPort)
             .put("http.port", httpPort)
             .put("http.cors.enabled", true)
-            .put("path.home", "./target");
+            .put("path.home", "./target")
+            .put("bootstrap.serial_filter", true);
     }
 
     private enum ClusterState {

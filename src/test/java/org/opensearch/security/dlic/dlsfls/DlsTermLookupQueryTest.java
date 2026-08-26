@@ -56,6 +56,21 @@ import static org.opensearch.security.dlic.dlsfls.DlsTermsLookupAsserts.assertAc
 
 public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
 
+    protected String getSecurityConfigName() {
+        return "securityconfig_tlq.yml";
+    }
+
+    protected DynamicSecurityConfig tlqSecurityConfig() {
+        return new DynamicSecurityConfig().setConfig(getSecurityConfigName())
+            .setSecurityInternalUsers("internal_users_tlq.yml")
+            .setSecurityRoles("roles_tlq.yml")
+            .setSecurityRolesMapping("roles_mapping_tlq.yml");
+    }
+
+    protected void setupWithTlqSecurityConfig() throws Exception {
+        setup(tlqSecurityConfig());
+    }
+
     protected void populateData(Client client) {
         // user access codes, basis for TLQ query
         client.index(
@@ -87,6 +102,11 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
             new IndexRequest("user_access_codes").id("tlq_no_codes")
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{ \"bla\": \"blub\" }", XContentType.JSON)
+        ).actionGet();
+        client.index(
+            new IndexRequest("user_access_codes").id("tlq_query_1337")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{ \"access_codes\": [1337] }", XContentType.JSON)
         ).actionGet();
 
         // need to have keyword for bu field since we're testing aggregations
@@ -225,12 +245,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_AccessCode_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         HttpResponse response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_1337", "password"));
         assertThat(response.getStatusCode(), is(200));
@@ -246,12 +261,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_AccessCode_42() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         HttpResponse response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_42", "password"));
         assertThat(response.getStatusCode(), is(200));
@@ -269,12 +279,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_AccessCodes_1337_42() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         HttpResponse response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_1337_42", "password"));
         assertThat(response.getStatusCode(), is(200));
@@ -292,12 +297,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_AccessCodes_999() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         HttpResponse response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_999", "password"));
         assertThat(response.getStatusCode(), is(200));
@@ -311,12 +311,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_AccessCodes_emptyAccessCodes() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
         SearchResponse searchResponse = executeSearch("tlqdocuments", "tlq_empty_access_codes", "password");
         assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value(), is(0L));
     }
@@ -324,12 +319,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_AccessCodes_noAccessCodes() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
         SearchResponse searchResponse = executeSearch("tlqdocuments", "tlq_no_codes", "password");
 
         assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value(), is(0L));
@@ -337,12 +327,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
 
     @Test
     public void testSimpleSearch_AllIndices_All_AccessCodes_1337() throws Exception {
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         SearchResponse searchResponse = executeSearch("_all", "tlq_1337", "password");
 
@@ -378,12 +363,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_AllIndicesWildcard_AccessCodes_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         SearchResponse searchResponse = executeSearch("*", "tlq_1337", "password");
 
@@ -419,12 +399,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_ThreeIndicesWildcard_AccessCodes_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         SearchResponse searchResponse = executeSearch("tlq*,user*", "tlq_1337", "password");
 
@@ -461,12 +436,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleSearch_TwoIndicesConcreteNames_AccessCodes_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         SearchResponse searchResponse = executeSearch("tlqdocuments,tlqdummy", "tlq_1337", "password");
 
@@ -494,12 +464,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testMSearch_ThreeIndices_AccessCodes_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         MultiSearchResponse searchResponse = executeMSearchMatchAll(
             "tlq_1337",
@@ -536,12 +501,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testGet_TlqDocumentsIndex_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         // user has 1337, document has 1337
         GetResponse searchResponse = executeGet("tlqdocuments", "1", "tlq_1337", "password");
@@ -576,12 +536,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testGet_TlqDocumentsIndex_1337_42() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         // user has 1337 and 42, document has 1337
         GetResponse searchResponse = executeGet("tlqdocuments", "1", "tlq_1337_42", "password");
@@ -618,12 +573,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testGet_TlqDummyIndex_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         // no restrictions on this index
         GetResponse searchResponse = executeGet("tlqdummy", "101", "tlq_1337", "password");
@@ -639,12 +589,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testGet_UserAccessCodesIndex_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         // we expect a security exception here, user has no direct access to
         // user_access_codes index
@@ -655,12 +600,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testMGet_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         Map<String, String> indicesAndIds = new HashMap<>();
         indicesAndIds.put("tlqdocuments", "1");
@@ -697,12 +637,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
     @Test
     public void testSimpleAggregation_tlqdocuments_AccessCode_1337() throws Exception {
 
-        setup(
-            new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-                .setSecurityInternalUsers("internal_users_tlq.yml")
-                .setSecurityRoles("roles_tlq.yml")
-                .setSecurityRolesMapping("roles_mapping_tlq.yml")
-        );
+        setupWithTlqSecurityConfig();
 
         String body = ""
             + "		{\n"
@@ -741,6 +676,55 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
         }
         // expect FFF to be absent
         Assert.assertNull("Expected bucket FFF to be absent", agg.getBucketByKey("FFF"));
+    }
+
+    // -----------------------------------
+    // Test query-based TLQ (no doc ID)
+    // -----------------------------------
+
+    @Test
+    public void testQueryBasedTlq_Search_AccessCode_1337() throws Exception {
+
+        setupWithTlqSecurityConfig();
+
+        final var response = rh.executeGetRequest("/tlqdocuments/_search?pretty", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(200));
+        final var xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        final var searchResponse = SearchResponse.fromXContent(xcp);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value(), is(10L));
+        assertAccessCodesMatch(searchResponse.getHits().getHits(), new Integer[] { 1337 });
+    }
+
+    @Test
+    public void testQueryBasedTlq_Search_Dummy_AccessCode_1337() throws Exception {
+
+        setupWithTlqSecurityConfig();
+
+        final var response = rh.executeGetRequest("/tlqdummy/_search?pretty", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(200));
+        final var xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        final var searchResponse = SearchResponse.fromXContent(xcp);
+        assertThat(searchResponse.toString(), searchResponse.getHits().getTotalHits().value(), is(5L));
+    }
+
+    @Test
+    public void testQueryBasedTlq_Get_AccessCode_1337() throws Exception {
+
+        setupWithTlqSecurityConfig();
+
+        // doc 1 has access_codes [1337] - should be accessible
+        HttpResponse response = rh.executeGetRequest("/tlqdocuments/_doc/1", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(200));
+
+        // doc 2 has access_codes [42] - should not be accessible
+        response = rh.executeGetRequest("/tlqdocuments/_doc/2", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(404));
+
+        // user_access_codes index should not be directly accessible
+        response = rh.executeGetRequest("/user_access_codes/_doc/tlq_query_1337", encodeBasicHeader("tlq_query_1337", "password"));
+        assertThat(response.getStatusCode(), is(403));
     }
 
     public static List<NamedXContentRegistry.Entry> getDefaultNamedXContents() {

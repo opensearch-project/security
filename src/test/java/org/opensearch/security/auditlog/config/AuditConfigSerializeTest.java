@@ -65,9 +65,30 @@ public class AuditConfigSerializeTest {
             .field("enabled", true)
             .startObject("audit")
             .field("enable_rest", true)
-            .field("disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
+            .field(
+                "disabled_rest_categories",
+                ImmutableList.of(
+                    "AUTHENTICATED",
+                    "GRANTED_PRIVILEGES",
+                    "RESOURCE_ACCESS_GRANTED",
+                    "RESOURCE_ACCESS_DENIED",
+                    "RESOURCE_SHARING_CHANGED"
+                )
+            )
             .field("enable_transport", true)
-            .field("disabled_transport_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
+            .field(
+                "disabled_transport_categories",
+                ImmutableList.of(
+                    "AUTHENTICATED",
+                    "GRANTED_PRIVILEGES",
+                    "CLUSTER_SETTINGS_CHANGED",
+                    "INDEX_SETTINGS_CHANGED",
+                    "RESOURCE_ACCESS_GRANTED",
+                    "RESOURCE_ACCESS_DENIED",
+                    "RESOURCE_SHARING_CHANGED"
+                )
+            )
+            .field("disabled_categories", Collections.emptyList())
             .field("resolve_bulk_requests", false)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -102,9 +123,33 @@ public class AuditConfigSerializeTest {
         final ComplianceConfig compliance = auditConfig.getCompliance();
         // assert
         assertTrue(audit.isRestApiAuditEnabled());
-        assertThat(audit.getDisabledRestCategories(), is(EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES)));
+        assertThat(
+            audit.getDisabledRestCategories(),
+            is(
+                EnumSet.of(
+                    AuditCategory.AUTHENTICATED,
+                    AuditCategory.GRANTED_PRIVILEGES,
+                    AuditCategory.RESOURCE_ACCESS_GRANTED,
+                    AuditCategory.RESOURCE_ACCESS_DENIED,
+                    AuditCategory.RESOURCE_SHARING_CHANGED
+                )
+            )
+        );
         assertTrue(audit.isTransportApiAuditEnabled());
-        assertThat(audit.getDisabledTransportCategories(), is(EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES)));
+        assertThat(
+            audit.getDisabledTransportCategories(),
+            is(
+                EnumSet.of(
+                    AuditCategory.AUTHENTICATED,
+                    AuditCategory.GRANTED_PRIVILEGES,
+                    AuditCategory.CLUSTER_SETTINGS_CHANGED,
+                    AuditCategory.INDEX_SETTINGS_CHANGED,
+                    AuditCategory.RESOURCE_ACCESS_GRANTED,
+                    AuditCategory.RESOURCE_ACCESS_DENIED,
+                    AuditCategory.RESOURCE_SHARING_CHANGED
+                )
+            )
+        );
         assertFalse(audit.shouldResolveBulkRequests());
         assertTrue(audit.shouldLogRequestBody());
         assertTrue(audit.shouldResolveIndices());
@@ -132,6 +177,10 @@ public class AuditConfigSerializeTest {
             .field("disabled_rest_categories", Collections.singletonList("AUTHENTICATED"))
             .field("enable_transport", true)
             .field("disabled_transport_categories", Collections.singletonList("SSL_EXCEPTION"))
+            .field(
+                "disabled_categories",
+                ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
+            )
             .field("resolve_bulk_requests", true)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -206,7 +255,8 @@ public class AuditConfigSerializeTest {
             ImmutableSet.of("test-header"),
             ImmutableSet.of("test-param"),
             EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES),
-            EnumSet.of(AUTHENTICATED)
+            EnumSet.of(AUTHENTICATED),
+            Collections.emptySet()
         );
         final ComplianceConfig compliance = new ComplianceConfig(
             true,
@@ -231,6 +281,7 @@ public class AuditConfigSerializeTest {
             .field("disabled_rest_categories", ImmutableList.of("FAILED_LOGIN", "GRANTED_PRIVILEGES"))
             .field("enable_transport", true)
             .field("disabled_transport_categories", Collections.singletonList("AUTHENTICATED"))
+            .field("disabled_categories", Collections.emptyList())
             .field("resolve_bulk_requests", true)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -272,9 +323,30 @@ public class AuditConfigSerializeTest {
             .field("enabled", true)
             .startObject("audit")
             .field("enable_rest", true)
-            .field("disabled_rest_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
+            .field(
+                "disabled_rest_categories",
+                ImmutableList.of(
+                    "AUTHENTICATED",
+                    "GRANTED_PRIVILEGES",
+                    "RESOURCE_ACCESS_GRANTED",
+                    "RESOURCE_ACCESS_DENIED",
+                    "RESOURCE_SHARING_CHANGED"
+                )
+            )
             .field("enable_transport", true)
-            .field("disabled_transport_categories", ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
+            .field(
+                "disabled_transport_categories",
+                ImmutableList.of(
+                    "AUTHENTICATED",
+                    "GRANTED_PRIVILEGES",
+                    "CLUSTER_SETTINGS_CHANGED",
+                    "INDEX_SETTINGS_CHANGED",
+                    "RESOURCE_ACCESS_GRANTED",
+                    "RESOURCE_ACCESS_DENIED",
+                    "RESOURCE_SHARING_CHANGED"
+                )
+            )
+            .field("disabled_categories", Collections.emptyList())
             .field("resolve_bulk_requests", false)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -315,8 +387,28 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
-        assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledRestCategories()));
-        assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledTransportCategories()));
+        assertThat(
+            EnumSet.of(
+                AUTHENTICATED,
+                GRANTED_PRIVILEGES,
+                AuditCategory.RESOURCE_ACCESS_GRANTED,
+                AuditCategory.RESOURCE_ACCESS_DENIED,
+                AuditCategory.RESOURCE_SHARING_CHANGED
+            ),
+            is(audit.getDisabledRestCategories())
+        );
+        assertThat(
+            EnumSet.of(
+                AUTHENTICATED,
+                GRANTED_PRIVILEGES,
+                AuditCategory.CLUSTER_SETTINGS_CHANGED,
+                AuditCategory.INDEX_SETTINGS_CHANGED,
+                AuditCategory.RESOURCE_ACCESS_GRANTED,
+                AuditCategory.RESOURCE_ACCESS_DENIED,
+                AuditCategory.RESOURCE_SHARING_CHANGED
+            ),
+            is(audit.getDisabledTransportCategories())
+        );
         assertThat(audit.getIgnoredAuditUsersMatcher(), is(DEFAULT_IGNORED_USER));
         assertThat(audit.getIgnoredAuditRequestsMatcher(), is(WildcardMatcher.NONE));
         assertThat(configCompliance.getIgnoredComplianceUsersForReadMatcher(), is(DEFAULT_IGNORED_USER));
@@ -347,6 +439,10 @@ public class AuditConfigSerializeTest {
             .startObject("audit")
             .field("enable_rest", true)
             .field("enable_transport", true)
+            .field(
+                "disabled_categories",
+                ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES", "CLUSTER_SETTINGS_CHANGED", "INDEX_SETTINGS_CHANGED")
+            )
             .field("resolve_bulk_requests", true)
             .field("log_request_body", true)
             .field("resolve_indices", true)
@@ -369,8 +465,28 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
-        assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledRestCategories()));
-        assertThat(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES), is(audit.getDisabledTransportCategories()));
+        assertThat(
+            EnumSet.of(
+                AUTHENTICATED,
+                GRANTED_PRIVILEGES,
+                AuditCategory.RESOURCE_ACCESS_GRANTED,
+                AuditCategory.RESOURCE_ACCESS_DENIED,
+                AuditCategory.RESOURCE_SHARING_CHANGED
+            ),
+            is(audit.getDisabledRestCategories())
+        );
+        assertThat(
+            EnumSet.of(
+                AUTHENTICATED,
+                GRANTED_PRIVILEGES,
+                AuditCategory.CLUSTER_SETTINGS_CHANGED,
+                AuditCategory.INDEX_SETTINGS_CHANGED,
+                AuditCategory.RESOURCE_ACCESS_GRANTED,
+                AuditCategory.RESOURCE_ACCESS_DENIED,
+                AuditCategory.RESOURCE_SHARING_CHANGED
+            ),
+            is(audit.getDisabledTransportCategories())
+        );
         assertThat(audit.getIgnoredAuditUsersMatcher(), is(DEFAULT_IGNORED_USER));
         assertThat(audit.getIgnoredAuditRequestsMatcher(), is(WildcardMatcher.NONE));
         assertThat(configCompliance.getIgnoredComplianceUsersForReadMatcher(), is(DEFAULT_IGNORED_USER));

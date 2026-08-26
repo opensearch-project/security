@@ -11,7 +11,9 @@
 
 package org.opensearch.security.auditlog.config;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +27,10 @@ import com.google.common.collect.Sets;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.impl.AuditCategory;
@@ -54,7 +58,9 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CON
  *     "enable_transport" : true,
  *     "disabled_transport_categories" : [
  *       "GRANTED_PRIVILEGES",
- *       "AUTHENTICATED"
+ *       "AUTHENTICATED",
+ *       "CLUSTER_SETTINGS_CHANGED",
+ *       "INDEX_SETTINGS_CHANGED"
  *     ],
  *     "resolve_bulk_requests" : false,
  *     "log_request_body" : true,
@@ -127,30 +133,48 @@ public class AuditConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
+        private static final Logger log = LogManager.getLogger(Filter.class);
         private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
+        /** Settings key for body logging exclusions — defined here to avoid circular init with SecuritySettings.
+         *  Must match {@code SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS}. */
+        static final String BODY_LOGGING_EXCLUSIONS_KEY = "plugins.security.audit.config.body_logging_exclusions";
+        /** Settings prefix for action groups — defined here to avoid circular init with SecuritySettings.
+         *  Must match {@code SecuritySettings.AUDIT_ACTION_GROUPS}. */
+        static final String ACTION_GROUPS_PREFIX = "plugins.security.audit.config.action_groups.";
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
 
-        private final boolean isRestApiAuditEnabled;
-        private final boolean isTransportApiAuditEnabled;
-        private final boolean resolveBulkRequests;
-        private final boolean logRequestBody;
-        private final boolean resolveIndices;
-        private final boolean excludeSensitiveHeaders;
+        private volatile boolean isRestApiAuditEnabled;
+        private volatile boolean isTransportApiAuditEnabled;
+        private volatile boolean resolveBulkRequests;
+        private volatile boolean logRequestBody;
+        private volatile boolean resolveIndices;
+        private volatile boolean excludeSensitiveHeaders;
         @JsonProperty("ignore_users")
-        private final Set<String> ignoredAuditUsers;
+        private volatile Set<String> ignoredAuditUsers;
         @JsonProperty("ignore_requests")
-        private final Set<String> ignoredAuditRequests;
+        private volatile Set<String> ignoredAuditRequests;
         @JsonProperty("ignore_headers")
         private final Set<String> ignoredCustomHeaders;
         @JsonProperty("ignore_url_params")
-        private Set<String> ignoredUrlParams;
-        private final WildcardMatcher ignoredAuditUsersMatcher;
-        private final WildcardMatcher ignoredAuditRequestsMatcher;
+        private volatile Set<String> ignoredUrlParams;
+        private volatile WildcardMatcher ignoredAuditUsersMatcher;
+        private volatile WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
-        private WildcardMatcher ignoredUrlParamsMatcher;
-        private final Set<AuditCategory> disabledRestCategories;
-        private final Set<AuditCategory> disabledTransportCategories;
+        private volatile WildcardMatcher ignoredUrlParamsMatcher;
+        @JsonProperty("action_groups")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private volatile Map<String, List<String>> actionGroups = Collections.emptyMap();
+        private volatile WildcardMatcher bodyExclusionMatcher = WildcardMatcher.NONE;
+        @JsonProperty("body_logging_exclusions")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private volatile List<String> bodyLoggingExclusions = Collections.emptyList();
+        @JsonProperty("disabled_categories")
+        private volatile Set<AuditCategory> disabledCategories;
+        @Deprecated
+        private volatile Set<AuditCategory> disabledRestCategories;
+        @Deprecated
+        private volatile Set<AuditCategory> disabledTransportCategories;
 
         @VisibleForTesting
         Filter(
@@ -165,7 +189,8 @@ public class AuditConfig {
             final Set<String> ignoredCustomHeaders,
             final Set<String> ignoredUrlParams,
             final Set<AuditCategory> disabledRestCategories,
-            final Set<AuditCategory> disabledTransportCategories
+            final Set<AuditCategory> disabledTransportCategories,
+            final Set<AuditCategory> disabledCategories
         ) {
             this.isRestApiAuditEnabled = isRestApiAuditEnabled;
             this.isTransportApiAuditEnabled = isTransportApiAuditEnabled;
@@ -183,6 +208,7 @@ public class AuditConfig {
             this.ignoredUrlParamsMatcher = WildcardMatcher.from(ignoredUrlParams);
             this.disabledRestCategories = disabledRestCategories;
             this.disabledTransportCategories = disabledTransportCategories;
+            this.disabledCategories = disabledCategories;
         }
 
         public enum FilterEntries {
@@ -192,6 +218,7 @@ public class AuditConfig {
             LOG_REQUEST_BODY("log_request_body", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY),
             RESOLVE_INDICES("resolve_indices", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES),
             EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS),
+            DISABLE_CATEGORIES("disabled_categories", ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_CATEGORIES),
             DISABLE_REST_CATEGORIES("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES),
             DISABLE_TRANSPORT_CATEGORIES(
                 "disabled_transport_categories",
@@ -242,18 +269,21 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
+            final Set<AuditCategory> disabledCategories = AuditCategory.parse(
+                getOrDefault(properties, FilterEntries.DISABLE_CATEGORIES.getKey(), Collections.emptyList())
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
                 )
             );
             final List<String> rawIgnoredUsers = getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS);
@@ -267,7 +297,30 @@ public class AuditConfig {
                 getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
-            return new Filter(
+            final boolean unifiedPresent = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
+            final boolean splitPresent = properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
+                || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey());
+            warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
+
+            final List<String> bodyExclusions = getOrDefault(properties, "body_logging_exclusions", Collections.emptyList());
+
+            // Parse action groups from security index — handle both formats:
+            // Map<String, List<String>> (correct) or Map<String, String> (comma-separated)
+            final Map<String, List<String>> actionGroupsFromConfig;
+            if (properties.containsKey("action_groups")) {
+                Object raw = properties.get("action_groups");
+                if (raw instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> rawMap = (Map<String, Object>) raw;
+                    actionGroupsFromConfig = parseActionGroupsFromMap(rawMap);
+                } else {
+                    actionGroupsFromConfig = Collections.emptyMap();
+                }
+            } else {
+                actionGroupsFromConfig = Collections.emptyMap();
+            }
+
+            Filter filter = new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
                 resolveBulkRequests,
@@ -279,8 +332,12 @@ public class AuditConfig {
                 ignoreHeaders,
                 new HashSet<>(),
                 disabledRestCategories,
-                disabledTransportCategories
+                disabledTransportCategories,
+                disabledCategories
             );
+            filter.setActionGroups(actionGroupsFromConfig);
+            filter.setBodyLoggingExclusions(bodyExclusions);
+            return filter;
 
         }
 
@@ -296,24 +353,35 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
+            final Set<AuditCategory> disabledCategories = AuditCategory.parse(
+                fromSettingStringSet(settings, FilterEntries.DISABLE_CATEGORIES, Collections.emptyList())
+            );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_REST_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
                 )
             );
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
             final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
-            return new Filter(
+
+            final boolean unifiedPresent = settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace());
+            final boolean splitPresent = settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace());
+            warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
+
+            Filter filter = new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
                 resolveBulkRequests,
@@ -325,8 +393,22 @@ public class AuditConfig {
                 ignoreHeaders,
                 new HashSet<>(),
                 disabledRestCategories,
-                disabledTransportCategories
+                disabledTransportCategories,
+                disabledCategories
             );
+
+            // Load action groups from opensearch.yml (static)
+            Map<String, List<String>> groups = parseActionGroupsFromSettings(settings);
+            filter.setActionGroups(groups);
+
+            // Apply initial body logging exclusions
+            // NOTE: Read directly from Settings to avoid circular static initialization between
+            // AuditConfig and SecuritySettings (AuditConfig.Filter.DEFAULT triggers this path
+            // during class loading before SecuritySettings fields are initialized).
+            List<String> exclusions = settings.getAsList(BODY_LOGGING_EXCLUSIONS_KEY, Collections.emptyList());
+            filter.setBodyLoggingExclusions(exclusions);
+
+            return filter;
         }
 
         static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
@@ -352,6 +434,69 @@ public class AuditConfig {
 
             // Fallback to the legacy keyname
             return ConfigConstants.getSettingAsSet(settings, filterEntry.getLegacyKeyWithNamespace(), defaultValue, true);
+        }
+
+        private static void warnIfBothUnifiedAndSplitConfigured(boolean unifiedPresent, boolean splitPresent) {
+            if (unifiedPresent && splitPresent) {
+                final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(AuditConfig.class);
+                deprecationLogger.deprecate(
+                    "disabled_rest_transport_categories",
+                    "Both 'disabled_categories' and 'disabled_rest_categories'/'disabled_transport_categories' are configured. "
+                        + "They will work in tandem, but consider migrating to 'disabled_categories' only."
+                );
+            }
+        }
+
+        /**
+         * Splits a raw settings value (which may be a single comma-separated string or an already-split
+         * list entry) into individual trimmed patterns. Shared by all action-group parsing paths.
+         */
+        static List<String> splitPatterns(List<String> rawList) {
+            List<String> patterns = new ArrayList<>();
+            for (String entry : rawList) {
+                if (entry.contains(",")) {
+                    for (String part : entry.split(",")) {
+                        patterns.add(part.trim());
+                    }
+                } else {
+                    patterns.add(entry.trim());
+                }
+            }
+            return patterns;
+        }
+
+        /**
+         * Parses action groups from an OpenSearch {@link Settings} object.
+         * Used by both {@code AuditConfig.Filter.from(Settings)} and
+         * {@code OpenSearchSecurityPlugin.parseActionGroups()}.
+         */
+        public static Map<String, List<String>> parseActionGroupsFromSettings(Settings settings) {
+            Settings groupSettings = settings.getByPrefix(ACTION_GROUPS_PREFIX);
+            Map<String, List<String>> groups = new HashMap<>();
+            for (String groupName : groupSettings.keySet()) {
+                List<String> rawList = settings.getAsList(ACTION_GROUPS_PREFIX + groupName);
+                groups.put(groupName, splitPatterns(rawList));
+            }
+            return Collections.unmodifiableMap(groups);
+        }
+
+        /**
+         * Parses action groups from a Map (security index deserialization path).
+         * Handles both {@code Map<String, List<String>>} and {@code Map<String, String>} formats.
+         */
+        static Map<String, List<String>> parseActionGroupsFromMap(Map<String, Object> rawMap) {
+            Map<String, List<String>> parsed = new HashMap<>();
+            for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+                Object val = entry.getValue();
+                if (val instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<String> list = (List<String>) val;
+                    parsed.put(entry.getKey(), list);
+                } else if (val instanceof String) {
+                    parsed.put(entry.getKey(), splitPatterns(List.of((String) val)));
+                }
+            }
+            return Collections.unmodifiableMap(parsed);
         }
 
         /**
@@ -391,6 +536,90 @@ public class AuditConfig {
         }
 
         /**
+         * Check if request body logging should be excluded for the given action or path.
+         *
+         * <p><b>Two-namespace matching model:</b> This method is called with different string types
+         * depending on the audit layer:
+         * <ul>
+         *   <li><b>REST layer</b> ({@code AuditMessage.addRestRequestInfo}): matches against
+         *       {@code request.path()} — e.g. {@code /_bulk}, {@code /my-index/_search}.
+         *       Note that indexed-resource paths contain the index name, so a fixed path pattern
+         *       won't match them; use the transport action instead.</li>
+         *   <li><b>Transport layer</b> ({@code AbstractAuditLog}, {@code AuditActionFilter}): matches
+         *       against the transport action string — e.g. {@code indices:data/write/bulk[s][p]}.</li>
+         * </ul>
+         *
+         * <p>To fully suppress body logging for a request across both layers, an action group must
+         * contain both a path pattern and an action wildcard. For example, the BULK group needs:
+         * {@code indices:data/write/bulk*,/_bulk}.
+         *
+         * @param actionOrPath transport action string or REST path
+         * @return true if body should NOT be logged for this action/path
+         */
+        public boolean isBodyExcluded(String actionOrPath) {
+            return actionOrPath != null && bodyExclusionMatcher.test(actionOrPath);
+        }
+
+        /**
+         * Sets the action groups map (read from opensearch.yml at startup).
+         * Triggers a rebuild of the body exclusion matcher if exclusions are configured.
+         *
+         * <p><b>Thread-safety note:</b> This class is not internally synchronized. Correctness
+         * relies on action groups being static (set once at startup, never updated dynamically).
+         * Only {@link #setBodyLoggingExclusions} is called at runtime via dynamic settings.
+         * If action groups were ever made dynamic, the rebuild logic would need synchronization.
+         */
+        public void setActionGroups(Map<String, List<String>> groups) {
+            this.actionGroups = groups != null ? groups : Collections.emptyMap();
+            rebuildBodyExclusionMatcher();
+        }
+
+        /**
+         * Sets the body logging exclusions list. Group names are resolved against the
+         * current action groups map. Order of setActionGroups/setBodyLoggingExclusions
+         * does not matter — both trigger a matcher rebuild.
+         * Called at startup and when the dynamic body_logging_exclusions setting changes.
+         */
+        public void setBodyLoggingExclusions(List<String> exclusions) {
+            if (exclusions == null || exclusions.isEmpty()) {
+                this.bodyLoggingExclusions = Collections.emptyList();
+            } else {
+                this.bodyLoggingExclusions = List.copyOf(exclusions);
+            }
+            rebuildBodyExclusionMatcher();
+        }
+
+        /**
+         * Rebuilds the pre-compiled body exclusion matcher from the current exclusions
+         * and action groups. Called by both setters so order doesn't matter.
+         */
+        private void rebuildBodyExclusionMatcher() {
+            List<String> exclusions = this.bodyLoggingExclusions;
+            if (exclusions.isEmpty()) {
+                this.bodyExclusionMatcher = WildcardMatcher.NONE;
+                return;
+            }
+            Map<String, List<String>> groups = this.actionGroups;
+            List<String> expandedPatterns = new ArrayList<>();
+            for (String entry : exclusions) {
+                if (groups.containsKey(entry)) {
+                    expandedPatterns.addAll(groups.get(entry));
+                } else {
+                    expandedPatterns.add(entry);
+                    // Warn about entries that don't look like action patterns or paths
+                    if (!entry.contains(":") && !entry.startsWith("/") && !entry.contains("*")) {
+                        log.warn(
+                            "Body logging exclusion '{}' is not a known action group and does not look like "
+                                + "an action pattern or path — it will be treated as a literal match.",
+                            entry
+                        );
+                    }
+                }
+            }
+            this.bodyExclusionMatcher = WildcardMatcher.from(expandedPatterns);
+        }
+
+        /**
          * Check if indices must be resolved during auditing
          * @return true/false
          */
@@ -415,11 +644,20 @@ public class AuditConfig {
 
         /**
          * Check if user is excluded from audit.
-         * @param user
+         * @param user effective user name (from FGAC user or SSL principal)
          * @return true if user is excluded from audit logging
          */
         public boolean isAuditDisabled(String user) {
             return ignoredAuditUsersMatcher.test(user);
+        }
+
+        /**
+         * Check if user is included in audit.
+         * @param user effective user name (from FGAC user or SSL principal)
+         * @return true if user is included in audit logging
+         */
+        public boolean isAuditEnabled(String user) {
+            return !ignoredAuditUsersMatcher.test(user);
         }
 
         @VisibleForTesting
@@ -493,6 +731,66 @@ public class AuditConfig {
         @JsonProperty("disabled_transport_categories")
         public Set<AuditCategory> getDisabledTransportCategories() {
             return disabledTransportCategories;
+        }
+
+        /**
+         * Unified disabled categories for both REST and Transport API auditing
+         * @return set of categories
+         */
+        public Set<AuditCategory> getDisabledCategories() {
+            return disabledCategories;
+        }
+
+        // Dynamic setters for cluster settings updates
+
+        public void setLogRequestBody(boolean logRequestBody) {
+            this.logRequestBody = logRequestBody;
+        }
+
+        public void setResolveBulkRequests(boolean resolveBulkRequests) {
+            this.resolveBulkRequests = resolveBulkRequests;
+        }
+
+        public void setResolveIndices(boolean resolveIndices) {
+            this.resolveIndices = resolveIndices;
+        }
+
+        public void setExcludeSensitiveHeaders(boolean excludeSensitiveHeaders) {
+            this.excludeSensitiveHeaders = excludeSensitiveHeaders;
+        }
+
+        public void setRestApiAuditEnabled(boolean enabled) {
+            this.isRestApiAuditEnabled = enabled;
+        }
+
+        public void setTransportApiAuditEnabled(boolean enabled) {
+            this.isTransportApiAuditEnabled = enabled;
+        }
+
+        public void setIgnoredAuditUsers(List<String> users) {
+            Set<String> newSet = ImmutableSet.copyOf(users);
+            WildcardMatcher newMatcher = WildcardMatcher.from(newSet);
+            this.ignoredAuditUsers = newSet;
+            this.ignoredAuditUsersMatcher = newMatcher;
+        }
+
+        public void setIgnoredAuditRequests(List<String> requests) {
+            Set<String> newSet = ImmutableSet.copyOf(requests);
+            WildcardMatcher newMatcher = WildcardMatcher.from(newSet);
+            this.ignoredAuditRequests = newSet;
+            this.ignoredAuditRequestsMatcher = newMatcher;
+        }
+
+        public void setDisabledCategories(List<String> categories) {
+            this.disabledCategories = AuditCategory.parse(categories);
+        }
+
+        public void setDisabledRestCategories(List<String> categories) {
+            this.disabledRestCategories = AuditCategory.parse(categories);
+        }
+
+        public void setDisabledTransportCategories(List<String> categories) {
+            this.disabledTransportCategories = AuditCategory.parse(categories);
         }
 
         public void log(Logger logger) {

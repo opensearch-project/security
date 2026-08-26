@@ -40,6 +40,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.legacy.PrivilegesEvaluatorImpl;
@@ -304,7 +305,7 @@ public interface PrivilegesEvaluator {
     record CoreDependencies(ClusterService clusterService, Supplier<ClusterState> clusterStateSupplier, Client client,
         RoleMapper roleMapper, ThreadPool threadPool, ThreadContext threadContext, AuditLog auditLog, Settings settings,
         IndexNameExpressionResolver indexNameExpressionResolver, Supplier<String> unavailablityReasonSupplier,
-        NamedXContentRegistry namedXContentRegistry) {
+        NamedXContentRegistry namedXContentRegistry, ApiTokenRepository apiTokenRepository) {
     }
 
     /**
@@ -316,7 +317,9 @@ public interface PrivilegesEvaluator {
         Supplier<TenantPrivileges> tenantPrivilegesSupplier, Supplier<
             DashboardsMultiTenancyConfiguration> multiTenancyConfigurationSupplier, Map<
                 String,
-                SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToPrivileges) {
+                SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToPrivileges, Map<
+                    String,
+                    ActionPrivileges> tokenIdToActionPrivileges) {
 
         public static final DynamicDependencies EMPTY = new PrivilegesEvaluator.DynamicDependencies(
             FlattenedActionGroups.EMPTY,
@@ -326,6 +329,7 @@ public interface PrivilegesEvaluator {
             new SpecialIndices(Settings.EMPTY),
             () -> TenantPrivileges.EMPTY,
             () -> DashboardsMultiTenancyConfiguration.DEFAULT,
+            Map.of(),
             Map.of()
         );
 
@@ -338,7 +342,8 @@ public interface PrivilegesEvaluator {
                 specialIndices,
                 tenantPrivilegesSupplier,
                 multiTenancyConfigurationSupplier,
-                pluginIdToPrivileges
+                pluginIdToPrivileges,
+                tokenIdToActionPrivileges
             );
         }
 
@@ -351,7 +356,8 @@ public interface PrivilegesEvaluator {
                 specialIndices,
                 tenantPrivilegesSupplier,
                 multiTenancyConfigurationSupplier,
-                pluginIdToPrivileges
+                pluginIdToPrivileges,
+                tokenIdToActionPrivileges
             );
         }
 
