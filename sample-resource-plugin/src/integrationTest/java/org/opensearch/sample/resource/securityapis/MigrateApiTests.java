@@ -295,6 +295,34 @@ public class MigrateApiTests {
     }
 
     @Test
+    public void testLiveIndexingProjectsWorkspacePrincipals() {
+        // Steady-state: creating a resource with a workspaces field must trigger ResourceIndexListener to
+        // extract the (multi-valued) workspaces from the parsed doc via extractMultiValuedFieldFromIndexOp and
+        // project workspace:<id> into all_shared_principals on the resource doc and workspaces on the sharing
+        // record -- with no migrate call. This is what empirically answers the Lucene getFields()
+        // materialization question for the sample plugin's mapping.
+        String resourceId = createSampleResourceWithWorkspaces("ws-a", "ws-b");
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            // The sharing record carries the workspaces field.
+            TestRestClient.HttpResponse sharingDoc = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+            sharingDoc.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode ws = (ArrayNode) sharingDoc.bodyAsJsonNode().get("_source").get("workspaces");
+            List<String> workspaceIds = new ArrayList<>();
+            ws.forEach(n -> workspaceIds.add(n.asString()));
+            assertThat(workspaceIds, containsInAnyOrder("ws-a", "ws-b"));
+
+            // all_shared_principals on the resource doc includes workspace:<id>.
+            TestRestClient.HttpResponse resourceDoc = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+            resourceDoc.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode principals = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("all_shared_principals");
+            List<String> principalList = new ArrayList<>();
+            principals.forEach(n -> principalList.add(n.asString()));
+            assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName(), "workspace:ws-a", "workspace:ws-b"));
+        }
+    }
+
+    @Test
     public void testMigrateBackfillsWorkspacesOntoExistingRecord() {
         // A resource whose sharing record already exists (created at resource-creation time) but which has
         // since gained workspace membership on its source doc. Migration should not re-create the record; it
@@ -809,6 +837,26 @@ public class MigrateApiTests {
 
             Awaitility.await()
                 .alias("Wait until resource data is populated")
+                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
+            return resourceId;
+        }
+    }
+
+    private String createSampleResourceWithWorkspaces(String... workspaceIds) {
+        try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
+            StringBuilder wsArray = new StringBuilder("[");
+            for (int i = 0; i < workspaceIds.length; i++) {
+                if (i > 0) wsArray.append(",");
+                wsArray.append("\"").append(workspaceIds[i]).append("\"");
+            }
+            wsArray.append("]");
+            String sampleResource = ("{\"name\":\"sample_ws\",\"store_user\":true,\"workspaces\":" + wsArray + "}");
+
+            TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            String resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
+            Awaitility.await()
+                .alias("Wait until resource with workspaces is populated")
                 .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
             return resourceId;
         }

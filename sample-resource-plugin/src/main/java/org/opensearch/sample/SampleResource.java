@@ -12,7 +12,10 @@
 package org.opensearch.sample;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.opensearch.commons.authuser.User;
 import org.opensearch.core.ParseField;
@@ -40,6 +43,9 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
     private Map<String, String> attributes;
     // NOTE: following field is added to specifically test migrate API, for newer resources this field must not be defined
     private User user;
+    // Workspace membership; optional, models the multi-valued "workspaces" field a real workspace-aware resource
+    // would declare so ResourceIndexListener can project workspace:<id> into all_shared_principals.
+    private Set<String> workspaces;
 
     public SampleResource() throws IOException {
         super();
@@ -51,6 +57,8 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         this.groupId = in.readOptionalString();
         this.attributes = in.readMap(StreamInput::readString, StreamInput::readString);
         this.user = new User(in);
+        List<String> ws = in.readOptionalStringList();
+        this.workspaces = ws == null ? null : new HashSet<>(ws);
     }
 
     private static final ConstructingObjectParser<SampleResource, Void> PARSER = new ConstructingObjectParser<>(RESOURCE_TYPE, true, a -> {
@@ -67,6 +75,10 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         // ignore a[3] as we know the type
         s.setAttributes((Map<String, String>) a[4]);
         s.setUser((User) a[5]);
+        List<String> ws = (List<String>) a[6];
+        if (ws != null) {
+            s.setWorkspaces(new HashSet<>(ws));
+        }
         return s;
     });
 
@@ -77,6 +89,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         PARSER.declareStringOrNull(optionalConstructorArg(), new ParseField("resource_type"));
         PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> p.mapStrings(), null, new ParseField("attributes"));
         PARSER.declareObjectOrNull(optionalConstructorArg(), (p, c) -> User.parse(p), null, new ParseField("user"));
+        PARSER.declareStringArray(optionalConstructorArg(), new ParseField("workspaces"));
     }
 
     public static SampleResource fromXContent(XContentParser parser) throws IOException {
@@ -84,14 +97,19 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
     }
 
     public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        return builder.startObject()
+        builder.startObject()
             .field("name", name)
             .field("description", description)
             .field("group_id", groupId)
             .field("resource_type", RESOURCE_TYPE)
             .field("attributes", attributes)
-            .field("user", user)
-            .endObject();
+            .field("user", user);
+        // Emit workspaces only when non-empty so pre-existing docs stay byte-identical (BWC for callers/tests
+        // that don't touch this field).
+        if (workspaces != null && !workspaces.isEmpty()) {
+            builder.field("workspaces", workspaces);
+        }
+        return builder.endObject();
     }
 
     public void writeTo(StreamOutput out) throws IOException {
@@ -100,6 +118,8 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
         out.writeOptionalString(groupId);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
         user.writeTo(out);
+        // Symmetric with the StreamInput ctor. Passing null when unset keeps mixed-caller compatibility.
+        out.writeOptionalStringCollection(workspaces);
     }
 
     public void setName(String name) {
@@ -120,6 +140,14 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public void setWorkspaces(Set<String> workspaces) {
+        this.workspaces = workspaces;
+    }
+
+    public Set<String> getWorkspaces() {
+        return workspaces;
     }
 
     public String getName() {
