@@ -88,8 +88,7 @@ public class PaginationCursorTest {
     @Test
     public void decodeRejectsMissingField() {
         // JSON object but last_key absent
-        final var encoded = Base64.getEncoder()
-            .encodeToString("{\"ctype\":\"roles\",\"sort\":\"asc\"}".getBytes(StandardCharsets.UTF_8));
+        final var encoded = Base64.getEncoder().encodeToString("{\"ctype\":\"roles\",\"sort\":\"asc\"}".getBytes(StandardCharsets.UTF_8));
 
         final var result = PaginationCursor.decode(encoded, CType.ROLES, PaginationParams.SORT_ASC);
 
