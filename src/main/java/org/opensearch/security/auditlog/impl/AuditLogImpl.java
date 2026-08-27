@@ -277,6 +277,61 @@ public class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
+    public void logResourceAccessGranted(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        if (enabled) {
+            super.logResourceAccessGranted(action, resourceId, resourceType, resourceIndex, request, task);
+        }
+    }
+
+    @Override
+    public void logResourceAccessDenied(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        if (enabled) {
+            super.logResourceAccessDenied(action, resourceId, resourceType, resourceIndex, request, task);
+        }
+    }
+
+    @Override
+    public void logResourceSharingChanged(
+        String resourceId,
+        String resourceType,
+        String sharingAction,
+        String sharingResult,
+        String recipientsAdded,
+        String recipientsRevoked,
+        String shareWith,
+        TransportRequest request,
+        Task task
+    ) {
+        if (enabled) {
+            super.logResourceSharingChanged(
+                resourceId,
+                resourceType,
+                sharingAction,
+                sharingResult,
+                recipientsAdded,
+                recipientsRevoked,
+                shareWith,
+                request,
+                task
+            );
+        }
+    }
+
+    @Override
     protected void logExternalConfig() {
         if (enabled) {
             super.logExternalConfig();

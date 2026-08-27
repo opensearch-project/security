@@ -150,6 +150,45 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
+    public void logResourceAccessGranted(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        // noop
+    }
+
+    @Override
+    public void logResourceAccessDenied(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        // noop
+    }
+
+    @Override
+    public void logResourceSharingChanged(
+        String resourceId,
+        String resourceType,
+        String sharingAction,
+        String sharingResult,
+        String recipientsAdded,
+        String recipientsRevoked,
+        String shareWith,
+        TransportRequest request,
+        Task task
+    ) {
+        // noop
+    }
+
+    @Override
     public ComplianceConfig getComplianceConfig() {
         return null;
     }

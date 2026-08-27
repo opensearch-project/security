@@ -72,6 +72,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "filter_level_dls_done";
+    public static final String OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "hybrid_query";
     public static final String OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY = OPENDISTRO_SECURITY_CONFIG_PREFIX + "is_parent_child_query";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query_ccs";
@@ -229,13 +230,19 @@ public class ConfigConstants {
         "opendistro_security.audit.config.disabled_rest_categories";
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
-        AuditCategory.GRANTED_PRIVILEGES.toString()
+        AuditCategory.GRANTED_PRIVILEGES.toString(),
+        AuditCategory.RESOURCE_ACCESS_GRANTED.toString(),
+        AuditCategory.RESOURCE_ACCESS_DENIED.toString(),
+        AuditCategory.RESOURCE_SHARING_CHANGED.toString()
     );
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
         AuditCategory.GRANTED_PRIVILEGES.toString(),
         AuditCategory.CLUSTER_SETTINGS_CHANGED.toString(),
-        AuditCategory.INDEX_SETTINGS_CHANGED.toString()
+        AuditCategory.INDEX_SETTINGS_CHANGED.toString(),
+        AuditCategory.RESOURCE_ACCESS_GRANTED.toString(),
+        AuditCategory.RESOURCE_ACCESS_DENIED.toString(),
+        AuditCategory.RESOURCE_SHARING_CHANGED.toString()
     );
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
@@ -447,6 +454,8 @@ public class ConfigConstants {
         "plugins.security.experimental.resource_sharing.protected_types";
     public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
                                                                                                       // protected
+
+    public static final String SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES = SECURITY_SETTINGS_PREFIX + "ccs.ignore_source_security_roles";
 
     public static Set<String> getSettingAsSet(
         final Settings settings,

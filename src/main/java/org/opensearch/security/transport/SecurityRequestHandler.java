@@ -45,7 +45,6 @@ import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
@@ -71,6 +70,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
     private final UserFactory userFactory;
+    private final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy;
 
     SecurityRequestHandler(
         String action,
@@ -82,13 +82,15 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final ClusterService cs,
         final SSLConfig SSLConfig,
         final SslExceptionHandler sslExceptionHandler,
-        final UserFactory userFactory
+        final UserFactory userFactory,
+        final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
     ) {
         super(action, actualHandler, threadPool, principalExtractor, SSLConfig, sslExceptionHandler);
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
         this.userFactory = userFactory;
+        this.remoteClusterIdentityPolicy = remoteClusterIdentityPolicy;
     }
 
     @Override
@@ -169,31 +171,36 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
             } else {
-                String authUsrHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
-                String shouldUseUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
+                String authenticatedUserHeader = getThreadContext().getHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER
+                );
+                String userSameAsAuthenticatedUserHeader = getThreadContext().getHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER
+                );
                 String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+
+                // Deserialize and sanitize users.
                 User user = null;
+                if (userHeader != null) {
+                    user = this.userFactory.fromSerializedBase64(userHeader);
+                    user = remoteClusterIdentityPolicy.sanitize(user, getThreadContext());
+                }
+                User authenticatedUser = null;
+                if (authenticatedUserHeader != null) {
+                    authenticatedUser = this.userFactory.fromSerializedBase64(authenticatedUserHeader);
+                    authenticatedUser = remoteClusterIdentityPolicy.sanitize(authenticatedUser, getThreadContext());
+                }
 
-                // restore a persistent user-subject from subject header
+                // Store the authenticated user in persistent context (if not already set).
                 if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                    // when auth subject user is same request user.
-                    if (Boolean.parseBoolean(shouldUseUserHeader) && userHeader != null) {
-                        user = this.userFactory.fromSerializedBase64(userHeader);
-
-                        getThreadContext().putPersistent(
-                            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                            new UserSubjectImpl(getThreadPool(), user)
-                        );
-                    } else if (authUsrHdr != null) {
-                        User authUser = this.userFactory.fromSerializedBase64(authUsrHdr);
-
-                        getThreadContext().putPersistent(
-                            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                            new UserSubjectImpl(getThreadPool(), authUser)
-                        );
+                    if (Boolean.parseBoolean(userSameAsAuthenticatedUserHeader) && user != null) {
+                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
+                    } else if (authenticatedUser != null) {
+                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, authenticatedUser);
                     }
                 }
 
+                // Store transient user or injected roles
                 final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                 final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
@@ -206,7 +213,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
-                    user = user != null ? user : this.userFactory.fromSerializedBase64(userHeader);
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                 }
 

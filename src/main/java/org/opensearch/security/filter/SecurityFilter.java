@@ -43,6 +43,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.DocRequest;
 import org.opensearch.action.DocWriteRequest.OpType;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -84,7 +85,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
@@ -219,7 +219,7 @@ public class SecurityFilter implements ActionFilter {
                 }
             }
             if (user != null && threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadContext);
@@ -367,10 +367,7 @@ public class SecurityFilter implements ActionFilter {
                         user = User.DEFAULT_TRANSPORT_USER;
                         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                         if (threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                            threadContext.putPersistent(
-                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                                new UserSubjectImpl(threadPool, user)
-                            );
+                            threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
                         }
                     } else {
                         log.error(
@@ -403,7 +400,6 @@ public class SecurityFilter implements ActionFilter {
 
             User finalUser = user;
             Consumer<PrivilegesEvaluatorResponse> handleUnauthorized = response -> {
-                auditLog.logMissingPrivileges(action, request, task);
                 String err = (injectedRoles != null)
                     ? String.format(
                         "no permissions for %s and associated roles %s",
@@ -420,16 +416,18 @@ public class SecurityFilter implements ActionFilter {
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             if (resourceAccessEvaluator.shouldEvaluate(request)) {
-                resourceAccessEvaluator.evaluateAsync(request, action, ActionListener.wrap(response -> {
+                final DocRequest docRequest = (DocRequest) request;
+                resourceAccessEvaluator.evaluateAsync(docRequest, action, ActionListener.wrap(response -> {
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }
                     if (response.isAllowed()) {
-                        auditLog.logGrantedPrivileges(action, request, task);
+                        auditLog.logResourceAccessGranted(action, docRequest.id(), docRequest.type(), docRequest.index(), request, task);
                         auditLog.logIndexEvent(action, request, task);
                         auditLog.logSettingsChange(action, request, task);
                         chain.proceed(task, action, request, listener);
                     } else {
+                        auditLog.logResourceAccessDenied(action, docRequest.id(), docRequest.type(), docRequest.index(), request, task);
                         handleUnauthorized.accept(response);
                     }
                 }, listener::onFailure));
@@ -514,6 +512,7 @@ public class SecurityFilter implements ActionFilter {
                     }));
                 }
             } else {
+                auditLog.logMissingPrivileges(action, request, task);
                 handleUnauthorized.accept(pres);
             }
         } catch (OpenSearchException e) {
