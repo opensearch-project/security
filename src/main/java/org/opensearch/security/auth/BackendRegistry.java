@@ -371,6 +371,11 @@ public class BackendRegistry {
             Anonymous users are handled later outside of auth domain loop if no other user is authenticated.
             2. If auth domain is challenging and no credentials are found -> present challenge.
             SAML and basic auth for example redirect/re-request credentials from clients.
+
+            Retain credentials extracted by an earlier auth domain. In a SAML and Basic chain, Basic can reject the
+            credentials before HTTPSamlAuthenticator.extractCredentials() returns null because the request contains Basic
+            credentials. SAML still requires challenge: true in the current reRequestAuthentication flow so it can issue its
+            redirect; retaining the rejected credentials lets that challenge path audit the actual username.
              */
             if (ac != null) {
                 authCredentials = ac;
