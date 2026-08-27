@@ -40,7 +40,7 @@ public final class PaginationCursor {
     private static final String FIELD_SORT = "sort";
     private static final String FIELD_LAST_KEY = "last_key";
 
-    /** The opaque Base64url string received from the client as {@code next_token}. */
+    /** The opaque Base64 string received from the client as {@code next_token}. */
     public final String token;
 
     /** The last entity name included on the previous page — the resume position. */
@@ -67,7 +67,7 @@ public final class PaginationCursor {
         node.put(FIELD_LAST_KEY, lastKey);
         try {
             final String json = MAPPER.writeValueAsString(node);
-            final String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+            final String encoded = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
             return new PaginationCursor(encoded, lastKey);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to encode pagination cursor", e);
@@ -85,7 +85,7 @@ public final class PaginationCursor {
      */
     public static ValidationResult<PaginationCursor> decode(final String encoded, final CType<?> ctype, final String sort) {
         try {
-            final byte[] bytes = Base64.getUrlDecoder().decode(encoded);
+            final byte[] bytes = Base64.getDecoder().decode(encoded);
             final JsonNode node = MAPPER.readTree(new String(bytes, StandardCharsets.UTF_8));
 
             if (!node.isObject()) {

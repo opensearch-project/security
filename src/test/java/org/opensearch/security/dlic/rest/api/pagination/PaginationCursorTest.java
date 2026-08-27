@@ -77,7 +77,7 @@ public class PaginationCursorTest {
 
     @Test
     public void decodeRejectsNonJsonPayload() {
-        final var encoded = Base64.getUrlEncoder().withoutPadding().encodeToString("hello world".getBytes(StandardCharsets.UTF_8));
+        final var encoded = Base64.getEncoder().encodeToString("hello world".getBytes(StandardCharsets.UTF_8));
 
         final var result = PaginationCursor.decode(encoded, CType.ROLES, PaginationParams.SORT_ASC);
 
@@ -88,8 +88,7 @@ public class PaginationCursorTest {
     @Test
     public void decodeRejectsMissingField() {
         // JSON object but last_key absent
-        final var encoded = Base64.getUrlEncoder()
-            .withoutPadding()
+        final var encoded = Base64.getEncoder()
             .encodeToString("{\"ctype\":\"roles\",\"sort\":\"asc\"}".getBytes(StandardCharsets.UTF_8));
 
         final var result = PaginationCursor.decode(encoded, CType.ROLES, PaginationParams.SORT_ASC);
@@ -101,8 +100,7 @@ public class PaginationCursorTest {
     @Test
     public void decodeRejectsEmptyFieldValue() {
         // last_key is present but blank
-        final var encoded = Base64.getUrlEncoder()
-            .withoutPadding()
+        final var encoded = Base64.getEncoder()
             .encodeToString("{\"ctype\":\"roles\",\"sort\":\"asc\",\"last_key\":\"\"}".getBytes(StandardCharsets.UTF_8));
 
         final var result = PaginationCursor.decode(encoded, CType.ROLES, PaginationParams.SORT_ASC);
