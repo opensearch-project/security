@@ -240,6 +240,7 @@ import org.opensearch.security.support.ReflectionHelper;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
+import org.opensearch.security.transport.RemoteClusterIdentityPolicy;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
@@ -1713,6 +1714,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         cr.setDynamicConfigFactory(dcf);
 
+        RemoteClusterIdentityPolicy remoteClusterIdentityPolicy = new RemoteClusterIdentityPolicy(
+            settings.getAsBoolean(ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES, false)
+        );
+        clusterService.getClusterSettings()
+            .addSettingsUpdateConsumer(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING, newValue -> {
+                log.info("CCS ignore source security roles dynamically set to {}", newValue);
+                remoteClusterIdentityPolicy.setIgnoreSourceSecurityRoles(newValue);
+            });
+
         si = new SecurityInterceptor(
             settings,
             threadPool,
@@ -1725,7 +1735,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             Objects.requireNonNull(cih),
             SSLConfig,
             OpenSearchSecurityPlugin::isActionTraceEnabled,
-            userFactory
+            userFactory,
+            remoteClusterIdentityPolicy
         );
         components.add(principalExtractor);
 
@@ -1808,6 +1819,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         settings.addAll(super.getSettings());
 
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
+
+        // CCS: allow remote cluster to ignore source-propagated security roles
+        settings.add(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING);
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
         settings.add(SecuritySettings.SSL_DUAL_MODE_SETTING);
@@ -2091,6 +2105,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         settings.add(SecuritySettings.AUDIT_ACTION_GROUPS);
 
         // Security - Audit - Sink
+        //
+        // IMPORTANT: In SSL-only mode the settings filter no longer blanket-strips the entire
+        // plugins.security.audit.config.* subtree — it only strips the credential-bearing group
+        // settings (endpoints.* / routes.*). Every secret registered directly under config.*
+        // (passwords, tokens, webhook URLs, PEM material, host lists, TLS ciphers/protocols, etc.)
+        // MUST carry Property.Filtered individually. If you add a new sink credential under this
+        // prefix, add Property.Filtered to its registration — otherwise it will be exposed to
+        // unauthenticated settings readers in SSL-only mode.
+        // See: allSensitiveConfigSettingsAreFiltered() test for automated enforcement.
         settings.add(
             Setting.simpleString(
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,
@@ -2154,9 +2177,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS,
                 Lists.newArrayList("localhost:9200"),
                 Function.identity(),
-                Property.NodeScope
+                Property.NodeScope,
+                Property.Filtered
             )
-        ); // not filtered here
+        ); // Filtered: static external-sink infrastructure (host list), not panel-managed dynamic config
         settings.add(
             Setting.simpleString(
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME,
@@ -2260,18 +2284,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS,
                 Collections.emptyList(),
                 Function.identity(),
-                Property.NodeScope
+                Property.NodeScope,
+                Property.Filtered
             )
-        );// not filtered here
+        );// Filtered: static external-sink TLS config, not panel-managed dynamic config
         settings.add(
             Setting.listSetting(
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
                     + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS,
                 Collections.emptyList(),
                 Function.identity(),
-                Property.NodeScope
+                Property.NodeScope,
+                Property.Filtered
             )
-        );// not filtered here
+        );// Filtered: static external-sink TLS config, not panel-managed dynamic config
 
         // Webhooks
         settings.add(
@@ -2725,7 +2751,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         settingsFilter.add("plugins.security.authcz.*");
         settingsFilter.add("plugins.security.password.*");
         settingsFilter.add("plugins.security.unsupported.*");
-        settingsFilter.add("plugins.security.audit.*");
+        // In SSL-only (standalone audit) mode there is no security index, so the audit config is stored in
+        // cluster settings and the dashboards audit panel must read it back via GET _cluster/settings. Narrow
+        // the audit filter to expose the dynamic config (plugins.security.audit.config.* and .compliance.*)
+        // while keeping the credential-bearing sink settings (endpoints/routes) hidden. Secrets registered with
+        // Property.Filtered (sink username/password/webhook.url, pem*, salt) remain stripped by core regardless.
+        // FGAC keeps the original broad filter (its real config lives in the security index, not cluster settings).
+        if (SSLConfig.isSslOnlyMode()) {
+            settingsFilter.add("plugins.security.audit.endpoints.*");
+            settingsFilter.add("plugins.security.audit.routes.*");
+        } else {
+            settingsFilter.add("plugins.security.audit.*");
+        }
         settingsFilter.add("plugins.security.compliance.*");
         return settingsFilter;
     }

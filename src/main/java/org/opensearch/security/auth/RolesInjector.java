@@ -94,7 +94,7 @@ final public class RolesInjector {
             ctx.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
         }
         if (ctx.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-            ctx.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
+            ctx.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
         }
     }
 
