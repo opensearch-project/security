@@ -508,7 +508,7 @@ public class RestApiAuthorizationEvaluator {
         if (isSecretAdmin) {
             return null;
         }
-        
+
         // Certificate based access, Check if we have an admin TLS certificate
         final SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
         if (sslInfo == null) {
