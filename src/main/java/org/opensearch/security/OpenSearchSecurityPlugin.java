@@ -942,7 +942,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         cr,
                         privilegesConfiguration,
                         settings,
-                        adminDns,
+                        Objects.requireNonNull(superAdminAuthority),
                         auditLog,
                         configPath,
                         principalExtractor,

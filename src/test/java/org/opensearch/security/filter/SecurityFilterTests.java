@@ -115,6 +115,7 @@ public class SecurityFilterTests extends LuceneTestCase {
             mock(ResourceAccessEvaluator.class)
         );
 
+        try {
             // Act
             filter.apply(null, null, null, ActionRequestMetadata.empty(), listener, null);
 

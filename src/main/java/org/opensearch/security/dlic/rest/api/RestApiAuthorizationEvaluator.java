@@ -36,6 +36,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.filter.SecurityRequest;
@@ -58,8 +59,6 @@ public class RestApiAuthorizationEvaluator {
 
     protected final Logger logger = LogManager.getLogger(this.getClass());
 
-    private final SuperAdminAuthority superAdminAuthority;
-    
     public static final String CERTS_INFO_ACTION = "certs/info";
 
     public static final String RELOAD_CERTS_ACTION = "certs/reload";
@@ -104,6 +103,7 @@ public class RestApiAuthorizationEvaluator {
         .build();
 
     private final AdminDNs adminDNs;
+    private final SuperAdminAuthority superAdminAuthority;
     private final RoleMapper roleMapper;
     private final PrincipalExtractor principalExtractor;
     private final Path configPath;
@@ -127,13 +127,14 @@ public class RestApiAuthorizationEvaluator {
 
     public RestApiAuthorizationEvaluator(
         final Settings settings,
-        SuperAdminAuthority superAdminAuthority,
+        final SuperAdminAuthority superAdminAuthority,
         final RoleMapper roleMapper,
         final PrincipalExtractor principalExtractor,
         final Path configPath,
         final ThreadPool threadPool,
         final PrivilegesConfiguration privilegesConfiguration
     ) {
+        this.adminDNs = superAdminAuthority.getAdminDns();
         this.superAdminAuthority = superAdminAuthority;
         this.roleMapper = roleMapper;
         this.principalExtractor = principalExtractor;
@@ -214,7 +215,7 @@ public class RestApiAuthorizationEvaluator {
             return null;
         }
 
-        final String certBasedAccessFailureReason = checkAdminCertBasedAccessPermissions(request);
+        final String certBasedAccessFailureReason = checkAdminBasedAccessPermissions(request);
         if (certBasedAccessFailureReason == null) {
             return null;
         }

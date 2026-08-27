@@ -63,7 +63,7 @@ public class SecurityRestApiActions {
     ) {
         final var restApiAuthorizationEvaluator = new RestApiAuthorizationEvaluator(
             settings,
-            adminDns,
+            superAdminAuthority,
             roleMapper,
             principalExtractor,
             configPath,
@@ -74,13 +74,6 @@ public class SecurityRestApiActions {
             superAdminAuthority.getAdminDns(),
             configurationRepository,
             privilegesConfiguration,
-            new RestApiPrivilegesEvaluator(settings, superAdminAuthority, roleMapper, principalExtractor, configPath, threadPool),
-            new RestApiAdminPrivilegesEvaluator(
-                threadPool.getThreadContext(),
-                privilegesConfiguration,
-                superAdminAuthority,
-                settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
-            ),
             restApiAuthorizationEvaluator,
             auditLog,
             settings

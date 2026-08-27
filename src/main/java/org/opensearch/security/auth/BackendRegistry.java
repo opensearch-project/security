@@ -275,15 +275,13 @@ public class BackendRegistry {
             if (adminDns.isAdminDN(sslPrincipal)) {
                 // Certificate-based admin
                 User superuser = new User(sslPrincipal);
-                UserSubject subject = new UserSubjectImpl(threadPool, superuser);
-                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, superuser);
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
                 return true;
             } else {
                 // Secret-based superadmin
                 User superuser = new User(superAdminAuthority.getSuperadminSecretUserName());
-                UserSubject subject = new UserSubjectImpl(threadPool, superuser);
-                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, superuser);
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, superuser);
                 return true;
             }

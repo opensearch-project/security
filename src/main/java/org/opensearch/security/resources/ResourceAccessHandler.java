@@ -25,7 +25,6 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;

@@ -222,7 +222,6 @@ public class SecurityFilter implements ActionFilter {
                 threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
             }
             final boolean userIsAdmin = isUserAdmin(user, superAdminAuthority);
-            final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadContext);
             final boolean remoteClusterNodeRequest = HeaderHelper.isRemoteClusterNodeRequest(threadContext);
             final boolean confRequest = "true".equals(

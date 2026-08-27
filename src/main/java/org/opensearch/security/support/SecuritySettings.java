@@ -11,14 +11,14 @@
 
 package org.opensearch.security.support;
 
-import org.opensearch.common.settings.SecureSetting;
-import org.opensearch.core.common.settings.SecureString;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.security.auditlog.config.AuditConfig;
 
 public class SecuritySettings {
