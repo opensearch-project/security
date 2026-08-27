@@ -15,7 +15,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 
@@ -28,7 +28,7 @@ public class DlsFlsBaseContextTest {
     @Test
     public void hybridQueryFilterDoesNotMarkReaderLevelDlsAsDone() {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        DlsFlsBaseContext context = new DlsFlsBaseContext(mock(PrivilegesConfiguration.class), threadContext, mock(AdminDNs.class));
+        DlsFlsBaseContext context = new DlsFlsBaseContext(mock(PrivilegesConfiguration.class), threadContext, mock(SuperAdminAuthority.class));
 
         threadContext.putHeader(
             ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
@@ -42,7 +42,7 @@ public class DlsFlsBaseContextTest {
     @Test
     public void filterLevelDlsMarkerDoesNotMarkHybridQueryFilterAsApplied() {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        DlsFlsBaseContext context = new DlsFlsBaseContext(mock(PrivilegesConfiguration.class), threadContext, mock(AdminDNs.class));
+        DlsFlsBaseContext context = new DlsFlsBaseContext(mock(PrivilegesConfiguration.class), threadContext, mock(SuperAdminAuthority.class));
 
         threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, "true");
 
