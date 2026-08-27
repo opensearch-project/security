@@ -74,9 +74,7 @@ public class ResourceAccessHandlerTests {
     }
 
     private void injectUser(User user) {
-        UserSubjectImpl subject = mock(UserSubjectImpl.class);
-        when(subject.getUser()).thenReturn(user);
-        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
     }
 
     @Test

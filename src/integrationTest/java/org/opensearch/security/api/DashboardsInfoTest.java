@@ -46,6 +46,7 @@ public class DashboardsInfoTest extends AbstractApiIntegrationTest {
                 assertThat(response, isOk());
                 assertThat(response.getTextFromJsonBody("/password_validation_error_message"), equalTo(DEFAULT_PASSWORD_MESSAGE));
                 assertThat(response.getTextFromJsonBody("/password_validation_regex"), equalTo(DEFAULT_PASSWORD_REGEX));
+                assertThat(response.getTextFromJsonBody("/api_tokens_enabled"), equalTo("false"));
             }
         }
     }

@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -27,7 +28,7 @@ import static org.opensearch.security.configuration.ConfigurationRepository.DEFA
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-public class ConfigReaderTest {
+public class ConfigReaderTest extends LuceneTestCase {
 
     @ClassRule
     public static TemporaryFolder folder = new TemporaryFolder();

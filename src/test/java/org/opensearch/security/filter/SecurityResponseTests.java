@@ -16,6 +16,7 @@ import java.util.Map;
 
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.http.HttpStatus;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentType;
@@ -26,7 +27,7 @@ import org.opensearch.rest.RestResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-public class SecurityResponseTests {
+public class SecurityResponseTests extends LuceneTestCase {
 
     /**
      * This test should check whether a basic constructor with the JSON content type is successfully converted to RestResponse

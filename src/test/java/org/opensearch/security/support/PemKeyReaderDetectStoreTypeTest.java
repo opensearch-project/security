@@ -17,6 +17,7 @@ import java.io.UncheckedIOException;
 import java.security.KeyStore;
 import java.security.Security;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -30,7 +31,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeFalse;
 
-public class PemKeyReaderDetectStoreTypeTest {
+public class PemKeyReaderDetectStoreTypeTest extends LuceneTestCase {
 
     static {
         if (Security.getProvider("BCFIPS") == null) {

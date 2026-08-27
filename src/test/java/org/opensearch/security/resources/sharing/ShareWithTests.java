@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.common.xcontent.XContentFactory;
@@ -50,7 +51,7 @@ import static org.mockito.Mockito.when;
  *
  * @opensearch.experimental
  */
-public class ShareWithTests {
+public class ShareWithTests extends LuceneTestCase {
 
     @Test
     public void testFromXContentWhenCurrentTokenIsNotStartObject() throws IOException {

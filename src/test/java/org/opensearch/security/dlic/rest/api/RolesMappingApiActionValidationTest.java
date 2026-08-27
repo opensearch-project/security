@@ -46,7 +46,7 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
 
     @Test
     public void isNotAllowedNoRightsToChangeRoleEntity() throws Exception {
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
 
          final var rolesApiActionEndpointValidator =
                  new RolesMappingApiAction(clusterService, threadPool,
@@ -60,7 +60,7 @@ public class RolesMappingApiActionValidationTest extends AbstractApiActionValida
 
     @Test
     public void onConfigChangeShouldCheckRoles() throws Exception {
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
         when(configurationRepository.getConfigurationsFromIndex(List.of(CType.ROLES), false))
                 .thenReturn(ConfigurationMap.of(rolesConfiguration));
         final var rolesApiActionEndpointValidator =

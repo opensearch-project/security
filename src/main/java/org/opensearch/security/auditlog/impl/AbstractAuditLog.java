@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -27,23 +28,28 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.BaseEncoding;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -71,6 +77,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
@@ -93,10 +100,22 @@ public abstract class AbstractAuditLog implements AuditLog {
     private final Settings settings;
     private volatile AuditConfig.Filter auditConfigFilter;
     private final String securityIndex;
+    private final WildcardMatcher securityIndicesMatcher;
     private volatile ComplianceConfig complianceConfig;
     private final Environment environment;
     private AtomicBoolean externalConfigLogged = new AtomicBoolean();
     private final Set<String> ignoredUrlParams = new HashSet<>();
+
+    /**
+     * Immutable snapshot of node-level audit exclusion config from opensearch.yml.
+     * Stored as an AtomicReference so both fields are always read/written atomically,
+     * even when setNodeActionGroups and setNodeBodyLoggingExclusions race.
+     */
+    private record NodeExclusionConfig(Map<String, List<String>> actionGroups, List<String> bodyLoggingExclusions) {
+        static final NodeExclusionConfig EMPTY = new NodeExclusionConfig(Collections.emptyMap(), Collections.emptyList());
+    }
+
+    private final AtomicReference<NodeExclusionConfig> nodeExclusionConfig = new AtomicReference<>(NodeExclusionConfig.EMPTY);
     private final UserFactory userFactory;
 
     protected abstract void enableRoutes();
@@ -127,14 +146,59 @@ public abstract class AbstractAuditLog implements AuditLog {
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
+        this.securityIndicesMatcher = WildcardMatcher.from(
+            List.of(
+                settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+                ConfigConstants.OPENSEARCH_API_TOKENS_INDEX
+            )
+        );
         this.environment = environment;
         this.userFactory = userFactory;
     }
 
     protected void onAuditConfigFilterChanged(AuditConfig.Filter auditConfigFilter) {
         auditConfigFilter.setIgnoredUrlParams(ignoredUrlParams);
+        // Always re-apply node-level config so it survives filter reloads from security index.
+        // This must run even when empty — a dynamic update to [] should override whatever
+        // the security index provides.
+        NodeExclusionConfig config = this.nodeExclusionConfig.get();
+        auditConfigFilter.setActionGroups(config.actionGroups());
+        auditConfigFilter.setBodyLoggingExclusions(config.bodyLoggingExclusions());
         this.auditConfigFilter = auditConfigFilter;
         this.auditConfigFilter.log(log);
+    }
+
+    /**
+     * Stores action groups from opensearch.yml so they persist across filter reloads.
+     * Called once at startup from OpenSearchSecurityPlugin.
+     */
+    public void setNodeActionGroups(Map<String, List<String>> groups) {
+        Map<String, List<String>> safeGroups = groups != null ? groups : Collections.emptyMap();
+        this.nodeExclusionConfig.updateAndGet(current -> new NodeExclusionConfig(safeGroups, current.bodyLoggingExclusions()));
+    }
+
+    /**
+     * Stores body logging exclusions so they persist across filter reloads.
+     * Updated at startup and when the dynamic setting changes.
+     */
+    public void setNodeBodyLoggingExclusions(List<String> exclusions) {
+        List<String> safeExclusions = exclusions != null ? exclusions : Collections.emptyList();
+        this.nodeExclusionConfig.updateAndGet(current -> new NodeExclusionConfig(current.actionGroups(), safeExclusions));
+    }
+
+    /**
+     * Returns the live audit filter configuration that controls event suppression,
+     * request body logging, index resolution, and other audit behavior.
+     *
+     * <p>This filter's fields are volatile and updated dynamically via cluster settings
+     * consumers, so callers always read the most recent configuration without restart.
+     * Used by {@code AuditActionFilter} and {@code AuditTransportInterceptor} to make
+     * per-request filtering decisions (ignore users, disabled categories, etc.).
+     *
+     * @return the current {@link AuditConfig.Filter} instance, never {@code null}
+     */
+    public AuditConfig.Filter getFilter() {
+        return auditConfigFilter;
     }
 
     protected void onComplianceConfigChanged(ComplianceConfig complianceConfig) {
@@ -167,7 +231,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(isDnAdmin(securityadmin, request));
         msg.addIsSuperadminSecret(isSecretAdmin(securityadmin, request));
-
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -187,6 +251,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addIsAdminDn(isDnAdmin(securityadmin, request));
         msg.addIsSuperadminSecret(isSecretAdmin(securityadmin, request));
 
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -202,6 +267,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
         msg.addPrivilege(privilege);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -215,6 +281,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRemoteAddress(getRemoteAddress());
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
+        enrichWithUserContext(msg);
         save(msg);
     }
 
@@ -242,7 +309,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege != null ? privilege : action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -250,7 +317,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -279,7 +348,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege != null ? privilege : action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -287,7 +356,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -317,7 +388,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(privilege),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -325,7 +396,198 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
-        msgs.forEach(this::save);
+        User resolvedUser = resolveUser();
+        msgs.forEach(msg -> {
+            enrichWithUserContext(msg, resolvedUser);
+            save(msg);
+        });
+    }
+
+    @Override
+    public void logRequestAudit(AuditMessage msg) {
+        if (auditConfigFilter != null
+            && (auditConfigFilter.getDisabledCategories().contains(msg.getCategory())
+                || auditConfigFilter.getDisabledTransportCategories().contains(msg.getCategory())
+                || auditConfigFilter.getDisabledRestCategories().contains(msg.getCategory()))) {
+            return;
+        }
+        save(msg);
+    }
+
+    @Override
+    public void logTransportAudit(AuditMessage msg) {
+        if (auditConfigFilter != null
+            && (auditConfigFilter.getDisabledCategories().contains(msg.getCategory())
+                || auditConfigFilter.getDisabledTransportCategories().contains(msg.getCategory()))) {
+            return;
+        }
+        save(msg);
+    }
+
+    // Routes settings change audit to the appropriate handler
+    @Override
+    public void logSettingsChange(String action, TransportRequest request, Task task) {
+        if (request instanceof ClusterUpdateSettingsRequest) {
+            logClusterSettingsChange(action, (ClusterUpdateSettingsRequest) request, task);
+        } else if (request instanceof UpdateSettingsRequest) {
+            logIndexSettingsChange(action, (UpdateSettingsRequest) request, task);
+        }
+    }
+
+    // Audits cluster settings changes (persistent and transient)
+    private void logClusterSettingsChange(String action, ClusterUpdateSettingsRequest request, Task task) {
+        if (!checkTransportFilter(AuditCategory.CLUSTER_SETTINGS_CHANGED, action, getUser(), request)) {
+            return;
+        }
+
+        final List<Map<String, Object>> changes = new ArrayList<>();
+
+        final Settings persistentSettings = request.persistentSettings();
+        if (!persistentSettings.isEmpty()) {
+            Settings currentPersistent = Settings.EMPTY;
+            try {
+                currentPersistent = clusterService.state().metadata().persistentSettings();
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current persistent settings for audit", e);
+            }
+            changes.addAll(buildSettingsChanges(persistentSettings, currentPersistent, "persistent"));
+        }
+
+        final Settings transientSettings = request.transientSettings();
+        if (!transientSettings.isEmpty()) {
+            Settings currentTransient = Settings.EMPTY;
+            try {
+                currentTransient = clusterService.state().metadata().transientSettings();
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current transient settings for audit", e);
+            }
+            changes.addAll(buildSettingsChanges(transientSettings, currentTransient, "transient"));
+        }
+
+        if (changes.isEmpty()) {
+            return;
+        }
+
+        final AuditMessage msg = new AuditMessage(AuditCategory.CLUSTER_SETTINGS_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
+        TransportAddress remoteAddress = getRemoteAddress();
+        msg.addRemoteAddress(remoteAddress);
+        msg.addEffectiveUser(getUser());
+        msg.addAction(action);
+        msg.addRequestType(request.getClass().getSimpleName());
+        msg.addSettingsChanges(changes);
+
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+
+        enrichWithUserContext(msg);
+        save(msg);
+    }
+
+    // Audits index-level settings changes
+    private void logIndexSettingsChange(String action, UpdateSettingsRequest request, Task task) {
+        if (!checkTransportFilter(AuditCategory.INDEX_SETTINGS_CHANGED, action, getUser(), request)) {
+            return;
+        }
+
+        final Settings newSettings = request.settings();
+        final String[] indices = request.indices();
+        final String[] resolvedIndices = resolveIndices(indices);
+
+        // Use settings from the first resolved index as representative current state
+        Settings currentSettings = Settings.EMPTY;
+        if (resolvedIndices.length > 0) {
+            try {
+                final var indexMetadata = clusterService.state().metadata().index(resolvedIndices[0]);
+                if (indexMetadata != null) {
+                    currentSettings = indexMetadata.getSettings();
+                }
+            } catch (final Exception e) {
+                log.debug("Unable to retrieve current index settings for audit", e);
+            }
+        }
+
+        final List<Map<String, Object>> changes = buildSettingsChanges(newSettings, currentSettings, "index");
+        if (changes.isEmpty()) {
+            return;
+        }
+
+        final AuditMessage msg = new AuditMessage(AuditCategory.INDEX_SETTINGS_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
+        TransportAddress remoteAddress = getRemoteAddress();
+        msg.addRemoteAddress(remoteAddress);
+        msg.addEffectiveUser(getUser());
+        msg.addAction(action);
+        msg.addRequestType(request.getClass().getSimpleName());
+        msg.addIndices(indices);
+        msg.addResolvedIndices(resolvedIndices);
+        msg.addSettingsChanges(changes);
+
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+
+        enrichWithUserContext(msg);
+        save(msg);
+    }
+
+    // Compares old vs new values for each setting and builds change entries
+    private List<Map<String, Object>> buildSettingsChanges(Settings newSettings, Settings currentSettings, String scope) {
+        final List<Map<String, Object>> changes = new ArrayList<>();
+        for (String key : newSettings.keySet()) {
+            final String newValue = newSettings.get(key);
+            final String oldValue = currentSettings.get(key);
+            final boolean isSecure = isSecureSetting(key);
+
+            final Map<String, Object> change = new HashMap<>();
+            change.put("setting", key);
+            change.put("old_value", isSecure && oldValue != null ? "***REDACTED***" : oldValue);
+            change.put("scope", scope);
+
+            if (newValue == null) {
+                change.put("new_value", null);
+                change.put("operation", "removed");
+            } else {
+                change.put("new_value", isSecure ? "***REDACTED***" : newValue);
+                change.put("operation", "set");
+            }
+
+            changes.add(change);
+        }
+        return changes;
+    }
+
+    /**
+     * Checks if a setting should have its value redacted in audit logs.
+     * Returns true for settings registered as SecureSetting (secrets stored
+     * in the keystore), or settings whose key contains common secret indicators
+     * (password, secret, token).
+     */
+    private boolean isSecureSetting(final String key) {
+        try {
+            // Looks up the Setting object by key and checks if it is an instance of SecureSetting
+            // i.e. secrets stored in the opensearch-keystore that must be redacted
+            if (clusterService.getClusterSettings().get(key) instanceof SecureSetting) {
+                return true;
+            }
+        } catch (final Exception e) {
+            // Setting not registered in cluster settings — fall through to pattern match
+        }
+        // Pattern fallback for settings not registered as SecureSetting (e.g., plugin SSL settings)
+        final String lowerKey = key.toLowerCase();
+        return lowerKey.contains("password") || lowerKey.contains("secret") || lowerKey.contains("token");
+    }
+
+    // Resolves index patterns to concrete index names
+    private String[] resolveIndices(String[] indices) {
+        if (indices == null || indices.length == 0) {
+            return new String[0];
+        }
+        try {
+            return resolver.concreteIndexNames(clusterService.state(), IndicesOptions.lenientExpandOpen(), indices);
+        } catch (Exception e) {
+            log.debug("Unable to resolve indices for settings change audit", e);
+            return indices;
+        }
     }
 
     @Override
@@ -351,7 +613,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -403,7 +665,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -411,7 +673,9 @@ public abstract class AbstractAuditLog implements AuditLog {
             null
         );
 
+        User resolvedUser = resolveUser();
         for (AuditMessage msg : msgs) {
+            enrichWithUserContext(msg, resolvedUser);
             save(msg);
         }
     }
@@ -440,7 +704,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             resolver,
             clusterService,
             settings,
-            auditConfigFilter.shouldLogRequestBody(),
+            auditConfigFilter.shouldLogRequestBody() && !auditConfigFilter.isBodyExcluded(action),
             auditConfigFilter.shouldResolveIndices(),
             auditConfigFilter.shouldResolveBulkRequests(),
             securityIndex,
@@ -484,7 +748,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndex.equals(index)
+        AuditCategory category = securityIndicesMatcher.test(index)
             ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ
             : AuditCategory.COMPLIANCE_DOC_READ;
 
@@ -517,14 +781,14 @@ public abstract class AbstractAuditLog implements AuditLog {
                         log.error(e.toString());
                     }
                 } else {
-                    if (securityIndex.equals(index) && !"tattr".equals(id)) {
+                    if (securityIndicesMatcher.test(index) && !"tattr".equals(id)) {
                         try {
                             Map<String, String> map = fieldNameValues.entrySet()
                                 .stream()
                                 .collect(
                                     Collectors.toMap(
                                         entry -> "id",
-                                        entry -> new String(BaseEncoding.base64().decode(entry.getValue()), StandardCharsets.UTF_8)
+                                        entry -> new String(Base64.getDecoder().decode(entry.getValue()), StandardCharsets.UTF_8)
                                     )
                                 );
                             msg.addSecurityConfigMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")), id);
@@ -551,9 +815,14 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        AuditCategory category = securityIndex.equals(shardId.getIndexName())
-            ? AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE
-            : AuditCategory.COMPLIANCE_DOC_WRITE;
+        AuditCategory category;
+        if (ConfigConstants.OPENSEARCH_API_TOKENS_INDEX.equals(shardId.getIndexName())) {
+            category = AuditCategory.API_TOKEN_WRITE;
+        } else if (securityIndicesMatcher.test(shardId.getIndexName())) {
+            category = AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE;
+        } else {
+            category = AuditCategory.COMPLIANCE_DOC_WRITE;
+        }
 
         String effectiveUser = getUser();
 
@@ -581,7 +850,9 @@ public abstract class AbstractAuditLog implements AuditLog {
                     // originalSource is empty
                     originalSource = "{}";
                 }
-                if (securityIndex.equals(shardId.getIndexName())) {
+                if (securityIndicesMatcher.test(shardId.getIndexName())) {
+                    boolean isApiTokenIndex = shardId.getIndexName().equals(ConfigConstants.OPENSEARCH_API_TOKENS_INDEX);
+
                     if (originalSource == null) {
                         try (
                             XContentParser parser = XContentHelper.createParser(
@@ -591,11 +862,19 @@ public abstract class AbstractAuditLog implements AuditLog {
                                 XContentType.JSON
                             )
                         ) {
-                            Object base64 = parser.map().values().iterator().next();
-                            if (base64 instanceof String) {
-                                originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
-                            } else {
+                            if (isApiTokenIndex) {
                                 originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
+                            } else {
+                                Object base64 = parser.map().values().iterator().next();
+                                if (base64 instanceof String) {
+                                    originalSource = (new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8));
+                                } else {
+                                    originalSource = XContentHelper.convertToJson(
+                                        originalResult.internalSourceRef(),
+                                        false,
+                                        XContentType.JSON
+                                    );
+                                }
                             }
                         } catch (Exception e) {
                             log.error(e.toString());
@@ -610,11 +889,15 @@ public abstract class AbstractAuditLog implements AuditLog {
                             XContentType.JSON
                         )
                     ) {
-                        Object base64 = parser.map().values().iterator().next();
-                        if (base64 instanceof String) {
-                            currentSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
-                        } else {
+                        if (isApiTokenIndex) {
                             currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                        } else {
+                            Object base64 = parser.map().values().iterator().next();
+                            if (base64 instanceof String) {
+                                currentSource = new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8);
+                            } else {
+                                currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                            }
                         }
                     } catch (Exception e) {
                         log.error(e.toString());
@@ -641,7 +924,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         }
 
         if (!complianceConfig.shouldLogWriteMetadataOnly() && !complianceConfig.shouldLogDiffsForWrite()) {
-            if (securityIndex.equals(shardId.getIndexName())) {
+            if (securityIndicesMatcher.test(shardId.getIndexName())) {
                 // current source, normally not null or empty
                 try (
                     XContentParser parser = XContentHelper.createParser(
@@ -654,7 +937,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     Object base64 = parser.map().values().iterator().next();
                     if (base64 instanceof String) {
                         msg.addSecurityConfigContentToRequestBody(
-                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                            new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8),
                             id
                         );
                     } else {
@@ -723,7 +1006,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     ) {
                         Object base64 = parser.map().values().iterator().next();
                         if (base64 instanceof String) {
-                            originalSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
+                            originalSource = new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8);
                         } else {
                             originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                         }
@@ -772,7 +1055,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     Object base64 = parser.map().values().iterator().next();
                     if (base64 instanceof String) {
                         msg.addSecurityConfigContentToRequestBody(
-                            new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8),
+                            new String(Base64.getDecoder().decode((String) base64), StandardCharsets.UTF_8),
                             id
                         );
                     } else {
@@ -789,6 +1072,108 @@ public abstract class AbstractAuditLog implements AuditLog {
             }
         }
 
+        save(msg);
+    }
+
+    @Override
+    public void logApiTokenCreated(String tokenName, String createdBy) {
+        AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
+        msg.addEffectiveUser(createdBy);
+        msg.addSecurityConfigWriteDiffSource("{\"action\":\"created\",\"token_name\":\"" + tokenName + "\"}", tokenName);
+        save(msg);
+    }
+
+    @Override
+    public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
+        msg.addEffectiveUser(revokedBy);
+        msg.addSecurityConfigWriteDiffSource("{\"action\":\"revoked\",\"token_id\":\"" + tokenId + "\"}", tokenId);
+        save(msg);
+    }
+
+    @Override
+    public void logResourceAccessGranted(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        if (!checkTransportFilter(AuditCategory.RESOURCE_ACCESS_GRANTED, action, getUser(), request)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_ACCESS_GRANTED, clusterService, getOrigin(), Origin.TRANSPORT);
+        msg.addEffectiveUser(getUser());
+        msg.addRemoteAddress(getRemoteAddress());
+        msg.addAction(action);
+        msg.addResourceId(resourceId);
+        msg.addResourceType(resourceType);
+        msg.addResourceIndex(resourceIndex);
+        msg.addResourceAccessResult("granted");
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+        save(msg);
+    }
+
+    @Override
+    public void logResourceAccessDenied(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        if (!checkTransportFilter(AuditCategory.RESOURCE_ACCESS_DENIED, action, getUser(), request)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_ACCESS_DENIED, clusterService, getOrigin(), Origin.TRANSPORT);
+        msg.addEffectiveUser(getUser());
+        msg.addRemoteAddress(getRemoteAddress());
+        msg.addAction(action);
+        msg.addResourceId(resourceId);
+        msg.addResourceType(resourceType);
+        msg.addResourceIndex(resourceIndex);
+        msg.addResourceAccessResult("denied");
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
+        save(msg);
+    }
+
+    @Override
+    public void logResourceSharingChanged(
+        String resourceId,
+        String resourceType,
+        String sharingAction,
+        String sharingResult,
+        String recipientsAdded,
+        String recipientsRevoked,
+        String shareWith,
+        TransportRequest request,
+        Task task
+    ) {
+        if (!checkTransportFilter(AuditCategory.RESOURCE_SHARING_CHANGED, sharingAction, getUser(), request)) {
+            return;
+        }
+
+        AuditMessage msg = new AuditMessage(AuditCategory.RESOURCE_SHARING_CHANGED, clusterService, getOrigin(), Origin.TRANSPORT);
+        msg.addEffectiveUser(getUser());
+        msg.addRemoteAddress(getRemoteAddress());
+        msg.addResourceId(resourceId);
+        msg.addResourceType(resourceType);
+        msg.addResourceSharingAction(sharingAction);
+        msg.addResourceSharingResult(sharingResult);
+        msg.addResourceRecipientsAdded(recipientsAdded);
+        msg.addResourceRecipientsRevoked(recipientsRevoked);
+        msg.addResourceShareWith(shareWith);
+        if (task != null) {
+            msg.addTaskId(task.getId());
+        }
         save(msg);
     }
 
@@ -865,18 +1250,55 @@ public abstract class AbstractAuditLog implements AuditLog {
         return address;
     }
 
-    private String getUser() {
+    /**
+     * Resolves the current User from ThreadContext: first tries the transient slot,
+     * then falls back to deserializing from the serialized header (transport hops).
+     */
+    private User resolveUser() {
         User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
             user = this.userFactory.fromSerializedBase64(
                 threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
             );
         }
+        return user;
+    }
+
+    private String getUser() {
+        User user = resolveUser();
         return user == null ? null : user.getName();
+    }
+
+    /**
+     * Enriches the audit message with user roles and authentication method.
+     * Resolves the User from ThreadContext — suitable for single-message REST paths.
+     */
+    private void enrichWithUserContext(AuditMessage msg) {
+        enrichWithUserContext(msg, resolveUser());
+    }
+
+    /**
+     * Enriches the audit message with a pre-resolved User object.
+     * Use this overload in loops to avoid redundant deserialization
+     * for bulk/multi-message transport paths.
+     */
+    private void enrichWithUserContext(AuditMessage msg, User user) {
+        if (user == null) {
+            return;
+        }
+        msg.addUserRoles(user.getSecurityRoles());
+        msg.addAuthMethod(user.getAuthenticatedBy());
     }
 
     private Map<String, String> getThreadContextHeaders() {
         return threadPool.getThreadContext().getHeaders();
+    }
+
+    /**
+     * Provides subclass access to the ThreadContext without exposing the full ThreadPool.
+     */
+    protected ThreadContext getThreadContext() {
+        return threadPool.getThreadContext();
     }
 
     @VisibleForTesting
@@ -921,14 +1343,15 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (!auditConfigFilter.getDisabledTransportCategories().contains(category)) {
-            return true;
-        } else {
+        if (auditConfigFilter.getDisabledCategories().contains(category)
+            || auditConfigFilter.getDisabledTransportCategories().contains(category)) {
             if (isTraceEnabled) {
                 log.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;
         }
+
+        return true;
 
         // skip internal:*
         // check transport audit enabled
@@ -1014,14 +1437,15 @@ public abstract class AbstractAuditLog implements AuditLog {
             return false;
         }
 
-        if (!auditConfigFilter.getDisabledRestCategories().contains(category)) {
-            return true;
-        } else {
+        if (auditConfigFilter.getDisabledCategories().contains(category)
+            || auditConfigFilter.getDisabledRestCategories().contains(category)) {
             if (isTraceEnabled) {
                 log.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;
         }
+
+        return true;
     }
 
     protected abstract void save(final AuditMessage msg);

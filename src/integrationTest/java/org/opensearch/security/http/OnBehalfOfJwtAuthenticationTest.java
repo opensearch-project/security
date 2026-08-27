@@ -167,7 +167,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
             TestRestClient.HttpResponse response = client.postJson(CREATE_OBO_TOKEN_PATH, OBO_DESCRIPTION);
-            response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
     }
 
@@ -178,7 +178,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
             TestRestClient.HttpResponse response = client.putJson("_plugins/_security/api/account", CURRENT_AND_NEW_PASSWORDS);
-            response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
     }
 

@@ -72,8 +72,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of accessible resource IDs.
      */
     public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceType, ActionListener<Set<String>> listener) {
-        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        User user = userSub == null ? null : userSub.getUser();
+        User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user; returning empty set of ids");
@@ -100,8 +99,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of resource sharing records.
      */
     public void getResourceSharingInfoForCurrentUser(@NonNull String resourceType, ActionListener<Set<SharingRecord>> listener) {
-        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        User user = userSub == null ? null : userSub.getUser();
+        User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user; returning empty set of resource-sharing records");
@@ -136,10 +134,7 @@ public class ResourceAccessHandler {
         @NonNull String action,
         ActionListener<Boolean> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Access to resource {} is not authorized.", resourceId);
@@ -231,10 +226,7 @@ public class ResourceAccessHandler {
         @Nullable String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to patch resource sharing info {}", resourceId);
@@ -296,10 +288,7 @@ public class ResourceAccessHandler {
      * @param listener      listener to be notified of final resource sharing record
      */
     public void getSharingInfo(@NonNull String resourceId, @NonNull String resourceType, ActionListener<ResourceSharing> listener) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to fetch resource sharing info {}", resourceId);
@@ -346,10 +335,7 @@ public class ResourceAccessHandler {
         @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to share resource {}", resourceId);

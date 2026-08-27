@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
@@ -58,15 +57,10 @@ public final class SafeSerializationUtils {
         Number.class,
         Collection.class,
         Map.class,
-        Enum.class,
-        ImmutableMap.class
+        Enum.class
     );
 
-    private static final Set<String> SAFE_CLASS_NAMES = Set.of(
-        "org.ldaptive.LdapAttribute$LdapAttributeValues",
-        "com.google.common.collect.ImmutableBiMap$SerializedForm",
-        "com.google.common.collect.ImmutableMap$SerializedForm"
-    );
+    private static final Set<String> SAFE_CLASS_NAMES = Set.of("org.ldaptive.LdapAttribute$LdapAttributeValues");
     static final Map<Class<?>, Boolean> safeClassCache = new ConcurrentHashMap<>();
 
     static boolean isSafeClass(Class<?> cls) {

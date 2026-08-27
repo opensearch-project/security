@@ -38,7 +38,7 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         final var actionGroups = new ActionGroupsV7("ag", restApiAdminPermissions());
         when(configuration.exists("ag")).thenReturn(true);
         Mockito.<Object>when(configuration.getCEntry("ag")).thenReturn(actionGroups);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
 
         final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
             .createEndpointValidator();
@@ -55,7 +55,7 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         final var actionGroups = new ActionGroupsV7("ag", restApiAdminPermissions());
         when(configuration.exists("ag")).thenReturn(true);
         Mockito.<Object>when(configuration.getCEntry("ag")).thenReturn(actionGroups);
-        when(restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
+        when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
 
         final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
             .createEndpointValidator();

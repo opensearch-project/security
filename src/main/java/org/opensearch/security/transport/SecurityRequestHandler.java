@@ -45,7 +45,6 @@ import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
@@ -71,6 +70,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
     private final UserFactory userFactory;
+    private final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy;
 
     SecurityRequestHandler(
         String action,
@@ -82,13 +82,15 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final ClusterService cs,
         final SSLConfig SSLConfig,
         final SslExceptionHandler sslExceptionHandler,
-        final UserFactory userFactory
+        final UserFactory userFactory,
+        final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
     ) {
         super(action, actualHandler, threadPool, principalExtractor, SSLConfig, sslExceptionHandler);
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
         this.userFactory = userFactory;
+        this.remoteClusterIdentityPolicy = remoteClusterIdentityPolicy;
     }
 
     @Override
@@ -169,31 +171,36 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
             } else {
-                String authUsrHdr = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
-                String shouldUseUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
+                String authenticatedUserHeader = getThreadContext().getHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER
+                );
+                String userSameAsAuthenticatedUserHeader = getThreadContext().getHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER
+                );
                 String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+
+                // Deserialize and sanitize users.
                 User user = null;
+                if (userHeader != null) {
+                    user = this.userFactory.fromSerializedBase64(userHeader);
+                    user = remoteClusterIdentityPolicy.sanitize(user, getThreadContext());
+                }
+                User authenticatedUser = null;
+                if (authenticatedUserHeader != null) {
+                    authenticatedUser = this.userFactory.fromSerializedBase64(authenticatedUserHeader);
+                    authenticatedUser = remoteClusterIdentityPolicy.sanitize(authenticatedUser, getThreadContext());
+                }
 
-                // restore a persistent user-subject from subject header
+                // Store the authenticated user in persistent context (if not already set).
                 if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                    // when auth subject user is same request user.
-                    if (Boolean.parseBoolean(shouldUseUserHeader) && userHeader != null) {
-                        user = this.userFactory.fromSerializedBase64(userHeader);
-
-                        getThreadContext().putPersistent(
-                            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                            new UserSubjectImpl(getThreadPool(), user)
-                        );
-                    } else if (authUsrHdr != null) {
-                        User authUser = this.userFactory.fromSerializedBase64(authUsrHdr);
-
-                        getThreadContext().putPersistent(
-                            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                            new UserSubjectImpl(getThreadPool(), authUser)
-                        );
+                    if (Boolean.parseBoolean(userSameAsAuthenticatedUserHeader) && user != null) {
+                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
+                    } else if (authenticatedUser != null) {
+                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, authenticatedUser);
                     }
                 }
 
+                // Store transient user or injected roles
                 final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                 final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
@@ -206,7 +213,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
-                    user = user != null ? user : this.userFactory.fromSerializedBase64(userHeader);
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                 }
 
@@ -267,8 +273,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             // if transport channel is not a netty channel but a direct or local channel (e.g. send via network) then allow it (regardless
             // of beeing a internal: or shard request)
             // also allow when issued from a remote cluster for cross cluster search
-            if (!HeaderHelper.isInterClusterRequest(getThreadContext())
-                && !HeaderHelper.isTrustedClusterRequest(getThreadContext())
+            if (!HeaderHelper.isLocalClusterNodeRequest(getThreadContext())
+                && !HeaderHelper.isRemoteClusterNodeRequest(getThreadContext())
                 && !HeaderHelper.isExtensionRequest(getThreadContext())
                 && !task.getAction().equals("internal:transport/handshake")
                 && (task.getAction().startsWith("internal:") || task.getAction().contains("["))) {
@@ -310,9 +316,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
                 }
 
-                // network intercluster request or cross search cluster request
-                if (!(HeaderHelper.isInterClusterRequest(getThreadContext())
-                    || HeaderHelper.isTrustedClusterRequest(getThreadContext())
+                // local cluster node request or cross-cluster request
+                if (!(HeaderHelper.isLocalClusterNodeRequest(getThreadContext())
+                    || HeaderHelper.isRemoteClusterNodeRequest(getThreadContext())
                     || HeaderHelper.isExtensionRequest(getThreadContext()))) {
                     final OpenSearchException exception = ExceptionUtils.clusterWrongNodeCertConfigException(principal);
                     log.error(exception.toString());
@@ -379,13 +385,13 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final String principal
     ) throws Exception {
 
-        boolean isInterClusterRequest = requestEvalProvider.isInterClusterRequest(request, localCerts, peerCerts, principal);
+        boolean isNodeCertificateRequest = requestEvalProvider.isInterClusterRequest(request, localCerts, peerCerts, principal);
         final boolean isTraceEnabled = log.isTraceEnabled();
-        if (isInterClusterRequest) {
+        if (isNodeCertificateRequest) {
             if (cs.getClusterName().value().equals(getThreadContext().getHeader("_opendistro_security_remotecn"))) {
 
                 if (isTraceEnabled && !action.startsWith("internal:")) {
-                    log.trace("Is inter cluster request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
+                    log.trace("Is local cluster node request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
                 }
 
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST, Boolean.TRUE);
@@ -395,7 +401,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
         } else {
             if (isTraceEnabled) {
-                log.trace("Is not an inter cluster request");
+                log.trace("Is not a node certificate request");
             }
         }
 

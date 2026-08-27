@@ -10,6 +10,8 @@
  */
 package org.opensearch.security.authtoken.jwt;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 
 import org.opensearch.identity.tokens.BearerAuthToken;
@@ -24,6 +26,13 @@ public class ExpiringBearerAuthToken extends BearerAuthToken {
         this.subject = subject;
         this.expiry = expiry;
         this.expiresInSeconds = expiresInSeconds;
+    }
+
+    public ExpiringBearerAuthToken(final String serializedToken, final String subject, final Date expiry) {
+        super(serializedToken);
+        this.subject = subject;
+        this.expiry = expiry;
+        this.expiresInSeconds = Duration.between(Instant.now(), expiry.toInstant()).getSeconds();
     }
 
     public String getSubject() {

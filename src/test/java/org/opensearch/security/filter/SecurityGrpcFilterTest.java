@@ -13,6 +13,7 @@ package org.opensearch.security.filter;
 
 import java.util.List;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,7 +31,7 @@ import org.mockito.MockitoAnnotations;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class SecurityGrpcFilterTest {
+public class SecurityGrpcFilterTest extends LuceneTestCase {
 
     @Mock
     private BackendRegistry backendRegistry;
@@ -42,7 +43,7 @@ public class SecurityGrpcFilterTest {
     private ThreadContext threadContext;
 
     @Before
-    public void setUp() {
+    public void setupSecurityGrpcFilter() {
         MockitoAnnotations.openMocks(this);
         securityGrpcFilter = new SecurityGrpcFilter();
         threadContext = new ThreadContext(Settings.EMPTY);

@@ -58,7 +58,6 @@ import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.dlsfls.DlsFlsLegacyHeaders;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -94,6 +93,7 @@ public class SecurityInterceptor {
     private final SSLConfig SSLConfig;
     private final Supplier<Boolean> actionTraceEnabled;
     private final UserFactory userFactory;
+    private final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy;
 
     public SecurityInterceptor(
         final Settings settings,
@@ -107,7 +107,8 @@ public class SecurityInterceptor {
         final ClusterInfoHolder clusterInfoHolder,
         final SSLConfig SSLConfig,
         final Supplier<Boolean> actionTraceSupplier,
-        final UserFactory userFactory
+        final UserFactory userFactory,
+        final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
     ) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
@@ -121,6 +122,7 @@ public class SecurityInterceptor {
         this.SSLConfig = SSLConfig;
         this.actionTraceEnabled = actionTraceSupplier;
         this.userFactory = userFactory;
+        this.remoteClusterIdentityPolicy = remoteClusterIdentityPolicy;
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {
@@ -134,7 +136,8 @@ public class SecurityInterceptor {
             cs,
             SSLConfig,
             sslExceptionHandler,
-            userFactory
+            userFactory,
+            remoteClusterIdentityPolicy
         );
     }
 
@@ -161,9 +164,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
         final DlsFlsLegacyHeaders dlsFlsLegacyHeaders = getThreadContext().getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER);
 
-        final UserSubjectImpl authUserSubj = (UserSubjectImpl) getThreadContext().getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
+        final User authenticatedUser = (User) getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isStreamChannel = options != null && TransportRequestOptions.Type.STREAM.equals(options.type());
@@ -178,8 +179,12 @@ public class SecurityInterceptor {
             requestHeadersToCopy.removeAll(Task.REQUEST_HEADERS); // Special case where this header is preserved during stashContext.
         }
 
+        final Supplier<ThreadContext.StoredContext> restorableContextSupplier = getThreadContext().newRestorableContext(true);
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
-            final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
+            final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(
+                handler,
+                restorableContextSupplier
+            );
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
             final Map<String, String> headerMap = new HashMap<>(
@@ -213,10 +218,20 @@ public class SecurityInterceptor {
                 dlsFlsLegacyHeaders.performHeaderDecoration(connection, request, headerMap);
             }
 
-            if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
-                && clusterInfoHolder.isInitialized()
-                && (action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME))
-                && !clusterInfoHolder.hasNode(connection.getNode())) {
+            boolean isSearchAction = action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME);
+            boolean isDestinationOutsideLocalCluster = clusterInfoHolder.isInitialized()
+                && !clusterInfoHolder.hasNode(connection.getNode());
+
+            if (isDestinationOutsideLocalCluster
+                && ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE.equals(
+                    headerMap.get(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
+                )) {
+                // The top-level query filter is only valid within the coordinating cluster. Strip its marker from every
+                // action sent to an unrecognized destination, even if RemoteClusterService does not report CCS as enabled.
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+            }
+
+            if (isCrossClusterSearchEnabled() && isSearchAction && isDestinationOutsideLocalCluster) {
                 if (isDebugEnabled) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
                 }
@@ -229,7 +244,7 @@ public class SecurityInterceptor {
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
             }
 
-            if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
+            if (isCrossClusterSearchEnabled()
                 && clusterInfoHolder.isInitialized()
                 && !action.startsWith("internal:")
                 && !action.equals(ClusterSearchShardsAction.NAME)
@@ -251,7 +266,7 @@ public class SecurityInterceptor {
             }
 
             if (StringUtils.isNotEmpty(injectedRolesValidationString)
-                && OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
+                && isCrossClusterSearchEnabled()
                 && !clusterInfoHolder.hasNode(connection.getNode())
                 && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER) == null) {
                 // Sending roles validation for only cross cluster requests
@@ -263,7 +278,15 @@ public class SecurityInterceptor {
 
             getThreadContext().putHeader(headerMap);
 
-            ensureCorrectHeaders(remoteAddress0, user0, authUserSubj, origin0, injectedUserString, injectedRolesString, isSameNodeRequest);
+            ensureCorrectHeaders(
+                remoteAddress0,
+                user0,
+                authenticatedUser,
+                origin0,
+                injectedUserString,
+                injectedRolesString,
+                isSameNodeRequest
+            );
 
             if (actionTraceEnabled.get()) {
                 getThreadContext().putHeader(
@@ -284,10 +307,14 @@ public class SecurityInterceptor {
         }
     }
 
+    boolean isCrossClusterSearchEnabled() {
+        return OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled();
+    }
+
     private void ensureCorrectHeaders(
         final Object remoteAdr,
         final User origUser,
-        final UserSubjectImpl authSubject,
+        final User authenticatedUser,
         final String origin,
         final String injectedUserString,
         final String injectedRolesString,
@@ -336,12 +363,14 @@ public class SecurityInterceptor {
                 );
             }
 
-            // put user as userSubject, we'll recreate it in messageReceivedDecorate
-            String authSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
-            String sameSubjectHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER);
-            if (authSubjectHeader == null && authSubject != null) {
-                if (origUser != null && origUser.equals(authSubject.getUser())) {
-                    if (sameSubjectHeader == null) {
+            // Propagate the authenticated user so it can be restored when the request is received.
+            String authenticatedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER);
+            String userSameAsAuthenticatedUserHeader = getThreadContext().getHeader(
+                ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER
+            );
+            if (authenticatedUserHeader == null && authenticatedUser != null) {
+                if (origUser != null && origUser.equals(authenticatedUser)) {
+                    if (userSameAsAuthenticatedUserHeader == null) {
                         getThreadContext().putHeader(
                             ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER,
                             Boolean.TRUE.toString()
@@ -350,7 +379,7 @@ public class SecurityInterceptor {
                 } else {
                     getThreadContext().putHeader(
                         ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER,
-                        authSubject.getUser().toSerializedBase64()
+                        authenticatedUser.toSerializedBase64()
                     );
                 }
             }
@@ -375,12 +404,17 @@ public class SecurityInterceptor {
     // based on
     // org.opensearch.transport.TransportService.ContextRestoreResponseHandler<T>
     // which is private scoped
-    private class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
+    // Visible for testing
+    class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
-        private final ThreadContext.StoredContext contextToRestore;
+        private final Supplier<ThreadContext.StoredContext> contextToRestore;
         private final TransportResponseHandler<T> innerHandler;
 
-        private RestoringTransportResponseHandler(TransportResponseHandler<T> innerHandler, ThreadContext.StoredContext contextToRestore) {
+        // Visible for testing
+        RestoringTransportResponseHandler(
+            TransportResponseHandler<T> innerHandler,
+            Supplier<ThreadContext.StoredContext> contextToRestore
+        ) {
             this.contextToRestore = contextToRestore;
             this.innerHandler = innerHandler;
         }
@@ -388,6 +422,11 @@ public class SecurityInterceptor {
         @Override
         public T read(StreamInput in) throws IOException {
             return innerHandler.read(in);
+        }
+
+        @Override
+        public boolean skipsDeserialization() {
+            return innerHandler.skipsDeserialization();
         }
 
         @Override
@@ -407,7 +446,7 @@ public class SecurityInterceptor {
             List<String> dlsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
             List<String> maskedFieldsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
 
-            contextToRestore.restore();
+            contextToRestore.get();
 
             final boolean isDebugEnabled = log.isDebugEnabled();
             if (response instanceof ClusterSearchShardsResponse) {
@@ -438,8 +477,9 @@ public class SecurityInterceptor {
 
         @Override
         public void handleException(TransportException e) {
-            contextToRestore.restore();
-            innerHandler.handleException(e);
+            try (ThreadContext.StoredContext ignore = contextToRestore.get()) {
+                innerHandler.handleException(e);
+            }
         }
 
         @Override
