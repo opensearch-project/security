@@ -191,6 +191,8 @@ public class SecuritySettingsConfigurer {
         }
 
         try {
+            // Demo-only rules. Not plugins.security.restapi.password_* from opensearch.yml —
+            // this installer runs before those cluster settings are loaded.
             final PasswordValidator passwordValidator = PasswordValidator.of(
                 Settings.builder()
                     .put(
