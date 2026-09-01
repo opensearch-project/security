@@ -174,7 +174,7 @@ public class DlsFlsValveImplTest {
             NamedXContentRegistry.EMPTY,
             threadPool,
             baseContext,
-            mock(AdminDNs.class),
+            mock(SuperAdminAuthority.class),
             mock(ResourcePluginInfo.class),
             resourceSharingEnabledSetting
         );
@@ -462,7 +462,7 @@ public class DlsFlsValveImplTest {
             NamedXContentRegistry.EMPTY,
             threadPool,
             baseContext,
-            mock(AdminDNs.class),
+            mock(SuperAdminAuthority.class),
             mock(ResourcePluginInfo.class),
             resourceSharingEnabledSetting
         );
@@ -533,7 +533,7 @@ public class DlsFlsValveImplTest {
             NamedXContentRegistry.EMPTY,
             threadPool,
             baseContext,
-            mock(AdminDNs.class),
+            mock(SuperAdminAuthority.class),
             mock(ResourcePluginInfo.class),
             resourceSharingEnabledSetting
         );

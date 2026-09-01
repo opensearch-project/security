@@ -37,6 +37,7 @@ import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
@@ -102,6 +103,7 @@ public class RestApiAuthorizationEvaluator {
         .build();
 
     private final AdminDNs adminDNs;
+    private final SuperAdminAuthority superAdminAuthority;
     private final RoleMapper roleMapper;
     private final PrincipalExtractor principalExtractor;
     private final Path configPath;
@@ -125,14 +127,15 @@ public class RestApiAuthorizationEvaluator {
 
     public RestApiAuthorizationEvaluator(
         final Settings settings,
-        final AdminDNs adminDNs,
+        final SuperAdminAuthority superAdminAuthority,
         final RoleMapper roleMapper,
         final PrincipalExtractor principalExtractor,
         final Path configPath,
         final ThreadPool threadPool,
         final PrivilegesConfiguration privilegesConfiguration
     ) {
-        this.adminDNs = adminDNs;
+        this.adminDNs = superAdminAuthority.getAdminDns();
+        this.superAdminAuthority = superAdminAuthority;
         this.roleMapper = roleMapper;
         this.principalExtractor = principalExtractor;
         this.configPath = configPath;
@@ -212,7 +215,7 @@ public class RestApiAuthorizationEvaluator {
             return null;
         }
 
-        final String certBasedAccessFailureReason = checkAdminCertBasedAccessPermissions(request);
+        final String certBasedAccessFailureReason = checkAdminBasedAccessPermissions(request);
         if (certBasedAccessFailureReason == null) {
             return null;
         }
@@ -494,17 +497,24 @@ public class RestApiAuthorizationEvaluator {
         return "Role based access not enabled.";
     }
 
-    private String checkAdminCertBasedAccessPermissions(RestRequest request) throws IOException {
+    private String checkAdminBasedAccessPermissions(RestRequest request) throws IOException {
         if (logger.isTraceEnabled()) {
             logger.trace("Checking certificate based admin access for path {} and method {}", request.path(), request.method().name());
         }
 
+        // Check if superadmin secret is present
         final SecurityRequest securityRequest = SecurityRequestFactory.from(request);
-        final SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
+        final boolean isSecretAdmin = superAdminAuthority.isAdminViaSecret(securityRequest);
+        if (isSecretAdmin) {
+            return null;
+        }
 
+        // Certificate based access, Check if we have an admin TLS certificate
+        final SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, securityRequest, principalExtractor);
         if (sslInfo == null) {
-            logger.warn("No ssl info found in request.");
-            return "No ssl info found in request.";
+            // here we log on error level, since authentication finally failed;
+            logger.warn("No ssl info or admin-secret found in request.");
+            return "No ssl info or admin-secret found in request.";
         }
 
         final X509Certificate[] certs = sslInfo.getX509Certs();
@@ -514,7 +524,7 @@ public class RestApiAuthorizationEvaluator {
             return "No client TLS certificate found in request";
         }
 
-        if (adminDNs.isAdminDN(sslInfo.getPrincipal()) == false) {
+        if (!superAdminAuthority.getAdminDns().isAdminDN(sslInfo.getPrincipal())) {
             logger.warn("Security admin permissions required but {} is not an admin", sslInfo.getPrincipal());
             return "Security admin permissions required but " + sslInfo.getPrincipal() + " is not an admin";
         }
