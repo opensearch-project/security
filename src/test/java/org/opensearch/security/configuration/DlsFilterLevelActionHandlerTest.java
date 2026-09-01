@@ -491,12 +491,12 @@ public class DlsFilterLevelActionHandlerTest {
 
     @Test
     public void filterLevelDlsMarkerPreventsReentry() {
-        assertDlsMarkerPreventsReentry("true");
+        assertDlsMarkerPreventsReentry(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
     }
 
     @Test
     public void hybridQueryDlsMarkerPreventsReentry() {
-        assertDlsMarkerPreventsReentry(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE);
+        assertDlsMarkerPreventsReentry(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
     }
 
     @Test
@@ -562,10 +562,8 @@ public class DlsFilterLevelActionHandlerTest {
         when(context.getResolvedIndices()).thenReturn(ResolvedIndices.of("index"));
         when(clusterService.state()).thenReturn(mock(ClusterState.class));
         doAnswer(invocation -> {
-            assertThat(
-                threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE),
-                is(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE)
-            );
+            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED), is("true"));
             return null;
         }).when(nodeClient).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
 
@@ -588,6 +586,7 @@ public class DlsFilterLevelActionHandlerTest {
 
             assertThat(result, is(false));
             assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED), is((String) null));
             assertThat(searchRequest.source().query(), sameInstance(filteredHybridQuery));
             verify(nodeClient).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
         } finally {
@@ -630,6 +629,7 @@ public class DlsFilterLevelActionHandlerTest {
 
         assertThat(result, is(false));
         assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+        assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED), is((String) null));
         verify(listener).onFailure(
             org.mockito.ArgumentMatchers.argThat(
                 exception -> exception instanceof OpenSearchSecurityException
@@ -682,9 +682,9 @@ public class DlsFilterLevelActionHandlerTest {
         }).when(hybridQuery).visit(any(QueryBuilderVisitor.class));
     }
 
-    private static void assertDlsMarkerPreventsReentry(String value) {
+    private static void assertDlsMarkerPreventsReentry(String header) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, value);
+        threadContext.putHeader(header, "true");
 
         boolean result = DlsFilterLevelActionHandler.handle(null, null, null, null, null, null, threadContext, false);
 
