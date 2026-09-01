@@ -1,5 +1,12 @@
 allprojects {
 	project.apply plugin: "com.diffplug.spotless"
+	// The Eclipse JDT formatter is provisioned by Spotless from a P2 update-site mirror during Gradle's
+	// configuration phase. That means every Gradle invocation - including test-only tasks that never format
+	// anything - reaches out to the mirror, which intermittently fails with a SocketTimeoutException (most
+	// often on Windows CI, where the Equo formatter cache under ~/.m2 is not persisted between runs). Only
+	// wire the Eclipse step when a spotless task is actually being run. The dedicated code-hygiene jobs always
+	// invoke spotlessApply/spotlessCheck by name, so formatting enforcement is unchanged.
+	def runningSpotlessTask = gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains('spotless') }
 	spotless {
 		java {
 			// Normally this isn't necessary, but we have Java sources in
@@ -14,7 +21,9 @@ allprojects {
 				'\\#java|\\#org.apache|\\#org.hamcrest|\\#org.opensearch|\\#'
 			)
 			removeUnusedImports()
-			eclipse().withP2Mirrors(Map.of("https://download.eclipse.org/", "https://ci.opensearch.org/")).configFile rootProject.file('formatter/formatterConfig.xml')
+			if (runningSpotlessTask) {
+				eclipse().withP2Mirrors(Map.of("https://download.eclipse.org/", "https://ci.opensearch.org/")).configFile rootProject.file('formatter/formatterConfig.xml')
+			}
 			trimTrailingWhitespace()
 			endWithNewline();
 
