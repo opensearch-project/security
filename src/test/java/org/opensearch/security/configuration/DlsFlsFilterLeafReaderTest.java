@@ -29,10 +29,16 @@ public class DlsFlsFilterLeafReaderTest {
         filterLevelContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, "true");
         ThreadContext hybridContext = new ThreadContext(Settings.EMPTY);
         hybridContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, "true");
+        ThreadContext legacyHybridContext = new ThreadContext(Settings.EMPTY);
+        legacyHybridContext.putHeader(
+            ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
+            ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
+        );
 
         assertThat(DlsFlsFilterLeafReader.isDlsQueryFilterApplied(unmarkedContext), is(false));
         assertThat(DlsFlsFilterLeafReader.isDlsQueryFilterApplied(filterLevelContext), is(false));
         assertThat(DlsFlsFilterLeafReader.isDlsQueryFilterApplied(hybridContext), is(true));
+        assertThat(DlsFlsFilterLeafReader.isDlsQueryFilterApplied(legacyHybridContext), is(true));
     }
 
     @Test

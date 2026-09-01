@@ -137,9 +137,21 @@ public class DlsFlsValveImplTest {
         assertDlsMarkerPreventsValveReentry(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
     }
 
+    @Test
+    public void legacyHybridQueryDlsMarkerPreventsValveReentry() throws Exception {
+        assertDlsMarkerPreventsValveReentry(
+            ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
+            ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
+        );
+    }
+
     private static void assertDlsMarkerPreventsValveReentry(String header) throws Exception {
+        assertDlsMarkerPreventsValveReentry(header, "true");
+    }
+
+    private static void assertDlsMarkerPreventsValveReentry(String header, String headerValue) throws Exception {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putHeader(header, "true");
+        threadContext.putHeader(header, headerValue);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("test-user"));
         ThreadPool threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(threadContext);

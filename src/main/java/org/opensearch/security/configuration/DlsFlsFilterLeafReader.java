@@ -71,6 +71,7 @@ import org.opensearch.index.mapper.FieldNamesFieldMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.compliance.FieldReadCallback;
+import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
 import org.opensearch.security.privileges.dlsfls.FlsStoredFieldVisitor;
@@ -907,7 +908,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     }
 
     static boolean isDlsQueryFilterApplied(ThreadContext threadContext) {
-        return threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED) != null;
+        return DlsFlsBaseContext.isDlsQueryFilterApplied(threadContext);
     }
 
     private boolean applyDlsHere() {
