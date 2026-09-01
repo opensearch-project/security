@@ -64,13 +64,16 @@ public class DlsFlsBaseContext {
     }
 
     public boolean isDlsDoneOnFilterLevel() {
-        return threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null && !isDlsQueryFilterApplied();
+        return threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null;
     }
 
+    /**
+     * Returns true if the DLS restriction was applied through the top-level query filter. In that case the query itself
+     * protects hits, but reader-level DLS must stay active for search paths which do not rely on the top-level query,
+     * such as global aggregations.
+     */
     public boolean isDlsQueryFilterApplied() {
-        return ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE.equals(
-            threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
-        );
+        return threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED) != null;
     }
 
     /**

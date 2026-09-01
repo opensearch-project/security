@@ -72,7 +72,16 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "filter_level_dls_done";
-    public static final String OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "hybrid_query";
+
+    /**
+     * Marks a request whose DLS restriction was applied through the top-level query filter instead of by wrapping the
+     * user query. This is a dedicated header rather than a value of OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE so that a
+     * node which does not understand it simply sees no marker and falls back to its normal reader-level DLS handling.
+     * Overloading OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE would instead make such a node treat DLS as fully handled
+     * and skip reader-level DLS altogether.
+     */
+    public static final String OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED = OPENDISTRO_SECURITY_CONFIG_PREFIX
+        + "hybrid_query_dls_applied";
     public static final String OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY = OPENDISTRO_SECURITY_CONFIG_PREFIX + "is_parent_child_query";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query_ccs";

@@ -30,10 +30,7 @@ public class DlsFlsBaseContextTest {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         DlsFlsBaseContext context = new DlsFlsBaseContext(mock(PrivilegesConfiguration.class), threadContext, mock(AdminDNs.class));
 
-        threadContext.putHeader(
-            ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-            ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
-        );
+        threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED, "true");
 
         assertThat(context.isDlsQueryFilterApplied(), is(true));
         assertThat(context.isDlsDoneOnFilterLevel(), is(false));

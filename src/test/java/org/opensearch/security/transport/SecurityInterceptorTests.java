@@ -486,8 +486,7 @@ public class SecurityInterceptorTests {
     @Test
     public void testHybridQueryDlsStateIsCopiedToLocalNodes() {
         enableCrossClusterSearch();
-        String headerValue = ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE;
-        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, headerValue);
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED, "true");
         when(clusterInfoHolder.isInitialized()).thenReturn(true);
         when(clusterInfoHolder.hasNode(localNode)).thenReturn(true);
         when(clusterInfoHolder.hasNode(otherNode)).thenReturn(true);
@@ -502,8 +501,8 @@ public class SecurityInterceptorTests {
                 TransportResponseHandler<T> handler
             ) {
                 assertThat(
-                    threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE),
-                    is(headerValue)
+                    threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED),
+                    is("true")
                 );
                 senderLatch.get().countDown();
             }
@@ -543,11 +542,7 @@ public class SecurityInterceptorTests {
     }
 
     private void assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(String action) {
-        threadPool.getThreadContext()
-            .putHeader(
-                ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-                ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
-            );
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED, "true");
         when(clusterInfoHolder.isInitialized()).thenReturn(true);
         when(clusterInfoHolder.hasNode(remoteNode)).thenReturn(false);
 
@@ -560,7 +555,7 @@ public class SecurityInterceptorTests {
                 TransportRequestOptions options,
                 TransportResponseHandler<T> handler
             ) {
-                assertNull(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE));
+                assertNull(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED));
                 senderLatch.get().countDown();
             }
         };

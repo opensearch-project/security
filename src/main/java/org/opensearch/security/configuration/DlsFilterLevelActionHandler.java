@@ -93,7 +93,7 @@ public class DlsFilterLevelActionHandler {
         boolean applyDlsFilterToHybridQuery
     ) {
 
-        if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
+        if (isDlsAlreadyHandled(threadContext)) {
             return true;
         }
 
@@ -179,10 +179,14 @@ public class DlsFilterLevelActionHandler {
         // context restores the caller's headers.
         try (StoredContext ctx = threadContext.newStoredContext(true)) {
 
-            threadContext.putHeader(
-                ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-                applyDlsFilterToHybridQuery ? ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE : "true"
-            );
+            // The two markers are mutually exclusive. OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE means the user query was
+            // wrapped and reader-level DLS can be skipped; OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED means DLS was
+            // pushed into the top-level query filter and reader-level DLS must stay active.
+            if (applyDlsFilterToHybridQuery) {
+                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED, "true");
+            } else {
+                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, "true");
+            }
 
             try {
                 if (!modifyQuery()) {
@@ -357,6 +361,16 @@ public class DlsFilterLevelActionHandler {
             );
             return false;
         }
+    }
+
+    /**
+     * Returns true if DLS has already been applied to this request's query, either by wrapping the user query or by
+     * pushing the DLS filter into a top-level hybrid query. Both markers are coordinator-side re-entry guards: they stop
+     * the child request dispatched through {@code nodeClient} from being processed again.
+     */
+    static boolean isDlsAlreadyHandled(ThreadContext threadContext) {
+        return threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null
+            || threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_APPLIED) != null;
     }
 
     /**
