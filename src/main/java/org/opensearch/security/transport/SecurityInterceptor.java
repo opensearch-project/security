@@ -218,10 +218,20 @@ public class SecurityInterceptor {
                 dlsFlsLegacyHeaders.performHeaderDecoration(connection, request, headerMap);
             }
 
-            if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
-                && clusterInfoHolder.isInitialized()
-                && (action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME))
-                && !clusterInfoHolder.hasNode(connection.getNode())) {
+            boolean isSearchAction = action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME);
+            boolean isDestinationOutsideLocalCluster = clusterInfoHolder.isInitialized()
+                && !clusterInfoHolder.hasNode(connection.getNode());
+
+            if (isDestinationOutsideLocalCluster
+                && ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE.equals(
+                    headerMap.get(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
+                )) {
+                // The top-level query filter is only valid within the coordinating cluster. Strip its marker from every
+                // action sent to an unrecognized destination, even if RemoteClusterService does not report CCS as enabled.
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+            }
+
+            if (isCrossClusterSearchEnabled() && isSearchAction && isDestinationOutsideLocalCluster) {
                 if (isDebugEnabled) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
                 }
@@ -234,7 +244,7 @@ public class SecurityInterceptor {
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
             }
 
-            if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
+            if (isCrossClusterSearchEnabled()
                 && clusterInfoHolder.isInitialized()
                 && !action.startsWith("internal:")
                 && !action.equals(ClusterSearchShardsAction.NAME)
@@ -256,7 +266,7 @@ public class SecurityInterceptor {
             }
 
             if (StringUtils.isNotEmpty(injectedRolesValidationString)
-                && OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
+                && isCrossClusterSearchEnabled()
                 && !clusterInfoHolder.hasNode(connection.getNode())
                 && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER) == null) {
                 // Sending roles validation for only cross cluster requests
@@ -295,6 +305,10 @@ public class SecurityInterceptor {
 
             sender.sendRequest(connection, action, request, options, restoringHandler);
         }
+    }
+
+    boolean isCrossClusterSearchEnabled() {
+        return OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled();
     }
 
     private void ensureCorrectHeaders(

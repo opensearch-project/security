@@ -63,7 +63,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.5"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.5.10"
+    id "com.github.spotbugs" version "6.5.11"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -441,6 +441,9 @@ bundlePlugin {
         into 'config'
     }
     from('tools') {
+        into 'bin'
+    }
+    from('tools') {
         into 'tools'
     }
 }
@@ -530,7 +533,7 @@ configurations {
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
-            force "org.scala-lang:scala3-library_3:3.8.4"
+            force "org.scala-lang:scala3-library_3:3.9.0"
         }
     }
 }
