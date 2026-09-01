@@ -359,6 +359,10 @@ public class ConfigConstants {
     public static final String SECURITY_RESTAPI_PASSWORD_MIN_LENGTH = SECURITY_SETTINGS_PREFIX + "restapi.password_min_length";
     public static final String SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH = SECURITY_SETTINGS_PREFIX
         + "restapi.password_score_based_validation_strength";
+    // Maximum allowed length for any string value in a Security REST API request body. Guards against oversized inputs
+    // while remaining configurable, since free-form fields such as DLS/FLS queries can legitimately exceed the default.
+    public static final String SECURITY_RESTAPI_MAX_STRING_LENGTH = SECURITY_SETTINGS_PREFIX + "restapi.max_string_length";
+    public static final int SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT = 4096;
     // Illegal Opcodes from here on
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = SECURITY_SETTINGS_PREFIX
         + "unsupported.disable_rest_auth_initially";
