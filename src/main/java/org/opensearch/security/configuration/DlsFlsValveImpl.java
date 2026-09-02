@@ -544,8 +544,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if (!dlsRestriction.isUnrestricted()) {
                 if (dlsFlsBaseContext.isDlsQueryFilterApplied()) {
                     // The top-level hybrid filter already protects hits, so parsed-query rewriting is not needed here.
-                    // The dedicated marker, or its legacy rolling-upgrade value, keeps reader-level DLS active for
-                    // aggregations, suggestions, and other paths.
+                    // The dedicated marker keeps reader-level DLS active for aggregations, suggestions, and other paths.
                     // This check intentionally follows the star-tree safeguard above.
                     log.trace("handleSearchContext(): DLS is applied to the hybrid query; preserving reader-level DLS");
                     return;

@@ -227,11 +227,6 @@ public class SecurityInterceptor {
                 // The top-level query filter is only valid within the coordinating cluster. Strip its marker from every
                 // action sent to an unrecognized destination, even if RemoteClusterService does not report CCS as enabled.
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
-                if (ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE.equals(
-                    headerMap.get(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
-                )) {
-                    headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
-                }
             }
 
             if (isCrossClusterSearchEnabled() && isSearchAction && isDestinationOutsideLocalCluster) {

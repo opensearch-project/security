@@ -487,20 +487,9 @@ public class SecurityInterceptorTests {
 
     @Test
     public void testHybridQueryDlsStateIsCopiedToLocalNodes() {
-        assertHybridQueryDlsStateIsCopiedToLocalNodes(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, "true");
-    }
-
-    @Test
-    public void testLegacyHybridQueryDlsStateIsCopiedToLocalNodes() {
-        assertHybridQueryDlsStateIsCopiedToLocalNodes(
-            ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-            ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
-        );
-    }
-
-    private void assertHybridQueryDlsStateIsCopiedToLocalNodes(String header, String headerValue) {
         enableCrossClusterSearch();
-        threadPool.getThreadContext().putHeader(header, headerValue);
+        String headerValue = "hybrid DLS query filter applied";
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, headerValue);
         when(clusterInfoHolder.isInitialized()).thenReturn(true);
         when(clusterInfoHolder.hasNode(localNode)).thenReturn(true);
         when(clusterInfoHolder.hasNode(otherNode)).thenReturn(true);
@@ -514,7 +503,10 @@ public class SecurityInterceptorTests {
                 TransportRequestOptions options,
                 TransportResponseHandler<T> handler
             ) {
-                assertThat(threadPool.getThreadContext().getHeader(header), is(headerValue));
+                assertThat(
+                    threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED),
+                    is(headerValue)
+                );
                 senderLatch.get().countDown();
             }
         };
@@ -545,15 +537,6 @@ public class SecurityInterceptorTests {
     }
 
     @Test
-    public void testLegacyHybridQueryDlsStateIsRemovedForNonSearchAction() {
-        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(
-            "internal:hybrid-follow-up",
-            ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-            ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
-        );
-    }
-
-    @Test
     public void testUnrecognizedNonSearchDestinationWithoutHybridMarkerUsesNormalHeaders() {
         when(clusterInfoHolder.isInitialized()).thenReturn(true);
         when(clusterInfoHolder.hasNode(remoteNode)).thenReturn(false);
@@ -562,11 +545,7 @@ public class SecurityInterceptorTests {
     }
 
     private void assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(String action) {
-        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(action, ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, "true");
-    }
-
-    private void assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(String action, String header, String headerValue) {
-        threadPool.getThreadContext().putHeader(header, headerValue);
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, "true");
         when(clusterInfoHolder.isInitialized()).thenReturn(true);
         when(clusterInfoHolder.hasNode(remoteNode)).thenReturn(false);
 
@@ -579,7 +558,7 @@ public class SecurityInterceptorTests {
                 TransportRequestOptions options,
                 TransportResponseHandler<T> handler
             ) {
-                assertNull(threadPool.getThreadContext().getHeader(header));
+                assertNull(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED));
                 senderLatch.get().countDown();
             }
         };
