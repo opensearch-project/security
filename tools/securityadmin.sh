@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
 
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 if ! [ -x "$(command -v realpath)" ]; then
