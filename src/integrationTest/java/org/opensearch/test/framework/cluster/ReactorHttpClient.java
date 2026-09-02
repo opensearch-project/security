@@ -16,13 +16,11 @@ package org.opensearch.test.framework.cluster;
 import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.http.netty4.http3.Http3Utils;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -43,32 +41,34 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.resolver.DefaultAddressResolverGroup;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.ParallelFlux;
 import reactor.netty.http.Http11SslContextSpec;
 import reactor.netty.http.Http2SslContextSpec;
 import reactor.netty.http.Http3SslContextSpec;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 
-import static org.opensearch.http.HttpTransportSettings.SETTING_HTTP_HTTP3_ENABLED;
 import static org.opensearch.http.HttpTransportSettings.SETTING_HTTP_MAX_CONTENT_LENGTH;
 
 /**
  * Tiny helper to send http requests over netty.
  */
 public class ReactorHttpClient implements Closeable {
-    private static final java.util.Random RAND = new java.util.Random();
-
     private final boolean compression;
     private final boolean secure;
     private final HttpProtocol protocol;
     private final Settings settings;
     private final InetSocketAddress remoteAddress;
 
-    public ReactorHttpClient(boolean compression, boolean secure, Settings settings, InetSocketAddress remoteAddress) {
+    public ReactorHttpClient(
+        HttpProtocol protocol,
+        boolean compression,
+        boolean secure,
+        Settings settings,
+        InetSocketAddress remoteAddress
+    ) {
         this.compression = compression;
         this.secure = secure;
-        this.protocol = randomProtocol(secure, settings);
+        this.protocol = protocol;
         this.settings = settings;
         this.remoteAddress = remoteAddress;
     }
@@ -83,9 +83,7 @@ public class ReactorHttpClient implements Closeable {
         List<Tuple<String, byte[]>> urisAndBodies,
         int parallelism
     ) {
-        List<FullHttpRequest> requests = new ArrayList<>(urisAndBodies.size());
-        for (int i = 0; i < urisAndBodies.size(); ++i) {
-            final Tuple<String, byte[]> uriAndBody = urisAndBodies.get(i);
+        return sendRequests(remoteAddress, urisAndBodies.stream().map(uriAndBody -> {
             ByteBuf content = Unpooled.copiedBuffer(uriAndBody.v2());
             FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, uriAndBody.v1(), content);
             request.headers().add(HttpHeaderNames.HOST, "localhost");
@@ -93,9 +91,8 @@ public class ReactorHttpClient implements Closeable {
             request.headers().add(HttpHeaderNames.CONTENT_TYPE, "application/json");
             request.headers().add(HttpHeaderNames.CONTENT_ENCODING, "gzip");
             request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), secure ? "https" : "http");
-            requests.add(request);
-        }
-        return sendRequests(remoteAddress, requests, false, parallelism);
+            return request;
+        }).toList(), false, parallelism);
     }
 
     private List<FullHttpResponse> sendRequests(
@@ -104,12 +101,14 @@ public class ReactorHttpClient implements Closeable {
         boolean ordered,
         int parallelism
     ) {
+        if (parallelism <= 0) {
+            throw new IllegalArgumentException("parallelism must be greater than zero");
+        }
         final EventLoopGroup eventLoopGroup = new MultiThreadIoEventLoopGroup(parallelism, NioIoHandler.newFactory());
         try {
             final HttpClient client = createClient(remoteAddress, eventLoopGroup);
 
-            @SuppressWarnings("unchecked")
-            final Mono<FullHttpResponse>[] monos = requests.stream()
+            final Flux<Mono<FullHttpResponse>> responses = Flux.fromIterable(requests)
                 .map(
                     request -> client.headers(h -> h.add(request.headers()))
                         .baseUrl(request.uri())
@@ -127,13 +126,12 @@ public class ReactorHttpClient implements Closeable {
                                     )
                                 )
                         )
-                )
-                .toArray(Mono[]::new);
+                );
 
             if (ordered == false) {
-                return ParallelFlux.from(monos).sequential().collectList().block();
+                return responses.flatMap(response -> response, parallelism).collectList().block(Duration.ofMinutes(2));
             } else {
-                return Flux.concat(monos).flatMapSequential(r -> Mono.just(r)).collectList().block(Duration.ofMinutes(2));
+                return responses.concatMap(response -> response).collectList().block(Duration.ofMinutes(2));
             }
         } finally {
             eventLoopGroup.shutdownGracefully().awaitUninterruptibly();
@@ -196,22 +194,6 @@ public class ReactorHttpClient implements Closeable {
 
     public HttpProtocol protocol() {
         return protocol;
-    }
-
-    private static HttpProtocol randomProtocol(boolean secure, Settings settings) {
-        HttpProtocol[] values = null;
-
-        if (secure) {
-            if (Http3Utils.isHttp3Available() && SETTING_HTTP_HTTP3_ENABLED.get(settings).booleanValue() == true) {
-                values = new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2, HttpProtocol.HTTP3 };
-            } else {
-                values = new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2 };
-            }
-        } else {
-            values = new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2C };
-        }
-
-        return values[RAND.nextInt(values.length - 1)];
     }
 
 }
