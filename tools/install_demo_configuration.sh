@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
 #install_demo_configuration.sh [-y]
 
 UNAME=$(uname -s)

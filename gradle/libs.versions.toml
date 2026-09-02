@@ -8,6 +8,7 @@ jaxb                = "2.3.9"
 lz4_java            = "1.11.1"
 snappy_java         = "1.1.10.8"
 guava               = "33.6.0-jre"
+jspecify            = "1.0.1"
 spring_framework    = "7.0.8"
 
 [libraries]
@@ -50,6 +51,7 @@ lz4-java = { group = "at.yawk.lz4", name = "lz4-java", version.ref = "lz4_java" 
 snappy-java = { group = "org.xerial.snappy", name = "snappy-java", version.ref = "snappy_java" }
 
 google-guava = { group = "com.google.guava", name="guava", version.ref = "guava" }
+jspecify = { group = "org.jspecify", name = "jspecify", version.ref = "jspecify" }
 
 #spring framework
 springframework-core = { group = "org.springframework", name = "spring-core", version.ref = "spring_framework" }

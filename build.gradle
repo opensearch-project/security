@@ -498,6 +498,7 @@ configurations {
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force libs.google.guava
+            force libs.jspecify
             force libs.lz4.java
             force libs.snappy.java
 
