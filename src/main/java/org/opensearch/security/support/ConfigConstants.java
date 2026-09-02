@@ -72,7 +72,8 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "filter_level_dls_done";
-    public static final String OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "hybrid_query";
+    public static final String OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED = OPENDISTRO_SECURITY_CONFIG_PREFIX
+        + "dls_query_filter_applied";
     public static final String OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY = OPENDISTRO_SECURITY_CONFIG_PREFIX + "is_parent_child_query";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query_ccs";
@@ -397,6 +398,10 @@ public class ConfigConstants {
         + "unsupported.restapi.allow_securityconfig_modification";
     public static final String SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = SECURITY_SETTINGS_PREFIX + "unsupported.load_static_resources";
     public static final String SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = SECURITY_SETTINGS_PREFIX + "unsupported.accept_invalid_config";
+
+    public static final String OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS_CONFIG = SECURITY_SETTINGS_PREFIX
+        + "unsupported.dls.allowed_request_headers";
+    public static final String OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS = OPENSEARCH_SECURITY_CONFIG_PREFIX + "dls_request_headers";
 
     public static final String SECURITY_PROTECTED_INDICES_ENABLED_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.enabled";
     public static final Boolean SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
