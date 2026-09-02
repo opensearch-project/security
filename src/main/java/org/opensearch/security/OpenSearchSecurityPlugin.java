@@ -95,6 +95,7 @@ import org.opensearch.common.settings.SettingsFilter;
 import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.PageCacheRecycler;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.XContentConstraints;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
@@ -2582,6 +2583,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH,
+                    ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT,
+                    1,
+                    XContentConstraints.DEFAULT_MAX_STRING_LEN,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
 
             // Compliance settings moved outside the gate — see below
 
@@ -2728,6 +2739,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING);
             settings.add(SecuritySettings.DLS_WRITE_BLOCKED);
+
+            settings.add(Setting.groupSetting(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS_CONFIG + ".", Property.NodeScope
+            // do not make this Property.Dynamic - as a security measure,
+            // this can only be changed with access to the config file.
+            ));
         }
 
         return settings;
