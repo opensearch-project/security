@@ -286,11 +286,10 @@ public class JWTGrpcInterceptorTest {
         }
     }
 
-    @Test
-    public void testBadSecurityHeaderInMetadata() throws Exception {
+    private void testBadSecurityHeaderInMetadata(final String headerName) throws Exception {
         ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
         try {
-            ClientInterceptor badHeaderInterceptor = createHeaderInterceptor(Map.of("_opendistro_security_user", "malicious_user"));
+            ClientInterceptor badHeaderInterceptor = createHeaderInterceptor(Map.of(headerName, "malicious_user"));
             Channel channelWithBadHeader = io.grpc.ClientInterceptors.intercept(channel, badHeaderInterceptor);
 
             try {
@@ -303,6 +302,16 @@ public class JWTGrpcInterceptorTest {
         } finally {
             channel.shutdown();
         }
+    }
+
+    @Test
+    public void testBadOpenDistroSecurityHeaderInMetadata() throws Exception {
+        testBadSecurityHeaderInMetadata("_opendistro_security_user");
+    }
+
+    @Test
+    public void testBadOpenSearchSecurityHeaderInMetadata() throws Exception {
+        testBadSecurityHeaderInMetadata("_opensearch_security_user");
     }
 
     @Test
