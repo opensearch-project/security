@@ -80,6 +80,7 @@ configurations {
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
             force "com.google.protobuf:protobuf-java:${versions.protobuf}"
             force libs.google.guava
+            force libs.jspecify
             force "com.google.guava:failureaccess:1.0.3"
             force "io.projectreactor:reactor-core:3.8.6"
 
