@@ -207,6 +207,7 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)
                             || k.equals(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS)
@@ -227,13 +228,10 @@ public class SecurityInterceptor {
             boolean isDestinationOutsideLocalCluster = clusterInfoHolder.isInitialized()
                 && !clusterInfoHolder.hasNode(connection.getNode());
 
-            if (isDestinationOutsideLocalCluster
-                && ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE.equals(
-                    headerMap.get(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
-                )) {
+            if (isDestinationOutsideLocalCluster) {
                 // The top-level query filter is only valid within the coordinating cluster. Strip its marker from every
                 // action sent to an unrecognized destination, even if RemoteClusterService does not report CCS as enabled.
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
             }
 
             if (isCrossClusterSearchEnabled() && isSearchAction && isDestinationOutsideLocalCluster) {
@@ -250,10 +248,9 @@ public class SecurityInterceptor {
             }
 
             if (isCrossClusterSearchEnabled()
-                && clusterInfoHolder.isInitialized()
                 && !action.startsWith("internal:")
                 && !action.equals(ClusterSearchShardsAction.NAME)
-                && !clusterInfoHolder.hasNode(connection.getNode())) {
+                && isDestinationOutsideLocalCluster) {
 
                 if (isDebugEnabled) {
                     log.debug("add dls/fls/mf from transient");

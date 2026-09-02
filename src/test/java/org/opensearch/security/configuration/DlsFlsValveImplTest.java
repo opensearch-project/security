@@ -83,7 +83,7 @@ public class DlsFlsValveImplTest {
         when(hybridQuery.getName()).thenReturn("hybrid");
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true, true);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true);
 
         assertThat(result, is(true));
     }
@@ -101,7 +101,7 @@ public class DlsFlsValveImplTest {
         when(hybridQuery.getName()).thenReturn("hybrid");
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, true, true, true);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, true, true);
 
         assertThat(result, is(false));
     }
@@ -126,7 +126,7 @@ public class DlsFlsValveImplTest {
         Level previousLevel = logger.getLevel();
         logger.setLevel(Level.DEBUG);
         try {
-            assertDlsMarkerPreventsValveReentry(ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE);
+            assertDlsMarkerPreventsValveReentry(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
         } finally {
             logger.setLevel(previousLevel);
         }
@@ -134,12 +134,12 @@ public class DlsFlsValveImplTest {
 
     @Test
     public void filterLevelDlsMarkerPreventsValveReentry() throws Exception {
-        assertDlsMarkerPreventsValveReentry("true");
+        assertDlsMarkerPreventsValveReentry(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
     }
 
-    private static void assertDlsMarkerPreventsValveReentry(String value) throws Exception {
+    private static void assertDlsMarkerPreventsValveReentry(String header) throws Exception {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, value);
+        threadContext.putHeader(header, "true");
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("test-user"));
         ThreadPool threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
@@ -187,7 +187,7 @@ public class DlsFlsValveImplTest {
 
     @Test
     public void usesLuceneLevelDlsWhenSearchHasNoSourceInAdaptiveMode() {
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(new SearchRequest(), true, false, true, true);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(new SearchRequest(), true, false, true);
 
         assertThat(result, is(false));
     }
@@ -196,20 +196,14 @@ public class DlsFlsValveImplTest {
     public void usesLuceneLevelDlsWhenSearchSourceHasNoQueryInAdaptiveMode() {
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource());
 
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true, true);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true);
 
         assertThat(result, is(false));
     }
 
     @Test
     public void usesLuceneLevelDlsForNonSearchRequestInAdaptiveMode() {
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(
-            mock(ActionRequest.class),
-            true,
-            false,
-            true,
-            true
-        );
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(mock(ActionRequest.class), true, false, true);
 
         assertThat(result, is(false));
     }
@@ -220,18 +214,7 @@ public class DlsFlsValveImplTest {
         when(hybridQuery.getName()).thenReturn("hybrid");
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, false, false, true, true);
-
-        assertThat(result, is(false));
-    }
-
-    @Test
-    public void doesNotApplyHybridQueryFilterWhenClusterContainsOlderNode() {
-        QueryBuilder hybridQuery = mock(QueryBuilder.class);
-        when(hybridQuery.getName()).thenReturn("hybrid");
-        SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
-
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, false, true);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, false, false, true);
 
         assertThat(result, is(false));
     }
@@ -242,7 +225,7 @@ public class DlsFlsValveImplTest {
         when(hybridQuery.getName()).thenReturn("hybrid");
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true, false);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, false);
 
         assertThat(result, is(false));
     }
@@ -254,7 +237,7 @@ public class DlsFlsValveImplTest {
         BoolQueryBuilder outerQuery = new BoolQueryBuilder().must(hybridQuery);
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(outerQuery));
 
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true, true);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true);
 
         assertThat(result, is(false));
     }
@@ -272,16 +255,9 @@ public class DlsFlsValveImplTest {
         }).when(hybridQuery).visit(any(QueryBuilderVisitor.class));
         SearchRequest searchRequest = new SearchRequest().source(SearchSourceBuilder.searchSource().query(hybridQuery));
 
-        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true, true);
+        boolean result = DlsFlsValveImpl.shouldApplyDlsFilterToHybridQueryInAdaptiveMode(searchRequest, true, false, true);
 
         assertThat(result, is(false));
-    }
-
-    @Test
-    public void hybridQueryDlsFilterRequiresOpenSearchThreeNineOnEveryNode() {
-        assertThat(DlsFlsValveImpl.isHybridQueryDlsFilterSupported(null), is(false));
-        assertThat(DlsFlsValveImpl.isHybridQueryDlsFilterSupported(Version.V_3_8_0), is(false));
-        assertThat(DlsFlsValveImpl.isHybridQueryDlsFilterSupported(Version.V_3_9_0), is(true));
     }
 
     @Test
@@ -324,7 +300,7 @@ public class DlsFlsValveImplTest {
             false,
             Version.V_2_19_0,
             DlsFlsValveImpl.Mode.FILTER_LEVEL.name(),
-            "true"
+            ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE
         );
 
         assertThat(threadContext.getTransient(DlsFlsLegacyHeaders.TRANSIENT_HEADER), instanceOf(DlsFlsLegacyHeaders.class));
@@ -336,7 +312,7 @@ public class DlsFlsValveImplTest {
             new BoolQueryBuilder(),
             null,
             true,
-            Version.V_3_9_0,
+            Version.CURRENT,
             DlsFlsValveImpl.Mode.FILTER_LEVEL.name(),
             null,
             false,
@@ -350,9 +326,9 @@ public class DlsFlsValveImplTest {
             query,
             expectedQuery,
             expectedResult,
-            Version.V_3_9_0,
+            Version.CURRENT,
             null,
-            ConfigConstants.OPENDISTRO_SECURITY_HYBRID_QUERY_DLS_DONE
+            ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED
         );
     }
 
@@ -362,7 +338,7 @@ public class DlsFlsValveImplTest {
         boolean expectedResult,
         Version minNodeVersion,
         String dlsModeHeader,
-        String expectedCompletionMarker
+        String expectedCompletionHeader
     ) throws Exception {
         return invokeAdaptiveDlsValve(
             query,
@@ -370,7 +346,7 @@ public class DlsFlsValveImplTest {
             expectedResult,
             minNodeVersion,
             dlsModeHeader,
-            expectedCompletionMarker,
+            expectedCompletionHeader,
             true,
             false
         );
@@ -382,7 +358,7 @@ public class DlsFlsValveImplTest {
         boolean expectedResult,
         Version minNodeVersion,
         String dlsModeHeader,
-        String expectedCompletionMarker,
+        String expectedCompletionHeader,
         boolean hasDlsRestrictions,
         boolean hasFlsRestrictions
     ) throws Exception {
@@ -452,7 +428,9 @@ public class DlsFlsValveImplTest {
         @SuppressWarnings("unchecked")
         ActionListener<Object> listener = mock(ActionListener.class);
         doAnswer(invocation -> {
-            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is(expectedCompletionMarker));
+            if (expectedCompletionHeader != null) {
+                assertThat(threadContext.getHeader(expectedCompletionHeader), is("true"));
+            }
             return null;
         }).when(nodeClient).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
         DlsFlsValveImpl valve = new DlsFlsValveImpl(
@@ -470,6 +448,7 @@ public class DlsFlsValveImplTest {
         boolean result = valve.invoke(context, listener);
 
         assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+        assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED), is((String) null));
         if (expectedResult) {
             assertThat(searchRequest.source().query(), sameInstance(query));
             verify(nodeClient, never()).search(

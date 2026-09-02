@@ -30,7 +30,6 @@ import org.apache.lucene.util.BytesRef;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.admin.indices.shrink.ResizeRequest;
@@ -99,7 +98,6 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_DLS_WRITE
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
     private static final String MAP_EXECUTION_HINT = "map";
-    private static final Version HYBRID_QUERY_DLS_FILTER_SUPPORTED_SINCE = Version.V_3_9_0;
     private static final Logger log = LogManager.getLogger(DlsFlsValveImpl.class);
 
     private final Client nodeClient;
@@ -235,7 +233,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 return true;
             }
 
-            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null) {
+            if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null
+                || threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED) != null) {
                 if (log.isDebugEnabled()) {
                     log.debug("DLS query handling is already done for this request");
                 }
@@ -266,7 +265,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         request,
                         hasDlsRestrictions,
                         containsTermLookupQuery,
-                        isHybridQueryDlsFilterSupported(clusterService.state().nodes().getMinNodeVersion()),
                         isLocalOnlyRequest(resolved)
                     );
 
@@ -455,24 +453,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         ActionRequest request,
         boolean hasDlsRestrictions,
         boolean containsTermLookupQuery,
-        boolean hybridQueryDlsFilterSupported,
         boolean localOnlyRequest
     ) {
         return hasDlsRestrictions
             && !containsTermLookupQuery
-            && hybridQueryDlsFilterSupported
             && localOnlyRequest
             && isTopLevelHybridQueryWithoutParentChildClauses(request);
-    }
-
-    /**
-     * The minimum OpenSearch version is only a lower bound for the Neural Search hybrid-query contract. If a future
-     * Neural Search release changes its {@code filter()} or {@code visit()} behavior, the verification in
-     * {@link DlsFilterLevelActionHandler} rejects the request rather than applying DLS incompletely. Keep the
-     * cross-plugin {@code HybridQueryDlsIT} coverage in sync with that contract.
-     */
-    static boolean isHybridQueryDlsFilterSupported(Version minNodeVersion) {
-        return minNodeVersion != null && minNodeVersion.onOrAfter(HYBRID_QUERY_DLS_FILTER_SUPPORTED_SINCE);
     }
 
     static boolean isLocalOnlyRequest(OptionallyResolvedIndices resolved) {
@@ -558,8 +544,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if (!dlsRestriction.isUnrestricted()) {
                 if (dlsFlsBaseContext.isDlsQueryFilterApplied()) {
                     // The top-level hybrid filter already protects hits, so parsed-query rewriting is not needed here.
-                    // DlsFlsFilterLeafReader sees the hybrid value on OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE and
-                    // retains the existing reader-level DLS behavior for aggregations, suggestions, and other paths.
+                    // The dedicated marker keeps reader-level DLS active for aggregations, suggestions, and other paths.
                     // This check intentionally follows the star-tree safeguard above.
                     log.trace("handleSearchContext(): DLS is applied to the hybrid query; preserving reader-level DLS");
                     return;
