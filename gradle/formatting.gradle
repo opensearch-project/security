@@ -22,7 +22,7 @@ allprojects {
 			)
 			removeUnusedImports()
 			if (runningSpotlessTask) {
-				eclipse().withP2Mirrors(Map.of("https://download.eclipse.org/", "https://ci.opensearch.org/")).configFile rootProject.file('formatter/formatterConfig.xml')
+				eclipse('4.29').withP2Mirrors(Map.of("https://download.eclipse.org/", "https://ci.opensearch.org/")).configFile rootProject.file('formatter/formatterConfig.xml')
 			}
 			trimTrailingWhitespace()
 			endWithNewline();
