@@ -16,6 +16,7 @@ import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -30,6 +31,17 @@ public class PortAllocatorTests {
         allocator.release("first-cluster");
 
         assertThat(allocator.allocateSingle("second-cluster", allocatedPort), is(allocatedPort));
+    }
+
+    @Test
+    public void retainsCollisionReservationsWhenClusterPortsAreReleased() {
+        PortAllocator allocator = new PortAllocator(SocketUtils.SocketType.TCP, Duration.ofMinutes(1));
+        int collisionPort = allocator.allocateSingle("first-cluster", 50000);
+
+        allocator.reserve(collisionPort);
+        allocator.release("first-cluster");
+
+        assertThat(allocator.allocateSingle("second-cluster", collisionPort), is(not(collisionPort)));
     }
 
     @Test

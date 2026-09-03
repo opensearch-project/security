@@ -113,7 +113,7 @@ public class PortAllocator {
     public synchronized void reserve(int... ports) {
 
         for (int port : ports) {
-            allocate("reserved", port);
+            allocatedPorts.put(port, new AllocatedPort("reserved"));
         }
     }
 
