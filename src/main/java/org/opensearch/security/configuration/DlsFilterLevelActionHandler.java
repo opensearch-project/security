@@ -321,8 +321,9 @@ public class DlsFilterLevelActionHandler {
             if (originalSubqueries.isEmpty()) {
                 throw new OpenSearchSecurityException("Hybrid query does not expose subqueries for DLS verification");
             }
+            List<OriginalSubqueryState> originalSubqueryStates = snapshotOriginalSubqueries(originalSubqueries);
             Set<BoolQueryBuilder> boolQueriesWithImplicitMinimumShouldMatch = findBoolQueriesWithImplicitMinimumShouldMatch(
-                originalSubqueries
+                originalSubqueryStates
             );
             // Hybrid queries must remain top-level, so apply filter level DLS query directly
             QueryBuilder filteredHybridQuery = query.filter(filterLevelQueryBuilder);
@@ -333,7 +334,7 @@ public class DlsFilterLevelActionHandler {
                 throw new OpenSearchSecurityException("Hybrid query was not preserved after applying the DLS filter");
             }
             preserveImplicitMinimumShouldMatch(boolQueriesWithImplicitMinimumShouldMatch, filterLevelQueryBuilder);
-            if (!isDlsFilterAppliedToEverySubquery(filteredHybridQuery, filterLevelQueryBuilder, originalSubqueries)) {
+            if (!isDlsFilterAppliedToEverySubquery(filteredHybridQuery, filterLevelQueryBuilder, originalSubqueryStates)) {
                 throw new OpenSearchSecurityException("Hybrid query did not apply the DLS filter to every subquery");
             }
             searchSource.query(filteredHybridQuery);
@@ -364,11 +365,14 @@ public class DlsFilterLevelActionHandler {
 
     /**
      * Neural Search is an optional plugin, so Security identifies its hybrid query through the public query type name
-     * instead of depending on its query builder class. {@link QueryBuilder#getName()} is OpenSearch's unique query type
-     * identifier. A query builder registered as {@code hybrid} must expose every execution branch through its visitor.
-     * Security verifies after filtering that the identity-based multiset of branches is unchanged and that each branch
-     * preserves one original query while placing the exact supplied DLS query in a conjunctive boolean filter clause.
-     * Branch order is deliberately ignored. Reader-level DLS remains active whenever this special path is selected.
+     * instead of depending on its query builder class. A query builder registered as {@code hybrid} must expose every
+     * execution branch through {@link QueryBuilder#visit(QueryBuilderVisitor)}, and a branch which stores a filter must
+     * expose that filter as a direct {@link BooleanClause.Occur#FILTER} child. Security relies on
+     * {@link QueryBuilder#filter(QueryBuilder)} to preserve query semantics, pairs every filtered branch with one
+     * original branch, and verifies that the exact supplied DLS query was stored. Builders which return filtered copies
+     * are paired in the stable order required by the hybrid query contract. Other builders return or remain a
+     * conjunctive boolean query which contains the original branch and the DLS query. Reader-level DLS remains active
+     * whenever this special path is selected.
      */
     static boolean isHybridQuery(QueryBuilder query) {
         return query != null && HYBRID_QUERY_NAME.equals(query.getName());
@@ -377,37 +381,67 @@ public class DlsFilterLevelActionHandler {
     private static boolean isDlsFilterAppliedToEverySubquery(
         QueryBuilder filteredHybridQuery,
         QueryBuilder filterLevelQueryBuilder,
-        List<QueryBuilder> originalSubqueries
+        List<OriginalSubqueryState> originalSubqueryStates
     ) {
         List<QueryBuilder> filteredSubqueries = directSubqueries(filteredHybridQuery);
-        if (filteredSubqueries.size() != originalSubqueries.size()) {
+        if (filteredSubqueries.size() != originalSubqueryStates.size()) {
             return false;
         }
 
-        Map<QueryBuilder, Integer> unmatchedOriginalSubqueries = new IdentityHashMap<>();
-        originalSubqueries.forEach(originalSubquery -> unmatchedOriginalSubqueries.merge(originalSubquery, 1, Integer::sum));
+        List<OriginalSubqueryState> unmatchedOriginalSubqueries = new ArrayList<>(originalSubqueryStates);
         for (QueryBuilder filteredSubquery : filteredSubqueries) {
-            QueryBuilder preservedOriginalSubquery = null;
-            for (Map.Entry<QueryBuilder, Integer> entry : unmatchedOriginalSubqueries.entrySet()) {
-                QueryBuilder originalSubquery = entry.getKey();
-                if (entry.getValue() > 0 && isDlsFilterAppliedToSubquery(filteredSubquery, originalSubquery, filterLevelQueryBuilder)) {
-                    if (preservedOriginalSubquery != null) {
+            OriginalSubqueryState preservedOriginalSubquery = null;
+            int preservedOriginalSubqueryIndex = -1;
+            for (int i = 0; i < unmatchedOriginalSubqueries.size(); i++) {
+                OriginalSubqueryState originalSubquery = unmatchedOriginalSubqueries.get(i);
+                if (isDlsFilterAppliedStructurally(filteredSubquery, originalSubquery.query(), filterLevelQueryBuilder)) {
+                    if (preservedOriginalSubquery != null && preservedOriginalSubquery.query() != originalSubquery.query()) {
                         // A filtered branch must not merge multiple original hybrid execution branches.
                         return false;
                     }
                     preservedOriginalSubquery = originalSubquery;
+                    preservedOriginalSubqueryIndex = i;
+                }
+            }
+            if (preservedOriginalSubquery == null) {
+                for (int i = 0; i < unmatchedOriginalSubqueries.size(); i++) {
+                    OriginalSubqueryState originalSubquery = unmatchedOriginalSubqueries.get(i);
+                    if (isSameQueryType(filteredSubquery, originalSubquery.query())
+                        && isEmbeddedDlsFilterApplied(filteredSubquery, originalSubquery, filterLevelQueryBuilder)) {
+                        preservedOriginalSubquery = originalSubquery;
+                        preservedOriginalSubqueryIndex = i;
+                        // Filtered copies cannot be matched by identity, so retain the hybrid builder's stable order.
+                        break;
+                    }
                 }
             }
             if (preservedOriginalSubquery == null) {
                 return false;
             }
-            preserveQueryMetadata(filteredSubquery, preservedOriginalSubquery);
-            unmatchedOriginalSubqueries.computeIfPresent(preservedOriginalSubquery, (query, count) -> count - 1);
+            preserveQueryMetadata(filteredSubquery, preservedOriginalSubquery.query());
+            preserveEmbeddedFilterMetadata(filteredSubquery, preservedOriginalSubquery);
+            unmatchedOriginalSubqueries.remove(preservedOriginalSubqueryIndex);
         }
-        return true;
+        return unmatchedOriginalSubqueries.isEmpty();
     }
 
-    private static boolean isDlsFilterAppliedToSubquery(
+    private static boolean isEmbeddedDlsFilterApplied(
+        QueryBuilder filteredSubquery,
+        OriginalSubqueryState originalSubquery,
+        QueryBuilder filterLevelQueryBuilder
+    ) {
+        List<QueryBuilder> filteredEmbeddedFilters = directFilters(filteredSubquery);
+        if (filteredEmbeddedFilters.size() != 1 || originalSubquery.embeddedFilters().size() > 1) {
+            return false;
+        }
+        QueryBuilder filteredEmbeddedFilter = filteredEmbeddedFilters.get(0);
+        if (originalSubquery.embeddedFilters().isEmpty()) {
+            return filteredEmbeddedFilter == filterLevelQueryBuilder;
+        }
+        return isDlsFilterAppliedStructurally(filteredEmbeddedFilter, originalSubquery.embeddedFilters().get(0), filterLevelQueryBuilder);
+    }
+
+    private static boolean isDlsFilterAppliedStructurally(
         QueryBuilder filteredSubquery,
         QueryBuilder originalSubquery,
         QueryBuilder filterLevelQueryBuilder
@@ -418,7 +452,7 @@ public class DlsFilterLevelActionHandler {
         }
         if (filteredSubquery instanceof ConstantScoreQueryBuilder filteredConstantScore
             && originalSubquery instanceof ConstantScoreQueryBuilder originalConstantScore) {
-            return isDlsFilterAppliedToSubquery(
+            return isDlsFilterAppliedStructurally(
                 filteredConstantScore.innerQuery(),
                 originalConstantScore.innerQuery(),
                 filterLevelQueryBuilder
@@ -427,7 +461,7 @@ public class DlsFilterLevelActionHandler {
         return false;
     }
 
-    private static Set<BoolQueryBuilder> findBoolQueriesWithImplicitMinimumShouldMatch(List<QueryBuilder> originalSubqueries) {
+    private static Set<BoolQueryBuilder> findBoolQueriesWithImplicitMinimumShouldMatch(List<OriginalSubqueryState> originalSubqueries) {
         Set<BoolQueryBuilder> boolQueriesWithImplicitMinimumShouldMatch = Collections.newSetFromMap(new IdentityHashMap<>());
         QueryBuilderVisitor visitor = new QueryBuilderVisitor() {
             @Override
@@ -446,7 +480,9 @@ public class DlsFilterLevelActionHandler {
                 return this;
             }
         };
-        originalSubqueries.forEach(queryBuilder -> queryBuilder.visit(visitor));
+        for (OriginalSubqueryState originalSubquery : originalSubqueries) {
+            originalSubquery.query().visit(visitor);
+        }
         return boolQueriesWithImplicitMinimumShouldMatch;
     }
 
@@ -463,14 +499,49 @@ public class DlsFilterLevelActionHandler {
         }
     }
 
-    // ConstantScoreQueryBuilder.filter can return a new builder without copying its boost or query name.
+    private static void preserveEmbeddedFilterMetadata(QueryBuilder filteredSubquery, OriginalSubqueryState originalSubquery) {
+        List<QueryBuilder> filteredEmbeddedFilters = directFilters(filteredSubquery);
+        if (originalSubquery.embeddedFilters().size() == 1 && filteredEmbeddedFilters.size() == 1) {
+            preserveQueryMetadata(filteredEmbeddedFilters.get(0), originalSubquery.embeddedFilters().get(0));
+        }
+    }
+
+    // ConstantScoreQueryBuilder.filter can return a new builder without copying its boost or query name. This applies
+    // both to hybrid subqueries and to filters embedded in plugin query builders.
     private static void preserveQueryMetadata(QueryBuilder filteredSubquery, QueryBuilder originalSubquery) {
         if (filteredSubquery instanceof ConstantScoreQueryBuilder filteredConstantScore
             && originalSubquery instanceof ConstantScoreQueryBuilder originalConstantScore) {
             filteredConstantScore.boost(originalConstantScore.boost());
             filteredConstantScore.queryName(originalConstantScore.queryName());
             preserveQueryMetadata(filteredConstantScore.innerQuery(), originalConstantScore.innerQuery());
+        } else if (filteredSubquery != originalSubquery && isSameQueryType(filteredSubquery, originalSubquery)) {
+            filteredSubquery.boost(originalSubquery.boost());
+            filteredSubquery.queryName(originalSubquery.queryName());
         }
+    }
+
+    private static List<OriginalSubqueryState> snapshotOriginalSubqueries(List<QueryBuilder> originalSubqueries) {
+        List<OriginalSubqueryState> result = new ArrayList<>(originalSubqueries.size());
+        for (QueryBuilder originalSubquery : originalSubqueries) {
+            result.add(new OriginalSubqueryState(originalSubquery, directFilters(originalSubquery)));
+        }
+        return result;
+    }
+
+    private static boolean isSameQueryType(QueryBuilder first, QueryBuilder second) {
+        return first != null
+            && second != null
+            && first.getClass() == second.getClass()
+            && Objects.equals(first.getName(), second.getName());
+    }
+
+    private record OriginalSubqueryState(QueryBuilder query, List<QueryBuilder> embeddedFilters) {
+    }
+
+    private static List<QueryBuilder> directFilters(QueryBuilder query) {
+        List<QueryBuilder> directFilters = new ArrayList<>();
+        query.visit(new DirectFilterCollector(directFilters, false));
+        return directFilters;
     }
 
     private static List<QueryBuilder> directSubqueries(QueryBuilder query) {
@@ -498,6 +569,31 @@ public class DlsFilterLevelActionHandler {
         @Override
         public QueryBuilderVisitor getChildVisitor(BooleanClause.Occur occur) {
             return collect ? QueryBuilderVisitor.NO_OP_VISITOR : new DirectSubqueryCollector(directSubqueries, true);
+        }
+    }
+
+    private static final class DirectFilterCollector implements QueryBuilderVisitor {
+        private final List<QueryBuilder> directFilters;
+        private final boolean collect;
+
+        private DirectFilterCollector(List<QueryBuilder> directFilters, boolean collect) {
+            this.directFilters = directFilters;
+            this.collect = collect;
+        }
+
+        @Override
+        public void accept(QueryBuilder queryBuilder) {
+            if (collect) {
+                directFilters.add(queryBuilder);
+            }
+        }
+
+        @Override
+        public QueryBuilderVisitor getChildVisitor(BooleanClause.Occur occur) {
+            if (collect || occur != BooleanClause.Occur.FILTER) {
+                return QueryBuilderVisitor.NO_OP_VISITOR;
+            }
+            return new DirectFilterCollector(directFilters, true);
         }
     }
 
