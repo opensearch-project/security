@@ -39,6 +39,7 @@ import io.netty.handler.codec.http2.HttpConversionUtil;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.resolver.DefaultAddressResolverGroup;
+import io.netty.util.ReferenceCountUtil;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.Http11SslContextSpec;
@@ -66,6 +67,7 @@ public class ReactorHttpClient implements Closeable {
         Settings settings,
         InetSocketAddress remoteAddress
     ) {
+        validateProtocol(protocol, secure);
         this.compression = compression;
         this.secure = secure;
         this.protocol = protocol;
@@ -128,13 +130,30 @@ public class ReactorHttpClient implements Closeable {
                         )
                 );
 
-            if (ordered == false) {
-                return responses.flatMap(response -> response, parallelism).collectList().block(Duration.ofMinutes(2));
-            } else {
-                return responses.concatMap(response -> response).collectList().block(Duration.ofMinutes(2));
-            }
+            return collectResponses(responses, ordered, parallelism);
         } finally {
             eventLoopGroup.shutdownGracefully().awaitUninterruptibly();
+        }
+    }
+
+    static List<FullHttpResponse> collectResponses(Flux<Mono<FullHttpResponse>> responses, boolean ordered, int parallelism) {
+        Flux<FullHttpResponse> responseFlux = ordered
+            ? responses.concatMap(response -> response)
+            : responses.flatMap(response -> response, parallelism);
+
+        return responseFlux.collectList().doOnDiscard(FullHttpResponse.class, ReferenceCountUtil::release).block(Duration.ofMinutes(2));
+    }
+
+    private static void validateProtocol(HttpProtocol protocol, boolean secure) {
+        if (protocol == null) {
+            throw new IllegalArgumentException("protocol must not be null");
+        }
+
+        boolean supported = secure
+            ? protocol == HttpProtocol.HTTP11 || protocol == HttpProtocol.H2 || protocol == HttpProtocol.HTTP3
+            : protocol == HttpProtocol.HTTP11 || protocol == HttpProtocol.H2C;
+        if (supported == false) {
+            throw new IllegalArgumentException("Protocol " + protocol + " is not compatible with secure=" + secure);
         }
     }
 
