@@ -140,6 +140,13 @@ public class RolesApiAction extends AbstractApiAction {
         return CType.ROLES;
     }
 
+    @Override
+    protected boolean supportsAsync() {
+        // Enabled per issue #6337: role writes fan out to every node and are exactly the shape
+        // (index write + cluster reload) that benefits from the task framework.
+        return true;
+    }
+
     private void rolesApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
     }
