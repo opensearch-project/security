@@ -31,7 +31,8 @@ public class ResourceSharingDlsUtils {
     public static IndexToRuleMap<DlsRestriction> resourceRestrictions(
         NamedXContentRegistry xContentRegistry,
         Collection<String> resolvedIndices,
-        User user
+        User user,
+        ResourcePluginInfo resourcePluginInfo
     ) {
 
         List<String> principals = new ArrayList<>();
@@ -46,6 +47,17 @@ public class ResourceSharingDlsUtils {
         // Backend roles (LDAP/SAML/etc)
         if (user.getRoles() != null) {
             user.getRoles().forEach(br -> principals.add("backend:" + br));
+        }
+
+        // Workspace principals: the workspaces this user can access, added as workspace:<id> so they intersect the
+        // workspace:<id> principals denormalized onto resources that belong to those workspaces (see
+        // ResourceSharing#getAllPrincipals). The membership comes from ResourceSharingExtension.resolveWorkspacesForUser,
+        // whose SPI contract requires the source to be trusted (server-set, not user-assertable) and I/O-free — see
+        // that interface's javadoc. If no extension implements the resolver, this contributes nothing, which is safe.
+        if (resourcePluginInfo != null) {
+            for (String workspaceId : resourcePluginInfo.resolveWorkspacesForUser(user)) {
+                principals.add("workspace:" + workspaceId);
+            }
         }
 
         XContentBuilder builder = null;
@@ -68,4 +80,5 @@ public class ResourceSharingDlsUtils {
         }
         return new IndexToRuleMap<>(mapBuilder.build());
     }
+
 }

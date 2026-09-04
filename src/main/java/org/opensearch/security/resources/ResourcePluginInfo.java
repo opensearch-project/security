@@ -149,6 +149,38 @@ public class ResourcePluginInfo {
     }
 
     /**
+     * Extracts <em>all</em> values of a (potentially multi-valued) field from the Lucene document backing an
+     * {@link Engine.Index} operation. This is the multi-value counterpart of {@link #extractFieldFromIndexOp(String, Engine.Index)}:
+     * where that method stops at the first value (single-valued fields such as a parent id), this method collects
+     * every {@link IndexableField} instance registered under {@code fieldName}, which is how a mapped
+     * {@code keyword} array surfaces on the parsed document (one {@link IndexableField} per array element).
+     *
+     * <p>Used to read the set of workspace IDs a resource belongs to (see {@link ResourceProvider#workspacesField()}),
+     * since a resource may belong to multiple workspaces.
+     *
+     * <p><b>Spike caveat:</b> {@link IndexableField#stringValue()}/{@link IndexableField#binaryValue()} only return a
+     * value when the field is materialized on the parsed document (stored or indexed with a retrievable value). A
+     * {@code keyword} array mapped normally qualifies (this reuses the exact retrieval path {@code parentIdField} relies
+     * on), but a {@code doc_values}-only mapping may not surface here. This needs an integration-test spike against the
+     * real saved-object mapping before being relied upon.
+     *
+     * @param fieldName the name of the multi-valued field to extract; must not be {@code null}
+     * @param indexOp   the index operation whose parsed document will be inspected; must not be {@code null}
+     * @return the set of non-{@code null} string (or UTF-8-decoded binary) values of the field; empty if none exist
+     */
+    public static Set<String> extractMultiValuedFieldFromIndexOp(String fieldName, Engine.Index indexOp) {
+        Set<String> values = new HashSet<>();
+        for (IndexableField f : indexOp.parsedDoc().rootDoc().getFields(fieldName)) {
+            if (f.stringValue() != null) {
+                values.add(f.stringValue());
+            } else if (f.binaryValue() != null) { // e.g., BytesRef-backed
+                values.add(f.binaryValue().utf8ToString());
+            }
+        }
+        return values;
+    }
+
+    /**
      * Resolves the resource type for the given index operation and resource index.
      * <p>
      * The method iterates over every registered {@link ResourceProvider} whose resource index name
@@ -190,6 +222,35 @@ public class ResourcePluginInfo {
 
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
         return ImmutableSet.copyOf(resourceSharingExtensions);
+    }
+
+    /**
+     * Aggregates {@link ResourceSharingExtension#resolveWorkspacesForUser} across every registered extension into a
+     * single trusted set of workspace IDs for the user. Empty if no extension contributes any. Called on the DLS hot
+     * path — each extension's implementation is required by contract to be I/O-free.
+     *
+     * @param user the authenticated user
+     * @return the union of workspace IDs contributed by all registered extensions
+     */
+    public Set<String> resolveWorkspacesForUser(org.opensearch.security.user.User user) {
+        lock.readLock().lock();
+        try {
+            if (resourceSharingExtensions.isEmpty()) {
+                return java.util.Collections.emptySet();
+            }
+            Set<String> securityRoles = user.getSecurityRoles() == null ? java.util.Collections.emptySet() : user.getSecurityRoles();
+            Set<String> backendRoles = user.getRoles() == null ? java.util.Collections.emptySet() : user.getRoles();
+            Set<String> merged = new HashSet<>();
+            for (ResourceSharingExtension extension : resourceSharingExtensions) {
+                Set<String> contributed = extension.resolveWorkspacesForUser(user.getName(), securityRoles, backendRoles);
+                if (contributed != null && !contributed.isEmpty()) {
+                    merged.addAll(contributed);
+                }
+            }
+            return merged;
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public void setResourceSharingClient(ResourceSharingClient resourceAccessControlClient) {

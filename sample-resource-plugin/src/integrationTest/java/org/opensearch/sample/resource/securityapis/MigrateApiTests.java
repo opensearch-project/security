@@ -180,7 +180,7 @@ public class MigrateApiTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 2; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
             );
             assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
         }
@@ -215,7 +215,7 @@ public class MigrateApiTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 2; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
             );
             assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
 
@@ -247,7 +247,7 @@ public class MigrateApiTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 2; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
             );
             assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
 
@@ -273,7 +273,7 @@ public class MigrateApiTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 0; skippedNoType 0; skippedExisting 2; failed 0")
+                equalTo("Migration complete. migrated 0; backfilledExisting 0; skippedNoType 0; skippedExisting 2; failed 0")
             );
             assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
 
@@ -295,6 +295,86 @@ public class MigrateApiTests {
     }
 
     @Test
+    public void testLiveIndexingProjectsWorkspacePrincipals() {
+        // Steady-state: creating a resource with a workspaces field must trigger ResourceIndexListener to
+        // extract the (multi-valued) workspaces from the parsed doc via extractMultiValuedFieldFromIndexOp and
+        // project workspace:<id> into all_shared_principals on the resource doc and workspaces on the sharing
+        // record -- with no migrate call. This is what empirically answers the Lucene getFields()
+        // materialization question for the sample plugin's mapping.
+        String resourceId = createSampleResourceWithWorkspaces("ws-a", "ws-b");
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            // The sharing record carries the workspaces field.
+            TestRestClient.HttpResponse sharingDoc = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+            sharingDoc.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode ws = (ArrayNode) sharingDoc.bodyAsJsonNode().get("_source").get("workspaces");
+            List<String> workspaceIds = new ArrayList<>();
+            ws.forEach(n -> workspaceIds.add(n.asString()));
+            assertThat(workspaceIds, containsInAnyOrder("ws-a", "ws-b"));
+
+            // all_shared_principals on the resource doc includes workspace:<id>.
+            TestRestClient.HttpResponse resourceDoc = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+            resourceDoc.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode principals = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("all_shared_principals");
+            List<String> principalList = new ArrayList<>();
+            principals.forEach(n -> principalList.add(n.asString()));
+            assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName(), "workspace:ws-a", "workspace:ws-b"));
+        }
+    }
+
+    @Test
+    public void testMigrateBackfillsWorkspacesOntoExistingRecord() {
+        // A resource whose sharing record already exists (created at resource-creation time) but which has
+        // since gained workspace membership on its source doc. Migration should not re-create the record; it
+        // should backfill the workspaces field and refresh all_shared_principals.
+        String resourceId = createSampleResource();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            // Add workspace membership to the resource's source doc (an _update, so no new sharing record is
+            // created). The existing sharing record stays workspace-blind until migration backfills it.
+            TestRestClient.HttpResponse update = client.postJson(
+                RESOURCE_INDEX_NAME + "/_update/" + resourceId + "?refresh=true",
+                "{ \"doc\": { \"workspaces\": [\"ws-a\", \"ws-b\"] } }"
+            );
+            update.assertStatusCode(HttpStatus.SC_OK);
+
+            // Migrate without clearing: the record exists, so create is skipped; the source doc now has
+            // workspaces, so it is backfilled rather than skipped.
+            TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
+            migrateResponse.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(
+                migrateResponse.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 0; backfilledExisting 1; skippedNoType 0; skippedExisting 0; failed 0")
+            );
+
+            // The sharing record now carries the workspaces field.
+            TestRestClient.HttpResponse sharingDoc = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+            sharingDoc.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode ws = (ArrayNode) sharingDoc.bodyAsJsonNode().get("_source").get("workspaces");
+            List<String> workspaceIds = new ArrayList<>();
+            ws.forEach(n -> workspaceIds.add(n.asString()));
+            assertThat(workspaceIds, containsInAnyOrder("ws-a", "ws-b"));
+
+            // all_shared_principals on the resource doc now includes the workspace:<id> principals so DLS can
+            // grant visibility via workspace membership.
+            TestRestClient.HttpResponse resourceDoc = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+            resourceDoc.assertStatusCode(HttpStatus.SC_OK);
+            ArrayNode principals = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("all_shared_principals");
+            List<String> principalList = new ArrayList<>();
+            principals.forEach(n -> principalList.add(n.asString()));
+            assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName(), "workspace:ws-a", "workspace:ws-b"));
+
+            // Idempotency: a second migrate with the same workspaces adds nothing new (skipped, not backfilled).
+            TestRestClient.HttpResponse secondMigrate = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
+            secondMigrate.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(
+                secondMigrate.bodyAsMap().get("summary"),
+                equalTo("Migration complete. migrated 0; backfilledExisting 0; skippedNoType 0; skippedExisting 1; failed 0")
+            );
+        }
+    }
+
+    @Test
     public void testMigrateAPIWithSuperAdmin_valid_withSpecifiedAccessLevel() {
         String resourceId = createSampleResource();
         String resourceIdNoUser = createSampleResourceNoUser();
@@ -308,7 +388,7 @@ public class MigrateApiTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 2; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
             );
             assertThat(migrateResponse.bodyAsMap().get("resourcesWithDefaultOwner"), equalTo(List.of(resourceIdNoUser)));
 
@@ -395,7 +475,7 @@ public class MigrateApiTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 2; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
             );
 
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
@@ -645,7 +725,7 @@ public class MigrateApiTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 1; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 1; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
             );
 
             // The sharing record should be created with the garbage parent_id stored as-is
@@ -681,7 +761,7 @@ public class MigrateApiTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 2; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 2; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
             );
 
             // Verify the sharing record for the resource has parent_type and parent_id set
@@ -757,6 +837,26 @@ public class MigrateApiTests {
 
             Awaitility.await()
                 .alias("Wait until resource data is populated")
+                .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
+            return resourceId;
+        }
+    }
+
+    private String createSampleResourceWithWorkspaces(String... workspaceIds) {
+        try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
+            StringBuilder wsArray = new StringBuilder("[");
+            for (int i = 0; i < workspaceIds.length; i++) {
+                if (i > 0) wsArray.append(",");
+                wsArray.append("\"").append(workspaceIds[i]).append("\"");
+            }
+            wsArray.append("]");
+            String sampleResource = ("{\"name\":\"sample_ws\",\"store_user\":true,\"workspaces\":" + wsArray + "}");
+
+            TestRestClient.HttpResponse response = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sampleResource);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            String resourceId = response.getTextFromJsonBody("/message").split(":")[1].trim();
+            Awaitility.await()
+                .alias("Wait until resource with workspaces is populated")
                 .until(() -> client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId).getStatusCode(), equalTo(200));
             return resourceId;
         }

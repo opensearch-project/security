@@ -129,6 +129,13 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 if (parentType != null) {
                     builder.parentType(parentType).parentId(parentId);
                 }
+                // Workspace-aware sharing: if the provider declares a workspaces field, read the (multi-valued)
+                // set of workspace IDs off the indexed document and stamp them onto the sharing record. These are
+                // projected into all_shared_principals as workspace:<id> so DLS can grant access via workspace
+                // membership. Providers that don't declare workspacesField() are unaffected (additive).
+                if (provider.workspacesField() != null) {
+                    builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
+                }
                 this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, builder.build(), listener);
             } catch (IOException e) {
                 log.warn("Failed to create a resource sharing entry for resource: {}", resourceId, e);
@@ -175,15 +182,20 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 );
                 return;
             }
-            ResourceSharing sharingInfo = ResourceSharing.builder()
+            ResourceSharing.Builder childBuilder = ResourceSharing.builder()
                 .resourceId(resourceId)
                 .resourceType(resourceType)
                 .tenant(parentSharing.getTenant())
                 .createdBy(parentSharing.getCreatedBy())
                 .parentType(parentType)
-                .parentId(parentId)
-                .build();
-            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, listener);
+                .parentId(parentId);
+            // Workspace-aware sharing: read the child's own (multi-valued) workspaces field off the indexed
+            // document, if the provider declares one, so its workspace:<id> principals are denormalized just as
+            // on the authenticated-user path. Ownership is still inherited from the parent above.
+            if (provider.workspacesField() != null) {
+                childBuilder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
+            }
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, childBuilder.build(), listener);
         },
             e -> log.warn(
                 "Failed to create a resource sharing entry for child resource {} in index {}: could not fetch parent {} sharing record: {}",

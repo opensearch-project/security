@@ -11,6 +11,8 @@
 
 package org.opensearch.sample;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.opensearch.sample.client.ResourceSharingClientAccessor;
@@ -54,11 +56,36 @@ public class SampleResourceExtension implements ResourceSharingExtension {
             public String parentIdField() {
                 return "group_id";
             }
+
+            @Override
+            public String workspacesField() {
+                return "workspaces";
+            }
         });
     }
 
     @Override
     public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
         ResourceSharingClientAccessor.getInstance().setResourceSharingClient(resourceSharingClient);
+    }
+
+    /**
+     * Test-only workspace-membership resolver. Maps a user's <em>security roles</em> to a deterministic workspace ID
+     * ({@code ws-<role>}), simulating a trusted server-set source. Roles are resolved by the security plugin at
+     * authc time, so they are not user-assertable — matching the SPI contract.
+     *
+     * <p>A real workspace-owning plugin would replace this with a lookup against its own authoritative store
+     * (populated at authc time or cached in memory), never with values derived from user-influenceable inputs.
+     */
+    @Override
+    public Set<String> resolveWorkspacesForUser(String username, Set<String> securityRoles, Set<String> backendRoles) {
+        if (securityRoles == null || securityRoles.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> workspaces = new HashSet<>();
+        for (String role : securityRoles) {
+            workspaces.add("ws-" + role);
+        }
+        return workspaces;
     }
 }
