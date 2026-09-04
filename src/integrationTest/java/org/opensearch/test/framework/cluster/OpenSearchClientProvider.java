@@ -234,7 +234,7 @@ public interface OpenSearchClientProvider {
      * Returns a generic HTTP/1.1/HTTP 2.0/HTTP 3.0 client.
      */
     default ReactorHttpClient getGenericClient(HttpProtocol protocol, boolean secure, Settings settings) {
-        return new ReactorHttpClient(true, true, settings, getHttpAddress());
+        return new ReactorHttpClient(protocol, true, secure, settings, getHttpAddress());
     }
 
     default TestRestClient getRestClient(Header... headers) {
