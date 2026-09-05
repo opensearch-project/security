@@ -126,6 +126,7 @@ import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.plugins.SecureHttpTransportSettingsProvider;
 import org.opensearch.plugins.SecureSettingsFactory;
 import org.opensearch.plugins.SecureTransportSettingsProvider;
@@ -217,6 +218,7 @@ import org.opensearch.security.rest.SecurityInfoAction;
 import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.rest.TenantInfoAction;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
+import org.opensearch.security.securityconf.DynamicConfigSecrets;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
@@ -285,7 +287,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         MapperPlugin,
         IdentityPlugin,
         ExtensionAwarePlugin,
-        ExtensiblePlugin
+        ExtensiblePlugin,
+        ReloadablePlugin
 
 {
 
@@ -316,6 +319,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile Client localClient;
     private final boolean disabled;
     private final Settings pluginSettings;
+    private final DynamicConfigSecrets dynamicConfigSecrets;
     private volatile SecurityTokenManager tokenManager;
     private volatile DynamicConfigFactory dcf;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
@@ -348,6 +352,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public void close() throws IOException {
         super.close();
+        dynamicConfigSecrets.close();
         if (auditLog != null) {
             auditLog.close();
         }
@@ -605,6 +610,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         super(settings, configPath, isDisabled(settings));
 
         this.pluginSettings = settings;
+        this.dynamicConfigSecrets = new DynamicConfigSecrets(settings);
         disabled = isDisabled(settings);
         sslCertReloadEnabled = isSslCertReloadEnabled(settings);
 
@@ -1702,7 +1708,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher, apiTokenRepository);
+        dcf = new DynamicConfigFactory(
+            cr,
+            settings,
+            configPath,
+            localClient,
+            threadPool,
+            cih,
+            passwordHasher,
+            apiTokenRepository,
+            dynamicConfigSecrets
+        );
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(xffResolver);
@@ -1818,6 +1834,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.addAll(super.getSettings());
+        settings.add(DynamicConfigSecrets.SETTING);
 
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
@@ -2747,6 +2764,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         return settings;
+    }
+
+    @Override
+    public void reload(Settings settings) {
+        dynamicConfigSecrets.reload(settings, () -> {
+            DynamicConfigFactory currentDynamicConfigFactory = dcf;
+            if (currentDynamicConfigFactory != null && currentDynamicConfigFactory.isInitialized()) {
+                currentDynamicConfigFactory.reloadFromCurrentConfiguration();
+            }
+        });
     }
 
     @Override
