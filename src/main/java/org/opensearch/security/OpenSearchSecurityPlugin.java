@@ -2789,7 +2789,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
             if (apiTokenRepository != null) {
-                apiTokenRepository.reloadApiTokensFromIndex(
+                apiTokenRepository.reloadApiTokensOnNodeStart(
                     ActionListener.wrap(
                         unused -> log.debug("API tokens loaded on node start"),
                         e -> log.warn("Failed to load API tokens on node start", e)
