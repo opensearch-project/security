@@ -162,4 +162,49 @@ public class InternalAuthBackendTests {
         verify(internalAuthenticationBackend, times(1)).passwordMatchesHash(hash, array);
         assert (ex.getMessage().contains("not found"));
     }
+
+    // -- userExists() -- pre-BCrypt early-notify gating ------------------------
+
+    @Test
+    public void userExistsReturnsTrueWhenUserPresent() {
+        // Backend reports "user present" so the caller skips the early-notify
+        // path and proceeds straight to authcz() / BCrypt.
+        when(internalUsersModel.exists("admin")).thenReturn(true);
+
+        java.util.Optional<Boolean> result = internalAuthenticationBackend.userExists("admin");
+        Assert.assertTrue("Optional.isPresent()", result.isPresent());
+        Assert.assertEquals("admin should exist", Boolean.TRUE, result.get());
+    }
+
+    @Test
+    public void userExistsReturnsFalseWhenUserAbsent() {
+        // The "user does not exist" path is the one that triggers
+        // BackendRegistry.earlyFailureNotified -- IP rate limiter increments
+        // BEFORE the (constant-time-anti-enumeration) BCrypt fires.
+        when(internalUsersModel.exists("ghost")).thenReturn(false);
+
+        java.util.Optional<Boolean> result = internalAuthenticationBackend.userExists("ghost");
+        Assert.assertTrue("Optional.isPresent()", result.isPresent());
+        Assert.assertEquals("ghost should not exist", Boolean.FALSE, result.get());
+    }
+
+    @Test
+    public void userExistsReturnsEmptyBeforeModelInitialized() {
+        // Early in startup / config reload the InternalUsersModel can be transiently
+        // null. userExists() must NOT throw (would crash the auth path) and must
+        // return Optional.empty so the caller skips the early-notify optimization
+        // and falls through to authenticate(). The local capture in the
+        // implementation is what makes this safe even if onInternalUsersModelChanged
+        // fires concurrently.
+        InternalAuthenticationBackend freshBackend = spy(
+            new InternalAuthenticationBackend(
+                PasswordHasherFactory.createPasswordHasher(
+                    Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+                )
+            )
+        );
+        // No onInternalUsersModelChanged() -- model stays null.
+        java.util.Optional<Boolean> result = freshBackend.userExists("anyone");
+        Assert.assertFalse("Optional.empty() before model init", result.isPresent());
+    }
 }
