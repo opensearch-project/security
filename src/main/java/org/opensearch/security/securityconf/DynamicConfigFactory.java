@@ -145,6 +145,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final ThreadPool threadPool;
     private final Client client;
     private final ApiTokenRepository apiTokenRepository;
+    private final DynamicConfigSecrets dynamicConfigSecrets;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -156,7 +157,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         ThreadPool threadPool,
         ClusterInfoHolder cih,
         PasswordHasher passwordHasher,
-        ApiTokenRepository apiTokenRepository
+        ApiTokenRepository apiTokenRepository,
+        DynamicConfigSecrets dynamicConfigSecrets
     ) {
         super();
         this.cr = cr;
@@ -167,6 +169,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.threadPool = threadPool;
         this.client = client;
         this.apiTokenRepository = apiTokenRepository;
+        this.dynamicConfigSecrets = dynamicConfigSecrets;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -274,7 +277,15 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         );
 
         // rebuild v7 Models
-        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih, apiTokenRepository);
+        dcm = new DynamicConfigModelV7(
+            getConfigV7(config),
+            opensearchSettings,
+            configPath,
+            iab,
+            this.cih,
+            apiTokenRepository,
+            dynamicConfigSecrets
+        );
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
 
         // notify subscribers
@@ -338,6 +349,10 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     @Override
     public boolean isInitialized() {
         return initialized.get();
+    }
+
+    public void reloadFromCurrentConfiguration() {
+        onChange(ConfigurationMap.EMPTY);
     }
 
     public void registerDCFListener(Object listener) {
