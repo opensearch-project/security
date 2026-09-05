@@ -2989,7 +2989,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         @Inject
         public GuiceHolder(
             final RepositoriesService repositoriesService,
-            final TransportService remoteClusterService,
+            final TransportService transportService,
             IndicesService indicesService,
             PitService pitService,
             ExtensionsManager extensionsManager,
@@ -2997,7 +2997,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             AuditLogImpl auditLog
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
-            GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
+            GuiceHolder.remoteClusterService = transportService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
