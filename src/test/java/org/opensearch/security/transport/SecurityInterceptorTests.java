@@ -22,8 +22,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.Version;
+import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsAction;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.opensearch.action.search.PitService;
+import org.opensearch.action.search.SearchAction;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
@@ -134,6 +136,7 @@ public class SecurityInterceptorTests {
     private AsyncSender jdkSerializedSender;
     private AsyncSender customSerializedSender;
     private AtomicReference<CountDownLatch> senderLatch = new AtomicReference<>(new CountDownLatch(1));
+    private boolean crossClusterSearchEnabled;
 
     @Before
     public void setup() {
@@ -145,6 +148,7 @@ public class SecurityInterceptorTests {
             .put("request.headers.default", "1")
             .build();
         threadPool = new ThreadPool(settings);
+        crossClusterSearchEnabled = false;
         securityInterceptor = new SecurityInterceptor(
             settings,
             threadPool,
@@ -157,8 +161,14 @@ public class SecurityInterceptorTests {
             clusterInfoHolder,
             sslConfig,
             () -> true,
-            new UserFactory.Simple()
-        );
+            new UserFactory.Simple(),
+            new RemoteClusterIdentityPolicy(false)
+        ) {
+            @Override
+            boolean isCrossClusterSearchEnabled() {
+                return crossClusterSearchEnabled;
+            }
+        };
 
         clusterName = ClusterName.DEFAULT;
         when(clusterService.getClusterName()).thenReturn(clusterName);
@@ -307,6 +317,31 @@ public class SecurityInterceptorTests {
         senderLatch.set(new CountDownLatch(1));
     }
 
+    private void enableCrossClusterSearch() {
+        crossClusterSearchEnabled = true;
+    }
+
+    @Test
+    public void testCrossClusterSearchStatusUsesRemoteClusterService() {
+        SecurityInterceptor interceptor = new SecurityInterceptor(
+            settings,
+            threadPool,
+            backendRegistry,
+            auditLog,
+            principalExtractor,
+            requestEvalProvider,
+            clusterService,
+            sslExceptionHandler,
+            clusterInfoHolder,
+            sslConfig,
+            () -> true,
+            new UserFactory.Simple(),
+            new RemoteClusterIdentityPolicy(false)
+        );
+
+        assertFalse(interceptor.isCrossClusterSearchEnabled());
+    }
+
     @Test
     public void testSendRequestDecorateLocalConnection() {
 
@@ -435,6 +470,8 @@ public class SecurityInterceptorTests {
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, "fake masked field header");
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER, "fake doc allowlist header");
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, "fake filter level dls header");
+        threadPool.getThreadContext()
+            .putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, "fake dls query filter applied header");
         threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER, "fake dls mode header");
         threadPool.getThreadContext()
             .putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER, "fake dls filter header");
@@ -446,6 +483,87 @@ public class SecurityInterceptorTests {
 
         // this is a local request
         completableRequestDecorate(sender, connection1, action, request, options, handler, localNode);
+    }
+
+    @Test
+    public void testHybridQueryDlsStateIsCopiedToLocalNodes() {
+        enableCrossClusterSearch();
+        String headerValue = "hybrid DLS query filter applied";
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, headerValue);
+        when(clusterInfoHolder.isInitialized()).thenReturn(true);
+        when(clusterInfoHolder.hasNode(localNode)).thenReturn(true);
+        when(clusterInfoHolder.hasNode(otherNode)).thenReturn(true);
+
+        AsyncSender headerVerifyingSender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                assertThat(
+                    threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED),
+                    is(headerValue)
+                );
+                senderLatch.get().countDown();
+            }
+        };
+
+        completableRequestDecorate(headerVerifyingSender, connection1, SearchAction.NAME, request, options, handler, localNode);
+        completableRequestDecorate(headerVerifyingSender, connection2, "internal:hybrid-follow-up", request, options, handler, localNode);
+    }
+
+    @Test
+    public void testHybridQueryDlsStateIsRemovedForRemoteCluster() {
+        enableCrossClusterSearch();
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(SearchAction.NAME);
+    }
+
+    @Test
+    public void testHybridQueryDlsStateIsRemovedForClusterSearchShardsAction() {
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(ClusterSearchShardsAction.NAME);
+    }
+
+    @Test
+    public void testHybridQueryDlsStateIsRemovedWhenCrossClusterSearchIsDisabled() {
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(SearchAction.NAME);
+    }
+
+    @Test
+    public void testHybridQueryDlsStateIsRemovedForNonSearchAction() {
+        assertHybridQueryDlsStateIsRemovedForUnrecognizedNode("internal:hybrid-follow-up");
+    }
+
+    @Test
+    public void testUnrecognizedNonSearchDestinationWithoutHybridMarkerUsesNormalHeaders() {
+        when(clusterInfoHolder.isInitialized()).thenReturn(true);
+        when(clusterInfoHolder.hasNode(remoteNode)).thenReturn(false);
+
+        completableRequestDecorate(jdkSerializedSender, connection3, action, request, options, handler, localNode);
+    }
+
+    private void assertHybridQueryDlsStateIsRemovedForUnrecognizedNode(String action) {
+        threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED, "true");
+        when(clusterInfoHolder.isInitialized()).thenReturn(true);
+        when(clusterInfoHolder.hasNode(remoteNode)).thenReturn(false);
+
+        AsyncSender headerVerifyingSender = new AsyncSender() {
+            @Override
+            public <T extends TransportResponse> void sendRequest(
+                Connection connection,
+                String action,
+                TransportRequest request,
+                TransportRequestOptions options,
+                TransportResponseHandler<T> handler
+            ) {
+                assertNull(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED));
+                senderLatch.get().countDown();
+            }
+        };
+
+        completableRequestDecorate(headerVerifyingSender, connection3, action, request, options, handler, localNode);
     }
 
     @Test

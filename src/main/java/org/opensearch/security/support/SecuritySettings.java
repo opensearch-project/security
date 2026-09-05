@@ -184,7 +184,7 @@ public class SecuritySettings {
     );
 
     // Dynamic compliance settings
-    private static final String COMPLIANCE_PREFIX = "plugins.security.audit.compliance.";
+    public static final String COMPLIANCE_PREFIX = "plugins.security.audit.compliance.";
 
     public static final Setting<Boolean> COMPLIANCE_ENABLED = Setting.boolSetting(
         COMPLIANCE_PREFIX + "enabled",
@@ -283,5 +283,13 @@ public class SecuritySettings {
     public static final Setting<Settings> AUDIT_ACTION_GROUPS = Setting.groupSetting(
         AUDIT_CONFIG_PREFIX + "action_groups.",
         Setting.Property.NodeScope
+    );
+
+    // CCS: ignore source-propagated security roles on the remote cluster
+    public static final Setting<Boolean> CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING = Setting.boolSetting(
+        ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES,
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
     );
 }

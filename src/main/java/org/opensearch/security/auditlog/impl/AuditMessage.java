@@ -143,6 +143,19 @@ public final class AuditMessage {
 
     public static final String SPLIT_MESSAGE_IDENTIFIER = "audit_split_message_id";
 
+    // Resource Sharing audit fields
+    public static final String RESOURCE_ID = "audit_resource_id";
+    public static final String RESOURCE_TYPE = "audit_resource_type";
+    public static final String RESOURCE_INDEX = "audit_resource_index";
+    public static final String RESOURCE_ACCESS_RESULT = "audit_resource_access_result";
+    public static final String RESOURCE_SHARING_ACTION = "audit_resource_sharing_action";
+    public static final String RESOURCE_SHARING_RESULT = "audit_resource_sharing_result";
+    public static final String RESOURCE_RECIPIENTS_ADDED = "audit_resource_recipients_added";
+    public static final String RESOURCE_RECIPIENTS_REVOKED = "audit_resource_recipients_revoked";
+    public static final String RESOURCE_SHARE_WITH = "audit_resource_share_with";
+
+    public static final String REQUEST_ID = "audit_request_id";
+
     // Audit field enrichment — high-value fields for investigability
     public static final String USER_AGENT = "audit_request_user_agent";
     public static final String USER_ROLES = "audit_request_user_roles";
@@ -176,6 +189,12 @@ public final class AuditMessage {
     public void addRemoteAddress(TransportAddress remoteAddress) {
         if (remoteAddress != null && remoteAddress.getAddress() != null) {
             auditInfo.put(REMOTE_ADDRESS, remoteAddress.getAddress());
+        }
+    }
+
+    public void addRequestId(String requestId) {
+        if (requestId != null && !requestId.isEmpty()) {
+            auditInfo.put(REQUEST_ID, requestId);
         }
     }
 
@@ -488,6 +507,62 @@ public final class AuditMessage {
     public void addSettingsChanges(List<Map<String, Object>> changes) {
         if (changes != null && !changes.isEmpty()) {
             auditInfo.put(SETTINGS_CHANGES, changes);
+        }
+    }
+
+    // --- Resource Sharing audit field setters ---
+
+    public void addResourceId(String resourceId) {
+        if (resourceId != null && !resourceId.isEmpty()) {
+            auditInfo.put(RESOURCE_ID, resourceId);
+        }
+    }
+
+    public void addResourceType(String resourceType) {
+        if (resourceType != null && !resourceType.isEmpty()) {
+            auditInfo.put(RESOURCE_TYPE, resourceType);
+        }
+    }
+
+    public void addResourceIndex(String resourceIndex) {
+        if (resourceIndex != null && !resourceIndex.isEmpty()) {
+            auditInfo.put(RESOURCE_INDEX, resourceIndex);
+        }
+    }
+
+    public void addResourceAccessResult(String result) {
+        if (result != null && !result.isEmpty()) {
+            auditInfo.put(RESOURCE_ACCESS_RESULT, result);
+        }
+    }
+
+    public void addResourceSharingAction(String action) {
+        if (action != null && !action.isEmpty()) {
+            auditInfo.put(RESOURCE_SHARING_ACTION, action);
+        }
+    }
+
+    public void addResourceSharingResult(String result) {
+        if (result != null && !result.isEmpty()) {
+            auditInfo.put(RESOURCE_SHARING_RESULT, result);
+        }
+    }
+
+    public void addResourceRecipientsAdded(String recipients) {
+        if (recipients != null && !recipients.isEmpty()) {
+            auditInfo.put(RESOURCE_RECIPIENTS_ADDED, recipients);
+        }
+    }
+
+    public void addResourceRecipientsRevoked(String recipients) {
+        if (recipients != null && !recipients.isEmpty()) {
+            auditInfo.put(RESOURCE_RECIPIENTS_REVOKED, recipients);
+        }
+    }
+
+    public void addResourceShareWith(String shareWith) {
+        if (shareWith != null && !shareWith.isEmpty()) {
+            auditInfo.put(RESOURCE_SHARE_WITH, shareWith);
         }
     }
 

@@ -1,0 +1,39 @@
+{
+  "**/*.*": [
+    " SPDX-License-Identifier: Apache-2.0"
+  ],
+  "ignore": [
+    ".md",
+    ".json",
+    ".yml",
+    ".yaml",
+    ".txt",
+    ".xml",
+    ".config",
+    ".png",
+    ".jar",
+    ".pem",
+    ".jks",
+    ".bcfks",
+    ".p12",
+    ".gz",
+    ".lock",
+    ".toml",
+    ".ini",
+    ".bat",
+    ".policy",
+    ".properties",
+    ".git",
+    ".gitignore",
+    ".whitesource",
+    ".lycheeignore",
+    ".gradle",
+    "gradle/wrapper",
+    "settings.gradle",
+    "build/",
+    "licenses/",
+    "test/resources/",
+    "LICENSE",
+    "NOTICE"
+  ]
+}

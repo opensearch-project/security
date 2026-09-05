@@ -7,7 +7,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
-  OPENSEARCH_VERSION: 3.8.0
+  OPENSEARCH_VERSION: 3.9.0
   PLUGIN_NAME: opensearch-security
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
         uses: DarshitChanpura/secure-password-action@70c04529b3705c2f0f5fb81d26b29d11ce120d18 # v1.0.0
 
       - name: Set up JDK
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: ${{ matrix.jdk }}
