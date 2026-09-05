@@ -66,6 +66,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -358,6 +359,18 @@ public class SecurityInterceptorTests {
         completableRequestDecorate(jdkSerializedSender, connection3, action, request, options, handler, localNode);
         // this is a remote request where the transport address is different
         completableRequestDecorate(jdkSerializedSender, connection4, action, request, options, handler, localNode);
+    }
+
+    @Test
+    public void testRemoteConnectionTargetingLocalNodeUsesSerialization() {
+        DiscoveryNode remoteViewOfLocalNode = new DiscoveryNode(localNode, localNode.getAddress());
+        assertThat(remoteViewOfLocalNode, is(localNode));
+        assertNotSame(remoteViewOfLocalNode, localNode);
+
+        Connection remoteConnectionToLocalNode = mock(Connection.class);
+        when(remoteConnectionToLocalNode.getNode()).thenReturn(remoteViewOfLocalNode);
+
+        completableRequestDecorate(jdkSerializedSender, remoteConnectionToLocalNode, action, request, options, handler, localNode);
     }
 
     @Test
