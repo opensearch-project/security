@@ -1737,7 +1737,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             SSLConfig,
             OpenSearchSecurityPlugin::isActionTraceEnabled,
             userFactory,
-            remoteClusterIdentityPolicy
+            remoteClusterIdentityPolicy,
+            GuiceHolder::getLocalNodeConnection
         );
         components.add(principalExtractor);
 
@@ -2977,6 +2978,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public static class GuiceHolder implements LifecycleComponent {
 
         private static RepositoriesService repositoriesService;
+        private static TransportService transportService;
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
@@ -2989,7 +2991,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         @Inject
         public GuiceHolder(
             final RepositoriesService repositoriesService,
-            final TransportService remoteClusterService,
+            final TransportService transportService,
             IndicesService indicesService,
             PitService pitService,
             ExtensionsManager extensionsManager,
@@ -2997,7 +2999,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             AuditLogImpl auditLog
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
-            GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
+            GuiceHolder.transportService = transportService;
+            GuiceHolder.remoteClusterService = transportService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
@@ -3011,6 +3014,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         public static RemoteClusterService getRemoteClusterService() {
             return remoteClusterService;
+        }
+
+        public static Connection getLocalNodeConnection(DiscoveryNode localNode) {
+            return transportService == null || localNode == null ? null : transportService.getConnection(localNode);
         }
 
         public static IndicesService getIndicesService() {

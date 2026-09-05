@@ -162,7 +162,18 @@ public class SecurityInterceptorTests {
             sslConfig,
             () -> true,
             new UserFactory.Simple(),
-            new RemoteClusterIdentityPolicy(false)
+            new RemoteClusterIdentityPolicy(false),
+            node -> {
+                if (node == null) {
+                    return null;
+                } else if (node.equals(localNode)) {
+                    return connection1;
+                } else if (node.equals(otherNode)) {
+                    return connection2;
+                } else {
+                    return null;
+                }
+            }
         ) {
             @Override
             boolean isCrossClusterSearchEnabled() {
@@ -336,7 +347,8 @@ public class SecurityInterceptorTests {
             sslConfig,
             () -> true,
             new UserFactory.Simple(),
-            new RemoteClusterIdentityPolicy(false)
+            new RemoteClusterIdentityPolicy(false),
+            node -> null
         );
 
         assertFalse(interceptor.isCrossClusterSearchEnabled());
@@ -358,6 +370,14 @@ public class SecurityInterceptorTests {
         completableRequestDecorate(jdkSerializedSender, connection3, action, request, options, handler, localNode);
         // this is a remote request where the transport address is different
         completableRequestDecorate(jdkSerializedSender, connection4, action, request, options, handler, localNode);
+    }
+
+    @Test
+    public void testRemoteConnectionTargetingLocalNodeUsesSerialization() {
+        Connection remoteConnectionToLocalNode = mock(Connection.class);
+        when(remoteConnectionToLocalNode.getNode()).thenReturn(localNode);
+
+        completableRequestDecorate(jdkSerializedSender, remoteConnectionToLocalNode, action, request, options, handler, localNode);
     }
 
     @Test

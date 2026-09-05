@@ -32,8 +32,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -95,6 +97,7 @@ public class SecurityInterceptor {
     private final Supplier<Boolean> actionTraceEnabled;
     private final UserFactory userFactory;
     private final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy;
+    private final Function<DiscoveryNode, Connection> localNodeConnectionProvider;
 
     public SecurityInterceptor(
         final Settings settings,
@@ -109,7 +112,8 @@ public class SecurityInterceptor {
         final SSLConfig SSLConfig,
         final Supplier<Boolean> actionTraceSupplier,
         final UserFactory userFactory,
-        final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
+        final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy,
+        final Function<DiscoveryNode, Connection> localNodeConnectionProvider
     ) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
@@ -124,6 +128,7 @@ public class SecurityInterceptor {
         this.actionTraceEnabled = actionTraceSupplier;
         this.userFactory = userFactory;
         this.remoteClusterIdentityPolicy = remoteClusterIdentityPolicy;
+        this.localNodeConnectionProvider = localNodeConnectionProvider;
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {
@@ -170,7 +175,8 @@ public class SecurityInterceptor {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isStreamChannel = options != null && TransportRequestOptions.Type.STREAM.equals(options.type());
         // skip the same node optimization for stream transport which doesn't use DirectChannel and thus ser/de is needed
-        final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode()) && !isStreamChannel;
+        final boolean isSameNodeRequest = Objects.requireNonNull(connection) == localNodeConnectionProvider.apply(localNode)
+            && !isStreamChannel;
         final Set<String> requestHeadersToCopy = new HashSet<>();
         if (getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS) != null) {
             Collections.addAll(

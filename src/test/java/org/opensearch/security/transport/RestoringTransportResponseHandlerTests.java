@@ -72,6 +72,7 @@ public class RestoringTransportResponseHandlerTests {
             null,
             () -> false,
             null,
+            null,
             null
         );
         return interceptor.new RestoringTransportResponseHandler<>(innerHandler, restorableContext);
