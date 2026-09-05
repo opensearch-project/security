@@ -12,11 +12,14 @@
 package org.opensearch.security.auth.ldap2;
 
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -79,24 +82,37 @@ public class LDAPConnectionFactoryFactory {
     public ConnectionFactory createConnectionFactory(ConnectionPool connectionPool) {
         if (connectionPool != null) {
             return new PooledConnectionFactory(connectionPool);
-        } else {
-            return createBasicConnectionFactory();
         }
+        return createHostnameAwareConnectionFactory();
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * Creates a {@link HostnameAwareConnectionFactory} that returns SNI-aware connections, so the
+     * SNI context is set when the connection is opened (at {@code open()}, not
+     * {@code getConnection()}). Being a {@link DefaultConnectionFactory}, it serves both non-pooled
+     * connections directly and backs a connection pool.
+     */
+    private DefaultConnectionFactory createHostnameAwareConnectionFactory() {
+        return configureFactory(new HostnameAwareConnectionFactory(getConnectionConfig(), getLdapUrlString()));
+    }
+
     public DefaultConnectionFactory createBasicConnectionFactory() {
-        DefaultConnectionFactory result = new DefaultConnectionFactory(getConnectionConfig());
+        return configureFactory(new DefaultConnectionFactory(getConnectionConfig()));
+    }
 
-        result.setProvider(new PrivilegedProvider((Provider<JndiProviderConfig>) result.getProvider()));
-
-        JndiProviderConfig jndiProviderConfig = (JndiProviderConfig) result.getProvider().getProviderConfig();
+    /**
+     * Applies the shared provider (privileged, for the JNDI socket-factory classloader) and SSL
+     * wiring that every factory this class builds needs.
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends DefaultConnectionFactory> T configureFactory(T factory) {
+        factory.setProvider(new PrivilegedProvider((Provider<JndiProviderConfig>) factory.getProvider()));
 
         if (this.sslConfig != null) {
-            configureSSLinConnectionFactory(result);
+            configureSSLinConnectionFactory(factory);
         }
 
-        return result;
+        return factory;
     }
 
     public ConnectionPool createConnectionPool() {
@@ -120,10 +136,14 @@ public class LDAPConnectionFactoryFactory {
 
         AbstractConnectionPool result;
 
+        // Use hostname-aware DefaultConnectionFactory for pool to ensure SNI is set for all connections
+        // including those created during pool initialization
+        DefaultConnectionFactory hostnameAwareFactory = createHostnameAwareConnectionFactory();
+
         if ("blocking".equals(this.settings.get(ConfigConstants.LDAP_POOL_TYPE))) {
-            result = new BlockingConnectionPool(poolConfig, createBasicConnectionFactory());
+            result = new BlockingConnectionPool(poolConfig, hostnameAwareFactory);
         } else {
-            result = new SoftLimitConnectionPool(poolConfig, createBasicConnectionFactory());
+            result = new SoftLimitConnectionPool(poolConfig, hostnameAwareFactory);
         }
 
         result.setValidator(getConnectionValidator());
@@ -301,7 +321,7 @@ public class LDAPConnectionFactoryFactory {
             this.sslConfig.getEffectiveTruststoreAliasesArray(),
             this.sslConfig.getEffectiveKeystore(),
             this.sslConfig.getEffectiveKeyPasswordString(),
-            this.sslConfig.getEffectiveKeyAliasesArray()
+            null
         );
 
         ldaptiveSslConfig.setCredentialConfig(cc);
@@ -322,14 +342,26 @@ public class LDAPConnectionFactoryFactory {
             }
         }
 
-        if (this.sslConfig.getSupportedCipherSuites() != null && this.sslConfig.getSupportedCipherSuites().length > 0) {
-            ldaptiveSslConfig.setEnabledCipherSuites(this.sslConfig.getSupportedCipherSuites());
+        final String[] enabledCipherSuites = this.sslConfig.getSupportedCipherSuites();
+        if (enabledCipherSuites != null && enabledCipherSuites.length > 0) {
+            ldaptiveSslConfig.setEnabledCipherSuites(enabledCipherSuites);
+            log.debug("enabled ssl cipher suites for ldaps {}", Arrays.toString(enabledCipherSuites));
         }
 
-        ldaptiveSslConfig.setEnabledProtocols(this.sslConfig.getSupportedProtocols());
+        final String[] enabledProtocols = this.sslConfig.getSupportedProtocols();
+        log.debug("enabled ssl/tls protocols for ldaps {}", Arrays.toString(enabledProtocols));
+        ldaptiveSslConfig.setEnabledProtocols(enabledProtocols);
 
         if (this.sslConfig.isTrustAllEnabled()) {
             ldaptiveSslConfig.setTrustManagers(new AllowAnyTrustManager());
+        } else {
+            try {
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
+                tmf.init(this.sslConfig.getEffectiveTruststore());
+                ldaptiveSslConfig.setTrustManagers(tmf.getTrustManagers()[0]);
+            } catch (GeneralSecurityException e) {
+                throw new IllegalStateException("Failed to initialize PKIX TrustManager for LDAPS", e);
+            }
         }
 
         config.setSslConfig(ldaptiveSslConfig);
@@ -352,7 +384,15 @@ public class LDAPConnectionFactoryFactory {
             props.put("jndi.starttls.allowAnyHostname", "true");
         }
 
-        connectionFactory.getProvider().getProviderConfig().setProperties(props);
+        // Register the custom socket factory with JNDI for SSL/TLS connections
+        // SNISettingTLSSocketFactory uses BouncyCastle's CustomSSLSocketFactory to properly
+        // set SNI hostname and endpoint identification for hostname verification.
+        // This addresses a known issue where JNDI LDAP doesn't pass hostname to SSLSocketFactory.
+        // See: https://github.com/bcgit/bc-java/issues/460
+        props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");
 
+        JndiProviderConfig providerConfig = (JndiProviderConfig) connectionFactory.getProvider().getProviderConfig();
+        providerConfig.setProperties(props);
+        providerConfig.setClassLoader(new SocketFactoryClassLoader(SNISettingTLSSocketFactory.class.getClassLoader()));
     }
 }

@@ -18,6 +18,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.net.BindException;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
+import javax.net.ssl.TrustManagerFactory;
 
 import com.google.common.io.CharStreams;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -44,7 +46,6 @@ import com.unboundid.ldap.sdk.schema.Schema;
 import com.unboundid.ldif.LDIFReader;
 import com.unboundid.util.ssl.KeyStoreKeyManager;
 import com.unboundid.util.ssl.SSLUtil;
-import com.unboundid.util.ssl.TrustStoreTrustManager;
 
 final class LdapServer {
     private final static Logger LOG = LogManager.getLogger(LdapServer.class);
@@ -114,11 +115,15 @@ final class LdapServer {
         Collection<InMemoryListenerConfig> listenerConfigs = new ArrayList<InMemoryListenerConfig>();
 
         String serverKeyStorePath = FileHelper.resolveStore("ldap/node-0-keystore").path().toFile().getAbsolutePath();
+
+        KeyStore trustStore = FileHelper.getKeystoreFromClassPath("ldap/truststore", "changeit");
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustStore);
+
         final SSLUtil serverSSLUtil = new SSLUtil(
             new KeyStoreKeyManager(serverKeyStorePath, "changeit".toCharArray()),
-            new TrustStoreTrustManager(serverKeyStorePath)
+            tmf.getTrustManagers()[0]
         );
-        // final SSLUtil clientSSLUtil = new SSLUtil(new TrustStoreTrustManager(serverKeyStorePath));
 
         listenerConfigs.add(InMemoryListenerConfig.createLDAPConfig("ldap", null, 0, serverSSLUtil.createSSLSocketFactory()));
         listenerConfigs.add(InMemoryListenerConfig.createLDAPSConfig("ldaps", 0, serverSSLUtil.createSSLServerSocketFactory()));

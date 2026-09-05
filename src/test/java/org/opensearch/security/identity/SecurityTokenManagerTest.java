@@ -13,6 +13,7 @@ package org.opensearch.security.identity;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Base64;
 
 import org.junit.After;
@@ -69,7 +70,7 @@ public class SecurityTokenManagerTest {
 
     @Before
     public void setup() {
-        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService, (user, caller) -> user.getSecurityRoles()));
+        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService, (user, caller) -> user.getSecurityRoles(), null));
     }
 
     @After
@@ -106,13 +107,23 @@ public class SecurityTokenManagerTest {
         final Settings settings = Settings.builder()
             .put("enabled", true)
             .put("signing_key", signingKeyB64Encoded)
-            .put("encryption_key", (includeEncryptionKey ? "1234567890" : null))
+            .put("encryption_key", (includeEncryptionKey ? fipsCompatibleEncryptionKey() : null))
             .build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
         doAnswer((invocation) -> jwtVendor).when(tokenManager).createJwtVendor(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
         return dcm;
+    }
+
+    /**
+     * Returns a base64-encoded key with 32 bytes of material, so the AES-256 key derived by
+     * {@code EncryptionDecryptionUtil} clears the BC FIPS IKM floor (>= 112 bits; 32 bytes for AES-256).
+     */
+    private static String fipsCompatibleEncryptionKey() {
+        final byte[] keyMaterial = new byte[32];
+        new SecureRandom().nextBytes(keyMaterial);
+        return Base64.getEncoder().encodeToString(keyMaterial);
     }
 
     @Test
