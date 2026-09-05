@@ -454,13 +454,12 @@ public class ConfigConstants {
 
     public static final String OPENSEARCH_API_TOKENS_INDEX = ".opensearch_security_api_tokens";
     // Resource sharing feature-flag
-    public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
+    public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.resource_sharing.enabled";
     public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
 
     // Protected resource types
     // Resource sharing will only apply to these types
-    public static final String OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES =
-        "plugins.security.experimental.resource_sharing.protected_types";
+    public static final String OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES = "plugins.security.resource_sharing.protected_types";
     public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
                                                                                                       // protected
 

@@ -40,8 +40,6 @@ import reactor.util.annotation.NonNull;
  * This class handles resource access permissions for users, roles and backend-roles.
  * It provides methods to check if a user has permission to access a resource
  * based on the resource sharing configuration.
- *
- * @opensearch.experimental
  */
 public class ResourceAccessHandler {
     private static final Logger LOGGER = LogManager.getLogger(ResourceAccessHandler.class);
