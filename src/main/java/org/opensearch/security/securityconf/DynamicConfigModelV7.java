@@ -88,6 +88,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private final ClusterInfoHolder cih;
     private final ApiTokenRepository apiTokenRepository;
     private final OnBehalfOfKeys oboKeystoreKeys;
+    private final DynamicConfigSecrets dynamicConfigSecrets;
 
     public DynamicConfigModelV7(
         ConfigV7 config,
@@ -96,7 +97,8 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         InternalAuthenticationBackend iab,
         ClusterInfoHolder cih,
         ApiTokenRepository apiTokenRepository,
-        OnBehalfOfKeys oboKeystoreKeys
+        OnBehalfOfKeys oboKeystoreKeys,
+        DynamicConfigSecrets dynamicConfigSecrets
     ) {
         super();
         this.config = config;
@@ -106,6 +108,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         this.cih = cih;
         this.apiTokenRepository = apiTokenRepository;
         this.oboKeystoreKeys = oboKeystoreKeys;
+        this.dynamicConfigSecrets = dynamicConfigSecrets;
         buildAAA();
     }
 
@@ -238,6 +241,8 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
     private void buildAAA() {
 
+        validateSecretReferences();
+
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
         final Set<AuthorizationBackend> restAuthorizers0 = new HashSet<>();
         final List<Destroyable> destroyableComponents0 = new LinkedList<>();
@@ -266,16 +271,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                         authorizationBackend = newInstance(
                             authzBackendClazz,
                             "z",
-                            Settings.builder()
-                                .put(opensearchSettings)
-                                // .putProperties(ads.getAsStringMap(DotPath.of("authorization_backend.config")),
-                                // DynamicConfiguration.checkKeyFunction()).build(), configPath);
-                                .put(
-                                    Settings.builder()
-                                        .loadFromSource(ad.getValue().authorization_backend.configAsJson(), XContentType.JSON)
-                                        .build()
-                                )
-                                .build(),
+                            dynamicSettings(ad.getValue().authorization_backend.configAsJson()),
                             configPath
                         );
                     }
@@ -311,16 +307,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                         authenticationBackend = newInstance(
                             authBackendClazz,
                             "c",
-                            Settings.builder()
-                                .put(opensearchSettings)
-                                // .putProperties(ads.getAsStringMap(DotPath.of("authentication_backend.config")),
-                                // DynamicConfiguration.checkKeyFunction()).build()
-                                .put(
-                                    Settings.builder()
-                                        .loadFromSource(ad.getValue().authentication_backend.configAsJson(), XContentType.JSON)
-                                        .build()
-                                )
-                                .build(),
+                            dynamicSettings(ad.getValue().authentication_backend.configAsJson()),
                             configPath
                         );
                     }
@@ -331,18 +318,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                         : (HTTPAuthenticator) newInstance(
                             httpAuthenticatorType,
                             "h",
-                            Settings.builder()
-                                .put(opensearchSettings)
-                                // .putProperties(ads.getAsStringMap(DotPath.of("http_authenticator.config")),
-                                // DynamicConfiguration.checkKeyFunction()).build(),
-                                .put(
-                                    Settings.builder()
-                                        .loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON)
-                                        .build()
-                                )
-                                .build()
-
-                            ,
+                            dynamicSettings(ad.getValue().http_authenticator.configAsJson()),
                             configPath
                         );
 
@@ -452,6 +428,29 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         authBackendClientBlockRegistries = Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries0);
         authBackendFailureListeners = Multimaps.unmodifiableMultimap(authBackendFailureListeners0);
 
+    }
+
+    private Settings dynamicSettings(String configJson) {
+        Settings dynamicSettings = Settings.builder().loadFromSource(configJson, XContentType.JSON).build();
+        return Settings.builder().put(opensearchSettings).put(dynamicConfigSecrets.resolve(dynamicSettings)).build();
+    }
+
+    private void validateSecretReferences() {
+        config.dynamic.authz.getDomains()
+            .values()
+            .stream()
+            .filter(domain -> domain.http_enabled)
+            .forEach(domain -> dynamicConfigSecrets.validate(loadSettings(domain.authorization_backend.configAsJson())));
+        config.dynamic.authc.getDomains().values().stream().filter(domain -> domain.http_enabled).forEach(domain -> {
+            dynamicConfigSecrets.validate(loadSettings(domain.authentication_backend.configAsJson()));
+            if (domain.http_authenticator.type != null) {
+                dynamicConfigSecrets.validate(loadSettings(domain.http_authenticator.configAsJson()));
+            }
+        });
+    }
+
+    private Settings loadSettings(String configJson) {
+        return Settings.builder().loadFromSource(configJson, XContentType.JSON).build();
     }
 
     private void destroyDestroyables(List<Destroyable> destroyableComponents) {
