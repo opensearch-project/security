@@ -61,6 +61,7 @@ import org.opensearch.security.support.Base64Helper;
  */
 public class User implements Serializable, CustomAttributesAware, Principal, Subject {
 
+    public static final String PLUGIN_USER_PREFIX = "plugin:";
     public static final User ANONYMOUS = new User("opendistro_security_anonymous").withRoles("opendistro_security_anonymous_backendrole");
 
     // This is a default user that is injected into a transport request when a user info is not present and passive_intertransport_auth is
@@ -335,7 +336,7 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
      * @return true if it has a plugin account attributes, otherwise false
      */
     public boolean isPluginUser() {
-        return name != null && name.startsWith("plugin:");
+        return name != null && name.startsWith(PLUGIN_USER_PREFIX);
     }
 
     /**
@@ -345,12 +346,18 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
         return name != null && name.startsWith(org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX);
     }
 
+    public static boolean hasReservedPrefix(String name) {
+        return name != null
+            && (name.startsWith(PLUGIN_USER_PREFIX)
+                || name.startsWith(org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX));
+    }
+
     /**
      * If this user is a plugin user, returns the plugin Java class name. Otherwise, returns null.
      */
     public String getPluginName() {
         if (isPluginUser()) {
-            return name.substring("plugin:".length());
+            return name.substring(PLUGIN_USER_PREFIX.length());
         }
         return null;
     }

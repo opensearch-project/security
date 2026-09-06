@@ -499,6 +499,36 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
+    public void testPluginSubjectIsRejected() throws Exception {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder().put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes)),
+            Jwts.builder().setSubject("plugin:org.opensearch.example.Plugin")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testApiTokenSubjectIsRejected() throws Exception {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder().put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes)),
+            Jwts.builder().setSubject("token:administrative-token")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testReservedAlternativeSubjectIsRejected() throws Exception {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder().put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes)).put("subject_key", "asub"),
+            Jwts.builder().setSubject("Leonard McCoy").claim("asub", "plugin:org.opensearch.example.Plugin")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
     public void testNonStringAlternativeSubject() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(

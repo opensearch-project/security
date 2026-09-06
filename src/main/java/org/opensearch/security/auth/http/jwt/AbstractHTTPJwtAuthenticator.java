@@ -41,6 +41,7 @@ import org.opensearch.security.auth.http.jwt.keybyoidc.KeyProvider;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.user.User;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -130,6 +131,10 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         final String subject = extractSubject(claimsSet);
         if (subject == null) {
             log.error("No subject found in JWT token");
+            return null;
+        }
+        if (User.hasReservedPrefix(subject)) {
+            log.warn("JWT subject uses a reserved security prefix");
             return null;
         }
 

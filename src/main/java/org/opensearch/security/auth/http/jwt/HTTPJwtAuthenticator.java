@@ -40,6 +40,7 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.user.User;
 import org.opensearch.security.util.KeyUtils;
 
 import com.nimbusds.jwt.proc.BadJWTException;
@@ -171,6 +172,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
                 if (subject == null) {
                     log.error("No subject found in JWT token");
+                    return null;
+                }
+                if (User.hasReservedPrefix(subject)) {
+                    log.warn("JWT subject uses a reserved security prefix");
                     return null;
                 }
 

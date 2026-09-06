@@ -22,19 +22,17 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 public class SecurePluginSubject implements PluginSubject {
-    private static final String PLUGIN_PRINCIPAL_PREFIX = "plugin:";
-
     private final ThreadPool threadPool;
     private final NamedPrincipal pluginPrincipal;
     private final User pluginUser;
 
     public static String getPluginPrincipalName(Plugin plugin) {
-        return PLUGIN_PRINCIPAL_PREFIX + plugin.getClass().getCanonicalName();
+        return User.PLUGIN_USER_PREFIX + plugin.getClass().getCanonicalName();
     }
 
     public static String getPluginClassNameFromPrincipal(String name) {
-        if (name.startsWith(PLUGIN_PRINCIPAL_PREFIX)) {
-            return name.substring(PLUGIN_PRINCIPAL_PREFIX.length());
+        if (name.startsWith(User.PLUGIN_USER_PREFIX)) {
+            return name.substring(User.PLUGIN_USER_PREFIX.length());
         }
         return null;
     }
