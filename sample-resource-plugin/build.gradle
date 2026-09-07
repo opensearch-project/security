@@ -83,7 +83,7 @@ configurations {
             force libs.jspecify
 
             force "com.google.guava:failureaccess:1.0.3"
-            force "io.projectreactor:reactor-core:3.8.6"
+            force "io.projectreactor:reactor-core:3.8.7"
 
             // Netty version alignment with OpenSearch core
             force "io.netty:netty-buffer:${versions.netty}"
