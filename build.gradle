@@ -10,7 +10,6 @@
  */
 
 
-import com.diffplug.gradle.spotless.JavaExtension
 import org.opensearch.gradle.test.RestIntegTestTask
 import groovy.json.JsonBuilder
 
@@ -53,6 +52,12 @@ buildscript {
 
     dependencies {
         classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+        // Spotless 8.10.x requires a Java 17+ runtime to resolve its plugin. Only put it on the
+        // buildscript classpath on Java 17+ so the Java 11 CI matrices don't fail resolving it.
+        // formatting.gradle applies it (also gated to Java 17+) only when it is available.
+        if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+            classpath "com.diffplug.spotless:spotless-plugin-gradle:8.10.1"
+        }
     }
 }
 
@@ -61,7 +66,6 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '8.10.1' apply false
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.10.1"
     id "org.gradle.test-retry" version "1.6.1"
