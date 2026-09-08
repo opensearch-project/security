@@ -96,6 +96,7 @@ public class LocalOpenSearchCluster {
     private static final Logger log = LogManager.getLogger(LocalOpenSearchCluster.class);
 
     private final String clusterName;
+    private final String portAllocationClient;
     private final ClusterManager clusterManager;
     private final NodeSettingsSupplier nodeSettingsSupplier;
     private final List<Class<? extends Plugin>> plugins;
@@ -123,6 +124,7 @@ public class LocalOpenSearchCluster {
         Integer expectedNodeStartCount
     ) {
         this.clusterName = clusterName;
+        this.portAllocationClient = clusterName + "_" + Integer.toHexString(System.identityHashCode(this));
         this.clusterManager = clusterManager;
         this.nodeSettingsSupplier = nodeSettingsSupplier;
         this.plugins = plugins;
@@ -158,15 +160,49 @@ public class LocalOpenSearchCluster {
     public void start() throws Exception {
         log.info("Starting {}", clusterName);
 
+        try {
+            boolean portCollision;
+            do {
+                try (PortAllocator.PortAllocationLock ignored = PortAllocator.acquireExclusivePortAllocationLock()) {
+                    startNodesWithExclusivePortAllocation();
+                }
+
+                portCollision = isNodeFailedWithPortCollision();
+                if (portCollision) {
+                    log.info("Detected port collision for cluster manager node. Retrying.");
+                    retry();
+                }
+            } while (portCollision);
+
+            log.info("Startup finished. Waiting for GREEN");
+
+            int expectedCount = nodes.size();
+            if (expectedNodeStartupCount != null) {
+                expectedCount = expectedNodeStartupCount;
+            }
+
+            waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), expectedCount);
+            log.info("Started: {}", this);
+        } catch (Exception e) {
+            cleanupAfterFailedStart(e);
+            throw e;
+        }
+    }
+
+    private void startNodesWithExclusivePortAllocation() {
         int clusterManagerNodeCount = clusterManager.getClusterManagerNodes();
         int nonClusterManagerNodeCount = clusterManager.getDataNodes() + clusterManager.getClientNodes();
 
         SortedSet<Integer> clusterManagerNodeTransportPorts = TCP.allocate(
-            clusterName,
+            portAllocationClient,
             Math.max(clusterManagerNodeCount, 4),
             5000 + 42 * 1000 + 300
         );
-        SortedSet<Integer> clusterManagerNodeHttpPorts = TCP.allocate(clusterName, clusterManagerNodeCount, 5000 + 42 * 1000 + 200);
+        SortedSet<Integer> clusterManagerNodeHttpPorts = TCP.allocate(
+            portAllocationClient,
+            clusterManagerNodeCount,
+            5000 + 42 * 1000 + 200
+        );
 
         this.seedHosts = toHostList(clusterManagerNodeTransportPorts);
         Set<Integer> clusterManagerPorts = clusterManagerNodeTransportPorts.stream()
@@ -184,11 +220,15 @@ public class LocalOpenSearchCluster {
         );
 
         SortedSet<Integer> nonClusterManagerNodeTransportPorts = TCP.allocate(
-            clusterName,
+            portAllocationClient,
             nonClusterManagerNodeCount,
             5000 + 42 * 1000 + 310
         );
-        SortedSet<Integer> nonClusterManagerNodeHttpPorts = TCP.allocate(clusterName, nonClusterManagerNodeCount, 5000 + 42 * 1000 + 210);
+        SortedSet<Integer> nonClusterManagerNodeHttpPorts = TCP.allocate(
+            portAllocationClient,
+            nonClusterManagerNodeCount,
+            5000 + 42 * 1000 + 210
+        );
 
         CompletableFuture<Void> nonClusterManagerNodeFuture = startNodes(
             nodeCounter,
@@ -198,24 +238,6 @@ public class LocalOpenSearchCluster {
         );
 
         CompletableFuture.allOf(clusterManagerNodeFuture, nonClusterManagerNodeFuture).join();
-
-        if (isNodeFailedWithPortCollision()) {
-            log.info("Detected port collision for cluster manager node. Retrying.");
-
-            retry();
-            return;
-        }
-
-        log.info("Startup finished. Waiting for GREEN");
-
-        int expectedCount = nodes.size();
-        if (expectedNodeStartupCount != null) {
-            expectedCount = expectedNodeStartupCount;
-        }
-
-        waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), expectedCount);
-        log.info("Started: {}", this);
-
     }
 
     public String getClusterName() {
@@ -229,9 +251,13 @@ public class LocalOpenSearchCluster {
     public void stop() {
         List<CompletableFuture<Boolean>> stopFutures = new ArrayList<>();
         for (Node node : nodes) {
-            stopFutures.add(node.stop(2, TimeUnit.SECONDS));
+            stopFutures.add(node.stop(10, TimeUnit.SECONDS));
         }
-        CompletableFuture.allOf(stopFutures.toArray(CompletableFuture[]::new)).join();
+        try {
+            CompletableFuture.allOf(stopFutures.toArray(CompletableFuture[]::new)).join();
+        } finally {
+            TCP.release(portAllocationClient);
+        }
     }
 
     public void destroy() {
@@ -287,7 +313,16 @@ public class LocalOpenSearchCluster {
         this.seedHosts = null;
         this.initialClusterManagerHosts = null;
         createClusterDirectory("local_cluster_" + clusterName + "_retry_" + retry);
-        start();
+    }
+
+    private void cleanupAfterFailedStart(Exception originalException) {
+        try {
+            stop();
+        } catch (RuntimeException cleanupException) {
+            originalException.addSuppressed(cleanupException);
+        } finally {
+            nodes.clear();
+        }
     }
 
     @SafeVarargs
@@ -497,7 +532,13 @@ public class LocalOpenSearchCluster {
                         portCollision = true;
                         try {
                             node.close();
-                        } catch (IOException e1) {
+                            if (!node.awaitClose(10, TimeUnit.SECONDS)) {
+                                log.warn("Timed out while closing {} after a port collision", this);
+                            }
+                        } catch (IOException | InterruptedException e1) {
+                            if (e1 instanceof InterruptedException) {
+                                Thread.currentThread().interrupt();
+                            }
                             log.error(e1);
                         }
 

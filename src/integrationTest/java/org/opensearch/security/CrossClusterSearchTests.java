@@ -22,21 +22,20 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.opensearch._types.query_dsl.QueryBuilders;
+import org.opensearch.client.opensearch.core.SearchRequest;
+import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.SearchRequestFactory;
+import org.opensearch.test.framework.cluster.OpenSearchClientProvider.CloseableOpenSearchClient;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.security.Song.ARTIST_FIRST;
 import static org.opensearch.security.Song.FIELD_ARTIST;
@@ -51,15 +50,14 @@ import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.security.Song.TITLE_MAGNUM_OPUS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.queryStringQueryRequest;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
-import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitDoesNotContainField;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.isSuccessfulSearchResponse;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitContainsFieldWithValue;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitDoesNotContainField;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
+import static org.opensearch.test.framework.matcher.client.TransportExceptionMatchers.statusException;
 
 /**
 * This is a parameterized test so that one test class is used to test security plugin behaviour when <code>ccsMinimizeRoundtrips</code>
@@ -75,6 +73,7 @@ public class CrossClusterSearchTests {
 
     public static final String REMOTE_CLUSTER_NAME = "ccsRemote";
     public static final String REMOTE_SONG_INDEX = REMOTE_CLUSTER_NAME + ":" + SONG_INDEX_NAME;
+    public static final String REMOTE_PROHIBITED_SONG_INDEX = REMOTE_CLUSTER_NAME + ":" + PROHIBITED_SONG_INDEX_NAME;
 
     public static final String SONG_ID_1R = "remote-00001";
     public static final String SONG_ID_2L = "local-00002";
@@ -127,6 +126,12 @@ public class CrossClusterSearchTests {
 
     public static final String LIMITED_USER_INDEX_NAME = "user-" + LIMITED_USER.getName() + "-" + LIMITED_USER.getAttribute(TYPE_ATTRIBUTE);
     public static final String ADMIN_USER_INDEX_NAME = "user-" + ADMIN_USER.getName() + "-" + ADMIN_USER.getAttribute(TYPE_ATTRIBUTE);
+    public static final String REMOTE_LIMITED_USER_INDEX = REMOTE_CLUSTER_NAME
+        + ":"
+        + "user-"
+        + LIMITED_USER.getName()
+        + "-"
+        + LIMITED_USER.getAttribute(TYPE_ATTRIBUTE);
 
     private static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
 
@@ -187,73 +192,74 @@ public class CrossClusterSearchTests {
 
     @Test
     public void shouldFindDocumentOnRemoteCluster_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_SONG_INDEX);
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(2));
-            assertThat(response, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, SONG_ID_1R));
-            assertThat(response, searchHitsContainDocumentWithId(1, SONG_INDEX_NAME, SONG_ID_6R));
+            assertThat(response, searchHitsContainDocumentWithId(0, REMOTE_SONG_INDEX, SONG_ID_1R));
+            assertThat(response, searchHitsContainDocumentWithId(1, REMOTE_SONG_INDEX, SONG_ID_6R));
         }
     }
 
-    private SearchRequest searchAll(String indexName) {
-        SearchRequest searchRequest = SearchRequestFactory.searchAll(indexName);
-        searchRequest.setCcsMinimizeRoundtrips(ccsMinimizeRoundtrips);
-        return searchRequest;
+    private SearchRequest searchAll(String indexName, String... indexNames) {
+        return SearchRequest.of(
+            b -> b.index(indexName, indexNames)
+                .ccsMinimizeRoundtrips(ccsMinimizeRoundtrips)
+                .query(QueryBuilders.matchAll().build().toQuery())
+        );
     }
 
     @Test
     public void shouldFindDocumentOnRemoteCluster_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":" + PROHIBITED_SONG_INDEX_NAME);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchForDocumentOnRemoteClustersWhenStarIsUsedAsClusterName_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll("*" + ":" + SONG_INDEX_NAME);
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             // only remote documents are found
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(2));
-            assertThat(response, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, SONG_ID_1R));
-            assertThat(response, searchHitsContainDocumentWithId(1, SONG_INDEX_NAME, SONG_ID_6R));
+            assertThat(response, searchHitsContainDocumentWithId(0, REMOTE_SONG_INDEX, SONG_ID_1R));
+            assertThat(response, searchHitsContainDocumentWithId(1, REMOTE_SONG_INDEX, SONG_ID_6R));
         }
     }
 
     @Test
     public void shouldSearchForDocumentOnRemoteClustersWhenStarIsUsedAsClusterName_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll("*" + ":" + PROHIBITED_SONG_INDEX_NAME);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchForDocumentOnBothClustersWhenIndexOnBothClusterArePointedOut_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            SearchRequest searchRequest = SearchRequestFactory.searchAll(REMOTE_SONG_INDEX, SONG_INDEX_NAME);
-            searchRequest.setCcsMinimizeRoundtrips(ccsMinimizeRoundtrips);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            SearchRequest searchRequest = searchAll(REMOTE_SONG_INDEX, SONG_INDEX_NAME);
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(3));
             assertThat(
                 response,
                 searchHitsContainDocumentsInAnyOrder(
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
+                    Pair.of(REMOTE_SONG_INDEX, SONG_ID_1R),
                     Pair.of(SONG_INDEX_NAME, SONG_ID_2L),
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_6R)
+                    Pair.of(REMOTE_SONG_INDEX, SONG_ID_6R)
                 )
             );
         }
@@ -261,41 +267,39 @@ public class CrossClusterSearchTests {
 
     @Test
     public void shouldSearchForDocumentOnBothClustersWhenIndexOnBothClusterArePointedOut_negativeLackOfLocalAccess() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            var searchRequest = SearchRequestFactory.searchAll(REMOTE_SONG_INDEX, PROHIBITED_SONG_INDEX_NAME);
-            searchRequest.setCcsMinimizeRoundtrips(ccsMinimizeRoundtrips);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            SearchRequest searchRequest = searchAll(REMOTE_SONG_INDEX, PROHIBITED_SONG_INDEX_NAME);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchForDocumentOnBothClustersWhenIndexOnBothClusterArePointedOut_negativeLackOfRemoteAccess() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             String remoteIndex = REMOTE_CLUSTER_NAME + ":" + PROHIBITED_SONG_INDEX_NAME;
-            SearchRequest searchRequest = SearchRequestFactory.searchAll(remoteIndex, SONG_INDEX_NAME);
-            searchRequest.setCcsMinimizeRoundtrips(ccsMinimizeRoundtrips);
+            SearchRequest searchRequest = searchAll(remoteIndex, SONG_INDEX_NAME);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchViaAllAliasOnRemoteCluster_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(ADMIN_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":_all");
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(4));
             assertThat(
                 response,
                 searchHitsContainDocumentsInAnyOrder(
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_6R),
-                    Pair.of(PROHIBITED_SONG_INDEX_NAME, SONG_ID_3R),
-                    Pair.of(LIMITED_USER_INDEX_NAME, SONG_ID_5R)
+                    Pair.of(REMOTE_SONG_INDEX, SONG_ID_1R),
+                    Pair.of(REMOTE_SONG_INDEX, SONG_ID_6R),
+                    Pair.of(REMOTE_PROHIBITED_SONG_INDEX, SONG_ID_3R),
+                    Pair.of(REMOTE_LIMITED_USER_INDEX, SONG_ID_5R)
                 )
             );
         }
@@ -303,29 +307,29 @@ public class CrossClusterSearchTests {
 
     @Test
     public void shouldSearchViaAllAliasOnRemoteCluster_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":_all");
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchAllIndexOnRemoteClusterWhenStarIsUsedAsIndexName_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(ADMIN_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":*");
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(4));
             assertThat(
                 response,
                 searchHitsContainDocumentsInAnyOrder(
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_1R),
-                    Pair.of(SONG_INDEX_NAME, SONG_ID_6R),
-                    Pair.of(PROHIBITED_SONG_INDEX_NAME, SONG_ID_3R),
-                    Pair.of(LIMITED_USER_INDEX_NAME, SONG_ID_5R)
+                    Pair.of(REMOTE_SONG_INDEX, SONG_ID_1R),
+                    Pair.of(REMOTE_SONG_INDEX, SONG_ID_6R),
+                    Pair.of(REMOTE_PROHIBITED_SONG_INDEX, SONG_ID_3R),
+                    Pair.of(REMOTE_LIMITED_USER_INDEX, SONG_ID_5R)
                 )
             );
         }
@@ -333,19 +337,19 @@ public class CrossClusterSearchTests {
 
     @Test
     public void shouldSearchAllIndexOnRemoteClusterWhenStarIsUsedAsIndexName_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":*");
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldResolveUserNameExpressionInRoleIndexPattern_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":" + LIMITED_USER_INDEX_NAME);
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, numberOfTotalHitsIsEqualTo(1));
         }
@@ -353,75 +357,82 @@ public class CrossClusterSearchTests {
 
     @Test
     public void shouldResolveUserNameExpressionInRoleIndexPattern_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":" + ADMIN_USER_INDEX_NAME);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchInIndexWithPrefix_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":song*");
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(2));
             assertThat(
                 response,
-                searchHitsContainDocumentsInAnyOrder(Pair.of(SONG_INDEX_NAME, SONG_ID_1R), Pair.of(SONG_INDEX_NAME, SONG_ID_6R))
+                searchHitsContainDocumentsInAnyOrder(Pair.of(REMOTE_SONG_INDEX, SONG_ID_1R), Pair.of(REMOTE_SONG_INDEX, SONG_ID_6R))
             );
         }
     }
 
     @Test
     public void shouldSearchInIndexWithPrefix_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchAll(REMOTE_CLUSTER_NAME + ":prohibited*");
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldEvaluateDocumentLevelSecurityRulesOnRemoteClusterOnSearchRequest_caseRock() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(DLS_USER_ROCK)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(DLS_USER_ROCK)) {
             SearchRequest searchRequest = searchAll(REMOTE_SONG_INDEX);
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             // searching for all documents, so is it important that result contain only one document with id SONG_ID_1
             // and document with SONG_ID_6 is excluded from result set by DLS
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(1));
-            assertThat(response, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, SONG_ID_1R));
+            assertThat(response, searchHitsContainDocumentWithId(0, REMOTE_SONG_INDEX, SONG_ID_1R));
         }
     }
 
     @Test
     public void shouldEvaluateDocumentLevelSecurityRulesOnRemoteClusterOnSearchRequest_caseJazz() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(DLS_USER_JAZZ)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(DLS_USER_JAZZ)) {
             SearchRequest searchRequest = searchAll(REMOTE_SONG_INDEX);
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             // searching for all documents, so is it important that result contain only one document with id SONG_ID_6
             // and document with SONG_ID_1 is excluded from result set by DLS
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(1));
-            assertThat(response, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, SONG_ID_6R));
+            assertThat(response, searchHitsContainDocumentWithId(0, REMOTE_SONG_INDEX, SONG_ID_6R));
         }
+    }
+
+    private SearchRequest queryStringQueryRequest(String indexName, String queryString) {
+        return SearchRequest.of(
+            b -> b.index(indexName)
+                .ccsMinimizeRoundtrips(ccsMinimizeRoundtrips)
+                .query(QueryBuilders.queryString().query(queryString).build().toQuery())
+        );
     }
 
     @Test
     public void shouldHaveAccessOnlyToSpecificField() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(FLS_INCLUDE_TITLE_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(FLS_INCLUDE_TITLE_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest(REMOTE_SONG_INDEX, QUERY_TITLE_MAGNUM_OPUS);
-            searchRequest.setCcsMinimizeRoundtrips(ccsMinimizeRoundtrips);
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(1));
@@ -436,11 +447,10 @@ public class CrossClusterSearchTests {
 
     @Test
     public void shouldLackAccessToSpecificField() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(FLS_EXCLUDE_LYRICS_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(FLS_EXCLUDE_LYRICS_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest(REMOTE_SONG_INDEX, QUERY_TITLE_MAGNUM_OPUS);
-            searchRequest.setCcsMinimizeRoundtrips(ccsMinimizeRoundtrips);
 
-            SearchResponse response = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(1));

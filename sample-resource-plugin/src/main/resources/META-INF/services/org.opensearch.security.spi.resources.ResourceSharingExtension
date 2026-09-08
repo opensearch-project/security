@@ -1,2 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+
 org.opensearch.sample.SampleResourceExtension
 org.opensearch.sample.SampleResourceGroupExtension
