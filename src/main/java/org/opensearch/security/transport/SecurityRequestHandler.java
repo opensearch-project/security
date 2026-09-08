@@ -26,7 +26,6 @@
 
 package org.opensearch.security.transport;
 
-import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +39,6 @@ import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.DefaultObjectMapper;
@@ -53,10 +51,8 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.ssl.transport.SecuritySSLRequestHandler;
 import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
 import org.opensearch.security.util.ParentChildrenQueryDetector;
 import org.opensearch.tasks.Task;
@@ -121,11 +117,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
 
-        final String originHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER);
-
-        if (!Strings.isNullOrEmpty(originHeader)) {
-            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originHeader);
-        }
+        TransportIdentityContext.restoreOrigin(getThreadContext());
 
         // restore headers used for DLS
         final var dlsRequestHeadersAsString = getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS);
@@ -162,17 +154,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             }
 
             // bypass non-netty requests
-            if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null
-                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER) != null
-                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES) != null
-                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) != null) {
-
-                final String rolesValidation = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER
-                );
-                if (!Strings.isNullOrEmpty(rolesValidation)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
-                }
+            if (TransportIdentityContext.hasTransientIdentity(getThreadContext())) {
+                TransportIdentityContext.restoreRolesValidation(getThreadContext());
 
                 if (isActionTraceEnabled()) {
                     getThreadContext().putHeader(
@@ -187,68 +170,12 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
             } else {
-                String authenticatedUserHeader = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER
+                TransportIdentityContext.restoreSerializedIdentity(
+                    getThreadContext(),
+                    request.remoteAddress(),
+                    userFactory,
+                    remoteClusterIdentityPolicy
                 );
-                String userSameAsAuthenticatedUserHeader = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER
-                );
-                String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-
-                // Deserialize and sanitize users.
-                User user = null;
-                if (userHeader != null) {
-                    user = this.userFactory.fromSerializedBase64(userHeader);
-                    user = remoteClusterIdentityPolicy.sanitize(user, getThreadContext());
-                }
-                User authenticatedUser = null;
-                if (authenticatedUserHeader != null) {
-                    authenticatedUser = this.userFactory.fromSerializedBase64(authenticatedUserHeader);
-                    authenticatedUser = remoteClusterIdentityPolicy.sanitize(authenticatedUser, getThreadContext());
-                }
-
-                // Store the authenticated user in persistent context (if not already set).
-                if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                    if (Boolean.parseBoolean(userSameAsAuthenticatedUserHeader) && user != null) {
-                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
-                    } else if (authenticatedUser != null) {
-                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, authenticatedUser);
-                    }
-                }
-
-                // Store transient user or injected roles
-                final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
-                final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
-
-                if (Strings.isNullOrEmpty(userHeader)) {
-                    // Keeping role injection with higher priority as plugins under OpenSearch will be using this
-                    // on transport layer
-                    if (!Strings.isNullOrEmpty(injectedRolesHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
-                    } else if (!Strings.isNullOrEmpty(injectedUserHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
-                    }
-                } else {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                }
-
-                String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
-
-                if (!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                    getThreadContext().putTransient(
-                        ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
-                        new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress))
-                    );
-                } else {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
-                }
-
-                final String rolesValidation = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER
-                );
-                if (!Strings.isNullOrEmpty(rolesValidation)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
-                }
             }
 
             if (channelType.equals("direct")) {
