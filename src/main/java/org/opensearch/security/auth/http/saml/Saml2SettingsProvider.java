@@ -46,6 +46,8 @@ import org.opensaml.xmlsec.signature.X509Certificate;
 import org.opensaml.xmlsec.signature.X509Data;
 
 public class Saml2SettingsProvider {
+
+    static final String ASSERTION_CONSUMER_SERVICE_PATH = "_plugins/_security/saml/acs";
     protected final static Logger log = LogManager.getLogger(Saml2SettingsProvider.class);
 
     private final Settings opensearchSettings;
@@ -143,7 +145,7 @@ public class Saml2SettingsProvider {
     private void initSpEndpoints(HashMap<String, Object> configProperties) {
         configProperties.put(
             SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_URL_PROPERTY_KEY,
-            this.buildAssertionConsumerEndpoint(this.opensearchSettings.get("kibana_url"))
+            Saml2SettingsProvider.buildAssertionConsumerEndpoint(this.opensearchSettings.get("kibana_url"))
         );
         configProperties.put(
             SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_BINDING_PROPERTY_KEY,
@@ -216,13 +218,8 @@ public class Saml2SettingsProvider {
         return null;
     }
 
-    private String buildAssertionConsumerEndpoint(String dashboardsRoot) {
-
-        if (dashboardsRoot.endsWith("/")) {
-            return dashboardsRoot + "_opendistro/_security/saml/acs";
-        } else {
-            return dashboardsRoot + "/_opendistro/_security/saml/acs";
-        }
+    static String buildAssertionConsumerEndpoint(String dashboardsRoot) {
+        return dashboardsRoot + (dashboardsRoot.endsWith("/") ? "" : "/") + ASSERTION_CONSUMER_SERVICE_PATH;
     }
 
     static class SamlSettingsMap implements Map<String, Object> {
