@@ -1,4 +1,11 @@
 allprojects {
+	// Spotless 8.10.x (the pinned Eclipse-JDT toolchain) requires a Java 17+ runtime to even
+	// resolve/apply its Gradle plugin. Skip it on older JDKs (e.g. the Java 11 test/integration/BWC
+	// CI matrices) so non-spotless builds don't fail at configuration time. Formatting still runs on
+	// the Java 17+ code-hygiene jobs, so enforcement is unchanged.
+	if (!JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_17)) {
+		return
+	}
 	project.apply plugin: "com.diffplug.spotless"
 	// The Eclipse JDT formatter is provisioned by Spotless from a P2 update-site mirror during Gradle's
 	// configuration phase. That means every Gradle invocation - including test-only tasks that never format
