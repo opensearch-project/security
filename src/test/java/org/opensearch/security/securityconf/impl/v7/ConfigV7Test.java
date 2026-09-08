@@ -26,6 +26,8 @@ import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.StringContains.containsString;
 
 @RunWith(Parameterized.class)
 public class ConfigV7Test {
@@ -132,5 +134,40 @@ public class ConfigV7Test {
         assertThat(Boolean.FALSE, is(oboSettings.isEnabled()));
         Assert.assertNull(oboSettings.getSigningKey());
         Assert.assertNull(oboSettings.getEncryptionKey());
+    }
+
+    @Test
+    public void testOnBehalfOfSettingsCarriesKeystoreSubSettings() throws Exception {
+        final String json = "{\"enabled\":true,"
+            + "\"signing_key_keystore_path\":\"/etc/obo/ks.bcfks\","
+            + "\"signing_key_keystore_alias\":\"obo-signing\","
+            + "\"signing_key_keystore_type\":\"BCFKS\","
+            + "\"encryption_key_keystore_alias\":\"obo-enc\"}";
+
+        final ConfigV7.OnBehalfOfSettings obo = DefaultObjectMapper.readValue(json, ConfigV7.OnBehalfOfSettings.class);
+        final String rendered = obo.configAsJson();
+
+        assertThat(rendered, containsString("signing_key_keystore_path"));
+        assertThat(rendered, containsString("/etc/obo/ks.bcfks"));
+        assertThat(rendered, containsString("signing_key_keystore_alias"));
+        assertThat(rendered, containsString("obo-signing"));
+        assertThat(rendered, containsString("encryption_key_keystore_alias"));
+    }
+
+    @Test
+    public void testOnBehalfOfSettingsToStringRedactsKeys() {
+        ConfigV7.OnBehalfOfSettings oboSettings = new ConfigV7.OnBehalfOfSettings();
+        oboSettings.setSigningKey("c3VwZXItc2VjcmV0LXNpZ25pbmcta2V5");
+        oboSettings.setEncryptionKey("c3VwZXItc2VjcmV0LWVuY3J5cHRpb24ta2V5");
+
+        final String rendered = oboSettings.toString();
+        assertThat(rendered, not(containsString("c3VwZXItc2VjcmV0LXNpZ25pbmcta2V5")));
+        assertThat(rendered, not(containsString("c3VwZXItc2VjcmV0LWVuY3J5cHRpb24ta2V5")));
+        assertThat(rendered, containsString("signing_key=****"));
+        assertThat(rendered, containsString("encryption_key=****"));
+
+        final String emptyRendered = new ConfigV7.OnBehalfOfSettings().toString();
+        assertThat(emptyRendered, containsString("signing_key=<not set>"));
+        assertThat(emptyRendered, containsString("encryption_key=<not set>"));
     }
 }

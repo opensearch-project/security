@@ -36,6 +36,7 @@ import org.opensearch.security.ssl.config.KeyStoreConfiguration;
 import org.opensearch.security.ssl.config.SslCertificatesLoader;
 import org.opensearch.security.ssl.config.SslParameters;
 import org.opensearch.security.ssl.config.TrustStoreConfiguration;
+import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.watcher.FileChangesListener;
 import org.opensearch.watcher.FileWatcher;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -48,6 +49,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.EXTENDED_KEY_USAGE_ENABLED;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.KEYSTORE_TYPE;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_CERT_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_KEY_FILEPATH;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.PEM_TRUSTED_CAS_FILEPATH;
@@ -74,6 +76,7 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_SERVER_EXTENDED_PREFIX;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_ALIAS;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.TRUSTSTORE_TYPE;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
 
 public class SslSettingsManager {
@@ -346,7 +349,10 @@ public class SslSettingsManager {
         final var clientAuth = ClientAuth.valueOf(
             transportSettings.get(CLIENT_AUTH_MODE, ClientAuth.OPTIONAL.name()).toUpperCase(Locale.ROOT)
         );
-        if (!transportSettings.hasValue(KEYSTORE_FILEPATH)) {
+        // A PKCS#11 keystore/truststore loads its material from the token, so no filepath is required.
+        final boolean isPkcs11Keystore = PemKeyReader.PKCS11.equalsIgnoreCase(transportSettings.get(KEYSTORE_TYPE));
+        final boolean isPkcs11Truststore = PemKeyReader.PKCS11.equalsIgnoreCase(transportSettings.get(TRUSTSTORE_TYPE));
+        if (!isPkcs11Keystore && !transportSettings.hasValue(KEYSTORE_FILEPATH)) {
             throw new OpenSearchException(
                 "Wrong "
                     + transportType.id().toLowerCase(Locale.ROOT)
@@ -355,7 +361,7 @@ public class SslSettingsManager {
                     + " must be set"
             );
         }
-        if (clientAuth == ClientAuth.REQUIRE && !transportSettings.hasValue(TRUSTSTORE_FILEPATH)) {
+        if (clientAuth == ClientAuth.REQUIRE && !isPkcs11Truststore && !transportSettings.hasValue(TRUSTSTORE_FILEPATH)) {
             throw new OpenSearchException(
                 "Wrong "
                     + transportType.id().toLowerCase(Locale.ROOT)
@@ -448,7 +454,12 @@ public class SslSettingsManager {
     }
 
     private void verifyKeyAndTrustStoreSettings(final Settings settings) {
-        if (!settings.hasValue(KEYSTORE_FILEPATH) || !settings.hasValue(TRUSTSTORE_FILEPATH)) {
+        // PKCS#11 keystores/truststores have no filepath - their material comes from the token.
+        final boolean keyStorePresent = settings.hasValue(KEYSTORE_FILEPATH)
+            || PemKeyReader.PKCS11.equalsIgnoreCase(settings.get(KEYSTORE_TYPE));
+        final boolean trustStorePresent = settings.hasValue(TRUSTSTORE_FILEPATH)
+            || PemKeyReader.PKCS11.equalsIgnoreCase(settings.get(TRUSTSTORE_TYPE));
+        if (!keyStorePresent || !trustStorePresent) {
             throw new OpenSearchException(
                 "Wrong Transport/Tran SSL configuration. One of Keystore and Truststore files or X.509 PEM certificates and "
                     + "PKCS#8 keys groups should be set to configure Transport layer properly"
@@ -461,7 +472,10 @@ public class SslSettingsManager {
     }
 
     private boolean hasKeyOrTrustStoreSettings(final Settings settings) {
-        return settings.hasValue(KEYSTORE_FILEPATH) || settings.hasValue(TRUSTSTORE_FILEPATH);
+        return settings.hasValue(KEYSTORE_FILEPATH)
+            || settings.hasValue(TRUSTSTORE_FILEPATH)
+            || PemKeyReader.PKCS11.equalsIgnoreCase(settings.get(KEYSTORE_TYPE))
+            || PemKeyReader.PKCS11.equalsIgnoreCase(settings.get(TRUSTSTORE_TYPE));
     }
 
     private boolean hasPemStoreSettings(final Settings settings) {

@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyException;
 import java.security.KeyStore;
@@ -25,6 +26,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import javax.crypto.NoSuchPaddingException;
@@ -32,10 +34,12 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.auth.x500.X500Principal;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.security.support.PemKeyReader;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.ApplicationProtocolNegotiator;
@@ -104,23 +108,119 @@ final class KeyStoreUtils {
         return certificates;
     }
 
-    public static KeyStore loadTrustStore(final Path path, final String type, final String alias, final char[] password) {
+    /**
+     * Collects the certificate chains of all key entries of the given store, optionally narrowed down to a single alias.
+     *
+     * @param source human-readable origin of the store, used for error messages only
+     */
+    public static List<Certificate> loadKeyEntryCertificates(
+        final KeyStore keyStore,
+        final String type,
+        final String alias,
+        final String source
+    ) {
+        final var listBuilder = ImmutableList.<Certificate>builder();
         try {
-            var keyStore = loadKeyStore(path, type, password);
             if (alias != null) {
-                if (!keyStore.isCertificateEntry(alias)) {
-                    throw new OpenSearchException("Alias " + alias + " does not contain a certificate entry");
+                if (keyStore.isKeyEntry(alias)) {
+                    addCertificateChain(keyStore, type, alias, listBuilder);
                 }
-                final var aliasCertificate = (X509Certificate) keyStore.getCertificate(alias);
-                if (aliasCertificate == null) {
-                    throw new OpenSearchException("Couldn't find SSL certificate for alias " + alias);
+            } else {
+                for (final var a : Collections.list(keyStore.aliases())) {
+                    if (keyStore.isKeyEntry(a)) {
+                        addCertificateChain(keyStore, type, a, listBuilder);
+                    }
                 }
-                keyStore = newKeyStore(type);
-                keyStore.setCertificateEntry(alias, aliasCertificate);
             }
-            return keyStore;
+        } catch (GeneralSecurityException e) {
+            throw new OpenSearchException("Couldn't load certificates from " + source, e);
+        }
+        final var list = listBuilder.build();
+        if (list.isEmpty()) {
+            throw new OpenSearchException("The keystore " + source + " does not contain any certificates");
+        }
+        return list;
+    }
+
+    private static void addCertificateChain(
+        final KeyStore keyStore,
+        final String type,
+        final String alias,
+        final ImmutableList.Builder<Certificate> listBuilder
+    ) throws KeyStoreException {
+        final var cc = keyStore.getCertificateChain(alias);
+        if (cc == null) {
+            return;
+        }
+        var first = true;
+        for (final var c : cc) {
+            if (c instanceof X509Certificate) {
+                listBuilder.add(new Certificate((X509Certificate) c, type, alias, first));
+                first = false;
+            }
+        }
+    }
+
+    /**
+     * Collects the trusted certificates of the given store, optionally narrowed down to a single alias.
+     *
+     * @param source human-readable origin of the store, used for error messages only
+     */
+    public static List<Certificate> loadTrustedCertificates(
+        final KeyStore trustStore,
+        final String type,
+        final String alias,
+        final String source
+    ) {
+        final var listBuilder = ImmutableList.<Certificate>builder();
+        try {
+            if (alias != null) {
+                final var c = trustStore.getCertificate(alias);
+                if (c instanceof X509Certificate) {
+                    listBuilder.add(new Certificate((X509Certificate) c, type, alias, false));
+                }
+            } else {
+                for (final var a : Collections.list(trustStore.aliases())) {
+                    if (!trustStore.isCertificateEntry(a)) continue;
+                    final var c = trustStore.getCertificate(a);
+                    if (c instanceof X509Certificate) {
+                        listBuilder.add(new Certificate((X509Certificate) c, type, a, false));
+                    }
+                }
+            }
+        } catch (GeneralSecurityException e) {
+            throw new OpenSearchException("Couldn't load certificates from " + source, e);
+        }
+        final var list = listBuilder.build();
+        if (list.isEmpty()) {
+            throw new OpenSearchException("The truststore " + source + " does not contain any certificates");
+        }
+        return list;
+    }
+
+    public static KeyStore loadTrustStore(final Path path, final String type, final String alias, final char[] password) {
+        final var trustStore = loadKeyStore(path, type, password);
+        return alias != null ? narrowToAlias(trustStore, type, alias, path.toString()) : trustStore;
+    }
+
+    /**
+     * Copies the certificate of a single alias into a new in-memory store of {@code targetType}, so that only
+     * that certificate is trusted. The source store is never modified.
+     */
+    public static KeyStore narrowToAlias(final KeyStore trustStore, final String targetType, final String alias, final String source) {
+        try {
+            if (!trustStore.isCertificateEntry(alias)) {
+                throw new OpenSearchException("Alias " + alias + " does not contain a certificate entry");
+            }
+            final var aliasCertificate = (X509Certificate) trustStore.getCertificate(alias);
+            if (aliasCertificate == null) {
+                throw new OpenSearchException("Couldn't find SSL certificate for alias " + alias);
+            }
+            final var narrowed = newKeyStore(targetType);
+            narrowed.setCertificateEntry(alias, aliasCertificate);
+            return narrowed;
         } catch (Exception e) {
-            throw new OpenSearchException("Failed to load trust store from " + path, e);
+            throw new OpenSearchException("Failed to load trust store from " + source, e);
         }
     }
 
@@ -214,12 +314,26 @@ final class KeyStoreUtils {
             final var keyStore = KeyStore.getInstance(type);
             try (final var in = Files.newInputStream(path)) {
                 keyStore.load(in, password);
-                return keyStore;
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+            return keyStore;
         } catch (Exception e) {
             throw new OpenSearchException("Failed to load keystore from " + path, e);
+        }
+    }
+
+    /**
+     * Opens the PKCS#11 token registered with the JVM. The token holds the key material itself, so there is
+     * nothing to read from disk - the PIN only unlocks the session.
+     */
+    public static KeyStore loadPkcs11Store(final char[] pin) {
+        try {
+            final var keyStore = KeyStore.getInstance(PemKeyReader.PKCS11);
+            keyStore.load(null, pin);
+            return keyStore;
+        } catch (Exception e) {
+            throw new OpenSearchException("Failed to load keystore from the PKCS#11 token", e);
         }
     }
 
