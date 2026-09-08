@@ -128,6 +128,9 @@ opensearch_version = System.getProperty("opensearch.version", "3.8.0-SNAPSHOT")
 - Clean up all resources in `@After` / `@AfterClass` methods.
 - Integration tests must not depend on test-execution order.
 - Use `./gradlew test -Dtests.iters=N` to repeat with varied random seeds when validating stability.
+- Cluster-backed unit tests derive disjoint TCP port bands from Gradle's
+  `org.gradle.test.worker` property (or the legacy `forkno` property). Do not
+  override either property with a shared value when using parallel test forks.
 
 ## Code Style and Static Analysis
 

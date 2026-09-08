@@ -36,6 +36,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
+import org.opensearch.security.support.ConfigConstants;
 
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -1150,9 +1151,15 @@ public class RequestContentValidatorTest {
 
     /* ---------------------- validateStringLength ---------------------- */
 
-    @Test
-    public void testStringLengthValidationRejectsOverMaxLength() throws Exception {
-        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+    // Explicit, small limit used by the string-length tests so they stay fast and independent of the (large) default.
+    private static final int CONFIGURED_MAX_STRING_LENGTH = 256;
+
+    private static Settings settingsWithMaxStringLength(final int maxLength) {
+        return Settings.builder().put(ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH, maxLength).build();
+    }
+
+    private RequestContentValidator stringValidator(final Settings settings, final DataType type) {
+        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
             @Override
             public Object[] params() {
                 return new Object[0];
@@ -1160,44 +1167,54 @@ public class RequestContentValidatorTest {
 
             @Override
             public Settings settings() {
-                return Settings.EMPTY;
+                return settings;
             }
 
             @Override
             public Map<String, FieldConfiguration> allowedKeys() {
-                return Map.of("description", FieldConfiguration.of(DataType.STRING));
+                return Map.of(
+                    "description",
+                    FieldConfiguration.of(DataType.STRING),
+                    "backend_roles",
+                    FieldConfiguration.of(DataType.ARRAY)
+                );
             }
         });
-        final JsonNode payload = DefaultObjectMapper.objectMapper()
-            .createObjectNode()
-            .put("description", repeat('a', RequestContentValidator.MAX_STRING_LENGTH + 1));
-        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
-        final ValidationResult<JsonNode> validationResult = validator.validate(request);
-        assertFalse(validationResult.isValid());
-        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.STRING_EXCEEDS_MAX_LENGTH);
+    }
+
+    private void assertStringLengthError(final ValidationResult<JsonNode> validationResult, final int expectedLimit) throws IOException {
+        final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
+        assertThat(errorMessage.get("status").asText(), is("error"));
+        assertThat(
+            errorMessage.get("reason").asText(),
+            is("String value exceeds the maximum allowed length of " + expectedLimit + " characters")
+        );
     }
 
     @Test
-    public void testStringLengthValidationAcceptsAtMaxLength() throws Exception {
-        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
-            @Override
-            public Object[] params() {
-                return new Object[0];
-            }
-
-            @Override
-            public Settings settings() {
-                return Settings.EMPTY;
-            }
-
-            @Override
-            public Map<String, FieldConfiguration> allowedKeys() {
-                return Map.of("description", FieldConfiguration.of(DataType.STRING));
-            }
-        });
+    public void testStringLengthValidationRejectsOverConfiguredMaxLength() throws Exception {
+        final RequestContentValidator validator = stringValidator(
+            settingsWithMaxStringLength(CONFIGURED_MAX_STRING_LENGTH),
+            DataType.STRING
+        );
         final JsonNode payload = DefaultObjectMapper.objectMapper()
             .createObjectNode()
-            .put("description", repeat('a', RequestContentValidator.MAX_STRING_LENGTH));
+            .put("description", repeat('a', CONFIGURED_MAX_STRING_LENGTH + 1));
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        assertStringLengthError(validationResult, CONFIGURED_MAX_STRING_LENGTH);
+    }
+
+    @Test
+    public void testStringLengthValidationAcceptsAtConfiguredMaxLength() throws Exception {
+        final RequestContentValidator validator = stringValidator(
+            settingsWithMaxStringLength(CONFIGURED_MAX_STRING_LENGTH),
+            DataType.STRING
+        );
+        final JsonNode payload = DefaultObjectMapper.objectMapper()
+            .createObjectNode()
+            .put("description", repeat('a', CONFIGURED_MAX_STRING_LENGTH));
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertTrue(validationResult.isValid());
@@ -1205,55 +1222,57 @@ public class RequestContentValidatorTest {
 
     @Test
     public void testStringLengthValidationChecksNestedArrayElements() throws Exception {
-        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
-            @Override
-            public Object[] params() {
-                return new Object[0];
-            }
-
-            @Override
-            public Settings settings() {
-                return Settings.EMPTY;
-            }
-
-            @Override
-            public Map<String, FieldConfiguration> allowedKeys() {
-                return Map.of("backend_roles", FieldConfiguration.of(DataType.ARRAY));
-            }
-        });
+        final RequestContentValidator validator = stringValidator(
+            settingsWithMaxStringLength(CONFIGURED_MAX_STRING_LENGTH),
+            DataType.ARRAY
+        );
         final ObjectNode payload = DefaultObjectMapper.objectMapper().createObjectNode();
-        payload.putArray("backend_roles").add("short").add(repeat('x', RequestContentValidator.MAX_STRING_LENGTH + 1));
+        payload.putArray("backend_roles").add("short").add(repeat('x', CONFIGURED_MAX_STRING_LENGTH + 1));
         when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
         final ValidationResult<JsonNode> validationResult = validator.validate(request);
         assertFalse(validationResult.isValid());
-        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.STRING_EXCEEDS_MAX_LENGTH);
+        assertStringLengthError(validationResult, CONFIGURED_MAX_STRING_LENGTH);
     }
 
     @Test
     public void testStringLengthValidationChecksPatchedContent() throws Exception {
-        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
-            @Override
-            public Object[] params() {
-                return new Object[0];
-            }
-
-            @Override
-            public Settings settings() {
-                return Settings.EMPTY;
-            }
-
-            @Override
-            public Map<String, FieldConfiguration> allowedKeys() {
-                return Map.of("description", FieldConfiguration.of(DataType.STRING));
-            }
-        });
+        final RequestContentValidator validator = stringValidator(
+            settingsWithMaxStringLength(CONFIGURED_MAX_STRING_LENGTH),
+            DataType.STRING
+        );
         final JsonNode original = DefaultObjectMapper.objectMapper().createObjectNode().put("description", "short");
         final JsonNode patched = DefaultObjectMapper.objectMapper()
             .createObjectNode()
-            .put("description", repeat('a', RequestContentValidator.MAX_STRING_LENGTH + 1));
+            .put("description", repeat('a', CONFIGURED_MAX_STRING_LENGTH + 1));
         final ValidationResult<JsonNode> validationResult = validator.validate(request, patched, original);
         assertFalse(validationResult.isValid());
-        assertErrorMessage(validationResult.errorMessage(), RequestContentValidator.ValidationError.STRING_EXCEEDS_MAX_LENGTH);
+        assertStringLengthError(validationResult, CONFIGURED_MAX_STRING_LENGTH);
+    }
+
+    /**
+     * Regression test for issue #6434: with the default (generous) limit, a large free-form value such as a DLS query
+     * must be accepted. The pre-fix hard-coded 256 limit rejected these.
+     */
+    @Test
+    public void testStringLengthValidationDefaultAllowsLargeValue() throws Exception {
+        final RequestContentValidator validator = stringValidator(Settings.EMPTY, DataType.STRING);
+        // Comfortably larger than the old 256 limit, comfortably smaller than the default.
+        final JsonNode payload = DefaultObjectMapper.objectMapper().createObjectNode().put("description", repeat('a', 1024));
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertTrue(validationResult.isValid());
+    }
+
+    @Test
+    public void testStringLengthValidationRejectsBeyondDefaultAndReportsDefaultLimit() throws Exception {
+        final RequestContentValidator validator = stringValidator(Settings.EMPTY, DataType.STRING);
+        final JsonNode payload = DefaultObjectMapper.objectMapper()
+            .createObjectNode()
+            .put("description", repeat('a', ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT + 1));
+        when(httpRequest.content()).thenReturn(new BytesArray(payload.toString()));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        assertFalse(validationResult.isValid());
+        assertStringLengthError(validationResult, ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT);
     }
 
 }

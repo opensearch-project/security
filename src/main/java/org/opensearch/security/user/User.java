@@ -44,6 +44,7 @@ import java.util.Objects;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.identity.Subject;
@@ -158,6 +159,7 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
     }
 
     @Override
+    @JsonIgnore
     public Principal getPrincipal() {
         return this;
     }

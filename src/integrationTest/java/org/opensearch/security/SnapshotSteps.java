@@ -10,56 +10,56 @@
 package org.opensearch.security;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.awaitility.Awaitility;
 
-import org.opensearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
-import org.opensearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
-import org.opensearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
-import org.opensearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
-import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
-import org.opensearch.client.RestHighLevelClient;
-import org.opensearch.client.SnapshotClient;
-import org.opensearch.snapshots.SnapshotInfo;
-import org.opensearch.snapshots.SnapshotState;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch.snapshot.CreateRepositoryRequest;
+import org.opensearch.client.opensearch.snapshot.CreateRepositoryResponse;
+import org.opensearch.client.opensearch.snapshot.CreateSnapshotRequest;
+import org.opensearch.client.opensearch.snapshot.CreateSnapshotResponse;
+import org.opensearch.client.opensearch.snapshot.DeleteRepositoryRequest;
+import org.opensearch.client.opensearch.snapshot.DeleteRepositoryResponse;
+import org.opensearch.client.opensearch.snapshot.DeleteSnapshotRequest;
+import org.opensearch.client.opensearch.snapshot.DeleteSnapshotResponse;
+import org.opensearch.client.opensearch.snapshot.GetSnapshotRequest;
+import org.opensearch.client.opensearch.snapshot.GetSnapshotResponse;
+import org.opensearch.client.opensearch.snapshot.OpenSearchSnapshotClient;
+import org.opensearch.client.opensearch.snapshot.RestoreSnapshotRequest;
+import org.opensearch.client.opensearch.snapshot.RestoreSnapshotResponse;
+import org.opensearch.client.opensearch.snapshot.SnapshotInfo;
 
 import static java.util.Objects.requireNonNull;
-import static org.opensearch.client.RequestOptions.DEFAULT;
 
 class SnapshotSteps {
 
-    private final SnapshotClient snapshotClient;
+    private final OpenSearchSnapshotClient snapshotClient;
 
-    public SnapshotSteps(RestHighLevelClient restHighLevelClient) {
-        this.snapshotClient = requireNonNull(restHighLevelClient, "Rest high level client is required.").snapshot();
+    public SnapshotSteps(OpenSearchClient client) {
+        this.snapshotClient = requireNonNull(client, "Rest high level client is required.").snapshot();
     }
 
-    public org.opensearch.action.support.clustermanager.AcknowledgedResponse createSnapshotRepository(
-        String repositoryName,
-        String snapshotDirPath,
-        String type
-    ) throws IOException {
-        PutRepositoryRequest createRepositoryRequest = new PutRepositoryRequest().name(repositoryName)
-            .type(type)
-            .settings(Map.of("location", snapshotDirPath));
-        return snapshotClient.createRepository(createRepositoryRequest, DEFAULT);
+    public CreateRepositoryResponse createSnapshotRepository(String repositoryName, String snapshotDirPath, String type)
+        throws IOException {
+        CreateRepositoryRequest createRepositoryRequest = CreateRepositoryRequest.of(
+            r -> r.name(repositoryName).type(type).settings(s -> s.location(snapshotDirPath))
+        );
+        return snapshotClient.createRepository(createRepositoryRequest);
     }
 
     public CreateSnapshotResponse createSnapshot(String repositoryName, String snapshotName, String... indices) throws IOException {
-        CreateSnapshotRequest createSnapshotRequest = new CreateSnapshotRequest(repositoryName, snapshotName).indices(indices);
-        return snapshotClient.create(createSnapshotRequest, DEFAULT);
+        CreateSnapshotRequest createSnapshotRequest = CreateSnapshotRequest.of(
+            r -> r.repository(repositoryName).snapshot(snapshotName).indices(Arrays.asList(indices))
+        );
+        return snapshotClient.create(createSnapshotRequest);
     }
 
     public int waitForSnapshotCreation(String repositoryName, String snapshotName) {
         AtomicInteger count = new AtomicInteger();
-        GetSnapshotsRequest getSnapshotsRequest = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
+        GetSnapshotRequest getSnapshotsRequest = GetSnapshotRequest.of(r -> r.repository(repositoryName).snapshot(snapshotName));
         Awaitility.await()
             .pollDelay(250, TimeUnit.MILLISECONDS)
             .pollInterval(2, TimeUnit.SECONDS)
@@ -67,22 +67,20 @@ class SnapshotSteps {
             .ignoreExceptions()
             .until(() -> {
                 count.incrementAndGet();
-                GetSnapshotsResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest, DEFAULT);
-                SnapshotInfo snapshotInfo = snapshotsResponse.getSnapshots().get(0);
-                return SnapshotState.SUCCESS.equals(snapshotInfo.state());
+                GetSnapshotResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest);
+                SnapshotInfo snapshotInfo = snapshotsResponse.snapshots().get(0);
+                return "SUCCESS".equals(snapshotInfo.state());
             });
         return count.get();
     }
 
-    public org.opensearch.action.support.clustermanager.AcknowledgedResponse deleteSnapshotRepository(String repositoryName)
-        throws IOException {
-        DeleteRepositoryRequest request = new DeleteRepositoryRequest(repositoryName);
-        return snapshotClient.deleteRepository(request, DEFAULT);
+    public DeleteRepositoryResponse deleteSnapshotRepository(String repositoryName) throws IOException {
+        DeleteRepositoryRequest request = DeleteRepositoryRequest.of(r -> r.name(repositoryName));
+        return snapshotClient.deleteRepository(request);
     }
 
-    public org.opensearch.action.support.clustermanager.AcknowledgedResponse deleteSnapshot(String repositoryName, String snapshotName)
-        throws IOException {
-        return snapshotClient.delete(new DeleteSnapshotRequest(repositoryName, snapshotName), DEFAULT);
+    public DeleteSnapshotResponse deleteSnapshot(String repositoryName, String snapshotName) throws IOException {
+        return snapshotClient.delete(DeleteSnapshotRequest.of(r -> r.repository(repositoryName).snapshot(snapshotName)));
     }
 
     public RestoreSnapshotResponse restoreSnapshot(
@@ -91,9 +89,9 @@ class SnapshotSteps {
         String renamePattern,
         String renameReplacement
     ) throws IOException {
-        RestoreSnapshotRequest restoreSnapshotRequest = new RestoreSnapshotRequest(repositoryName, snapshotName).renamePattern(
-            renamePattern
-        ).renameReplacement(renameReplacement);
-        return snapshotClient.restore(restoreSnapshotRequest, DEFAULT);
+        RestoreSnapshotRequest restoreSnapshotRequest = RestoreSnapshotRequest.of(
+            r -> r.repository(repositoryName).snapshot(snapshotName).renamePattern(renamePattern).renameReplacement(renameReplacement)
+        );
+        return snapshotClient.restore(restoreSnapshotRequest);
     }
 }

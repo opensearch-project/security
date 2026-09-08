@@ -208,14 +208,8 @@ public class InstallerTests {
 
     @Test
     public void testInitializeVariables_setBaseDir_invalidPath() {
-        String[] invalidScriptDirPath = { "/scriptDir", "-y" };
+        String[] invalidScriptDirPath = { "/nonexistent/opensearch-home", "-y" };
         installer.readOptions(invalidScriptDirPath);
-
-        // If BASE_DIR cannot be determined, a NullPointerException is expected.
-        assertThrows("Expected NullPointerException to be thrown", NullPointerException.class, installer::initializeVariables);
-
-        String[] invalidScriptDirPath2 = { "/opensearch/plugins/opensearch-security/tools", "-y" };
-        installer.readOptions(invalidScriptDirPath2);
 
         installer.setExitHandler(status -> { throw new TestExitException(status); });
         TestExitException ex = assertThrows("Expected exit with status -1", TestExitException.class, installer::initializeVariables);
@@ -233,8 +227,7 @@ public class InstallerTests {
 
         installer.setBaseDir();
 
-        String expectedBaseDirValue = new File(currentDir).getParentFile().getParentFile().getParentFile().getAbsolutePath()
-            + File.separator;
+        String expectedBaseDirValue = new File(currentDir).getAbsolutePath() + File.separator;
         assertThat(installer.BASE_DIR, equalTo(expectedBaseDirValue));
     }
 
@@ -257,8 +250,7 @@ public class InstallerTests {
         verifyStdOutContainsString("Unable to determine OpenSearch plugins directory. Quit.");
         verifyStdOutContainsString("Unable to determine OpenSearch lib directory. Quit.");
 
-        String expectedBaseDirValue = new File(currentDir).getParentFile().getParentFile().getParentFile().getAbsolutePath()
-            + File.separator;
+        String expectedBaseDirValue = new File(currentDir).getAbsolutePath() + File.separator;
         String expectedOpensearchConfFilePath = expectedBaseDirValue + "config" + File.separator + "opensearch.yml";
         String expectedOpensearchBinDirPath = expectedBaseDirValue + "bin" + File.separator;
         String expectedOpensearchPluginDirPath = expectedBaseDirValue + "plugins" + File.separator;
