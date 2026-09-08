@@ -16,6 +16,7 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.resources.ResourcePluginInfo;
 
 import tools.jackson.databind.JsonNode;
@@ -23,6 +24,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -141,6 +143,57 @@ public class MigrateResourceSharingInfoApiActionTests {
     @Test
     public void jsonPointerPreservesLeadingSlash() {
         assertEquals("/monitor/user/name", MigrateResourceSharingInfoApiAction.jsonPointer("/monitor/user/name"));
+    }
+
+    @Test
+    public void classifyNotificationConfigFallsBackToSingleAccessLevelKey() throws Exception {
+        // A single-provider index with no typeField (e.g. notifications' notification_config) is
+        // classified by the sole default_access_level key, so the doc is migrated rather than skipped.
+        // Uses a faithful `.opensearch-notifications-config` _source (NotificationConfigDoc.toXContent:
+        // metadata + config, no envelope) with the real NotificationConstants tag names.
+        JsonNode notifDoc = mapper.readTree(
+            "{ \"metadata\": { \"last_updated_time_ms\": 1735689600000, \"created_time_ms\": 1735689600000,"
+                + " \"access\": [\"role_a\", \"role_b\"] },"
+                + " \"config\": { \"name\": \"channel-1\", \"config_type\": \"slack\", \"is_enabled\": true } }"
+        );
+        String result = MigrateResourceSharingInfoApiAction.classifyDocType(
+            notifDoc,
+            Collections.emptyList(),
+            Collections.singletonMap("notification_config", "notifications_read_write"),
+            resourcePluginInfo,
+            ".opensearch-notifications-config"
+        );
+        assertEquals("notification_config", result);
+    }
+
+    @Test
+    public void nonResolvingUsernamePathYieldsNoOwnerSoMigrationUsesDefaultOwner() throws Exception {
+        // Notification config docs have no owner name. The migrate call must still pass a valid,
+        // non-empty username_path (an empty "" is rejected by PATH_VALIDATOR#requireNonEmpty), so it
+        // is pointed at a path that does not exist on the doc. It resolves to no value (null) and
+        // createNewSharingRecords falls back to default_owner, while backend_roles_path
+        // "/metadata/access" still yields the legacy access list to share with.
+        JsonNode notifDoc = mapper.readTree(
+            "{ \"metadata\": { \"last_updated_time_ms\": 1735689600000, \"created_time_ms\": 1735689600000,"
+                + " \"access\": [\"role_a\", \"role_b\"] },"
+                + " \"config\": { \"name\": \"channel-1\", \"config_type\": \"slack\", \"is_enabled\": true } }"
+        );
+
+        // An empty username_path is rejected before extraction, so it cannot be used in the doc example.
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> RequestContentValidator.validatePath("username_path", "", RequestContentValidator.MAX_STRING_LENGTH)
+        );
+
+        // A valid, non-resolving path passes validation and yields no owner (-> default_owner).
+        RequestContentValidator.validatePath("username_path", "/metadata/owner", RequestContentValidator.MAX_STRING_LENGTH);
+        String username = notifDoc.at(MigrateResourceSharingInfoApiAction.jsonPointer("/metadata/owner")).asText(null);
+        assertNull(username);
+
+        JsonNode backendRoles = notifDoc.at(MigrateResourceSharingInfoApiAction.jsonPointer("/metadata/access"));
+        assertEquals(2, backendRoles.size());
+        assertEquals("role_a", backendRoles.get(0).asText());
+        assertEquals("role_b", backendRoles.get(1).asText());
     }
 
 }

@@ -25,11 +25,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.cluster.block.ClusterBlockException;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.discovery.ClusterManagerNotDiscoveredException;
+import org.opensearch.gateway.GatewayService;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.ActionListenerUtils.TestActionListener;
+import org.opensearch.threadpool.ThreadPool;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -44,6 +49,8 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("unchecked")
@@ -68,6 +75,7 @@ public class ApiTokenRepositoryTests extends LuceneTestCase {
     private static final String HASH_TEST = ApiTokenRepository.hashToken(TOKEN_TEST);
     private static final String HASH_EXISTS = ApiTokenRepository.hashToken(TOKEN_EXISTS);
     private ApiTokenIndexHandler apiTokenIndexHandler;
+    private ThreadPool threadPool;
     private ApiTokenRepository repository;
 
     @Override
@@ -75,7 +83,8 @@ public class ApiTokenRepositoryTests extends LuceneTestCase {
     public void setUp() throws Exception {
         super.setUp();
         apiTokenIndexHandler = mock(ApiTokenIndexHandler.class);
-        repository = ApiTokenRepository.forTest(apiTokenIndexHandler);
+        threadPool = mock(ThreadPool.class);
+        repository = ApiTokenRepository.forTest(apiTokenIndexHandler, threadPool);
     }
 
     @Test
@@ -372,6 +381,73 @@ public class ApiTokenRepositoryTests extends LuceneTestCase {
         repository.reloadApiTokensFromIndex(ActionListener.wrap(unused -> callCount[0]++, e -> {}));
 
         assertEquals("Listener should be called exactly once regardless of token count", 1, callCount[0]);
+    }
+
+    @Test
+    public void testReloadApiTokensOnNodeStartRetriesStateNotRecoveredBlock() {
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onFailure(new ClusterBlockException(Collections.singleton(GatewayService.STATE_NOT_RECOVERED_BLOCK)));
+            return null;
+        }).doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(Collections.emptyMap());
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        doAnswer(invocation -> {
+            Runnable retry = invocation.getArgument(2);
+            retry.run();
+            return null;
+        }).when(threadPool).scheduleUnlessShuttingDown(any(TimeValue.class), eq(ThreadPool.Names.GENERIC), any(Runnable.class));
+
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.reloadApiTokensOnNodeStart(listener);
+
+        listener.assertSuccess();
+        verify(apiTokenIndexHandler, times(2)).getTokenMetadatas(any(ActionListener.class));
+        verify(threadPool).scheduleUnlessShuttingDown(any(TimeValue.class), eq(ThreadPool.Names.GENERIC), any(Runnable.class));
+    }
+
+    @Test
+    public void testReloadApiTokensOnNodeStartRetriesMissingClusterManager() {
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onFailure(new ClusterManagerNotDiscoveredException());
+            return null;
+        }).doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(Collections.emptyMap());
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        doAnswer(invocation -> {
+            Runnable retry = invocation.getArgument(2);
+            retry.run();
+            return null;
+        }).when(threadPool).scheduleUnlessShuttingDown(any(TimeValue.class), eq(ThreadPool.Names.GENERIC), any(Runnable.class));
+
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.reloadApiTokensOnNodeStart(listener);
+
+        listener.assertSuccess();
+        verify(apiTokenIndexHandler, times(2)).getTokenMetadatas(any(ActionListener.class));
+        verify(threadPool).scheduleUnlessShuttingDown(any(TimeValue.class), eq(ThreadPool.Names.GENERIC), any(Runnable.class));
+    }
+
+    @Test
+    public void testReloadApiTokensOnNodeStartDoesNotRetryUnexpectedFailure() {
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onFailure(new IllegalStateException("unexpected"));
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.reloadApiTokensOnNodeStart(listener);
+
+        listener.assertException(OpenSearchSecurityException.class);
+        verify(threadPool, never()).scheduleUnlessShuttingDown(any(TimeValue.class), any(String.class), any(Runnable.class));
     }
 
     @Test

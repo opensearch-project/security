@@ -11,7 +11,6 @@ package org.opensearch.security;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -24,20 +23,22 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.get.MultiGetItemResponse;
-import org.opensearch.action.get.MultiGetRequest;
-import org.opensearch.action.get.MultiGetResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.aggregations.Aggregate;
+import org.opensearch.client.opensearch._types.aggregations.AvgAggregate;
+import org.opensearch.client.opensearch.core.GetRequest;
+import org.opensearch.client.opensearch.core.GetResponse;
+import org.opensearch.client.opensearch.core.MgetRequest;
+import org.opensearch.client.opensearch.core.MgetResponse;
+import org.opensearch.client.opensearch.core.SearchRequest;
+import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.get.GetResult;
+import org.opensearch.client.opensearch.core.mget.MultiGetResponseItem;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.search.aggregations.Aggregation;
-import org.opensearch.search.aggregations.metrics.ParsedAvg;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.OpenSearchClientProvider.CloseableOpenSearchClient;
 import org.opensearch.transport.client.Client;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -48,7 +49,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.security.Song.ARTIST_FIRST;
 import static org.opensearch.security.Song.ARTIST_NO;
 import static org.opensearch.security.Song.ARTIST_STRING;
@@ -61,14 +61,14 @@ import static org.opensearch.security.Song.QUERY_TITLE_NEXT_SONG;
 import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchRequestWithSort;
-import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
+import static org.opensearch.test.framework.client.SearchRequestFactory.averageAggregationRequest;
+import static org.opensearch.test.framework.client.SearchRequestFactory.searchRequestWithSort;
+import static org.opensearch.test.framework.matcher.client.GetResultMatchers.containDocument;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.containAggregationWithNameAndType;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.isSuccessfulSearchResponse;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitContainsFieldWithValue;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
 
 public class DlsIntegrationTests {
 
@@ -405,9 +405,9 @@ public class DlsIntegrationTests {
     @Test
     public void testShouldSearchAll() throws IOException {
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_ALL_USER)) {
             SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
@@ -419,15 +419,15 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
 
             searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
-            searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_NO));
         }
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_FIRST_AND_SECOND_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_FIRST_AND_SECOND_USER)) {
             SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
@@ -439,7 +439,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
 
             searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
-            searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
@@ -450,16 +450,16 @@ public class DlsIntegrationTests {
     @Test
     public void testShouldSearchI1_S2I2_S3() throws IOException {
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING)) {
             SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
             assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_STRING));
 
             searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
-            searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
@@ -470,12 +470,12 @@ public class DlsIntegrationTests {
     public void testShouldSearchI1_S3I1_S6I2_S2() throws IOException {
 
         try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+            CloseableOpenSearchClient client = cluster.getClient(
                 READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE
             )
         ) {
             SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(2));
@@ -483,7 +483,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_UNKNOWN));
 
             searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
-            searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
@@ -493,13 +493,9 @@ public class DlsIntegrationTests {
 
     public void testShouldSearchI1_S1I1_S3I2_S2I2_S4() throws IOException {
 
-        try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
-                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
-            )
-        ) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST)) {
             SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(2));
@@ -507,7 +503,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_FIRST));
 
             searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
-            searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(2));
@@ -518,9 +514,9 @@ public class DlsIntegrationTests {
 
     public void testShouldSearchStarsLessThanThree() throws IOException {
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_STARS_LESS_THAN_THREE)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_WHERE_STARS_LESS_THAN_THREE)) {
             SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(2));
@@ -528,7 +524,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_STRING));
 
             searchRequest = searchRequestWithSort(SECOND_INDEX_NAME);
-            searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(2));
@@ -541,9 +537,9 @@ public class DlsIntegrationTests {
     public void testSearchForAllDocumentsWithIndexPattern() throws IOException {
 
         // DLS
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_ALL_USER)) {
             SearchRequest searchRequest = searchRequestWithSort("*".concat(FIRST_INDEX_NAME));
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
@@ -555,7 +551,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
 
             searchRequest = searchRequestWithSort("*".concat(SECOND_INDEX_NAME));
-            searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
@@ -566,9 +562,9 @@ public class DlsIntegrationTests {
     @Test
     public void testSearchForAllDocumentsWithAlias() throws IOException {
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_ALL_USER)) {
             SearchRequest searchRequest = searchRequestWithSort(FIRST_INDEX_ALIAS);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
@@ -580,7 +576,7 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
 
             searchRequest = searchRequestWithSort("*".concat(SECOND_INDEX_NAME));
-            searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
@@ -595,119 +591,107 @@ public class DlsIntegrationTests {
     public void testAggregateAndComputeStarRatings() throws IOException {
 
         // DLS
-        try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
-                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
-            )
-        ) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST)) {
             String aggregationName = "averageStars";
             Song song = FIRST_INDEX_SONGS_BY_ID.get(FIND_ID_OF_SONG_WITH_ARTIST.apply(FIRST_INDEX_SONGS_BY_ID, ARTIST_TWINS));
 
             SearchRequest searchRequest = averageAggregationRequest(FIRST_INDEX_NAME, aggregationName, FIELD_STARS);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
-            Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
-            assertThat(actualAggregation, instanceOf(ParsedAvg.class));
-            assertThat(((ParsedAvg) actualAggregation).getValue(), is(song.getStars() * 1.0));
+            Aggregate actualAggregation = searchResponse.aggregations().get(aggregationName);
+            assertThat(actualAggregation._get(), instanceOf(AvgAggregate.class));
+            assertThat(((AvgAggregate) actualAggregation._get()).value(), is(song.getStars() * 1.0d));
         }
         try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+            CloseableOpenSearchClient client = cluster.getClient(
                 READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE
             )
         ) {
+
             String aggregationName = "averageStars";
             SearchRequest searchRequest = averageAggregationRequest(FIRST_INDEX_NAME, aggregationName, FIELD_STARS);
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
-            Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
-            assertThat(actualAggregation, instanceOf(ParsedAvg.class));
-            assertThat(((ParsedAvg) actualAggregation).getValue(), is(4.5));
+            Aggregate actualAggregation = searchResponse.aggregations().get(aggregationName);
+            assertThat(actualAggregation._get(), instanceOf(AvgAggregate.class));
+            assertThat(((AvgAggregate) actualAggregation._get()).value(), is(4.5d));
         }
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_STARS_LESS_THAN_THREE)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(READ_WHERE_STARS_LESS_THAN_THREE)) {
             String aggregationName = "averageStars";
             SearchRequest searchRequest = averageAggregationRequest(FIRST_INDEX_NAME, aggregationName, FIELD_STARS);
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
-            Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
-            assertThat(actualAggregation, instanceOf(ParsedAvg.class));
-            assertThat(((ParsedAvg) actualAggregation).getValue(), is(1.5));
+            Aggregate actualAggregation = searchResponse.aggregations().get(aggregationName);
+            assertThat(actualAggregation._get(), instanceOf(AvgAggregate.class));
+            assertThat(((AvgAggregate) actualAggregation._get()).value(), is(1.5d));
         }
     }
 
     @Test
     public void testGetDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
-        GetRequest findExistingDoc = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
-        GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
+        GetRequest findExistingDoc = GetRequest.of(r -> r.index(FIRST_INDEX_NAME).id(FIRST_INDEX_ID_SONG_1));
+        GetRequest findNonExistingDoc = GetRequest.of(r -> r.index(FIRST_INDEX_NAME).id("RANDOM_INDEX"));
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
-            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertGetForDLSRestrictions(client, findExistingDoc, findNonExistingDoc);
         }
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
-            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertGetForDLSRestrictions(client, findExistingDoc, findNonExistingDoc);
         }
     }
 
-    private void assertGetForDLSRestrictions(
-        RestHighLevelClient restHighLevelClient,
-        GetRequest findExistingDoc,
-        GetRequest findNonExistingDoc
-    ) throws IOException, Exception {
-        GetResponse response = restHighLevelClient.get(findExistingDoc, DEFAULT);
+    private void assertGetForDLSRestrictions(OpenSearchClient client, GetRequest findExistingDoc, GetRequest findNonExistingDoc)
+        throws IOException, Exception {
+        GetResponse<?> response = client.get(findExistingDoc, Map.class);
         assertThat(response, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-        response = restHighLevelClient.get(findNonExistingDoc, DEFAULT);
-        assertThat(response.isExists(), equalTo(false));
+        response = client.get(findNonExistingDoc, Map.class);
+        assertThat(response.found(), equalTo(false));
     }
 
     @Test
     public void testMultiGetDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
-        MultiGetRequest multiGetRequest = new MultiGetRequest();
-        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
+        MgetRequest multiGetRequest = MgetRequest.of(r -> r.index(FIRST_INDEX_NAME).ids(FIRST_INDEX_ID_SONG_1, FIRST_INDEX_ID_SONG_2));
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
-            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertMGetForDLSRestrictions(client, multiGetRequest);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
-            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertMGetForDLSRestrictions(client, multiGetRequest);
         }
     }
 
-    private void assertMGetForDLSRestrictions(RestHighLevelClient restHighLevelClient, MultiGetRequest multiGetRequest) throws IOException,
-        Exception {
-        MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
-        List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
-            .map(MultiGetItemResponse::getResponse)
-            .collect(Collectors.toList());
+    private void assertMGetForDLSRestrictions(OpenSearchClient client, MgetRequest multiGetRequest) throws IOException, Exception {
+        MgetResponse<?> multiGetResponse = client.mget(multiGetRequest, Map.class);
+        List<GetResult<?>> getResponses = multiGetResponse.docs().stream().map(MultiGetResponseItem::result).collect(Collectors.toList());
         assertThat(getResponses, hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
         assertThat(getResponses, not(hasItem(containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2))));
     }
 
     @Test
     public void testSearchDocumentWithBoolOrTermDLSRestrictions() throws IOException, Exception {
-        SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+        SearchRequest searchRequest = SearchRequest.of(r -> r.index(FIRST_INDEX_NAME));
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
-            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_MATCH_ARTIST_BOOL_QUERY)) {
+            assertSearchForDLSRestrictions(client, searchRequest);
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_STARS_TERM_QUERY)) {
-            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_MATCH_STARS_TERM_QUERY)) {
+            assertSearchForDLSRestrictions(client, searchRequest);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void assertSearchForDLSRestrictions(RestHighLevelClient restHighLevelClient, SearchRequest searchRequest) throws IOException,
-        Exception {
-        SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+    private void assertSearchForDLSRestrictions(OpenSearchClient client, SearchRequest searchRequest) throws IOException, Exception {
+        SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
         assertThat(searchResponse, isSuccessfulSearchResponse());
         assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
         assertThat(searchResponse, searchHitsContainDocumentsInAnyOrder(Pair.of(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1)));
@@ -715,50 +699,36 @@ public class DlsIntegrationTests {
 
     @Test
     public void testGetDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
-        GetRequest findExistingDoc = new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1);
-        GetRequest findNonExistingDoc = new GetRequest(FIRST_INDEX_NAME, "RANDOM_INDEX");
+        GetRequest findExistingDoc = GetRequest.of(r -> r.index(FIRST_INDEX_NAME).id(FIRST_INDEX_ID_SONG_1));
+        GetRequest findNonExistingDoc = GetRequest.of(r -> r.index(FIRST_INDEX_NAME).id("RANDOM_INDEX"));
 
-        try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
-                USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
-            )
-        ) {
-            assertGetForDLSRestrictions(restHighLevelClient, findExistingDoc, findNonExistingDoc);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY)) {
+            assertGetForDLSRestrictions(client, findExistingDoc, findNonExistingDoc);
         }
     }
 
     @Test
     public void testMultiGetDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
-        MultiGetRequest multiGetRequest = new MultiGetRequest();
-        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-        multiGetRequest.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
+        MgetRequest multiGetRequest = MgetRequest.of(r -> r.index(FIRST_INDEX_NAME).ids(FIRST_INDEX_ID_SONG_1, FIRST_INDEX_ID_SONG_2));
 
-        try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
-                USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
-            )
-        ) {
-            assertMGetForDLSRestrictions(restHighLevelClient, multiGetRequest);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY)) {
+            assertMGetForDLSRestrictions(client, multiGetRequest);
         }
     }
 
     @Test
     public void testSearchDocumentWithBoolAndTermDLSRestrictions() throws IOException, Exception {
-        SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
+        SearchRequest searchRequest = SearchRequest.of(r -> r.index(FIRST_INDEX_NAME));
 
-        try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
-                USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY
-            )
-        ) {
-            assertSearchForDLSRestrictions(restHighLevelClient, searchRequest);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY)) {
+            assertSearchForDLSRestrictions(client, searchRequest);
         }
     }
 
     public void testOverlappingRoleUnionSearchFiltering() throws Exception {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NON_SENSITIVE_ONLY)) {
-            SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_NON_SENSITIVE_ONLY)) {
+            SearchRequest searchRequest = SearchRequest.of(r -> r.index(UNION_TEST_INDEX_NAME));
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertSearchResponseHitsEqualTo(searchResponse, 4);
 
@@ -774,20 +744,16 @@ public class DlsIntegrationTests {
             );
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOW_ALL)) {
-            SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_ALLOW_ALL)) {
+            SearchRequest searchRequest = SearchRequest.of(r -> r.index(UNION_TEST_INDEX_NAME));
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertSearchResponseHitsEqualTo(searchResponse, 10);
         }
 
-        try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
-                USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL
-            )
-        ) {
-            SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL)) {
+            SearchRequest searchRequest = SearchRequest.of(r -> r.index(UNION_TEST_INDEX_NAME));
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertSearchResponseHitsEqualTo(searchResponse, 10);
 
@@ -804,9 +770,9 @@ public class DlsIntegrationTests {
     @Test
     @SuppressWarnings("unchecked")
     public void testNonOverlappingRoleUnionSearchFiltering() throws Exception {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_NON_SENSITIVE_ONLY)) {
-            SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_NON_SENSITIVE_ONLY)) {
+            SearchRequest searchRequest = SearchRequest.of(r -> r.index(UNION_TEST_INDEX_NAME));
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertSearchResponseHitsEqualTo(searchResponse, 4);
 
@@ -822,9 +788,9 @@ public class DlsIntegrationTests {
             );
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_MATCH_HISTORY_GENRE_ONLY)) {
-            SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_MATCH_HISTORY_GENRE_ONLY)) {
+            SearchRequest searchRequest = SearchRequest.of(r -> r.index(UNION_TEST_INDEX_NAME));
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertSearchResponseHitsEqualTo(searchResponse, 5);
 
@@ -841,12 +807,13 @@ public class DlsIntegrationTests {
         }
 
         try (
-            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+            CloseableOpenSearchClient client = cluster.getClient(
                 USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY
             )
         ) {
-            SearchRequest searchRequest = new SearchRequest(UNION_TEST_INDEX_NAME);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+            SearchRequest searchRequest = SearchRequest.of(r -> r.index(UNION_TEST_INDEX_NAME));
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertSearchResponseHitsEqualTo(searchResponse, 9);
 
@@ -866,7 +833,7 @@ public class DlsIntegrationTests {
         }
     }
 
-    private void assertSearchResponseHitsEqualTo(SearchResponse searchResponse, int hits) throws Exception {
+    private void assertSearchResponseHitsEqualTo(SearchResponse<?> searchResponse, int hits) throws Exception {
         assertThat(searchResponse, isSuccessfulSearchResponse());
         assertThat(searchResponse, numberOfTotalHitsIsEqualTo(hits));
     }
