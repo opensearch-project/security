@@ -86,8 +86,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
      *
      * <p>A single resource may belong to multiple workspaces, so this is a set (unlike {@link #tenant} and
      * {@link #parentId}, which are single-valued). Empty for non-workspace resources, which keeps the field
-     * additive and preserves existing behavior. When non-empty, each ID is projected into the resource's
-     * {@code all_shared_principals} as a {@code workspace:<id>} principal (see {@link #getAllPrincipals()}).
+     * additive and preserves existing behavior. Used by the write-path access-level fan-out
+     * ({@code ResourceAccessHandler}) to locate each workspace's sharing record. Read-path visibility is handled
+     * by filtering the resource's own {@code workspaces} field in DLS, not via {@code all_shared_principals}.
      */
     private Set<String> workspaces;
 
@@ -495,13 +496,11 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             principals.add("user:" + createdBy.getUsername());
         }
 
-        // Add workspace principals: a user with access to any of these workspaces gains visibility of this
-        // resource via the DLS intersection on all_shared_principals (see ResourceSharingDlsUtils).
-        if (workspaces != null) {
-            for (String workspaceId : workspaces) {
-                principals.add("workspace:" + workspaceId);
-            }
-        }
+        // NOTE: workspace membership is intentionally NOT projected into all_shared_principals. DLS visibility via
+        // workspaces is expressed as a separate clause on the resource's own `workspaces` field (see
+        // ResourceSharingDlsUtils); this keeps all_shared_principals to usernames/roles only and lets
+        // associate/dissociate be reflected without re-projecting principals. The `workspaces` field on the record
+        // is still used by the write-path access-level fan-out (ResourceAccessHandler).
 
         // Add shared recipients
         if (shareWith != null) {

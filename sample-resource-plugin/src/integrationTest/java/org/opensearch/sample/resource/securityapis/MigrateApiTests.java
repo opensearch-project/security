@@ -295,16 +295,16 @@ public class MigrateApiTests {
     }
 
     @Test
-    public void testLiveIndexingProjectsWorkspacePrincipals() {
+    public void testLiveIndexingStampsWorkspacesOnSharingRecord() {
         // Steady-state: creating a resource with a workspaces field must trigger ResourceIndexListener to
         // extract the (multi-valued) workspaces from the parsed doc via extractMultiValuedFieldFromIndexOp and
-        // project workspace:<id> into all_shared_principals on the resource doc and workspaces on the sharing
-        // record -- with no migrate call. This is what empirically answers the Lucene getFields()
-        // materialization question for the sample plugin's mapping.
+        // store them on the sharing record (used by the write-path access-level fan-out). Workspace membership is
+        // NOT projected into all_shared_principals; read-path visibility filters the resource's own `workspaces`
+        // field in DLS. Also confirms the Lucene getFields() materialization works for the sample plugin's mapping.
         String resourceId = createSampleResourceWithWorkspaces("ws-a", "ws-b");
 
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            // The sharing record carries the workspaces field.
+            // The sharing record carries the workspaces field (for the write-path fan-out).
             TestRestClient.HttpResponse sharingDoc = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
             sharingDoc.assertStatusCode(HttpStatus.SC_OK);
             ArrayNode ws = (ArrayNode) sharingDoc.bodyAsJsonNode().get("_source").get("workspaces");
@@ -312,13 +312,19 @@ public class MigrateApiTests {
             ws.forEach(n -> workspaceIds.add(n.asString()));
             assertThat(workspaceIds, containsInAnyOrder("ws-a", "ws-b"));
 
-            // all_shared_principals on the resource doc includes workspace:<id>.
+            // all_shared_principals stays usernames/roles only -- no workspace:<id> denormalization.
             TestRestClient.HttpResponse resourceDoc = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
             resourceDoc.assertStatusCode(HttpStatus.SC_OK);
             ArrayNode principals = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("all_shared_principals");
             List<String> principalList = new ArrayList<>();
             principals.forEach(n -> principalList.add(n.asString()));
-            assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName(), "workspace:ws-a", "workspace:ws-b"));
+            assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName()));
+
+            // The resource doc keeps its own `workspaces` field -- this is what DLS filters on for read visibility.
+            ArrayNode docWs = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("workspaces");
+            List<String> docWorkspaceIds = new ArrayList<>();
+            docWs.forEach(n -> docWorkspaceIds.add(n.asString()));
+            assertThat(docWorkspaceIds, containsInAnyOrder("ws-a", "ws-b"));
         }
     }
 
@@ -355,14 +361,13 @@ public class MigrateApiTests {
             ws.forEach(n -> workspaceIds.add(n.asString()));
             assertThat(workspaceIds, containsInAnyOrder("ws-a", "ws-b"));
 
-            // all_shared_principals on the resource doc now includes the workspace:<id> principals so DLS can
-            // grant visibility via workspace membership.
+            // all_shared_principals stays usernames/roles only -- workspace membership is not denormalized here.
             TestRestClient.HttpResponse resourceDoc = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
             resourceDoc.assertStatusCode(HttpStatus.SC_OK);
             ArrayNode principals = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("all_shared_principals");
             List<String> principalList = new ArrayList<>();
             principals.forEach(n -> principalList.add(n.asString()));
-            assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName(), "workspace:ws-a", "workspace:ws-b"));
+            assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName()));
 
             // Idempotency: a second migrate with the same workspaces adds nothing new (skipped, not backfilled).
             TestRestClient.HttpResponse secondMigrate = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());

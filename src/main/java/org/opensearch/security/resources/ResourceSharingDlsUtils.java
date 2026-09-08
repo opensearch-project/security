@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
@@ -49,23 +50,25 @@ public class ResourceSharingDlsUtils {
             user.getRoles().forEach(br -> principals.add("backend:" + br));
         }
 
-        // Workspace principals: the workspaces this user can access, added as workspace:<id> so they intersect the
-        // workspace:<id> principals denormalized onto resources that belong to those workspaces (see
-        // ResourceSharing#getAllPrincipals). The membership comes from ResourceSharingExtension.resolveWorkspacesForUser,
-        // whose SPI contract requires the source to be trusted (server-set, not user-assertable) and I/O-free — see
-        // that interface's javadoc. If no extension implements the resolver, this contributes nothing, which is safe.
-        if (resourcePluginInfo != null) {
-            for (String workspaceId : resourcePluginInfo.resolveWorkspacesForUser(user)) {
-                principals.add("workspace:" + workspaceId);
-            }
-        }
+        // Workspace visibility is expressed as a separate clause on the resource's own `workspaces` field (which OSD
+        // maintains), rather than by denormalizing workspace:<id> into all_shared_principals. Membership comes from
+        // ResourceSharingExtension.resolveWorkspacesForUser, whose SPI contract requires a trusted, server-set,
+        // I/O-free source (see that interface's javadoc). Filtering the live field means associate/dissociate are
+        // reflected automatically. If no extension implements the resolver, the set is empty and the clause is omitted.
+        Set<String> userWorkspaces = resourcePluginInfo == null ? Set.of() : resourcePluginInfo.resolveWorkspacesForUser(user);
 
         XContentBuilder builder = null;
         DlsRestriction restriction;
         try {
-            // Build a single `terms` query JSON
+            // A doc is visible if it is shared with one of the user's principals OR it belongs to one of the user's
+            // workspaces: bool.should[ terms(all_shared_principals), terms(workspaces) ] with minimum_should_match=1.
             builder = XContentFactory.jsonBuilder();
+            builder.startObject().startObject("bool").startArray("should");
             builder.startObject().startObject("terms").array("all_shared_principals", principals.toArray()).endObject().endObject();
+            if (!userWorkspaces.isEmpty()) {
+                builder.startObject().startObject("terms").array("workspaces", userWorkspaces.toArray()).endObject().endObject();
+            }
+            builder.endArray().field("minimum_should_match", 1).endObject().endObject();
 
             String dlsJson = builder.toString();
             restriction = new DlsRestriction(List.of(DocumentPrivileges.getRenderedDlsQuery(xContentRegistry, dlsJson)));

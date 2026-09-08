@@ -354,8 +354,9 @@ public class ResourceSharingTests extends LuceneTestCase {
     }
 
     @Test
-    public void getAllPrincipals_includesWorkspacePrincipalsForMultipleWorkspaces() {
-        // A single resource belonging to two workspaces must contribute a workspace:<id> principal for each.
+    public void getAllPrincipals_doesNotProjectWorkspaces() {
+        // Workspace membership is NOT denormalized into all_shared_principals; read-path visibility uses the
+        // resource's own `workspaces` field in DLS instead. getAllPrincipals stays usernames/roles only.
         ResourceSharing rs = ResourceSharing.builder()
             .resourceId("dash-1")
             .resourceType("dashboard")
@@ -365,16 +366,6 @@ public class ResourceSharingTests extends LuceneTestCase {
 
         List<String> principals = rs.getAllPrincipals();
         assertTrue(principals.contains("user:owner"));
-        assertTrue(principals.contains("workspace:ws-analytics"));
-        assertTrue(principals.contains("workspace:ws-executive"));
-    }
-
-    @Test
-    public void getAllPrincipals_emitsNoWorkspacePrincipalsForNonWorkspaceResource() {
-        // BWC: a resource with no workspaces must behave exactly as before (creator only, no workspace: entries).
-        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(mockCreatedBy("owner")).build();
-        List<String> principals = rs.getAllPrincipals();
-        assertEquals(List.of("user:owner"), principals);
         assertTrue(principals.stream().noneMatch(p -> p.startsWith("workspace:")));
     }
 
