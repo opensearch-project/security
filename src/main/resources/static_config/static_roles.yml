@@ -31,23 +31,12 @@ kibana_user:
   index_permissions:
     - index_patterns:
         - ".kibana"
-        - ".kibana-6"
-        - ".kibana_*"
         - ".opensearch_dashboards"
-        - ".opensearch_dashboards-6"
-        - ".opensearch_dashboards_*"
       allowed_actions:
         - "delete"
         - "index"
         - "manage"
         - "read"
-    - index_patterns:
-        - ".tasks"
-        - ".management-beats"
-        - "*:.tasks"
-        - "*:.management-beats"
-      allowed_actions:
-        - "indices_all"
 
 own_index:
   reserved: true

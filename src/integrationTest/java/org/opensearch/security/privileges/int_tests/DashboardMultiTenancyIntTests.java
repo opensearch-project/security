@@ -41,6 +41,8 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * An integration test matrix for Dashboards multi-tenancy. Verifies both read and write operations
@@ -959,6 +961,85 @@ public class DashboardMultiTenancyIntTests {
         this.user = user;
         this.cluster = clusterInstances.get(clusterConfig);
         this.clusterConfig = clusterConfig;
+    }
+
+    /**
+     * Verifies that a user with kibana_user role cannot directly read another user's concrete
+     * tenant index via _mget without the securitytenant header. The kibana_user role should not
+     * grant index-level access to .kibana_* indices.
+     */
+    @Test
+    public void mget_concreteIndexWithoutTenantHeader_shouldBeDenied() {
+        if (user.reference(READ).covers(dashboards_index_human_resources)) {
+            return;
+        }
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String docId = dashboards_index_human_resources.anyDocument().id();
+
+            TestRestClient.HttpResponse response = restClient.postJson("_mget/?pretty", """
+                {
+                  "docs": [
+                    {
+                      "_index": "%s",
+                      "_id": "%s"
+                    }
+                  ]
+                }
+                """.formatted(dashboards_index_human_resources.name(), docId));
+
+            // _mget returns 200 at top level but each doc has an error
+            if (response.getStatusCode() == 200) {
+                String body = response.getBody();
+                assertTrue("Expected security_exception in mget doc response but got: " + body, body.contains("security_exception"));
+                assertFalse("Expected no found documents but got: " + body, body.contains("\"found\" : true"));
+            } else {
+                assertThat(response, isForbidden());
+            }
+        }
+    }
+
+    /**
+     * Verifies that a user with kibana_user role cannot directly search another user's concrete
+     * tenant index without the securitytenant header.
+     */
+    @Test
+    public void search_concreteIndexWithoutTenantHeader_shouldBeDenied() {
+        if (user.reference(READ).covers(dashboards_index_human_resources)) {
+            return;
+        }
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(dashboards_index_human_resources.name() + "/_search?size=10");
+
+            assertThat(response, isForbidden());
+        }
+    }
+
+    /**
+     * Verifies that a user with kibana_user role cannot directly write to another user's concrete
+     * tenant index via _bulk without the securitytenant header.
+     */
+    @Test
+    public void bulk_concreteIndexWithoutTenantHeader_shouldBeDenied() {
+        if (user.reference(WRITE).covers(dashboards_index_human_resources)) {
+            return;
+        }
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.postJson("_bulk", """
+                { "index" : { "_index" : "%s", "_id" : "test_no_header_1" } }
+                { "type": "dashboard", "title": "test" }
+                """.formatted(dashboards_index_human_resources.name()));
+
+            // _bulk returns 200 at top level but each item has a 403 status
+            if (response.getStatusCode() == 200) {
+                String body = response.getBody();
+                assertTrue(
+                    "Expected security_exception in bulk item response but got: " + body,
+                    body.contains("security_exception") || body.contains("\"status\":403")
+                );
+            } else {
+                assertThat(response, isForbidden());
+            }
+        }
     }
 
     private void delete(String... paths) {
