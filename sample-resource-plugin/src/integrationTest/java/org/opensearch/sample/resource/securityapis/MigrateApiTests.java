@@ -296,11 +296,9 @@ public class MigrateApiTests {
 
     @Test
     public void testLiveIndexingStampsWorkspacesOnSharingRecord() {
-        // Steady-state: creating a resource with a workspaces field must trigger ResourceIndexListener to
-        // extract the (multi-valued) workspaces from the parsed doc via extractMultiValuedFieldFromIndexOp and
-        // store them on the sharing record (used by the write-path access-level fan-out). Workspace membership is
-        // NOT projected into all_shared_principals; read-path visibility filters the resource's own `workspaces`
-        // field in DLS. Also confirms the Lucene getFields() materialization works for the sample plugin's mapping.
+        // Creating a resource with a workspaces field stores those workspaces on the sharing record (used by the
+        // write-path access-level fan-out). all_shared_principals stays usernames/roles only; read-path visibility
+        // filters the resource's own workspaces field in DLS.
         String resourceId = createSampleResourceWithWorkspaces("ws-a", "ws-b");
 
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {

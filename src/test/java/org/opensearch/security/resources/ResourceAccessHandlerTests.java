@@ -244,10 +244,10 @@ public class ResourceAccessHandlerTests {
     }
 
     @Test
-    public void testHasPermission_containerCycleTerminatesAndDenies() {
-        // Malformed graph: the resource belongs to workspace "ws-loop", whose own record (incorrectly) lists
-        // itself as one of its workspaces. Without the visited-set guard this would recurse forever. With it,
-        // the walk terminates and denies (no container actually grants access).
+    public void testHasPermission_workspaceIsLeafEvaluatedNoRecursion() {
+        // Workspaces are evaluated as leaves (their own share_with) and never recursed into, so even a malformed
+        // self-referential workspace terminates: the resource belongs to "ws-loop" which grants nothing, so access
+        // is denied without following ws-loop's own workspaces.
         User user = new User("gwen", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);

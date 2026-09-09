@@ -85,19 +85,18 @@ public interface ResourceProvider {
      * {@link #parentIdField()}, which resolves a single parent — this field is expected to be
      * multi-valued (for example a {@code keyword} array) and every value is captured.
      *
-     * <p>When declared, the security plugin reads these workspace IDs at index time and projects them
-     * into the resource's denormalized {@code all_shared_principals} field as {@code workspace:<id>}
-     * principals, so that a user with access to any of those workspaces gains visibility of the
-     * resource through the existing DLS intersection.
+     * <p>The security plugin reads these workspace IDs at index time and stores them on the sharing record
+     * (used by the write-path access-level resolution). Read-path visibility is enforced by filtering this
+     * same field in DLS against the user's accessible workspaces. Defaults to {@code "workspaces"}; a
+     * document that does not have the field is simply treated as belonging to no workspace, so this stays
+     * additive for existing resource types. Override to point at a different field, or return {@code null}
+     * to opt out of workspace-based sharing entirely.
      *
-     * <p>Returning {@code null} (the default) means the resource type is not workspace-associated and
-     * behavior is unchanged. This keeps the change additive for all existing providers.
-     *
-     * @return the field name containing the resource's workspace IDs, or {@code null} if this provider
-     *         does not participate in workspace-based sharing
+     * @return the field name containing the resource's workspace IDs (default {@code "workspaces"}), or
+     *         {@code null} to opt out
      */
     default String workspacesField() {
-        return null;
+        return "workspaces";
     }
 
 }

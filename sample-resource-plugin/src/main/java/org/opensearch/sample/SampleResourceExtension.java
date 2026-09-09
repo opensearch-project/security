@@ -56,11 +56,7 @@ public class SampleResourceExtension implements ResourceSharingExtension {
             public String parentIdField() {
                 return "group_id";
             }
-
-            @Override
-            public String workspacesField() {
-                return "workspaces";
-            }
+            // workspacesField() defaults to "workspaces" — no override needed.
         });
     }
 

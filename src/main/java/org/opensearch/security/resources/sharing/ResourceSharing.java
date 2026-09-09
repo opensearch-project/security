@@ -496,11 +496,8 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             principals.add("user:" + createdBy.getUsername());
         }
 
-        // NOTE: workspace membership is intentionally NOT projected into all_shared_principals. DLS visibility via
-        // workspaces is expressed as a separate clause on the resource's own `workspaces` field (see
-        // ResourceSharingDlsUtils); this keeps all_shared_principals to usernames/roles only and lets
-        // associate/dissociate be reflected without re-projecting principals. The `workspaces` field on the record
-        // is still used by the write-path access-level fan-out (ResourceAccessHandler).
+        // Workspace membership is not a principal: DLS filters the resource's own `workspaces` field instead
+        // (see ResourceSharingDlsUtils). This list stays usernames/roles only.
 
         // Add shared recipients
         if (shareWith != null) {
