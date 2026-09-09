@@ -76,26 +76,6 @@ import org.opensearch.transport.stream.StreamTransportResponse;
 
 public class SecurityInterceptor {
 
-    private static final String ACTION_TRACE_HEADER_PREFIX = "_opendistro_security_trace";
-    private static final String SOURCE_FIELD_CONTEXT_HEADER = "_opendistro_security_source_field_context";
-    private static final Set<String> SECURITY_HEADERS_TO_COPY = Set.of(
-        ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-        ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED,
-        ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER,
-        ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER,
-        ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS
-    );
-
     protected final Logger log = LogManager.getLogger(getClass());
     private final AuditLog auditLog;
     private final ThreadPool threadPool;
@@ -258,9 +238,11 @@ public class SecurityInterceptor {
 
     private boolean shouldCopyHeader(String header, TransportRequest request, Set<String> requestHeadersToCopy) {
         return header != null
-            && (SECURITY_HEADERS_TO_COPY.contains(header)
-                || (SOURCE_FIELD_CONTEXT_HEADER.equals(header) && !(request instanceof SearchRequest) && !(request instanceof GetRequest))
-                || header.startsWith(ACTION_TRACE_HEADER_PREFIX)
+            && (TransportHeaderConstants.SECURITY_HEADERS_TO_COPY.contains(header)
+                || (TransportHeaderConstants.SOURCE_FIELD_CONTEXT_HEADER.equals(header)
+                    && !(request instanceof SearchRequest)
+                    && !(request instanceof GetRequest))
+                || header.startsWith(TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX)
                 || header.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
                 || requestHeadersToCopy.contains(header));
     }
@@ -316,7 +298,7 @@ public class SecurityInterceptor {
             return;
         }
         getThreadContext().putHeader(
-            ACTION_TRACE_HEADER_PREFIX + System.currentTimeMillis() + "#" + UUID.randomUUID(),
+            TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX + System.currentTimeMillis() + "#" + UUID.randomUUID(),
             Thread.currentThread().getName()
                 + " IC -> "
                 + action
@@ -324,7 +306,7 @@ public class SecurityInterceptor {
                 + getThreadContext().getHeaders()
                     .entrySet()
                     .stream()
-                    .filter(entry -> !entry.getKey().startsWith(ACTION_TRACE_HEADER_PREFIX))
+                    .filter(entry -> !entry.getKey().startsWith(TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX))
                     .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()))
         );
     }

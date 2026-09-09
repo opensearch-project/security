@@ -70,8 +70,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
     private static final String DIRECT_CHANNEL_TYPE = "direct";
     private static final String STREAM_CHANNEL_TYPE = "stream-transport";
-    private static final String ACTION_TRACE_HEADER_PREFIX = "_opendistro_security_trace";
-
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
@@ -297,11 +295,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             ? getThreadContext().getHeaders()
                 .entrySet()
                 .stream()
-                .filter(entry -> !entry.getKey().startsWith(ACTION_TRACE_HEADER_PREFIX))
+                .filter(entry -> !entry.getKey().startsWith(TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX))
                 .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()))
             : getThreadContext().getHeaders();
         getThreadContext().putHeader(
-            ACTION_TRACE_HEADER_PREFIX + System.currentTimeMillis() + "#" + UUID.randomUUID(),
+            TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX + System.currentTimeMillis() + "#" + UUID.randomUUID(),
             Thread.currentThread().getName() + " " + stage + " -> " + channelType + " " + headers
         );
 
