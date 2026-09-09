@@ -634,7 +634,6 @@ allprojects {
                 }
                 integrationTestImplementation "io.projectreactor.netty:reactor-netty-core:${versions.reactor_netty}"
                 integrationTestImplementation "io.projectreactor.netty:reactor-netty-http:${versions.reactor_netty}"
-                integrationTestImplementation 'org.opensearch.client:opensearch-java:3.10.0'
             }
         }
     }
@@ -697,6 +696,7 @@ dependencies {
     implementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    implementation 'org.opensearch.client:opensearch-java:3.10.0'
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
@@ -826,7 +826,6 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
 
     testImplementation libs.springframework.beans
-    testImplementation 'org.opensearch.client:opensearch-java:3.10.0'
 
     testRuntimeOnly(libs.springframework.core) {
         exclude(group: 'org.springframework', module: 'spring-jcl')
