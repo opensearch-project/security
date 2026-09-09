@@ -201,28 +201,13 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * Resolves access inherited from a resource's containers when the resource itself does not grant the action.
+     * Grants access if any of the resource's containers grant it: its single parent (recursed via
+     * {@link #hasPermission}) or any of its workspaces. Workspace records are fetched in one
+     * {@link ResourceSharingIndexHandler#fetchSharingInfoForIds mget} and evaluated as leaves (their own
+     * {@code share_with}), so no per-workspace round trip and no recursion.
      * <p>
-     * A resource can inherit access from two kinds of container:
-     * <ul>
-     *   <li>its single hierarchical parent ({@code parentId}/{@code parentType}), the pre-existing mechanism, resolved
-     *   via {@link #hasPermission} (which itself recurses into the parent's own containers); and</li>
-     *   <li>the set of workspaces it belongs to — a resource may belong to <em>multiple</em> workspaces. Each workspace
-     *   is a sharing-protected resource of type {@code workspace} whose {@code share_with} lists collaborators and their
-     *   access levels (per issue #6119).</li>
-     * </ul>
-     * Access is granted if <em>any</em> container grants the action (logical OR), mirroring the permissive semantics of
-     * the original parent recursion.
-     *
-     * <p>Performance: the workspace records all live in the same sharing index with known ids, so they are fetched in a
-     * single {@link ResourceSharingIndexHandler#fetchSharingInfoForIds mget} and evaluated in memory, rather than one
-     * sequential GET per workspace (which would be an N+1 pattern on the privilege hot path). Workspaces are evaluated
-     * as leaves (their own {@code share_with}); the single parent, if any, is resolved recursively via
-     * {@link #hasPermission} so parent-of-parent chains keep working — matching the pre-existing parent recursion.
-     *
-     * <p>SPIKE NOTE: the workspace resource type name is a placeholder ({@link #WORKSPACE_RESOURCE_TYPE}); the real type
-     * is defined by the workspace provider registered via the SPI (see design doc). If no provider is registered for that
-     * type, {@code indexByType} returns null and the workspace branch denies cleanly, so this degrades safely.
+     * {@link #WORKSPACE_RESOURCE_TYPE} is a placeholder until the workspace provider is registered via the SPI; if it
+     * isn't, {@code indexByType} returns null and the workspace branch denies cleanly.
      *
      * @param sharingInfo the sharing record of the resource whose containers should be consulted
      * @param action      the action being authorized
@@ -273,10 +258,7 @@ public class ResourceAccessHandler {
         return (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
     }
 
-    /**
-     * SPIKE placeholder for the workspace resource type name. The authoritative value comes from the workspace
-     * provider registered through the resource-sharing SPI (issue #6119).
-     */
+    /** Resource type of a workspace; the workspace provider registers it via the resource-sharing SPI. */
     private static final String WORKSPACE_RESOURCE_TYPE = "workspace";
 
     /**

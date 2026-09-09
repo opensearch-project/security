@@ -104,8 +104,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
             .field("resource_type", RESOURCE_TYPE)
             .field("attributes", attributes)
             .field("user", user);
-        // Emit workspaces only when non-empty so pre-existing docs stay byte-identical (BWC for callers/tests
-        // that don't touch this field).
+        // Emit workspaces only when set, so docs without it are unchanged.
         if (workspaces != null && !workspaces.isEmpty()) {
             builder.field("workspaces", workspaces);
         }

@@ -157,14 +157,11 @@ public class ResourceSharingIndexHandler {
      * The supplied {@link ActionListener} will be invoked with the {@link UpdateResponse}
      * on success, or with an exception on failure.
      *
-     * Backfills workspace membership onto an <em>existing</em> sharing record and refreshes the resource's
-     * {@code all_shared_principals} accordingly. This is the update-path counterpart to migration's create-only path:
-     * records that were migrated for ownership before workspace-awareness existed (and are therefore skipped by the
-     * {@code OpType.CREATE} indexing) would otherwise stay workspace-blind.
+     * Merges workspace membership onto an existing sharing record (records created by {@code OpType.CREATE} migration
+     * are skipped, so this brings them up to date) and refreshes {@code all_shared_principals}.
      * <p>
-     * The operation is idempotent: it merges {@code workspaces} into the record's current set and only writes when that
-     * adds something new. {@code created_by} and {@code share_with} on the existing record are left untouched — only the
-     * {@code workspaces} field (on the sharing record) and {@code all_shared_principals} (on the resource doc) change.
+     * Idempotent: merges {@code workspaces} into the current set and writes only when that adds something new.
+     * {@code created_by} and {@code share_with} are left untouched.
      *
      * @param resourceIndex the source resource index whose sharing record should be updated
      * @param resourceId    the id of the resource whose sharing record should be backfilled
@@ -326,11 +323,8 @@ public class ResourceSharingIndexHandler {
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
                 ctx.restore();
                 LOGGER.info("Successfully created {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
-                // Seed visibility with the creator plus any workspace:<id> principals from workspace membership.
-                // Using getAllPrincipals() (rather than only the creator) ensures a resource created directly in
-                // one or more workspaces is immediately visible to those workspaces' members via DLS, before any
-                // explicit share call. For non-workspace resources with no shareWith yet, this resolves to just
-                // the creator — identical to the previous behavior.
+                // Seed all_shared_principals from getAllPrincipals() (creator + any share recipients); fall back to
+                // the creator when empty.
                 List<String> initialPrincipals = new ArrayList<>(sharingInfo.getAllPrincipals());
                 if (initialPrincipals.isEmpty()) {
                     initialPrincipals.add("user:" + createdBy.getUsername());

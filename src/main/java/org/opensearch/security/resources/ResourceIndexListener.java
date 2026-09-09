@@ -129,10 +129,8 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 if (parentType != null) {
                     builder.parentType(parentType).parentId(parentId);
                 }
-                // Workspace-aware sharing: if the provider declares a workspaces field, read the (multi-valued)
-                // set of workspace IDs off the indexed document and stamp them onto the sharing record. These are
-                // projected into all_shared_principals as workspace:<id> so DLS can grant access via workspace
-                // membership. Providers that don't declare workspacesField() are unaffected (additive).
+                // Stamp the resource's workspaces onto the sharing record (used by the write-path access-level
+                // fan-out). Providers that declare no workspaces field are unaffected.
                 if (provider.workspacesField() != null) {
                     builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
                 }
@@ -189,9 +187,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 .createdBy(parentSharing.getCreatedBy())
                 .parentType(parentType)
                 .parentId(parentId);
-            // Workspace-aware sharing: read the child's own (multi-valued) workspaces field off the indexed
-            // document, if the provider declares one, so its workspace:<id> principals are denormalized just as
-            // on the authenticated-user path. Ownership is still inherited from the parent above.
+            // Stamp the child's own workspaces onto its record; ownership is still inherited from the parent above.
             if (provider.workspacesField() != null) {
                 childBuilder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
             }

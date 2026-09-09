@@ -291,8 +291,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     // Extract parent ID if the provider declares a parentIdField
                     String parentId = null;
-                    // Extract the set of workspace IDs if the provider declares a workspacesField (see extractWorkspaces).
-                    // Backfills workspace membership for content that predates RP.
+                    // Workspace IDs, if the provider declares a workspaces field (see extractWorkspaces).
                     Set<String> workspaces = Collections.emptySet();
                     if (type != null) {
                         ResourceProvider hitProvider = resourcePluginInfo.getResourceProvider(type);
@@ -422,9 +421,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         migratedCount.getAndIncrement();
                         migrationStatsLatch.countDown();
                     } else if (docWorkspaces != null && !docWorkspaces.isEmpty()) {
-                        // A record already exists (create was a no-op) but the source doc has workspace membership.
-                        // Backfill the workspaces field + refresh all_shared_principals so the pre-existing record is
-                        // not left workspace-blind. Idempotent: a no-op if the workspaces are already present.
+                        // Record already exists but the source doc has workspaces: merge them onto the record
+                        // instead of skipping (idempotent).
                         sharingIndexHandler.backfillWorkspacesOnExisting(
                             sourceInfo.sourceIndex,
                             resourceId,
@@ -465,8 +463,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 if (doc.parentId != null && provider.parentType() != null) {
                     sharingBuilder.parentId(doc.parentId).parentType(provider.parentType());
                 }
-                // Carry over workspace membership so getAllPrincipals() emits workspace:<id> and DLS/write-path
-                // inheritance work for backfilled records exactly as they do for records indexed while RP is on.
+                // Carry the source doc's workspaces onto the record (used by the write-path fan-out).
                 if (doc.workspaces != null && !doc.workspaces.isEmpty()) {
                     sharingBuilder.workspaces(doc.workspaces);
                 }
@@ -607,15 +604,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     /**
-     * Extracts the set of workspace IDs from a source document at {@code workspacesField}. A resource may belong to
-     * multiple workspaces, so an array is read fully; a single textual value is tolerated (mirroring keyword mappings
-     * that may be authored as a scalar or an array). Blank/empty ids are ignored. This is the migrate-path counterpart
-     * of {@link org.opensearch.security.resources.ResourcePluginInfo#extractMultiValuedFieldFromIndexOp} (which reads
-     * from a live index op); here we read from the JSON of a search hit. Package-private for testability.
+     * Reads workspace IDs from a source document at {@code workspacesField} (a JSON array, or a single string).
+     * Blank ids are ignored. Package-private for testability.
      *
      * @param rec             the parsed source document
      * @param workspacesField the provider-declared field path (dot-notation or JSON pointer)
-     * @return the set of workspace IDs, or an empty set if the field is absent/empty
+     * @return the workspace IDs, or empty if the field is absent/empty
      */
     static Set<String> extractWorkspaces(JsonNode rec, String workspacesField) {
         if (workspacesField == null) {

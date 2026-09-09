@@ -66,12 +66,8 @@ public class SampleResourceExtension implements ResourceSharingExtension {
     }
 
     /**
-     * Test-only workspace-membership resolver. Maps a user's <em>security roles</em> to a deterministic workspace ID
-     * ({@code ws-<role>}), simulating a trusted server-set source. Roles are resolved by the security plugin at
-     * authc time, so they are not user-assertable — matching the SPI contract.
-     *
-     * <p>A real workspace-owning plugin would replace this with a lookup against its own authoritative store
-     * (populated at authc time or cached in memory), never with values derived from user-influenceable inputs.
+     * Sample resolver: maps each of the user's security roles to a workspace id ({@code ws-<role>}). Security roles
+     * are server-resolved (not user-assertable), satisfying the SPI's trusted-source contract.
      */
     @Override
     public Set<String> resolveWorkspacesForUser(String username, Set<String> securityRoles, Set<String> backendRoles) {

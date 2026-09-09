@@ -344,7 +344,7 @@ public class ResourceSharingTests extends LuceneTestCase {
         }
     }
 
-    // --- Workspace-awareness (spike) ---------------------------------------------------------------
+    // --- Workspace-awareness ------------------------------------------------------------------------
 
     @Test
     public void getWorkspaces_defaultsToEmptyWhenAbsent() {
