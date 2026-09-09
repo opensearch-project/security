@@ -243,6 +243,40 @@ public class ResourcePluginInfoTests {
         assertTrue(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp("workspaces", indexOp).isEmpty());
     }
 
+    // ---------- workspacesFieldForIndex ------------------------------------------------------------
+
+    @Test
+    public void workspacesFieldForIndex_returnsDeclaredFieldOrNull() {
+        ResourceSharingExtension ext = new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                return Set.of(new ResourceProvider() {
+                    @Override
+                    public String resourceType() {
+                        return "dashboard";
+                    }
+
+                    @Override
+                    public String resourceIndexName() {
+                        return ".kibana";
+                    }
+
+                    @Override
+                    public String workspacesField() {
+                        return "ws";
+                    }
+                });
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        };
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(ext));
+
+        assertEquals("ws", resourcePluginInfo.workspacesFieldForIndex(".kibana"));
+        assertNull(resourcePluginInfo.workspacesFieldForIndex(".other-index"));
+    }
+
     // ---------- resolveWorkspacesForUser (SPI seam) --------------------------------------------------
 
     @Test

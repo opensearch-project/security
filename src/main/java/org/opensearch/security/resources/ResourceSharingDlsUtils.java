@@ -57,31 +57,41 @@ public class ResourceSharingDlsUtils {
         // reflected automatically. If no extension implements the resolver, the set is empty and the clause is omitted.
         Set<String> userWorkspaces = resourcePluginInfo == null ? Set.of() : resourcePluginInfo.resolveWorkspacesForUser(user);
 
-        XContentBuilder builder = null;
-        DlsRestriction restriction;
+        // The workspaces clause targets the field each provider actually declares (workspacesField()), resolved per
+        // index — not a hardcoded name — so it matches the field ingestion reads. Built per index accordingly.
+        ImmutableMap.Builder<String, DlsRestriction> mapBuilder = ImmutableMap.builder();
+        for (String index : resolvedIndices) {
+            String workspacesField = resourcePluginInfo == null ? null : resourcePluginInfo.workspacesFieldForIndex(index);
+            mapBuilder.put(index, buildRestriction(xContentRegistry, principals, workspacesField, userWorkspaces));
+        }
+        return new IndexToRuleMap<>(mapBuilder.build());
+    }
+
+    /**
+     * Builds the per-index DLS restriction: a doc is visible if it is shared with one of the user's principals OR (when
+     * the index declares a workspaces field and the user has workspace access) it belongs to one of the user's
+     * workspaces — {@code bool.should[ terms(all_shared_principals), terms(<workspacesField>) ]}, min_should_match=1.
+     */
+    private static DlsRestriction buildRestriction(
+        NamedXContentRegistry xContentRegistry,
+        List<String> principals,
+        String workspacesField,
+        Set<String> userWorkspaces
+    ) {
         try {
-            // A doc is visible if it is shared with one of the user's principals OR it belongs to one of the user's
-            // workspaces: bool.should[ terms(all_shared_principals), terms(workspaces) ] with minimum_should_match=1.
-            builder = XContentFactory.jsonBuilder();
+            XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.startObject().startObject("bool").startArray("should");
             builder.startObject().startObject("terms").array("all_shared_principals", principals.toArray()).endObject().endObject();
-            if (!userWorkspaces.isEmpty()) {
-                builder.startObject().startObject("terms").array("workspaces", userWorkspaces.toArray()).endObject().endObject();
+            if (workspacesField != null && !userWorkspaces.isEmpty()) {
+                builder.startObject().startObject("terms").array(workspacesField, userWorkspaces.toArray()).endObject().endObject();
             }
             builder.endArray().field("minimum_should_match", 1).endObject().endObject();
 
-            String dlsJson = builder.toString();
-            restriction = new DlsRestriction(List.of(DocumentPrivileges.getRenderedDlsQuery(xContentRegistry, dlsJson)));
+            return new DlsRestriction(List.of(DocumentPrivileges.getRenderedDlsQuery(xContentRegistry, builder.toString())));
         } catch (IOException e) {
             LOGGER.warn("Received error while applying resource restrictions.", e);
-            restriction = DlsRestriction.FULL;
+            return DlsRestriction.FULL;
         }
-
-        ImmutableMap.Builder<String, DlsRestriction> mapBuilder = ImmutableMap.builder();
-        for (String index : resolvedIndices) {
-            mapBuilder.put(index, restriction);
-        }
-        return new IndexToRuleMap<>(mapBuilder.build());
     }
 
 }

@@ -356,6 +356,26 @@ public class ResourcePluginInfo {
         }
     }
 
+    /**
+     * Returns the provider-declared workspaces field name for the resource index (see
+     * {@link ResourceProvider#workspacesField()}), or {@code null} if no provider on that index declares one.
+     * Used by DLS to filter workspace membership on the field a provider actually declares, rather than a fixed name.
+     * When multiple providers share an index, the first declared (non-null) field wins.
+     */
+    public String workspacesFieldForIndex(String index) {
+        lock.readLock().lock();
+        try {
+            for (ResourceProvider provider : typeToProvider.values()) {
+                if (provider.resourceIndexName().equals(index) && provider.workspacesField() != null) {
+                    return provider.workspacesField();
+                }
+            }
+            return null;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public Set<ResourceDashboardInfo> getResourceTypes() {
         lock.readLock().lock();
         try {
