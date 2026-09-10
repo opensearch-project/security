@@ -28,8 +28,6 @@ import org.opensearch.transport.client.Client;
 
 /**
  * This class implements an index operation listener for operations performed on resources stored in plugin's indices.
- *
- * @opensearch.experimental
  */
 public class ResourceIndexListener implements IndexingOperationListener {
 
@@ -78,7 +76,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
         if (provider == null) {
             log.warn(
-                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.experimental.resource_sharing.protected_types.",
+                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.resource_sharing.protected_types.",
                 resourceId,
                 resourceType
             );

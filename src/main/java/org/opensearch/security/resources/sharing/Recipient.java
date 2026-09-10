@@ -11,8 +11,6 @@ package org.opensearch.security.resources.sharing;
 /**
  * Enum representing the recipients of a shared resource.
  * It includes USERS, ROLES, and BACKEND_ROLES.
- *
- * @opensearch.experimental
  */
 public enum Recipient {
     USERS("users"),

@@ -21,8 +21,6 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 /**
  * Access control client responsible for handling resource sharing operations such as verifying,
  * sharing, revoking, and listing access to shareable resources.
- *
- * @opensearch.experimental
  */
 public final class ResourceAccessControlClient implements ResourceSharingClient {
     private static final Logger LOGGER = LogManager.getLogger(ResourceAccessControlClient.class);
@@ -33,7 +31,6 @@ public final class ResourceAccessControlClient implements ResourceSharingClient 
 
     /**
      * Constructs a new ResourceAccessControlClient.
-     *
      */
     public ResourceAccessControlClient(
         ResourceAccessHandler resourceAccessHandler,

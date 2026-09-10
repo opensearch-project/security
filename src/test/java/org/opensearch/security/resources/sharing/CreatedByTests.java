@@ -32,8 +32,6 @@ import static org.mockito.Mockito.when;
 
 /**
  * Test class for CreatedBy class
- *
- * @opensearch.experimental
  */
 public class CreatedByTests extends LuceneTestCase {
 
