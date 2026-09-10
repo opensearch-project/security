@@ -16,10 +16,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexableField;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -41,6 +44,8 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
  * @opensearch.experimental
  */
 public class ResourcePluginInfo {
+
+    private static final Logger LOGGER = LogManager.getLogger(ResourcePluginInfo.class);
 
     private ResourceSharingClient resourceAccessControlClient;
 
@@ -356,12 +361,21 @@ public class ResourcePluginInfo {
     public String workspacesFieldForIndex(String index) {
         lock.readLock().lock();
         try {
+            // Providers on the same index should declare the same workspaces field. Resolve deterministically
+            // (lexicographically smallest) rather than relying on map iteration order, and warn on disagreement.
+            TreeSet<String> declared = new TreeSet<>();
             for (ResourceProvider provider : typeToProvider.values()) {
                 if (provider.resourceIndexName().equals(index) && provider.workspacesField() != null) {
-                    return provider.workspacesField();
+                    declared.add(provider.workspacesField());
                 }
             }
-            return null;
+            if (declared.isEmpty()) {
+                return null;
+            }
+            if (declared.size() > 1) {
+                LOGGER.warn("Conflicting workspaces fields {} declared for index [{}]; using [{}].", declared, index, declared.first());
+            }
+            return declared.first();
         } finally {
             lock.readLock().unlock();
         }

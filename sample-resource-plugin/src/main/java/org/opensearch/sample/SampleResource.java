@@ -44,7 +44,7 @@ public class SampleResource implements NamedWriteable, ToXContentObject {
     // NOTE: following field is added to specifically test migrate API, for newer resources this field must not be defined
     private User user;
     // Workspace membership; optional, models the multi-valued "workspaces" field a real workspace-aware resource
-    // would declare so ResourceIndexListener can project workspace:<id> into all_shared_principals.
+    // would declare. ResourceIndexListener stamps it onto the sharing record; DLS filters on it for read visibility.
     private Set<String> workspaces;
 
     public SampleResource() throws IOException {

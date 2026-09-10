@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for the workspace-related read/write helpers on {@link ResourceSharingIndexHandler}:
  * {@link ResourceSharingIndexHandler#fetchSharingInfoForIds} and
- * {@link ResourceSharingIndexHandler#backfillWorkspacesOnExisting}.
+ * {@link ResourceSharingIndexHandler#reconcileWorkspaces}.
  */
 public class ResourceSharingIndexHandlerTests {
 
@@ -142,46 +142,60 @@ public class ResourceSharingIndexHandlerTests {
         assertEquals("alice", out.get().get("res-1").getCreatedBy().getUsername());
     }
 
-    // ---------- backfillWorkspacesOnExisting -------------------------------------------------------
+    // ---------- reconcileWorkspaces ----------------------------------------------------------------
 
     @Test
-    public void backfill_noopForEmptyWorkspaces() {
-        AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.backfillWorkspacesOnExisting(RESOURCE_INDEX, "res-1", Set.of(), ActionListener.wrap(out::set, e -> {}));
-        assertFalse(out.get());
-        verify(client, never()).get(any(), any());
-        verify(client, never()).update(any(), any());
-    }
-
-    @Test
-    public void backfill_noopWhenRecordMissing() {
+    public void reconcile_noopWhenRecordMissing() {
         stubGet("res-1", false, null);
         AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.backfillWorkspacesOnExisting(RESOURCE_INDEX, "res-1", Set.of("ws-a"), ActionListener.wrap(out::set, e -> {}));
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), ActionListener.wrap(out::set, e -> {}));
         assertFalse(out.get());
         verify(client, never()).update(any(), any());
     }
 
     @Test
-    public void backfill_noopWhenWorkspacesAlreadyPresent() {
+    public void reconcile_noopWhenAlreadyInSync() {
         stubGet("res-1", true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\",\"ws-b\"]}");
         AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.backfillWorkspacesOnExisting(RESOURCE_INDEX, "res-1", Set.of("ws-a"), ActionListener.wrap(out::set, e -> {}));
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-b", "ws-a"), ActionListener.wrap(out::set, e -> {}));
         assertFalse(out.get());
-        // nothing new to add -> no write
         verify(client, never()).update(any(), any());
     }
 
     @Test
-    public void backfill_mergesAndUpdatesWhenNewWorkspaces() {
+    public void reconcile_addsWhenNewWorkspaces() {
         stubGet("res-1", true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
         stubUpdateSucceeds();
 
         AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.backfillWorkspacesOnExisting(RESOURCE_INDEX, "res-1", Set.of("ws-a", "ws-b"), ActionListener.wrap(out::set, e -> {}));
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a", "ws-b"), ActionListener.wrap(out::set, e -> {}));
 
         assertTrue(out.get());
-        // two updates: one to persist workspaces on the sharing record, one to refresh all_shared_principals
-        verify(client, times(2)).update(any(UpdateRequest.class), any());
+        // single update to the sharing record; workspaces are not projected into all_shared_principals
+        verify(client, times(1)).update(any(UpdateRequest.class), any());
+    }
+
+    @Test
+    public void reconcile_removesWhenDissociated() {
+        stubGet("res-1", true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\",\"ws-b\"]}");
+        stubUpdateSucceeds();
+
+        AtomicReference<Boolean> out = new AtomicReference<>();
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), ActionListener.wrap(out::set, e -> {}));
+
+        assertTrue(out.get());
+        verify(client, times(1)).update(any(UpdateRequest.class), any());
+    }
+
+    @Test
+    public void reconcile_clearsWhenTargetEmpty() {
+        stubGet("res-1", true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\"]}");
+        stubUpdateSucceeds();
+
+        AtomicReference<Boolean> out = new AtomicReference<>();
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of(), ActionListener.wrap(out::set, e -> {}));
+
+        assertTrue(out.get());
+        verify(client, times(1)).update(any(UpdateRequest.class), any());
     }
 }

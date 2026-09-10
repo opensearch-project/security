@@ -41,9 +41,9 @@ public interface ResourceSharingExtension extends SecurityConfigExtension {
 
     /**
      * Returns the set of workspace IDs the given user is a member of. Called on the privilege hot path when the
-     * security plugin builds the DLS filter for a search over a resource-sharing-protected index: each returned ID
-     * becomes a {@code workspace:<id>} DLS principal, which intersects the {@code workspace:<id>} principals
-     * denormalized onto resources that belong to those workspaces (see {@code ResourceSharing#getAllPrincipals}).
+     * security plugin builds the DLS filter for a search over a resource-sharing-protected index: the returned IDs
+     * are matched against each resource's own {@code workspaces} field, making resources in the user's workspaces
+     * visible without denormalizing workspace membership into {@code all_shared_principals}.
      *
      * <p><b>Contract</b> — required for security-sensitive correctness:
      * <ul>

@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -92,6 +93,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
 
         if (!result.isCreated()) {
+            // Restore all_shared_principals on the resource doc (guards against a direct write tampering with it).
             ActionListener<Void> listener = ActionListener.wrap(unused -> {
                 log.debug(
                     "postIndex: Successfully updated the resource visibility for resource {} within index {}",
@@ -100,6 +102,22 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 );
             }, e -> { log.debug(e.getMessage()); });
             this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
+
+            // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate). Keeps the
+            // write-path record in step with the read-path resource field, including removals — otherwise a
+            // dissociated resource could retain stale write authorization.
+            if (provider.workspacesField() != null) {
+                Set<String> currentWorkspaces = ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
+                this.resourceSharingIndexHandler.reconcileWorkspaces(
+                    resourceIndex,
+                    resourceId,
+                    currentWorkspaces,
+                    ActionListener.wrap(
+                        changed -> log.debug("postIndex: workspace reconcile for {} changed={}", resourceId, changed),
+                        e -> log.warn("postIndex: failed to reconcile workspaces for {}: {}", resourceId, e.getMessage())
+                    )
+                );
+            }
             return;
         }
 

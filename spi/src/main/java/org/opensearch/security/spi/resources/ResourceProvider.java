@@ -87,7 +87,8 @@ public interface ResourceProvider {
      *
      * <p>The security plugin reads these workspace IDs at index time and stores them on the sharing record
      * (used by the write-path access-level resolution). Read-path visibility is enforced by filtering this
-     * same field in DLS against the user's accessible workspaces. Defaults to {@code "workspaces"}; a
+     * same field in DLS against the user's accessible workspaces, so the field must be mapped as
+     * {@code keyword} (a {@code terms} filter matches it exactly). Defaults to {@code "workspaces"}; a
      * document that does not have the field is simply treated as belonging to no workspace, so this stays
      * additive for existing resource types. Override to point at a different field, or return {@code null}
      * to opt out of workspace-based sharing entirely.

@@ -310,40 +310,63 @@ public class MigrateApiTests {
             ws.forEach(n -> workspaceIds.add(n.asString()));
             assertThat(workspaceIds, containsInAnyOrder("ws-a", "ws-b"));
 
-            // all_shared_principals stays usernames/roles only -- no workspace:<id> denormalization.
-            TestRestClient.HttpResponse resourceDoc = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
-            resourceDoc.assertStatusCode(HttpStatus.SC_OK);
-            ArrayNode principals = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("all_shared_principals");
-            List<String> principalList = new ArrayList<>();
-            principals.forEach(n -> principalList.add(n.asString()));
-            assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName()));
+            // all_shared_principals is seeded onto the resource doc asynchronously after the sharing record is
+            // created, so poll until it is present. It stays usernames/roles only -- no workspace denormalization.
+            Awaitility.await("all_shared_principals seeded on resource doc").untilAsserted(() -> {
+                TestRestClient.HttpResponse resourceDoc = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+                resourceDoc.assertStatusCode(HttpStatus.SC_OK);
+                ArrayNode principals = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("all_shared_principals");
+                List<String> principalList = new ArrayList<>();
+                if (principals != null) {
+                    principals.forEach(n -> principalList.add(n.asString()));
+                }
+                assertThat(principalList, containsInAnyOrder("user:" + MIGRATION_USER.getName()));
 
-            // The resource doc keeps its own `workspaces` field -- this is what DLS filters on for read visibility.
-            ArrayNode docWs = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("workspaces");
-            List<String> docWorkspaceIds = new ArrayList<>();
-            docWs.forEach(n -> docWorkspaceIds.add(n.asString()));
-            assertThat(docWorkspaceIds, containsInAnyOrder("ws-a", "ws-b"));
+                // The resource doc keeps its own `workspaces` field -- this is what DLS filters on for read visibility.
+                ArrayNode docWs = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("workspaces");
+                List<String> docWorkspaceIds = new ArrayList<>();
+                docWs.forEach(n -> docWorkspaceIds.add(n.asString()));
+                assertThat(docWorkspaceIds, containsInAnyOrder("ws-a", "ws-b"));
+            });
         }
     }
 
     @Test
     public void testMigrateBackfillsWorkspacesOntoExistingRecord() {
-        // A resource whose sharing record already exists (created at resource-creation time) but which has
-        // since gained workspace membership on its source doc. Migration should not re-create the record; it
-        // should backfill the workspaces field and refresh all_shared_principals.
+        // A pre-existing sharing record that is out of sync with its source doc (e.g. written while the feature was
+        // off, so the listener never reconciled it). Migration must not re-create the record; it must reconcile the
+        // record's workspaces to exactly match the source doc -- adding the doc's workspaces and removing stale ones.
         String resourceId = createSampleResource();
 
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            // Add workspace membership to the resource's source doc (an _update, so no new sharing record is
-            // created). The existing sharing record stays workspace-blind until migration backfills it.
+            // Put the target workspaces on the source doc. This _update fires the listener, which reconciles the
+            // record to [ws-a, ws-b]; wait for that so the next step starts from a known state.
             TestRestClient.HttpResponse update = client.postJson(
                 RESOURCE_INDEX_NAME + "/_update/" + resourceId + "?refresh=true",
                 "{ \"doc\": { \"workspaces\": [\"ws-a\", \"ws-b\"] } }"
             );
             update.assertStatusCode(HttpStatus.SC_OK);
+            Awaitility.await("listener reconciles record to the doc's workspaces").untilAsserted(() -> {
+                TestRestClient.HttpResponse rec = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+                rec.assertStatusCode(HttpStatus.SC_OK);
+                List<String> recWs = new ArrayList<>();
+                ArrayNode arr = (ArrayNode) rec.bodyAsJsonNode().get("_source").get("workspaces");
+                if (arr != null) {
+                    arr.forEach(n -> recWs.add(n.asString()));
+                }
+                assertThat(recWs, containsInAnyOrder("ws-a", "ws-b"));
+            });
 
-            // Migrate without clearing: the record exists, so create is skipped; the source doc now has
-            // workspaces, so it is backfilled rather than skipped.
+            // Now force the record out of sync by writing a stale set directly to the sharing index (no listener runs
+            // on the sharing index). Record: [ws-stale]; source doc: [ws-a, ws-b].
+            TestRestClient.HttpResponse stale = client.postJson(
+                RESOURCE_SHARING_INDEX + "/_update/" + resourceId + "?refresh=true",
+                "{ \"doc\": { \"workspaces\": [\"ws-stale\"] } }"
+            );
+            stale.assertStatusCode(HttpStatus.SC_OK);
+
+            // Migrate: the record exists, so create is skipped; its workspaces differ from the source doc, so it is
+            // reconciled (reported as backfilledExisting) rather than skipped.
             TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
@@ -351,7 +374,7 @@ public class MigrateApiTests {
                 equalTo("Migration complete. migrated 0; backfilledExisting 1; skippedNoType 0; skippedExisting 0; failed 0")
             );
 
-            // The sharing record now carries the workspaces field.
+            // The sharing record now matches the source doc exactly -- ws-stale removed, ws-a/ws-b present.
             TestRestClient.HttpResponse sharingDoc = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
             sharingDoc.assertStatusCode(HttpStatus.SC_OK);
             ArrayNode ws = (ArrayNode) sharingDoc.bodyAsJsonNode().get("_source").get("workspaces");

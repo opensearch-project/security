@@ -36,6 +36,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -241,6 +242,36 @@ public class ResourceAccessHandlerTests {
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
+    }
+
+    @Test
+    public void testHasPermission_dissociatedResourceLosesWorkspaceGrant() {
+        // A workspace record exists that WOULD grant the action, but the resource has been dissociated from it: its
+        // own workspace set is empty. checkContainers must not fan out to any workspace, so access is denied. This is
+        // the write-path half of associate/dissociate consistency -- a stale membership would leak authorization.
+        User user = new User("heidi", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        // The resource: no direct access, no parent, and NO workspaces (dissociated).
+        ResourceSharing resourceDoc = mock(ResourceSharing.class);
+        when(resourceDoc.isCreatedBy("heidi")).thenReturn(false);
+        when(resourceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+        when(resourceDoc.getParentId()).thenReturn(null);
+        when(resourceDoc.getWorkspaces()).thenReturn(Collections.emptySet());
+
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(resourceDoc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
+
+        verify(listener).onResponse(false);
+        // With no workspaces on the resource, the workspace index is never queried.
+        verify(sharingIndexHandler, never()).fetchSharingInfoForIds(any(), any(), any());
     }
 
     @Test

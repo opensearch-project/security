@@ -420,10 +420,10 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         );
                         migratedCount.getAndIncrement();
                         migrationStatsLatch.countDown();
-                    } else if (docWorkspaces != null && !docWorkspaces.isEmpty()) {
-                        // Record already exists but the source doc has workspaces: merge them onto the record
-                        // instead of skipping (idempotent).
-                        sharingIndexHandler.backfillWorkspacesOnExisting(
+                    } else {
+                        // Record already exists: reconcile its workspaces to exactly match the source doc (adds and
+                        // removals), bringing pre-existing records up to date. No-op when already in sync.
+                        sharingIndexHandler.reconcileWorkspaces(
                             sourceInfo.sourceIndex,
                             resourceId,
                             docWorkspaces,
@@ -435,19 +435,11 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 }
                                 migrationStatsLatch.countDown();
                             }, e -> {
-                                LOGGER.warn("Failed to backfill workspaces for existing record [{}]: {}", resourceId, e.getMessage());
+                                LOGGER.warn("Failed to reconcile workspaces for existing record [{}]: {}", resourceId, e.getMessage());
                                 failureCount.getAndIncrement();
                                 migrationStatsLatch.countDown();
                             })
                         );
-                    } else {
-                        LOGGER.debug(
-                            "Skipping migration of resource sharing record for resource {} within index {} as an entry already exists",
-                            resourceId,
-                            sourceInfo.sourceIndex
-                        );
-                        skippedExisting.getAndIncrement();
-                        migrationStatsLatch.countDown();
                     }
                 }, e -> {
                     LOGGER.debug(e.getMessage());

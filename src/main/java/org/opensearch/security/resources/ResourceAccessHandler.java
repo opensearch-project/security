@@ -227,6 +227,9 @@ public class ResourceAccessHandler {
         if (workspaceIndex != null) {
             resourceSharingIndexHandler.fetchSharingInfoForIds(workspaceIndex, workspaceIds, ActionListener.wrap(records -> {
                 for (ResourceSharing wsRecord : records.values()) {
+                    // Resolve against the workspace type's action groups: a workspace record grants workspace-level
+                    // access (e.g. workspace_read/write), and only the workspace type maps those levels to the child
+                    // actions being authorized. The child type's groups are keyed by the child's own level names.
                     if (recordGrantsAction(wsRecord, WORKSPACE_RESOURCE_TYPE, user, action)) {
                         listener.onResponse(true);
                         return;

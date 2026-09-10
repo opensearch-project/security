@@ -157,55 +157,41 @@ public class ResourceSharingIndexHandler {
      * The supplied {@link ActionListener} will be invoked with the {@link UpdateResponse}
      * on success, or with an exception on failure.
      *
-     * Merges workspace membership onto an existing sharing record (records created by {@code OpType.CREATE} migration
-     * are skipped, so this brings them up to date) and refreshes {@code all_shared_principals}.
+     * Reconciles a sharing record's {@code workspaces} to exactly {@code workspaces} — adding and removing so the
+     * record matches the resource doc's current membership. Used by live updates (associate/dissociate) and by
+     * migration to bring pre-existing records up to date.
      * <p>
-     * Idempotent: merges {@code workspaces} into the current set and writes only when that adds something new.
-     * {@code created_by} and {@code share_with} are left untouched.
+     * Idempotent: writes only when the set actually changes; {@code created_by} and {@code share_with} are untouched.
+     * A dissociation to the empty set clears the field. Workspaces are not projected into {@code all_shared_principals}
+     * (read-path visibility filters the resource's own {@code workspaces} field), so no principal refresh is needed.
      *
      * @param resourceIndex the source resource index whose sharing record should be updated
-     * @param resourceId    the id of the resource whose sharing record should be backfilled
-     * @param workspaces    the workspace IDs to merge in
-     * @param listener      notified with {@code true} if the record was updated, {@code false} if nothing changed
-     *                      (no existing record, empty input, or already-present)
+     * @param resourceId    the id of the resource whose sharing record should be reconciled
+     * @param workspaces    the exact workspace IDs the record should hold ({@code null}/empty clears membership)
+     * @param listener      notified with {@code true} if the record changed, {@code false} otherwise
+     *                      (no existing record, or already in sync)
      */
-    public void backfillWorkspacesOnExisting(
-        String resourceIndex,
-        String resourceId,
-        Set<String> workspaces,
-        ActionListener<Boolean> listener
-    ) {
-        if (workspaces == null || workspaces.isEmpty()) {
-            listener.onResponse(false);
-            return;
-        }
+    public void reconcileWorkspaces(String resourceIndex, String resourceId, Set<String> workspaces, ActionListener<Boolean> listener) {
+        Set<String> target = workspaces == null ? Set.of() : new HashSet<>(workspaces);
         fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(existing -> {
             if (existing == null) {
                 listener.onResponse(false);
                 return;
             }
-            Set<String> merged = new HashSet<>(existing.getWorkspaces());
-            if (!merged.addAll(workspaces)) {
-                // nothing new to add; leave the record untouched (idempotent)
+            if (existing.getWorkspaces().equals(target)) {
+                // already in sync; leave the record untouched (idempotent)
                 listener.onResponse(false);
                 return;
             }
-            existing.setWorkspaces(merged);
             String resourceSharingIndex = getSharingIndex(resourceIndex);
             try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
                 UpdateRequest ur = client.prepareUpdate(resourceSharingIndex, resourceId)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setDoc(Map.of("workspaces", merged))
+                    .setDoc(Map.of("workspaces", new ArrayList<>(target)))
                     .request();
                 client.update(ur, ActionListener.wrap(updateResponse -> {
                     ctx.restore();
-                    // Refresh the resource doc's principals from the now-workspace-aware record.
-                    updateResourceVisibility(
-                        resourceId,
-                        resourceIndex,
-                        existing.getAllPrincipals(),
-                        ActionListener.wrap(r -> listener.onResponse(true), listener::onFailure)
-                    );
+                    listener.onResponse(true);
                 }, e -> {
                     ctx.restore();
                     listener.onFailure(e);
