@@ -33,7 +33,9 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.GrpcRequestChannel;
 import org.opensearch.security.http.HTTPBasicAuthenticator;
+import org.opensearch.security.http.HTTPProxyAuthenticator;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -230,6 +232,85 @@ public class BackendRegistryGrpcAuthTest {
 
         assertTrue("Authentication should succeed with valid Basic Auth and configured domain", result);
         assertFalse("Should not have queued an error response", request.getQueuedResponse().isPresent());
+    }
+
+    @Test
+    public void testGrpcAuthenticateWithValidProxyAuthAndConfiguredDomain() throws Exception {
+        // XFFResolver would set XFF_DONE on the thread context when the caller IP matches an
+        // internal-proxies allowlist. The default xffResolver mock in setUp() only returns a
+        // TransportAddress, so we augment it here to also set the flag - mirroring real behavior
+        // when xff is enabled and the caller IP is trusted.
+        when(xffResolver.resolve(any())).thenAnswer(invocation -> {
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
+            return new TransportAddress(new InetSocketAddress("127.0.0.1", 9200));
+        });
+
+        AuthenticationBackend mockBackend = mock(AuthenticationBackend.class);
+        when(mockBackend.getType()).thenReturn("noop");
+        when(mockBackend.authenticate(any())).thenAnswer(inv -> {
+            AuthenticationContext ctx = inv.getArgument(0);
+            return new User(ctx.getCredentials().getUsername());
+        });
+
+        Settings proxySettings = Settings.builder().put("user_header", "x-proxy-user").put("roles_header", "x-proxy-roles").build();
+        HTTPProxyAuthenticator proxyAuthenticator = new HTTPProxyAuthenticator(proxySettings, null);
+        AuthDomain proxyAuthDomain = new AuthDomain(mockBackend, proxyAuthenticator, false, 0);
+
+        DynamicConfigModel mockDcm = mock(DynamicConfigModel.class);
+        when(mockDcm.isAnonymousAuthenticationEnabled()).thenReturn(false);
+        when(mockDcm.getRestAuthDomains()).thenReturn(new TreeSet<>(List.of(proxyAuthDomain)));
+        when(mockDcm.getRestAuthorizers()).thenReturn(Collections.emptySet());
+        when(mockDcm.getIpAuthFailureListeners()).thenReturn(Collections.emptyList());
+        when(mockDcm.getAuthBackendFailureListeners()).thenReturn(ImmutableMultimap.of());
+        when(mockDcm.getIpClientBlockRegistries()).thenReturn(Collections.emptyList());
+        when(mockDcm.getAuthBackendClientBlockRegistries()).thenReturn(ImmutableMultimap.of());
+        when(mockDcm.getHostsResolverMode()).thenReturn("ip-only");
+
+        backendRegistry.onDynamicConfigModelChanged(mockDcm);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("x-proxy-user", "kratos-grpc-service");
+        headers.put("x-proxy-roles", "admin,search-user");
+
+        GrpcRequestChannel request = createTestRequest(headers);
+        boolean result = backendRegistry.authenticate(request);
+
+        assertTrue("Authentication should succeed with valid proxy headers and configured proxy_auth_domain", result);
+        assertFalse("Should not have queued an error response", request.getQueuedResponse().isPresent());
+
+        User authedUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        assertEquals("kratos-grpc-service", authedUser.getName());
+    }
+
+    @Test
+    public void testGrpcProxyAuthDomainIsNotSkipped() {
+        // Regression guard: if GRPC_SUPPORTED_AUTH loses "proxy", the proxy_auth_domain will be
+        // skipped instead of failing on the missing user header - and this test will start passing
+        // for the wrong reason. Assert we get 401 from actual proxy-auth failure (no user header),
+        // not from "no auth domains produced credentials".
+        HTTPProxyAuthenticator proxyAuthenticator = new HTTPProxyAuthenticator(
+            Settings.builder().put("user_header", "x-proxy-user").put("roles_header", "x-proxy-roles").build(),
+            null
+        );
+        AuthDomain proxyAuthDomain = new AuthDomain(mock(AuthenticationBackend.class), proxyAuthenticator, false, 0);
+
+        DynamicConfigModel mockDcm = mock(DynamicConfigModel.class);
+        when(mockDcm.isAnonymousAuthenticationEnabled()).thenReturn(false);
+        when(mockDcm.getRestAuthDomains()).thenReturn(new TreeSet<>(List.of(proxyAuthDomain)));
+        when(mockDcm.getRestAuthorizers()).thenReturn(Collections.emptySet());
+        when(mockDcm.getIpAuthFailureListeners()).thenReturn(Collections.emptyList());
+        when(mockDcm.getAuthBackendFailureListeners()).thenReturn(ImmutableMultimap.of());
+        when(mockDcm.getIpClientBlockRegistries()).thenReturn(Collections.emptyList());
+        when(mockDcm.getAuthBackendClientBlockRegistries()).thenReturn(ImmutableMultimap.of());
+        when(mockDcm.getHostsResolverMode()).thenReturn("ip-only");
+        backendRegistry.onDynamicConfigModelChanged(mockDcm);
+
+        GrpcRequestChannel request = createTestRequest(new HashMap<>());
+        boolean result = backendRegistry.authenticate(request);
+
+        assertFalse(result);
+        assertTrue(request.getQueuedResponse().isPresent());
+        assertEquals(401, request.getQueuedResponse().get().getStatus());
     }
 
     private GrpcRequestChannel createTestRequest(Map<String, String> headerMap) {

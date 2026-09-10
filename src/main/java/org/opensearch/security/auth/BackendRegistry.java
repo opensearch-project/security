@@ -86,7 +86,7 @@ import static org.opensearch.security.http.HTTPBasicAuthenticator.BASIC_TYPE;
 public class BackendRegistry {
 
     protected static final Logger log = LogManager.getLogger(BackendRegistry.class);
-    private static final Set<String> GRPC_SUPPORTED_AUTH = Set.of("jwt", "basic");
+    private static final Set<String> GRPC_SUPPORTED_AUTH = Set.of("jwt", "basic", "proxy");
 
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
@@ -248,7 +248,7 @@ public class BackendRegistry {
     public boolean authenticate(final SecurityRequestChannel request) {
         /*
         Over gRPC, we do not support the full set of authentication features.
-        - Auth domain support is limited to JWT only.
+        - Auth domain support is limited to JWT, Basic and Proxy only.
         - Authenticating as superuser is blocked over gRPC.
         - Tenant headers are unsupported.
         - Anonymous auth is unsupported.
