@@ -942,11 +942,14 @@ public class ResourceSharingIndexHandler {
                         new VersionedResourceSharing(resourceSharing, getResponse.getSeqNo(), getResponse.getPrimaryTerm())
                     );
                 } catch (Exception e) {
-                    listener.onFailure(
-                        new OpenSearchStatusException("Failed to parse sharing record " + resourceId, RestStatus.INTERNAL_SERVER_ERROR)
-                    );
+                    String failure = "Failed to parse sharing record " + resourceId;
+                    LOGGER.error(failure, e);
+                    listener.onFailure(new OpenSearchStatusException(failure, RestStatus.INTERNAL_SERVER_ERROR, e));
                 }
-            }, listener::onFailure));
+            }, e -> {
+                ctx.restore();
+                listener.onFailure(e);
+            }));
         }
     }
 

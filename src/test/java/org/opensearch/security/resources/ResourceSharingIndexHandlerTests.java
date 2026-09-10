@@ -52,6 +52,7 @@ import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -294,15 +295,25 @@ public class ResourceSharingIndexHandlerTests {
         stubUpdateSucceeds(); // updateResourceVisibility on success
 
         ShareWith shareWith = new ShareWith(Map.of("read", new Recipients(Map.of(Recipient.USERS, Set.of("bob")))));
-        handler.share("res-1", RESOURCE_INDEX, shareWith, ActionListener.wrap(r -> {}, e -> {}));
+        AtomicReference<ResourceSharing> out = new AtomicReference<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith, ActionListener.wrap(out::set, e -> {}));
 
         verify(client, times(2)).get(any(GetRequest.class), any());   // re-fetched the latest on conflict
         verify(client, times(2)).index(any(IndexRequest.class), any());
+
+        // Each write's optimistic-concurrency guard came from the record fetched that attempt (stale 10, then 11).
+        verify(indexBuilder).setIfSeqNo(10L);
+        verify(indexBuilder).setIfSeqNo(11L);
+        verify(indexBuilder, times(2)).setIfPrimaryTerm(1L);
 
         ArgumentCaptor<XContentBuilder> src = ArgumentCaptor.forClass(XContentBuilder.class);
         verify(indexBuilder, atLeast(2)).setSource(src.capture());
         String latest = src.getAllValues().get(src.getAllValues().size() - 1).toString();
         assertFalse("stale workspace must not be re-applied over the newer state", latest.contains("ws-a"));
         assertTrue("newer guard must be preserved", latest.contains("\"workspaces_seq_no\":11"));
+        assertTrue("share_with recipient must be reapplied to the latest record", latest.contains("bob"));
+
+        // The share completed successfully after the retry.
+        assertNotNull(out.get());
     }
 }
