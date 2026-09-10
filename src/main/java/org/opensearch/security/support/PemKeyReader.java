@@ -54,6 +54,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.stream.Stream;
 import javax.crypto.Cipher;
 import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.NoSuchPaddingException;
@@ -84,6 +85,7 @@ public final class PemKeyReader {
     public static final String JKS = "JKS";
     public static final String PKCS12 = "PKCS12";
     public static final String BCFKS = "BCFKS";
+    public static final String PKCS11 = "PKCS11";
 
     private static byte[] readPrivateKey(File file) throws KeyException {
         try (final InputStream in = new FileInputStream(file)) {
@@ -186,13 +188,30 @@ public final class PemKeyReader {
     }
 
     public static KeyStore loadKeyStore(final String storePath, final String keyStorePassword, final String type) throws Exception {
-        if (storePath == null) {
+        // A PKCS#11 store lives on the token, not on disk, so it is the one case with no path.
+        if (storePath == null && !PKCS11.equalsIgnoreCase(type)) {
             return null;
         }
         String storeType = extractStoreType(storePath, type);
-
-        final KeyStore store = KeyStore.getInstance(storeType);
-        store.load(new FileInputStream(storePath), keyStorePassword == null ? null : keyStorePassword.toCharArray());
+        final char[] password = keyStorePassword == null ? null : keyStorePassword.toCharArray();
+        final KeyStore store;
+        if (PKCS11.equalsIgnoreCase(storeType)) {
+            try {
+                store = KeyStore.getInstance(storeType);
+                store.load(null, password);
+            } catch (Exception e) {
+                throw new OpenSearchException(
+                    "Failed to initialize PKCS#11 keystore. Ensure a PKCS#11 provider is registered and configured "
+                        + "(e.g. SunPKCS11, IBMPKCS11Impl, or your HSM vendor's provider).",
+                    e
+                );
+            }
+        } else {
+            store = KeyStore.getInstance(storeType);
+            try (final var in = new FileInputStream(storePath)) {
+                store.load(in, password);
+            }
+        }
         return store;
     }
 
@@ -358,9 +377,11 @@ public final class PemKeyReader {
         if (null == storeType) {
             storeType = detectStoreType(storePath);
         }
-        if (CryptoServicesRegistrar.isInApprovedOnlyMode() && !PemKeyReader.BCFKS.equalsIgnoreCase(storeType)) {
+        final String finalStoreType = storeType;
+        if (CryptoServicesRegistrar.isInApprovedOnlyMode()
+            && Stream.of(PKCS11, BCFKS).noneMatch(it -> it.equalsIgnoreCase(finalStoreType))) {
             throw new IllegalArgumentException(
-                storeType.toUpperCase(Locale.ROOT) + " keystores / truststores are not supported in FIPS mode - use BCFKS."
+                storeType.toUpperCase(Locale.ROOT) + " keystores / truststores are not supported in FIPS mode - use BCFKS or PKCS#11"
             );
         }
         return storeType;
