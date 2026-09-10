@@ -65,6 +65,7 @@ import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MatchAllQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -91,6 +92,13 @@ import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_
 public class ResourceSharingIndexHandler {
 
     private static final Logger LOGGER = LogManager.getLogger(ResourceSharingIndexHandler.class);
+
+    // Monotonic guard: seq_no of the source-document write last reconciled onto the sharing record's workspaces.
+    private static final String WORKSPACES_SEQ_NO_FIELD = "workspaces_seq_no";
+    // Bounded retry for reconcile: covers the window where the sharing record is still being created asynchronously,
+    // and re-reads after a lost optimistic-concurrency compare-and-set.
+    private static final int WORKSPACE_RECONCILE_MAX_ATTEMPTS = 5;
+    private static final TimeValue WORKSPACE_RECONCILE_RETRY_DELAY = TimeValue.timeValueMillis(100);
 
     private final Client client;
 
@@ -149,55 +157,124 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Updates the visibility of a resource document by replacing its {@code principals} field
-     * with the provided list of principals. The update is executed immediately with
-     * {@link WriteRequest.RefreshPolicy#IMMEDIATE} to ensure the change is visible in subsequent
-     * searches.
+     * Reconciles a sharing record's {@code workspaces} to exactly {@code workspaces} — adding and removing so the write
+     * path (which reads the record) stays in step with the read path (DLS filters the live doc field). Used by live
+     * updates (associate/dissociate) and by migration to bring pre-existing records up to date.
      * <p>
-     * The supplied {@link ActionListener} will be invoked with the {@link UpdateResponse}
-     * on success, or with an exception on failure.
-     *
-     * Reconciles a sharing record's {@code workspaces} to exactly {@code workspaces} — adding and removing so the
-     * record matches the resource doc's current membership. Used by live updates (associate/dissociate) and by
-     * migration to bring pre-existing records up to date.
+     * Synchronization is <b>monotonic</b> against the source document's sequence number: {@code sourceSeqNo} (the
+     * seq_no of the write that produced this membership) is stored on the record as {@code workspaces_seq_no}, and a
+     * reconcile is applied only when its {@code sourceSeqNo} is newer than the stored value. This prevents a slow
+     * reconcile that completes late from overwriting a newer association/dissociation. The write is guarded by
+     * optimistic concurrency (if_seq_no/if_primary_term) so concurrent reconciles cannot lose updates; a lost
+     * compare-and-set re-reads and re-evaluates the guard. A record that has not been created yet (records are created
+     * asynchronously) is retried rather than treated as synchronized.
      * <p>
-     * Idempotent: writes only when the set actually changes; {@code created_by} and {@code share_with} are untouched.
-     * A dissociation to the empty set clears the field. Workspaces are not projected into {@code all_shared_principals}
-     * (read-path visibility filters the resource's own {@code workspaces} field), so no principal refresh is needed.
+     * {@code created_by} and {@code share_with} are untouched; a dissociation to the empty set clears the field.
+     * Workspaces are not projected into {@code all_shared_principals} (read-path visibility filters the resource's own
+     * {@code workspaces} field), so no principal refresh is needed.
      *
-     * @param resourceIndex the source resource index whose sharing record should be updated
-     * @param resourceId    the id of the resource whose sharing record should be reconciled
+     * @param resourceIndex the source resource index whose sharing record should be reconciled
+     * @param resourceId    the id of the resource to reconcile
      * @param workspaces    the exact workspace IDs the record should hold ({@code null}/empty clears membership)
-     * @param listener      notified with {@code true} if the record changed, {@code false} otherwise
-     *                      (no existing record, or already in sync)
+     * @param sourceSeqNo   the seq_no of the source-document write that produced {@code workspaces} (monotonic guard)
+     * @param listener      notified with {@code true} if the record's membership changed, {@code false} otherwise
+     *                      (guard rejected this as stale, already in sync, or record missing after retries)
      */
-    public void reconcileWorkspaces(String resourceIndex, String resourceId, Set<String> workspaces, ActionListener<Boolean> listener) {
+    public void reconcileWorkspaces(
+        String resourceIndex,
+        String resourceId,
+        Set<String> workspaces,
+        long sourceSeqNo,
+        ActionListener<Boolean> listener
+    ) {
         Set<String> target = workspaces == null ? Set.of() : new HashSet<>(workspaces);
-        fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(existing -> {
-            if (existing == null) {
-                listener.onResponse(false);
-                return;
+        reconcileWorkspacesAttempt(getSharingIndex(resourceIndex), resourceId, target, sourceSeqNo, 1, listener);
+    }
+
+    private void reconcileWorkspacesAttempt(
+        String resourceSharingIndex,
+        String resourceId,
+        Set<String> target,
+        long sourceSeqNo,
+        int attempt,
+        ActionListener<Boolean> listener
+    ) {
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            client.get(new GetRequest(resourceSharingIndex).id(resourceId), ActionListener.wrap(getResponse -> {
+                ctx.restore();
+                if (!getResponse.isExists()) {
+                    // The record is created asynchronously; a reconcile from an immediate follow-up write can arrive
+                    // first. Retry rather than treating a missing record as synchronized.
+                    if (attempt < WORKSPACE_RECONCILE_MAX_ATTEMPTS) {
+                        threadPool.schedule(
+                            () -> reconcileWorkspacesAttempt(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt + 1, listener),
+                            WORKSPACE_RECONCILE_RETRY_DELAY,
+                            ThreadPool.Names.GENERIC
+                        );
+                    } else {
+                        LOGGER.warn(
+                            "Sharing record [{}] still missing after {} attempts; skipping workspace reconcile",
+                            resourceId,
+                            attempt
+                        );
+                        listener.onResponse(false);
+                    }
+                    return;
+                }
+
+                Map<String, Object> source = getResponse.getSourceAsMap();
+                long storedSeqNo = source.get(WORKSPACES_SEQ_NO_FIELD) instanceof Number n
+                    ? n.longValue()
+                    : SequenceNumbers.UNASSIGNED_SEQ_NO;
+                // Monotonic guard: an older source operation must never overwrite state written by a newer one.
+                if (sourceSeqNo <= storedSeqNo) {
+                    listener.onResponse(false);
+                    return;
+                }
+
+                Set<String> current = workspacesFromSource(source);
+                boolean contentChanged = !current.equals(target);
+                try (ThreadContext.StoredContext ctx2 = this.threadPool.getThreadContext().stashContext()) {
+                    Map<String, Object> doc = new HashMap<>();
+                    doc.put("workspaces", new ArrayList<>(target));
+                    doc.put(WORKSPACES_SEQ_NO_FIELD, sourceSeqNo);
+                    UpdateRequest ur = client.prepareUpdate(resourceSharingIndex, resourceId)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                        .setDoc(doc)
+                        .setIfSeqNo(getResponse.getSeqNo())
+                        .setIfPrimaryTerm(getResponse.getPrimaryTerm())
+                        .request();
+                    client.update(ur, ActionListener.wrap(updateResponse -> {
+                        ctx2.restore();
+                        listener.onResponse(contentChanged);
+                    }, e -> {
+                        ctx2.restore();
+                        // A concurrent reconcile won the compare-and-set; re-read and re-evaluate the guard.
+                        if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException
+                            && attempt < WORKSPACE_RECONCILE_MAX_ATTEMPTS) {
+                            reconcileWorkspacesAttempt(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt + 1, listener);
+                        } else {
+                            listener.onFailure(e);
+                        }
+                    }));
+                }
+            }, listener::onFailure));
+        }
+    }
+
+    private static Set<String> workspacesFromSource(Map<String, Object> source) {
+        Object v = source == null ? null : source.get("workspaces");
+        Set<String> result = new HashSet<>();
+        if (v instanceof Collection<?> c) {
+            for (Object o : c) {
+                if (o != null) {
+                    result.add(o.toString());
+                }
             }
-            if (existing.getWorkspaces().equals(target)) {
-                // already in sync; leave the record untouched (idempotent)
-                listener.onResponse(false);
-                return;
-            }
-            String resourceSharingIndex = getSharingIndex(resourceIndex);
-            try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-                UpdateRequest ur = client.prepareUpdate(resourceSharingIndex, resourceId)
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setDoc(Map.of("workspaces", new ArrayList<>(target)))
-                    .request();
-                client.update(ur, ActionListener.wrap(updateResponse -> {
-                    ctx.restore();
-                    listener.onResponse(true);
-                }, e -> {
-                    ctx.restore();
-                    listener.onFailure(e);
-                }));
-            }
-        }, listener::onFailure));
+        } else if (v instanceof String s && !s.isEmpty()) {
+            result.add(s);
+        }
+        return result;
     }
 
     /**

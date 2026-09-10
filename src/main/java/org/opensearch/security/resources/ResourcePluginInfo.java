@@ -16,13 +16,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexableField;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -44,8 +41,6 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
  * @opensearch.experimental
  */
 public class ResourcePluginInfo {
-
-    private static final Logger LOGGER = LogManager.getLogger(ResourcePluginInfo.class);
 
     private ResourceSharingClient resourceAccessControlClient;
 
@@ -80,6 +75,10 @@ public class ResourcePluginInfo {
 
             // Enforce resource-type unique-ness
             Set<String> resourceTypes = new HashSet<>();
+            // Providers may share a resource index, but must then agree on the workspaces field: DLS filters a single
+            // field per index while ingestion uses each provider's declared field, so a disagreement would silently
+            // mis-scope read visibility. Reject conflicting non-null declarations at registration.
+            Map<String, String> indexToWorkspacesField = new HashMap<>();
             for (ResourceSharingExtension extension : extensions) {
                 for (var rp : extension.getResourceProviders()) {
                     if (!resourceTypes.contains(rp.resourceType())) {
@@ -95,6 +94,22 @@ public class ResourcePluginInfo {
                                 extension.getClass().getName()
                             )
                         );
+                    }
+
+                    String workspacesField = rp.workspacesField();
+                    if (workspacesField != null) {
+                        String existing = indexToWorkspacesField.putIfAbsent(rp.resourceIndexName(), workspacesField);
+                        if (existing != null && !existing.equals(workspacesField)) {
+                            throw new OpenSearchSecurityException(
+                                String.format(
+                                    "Conflicting workspaces fields declared for resource index [%s]: [%s] and [%s]. All providers sharing"
+                                        + " an index must declare the same workspaces field (or null to opt out).",
+                                    rp.resourceIndexName(),
+                                    existing,
+                                    workspacesField
+                                )
+                            );
+                        }
                     }
                 }
             }
@@ -358,24 +373,21 @@ public class ResourcePluginInfo {
      * Used by DLS to filter workspace membership on the field a provider actually declares, rather than a fixed name.
      * When multiple providers share an index, the first declared (non-null) field wins.
      */
+    /**
+     * Returns the workspaces field for the given resource index, or {@code null} if no provider on that index
+     * declares one. Providers sharing an index are required to agree on this field — conflicting non-null
+     * declarations are rejected at registration (see {@link #setResourceSharingExtensions}) — so the value is
+     * unambiguous regardless of map iteration order.
+     */
     public String workspacesFieldForIndex(String index) {
         lock.readLock().lock();
         try {
-            // Providers on the same index should declare the same workspaces field. Resolve deterministically
-            // (lexicographically smallest) rather than relying on map iteration order, and warn on disagreement.
-            TreeSet<String> declared = new TreeSet<>();
             for (ResourceProvider provider : typeToProvider.values()) {
                 if (provider.resourceIndexName().equals(index) && provider.workspacesField() != null) {
-                    declared.add(provider.workspacesField());
+                    return provider.workspacesField();
                 }
             }
-            if (declared.isEmpty()) {
-                return null;
-            }
-            if (declared.size() > 1) {
-                LOGGER.warn("Conflicting workspaces fields {} declared for index [{}]; using [{}].", declared, index, declared.first());
-            }
-            return declared.first();
+            return null;
         } finally {
             lock.readLock().unlock();
         }

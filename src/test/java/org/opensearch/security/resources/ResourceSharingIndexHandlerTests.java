@@ -27,6 +27,8 @@ import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.index.get.GetResult;
@@ -66,6 +68,28 @@ public class ResourceSharingIndexHandlerTests {
         handler = new ResourceSharingIndexHandler(client, threadPool, mock(ResourcePluginInfo.class));
     }
 
+    // reconcileWorkspaces reads the sharing record's raw source (workspaces + workspaces_seq_no) and its
+    // seq_no/primary_term for the optimistic-concurrency guard; stub client.get to return the record.
+    private void stubRecordGet(boolean exists, String recordJson) {
+        doAnswer(inv -> {
+            ActionListener<GetResponse> l = inv.getArgument(1);
+            GetResult getResult = mock(GetResult.class);
+            when(getResult.getId()).thenReturn("res-1");
+            when(getResult.isExists()).thenReturn(exists);
+            if (exists) {
+                byte[] bytes = recordJson.getBytes(StandardCharsets.UTF_8);
+                BytesArray source = new BytesArray(bytes, 0, bytes.length);
+                when(getResult.sourceRef()).thenReturn(source);
+                when(getResult.sourceAsString()).thenReturn(recordJson);
+                when(getResult.sourceAsMap()).thenReturn(XContentHelper.convertToMap(source, false, XContentType.JSON).v2());
+                when(getResult.getSeqNo()).thenReturn(1L);
+                when(getResult.getPrimaryTerm()).thenReturn(1L);
+            }
+            l.onResponse(new GetResponse(getResult));
+            return null;
+        }).when(client).get(any(GetRequest.class), any());
+    }
+
     private MultiGetItemResponse existingItem(String id, String sourceJson) {
         GetResult getResult = mock(GetResult.class);
         when(getResult.getId()).thenReturn(id);
@@ -74,22 +98,6 @@ public class ResourceSharingIndexHandlerTests {
         when(getResult.sourceRef()).thenReturn(new BytesArray(bytes, 0, bytes.length));
         when(getResult.sourceAsString()).thenReturn(sourceJson);
         return new MultiGetItemResponse(new GetResponse(getResult), null);
-    }
-
-    private void stubGet(String id, boolean exists, String sourceJson) {
-        doAnswer(inv -> {
-            ActionListener<GetResponse> l = inv.getArgument(1);
-            GetResult getResult = mock(GetResult.class);
-            when(getResult.getId()).thenReturn(id);
-            when(getResult.isExists()).thenReturn(exists);
-            if (exists) {
-                byte[] bytes = sourceJson.getBytes(StandardCharsets.UTF_8);
-                when(getResult.sourceRef()).thenReturn(new BytesArray(bytes, 0, bytes.length));
-                when(getResult.sourceAsString()).thenReturn(sourceJson);
-            }
-            l.onResponse(new GetResponse(getResult));
-            return null;
-        }).when(client).get(any(GetRequest.class), any());
     }
 
     private void stubUpdateSucceeds() {
@@ -145,43 +153,28 @@ public class ResourceSharingIndexHandlerTests {
     // ---------- reconcileWorkspaces ----------------------------------------------------------------
 
     @Test
-    public void reconcile_noopWhenRecordMissing() {
-        stubGet("res-1", false, null);
-        AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), ActionListener.wrap(out::set, e -> {}));
-        assertFalse(out.get());
-        verify(client, never()).update(any(), any());
-    }
-
-    @Test
-    public void reconcile_noopWhenAlreadyInSync() {
-        stubGet("res-1", true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\",\"ws-b\"]}");
-        AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-b", "ws-a"), ActionListener.wrap(out::set, e -> {}));
-        assertFalse(out.get());
-        verify(client, never()).update(any(), any());
-    }
-
-    @Test
-    public void reconcile_addsWhenNewWorkspaces() {
-        stubGet("res-1", true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
+    public void reconcile_appliesWhenNewerSeqNo() {
+        // No prior guard on the record (workspaces_seq_no absent) -> any source seq_no applies.
+        stubRecordGet(true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
         stubUpdateSucceeds();
 
         AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a", "ws-b"), ActionListener.wrap(out::set, e -> {}));
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a", "ws-b"), 5L, ActionListener.wrap(out::set, e -> {}));
 
         assertTrue(out.get());
-        // single update to the sharing record; workspaces are not projected into all_shared_principals
         verify(client, times(1)).update(any(UpdateRequest.class), any());
     }
 
     @Test
     public void reconcile_removesWhenDissociated() {
-        stubGet("res-1", true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\",\"ws-b\"]}");
+        stubRecordGet(
+            true,
+            "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\",\"ws-b\"],\"workspaces_seq_no\":1}"
+        );
         stubUpdateSucceeds();
 
         AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), ActionListener.wrap(out::set, e -> {}));
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), 5L, ActionListener.wrap(out::set, e -> {}));
 
         assertTrue(out.get());
         verify(client, times(1)).update(any(UpdateRequest.class), any());
@@ -189,13 +182,59 @@ public class ResourceSharingIndexHandlerTests {
 
     @Test
     public void reconcile_clearsWhenTargetEmpty() {
-        stubGet("res-1", true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\"]}");
+        stubRecordGet(
+            true,
+            "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\"],\"workspaces_seq_no\":1}"
+        );
         stubUpdateSucceeds();
 
         AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of(), ActionListener.wrap(out::set, e -> {}));
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of(), 5L, ActionListener.wrap(out::set, e -> {}));
 
         assertTrue(out.get());
         verify(client, times(1)).update(any(UpdateRequest.class), any());
+    }
+
+    @Test
+    public void reconcile_rejectsStaleSeqNo() {
+        // Monotonic guard: a reconcile older than the last-applied source seq_no must not overwrite newer state.
+        stubRecordGet(
+            true,
+            "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\"],\"workspaces_seq_no\":5}"
+        );
+
+        AtomicReference<Boolean> out = new AtomicReference<>();
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of(), 3L, ActionListener.wrap(out::set, e -> {}));
+
+        assertFalse(out.get());
+        verify(client, never()).update(any(), any());
+    }
+
+    @Test
+    public void reconcile_advancesGuardWhenContentUnchanged() {
+        // Content already matches, but a newer seq_no still advances the guard so a later stale reconcile is gated.
+        stubRecordGet(
+            true,
+            "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"},\"workspaces\":[\"ws-a\"],\"workspaces_seq_no\":1}"
+        );
+        stubUpdateSucceeds();
+
+        AtomicReference<Boolean> out = new AtomicReference<>();
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), 5L, ActionListener.wrap(out::set, e -> {}));
+
+        assertFalse(out.get()); // content unchanged
+        verify(client, times(1)).update(any(UpdateRequest.class), any()); // but the guard was advanced
+    }
+
+    @Test
+    public void reconcile_retriesWhenRecordMissing() {
+        // The record is created asynchronously; a reconcile that finds it missing must not treat it as synced.
+        stubRecordGet(false, null);
+
+        AtomicReference<Boolean> out = new AtomicReference<>();
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), 5L, ActionListener.wrap(out::set, e -> {}));
+
+        // threadPool.schedule is a no-op in this unit test, so the retry never fires and no write happens.
+        verify(client, never()).update(any(), any());
     }
 }

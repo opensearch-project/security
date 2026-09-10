@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.sample.resource.TestUtils;
+import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
@@ -35,6 +36,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
@@ -88,6 +91,98 @@ public class WorkspaceContainerAccessTests {
         setResourceWorkspaces(resId);
         awaitSharingRecordWorkspace(resId, false, workspaceId);
         forbidden(() -> api.getResource(resId, FULL_ACCESS_USER));
+    }
+
+    @Test
+    public void testRapidAssociateThenDissociateConvergesToDenied() throws Exception {
+        // Negative control for out-of-order reconciliation: associate then immediately dissociate WITHOUT awaiting the
+        // association reconcile. The monotonic guard must ensure the slower association reconcile can never overwrite
+        // the newer dissociation, so the resource converges to no-workspace and the direct action is denied.
+        final String workspaceId = "ws-race";
+        String resId = api.createSampleResourceAs(USER_ADMIN);
+        api.awaitSharingEntry(resId);
+        putWorkspaceSharingRecord(workspaceId, "workspace_read_only", FULL_ACCESS_USER.getName());
+
+        setResourceWorkspaces(resId, workspaceId); // associate
+        setResourceWorkspaces(resId);              // dissociate immediately, without awaiting the first reconcile
+
+        awaitSharingRecordWorkspace(resId, false, workspaceId);
+        forbidden(() -> api.getResource(resId, FULL_ACCESS_USER));
+    }
+
+    @Test
+    public void testCreateWithWorkspaceThenImmediateClearConvergesToDenied() throws Exception {
+        // Negative control for the create race: create a resource already associated with a workspace, then clear it
+        // immediately. A reconcile that finds the record not yet written must retry (not no-op), and the clear must
+        // win, so the resource converges to no-workspace and the direct action is denied.
+        final String workspaceId = "ws-race-create";
+        putWorkspaceSharingRecord(workspaceId, "workspace_read_only", FULL_ACCESS_USER.getName());
+
+        String resId = createResourceWithWorkspacesAs(USER_ADMIN, workspaceId);
+        setResourceWorkspaces(resId); // clear immediately
+
+        awaitSharingRecordWorkspace(resId, false, workspaceId);
+        forbidden(() -> api.getResource(resId, FULL_ACCESS_USER));
+    }
+
+    @Test
+    public void testOrdinaryUpdateCannotChangeWorkspaceMembership() throws Exception {
+        // Trusted-write contract: workspace membership is server-controlled. A user with workspace_read_write (so it
+        // can update) must not be able to add another workspace through an ordinary update to acquire that workspace's
+        // stronger access level. The sample update route ignores caller-supplied workspaces.
+        final String teamWs = "ws-team-rw";
+        final String superWs = "ws-super";
+        putWorkspaceSharingRecord(teamWs, "workspace_read_write", FULL_ACCESS_USER.getName());
+        putWorkspaceSharingRecord(superWs, "workspace_full_access", FULL_ACCESS_USER.getName());
+
+        String resId = api.createSampleResourceAs(USER_ADMIN);
+        api.awaitSharingEntry(resId);
+        // Associate only with ws-team-rw through the server-authorized path.
+        setResourceWorkspaces(resId, teamWs);
+        awaitSharingRecordWorkspace(resId, true, teamWs);
+
+        // FULL_ACCESS_USER (workspace_read_write -> can update) tries to add ws-super via an ordinary update.
+        HttpResponse update = updateResourceWithWorkspacesAs(resId, FULL_ACCESS_USER, "escalate", teamWs, superWs);
+        update.assertStatusCode(HttpStatus.SC_OK);
+
+        // Membership is unchanged: ws-super was not added, so no escalation to full_access occurred.
+        awaitSharingRecordWorkspace(resId, false, superWs);
+        awaitSharingRecordWorkspace(resId, true, teamWs);
+    }
+
+    // Creates a resource already carrying the given workspaces (create route accepts them; the owner still governs the
+    // record). Returns the new resource id.
+    private String createResourceWithWorkspacesAs(TestSecurityConfig.User user, String... workspaceIds) {
+        String body = "{\"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\",\"workspaces\":" + jsonArray(workspaceIds) + "}";
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, body);
+            resp.assertStatusCode(HttpStatus.SC_OK);
+            return resp.getTextFromJsonBody("/message").split(":")[1].trim();
+        }
+    }
+
+    // Attempts an ordinary update carrying a caller-supplied workspaces field (used to prove it is ignored).
+    private HttpResponse updateResourceWithWorkspacesAs(
+        String resourceId,
+        TestSecurityConfig.User user,
+        String newName,
+        String... workspaceIds
+    ) {
+        String body = "{\"name\":\"" + newName + "\",\"workspaces\":" + jsonArray(workspaceIds) + "}";
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            return client.postJson(SAMPLE_RESOURCE_UPDATE_ENDPOINT + "/" + resourceId, body);
+        }
+    }
+
+    private static String jsonArray(String... values) {
+        StringBuilder arr = new StringBuilder("[");
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) {
+                arr.append(",");
+            }
+            arr.append("\"").append(values[i]).append("\"");
+        }
+        return arr.append("]").toString();
     }
 
     // Writes a workspace sharing record directly (mirrors how a real workspace backend materializes collaborators),

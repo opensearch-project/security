@@ -18,6 +18,7 @@ import org.apache.lucene.index.IndexableField;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.mapper.ParsedDocument;
 import org.opensearch.security.spi.resources.ResourceProvider;
@@ -26,6 +27,7 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -103,7 +105,77 @@ public class ResourcePluginInfoTests {
         assertNull(result);
     }
 
+    @Test
+    public void testRejectsConflictingWorkspacesFieldsOnSameIndex() {
+        // Two providers sharing an index but declaring different workspaces fields is a misconfiguration: DLS can only
+        // filter one field per index. Registration must reject it rather than silently pick one.
+        ResourceSharingExtension extension = new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                var providers = new java.util.LinkedHashSet<ResourceProvider>();
+                providers.add(workspacesProvider("a", ".shared-index", "workspaces"));
+                providers.add(workspacesProvider("b", ".shared-index", "ws"));
+                return providers;
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        };
+
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> resourcePluginInfo.setResourceSharingExtensions(Set.of(extension))
+        );
+        assertTrue(ex.getMessage().contains("Conflicting workspaces fields"));
+    }
+
+    @Test
+    public void testAllowsMatchingWorkspacesFieldsOnSameIndex() {
+        // Providers sharing an index that agree on the workspaces field (or opt out with null) are accepted.
+        ResourceSharingExtension extension = new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                var providers = new java.util.LinkedHashSet<ResourceProvider>();
+                providers.add(workspacesProvider("a", ".shared-index", "workspaces"));
+                providers.add(workspacesProvider("b", ".shared-index", "workspaces"));
+                providers.add(workspacesProvider("c", ".shared-index", null));
+                return providers;
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        };
+
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(extension));
+        resourcePluginInfo.updateProtectedTypes(Arrays.asList("a", "b", "c"));
+        assertEquals("workspaces", resourcePluginInfo.workspacesFieldForIndex(".shared-index"));
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+    private ResourceProvider workspacesProvider(String type, String index, String field) {
+        return new ResourceProvider() {
+            @Override
+            public String resourceType() {
+                return type;
+            }
+
+            @Override
+            public String resourceIndexName() {
+                return index;
+            }
+
+            @Override
+            public String typeField() {
+                return "resource_type";
+            }
+
+            @Override
+            public String workspacesField() {
+                return field;
+            }
+        };
+    }
 
     private void registerProviders(List<String> types, String indexName, String sharedTypeField) {
         ResourceSharingExtension extension = new ResourceSharingExtension() {

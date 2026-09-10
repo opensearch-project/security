@@ -33,6 +33,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.matcher.RestMatchers;
 
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -193,7 +194,7 @@ public class MigrateApiTests {
             assertThat(hitsNode.size(), equalTo(2));
 
             List<ObjectNode> actualHits = new ArrayList<>();
-            hitsNode.forEach(node -> actualHits.add((ObjectNode) node));
+            hitsNode.forEach(node -> actualHits.add(stripReconcileFields((ObjectNode) node)));
 
             // with custom access level, order-agnostic
             assertThat(
@@ -225,7 +226,7 @@ public class MigrateApiTests {
             assertThat(hitsNode.size(), equalTo(2));
 
             List<ObjectNode> actualHits = new ArrayList<>();
-            hitsNode.forEach(node -> actualHits.add((ObjectNode) node));
+            hitsNode.forEach(node -> actualHits.add(stripReconcileFields((ObjectNode) node)));
 
             // with custom access level, order-agnostic
             assertThat(
@@ -257,7 +258,7 @@ public class MigrateApiTests {
             assertThat(hitsNode.size(), equalTo(2));
 
             final List<ObjectNode> actualHits = new ArrayList<>();
-            hitsNode.forEach(node -> actualHits.add((ObjectNode) node));
+            hitsNode.forEach(node -> actualHits.add(stripReconcileFields((ObjectNode) node)));
 
             // with custom access level, order-agnostic
             assertThat(
@@ -283,7 +284,7 @@ public class MigrateApiTests {
             assertThat(hitsNode.size(), equalTo(2));
 
             final List<ObjectNode> finalActualHits = new ArrayList<>();
-            hitsNode.forEach(node -> finalActualHits.add((ObjectNode) node));
+            hitsNode.forEach(node -> finalActualHits.add(stripReconcileFields((ObjectNode) node)));
 
             // default access-level should not have been updated as record was already migrated
             assertThat(
@@ -358,10 +359,12 @@ public class MigrateApiTests {
             });
 
             // Now force the record out of sync by writing a stale set directly to the sharing index (no listener runs
-            // on the sharing index). Record: [ws-stale]; source doc: [ws-a, ws-b].
+            // on the sharing index), and reset the monotonic guard (workspaces_seq_no) to a low watermark so it
+            // resembles a pre-feature record that migration must reconcile to the source doc. Record: [ws-stale];
+            // source doc: [ws-a, ws-b].
             TestRestClient.HttpResponse stale = client.postJson(
                 RESOURCE_SHARING_INDEX + "/_update/" + resourceId + "?refresh=true",
-                "{ \"doc\": { \"workspaces\": [\"ws-stale\"] } }"
+                "{ \"doc\": { \"workspaces\": [\"ws-stale\"], \"workspaces_seq_no\": -2 } }"
             );
             stale.assertStatusCode(HttpStatus.SC_OK);
 
@@ -424,7 +427,7 @@ public class MigrateApiTests {
             assertThat(hitsNode.size(), equalTo(2));
 
             List<ObjectNode> actualHits = new ArrayList<>();
-            hitsNode.forEach(node -> actualHits.add((ObjectNode) node));
+            hitsNode.forEach(node -> actualHits.add(stripReconcileFields((ObjectNode) node)));
 
             // with default access level, order-agnostic
             assertThat(
@@ -510,7 +513,7 @@ public class MigrateApiTests {
             assertThat(hitsNode.size(), equalTo(2));
 
             List<ObjectNode> actualHits = new ArrayList<>();
-            hitsNode.forEach(node -> actualHits.add((ObjectNode) node));
+            hitsNode.forEach(node -> actualHits.add(stripReconcileFields((ObjectNode) node)));
 
             // registered default is sample_read_only
             assertThat(
@@ -920,12 +923,29 @@ public class MigrateApiTests {
                   }
                 }
                 """;
-            TestRestClient.HttpResponse response = client.postJson(RESOURCE_SHARING_INDEX + "/_delete_by_query?refresh=true", deleteBody);
+            // conflicts=proceed: an async workspace-reconcile write may touch a record mid-delete; skip the conflict
+            // rather than fail (the whole index is dropped next anyway).
+            TestRestClient.HttpResponse response = client.postJson(
+                RESOURCE_SHARING_INDEX + "/_delete_by_query?refresh=true&conflicts=proceed",
+                deleteBody
+            );
 
             response.assertStatusCode(HttpStatus.SC_OK);
 
             client.delete(RESOURCE_SHARING_INDEX + "/?ignore_unavailable=true");
         }
+    }
+
+    // The workspace-reconcile listener may asynchronously stamp `workspaces` (empty for non-workspace resources) and
+    // the monotonic-guard `workspaces_seq_no` onto sharing records. These are reconciliation metadata, not sharing
+    // content, so strip them before comparing records by value against expectedHits().
+    private static ObjectNode stripReconcileFields(ObjectNode hit) {
+        JsonNode src = hit.get("_source");
+        if (src instanceof ObjectNode source) {
+            source.remove("workspaces");
+            source.remove("workspaces_seq_no");
+        }
+        return hit;
     }
 
     private List<ObjectNode> expectedHits(String resourceId, String resourceIdNoUser, String accessLevel) {

@@ -85,6 +85,15 @@ public interface ResourceProvider {
      * {@link #parentIdField()}, which resolves a single parent — this field is expected to be
      * multi-valued (for example a {@code keyword} array) and every value is captured.
      *
+     * <p><b>Trusted-write contract</b> — required for security-sensitive correctness: because this field drives
+     * both read visibility and write authorization, providers MUST NOT allow an ordinary resource update to freely
+     * change it. Workspace membership changes must come through a server-authorized associate/dissociate operation,
+     * not from user-supplied document content on a normal create/update. Otherwise a user could add a resource to a
+     * workspace where they hold a stronger access level and escalate their access to that resource. (The sample
+     * plugin enforces this by ignoring caller-supplied {@code workspaces} on update; see also
+     * {@link ResourceSharingExtension#resolveWorkspacesForUser} for the matching trusted-source contract on user
+     * membership.)
+     *
      * <p>The security plugin reads these workspace IDs at index time and stores them on the sharing record
      * (used by the write-path access-level resolution). Read-path visibility is enforced by filtering this
      * same field in DLS against the user's accessible workspaces, so the field must be mapped as

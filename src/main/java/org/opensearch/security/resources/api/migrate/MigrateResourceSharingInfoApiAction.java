@@ -246,7 +246,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
             SearchRequest searchRequest = new SearchRequest(sourceIndex).scroll(scroll)
                 .source(
-                    new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(1_000)        // batch size per scroll “page”
+                    new SearchSourceBuilder().query(QueryBuilders.matchAllQuery())
+                        .size(1_000)                 // batch size per scroll “page”
+                        .seqNoAndPrimaryTerm(true)   // source-doc seq_no is the monotonic guard for workspace reconcile
                 );
 
             // 2) execute first search
@@ -306,7 +308,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         }
                     }
 
-                    results.add(new SourceDoc(id, username, backendRoles, type, parentId, workspaces));
+                    results.add(new SourceDoc(id, username, backendRoles, type, parentId, workspaces, hit.getSeqNo()));
                 }
                 // 4) fetch next batch
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
@@ -410,6 +412,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                 // 5) index the new record
                 final Set<String> docWorkspaces = doc.workspaces;
+                final long docSeqNo = doc.seqNo;
                 ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
                     if (entry != null) {
                         LOGGER.debug(
@@ -422,11 +425,13 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         migrationStatsLatch.countDown();
                     } else {
                         // Record already exists: reconcile its workspaces to exactly match the source doc (adds and
-                        // removals), bringing pre-existing records up to date. No-op when already in sync.
+                        // removals), bringing pre-existing records up to date. The source doc's seq_no is the monotonic
+                        // guard, so a concurrent live update is never overwritten by this migration.
                         sharingIndexHandler.reconcileWorkspaces(
                             sourceInfo.sourceIndex,
                             resourceId,
                             docWorkspaces,
+                            docSeqNo,
                             ActionListener.wrap(changed -> {
                                 if (Boolean.TRUE.equals(changed)) {
                                     backfilledExisting.getAndIncrement();
@@ -660,7 +665,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             .orElse(null);
     }
 
-    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId, Set<String> workspaces) {
+    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId, Set<String> workspaces,
+        long seqNo) {
     }
 
     record ValidationResultArg(String sourceIndex, String defaultOwnerName, Map<String, String> typeToDefaultAccessLevel, List<
