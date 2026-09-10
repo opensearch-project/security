@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
@@ -22,6 +23,9 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
 import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.get.MultiGetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexRequestBuilder;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.action.update.UpdateResponse;
@@ -32,16 +36,26 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.index.Index;
+import org.opensearch.core.index.shard.ShardId;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.get.GetResult;
+import org.opensearch.security.resources.sharing.Recipient;
+import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.security.resources.sharing.ResourceSharing;
+import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+
+import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -238,5 +252,57 @@ public class ResourceSharingIndexHandlerTests {
 
         verify(threadPool).schedule(any(Runnable.class), any(TimeValue.class), anyString());
         verify(client, never()).update(any(), any());
+    }
+
+    @Test
+    public void share_reappliesToLatestRecordOnVersionConflict() {
+        // Interleave: share fetches a stale snapshot ([ws-a], guard 10); before it writes, a reconcile has moved the
+        // record to []/guard 11 (simulated by a version conflict on the first optimistic-concurrency write). share
+        // MUST re-fetch the newer record and re-apply share_with to it, so the newer (empty) workspaces and guard 11
+        // survive rather than being reverted to [ws-a]/10.
+        AtomicInteger getCount = new AtomicInteger();
+        doAnswer(inv -> {
+            ActionListener<GetResponse> l = inv.getArgument(1);
+            boolean first = getCount.getAndIncrement() == 0;
+            String json = first
+                ? "{\"resource_id\":\"res-1\",\"resource_type\":\"s\",\"created_by\":{\"user\":\"owner\"},\"workspaces\":[\"ws-a\"],\"workspaces_seq_no\":10}"
+                : "{\"resource_id\":\"res-1\",\"resource_type\":\"s\",\"created_by\":{\"user\":\"owner\"},\"workspaces_seq_no\":11}";
+            GetResult gr = mock(GetResult.class);
+            when(gr.getId()).thenReturn("res-1");
+            when(gr.isExists()).thenReturn(true);
+            when(gr.sourceAsString()).thenReturn(json);
+            when(gr.getSeqNo()).thenReturn(first ? 10L : 11L);
+            when(gr.getPrimaryTerm()).thenReturn(1L);
+            l.onResponse(new GetResponse(gr));
+            return null;
+        }).when(client).get(any(GetRequest.class), any());
+
+        IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        when(indexBuilder.request()).thenReturn(mock(IndexRequest.class));
+        when(client.prepareIndex(anyString())).thenReturn(indexBuilder);
+        AtomicInteger indexCount = new AtomicInteger();
+        doAnswer(inv -> {
+            ActionListener<IndexResponse> l = inv.getArgument(1);
+            if (indexCount.getAndIncrement() == 0) {
+                // First write loses to a concurrent reconcile.
+                l.onFailure(new VersionConflictEngineException(new ShardId(new Index("i", "u"), 0), "res-1", "conflict"));
+            } else {
+                l.onResponse(mock(IndexResponse.class));
+            }
+            return null;
+        }).when(client).index(any(IndexRequest.class), any());
+        stubUpdateSucceeds(); // updateResourceVisibility on success
+
+        ShareWith shareWith = new ShareWith(Map.of("read", new Recipients(Map.of(Recipient.USERS, Set.of("bob")))));
+        handler.share("res-1", RESOURCE_INDEX, shareWith, ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(client, times(2)).get(any(GetRequest.class), any());   // re-fetched the latest on conflict
+        verify(client, times(2)).index(any(IndexRequest.class), any());
+
+        ArgumentCaptor<XContentBuilder> src = ArgumentCaptor.forClass(XContentBuilder.class);
+        verify(indexBuilder, atLeast(2)).setSource(src.capture());
+        String latest = src.getAllValues().get(src.getAllValues().size() - 1).toString();
+        assertFalse("stale workspace must not be re-applied over the newer state", latest.contains("ws-a"));
+        assertTrue("newer guard must be preserved", latest.contains("\"workspaces_seq_no\":11"));
     }
 }

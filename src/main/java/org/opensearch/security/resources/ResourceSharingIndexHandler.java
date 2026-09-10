@@ -73,7 +73,6 @@ import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.security.resources.api.share.ShareAction;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.Recipient;
-import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.user.User;
@@ -95,6 +94,8 @@ public class ResourceSharingIndexHandler {
 
     // Monotonic guard: seq_no of the source-document write last reconciled onto the sharing record's workspaces.
     private static final String WORKSPACES_SEQ_NO_FIELD = "workspaces_seq_no";
+    // Retries for the share/patch read-modify-write under optimistic concurrency (a concurrent reconcile write).
+    private static final int SHARING_UPDATE_MAX_ATTEMPTS = 5;
     // Bounded retry for reconcile: covers the window where the sharing record is still being created asynchronously,
     // and re-reads after a lost optimistic-concurrency compare-and-set.
     private static final int WORKSPACE_RECONCILE_MAX_ATTEMPTS = 5;
@@ -821,62 +822,136 @@ public class ResourceSharingIndexHandler {
      * @throws RuntimeException if there's an error during the update operation
      */
     public void share(String resourceId, String resourceIndex, ShareWith shareWith, ActionListener<ResourceSharing> listener) {
-        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
+        shareAttempt(resourceId, resourceIndex, shareWith, 1, listener);
+    }
 
-        // Fetch resource sharing doc
-        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
-
-        // build update script
-        sharingInfoListener.whenComplete(sharingInfo -> {
-            if (sharingInfo == null) {
+    private void shareAttempt(
+        String resourceId,
+        String resourceIndex,
+        ShareWith shareWith,
+        int attempt,
+        ActionListener<ResourceSharing> listener
+    ) {
+        // Re-fetch on each attempt so a version conflict re-applies the mutation to the LATEST record (picking up any
+        // concurrent workspace reconcile) rather than reverting to a stale snapshot.
+        fetchSharingInfoWithVersion(resourceIndex, resourceId, ActionListener.wrap(versioned -> {
+            if (versioned == null) {
                 LOGGER.debug("No sharing record found for resource {}", resourceId);
                 listener.onResponse(null);
                 return;
             }
+            ResourceSharing sharingInfo = versioned.sharing();
             for (String accessLevel : shareWith.accessLevels()) {
-                Recipients target = shareWith.atAccessLevel(accessLevel);
-                sharingInfo.share(accessLevel, target);
+                sharingInfo.share(accessLevel, shareWith.atAccessLevel(accessLevel));
             }
             if (shareWith.getGeneralAccess() != null) {
                 sharingInfo.setGeneralAccess(shareWith.getGeneralAccess());
             }
+            indexSharingRecordWithCas(
+                resourceIndex,
+                sharingInfo,
+                versioned.seqNo(),
+                versioned.primaryTerm(),
+                () -> shareAttempt(resourceId, resourceIndex, shareWith, attempt + 1, listener),
+                attempt,
+                listener
+            );
+        }, listener::onFailure));
+    }
 
-            String resourceSharingIndex = getSharingIndex(resourceIndex);
-            try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
-                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                    .setId(sharingInfo.getResourceId())
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                    .setOpType(DocWriteRequest.OpType.INDEX)
-                    .request();
+    /**
+     * Read-modify-write of a whole sharing record guarded by optimistic concurrency. The write only succeeds if the
+     * record hasn't changed since {@code seqNo}/{@code primaryTerm} were read; on a version conflict it invokes
+     * {@code onConflictRetry} (which re-fetches and re-applies the mutation) so a concurrent workspace reconcile is
+     * never clobbered. On success it refreshes {@code all_shared_principals} and returns the mutated record.
+     */
+    private void indexSharingRecordWithCas(
+        String resourceIndex,
+        ResourceSharing sharingInfo,
+        long seqNo,
+        long primaryTerm,
+        Runnable onConflictRetry,
+        int attempt,
+        ActionListener<ResourceSharing> listener
+    ) throws IOException {
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+        String resourceId = sharingInfo.getResourceId();
+        try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
+            IndexRequest ir = client.prepareIndex(resourceSharingIndex)
+                .setId(resourceId)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .setOpType(DocWriteRequest.OpType.INDEX)
+                .setIfSeqNo(seqNo)
+                .setIfPrimaryTerm(primaryTerm)
+                .request();
 
-                ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
-                    ctx.restore();
-                    LOGGER.info(
-                        "Successfully updated {} entry for resource {} in index {}.",
-                        resourceSharingIndex,
-                        resourceId,
-                        resourceIndex
+            client.index(ir, ActionListener.wrap(idxResponse -> {
+                ctx.restore();
+                LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
+                updateResourceVisibility(
+                    resourceId,
+                    resourceIndex,
+                    sharingInfo.getAllPrincipals(),
+                    ActionListener.wrap((updateResponse) -> {
+                        LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
+                        listener.onResponse(sharingInfo);
+                    }, (e) -> {
+                        LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
+                        listener.onResponse(sharingInfo);
+                    })
+                );
+            }, e -> {
+                ctx.restore();
+                // A concurrent write (e.g. a workspace reconcile) changed the record; re-fetch and re-apply.
+                if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException && attempt < SHARING_UPDATE_MAX_ATTEMPTS) {
+                    onConflictRetry.run();
+                } else {
+                    LOGGER.error(e.getMessage());
+                    listener.onFailure(e);
+                }
+            }));
+        }
+    }
+
+    /**
+     * Like {@link #fetchSharingInfo} but also captures the document's {@code _seq_no}/{@code _primary_term} for a
+     * subsequent optimistic-concurrency write. Responds with {@code null} when no record exists.
+     */
+    private void fetchSharingInfoWithVersion(String resourceIndex, String resourceId, ActionListener<VersionedResourceSharing> listener) {
+        if (StringUtils.isBlank(resourceIndex) || StringUtils.isBlank(resourceId)) {
+            listener.onFailure(new IllegalArgumentException("resourceIndex and resourceId must not be null or empty"));
+            return;
+        }
+        String resourceSharingIndex = getSharingIndex(resourceIndex);
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            client.get(new GetRequest(resourceSharingIndex).id(resourceId), ActionListener.wrap(getResponse -> {
+                ctx.restore();
+                if (!getResponse.isExists()) {
+                    listener.onResponse(null);
+                    return;
+                }
+                try (
+                    XContentParser parser = XContentType.JSON.xContent()
+                        .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
+                ) {
+                    parser.nextToken();
+                    ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
+                    resourceSharing.setResourceId(getResponse.getId());
+                    listener.onResponse(
+                        new VersionedResourceSharing(resourceSharing, getResponse.getSeqNo(), getResponse.getPrimaryTerm())
                     );
-                    updateResourceVisibility(
-                        resourceId,
-                        resourceIndex,
-                        sharingInfo.getAllPrincipals(),
-                        ActionListener.wrap((updateResponse) -> {
-                            LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
-                            listener.onResponse(sharingInfo);
-                        }, (e) -> {
-                            LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                            listener.onResponse(sharingInfo);
-                        })
+                } catch (Exception e) {
+                    listener.onFailure(
+                        new OpenSearchStatusException("Failed to parse sharing record " + resourceId, RestStatus.INTERNAL_SERVER_ERROR)
                     );
-                }, (failResponse) -> {
-                    LOGGER.error(failResponse.getMessage());
-                    listener.onFailure(failResponse);
-                });
-                client.index(ir, irListener);
-            }
-        }, listener::onFailure);
+                }
+            }, listener::onFailure));
+        }
+    }
+
+    /** A parsed sharing record together with the document version fields needed for an optimistic-concurrency write. */
+    private record VersionedResourceSharing(ResourceSharing sharing, long seqNo, long primaryTerm) {
     }
 
     /**
@@ -899,15 +974,28 @@ public class ResourceSharingIndexHandler {
         String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
+        patchAttempt(resourceId, resourceIndex, add, revoke, generalAccessPresent, generalAccess, 1, listener);
+    }
 
-        StepListener<ResourceSharing> sharingInfoListener = new StepListener<>();
-        String resourceSharingIndex = getSharingIndex(resourceIndex);
-
-        // Fetch the current ResourceSharing document
-        fetchSharingInfo(resourceIndex, resourceId, sharingInfoListener);
-
-        // Apply patch and update the document
-        sharingInfoListener.whenComplete(sharingInfo -> {
+    private void patchAttempt(
+        String resourceId,
+        String resourceIndex,
+        ShareWith add,
+        ShareWith revoke,
+        boolean generalAccessPresent,
+        String generalAccess,
+        int attempt,
+        ActionListener<ResourceSharing> listener
+    ) {
+        // Re-fetch on each attempt so a version conflict re-applies the patch to the LATEST record (picking up any
+        // concurrent workspace reconcile) rather than reverting to a stale snapshot.
+        fetchSharingInfoWithVersion(resourceIndex, resourceId, ActionListener.wrap(versioned -> {
+            if (versioned == null) {
+                LOGGER.debug("No sharing record found for resource {}", resourceId);
+                listener.onResponse(null);
+                return;
+            }
+            ResourceSharing sharingInfo = versioned.sharing();
             if (add != null) {
                 sharingInfo.applyAdd(add);
             }
@@ -917,44 +1005,16 @@ public class ResourceSharingIndexHandler {
             if (generalAccessPresent) {
                 sharingInfo.setGeneralAccess(generalAccess);
             }
-
-            try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-                // update the record
-                IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                    .setId(resourceId)
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                    .setOpType(DocWriteRequest.OpType.INDEX)
-                    .request();
-
-                client.index(ir, ActionListener.wrap(idxResponse -> {
-                    ctx.restore();
-                    LOGGER.info(
-                        "Successfully updated {} resource sharing info for resource {} in index {}.",
-                        resourceSharingIndex,
-                        resourceId,
-                        resourceIndex
-                    );
-
-                    updateResourceVisibility(
-                        resourceId,
-                        resourceIndex,
-                        sharingInfo.getAllPrincipals(),
-                        ActionListener.wrap((updateResponse) -> {
-                            LOGGER.debug("Successfully updated visibility for resource {} within index {}", resourceId, resourceIndex);
-                            listener.onResponse(sharingInfo);
-                        }, (e) -> {
-                            LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                            listener.onResponse(sharingInfo);
-                        })
-                    );
-
-                }, (e) -> {
-                    LOGGER.error(e.getMessage());
-                    listener.onFailure(e);
-                }));
-            }
-        }, listener::onFailure);
+            indexSharingRecordWithCas(
+                resourceIndex,
+                sharingInfo,
+                versioned.seqNo(),
+                versioned.primaryTerm(),
+                () -> patchAttempt(resourceId, resourceIndex, add, revoke, generalAccessPresent, generalAccess, attempt + 1, listener),
+                attempt,
+                listener
+            );
+        }, listener::onFailure));
     }
 
     /**
