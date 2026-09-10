@@ -80,30 +80,17 @@ public interface ResourceProvider {
     }
 
     /**
-     * Returns the name of the field on documents of this type that holds the set of workspace IDs the
-     * resource belongs to. A single resource may belong to <em>multiple</em> workspaces, so — unlike
-     * {@link #parentIdField()}, which resolves a single parent — this field is expected to be
-     * multi-valued (for example a {@code keyword} array) and every value is captured.
+     * Field on documents of this type holding the set of workspace IDs the resource belongs to (a resource may belong
+     * to multiple workspaces). Must be mapped as multi-valued {@code keyword}: the read path filters it in DLS with a
+     * {@code terms} query, and the write path stores it on the sharing record for access-level resolution. Defaults to
+     * {@code "workspaces"}; return {@code null} to opt out. A document without the field belongs to no workspace.
      *
-     * <p><b>Trusted-write contract</b> — required for security-sensitive correctness: because this field drives
-     * both read visibility and write authorization, a provider MUST NOT let a caller freely set it on an <em>ordinary
-     * update</em> of an existing resource — otherwise a user with update access could add the resource to a workspace
-     * where they hold a stronger access level and escalate. Membership changes on an existing resource must go through
-     * a server-authorized associate/dissociate operation, not user-supplied document content. (The sample plugin
-     * enforces this by ignoring caller-supplied {@code workspaces} on update.) At <em>create</em> time the workspaces
-     * are owner-governed — the creator initially places their new resource, analogous to an initial share — but a real
-     * backend MUST still validate that the creator is permitted to add the resource to each requested workspace (the
-     * sample plugin does not; it is a test fixture). See also
-     * {@link ResourceSharingExtension#resolveWorkspacesForUser} for the matching trusted-source contract on user
-     * membership.
-     *
-     * <p>The security plugin reads these workspace IDs at index time and stores them on the sharing record
-     * (used by the write-path access-level resolution). Read-path visibility is enforced by filtering this
-     * same field in DLS against the user's accessible workspaces, so the field must be mapped as
-     * {@code keyword} (a {@code terms} filter matches it exactly). Defaults to {@code "workspaces"}; a
-     * document that does not have the field is simply treated as belonging to no workspace, so this stays
-     * additive for existing resource types. Override to point at a different field, or return {@code null}
-     * to opt out of workspace-based sharing entirely.
+     * <p><b>Trusted-write contract:</b> this field drives authorization, so a provider MUST NOT let a caller change it
+     * on an ordinary update — membership changes on an existing resource go through a server-authorized
+     * associate/dissociate path (else a user could add the resource to a workspace where they hold stronger access and
+     * escalate). At create time it is owner-governed, but the backend must still validate the creator may add the
+     * resource to each requested workspace. See {@link ResourceSharingExtension#resolveWorkspacesForUser} for the
+     * matching contract on user membership.
      *
      * @return the field name containing the resource's workspace IDs (default {@code "workspaces"}), or
      *         {@code null} to opt out

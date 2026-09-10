@@ -40,24 +40,19 @@ public interface ResourceSharingExtension extends SecurityConfigExtension {
     void assignResourceSharingClient(@Nullable ResourceSharingClient client);
 
     /**
-     * Returns the set of workspace IDs the given user is a member of. Called on the privilege hot path when the
-     * security plugin builds the DLS filter for a search over a resource-sharing-protected index: the returned IDs
-     * are matched against each resource's own {@code workspaces} field, making resources in the user's workspaces
-     * visible without denormalizing workspace membership into {@code all_shared_principals}.
+     * Returns the workspace IDs the user is a member of. Called on the privilege hot path when building the DLS filter:
+     * the returned IDs are matched against each resource's own {@code workspaces} field (not denormalized into
+     * {@code all_shared_principals}).
      *
-     * <p><b>Contract</b> — required for security-sensitive correctness:
+     * <p><b>Contract</b> (security-sensitive):
      * <ul>
-     *   <li>The returned set MUST come from a trusted, server-set source that the requesting user cannot assert
-     *       (e.g. resolved at authentication time or from a plugin-owned index), NOT from user-influenceable
-     *       inputs like JWT/proxy claims. The result grants read visibility, so trusting user-controlled input
-     *       would enable a privilege-escalation vector.</li>
-     *   <li>The call MUST be I/O-free — this runs on the privilege hot path. Resolve membership eagerly at
-     *       authentication time (or maintain an in-memory cache keyed by user identity) rather than issuing a
-     *       cluster call here.</li>
+     *   <li>MUST come from a trusted, server-set source the user cannot assert (e.g. resolved at authentication time),
+     *       never from user-influenceable input like JWT/proxy claims — the result grants read visibility.</li>
+     *   <li>MUST be I/O-free (privilege hot path): resolve eagerly at authentication time or from an in-memory cache.</li>
      * </ul>
      *
-     * <p>The default returns an empty set, which disables workspace-based DLS visibility for the plugin. That is
-     * intentional and safe: only plugins that own an authoritative workspace-membership source should override.
+     * <p>Defaults to an empty set (workspace-based visibility disabled); only plugins owning an authoritative
+     * membership source should override.
      *
      * @param username     the authenticated user's name; never {@code null}
      * @param securityRoles the user's security roles; never {@code null}, may be empty

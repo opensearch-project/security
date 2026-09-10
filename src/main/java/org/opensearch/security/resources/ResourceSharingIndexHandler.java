@@ -158,28 +158,18 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Reconciles a sharing record's {@code workspaces} to exactly {@code workspaces} — adding and removing so the write
-     * path (which reads the record) stays in step with the read path (DLS filters the live doc field). Used by live
-     * updates (associate/dissociate) and by migration to bring pre-existing records up to date.
+     * Sets a sharing record's {@code workspaces} to exactly the given set (adds and removals), keeping the write path
+     * in step with the read path. Used by live associate/dissociate and by migration.
      * <p>
-     * Synchronization is <b>monotonic</b> against the source document's sequence number: {@code sourceSeqNo} (the
-     * seq_no of the write that produced this membership) is stored on the record as {@code workspaces_seq_no}, and a
-     * reconcile is applied only when its {@code sourceSeqNo} is newer than the stored value. This prevents a slow
-     * reconcile that completes late from overwriting a newer association/dissociation. The write is guarded by
-     * optimistic concurrency (if_seq_no/if_primary_term) so concurrent reconciles cannot lose updates; a lost
-     * compare-and-set re-reads and re-evaluates the guard. A record that has not been created yet (records are created
-     * asynchronously) is retried rather than treated as synchronized.
-     * <p>
-     * {@code created_by} and {@code share_with} are untouched; a dissociation to the empty set clears the field.
-     * Workspaces are not projected into {@code all_shared_principals} (read-path visibility filters the resource's own
-     * {@code workspaces} field), so no principal refresh is needed.
+     * Monotonic: {@code sourceSeqNo} (the source-doc write's seq_no) is stored as {@code workspaces_seq_no} and a
+     * reconcile applies only when it is newer, so a slow reconcile can't overwrite a newer one. Guarded by
+     * if_seq_no/if_primary_term (retried on conflict); a not-yet-created record is retried. {@code created_by}/
+     * {@code share_with} are untouched.
      *
-     * @param resourceIndex the source resource index whose sharing record should be reconciled
-     * @param resourceId    the id of the resource to reconcile
-     * @param workspaces    the exact workspace IDs the record should hold ({@code null}/empty clears membership)
-     * @param sourceSeqNo   the seq_no of the source-document write that produced {@code workspaces} (monotonic guard)
-     * @param listener      notified with {@code true} if the record's membership changed, {@code false} otherwise
-     *                      (guard rejected this as stale, already in sync, or record missing after retries)
+     * @param workspaces  the exact workspace IDs the record should hold ({@code null}/empty clears membership)
+     * @param sourceSeqNo the source-doc write's seq_no (monotonic guard)
+     * @param listener    notified {@code true} if membership changed, else {@code false} (stale, in sync, or record
+     *                    missing after retries)
      */
     public void reconcileWorkspaces(
         String resourceIndex,

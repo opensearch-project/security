@@ -94,10 +94,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private Set<String> workspaces;
 
     /**
-     * Monotonic guard for workspace reconciliation: the source document's seq_no from the write that last set
-     * {@link #workspaces}. Persisted so an older, still-retrying reconcile cannot overwrite a newer association or
-     * dissociation. Reconciliation metadata (not sharing content); modeled here so it survives whole-record rewrites
-     * (share/revoke/patch re-index via {@link #toXContent}). Defaults to {@link SequenceNumbers#UNASSIGNED_SEQ_NO}.
+     * Monotonic guard: the source-doc seq_no that last set {@link #workspaces}, so an older reconcile can't overwrite
+     * a newer one. Modeled here (not just written raw) so it survives whole-record rewrites in share/revoke/patch.
+     * Defaults to {@link SequenceNumbers#UNASSIGNED_SEQ_NO}.
      */
     private long workspacesSeqNo;
 

@@ -103,10 +103,8 @@ public class ResourceIndexListener implements IndexingOperationListener {
             }, e -> { log.debug(e.getMessage()); });
             this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
 
-            // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate). Keeps the
-            // write-path record in step with the read-path resource field, including removals — otherwise a
-            // dissociated resource could retain stale write authorization. The operation's seq_no is passed as a
-            // monotonic guard so a slow reconcile cannot overwrite a newer association/dissociation.
+            // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
+            // so the write-path record tracks the read-path field. The op's seq_no is the monotonic guard.
             if (provider.workspacesField() != null) {
                 Set<String> currentWorkspaces = ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
                 this.resourceSharingIndexHandler.reconcileWorkspaces(
