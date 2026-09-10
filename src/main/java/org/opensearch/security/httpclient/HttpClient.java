@@ -13,6 +13,7 @@ package org.opensearch.security.httpclient;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -53,15 +54,16 @@ import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Node;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.RestClient;
-import org.opensearch.client.RestClientBuilder;
-import org.opensearch.client.RestHighLevelClient;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.client.json.JsonpMapper;
+import org.opensearch.client.json.jackson3.JacksonJsonpMapper;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.Refresh;
+import org.opensearch.client.opensearch.core.IndexResponse;
+import org.opensearch.client.transport.httpclient5.ApacheHttpClient5Transport;
+import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBuilder;
+import org.opensearch.client.transport.httpclient5.internal.Node;
+
+import jakarta.json.stream.JsonParser;
 
 public class HttpClient implements Closeable {
 
@@ -143,7 +145,7 @@ public class HttpClient implements Closeable {
 
     private final KeyStore trustStore;
     private final Logger log = LogManager.getLogger(this.getClass());
-    private RestHighLevelClient rclient;
+    private OpenSearchClient rclient;
     private String basicCredentials;
     private KeyStore keystore;
     private String keystoreAlias;
@@ -178,9 +180,9 @@ public class HttpClient implements Closeable {
         this.keystoreAlias = keystoreAlias;
 
         HttpHost[] hosts = createHosts(servers);
-        RestClientBuilder builder = RestClient.builder(hosts);
+        ApacheHttpClient5TransportBuilder builder = ApacheHttpClient5TransportBuilder.builder(hosts);
 
-        builder.setFailureListener(new RestClient.FailureListener() {
+        builder.setFailureListener(new ApacheHttpClient5Transport.FailureListener() {
             @Override
             public void onFailure(Node node) {
 
@@ -188,7 +190,7 @@ public class HttpClient implements Closeable {
 
         });
 
-        builder.setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
+        builder.setHttpClientConfigCallback(new ApacheHttpClient5TransportBuilder.HttpClientConfigCallback() {
             @Override
             public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
                 try {
@@ -200,7 +202,7 @@ public class HttpClient implements Closeable {
             }
         });
 
-        rclient = new RestHighLevelClient(builder);
+        rclient = new OpenSearchClient(builder.setMapper(new JacksonJsonpMapper()).build());
     }
 
     private HttpHost[] createHosts(String[] servers) {
@@ -222,17 +224,14 @@ public class HttpClient implements Closeable {
     }
 
     public boolean index(final String content, final String index, final String type, final boolean refresh) {
-
-        try {
-
-            final IndexRequest ir = new IndexRequest(index);
-
+        final JsonpMapper mapper = rclient._transport().jsonpMapper();
+        try (StringReader reader = new StringReader(content); JsonParser parser = mapper.jsonProvider().createParser(reader)) {
+            final Map<?, ?> mappings = mapper.deserialize(parser, Map.class);
             final IndexResponse response = rclient.index(
-                ir.setRefreshPolicy(refresh ? RefreshPolicy.IMMEDIATE : RefreshPolicy.NONE).source(content, XContentType.JSON),
-                RequestOptions.DEFAULT
+                ir -> ir.index(index).refresh(refresh ? Refresh.True : Refresh.False).document(mappings)
             );
 
-            return response.getShardInfo().getSuccessful() > 0 && response.getShardInfo().getFailed() == 0;
+            return response.shards().successful() > 0 && response.shards().failed() == 0;
 
         } catch (Exception e) {
             log.error(e.toString(), e);
@@ -315,7 +314,7 @@ public class HttpClient implements Closeable {
     @Override
     public void close() throws IOException {
         if (rclient != null) {
-            rclient.close();
+            rclient._transport().close();
         }
     }
 }

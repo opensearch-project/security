@@ -38,7 +38,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -78,13 +77,11 @@ import org.opensearch.transport.stream.StreamTransportResponse;
 public class SecurityInterceptor {
 
     protected final Logger log = LogManager.getLogger(getClass());
-    private BackendRegistry backendRegistry;
-    private AuditLog auditLog;
+    private final AuditLog auditLog;
     private final ThreadPool threadPool;
     private final PrincipalExtractor principalExtractor;
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
-    private final Settings settings;
     private final SslExceptionHandler sslExceptionHandler;
     private final ClusterInfoHolder clusterInfoHolder;
     private final SSLConfig SSLConfig;
@@ -107,13 +104,11 @@ public class SecurityInterceptor {
         final UserFactory userFactory,
         final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
     ) {
-        this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
-        this.settings = settings;
         this.sslExceptionHandler = sslExceptionHandler;
         this.clusterInfoHolder = clusterInfoHolder;
         this.SSLConfig = SSLConfig;
@@ -123,7 +118,7 @@ public class SecurityInterceptor {
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {
-        return new SecurityRequestHandler<T>(
+        return new SecurityRequestHandler<>(
             action,
             actualHandler,
             threadPool,
@@ -161,18 +156,7 @@ public class SecurityInterceptor {
         final boolean isStreamChannel = options != null && TransportRequestOptions.Type.STREAM.equals(options.type());
         // skip the same node optimization for stream transport which doesn't use DirectChannel and thus ser/de is needed
         final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode()) && !isStreamChannel;
-        final Set<String> requestHeadersToCopy = new HashSet<>();
-        if (getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS) != null) {
-            Collections.addAll(
-                requestHeadersToCopy,
-                getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS).split(",")
-            );
-            requestHeadersToCopy.removeAll(Task.REQUEST_HEADERS); // Special case where this header is preserved during stashContext.
-        }
-
-        if (!Strings.isNullOrEmpty(getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS))) {
-            requestHeadersToCopy.add(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS);
-        }
+        final Set<String> requestHeadersToCopy = getRequestHeadersToCopy();
 
         final Supplier<ThreadContext.StoredContext> restorableContextSupplier = getThreadContext().newRestorableContext(true);
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
@@ -182,80 +166,23 @@ public class SecurityInterceptor {
             );
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
-            final Map<String, String> headerMap = new HashMap<>(
-                Maps.filterKeys(
-                    origHeaders0,
-                    k -> k != null
-                        && (k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)
-                            || k.equals(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS)
-                            || (k.equals("_opendistro_security_source_field_context")
-                                && !(request instanceof SearchRequest)
-                                && !(request instanceof GetRequest))
-                            || k.startsWith("_opendistro_security_trace")
-                            || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
-                            || requestHeadersToCopy.contains(k))
-                )
-            );
+            final Map<String, String> headerMap = createHeaderMap(origHeaders0, request, requestHeadersToCopy);
 
             if (dlsFlsLegacyHeaders != null) {
                 dlsFlsLegacyHeaders.performHeaderDecoration(connection, request, headerMap);
             }
 
-            boolean isSearchAction = action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME);
-            boolean isDestinationOutsideLocalCluster = clusterInfoHolder.isInitialized()
+            final boolean isDestinationOutsideLocalCluster = clusterInfoHolder.isInitialized()
                 && !clusterInfoHolder.hasNode(connection.getNode());
-
-            if (isDestinationOutsideLocalCluster) {
-                // The top-level query filter is only valid within the coordinating cluster. Strip its marker from every
-                // action sent to an unrecognized destination, even if RemoteClusterService does not report CCS as enabled.
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
-            }
-
-            if (isCrossClusterSearchEnabled() && isSearchAction && isDestinationOutsideLocalCluster) {
-                if (isDebugEnabled) {
-                    log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
-                }
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
-            }
-
-            if (isCrossClusterSearchEnabled()
-                && !action.startsWith("internal:")
-                && !action.equals(ClusterSearchShardsAction.NAME)
-                && isDestinationOutsideLocalCluster) {
-
-                if (isDebugEnabled) {
-                    log.debug("add dls/fls/mf from transient");
-                }
-
-                if (origCCSTransientDls != null && !origCCSTransientDls.isEmpty()) {
-                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, origCCSTransientDls);
-                }
-                if (origCCSTransientMf != null && !origCCSTransientMf.isEmpty()) {
-                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, origCCSTransientMf);
-                }
-                if (origCCSTransientFls != null && !origCCSTransientFls.isEmpty()) {
-                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, origCCSTransientFls);
-                }
-            }
+            decorateCrossClusterHeaders(
+                headerMap,
+                action,
+                isDestinationOutsideLocalCluster,
+                origCCSTransientDls,
+                origCCSTransientFls,
+                origCCSTransientMf,
+                isDebugEnabled
+            );
 
             if (StringUtils.isNotEmpty(injectedRolesValidationString)
                 && isCrossClusterSearchEnabled()
@@ -272,20 +199,7 @@ public class SecurityInterceptor {
 
             identityContext.propagate(getThreadContext(), isSameNodeRequest);
 
-            if (actionTraceEnabled.get()) {
-                getThreadContext().putHeader(
-                    "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
-                    Thread.currentThread().getName()
-                        + " IC -> "
-                        + action
-                        + " "
-                        + getThreadContext().getHeaders()
-                            .entrySet()
-                            .stream()
-                            .filter(p -> !p.getKey().startsWith("_opendistro_security_trace"))
-                            .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()))
-                );
-            }
+            addActionTrace(action);
 
             sender.sendRequest(connection, action, request, options, restoringHandler);
         }
@@ -293,6 +207,108 @@ public class SecurityInterceptor {
 
     boolean isCrossClusterSearchEnabled() {
         return OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled();
+    }
+
+    private Set<String> getRequestHeadersToCopy() {
+        final Set<String> requestHeadersToCopy = new HashSet<>();
+        final String requestedHeaders = getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_REQUEST_HEADERS);
+        if (requestedHeaders != null) {
+            Collections.addAll(requestHeadersToCopy, requestedHeaders.split(","));
+            requestHeadersToCopy.removeAll(Task.REQUEST_HEADERS);
+        }
+        if (!Strings.isNullOrEmpty(getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS))) {
+            requestHeadersToCopy.add(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS);
+        }
+        return requestHeadersToCopy;
+    }
+
+    private Map<String, String> createHeaderMap(
+        Map<String, String> originalHeaders,
+        TransportRequest request,
+        Set<String> requestHeadersToCopy
+    ) {
+        final Map<String, String> headerMap = new HashMap<>();
+        originalHeaders.forEach((header, value) -> {
+            if (shouldCopyHeader(header, request, requestHeadersToCopy)) {
+                headerMap.put(header, value);
+            }
+        });
+        return headerMap;
+    }
+
+    private boolean shouldCopyHeader(String header, TransportRequest request, Set<String> requestHeadersToCopy) {
+        return header != null
+            && (TransportHeaderConstants.SECURITY_HEADERS_TO_COPY.contains(header)
+                || (TransportHeaderConstants.SOURCE_FIELD_CONTEXT_HEADER.equals(header)
+                    && !(request instanceof SearchRequest)
+                    && !(request instanceof GetRequest))
+                || header.startsWith(TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX)
+                || header.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
+                || requestHeadersToCopy.contains(header));
+    }
+
+    private void decorateCrossClusterHeaders(
+        Map<String, String> headerMap,
+        String action,
+        boolean isDestinationOutsideLocalCluster,
+        String transientDls,
+        String transientFls,
+        String transientMaskedFields,
+        boolean isDebugEnabled
+    ) {
+        if (isDestinationOutsideLocalCluster) {
+            // The top-level query filter is only valid within the coordinating cluster. Strip its marker from every
+            // action sent to an unrecognized destination, even if RemoteClusterService does not report CCS as enabled.
+            headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
+        }
+        if (!isCrossClusterSearchEnabled() || !isDestinationOutsideLocalCluster) {
+            return;
+        }
+        final boolean isSearchAction = action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME);
+        if (isSearchAction) {
+            if (isDebugEnabled) {
+                log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
+            }
+            headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+            headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER);
+            headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+            headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+            headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+            headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER);
+            headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
+        }
+        if (!action.startsWith("internal:") && !action.equals(ClusterSearchShardsAction.NAME)) {
+            if (isDebugEnabled) {
+                log.debug("add dls/fls/mf from transient");
+            }
+            putIfNotEmpty(headerMap, ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, transientDls);
+            putIfNotEmpty(headerMap, ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, transientFls);
+            putIfNotEmpty(headerMap, ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, transientMaskedFields);
+        }
+    }
+
+    private void putIfNotEmpty(Map<String, String> headers, String name, String value) {
+        if (StringUtils.isNotEmpty(value)) {
+            headers.put(name, value);
+        }
+    }
+
+    private void addActionTrace(String action) {
+        if (!actionTraceEnabled.get()) {
+            return;
+        }
+        getThreadContext().putHeader(
+            TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX + System.currentTimeMillis() + "#" + UUID.randomUUID(),
+            Thread.currentThread().getName()
+                + " IC -> "
+                + action
+                + " "
+                + getThreadContext().getHeaders()
+                    .entrySet()
+                    .stream()
+                    .filter(entry -> !entry.getKey().startsWith(TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX))
+                    .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()))
+        );
     }
 
     private ThreadContext getThreadContext() {

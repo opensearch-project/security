@@ -58,7 +58,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '8.10.1'
+    id 'com.diffplug.spotless' version '8.10.2'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.5"
@@ -634,7 +634,6 @@ allprojects {
                 }
                 integrationTestImplementation "io.projectreactor.netty:reactor-netty-core:${versions.reactor_netty}"
                 integrationTestImplementation "io.projectreactor.netty:reactor-netty-http:${versions.reactor_netty}"
-                integrationTestImplementation 'org.opensearch.client:opensearch-java:3.10.0'
             }
         }
     }
@@ -696,7 +695,9 @@ check.dependsOn integrationTest
 dependencies {
     implementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
-    implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
+    implementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
+    implementation 'org.opensearch.client:opensearch-java:3.10.0'
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
@@ -826,7 +827,6 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
 
     testImplementation libs.springframework.beans
-    testImplementation 'org.opensearch.client:opensearch-java:3.10.0'
 
     testRuntimeOnly(libs.springframework.core) {
         exclude(group: 'org.springframework', module: 'spring-jcl')
