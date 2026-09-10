@@ -467,4 +467,60 @@ public class ResourceSharingTests extends LuceneTestCase {
             assertEquals(Set.of("ws-1", "ws-2"), sharing.getWorkspaces());
         }
     }
+
+    @Test
+    public void workspacesSeqNo_survivesXContentRoundTrip() throws Exception {
+        // share()/revoke()/patch() re-index the whole record via toXContent -> fromXContent. The monotonic guard
+        // (workspaces_seq_no) MUST survive that round-trip, otherwise a share would reset it and let an older,
+        // still-retrying reconcile re-apply stale workspaces.
+        ResourceSharing rs = ResourceSharing.builder()
+            .resourceId("r")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-a")))
+            .workspacesSeqNo(42L)
+            .build();
+
+        String json = toJson(rs);
+        assertTrue(json.contains("workspaces_seq_no"));
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing parsed = ResourceSharing.fromXContent(parser);
+            assertEquals(42L, parsed.getWorkspacesSeqNo());
+            assertEquals(Set.of("ws-a"), parsed.getWorkspaces());
+        }
+    }
+
+    @Test
+    public void workspacesSeqNo_omittedWhenUnassigned() throws Exception {
+        // A record that has never been reconciled carries no guard field (stays byte-clean).
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").resourceType("dashboard").createdBy(new CreatedBy("owner")).build();
+        assertFalse(toJson(rs).contains("workspaces_seq_no"));
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            rs.writeTo(out);
+            try (StreamInput in = out.bytes().streamInput()) {
+                ResourceSharing read = new ResourceSharing(in);
+                assertEquals(org.opensearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO, read.getWorkspacesSeqNo());
+            }
+        }
+    }
+
+    @Test
+    public void streamSerialization_roundTripsWorkspacesSeqNo() throws Exception {
+        ResourceSharing original = ResourceSharing.builder()
+            .resourceId("r1")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-a")))
+            .workspacesSeqNo(7L)
+            .build();
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            original.writeTo(out);
+            try (StreamInput in = out.bytes().streamInput()) {
+                assertEquals(7L, new ResourceSharing(in).getWorkspacesSeqNo());
+            }
+        }
+    }
 }

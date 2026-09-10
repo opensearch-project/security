@@ -27,6 +27,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.security.user.User;
 
 /**
@@ -93,6 +94,14 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private Set<String> workspaces;
 
     /**
+     * Monotonic guard for workspace reconciliation: the source document's seq_no from the write that last set
+     * {@link #workspaces}. Persisted so an older, still-retrying reconcile cannot overwrite a newer association or
+     * dissociation. Reconciliation metadata (not sharing content); modeled here so it survives whole-record rewrites
+     * (share/revoke/patch re-index via {@link #toXContent}). Defaults to {@link SequenceNumbers#UNASSIGNED_SEQ_NO}.
+     */
+    private long workspacesSeqNo;
+
+    /**
      * Information about who created the resource
      */
     private final CreatedBy createdBy;
@@ -109,6 +118,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.parentType = b.parentType;
         this.parentId = b.parentId;
         this.workspaces = b.workspaces;
+        this.workspacesSeqNo = b.workspacesSeqNo;
         this.createdBy = b.createdBy;
         this.shareWith = b.shareWith;
     }
@@ -127,6 +137,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.shareWith = in.readBoolean() ? new ShareWith(in) : null;
         List<String> ws = in.readOptionalStringList();
         this.workspaces = ws == null ? null : new HashSet<>(ws);
+        this.workspacesSeqNo = in.readZLong();
     }
 
     public static Builder builder() {
@@ -171,6 +182,10 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public void setWorkspaces(Set<String> workspaces) {
         this.workspaces = workspaces;
+    }
+
+    public long getWorkspacesSeqNo() {
+        return workspacesSeqNo;
     }
 
     public void share(String accessLevel, Recipients target) {
@@ -292,6 +307,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         // The symmetric read lives in the ResourceSharing(StreamInput) constructor, registered as the
         // resource_sharing NamedWriteable in OpenSearchSecurityPlugin#getNamedWriteables.
         out.writeOptionalStringCollection(workspaces == null ? null : new ArrayList<>(workspaces));
+        out.writeZLong(workspacesSeqNo);
     }
 
     @Override
@@ -310,6 +326,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
         if (workspaces != null && !workspaces.isEmpty()) {
             builder.field("workspaces", workspaces);
+        }
+        if (workspacesSeqNo != SequenceNumbers.UNASSIGNED_SEQ_NO) {
+            builder.field("workspaces_seq_no", workspacesSeqNo);
         }
         if (shareWith != null) {
             builder.field("share_with");
@@ -368,6 +387,11 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
                             b.workspaces(ws);
                         } else if (token == XContentParser.Token.VALUE_NULL) {
                             b.workspaces(null);
+                        }
+                        break;
+                    case "workspaces_seq_no":
+                        if (token != XContentParser.Token.VALUE_NULL) {
+                            b.workspacesSeqNo(parser.longValue());
                         }
                         break;
                     case "created_by":
@@ -538,6 +562,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         private String parentType;
         private String parentId;
         private Set<String> workspaces;
+        private long workspacesSeqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         private CreatedBy createdBy;
         private ShareWith shareWith;
 
@@ -568,6 +593,11 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
         public Builder workspaces(Set<String> workspaces) {
             this.workspaces = workspaces;
+            return this;
+        }
+
+        public Builder workspacesSeqNo(long workspacesSeqNo) {
+            this.workspacesSeqNo = workspacesSeqNo;
             return this;
         }
 

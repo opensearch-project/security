@@ -212,8 +212,11 @@ public class ResourceSharingIndexHandler {
                             ThreadPool.Names.GENERIC
                         );
                     } else {
-                        LOGGER.warn(
-                            "Sharing record [{}] still missing after {} attempts; skipping workspace reconcile",
+                        // Fail loud: the record never appeared, so the write-path record may be out of step with the
+                        // resource's workspaces. Re-run the migrate API to repair once the record exists.
+                        LOGGER.error(
+                            "Sharing record [{}] still missing after {} attempts; workspaces left unreconciled. Re-run "
+                                + "POST _plugins/_security/api/resources/migrate to repair.",
                             resourceId,
                             attempt
                         );
@@ -238,8 +241,10 @@ public class ResourceSharingIndexHandler {
                     Map<String, Object> doc = new HashMap<>();
                     doc.put("workspaces", new ArrayList<>(target));
                     doc.put(WORKSPACES_SEQ_NO_FIELD, sourceSeqNo);
+                    // WAIT_UNTIL (not IMMEDIATE): write-path reads are realtime GET/mget, so a forced refresh per
+                    // reconcile is unnecessary; wait for the next scheduled refresh instead.
                     UpdateRequest ur = client.prepareUpdate(resourceSharingIndex, resourceId)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL)
                         .setDoc(doc)
                         .setIfSeqNo(getResponse.getSeqNo())
                         .setIfPrimaryTerm(getResponse.getPrimaryTerm())

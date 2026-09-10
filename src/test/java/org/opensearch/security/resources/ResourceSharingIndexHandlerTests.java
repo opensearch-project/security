@@ -26,6 +26,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
@@ -58,12 +59,13 @@ public class ResourceSharingIndexHandlerTests {
     private static final String RESOURCE_INDEX = "test-index";
 
     private Client client;
+    private ThreadPool threadPool;
     private ResourceSharingIndexHandler handler;
 
     @Before
     public void setUp() {
         client = mock(Client.class);
-        ThreadPool threadPool = mock(ThreadPool.class);
+        threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
         handler = new ResourceSharingIndexHandler(client, threadPool, mock(ResourcePluginInfo.class));
     }
@@ -228,13 +230,13 @@ public class ResourceSharingIndexHandlerTests {
 
     @Test
     public void reconcile_retriesWhenRecordMissing() {
-        // The record is created asynchronously; a reconcile that finds it missing must not treat it as synced.
+        // The record is created asynchronously; a reconcile that finds it missing must schedule a retry rather than
+        // treat it as synced. (threadPool.schedule is a no-op mock here, so the retry itself does not fire.)
         stubRecordGet(false, null);
 
-        AtomicReference<Boolean> out = new AtomicReference<>();
-        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), 5L, ActionListener.wrap(out::set, e -> {}));
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), 5L, ActionListener.wrap(b -> {}, e -> {}));
 
-        // threadPool.schedule is a no-op in this unit test, so the retry never fires and no write happens.
+        verify(threadPool).schedule(any(Runnable.class), any(TimeValue.class), anyString());
         verify(client, never()).update(any(), any());
     }
 }

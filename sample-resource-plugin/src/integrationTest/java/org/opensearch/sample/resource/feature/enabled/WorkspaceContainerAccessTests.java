@@ -36,6 +36,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
+import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
@@ -183,6 +184,41 @@ public class WorkspaceContainerAccessTests {
             arr.append("\"").append(values[i]).append("\"");
         }
         return arr.append("]").toString();
+    }
+
+    @Test
+    public void testGuardSurvivesShare() throws Exception {
+        // share()/revoke()/patch() rewrite the whole sharing record. The monotonic guard (workspaces_seq_no) MUST
+        // survive that rewrite, otherwise a share would reset it and let an older, still-retrying reconcile re-apply
+        // stale workspaces.
+        final String workspaceId = "ws-guard";
+        putWorkspaceSharingRecord(workspaceId, "workspace_read_only", FULL_ACCESS_USER.getName());
+        String resId = api.createSampleResourceAs(USER_ADMIN);
+        api.awaitSharingEntry(resId);
+
+        setResourceWorkspaces(resId, workspaceId);
+        awaitSharingRecordWorkspace(resId, true, workspaceId);
+        long guardBefore = readWorkspacesSeqNo(resId);
+        assertThat(guardBefore >= 0L, equalTo(true)); // reconcile stamped a real seq_no
+
+        // Share the resource (as its owner) -> the record is re-indexed via toXContent.
+        ok(() -> api.shareResource(resId, USER_ADMIN, FULL_ACCESS_USER, SAMPLE_READ_ONLY));
+
+        // The guard must NOT be reset by the rewrite (it may advance if the share refreshes principals, but never
+        // drops back to unassigned -- a reset would let an older reconcile re-apply stale workspaces). Membership
+        // is intact.
+        long guardAfter = readWorkspacesSeqNo(resId);
+        assertThat("guard must not reset below its prior value", guardAfter >= guardBefore, equalTo(true));
+        awaitSharingRecordWorkspace(resId, true, workspaceId);
+    }
+
+    private long readWorkspacesSeqNo(String resourceId) {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse resp = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+            resp.assertStatusCode(HttpStatus.SC_OK);
+            JsonNode seq = resp.bodyAsJsonNode().get("_source").get("workspaces_seq_no");
+            return seq == null ? -2L : seq.asLong();
+        }
     }
 
     // Writes a workspace sharing record directly (mirrors how a real workspace backend materializes collaborators),
