@@ -39,7 +39,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.CrossClusterSearchTests.PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.api.InternalUsersRestApiIntegrationTest.REST_API_ADMIN_INTERNAL_USERS_ONLY;
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.RELOAD_CERTS_ACTION;
@@ -107,12 +106,7 @@ public abstract class AbstractApiIntegrationTest {
         Map<String, Object> clusterSettings = new HashMap<>();
         clusterSettings.put(
             PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED,
-            List.of(
-                "user_admin__all_access",
-                REST_ADMIN_REST_API_ACCESS_ROLE.getName(),
-                "user_rest-api-admin__role",
-                REST_API_ADMIN_INTERNAL_USERS_ONLY
-            )
+            List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS_ROLE.getName())
         );
         return clusterSettings;
     }
