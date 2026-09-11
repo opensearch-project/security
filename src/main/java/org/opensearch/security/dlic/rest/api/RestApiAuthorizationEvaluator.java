@@ -187,8 +187,10 @@ public class RestApiAuthorizationEvaluator {
 
     /**
      * Check if the current request is allowed to use the REST API and the
-     * requested end point. Using an admin certificate grants all permissions. A
-     * user/role can have restricted end points.
+     * requested end point. Access can be granted by a role in
+     * {@code plugins.security.restapi.roles_enabled}, by an explicit protected
+     * REST API permission when granular access is enabled, or by an admin
+     * certificate.
      *
      * @return an error message if user does not have access, null otherwise
      */
@@ -212,12 +214,50 @@ public class RestApiAuthorizationEvaluator {
             return null;
         }
 
+        if (hasGranularRestApiAccess(request, endpoint)) {
+            return null;
+        }
+
         final String certBasedAccessFailureReason = checkAdminCertBasedAccessPermissions(request);
         if (certBasedAccessFailureReason == null) {
             return null;
         }
 
         return constructAccessErrorMessage(roleBasedAccessFailureReason, certBasedAccessFailureReason);
+    }
+
+    private boolean hasGranularRestApiAccess(final RestRequest request, final Endpoint endpoint) {
+        if (restapiAdminEnabled == false || isGloballyDisabled(request, endpoint)) {
+            return false;
+        }
+
+        switch (endpoint) {
+            case SSL:
+                if (request.method() == Method.GET) {
+                    return isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
+                }
+                if (request.method() == Method.PUT) {
+                    return isCurrentUserAdminFor(endpoint, RELOAD_CERTS_ACTION);
+                }
+                return false;
+            case CONFIG:
+                if (request.method() == Method.GET || request.method() == Method.PUT || request.method() == Method.PATCH) {
+                    return isCurrentUserAdminFor(endpoint, SECURITY_CONFIG_UPDATE);
+                }
+                return false;
+            case RESOURCE_SHARING:
+                if (request.method() == Method.POST) {
+                    return isCurrentUserAdminFor(endpoint, RESOURCE_MIGRATE_ACTION);
+                }
+                return false;
+            default:
+                return isCurrentUserAdminFor(endpoint);
+        }
+    }
+
+    private boolean isGloballyDisabled(final RestRequest request, final Endpoint endpoint) {
+        final List<Method> disabledMethods = globallyDisabledEndpoints.get(endpoint);
+        return disabledMethods != null && disabledMethods.contains(request.method());
     }
 
     public boolean isCurrentUserAdminFor(final Endpoint endpoint, final String action) {
