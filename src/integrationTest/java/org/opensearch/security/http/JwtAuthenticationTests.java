@@ -24,9 +24,14 @@ import org.junit.Test;
 
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.test.framework.AuditConfiguration;
+import org.opensearch.test.framework.AuditFilters;
 import org.opensearch.test.framework.JwtConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.audit.AuditLogsRule;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.CloseableOpenSearchClient;
@@ -46,6 +51,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
+import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.security.Song.FIELD_TITLE;
 import static org.opensearch.security.Song.QUERY_TITLE_MAGNUM_OPUS;
 import static org.opensearch.security.Song.SONGS;
@@ -130,6 +136,7 @@ public class JwtAuthenticationTests {
         .nodeSettings(
             Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
         )
+        .audit(new AuditConfiguration(true).filters(new AuditFilters().enabledRest(true).enabledTransport(true)))
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
         .roles(DEPARTMENT_SONG_LISTENER_ROLE)
@@ -138,6 +145,9 @@ public class JwtAuthenticationTests {
 
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticator");
+
+    @Rule
+    public AuditLogsRule auditLogsRule = new AuditLogsRule();
 
     @BeforeClass
     public static void createTestData() {
@@ -218,6 +228,29 @@ public class JwtAuthenticationTests {
             response.assertStatusCode(401);
             logsRule.assertThatContainExactly("Invalid or expired JWT token.");
         }
+    }
+
+    @Test
+    public void shouldRejectReservedJwtSubjectAndAuditFailedLogin() {
+        Header header = tokenFactory1.generateValidToken("plugin:reserved-subject");
+        try (TestRestClient client = cluster.getRestClient(header)) {
+            client.getAuthInfo().assertStatusCode(401);
+        }
+
+        logsRule.assertThatContainExactly("JWT subject uses a reserved security prefix");
+        auditLogsRule.assertExactlyOne((AuditMessage message) -> {
+            Map<String, Object> fields = message.getAsMap();
+            return message.getCategory() == AuditCategory.FAILED_LOGIN
+                && "<NONE>".equals(String.valueOf(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER)))
+                && "REST".equals(String.valueOf(fields.get(AuditMessage.ORIGIN)))
+                && "REST".equals(String.valueOf(fields.get(AuditMessage.REQUEST_LAYER)))
+                && GET.name().equals(String.valueOf(fields.get(AuditMessage.REST_REQUEST_METHOD)))
+                && "/_opendistro/_security/authinfo".equals(String.valueOf(fields.get(AuditMessage.REST_REQUEST_PATH)))
+                && Boolean.FALSE.equals(fields.get(AuditMessage.IS_ADMIN_DN))
+                && !fields.containsKey(AuditMessage.REQUEST_INITIATING_USER)
+                && !fields.containsKey(AuditMessage.USER_ROLES)
+                && !fields.containsKey(AuditMessage.AUTH_METHOD);
+        });
     }
 
     @Test
