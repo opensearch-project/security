@@ -38,6 +38,7 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentHelper;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
@@ -49,6 +50,8 @@ import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
+import org.opensearch.security.action.configupdate.SecurityConfigWriteAction;
+import org.opensearch.security.action.configupdate.SecurityConfigWriteRequest;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -121,11 +124,99 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
     private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
         builder.withAccessHandler(request -> securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint))
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
+            .withAsyncTaskSubmitter(this::maybeSubmitAsTask)
             .add(Method.POST, methodNotImplementedHandler)
             .add(Method.PATCH, methodNotImplementedHandler)
             .onGetRequest(this::processGetRequest)
             .onChangeRequest(Method.DELETE, this::processDeleteRequest)
             .onChangeRequest(Method.PUT, this::processPutRequest);
+    }
+
+    /**
+     * Endpoint-level opt-in for the {@code wait_for_completion} query parameter and the OpenSearch
+     * task framework. When {@code false} (the default), every change request is handled fully
+     * synchronously and {@code wait_for_completion} is ignored, exactly matching the pre-existing
+     * behavior. Subclasses that override this to {@code true} allow callers to pass
+     * {@code wait_for_completion=false}, in which case the update is submitted as a Task and
+     * {@code {"task":"nodeId:taskId"}} is returned immediately.
+     */
+    protected boolean supportsAsync() {
+        return false;
+    }
+
+    /**
+     * Pre-branch invoked from {@link RequestHandler.RequestHandlersBuilder#onChangeRequest} before
+     * the sync save path. Returns {@code true} only when the endpoint has opted in via
+     * {@link #supportsAsync()} <b>and</b> the caller passed {@code wait_for_completion=false} — the
+     * update is then dispatched through the task framework, a task-id response is written to the
+     * channel, and the caller is expected to skip the sync path.
+     *
+     * <p>Any other combination returns {@code false}, so the existing sync path handles the request
+     * unchanged.
+     */
+    private boolean maybeSubmitAsTask(
+        final RestChannel channel,
+        final RestRequest request,
+        final Client client,
+        final SecurityDynamicConfiguration<?> configuration,
+        final String entityName,
+        final String successMessage,
+        final RestStatus successStatus
+    ) {
+        if (!supportsAsync()) {
+            return false;
+        }
+        if (request.paramAsBoolean("wait_for_completion", true)) {
+            return false;
+        }
+        if (!(client instanceof NodeClient)) {
+            // Defensive: this handler always runs off a NodeClient today, so this branch is
+            // effectively unreachable — but avoid a runtime ClassCastException if that ever
+            // changes and gracefully fall back to sync execution.
+            LOGGER.debug("Client is not a NodeClient; cannot submit as task, falling back to sync path");
+            return false;
+        }
+        final NodeClient nodeClient = (NodeClient) client;
+        final CType<?> cType = getConfigType();
+
+        configuration.removeStatic();
+        final BytesReference content;
+        try {
+            content = XContentHelper.toXContent(configuration, XContentType.JSON, ToXContent.EMPTY_PARAMS, false);
+        } catch (final IOException e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+
+        final String description = entityName == null ? cType.toLCString() : cType.toLCString() + "/" + entityName;
+        final SecurityConfigWriteRequest updateRequest = new SecurityConfigWriteRequest(
+            cType.toLCString(),
+            content,
+            configuration.getSeqNo(),
+            configuration.getPrimaryTerm(),
+            securityApiDependencies.securityIndexName(),
+            description,
+            successMessage,
+            successStatus
+        );
+
+        // Persist the eventual task result in .tasks so callers can retrieve it via
+        // GET /_tasks/{task_id} after completion. The request itself always signals this via
+        // getShouldStoreResult() — see SecurityConfigWriteRequest.
+        final org.opensearch.tasks.Task task = nodeClient.executeLocally(
+            SecurityConfigWriteAction.INSTANCE,
+            updateRequest,
+            org.opensearch.tasks.LoggingTaskListener.instance()
+        );
+
+        try (final XContentBuilder builder = channel.newBuilder()) {
+            builder.startObject();
+            builder.field("task", nodeClient.getLocalNodeId() + ":" + task.getId());
+            builder.endObject();
+            channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+        } catch (final IOException e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+        return true;
     }
 
     protected final ValidationResult<SecurityConfiguration> processDeleteRequest(final RestRequest request) throws IOException {
@@ -591,6 +682,10 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         // consume all parameters first so we can return a correct HTTP status,
         // not 400
         consumeParameters(request);
+        // Consume the async opt-in flag centrally (not in consumeParameters), so subclasses that
+        // override consumeParameters — and don't call super — still don't reject
+        // ?wait_for_completion=... as an unrecognized parameter.
+        request.paramAsBoolean("wait_for_completion", true);
 
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
