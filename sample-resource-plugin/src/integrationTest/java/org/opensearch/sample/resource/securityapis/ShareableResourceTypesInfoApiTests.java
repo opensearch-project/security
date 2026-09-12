@@ -8,6 +8,7 @@
 
 package org.opensearch.sample.resource.securityapis;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,18 +56,26 @@ public class ShareableResourceTypesInfoApiTests {
             TestRestClient.HttpResponse response = client.get(SECURITY_TYPES_ENDPOINT);
             response.assertStatusCode(HttpStatus.SC_OK);
             List<Object> types = (List<Object>) response.bodyAsMap().get("types");
-            assertThat(types.size(), equalTo(2));
-            Map<String, Object> firstType = (Map<String, Object>) types.get(0);
-            assertThat(firstType.get("type"), equalTo("sample-resource"));
+            // sample-resource, its resource-group container, and the workspace container are all registered types.
+            assertThat(types.size(), equalTo(3));
+
+            Map<String, List<String>> accessLevelsByType = new HashMap<>();
+            for (Object t : types) {
+                Map<String, Object> type = (Map<String, Object>) t;
+                accessLevelsByType.put((String) type.get("type"), (List<String>) type.get("access_levels"));
+            }
+            assertThat(accessLevelsByType.keySet(), containsInAnyOrder("sample-resource", "sample-resource-group", "workspace"));
             assertThat(
-                (List<String>) firstType.get("access_levels"),
+                accessLevelsByType.get("sample-resource"),
                 containsInAnyOrder("sample_read_only", "sample_read_write", "sample_full_access")
             );
-            Map<String, Object> secondType = (Map<String, Object>) types.get(1);
-            assertThat(secondType.get("type"), equalTo("sample-resource-group"));
             assertThat(
-                (List<String>) secondType.get("access_levels"),
+                accessLevelsByType.get("sample-resource-group"),
                 containsInAnyOrder("sample_group_read_only", "sample_group_read_write", "sample_group_full_access")
+            );
+            assertThat(
+                accessLevelsByType.get("workspace"),
+                containsInAnyOrder("workspace_read_only", "workspace_read_write", "workspace_full_access")
             );
         }
 

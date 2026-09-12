@@ -8,10 +8,15 @@
 
 package org.opensearch.sample.resource.actions.transport;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -58,30 +63,52 @@ public class UpdateResourceTransportAction extends HandledTransportAction<Update
     }
 
     private void updateResource(UpdateResourceRequest request, ActionListener<CreateResourceResponse> listener) {
-        try {
-            String resourceId = request.getResourceId();
-            SampleResource sample = request.getResource();
-            try (XContentBuilder builder = jsonBuilder()) {
-                sample.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        String resourceId = request.getResourceId();
+        SampleResource sample = request.getResource();
+        // Workspace membership is server-controlled: because `workspaces` drives read AND write authorization, an
+        // ordinary update MUST NOT be able to change it (otherwise a user could add a workspace where they hold a
+        // stronger access level and escalate). Preserve the stored value and ignore any caller-supplied workspaces;
+        // a real backend routes membership changes through an authorized associate/dissociate path. See
+        // ResourceProvider#workspacesField.
+        pluginClient.get(new GetRequest(RESOURCE_INDEX_NAME, resourceId), ActionListener.wrap(getResponse -> {
+            try {
+                Set<String> existingWorkspaces = new HashSet<>();
+                if (getResponse.isExists()
+                    && getResponse.getSource() != null
+                    && getResponse.getSource().get("workspaces") instanceof Collection<?> c) {
+                    for (Object o : c) {
+                        if (o != null) {
+                            existingWorkspaces.add(o.toString());
+                        }
+                    }
+                }
+                sample.setWorkspaces(existingWorkspaces.isEmpty() ? null : existingWorkspaces);
 
-                // because some plugins seem to treat update API calls as index request
-                IndexRequest ir = new IndexRequest(RESOURCE_INDEX_NAME).id(resourceId)
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // WAIT_UNTIL because we don't want tests to fail, as they
-                                                                             // execute search right after update
-                    .source(builder);
+                try (XContentBuilder builder = jsonBuilder()) {
+                    sample.toXContent(builder, ToXContent.EMPTY_PARAMS);
 
-                log.debug("Update Request: {}", ir.toString());
+                    // because some plugins seem to treat update API calls as index request
+                    IndexRequest ir = new IndexRequest(RESOURCE_INDEX_NAME).id(resourceId)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL) // WAIT_UNTIL because we don't want tests to fail, as they
+                                                                                 // execute search right after update
+                        .source(builder);
 
-                pluginClient.index(ir, ActionListener.wrap(updateResponse -> {
-                    listener.onResponse(
-                        new CreateResourceResponse("Resource " + request.getResource().getName() + " updated successfully.")
+                    log.debug("Update Request: {}", ir.toString());
+
+                    pluginClient.index(
+                        ir,
+                        ActionListener.wrap(
+                            updateResponse -> listener.onResponse(
+                                new CreateResourceResponse("Resource " + sample.getName() + " updated successfully.")
+                            ),
+                            listener::onFailure
+                        )
                     );
-                }, listener::onFailure));
+                }
+            } catch (Exception e) {
+                log.error(() -> new ParameterizedMessage("Failed to update resource: {}", resourceId), e);
+                listener.onFailure(e);
             }
-        } catch (Exception e) {
-            log.error(() -> new ParameterizedMessage("Failed to update resource: {}", request.getResourceId()), e);
-            listener.onFailure(e);
-        }
-
+        }, listener::onFailure));
     }
 }

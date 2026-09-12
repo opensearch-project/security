@@ -37,3 +37,21 @@ resource_types:
         # group full-access grants full access on child resources
         - "sampleresource:*"
         - "cluster:admin/security/resource/share"
+  workspace:
+    workspace_read_only:
+      default: true
+      # workspace read grants read on member resources
+      allowed_actions:
+        - "sampleresource:get"
+        - "sampleresource:search"
+
+    workspace_read_write:
+      allowed_actions:
+        - "sampleresource:get"
+        - "sampleresource:search"
+        - "sampleresource:update"
+
+    workspace_full_access:
+      allowed_actions:
+        - "sampleresource:*"
+        - "cluster:admin/security/resource/share"

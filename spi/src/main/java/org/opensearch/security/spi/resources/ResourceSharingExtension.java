@@ -8,6 +8,7 @@
 
 package org.opensearch.security.spi.resources;
 
+import java.util.Collections;
 import java.util.Set;
 
 import org.opensearch.common.Nullable;
@@ -37,4 +38,28 @@ public interface ResourceSharingExtension extends SecurityConfigExtension {
      * @param client the ResourceSharingClient instance, or {@code null} when the feature is disabled
      */
     void assignResourceSharingClient(@Nullable ResourceSharingClient client);
+
+    /**
+     * Returns the workspace IDs the user is a member of. Called on the privilege hot path when building the DLS filter:
+     * the returned IDs are matched against each resource's own {@code workspaces} field (not denormalized into
+     * {@code all_shared_principals}).
+     *
+     * <p><b>Contract</b> (security-sensitive):
+     * <ul>
+     *   <li>MUST come from a trusted, server-set source the user cannot assert (e.g. resolved at authentication time),
+     *       never from user-influenceable input like JWT/proxy claims — the result grants read visibility.</li>
+     *   <li>MUST be I/O-free (privilege hot path): resolve eagerly at authentication time or from an in-memory cache.</li>
+     * </ul>
+     *
+     * <p>Defaults to an empty set (workspace-based visibility disabled); only plugins owning an authoritative
+     * membership source should override.
+     *
+     * @param username     the authenticated user's name; never {@code null}
+     * @param securityRoles the user's security roles; never {@code null}, may be empty
+     * @param backendRoles the user's backend roles; never {@code null}, may be empty
+     * @return the trusted workspace IDs the user belongs to, or an empty set if none / not implemented
+     */
+    default Set<String> resolveWorkspacesForUser(String username, Set<String> securityRoles, Set<String> backendRoles) {
+        return Collections.emptySet();
+    }
 }
