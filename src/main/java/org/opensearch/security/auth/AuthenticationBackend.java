@@ -26,6 +26,8 @@
 
 package org.opensearch.security.auth;
 
+import java.util.Optional;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
@@ -65,4 +67,14 @@ public interface AuthenticationBackend {
      * (when credentials are incorrect, the user does not exist or the backend is not reachable)
      */
     User authenticate(AuthenticationContext context) throws OpenSearchSecurityException;
+
+    /**
+     * Check whether a user exists in this authentication backend.
+     * Optional, lightweight check used to detect non-existent users before
+     * performing expensive credential verification (e.g. bcrypt). Backends
+     * that support this check should override.
+     */
+    default Optional<Boolean> userExists(String username) {
+        return Optional.empty();
+    }
 }
