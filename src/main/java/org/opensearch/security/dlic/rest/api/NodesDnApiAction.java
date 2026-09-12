@@ -118,7 +118,7 @@ public class NodesDnApiAction extends AbstractApiAction {
 
     @Override
     protected void consumeParameters(final RestRequest request) {
-        request.param("name");
+        super.consumeParameters(request);
         request.param("show_all");
     }
 
@@ -129,7 +129,7 @@ public class NodesDnApiAction extends AbstractApiAction {
                 addStaticNodesDn(configuration);
             }
             return ValidationResult.success(securityConfiguration);
-        })).onChangeRequest(Method.PATCH, this::processPatchRequest);
+        })).onChangeRequest(Method.PATCH, this::processPatchRequest).withPaginatedGetRequest(this::routeGetRequest);
     }
 
     @SuppressWarnings("unchecked")

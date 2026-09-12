@@ -142,6 +142,30 @@ public interface RequestHandler {
             return this;
         }
 
+        /**
+         * Registers an intercepting GET handler that runs before the handler registered via
+         * {@link #onGetRequest}, enabling opt-in pagination for collection GETs.
+         *
+         */
+        public RequestHandlersBuilder withPaginatedGetRequest(
+            final CheckedFunction<RestRequest, ValidationResult<ToXContent>, IOException> mapper
+        ) {
+            Objects.requireNonNull(mapper, "withPaginatedGetRequest handler can't be null");
+            // Capture the legacy handler that was registered by onGetRequest so we can
+            // fall through to it when the override returns null.
+            final RequestHandler legacyHandler = requestHandlers.get(RestRequest.Method.GET);
+            add(RestRequest.Method.GET, (channel, request, client) -> {
+                final ValidationResult<ToXContent> result = mapper.apply(request);
+                if (result != null) {
+                    result.valid(toXContent -> ok(channel, toXContent))
+                        .error((status, toXContent) -> response(channel, status, toXContent));
+                } else {
+                    legacyHandler.handle(channel, request, client);
+                }
+            });
+            return this;
+        }
+
         public RequestHandlersBuilder onJsonContentGetRequest(
             final CheckedFunction<RestRequest, ValidationResult<ToXContent>, IOException> mapper
         ) {
