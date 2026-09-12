@@ -268,7 +268,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     void forbiddenToCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
         assertThat(client.putJson(apiPath("new_rest_admin_role"), roleWithClusterPermissions(randomRestAdminPermission())), isForbidden());
         assertThat(
-            client.patch(apiPath(), patch(addOp("new_rest_admin_action_group", roleWithClusterPermissions(randomRestAdminPermission())))),
+            client.patch(apiPath(), patch(addOp("new_rest_admin_role", roleWithClusterPermissions(randomRestAdminPermission())))),
             isForbidden()
         );
     }
@@ -310,6 +310,49 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         assertThat(client.patch(apiPath(), patch(removeOp(REST_ADMIN_PERMISSION_ROLE))), isForbidden());
         assertThat(client.patch(apiPath(REST_ADMIN_PERMISSION_ROLE), patch(removeOp("cluster_permissions"))), isForbidden());
         assertThat(client.delete(apiPath(REST_ADMIN_PERMISSION_ROLE)), isForbidden());
+    }
+
+    @Override
+    void verifySuperAdminCanCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
+        assertThat(client.putJson(apiPath("new_rest_admin_role"), roleWithClusterPermissions(randomRestAdminPermission())), isCreated());
+        assertThat(
+            client.patch(apiPath(), patch(addOp("new_rest_admin_role_2", roleWithClusterPermissions(randomRestAdminPermission())))),
+            isOk()
+        );
+    }
+
+    @Override
+    void verifySuperAdminCanUpdateAndDeleteEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
+        final var tempRole = "temp_rest_admin_role";
+        assertThat(client.putJson(apiPath(tempRole), roleWithClusterPermissions(randomRestAdminPermission())), isCreated());
+        assertThat(
+            client.putJson(
+                apiPath(tempRole),
+                role(clusterPermissionsOptions(false).get(0), indexPermissionsOptions(false).get(0), tenantPermissionsOptions(false).get(0))
+            ),
+            isOk()
+        );
+        assertThat(
+            client.patch(
+                apiPath(),
+                patch(
+                    replaceOp(
+                        tempRole,
+                        role(
+                            clusterPermissionsOptions(false).get(0),
+                            indexPermissionsOptions(false).get(0),
+                            tenantPermissionsOptions(false).get(0)
+                        )
+                    )
+                )
+            ),
+            isOk()
+        );
+        assertThat(
+            client.patch(apiPath(tempRole), patch(replaceOp("cluster_permissions", clusterPermissionsOptions(false).get(0)))),
+            isOk()
+        );
+        assertThat(client.delete(apiPath(tempRole)), isOk());
     }
 
     void assertRole(

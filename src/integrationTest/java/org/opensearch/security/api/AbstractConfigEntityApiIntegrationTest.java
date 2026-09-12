@@ -141,17 +141,33 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
 
     public void availableForTLSAdminUser(LocalCluster localCluster) throws Exception {
         try (TestRestClient client = localCluster.getAdminCertRestClient()) {
-            availableForSuperAdminUser(client);
+            verifySuperAdminCanManageRestAdminPermissions(client);
         }
     }
 
     public void availableForRESTAdminUser(LocalCluster localCluster) throws Exception {
         try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
-            availableForSuperAdminUser(client);
+            verifyRestAdminCannotManageRestAdminPermissions(client);
         }
     }
 
-    void availableForSuperAdminUser(final TestRestClient client) throws Exception {
+    // mTLS super-admin bypasses the restapi:admin/* permission guard — can create/modify/delete freely
+    private void verifySuperAdminCanManageRestAdminPermissions(final TestRestClient client) throws Exception {
+        creationOfReadOnlyEntityForbidden(
+            randomAlphanumericString(),
+            client,
+            (builder, params) -> testDescriptor.staticEntityPayload().toXContent(builder, params)
+        );
+        verifyCrudOperations(true, null, client);
+        verifyCrudOperations(null, true, client);
+        verifyCrudOperations(null, null, client);
+        verifyBadRequestOperations(client);
+        verifySuperAdminCanCreateEntityWithRestAdminPermissions(client);
+        verifySuperAdminCanUpdateAndDeleteEntityWithRestAdminPermissions(client);
+    }
+
+    // REST admin user does NOT bypass the guard — still blocked from touching restapi:admin/* entities
+    private void verifyRestAdminCannotManageRestAdminPermissions(final TestRestClient client) throws Exception {
         creationOfReadOnlyEntityForbidden(
             randomAlphanumericString(),
             client,
@@ -275,6 +291,10 @@ public abstract class AbstractConfigEntityApiIntegrationTest extends AbstractApi
     void forbiddenToCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {}
 
     void forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {}
+
+    void verifySuperAdminCanCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {}
+
+    void verifySuperAdminCanUpdateAndDeleteEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {}
 
     abstract void verifyBadRequestOperations(final TestRestClient client) throws Exception;
 

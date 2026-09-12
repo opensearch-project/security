@@ -295,6 +295,11 @@ public class RestApiAuthorizationEvaluator {
         return hasAccess && restapiAdminEnabled;
     }
 
+    public boolean isCurrentUserSuperAdmin() {
+        final Pair<User, TransportAddress> userAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadContext);
+        return userAndRemoteAddress.getLeft() != null && adminDNs.isAdmin(userAndRemoteAddress.getLeft());
+    }
+
     public boolean isCurrentUserAdminFor(final Endpoint endpoint) {
         return isCurrentUserAdminFor(endpoint, null);
     }
