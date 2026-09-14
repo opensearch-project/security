@@ -155,7 +155,7 @@ public class SecurityInterceptor {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isStreamChannel = options != null && TransportRequestOptions.Type.STREAM.equals(options.type());
         // skip the same node optimization for stream transport which doesn't use DirectChannel and thus ser/de is needed
-        final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode()) && !isStreamChannel;
+        final boolean isSameNodeRequest = localNode != null && connection.getNode() == localNode && !isStreamChannel;
         final Set<String> requestHeadersToCopy = getRequestHeadersToCopy();
 
         final Supplier<ThreadContext.StoredContext> restorableContextSupplier = getThreadContext().newRestorableContext(true);
