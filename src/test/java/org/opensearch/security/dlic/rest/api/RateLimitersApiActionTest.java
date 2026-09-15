@@ -148,6 +148,39 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
             equalTo(HttpStatus.SC_BAD_REQUEST)
         );
 
+        RestHelper.HttpResponse updateAuthFailuresResponseWithEnvExpression = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"ignore_hosts\":[\"${envbase64.IGNORED_HOST}\"]}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(
+            updateAuthFailuresResponseWithEnvExpression.getBody(),
+            updateAuthFailuresResponseWithEnvExpression.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+
+        RestHelper.HttpResponse updateAuthFailuresResponseWithMalformedHost = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"ignore_hosts\":[42]}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(
+            updateAuthFailuresResponseWithMalformedHost.getBody(),
+            updateAuthFailuresResponseWithMalformedHost.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+
+        RestHelper.HttpResponse updateAuthFailuresResponseWithNegativeLimit = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"max_tracked_clients\":-1}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(
+            updateAuthFailuresResponseWithNegativeLimit.getBody(),
+            updateAuthFailuresResponseWithNegativeLimit.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+
     }
 
     @Test
