@@ -136,6 +136,37 @@ public class MigrateResourceSharingInfoApiActionTests {
     }
 
     @Test
+    public void extractWorkspacesReadsAllArrayValues() throws Exception {
+        JsonNode doc = mapper.readTree("{ \"workspaces\": [\"ws-a\", \"ws-b\", \"ws-c\"] }");
+        assertEquals(java.util.Set.of("ws-a", "ws-b", "ws-c"), MigrateResourceSharingInfoApiAction.extractWorkspaces(doc, "workspaces"));
+    }
+
+    @Test
+    public void extractWorkspacesToleratesSingleScalarValue() throws Exception {
+        JsonNode doc = mapper.readTree("{ \"workspaces\": \"ws-only\" }");
+        assertEquals(java.util.Set.of("ws-only"), MigrateResourceSharingInfoApiAction.extractWorkspaces(doc, "workspaces"));
+    }
+
+    @Test
+    public void extractWorkspacesReturnsEmptyWhenFieldAbsent() throws Exception {
+        JsonNode doc = mapper.readTree("{ \"other\": 1 }");
+        assertEquals(Collections.emptySet(), MigrateResourceSharingInfoApiAction.extractWorkspaces(doc, "workspaces"));
+    }
+
+    @Test
+    public void extractWorkspacesIgnoresBlankIdsAndNullField() throws Exception {
+        JsonNode doc = mapper.readTree("{ \"workspaces\": [\"ws-a\", \"\"] }");
+        assertEquals(java.util.Set.of("ws-a"), MigrateResourceSharingInfoApiAction.extractWorkspaces(doc, "workspaces"));
+        assertEquals(Collections.emptySet(), MigrateResourceSharingInfoApiAction.extractWorkspaces(doc, null));
+    }
+
+    @Test
+    public void extractWorkspacesSupportsDotNotationPath() throws Exception {
+        JsonNode doc = mapper.readTree("{ \"meta\": { \"workspaces\": [\"ws-a\"] } }");
+        assertEquals(java.util.Set.of("ws-a"), MigrateResourceSharingInfoApiAction.extractWorkspaces(doc, "meta.workspaces"));
+    }
+
+    @Test
     public void jsonPointerAcceptsDotNotation() {
         assertEquals("/monitor/user/name", MigrateResourceSharingInfoApiAction.jsonPointer("monitor.user.name"));
     }

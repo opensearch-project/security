@@ -75,6 +75,10 @@ public class ResourcePluginInfo {
 
             // Enforce resource-type unique-ness
             Set<String> resourceTypes = new HashSet<>();
+            // Providers may share a resource index, but must then agree on the workspaces field: DLS filters a single
+            // field per index while ingestion uses each provider's declared field, so a disagreement would silently
+            // mis-scope read visibility. Reject conflicting non-null declarations at registration.
+            Map<String, String> indexToWorkspacesField = new HashMap<>();
             for (ResourceSharingExtension extension : extensions) {
                 for (var rp : extension.getResourceProviders()) {
                     if (!resourceTypes.contains(rp.resourceType())) {
@@ -90,6 +94,22 @@ public class ResourcePluginInfo {
                                 extension.getClass().getName()
                             )
                         );
+                    }
+
+                    String workspacesField = rp.workspacesField();
+                    if (workspacesField != null) {
+                        String existing = indexToWorkspacesField.putIfAbsent(rp.resourceIndexName(), workspacesField);
+                        if (existing != null && !existing.equals(workspacesField)) {
+                            throw new OpenSearchSecurityException(
+                                String.format(
+                                    "Conflicting workspaces fields declared for resource index [%s]: [%s] and [%s]. All providers sharing"
+                                        + " an index must declare the same workspaces field (or null to opt out).",
+                                    rp.resourceIndexName(),
+                                    existing,
+                                    workspacesField
+                                )
+                            );
+                        }
                     }
                 }
             }
@@ -149,6 +169,29 @@ public class ResourcePluginInfo {
     }
 
     /**
+     * Extracts all values of a multi-valued field from the Lucene document backing an {@link Engine.Index} op —
+     * e.g. the set of workspace IDs a resource belongs to (see {@link ResourceProvider#workspacesField()}). Unlike
+     * {@link #extractFieldFromIndexOp} it collects every {@link IndexableField} for {@code fieldName}, which is how a
+     * {@code keyword} array surfaces (one field per element). Values only surface for indexed/stored mappings, not
+     * {@code doc_values}-only fields.
+     *
+     * @param fieldName the multi-valued field to extract; must not be {@code null}
+     * @param indexOp   the index op whose parsed document is inspected; must not be {@code null}
+     * @return the field's values, or empty if none
+     */
+    public static Set<String> extractMultiValuedFieldFromIndexOp(String fieldName, Engine.Index indexOp) {
+        Set<String> values = new HashSet<>();
+        for (IndexableField f : indexOp.parsedDoc().rootDoc().getFields(fieldName)) {
+            if (f.stringValue() != null) {
+                values.add(f.stringValue());
+            } else if (f.binaryValue() != null) { // e.g., BytesRef-backed
+                values.add(f.binaryValue().utf8ToString());
+            }
+        }
+        return values;
+    }
+
+    /**
      * Resolves the resource type for the given index operation and resource index.
      * <p>
      * The method iterates over every registered {@link ResourceProvider} whose resource index name
@@ -190,6 +233,35 @@ public class ResourcePluginInfo {
 
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
         return ImmutableSet.copyOf(resourceSharingExtensions);
+    }
+
+    /**
+     * Aggregates {@link ResourceSharingExtension#resolveWorkspacesForUser} across every registered extension into a
+     * single trusted set of workspace IDs for the user. Empty if no extension contributes any. Called on the DLS hot
+     * path — each extension's implementation is required by contract to be I/O-free.
+     *
+     * @param user the authenticated user
+     * @return the union of workspace IDs contributed by all registered extensions
+     */
+    public Set<String> resolveWorkspacesForUser(org.opensearch.security.user.User user) {
+        lock.readLock().lock();
+        try {
+            if (resourceSharingExtensions.isEmpty()) {
+                return java.util.Collections.emptySet();
+            }
+            Set<String> securityRoles = user.getSecurityRoles() == null ? java.util.Collections.emptySet() : user.getSecurityRoles();
+            Set<String> backendRoles = user.getRoles() == null ? java.util.Collections.emptySet() : user.getRoles();
+            Set<String> merged = new HashSet<>();
+            for (ResourceSharingExtension extension : resourceSharingExtensions) {
+                Set<String> contributed = extension.resolveWorkspacesForUser(user.getName(), securityRoles, backendRoles);
+                if (contributed != null && !contributed.isEmpty()) {
+                    merged.addAll(contributed);
+                }
+            }
+            return merged;
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public void setResourceSharingClient(ResourceSharingClient resourceAccessControlClient) {
@@ -290,6 +362,32 @@ public class ResourcePluginInfo {
                 return null;
             }
             return typeToProvider.get(resourceType).parentType();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Returns the provider-declared workspaces field name for the resource index (see
+     * {@link ResourceProvider#workspacesField()}), or {@code null} if no provider on that index declares one.
+     * Used by DLS to filter workspace membership on the field a provider actually declares, rather than a fixed name.
+     * When multiple providers share an index, the first declared (non-null) field wins.
+     */
+    /**
+     * Returns the workspaces field for the given resource index, or {@code null} if no provider on that index
+     * declares one. Providers sharing an index are required to agree on this field — conflicting non-null
+     * declarations are rejected at registration (see {@link #setResourceSharingExtensions}) — so the value is
+     * unambiguous regardless of map iteration order.
+     */
+    public String workspacesFieldForIndex(String index) {
+        lock.readLock().lock();
+        try {
+            for (ResourceProvider provider : typeToProvider.values()) {
+                if (provider.resourceIndexName().equals(index) && provider.workspacesField() != null) {
+                    return provider.workspacesField();
+                }
+            }
+            return null;
         } finally {
             lock.readLock().unlock();
         }

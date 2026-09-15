@@ -22,10 +22,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.core.common.io.stream.NamedWriteable;
+import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.ToXContentFragment;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.security.user.User;
 
 /**
@@ -45,6 +47,9 @@ import org.opensearch.security.user.User;
  */
 public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private final Logger log = LogManager.getLogger(this.getClass());
+
+    /** NamedWriteable name; used both by {@link #getWriteableName()} and the registry entry. */
+    public static final String NAME = "resource_sharing";
 
     /**
      * The unique identifier of the resource and the resource sharing entry
@@ -78,6 +83,24 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
     private String parentId;
 
     /**
+     * The set of workspace IDs this resource belongs to.
+     *
+     * <p>A single resource may belong to multiple workspaces, so this is a set (unlike {@link #tenant} and
+     * {@link #parentId}, which are single-valued). Empty for non-workspace resources, which keeps the field
+     * additive and preserves existing behavior. Used by the write-path access-level fan-out
+     * ({@code ResourceAccessHandler}) to locate each workspace's sharing record. Read-path visibility is handled
+     * by filtering the resource's own {@code workspaces} field in DLS, not via {@code all_shared_principals}.
+     */
+    private Set<String> workspaces;
+
+    /**
+     * Monotonic guard: the source-doc seq_no that last set {@link #workspaces}, so an older reconcile can't overwrite
+     * a newer one. Modeled here (not just written raw) so it survives whole-record rewrites in share/revoke/patch.
+     * Defaults to {@link SequenceNumbers#UNASSIGNED_SEQ_NO}.
+     */
+    private long workspacesSeqNo;
+
+    /**
      * Information about who created the resource
      */
     private final CreatedBy createdBy;
@@ -93,8 +116,27 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         this.tenant = b.tenant;
         this.parentType = b.parentType;
         this.parentId = b.parentId;
+        this.workspaces = b.workspaces;
+        this.workspacesSeqNo = b.workspacesSeqNo;
         this.createdBy = b.createdBy;
         this.shareWith = b.shareWith;
+    }
+
+    /**
+     * Stream constructor, symmetric with {@link #writeTo(StreamOutput)}. Registered as the reader for the
+     * {@code resource_sharing} NamedWriteable so {@code readNamedWriteable(ResourceSharing.class)} round-trips.
+     */
+    public ResourceSharing(StreamInput in) throws IOException {
+        this.resourceId = in.readString();
+        this.resourceType = in.readString();
+        this.tenant = in.readOptionalString();
+        this.parentType = in.readOptionalString();
+        this.parentId = in.readOptionalString();
+        this.createdBy = new CreatedBy(in);
+        this.shareWith = in.readBoolean() ? new ShareWith(in) : null;
+        List<String> ws = in.readOptionalStringList();
+        this.workspaces = ws == null ? null : new HashSet<>(ws);
+        this.workspacesSeqNo = in.readZLong();
     }
 
     public static Builder builder() {
@@ -131,6 +173,18 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     public String getParentId() {
         return parentId;
+    }
+
+    public Set<String> getWorkspaces() {
+        return workspaces == null ? Collections.emptySet() : workspaces;
+    }
+
+    public void setWorkspaces(Set<String> workspaces) {
+        this.workspaces = workspaces;
+    }
+
+    public long getWorkspacesSeqNo() {
+        return workspacesSeqNo;
     }
 
     public void share(String accessLevel, Recipients target) {
@@ -191,13 +245,14 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             && Objects.equals(tenant, that.tenant)
             && Objects.equals(parentType, that.parentType)
             && Objects.equals(parentId, that.parentId)
+            && Objects.equals(getWorkspaces(), that.getWorkspaces())
             && Objects.equals(createdBy, that.createdBy)
             && Objects.equals(shareWith, that.shareWith);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(resourceId, resourceType, tenant, parentType, parentId, createdBy, shareWith);
+        return Objects.hash(resourceId, resourceType, tenant, parentType, parentId, getWorkspaces(), createdBy, shareWith);
     }
 
     @Override
@@ -218,6 +273,8 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             + ", parentId='"
             + parentId
             + '\''
+            + ", workspaces="
+            + workspaces
             + ", createdBy="
             + createdBy
             + ", shareWith="
@@ -227,7 +284,7 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
     @Override
     public String getWriteableName() {
-        return "resource_sharing";
+        return NAME;
     }
 
     @Override
@@ -244,6 +301,12 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         } else {
             out.writeBoolean(false);
         }
+        // No version guard needed: workspaces ships within the resource-sharing feature (introduced in 3.3),
+        // which is not yet GA, so there is no older node that speaks the old wire format without this field.
+        // The symmetric read lives in the ResourceSharing(StreamInput) constructor, registered as the
+        // resource_sharing NamedWriteable in OpenSearchSecurityPlugin#getNamedWriteables.
+        out.writeOptionalStringCollection(workspaces == null ? null : new ArrayList<>(workspaces));
+        out.writeZLong(workspacesSeqNo);
     }
 
     @Override
@@ -259,6 +322,12 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         }
         if (parentId != null) {
             builder.field("parent_id", parentId);
+        }
+        if (workspaces != null && !workspaces.isEmpty()) {
+            builder.field("workspaces", workspaces);
+        }
+        if (workspacesSeqNo != SequenceNumbers.UNASSIGNED_SEQ_NO) {
+            builder.field("workspaces_seq_no", workspacesSeqNo);
         }
         if (shareWith != null) {
             builder.field("share_with");
@@ -306,6 +375,22 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
                             b.parentId(null);
                         } else {
                             b.parentId(parser.text());
+                        }
+                        break;
+                    case "workspaces":
+                        if (token == XContentParser.Token.START_ARRAY) {
+                            Set<String> ws = new HashSet<>();
+                            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                                ws.add(parser.text());
+                            }
+                            b.workspaces(ws);
+                        } else if (token == XContentParser.Token.VALUE_NULL) {
+                            b.workspaces(null);
+                        }
+                        break;
+                    case "workspaces_seq_no":
+                        if (token != XContentParser.Token.VALUE_NULL) {
+                            b.workspacesSeqNo(parser.longValue());
                         }
                         break;
                     case "created_by":
@@ -434,6 +519,9 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
             principals.add("user:" + createdBy.getUsername());
         }
 
+        // Workspace membership is not a principal: DLS filters the resource's own `workspaces` field instead
+        // (see ResourceSharingDlsUtils). This list stays usernames/roles only.
+
         // Add shared recipients
         if (shareWith != null) {
             if (shareWith.isPublic()) {
@@ -472,6 +560,8 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
         private String tenant;
         private String parentType;
         private String parentId;
+        private Set<String> workspaces;
+        private long workspacesSeqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         private CreatedBy createdBy;
         private ShareWith shareWith;
 
@@ -497,6 +587,16 @@ public class ResourceSharing implements ToXContentFragment, NamedWriteable {
 
         public Builder parentId(String parentId) {
             this.parentId = parentId;
+            return this;
+        }
+
+        public Builder workspaces(Set<String> workspaces) {
+            this.workspaces = workspaces;
+            return this;
+        }
+
+        public Builder workspacesSeqNo(long workspacesSeqNo) {
+            this.workspacesSeqNo = workspacesSeqNo;
             return this;
         }
 

@@ -210,6 +210,7 @@ import org.opensearch.security.resources.api.share.ShareRestAction;
 import org.opensearch.security.resources.api.share.ShareTransportAction;
 import org.opensearch.security.resources.settings.ResourceSharingFeatureFlagSetting;
 import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
+import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -1792,7 +1793,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         return List.of(
             new NamedWriteableRegistry.Entry(ClusterState.Custom.class, SecurityMetadata.TYPE, SecurityMetadata::new),
-            new NamedWriteableRegistry.Entry(NamedDiff.class, SecurityMetadata.TYPE, SecurityMetadata::readDiffFrom)
+            new NamedWriteableRegistry.Entry(NamedDiff.class, SecurityMetadata.TYPE, SecurityMetadata::readDiffFrom),
+            // Reader for ResourceSharing so ShareResponse's readNamedWriteable(ResourceSharing.class) round-trips.
+            new NamedWriteableRegistry.Entry(ResourceSharing.class, ResourceSharing.NAME, ResourceSharing::new)
         );
     }
 

@@ -11,7 +11,9 @@
 
 package org.opensearch.security.resources;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -166,43 +168,100 @@ public class ResourceAccessHandler {
                 return;
             }
 
-            if (sharingInfo.isCreatedBy(user.getName())) {
+            if (recordGrantsAction(sharingInfo, resourceType, user, action)) {
                 listener.onResponse(true);
                 return;
             }
 
-            Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
-
-            // no matching access level, either recurse up or fail fast
-            if (accessLevels.isEmpty()) {
-                if (sharingInfo.getParentId() != null) {
-                    hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-                } else {
-                    listener.onResponse(false);
-                }
-                return;
-            }
-
-            // Fetch the static action-groups registered by plugins on bootstrap and check whether any match
-            final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
-            final Set<String> allowedActions = agForType.resolve(accessLevels);
-            final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
-
-            if (matcher.test(action)) {
-                listener.onResponse(true);
-                return;
-            }
-
-            if (sharingInfo.getParentId() != null) {
-                hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-            } else {
-                listener.onResponse(false);
-            }
+            // resource itself does not grant the action: fall back to its containers (parent and/or workspaces)
+            checkContainers(sharingInfo, action, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
         }));
     }
+
+    /**
+     * Returns whether a single sharing record grants the given user the requested action directly — i.e. the user is
+     * the creator, or is shared with at an access level whose resolved action-group matches {@code action}. This is a
+     * pure, in-memory computation (no I/O), factored out so it can be reused both for the resource itself and for each
+     * container record fetched in a batch.
+     */
+    private boolean recordGrantsAction(ResourceSharing sharingInfo, String resourceType, User user, String action) {
+        if (sharingInfo.isCreatedBy(user.getName())) {
+            return true;
+        }
+        Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
+        if (accessLevels.isEmpty()) {
+            return false;
+        }
+        final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
+        final Set<String> allowedActions = agForType.resolve(accessLevels);
+        return WildcardMatcher.from(allowedActions).test(action);
+    }
+
+    /**
+     * Grants access if any of the resource's containers grant it: its single parent (recursed via
+     * {@link #hasPermission}) or any of its workspaces. Workspace records are fetched in one
+     * {@link ResourceSharingIndexHandler#fetchSharingInfoForIds mget} and evaluated as leaves (their own
+     * {@code share_with}), so no per-workspace round trip and no recursion.
+     * <p>
+     * {@link #WORKSPACE_RESOURCE_TYPE} is a placeholder until the workspace provider is registered via the SPI; if it
+     * isn't, {@code indexByType} returns null and the workspace branch denies cleanly.
+     *
+     * @param sharingInfo the sharing record of the resource whose containers should be consulted
+     * @param action      the action being authorized
+     * @param listener    notified with {@code true} if any container grants access, {@code false} otherwise
+     */
+    private void checkContainers(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
+        final User user = getAuthenticatedUser();
+        if (user == null) {
+            listener.onResponse(false);
+            return;
+        }
+
+        final List<String> workspaceIds = new ArrayList<>(sharingInfo.getWorkspaces());
+        final String workspaceIndex = workspaceIds.isEmpty() ? null : resourcePluginInfo.indexByType(WORKSPACE_RESOURCE_TYPE);
+
+        // Evaluate workspaces (batched) first; fall back to the single parent (recursive) only if no workspace grants.
+        if (workspaceIndex != null) {
+            resourceSharingIndexHandler.fetchSharingInfoForIds(workspaceIndex, workspaceIds, ActionListener.wrap(records -> {
+                for (ResourceSharing wsRecord : records.values()) {
+                    // Resolve against the workspace type's action groups: only they map workspace-level access
+                    // (workspace_read/write) to the child action being authorized.
+                    if (recordGrantsAction(wsRecord, WORKSPACE_RESOURCE_TYPE, user, action)) {
+                        listener.onResponse(true);
+                        return;
+                    }
+                }
+                checkParent(sharingInfo, action, listener);
+            }, listener::onFailure));
+        } else {
+            checkParent(sharingInfo, action, listener);
+        }
+    }
+
+    /**
+     * Resolves access inherited from the single hierarchical parent (if any), recursing via {@link #hasPermission} so
+     * grandparent chains continue to work. Denies when there is no parent.
+     */
+    private void checkParent(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
+        if (sharingInfo.getParentId() != null) {
+            hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
+        } else {
+            listener.onResponse(false);
+        }
+    }
+
+    /**
+     * Returns the currently authenticated user from the thread context, or {@code null} if none.
+     */
+    private User getAuthenticatedUser() {
+        return (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+    }
+
+    /** Resource type of a workspace; the workspace provider registers it via the resource-sharing SPI. */
+    private static final String WORKSPACE_RESOURCE_TYPE = "workspace";
 
     /**
      * Patches the sharing info. It could be either or all 3 of the following possibilities:
