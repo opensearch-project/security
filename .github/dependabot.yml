@@ -18,3 +18,7 @@ updates:
     labels:
       - "dependabot"
       - "dependencies"
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action/*"
