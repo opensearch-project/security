@@ -179,21 +179,15 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         final NodeClient nodeClient = (NodeClient) client;
         final CType<?> cType = getConfigType();
 
-        configuration.removeStatic();
-        final BytesReference content;
-        try {
-            content = XContentHelper.toXContent(configuration, XContentType.JSON, ToXContent.EMPTY_PARAMS, false);
-        } catch (final IOException e) {
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
+        // Build the IndexRequest using the same helper the sync path uses, so async and sync
+        // writes stay byte-identical. Includes seqNo/primaryTerm preconditions for optimistic
+        // concurrency and the correct refresh policy for security-index writes.
+        final IndexRequest indexRequest = createIndexRequestForConfig(securityApiDependencies, cType, configuration);
 
         final String description = entityName == null ? cType.toLCString() : cType.toLCString() + "/" + entityName;
         final SecurityConfigWriteRequest updateRequest = new SecurityConfigWriteRequest(
+            indexRequest,
             cType.toLCString(),
-            content,
-            configuration.getSeqNo(),
-            configuration.getPrimaryTerm(),
-            securityApiDependencies.securityIndexName(),
             description,
             successMessage,
             successStatus
@@ -610,7 +604,13 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         client.index(ir, new ConfigUpdatingActionListener<>(new String[] { cType.toLCString() }, client, actionListener));
     }
 
-    private static IndexRequest createIndexRequestForConfig(
+    /**
+     * Build the {@link IndexRequest} that persists a {@link SecurityDynamicConfiguration} document
+     * to the security index. Exposed for reuse by the async task path
+     * ({@link org.opensearch.security.action.configupdate.TransportSecurityConfigWriteAction}) so
+     * that the sync and async write flows share one implementation.
+     */
+    public static IndexRequest createIndexRequestForConfig(
         final SecurityApiDependencies dependencies,
         final CType<?> cType,
         final SecurityDynamicConfiguration<?> configuration
@@ -630,7 +630,13 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             .source(cType.toLCString(), content);
     }
 
-    protected static class ConfigUpdatingActionListener<Response> implements ActionListener<Response> {
+    /**
+     * Wraps an {@link ActionListener} so that after a successful config-index write it fans a
+     * {@link ConfigUpdateAction} out to every node, and only completes the delegate listener once
+     * every node has acknowledged the reload. Exposed for reuse by the async task path — sync and
+     * async writes both go through this listener so their completion semantics stay in lockstep.
+     */
+    public static class ConfigUpdatingActionListener<Response> implements ActionListener<Response> {
         private final String[] cTypes;
         private final Client client;
         private final ActionListener<Response> delegate;

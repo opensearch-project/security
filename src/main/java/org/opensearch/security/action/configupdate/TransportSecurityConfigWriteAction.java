@@ -11,24 +11,22 @@
 
 package org.opensearch.security.action.configupdate;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.security.dlic.rest.api.AbstractApiAction;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
 /**
  * Transport action that persists a Security configuration document and then broadcasts a
- * {@link ConfigUpdateAction} so every node reloads the affected config. The listener is only
- * completed once the cluster-wide reload has been acknowledged, mirroring exactly the sync path
- * in {@code AbstractApiAction.saveAndUpdateConfigsAsync}.
+ * {@link ConfigUpdateAction} so every node reloads the affected config. Delegates all of the
+ * mechanical work (index write, per-node fan-out, all-node-ack wait) to the shared
+ * {@link AbstractApiAction.ConfigUpdatingActionListener} chain — the same code path the
+ * synchronous save uses. Any future change to write or reload semantics automatically applies to
+ * both paths.
  *
  * <p>The whole operation runs under one {@link Task}. When a REST client submits with
  * {@code wait_for_completion=false}, the task result is stored in {@code .tasks} and can be
@@ -36,8 +34,6 @@ import org.opensearch.transport.client.Client;
  * {@link SecurityConfigWriteAction} class-level docs).
  */
 public class TransportSecurityConfigWriteAction extends HandledTransportAction<SecurityConfigWriteRequest, SecurityConfigWriteResponse> {
-
-    private static final Logger LOGGER = LogManager.getLogger(TransportSecurityConfigWriteAction.class);
 
     private final Client client;
 
@@ -57,40 +53,22 @@ public class TransportSecurityConfigWriteAction extends HandledTransportAction<S
         final SecurityConfigWriteRequest request,
         final ActionListener<SecurityConfigWriteResponse> listener
     ) {
-        final IndexRequest indexRequest = new IndexRequest(request.getSecurityIndex()).id(request.getCType())
-            .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .setIfSeqNo(request.getSeqNo())
-            .setIfPrimaryTerm(request.getPrimaryTerm())
-            .source(request.getCType(), request.getContent());
-
-        // Step 1: write the config document. Optimistic concurrency is enforced by the
-        // (seqNo, primaryTerm) preconditions above — a stale write surfaces as
-        // VersionConflictEngineException and is propagated to the task listener untouched.
-        client.index(indexRequest, ActionListener.wrap(indexResponse -> {
-            // Step 2: fan out a reload request so every node re-reads the changed config from
-            // the index. This is the same mechanism the pre-existing sync path uses via
-            // ConfigUpdatingActionListener. We only complete the task listener after every node
-            // acknowledges, so callers polling _tasks/{id} see the operation as in-progress
-            // until the cluster is consistent.
-            final var configUpdate = new org.opensearch.security.action.configupdate.ConfigUpdateRequest(
-                new String[] { request.getCType() }
-            );
-            client.execute(ConfigUpdateAction.INSTANCE, configUpdate, ActionListener.wrap(configUpdateResponse -> {
-                if (configUpdateResponse.hasFailures()) {
-                    // Surface the first per-node failure. The full failure list is available on
-                    // configUpdateResponse for anyone consuming the raw response object, but the
-                    // stored task result only carries the exception message.
-                    listener.onFailure(configUpdateResponse.failures().get(0));
-                    return;
-                }
-                listener.onResponse(new SecurityConfigWriteResponse(request.getSuccessStatus(), request.getSuccessMessage()));
-            }, e -> {
-                LOGGER.debug("Cluster-wide config reload failed for {}", request.getCType(), e);
-                listener.onFailure(e);
-            }));
-        }, e -> {
-            LOGGER.debug("Persisting configuration to security index failed for {}", request.getCType(), e);
-            listener.onFailure(e);
-        }));
+        // Wire the pre-built IndexRequest through the shared ConfigUpdatingActionListener. The
+        // listener already handles: (1) the actual index write, (2) fan-out of ConfigUpdateAction
+        // to every node, (3) collecting all-node acknowledgements before completing, (4) surfacing
+        // the first per-node failure if any node fails to reload.
+        client.index(
+            request.getIndexRequest(),
+            new AbstractApiAction.ConfigUpdatingActionListener<>(
+                new String[] { request.getCType() },
+                client,
+                ActionListener.wrap(
+                    indexResponse -> listener.onResponse(
+                        new SecurityConfigWriteResponse(request.getSuccessStatus(), request.getSuccessMessage())
+                    ),
+                    listener::onFailure
+                )
+            )
+        );
     }
 }

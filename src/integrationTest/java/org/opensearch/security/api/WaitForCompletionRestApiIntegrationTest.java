@@ -24,6 +24,7 @@ import tools.jackson.databind.JsonNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -130,13 +131,8 @@ public class WaitForCompletionRestApiIntegrationTest extends AbstractApiIntegrat
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             final HttpResponse resp = client.putJson(apiPath("roles", "invalid_role") + "?wait_for_completion=false", INVALID_ROLE_BODY);
             assertThat(resp.getBody(), resp.getStatusCode(), is(400));
-            assertThat(resp.getBody(), not_(containsString("\"task\"")));
+            assertThat(resp.getBody(), not(containsString("\"task\"")));
         }
-    }
-
-    // hamcrest 'not' would collide with a static import site above — inline wrapper
-    private static org.hamcrest.Matcher<String> not_(org.hamcrest.Matcher<String> inner) {
-        return org.hamcrest.CoreMatchers.not(inner);
     }
 
     // ---------- async: per-endpoint smoke ----------
@@ -215,8 +211,54 @@ public class WaitForCompletionRestApiIntegrationTest extends AbstractApiIntegrat
             assertThat(
                 "wait_for_completion must not be treated as an unrecognized parameter: " + resp.getBody(),
                 resp.getBody(),
-                not_(containsString("unrecognized parameter"))
+                not(containsString("unrecognized parameter"))
             );
+        }
+    }
+
+    // ---------- async: DELETE + PATCH per HTTP method ----------
+
+    @Test
+    public void asyncDeleteRole_returnsTaskIdAndRemoves() throws Exception {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            // Create the role synchronously first so DELETE has something to remove.
+            final HttpResponse create = client.putJson(apiPath("roles", "async_delete_role"), VALID_ROLE_BODY);
+            assertThat(create.getBody(), create.getStatusCode(), is(201));
+
+            final HttpResponse submit = client.delete(apiPath("roles", "async_delete_role") + "?wait_for_completion=false");
+            final String taskId = extractTaskId(submit);
+            final JsonNode taskJson = awaitTaskCompletion(client, taskId);
+            assertThat("Task should complete: " + taskJson, taskJson.path("completed").asBoolean(), is(true));
+            assertThat(taskJson.at("/response/message").asText(), equalTo("'async_delete_role' deleted."));
+
+            // Confirm the role is actually gone via a sync GET (should return 404).
+            final HttpResponse readBack = client.get(apiPath("roles", "async_delete_role"));
+            assertThat(readBack.getBody(), readBack.getStatusCode(), is(404));
+        }
+    }
+
+    @Test
+    public void asyncPatchRole_returnsTaskIdAndUpdates() throws Exception {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            // Create the role synchronously first so PATCH has something to modify.
+            final HttpResponse create = client.putJson(apiPath("roles", "async_patch_role"), VALID_ROLE_BODY);
+            assertThat(create.getBody(), create.getStatusCode(), is(201));
+
+            final String patchBody = """
+                [
+                  { "op": "replace", "path": "/cluster_permissions", "value": ["cluster_monitor"] }
+                ]
+                """;
+            final HttpResponse submit = client.patch(apiPath("roles", "async_patch_role") + "?wait_for_completion=false", patchBody);
+            final String taskId = extractTaskId(submit);
+            final JsonNode taskJson = awaitTaskCompletion(client, taskId);
+            assertThat("Task should complete: " + taskJson, taskJson.path("completed").asBoolean(), is(true));
+            assertThat(taskJson.at("/response/message").asText(), equalTo("'async_patch_role' updated."));
+
+            // Confirm the patch actually applied by GETting the role back.
+            final HttpResponse readBack = client.get(apiPath("roles", "async_patch_role"));
+            assertThat(readBack.getBody(), readBack.getStatusCode(), is(200));
+            assertThat(readBack.getBody(), containsString("cluster_monitor"));
         }
     }
 

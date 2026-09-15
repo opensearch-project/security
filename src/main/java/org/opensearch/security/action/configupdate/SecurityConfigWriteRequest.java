@@ -13,11 +13,12 @@ package org.opensearch.security.action.configupdate;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.core.common.Strings;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.rest.RestStatus;
@@ -25,51 +26,40 @@ import org.opensearch.core.tasks.TaskId;
 import org.opensearch.tasks.Task;
 
 /**
- * Request carrying everything required to persist a serialized Security configuration to the
- * security index and then fan out a reload to all nodes.
+ * Request carrying everything required to persist a Security configuration document and fan out a
+ * reload to all nodes. Deliberately carries a fully-built {@link IndexRequest} (constructed on the
+ * coordinator via {@code AbstractApiAction.createIndexRequestForConfig}) rather than raw bytes, so
+ * no builder logic is duplicated between the sync path and this transport action.
  *
- * <p>The task created for this request is intentionally a plain {@link Task} (not a {@link
- * org.opensearch.tasks.CancellableTask}), so {@code POST /_tasks/{id}/_cancel} against it is
- * rejected by {@code TransportCancelTasksAction} with {@code "doesn't support cancellation"}.
+ * <p>The task created for this request is intentionally a plain {@link Task} — see
+ * {@link SecurityConfigWriteAction} for why cancellation is not supported.
  */
 public class SecurityConfigWriteRequest extends ActionRequest {
 
+    private final IndexRequest indexRequest;
     private final String cType;
-    private final BytesReference content;
-    private final long seqNo;
-    private final long primaryTerm;
-    private final String securityIndex;
     private final String description;
     private final String successMessage;
     private final RestStatus successStatus;
 
     public SecurityConfigWriteRequest(
+        final IndexRequest indexRequest,
         final String cType,
-        final BytesReference content,
-        final long seqNo,
-        final long primaryTerm,
-        final String securityIndex,
         final String description,
         final String successMessage,
         final RestStatus successStatus
     ) {
-        this.cType = cType;
-        this.content = content;
-        this.seqNo = seqNo;
-        this.primaryTerm = primaryTerm;
-        this.securityIndex = securityIndex;
+        this.indexRequest = Objects.requireNonNull(indexRequest, "indexRequest must not be null");
+        this.cType = Objects.requireNonNull(cType, "cType must not be null");
         this.description = description == null ? "" : description;
-        this.successMessage = successMessage;
-        this.successStatus = successStatus;
+        this.successMessage = Objects.requireNonNull(successMessage, "successMessage must not be null");
+        this.successStatus = Objects.requireNonNull(successStatus, "successStatus must not be null");
     }
 
     public SecurityConfigWriteRequest(final StreamInput in) throws IOException {
         super(in);
+        this.indexRequest = new IndexRequest(in);
         this.cType = in.readString();
-        this.content = in.readBytesReference();
-        this.seqNo = in.readLong();
-        this.primaryTerm = in.readLong();
-        this.securityIndex = in.readString();
         this.description = in.readString();
         this.successMessage = in.readString();
         this.successStatus = in.readEnum(RestStatus.class);
@@ -77,12 +67,11 @@ public class SecurityConfigWriteRequest extends ActionRequest {
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
+        // TransportRequest.writeTo writes the parent task id — must be called for symmetry with
+        // the StreamInput ctor's super(in) (which reads it back).
         super.writeTo(out);
+        indexRequest.writeTo(out);
         out.writeString(cType);
-        out.writeBytesReference(content);
-        out.writeLong(seqNo);
-        out.writeLong(primaryTerm);
-        out.writeString(securityIndex);
         out.writeString(description);
         out.writeString(successMessage);
         out.writeEnum(successStatus);
@@ -90,15 +79,13 @@ public class SecurityConfigWriteRequest extends ActionRequest {
 
     @Override
     public ActionRequestValidationException validate() {
-        // Defer to server-side validation on the actual index write; there are no cheap client-side
-        // preconditions worth checking here beyond non-null fields, which the constructor enforces
-        // implicitly by producing an unusable request if any are null.
-        if (Strings.isNullOrEmpty(cType) || content == null || Strings.isNullOrEmpty(securityIndex) || successStatus == null) {
+        if (Strings.isNullOrEmpty(cType)) {
             final var e = new ActionRequestValidationException();
-            e.addValidationError("cType, content, securityIndex and successStatus are required");
+            e.addValidationError("cType is required");
             return e;
         }
-        return null;
+        // Defer index-side preconditions to indexRequest.validate() on the receiving node.
+        return indexRequest.validate();
     }
 
     @Override
@@ -117,7 +104,8 @@ public class SecurityConfigWriteRequest extends ActionRequest {
         final TaskId parentTaskId,
         final Map<String, String> headers
     ) {
-        // Plain Task on purpose — see class-level Javadoc for why cancellation is not supported.
+        // Plain Task on purpose — see SecurityConfigWriteAction class-level docs for why
+        // cancellation is not supported.
         return new Task(id, type, action, getDescription(), parentTaskId, headers);
     }
 
@@ -126,24 +114,12 @@ public class SecurityConfigWriteRequest extends ActionRequest {
         return description;
     }
 
+    public IndexRequest getIndexRequest() {
+        return indexRequest;
+    }
+
     public String getCType() {
         return cType;
-    }
-
-    public BytesReference getContent() {
-        return content;
-    }
-
-    public long getSeqNo() {
-        return seqNo;
-    }
-
-    public long getPrimaryTerm() {
-        return primaryTerm;
-    }
-
-    public String getSecurityIndex() {
-        return securityIndex;
     }
 
     public String getSuccessMessage() {

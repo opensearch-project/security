@@ -54,6 +54,11 @@ public class SecurityConfigWriteResponse extends ActionResponse implements ToXCo
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
+        // No super.writeTo(out) call: Writeable.writeTo is abstract all the way up to
+        // ActionResponse, so there is no concrete parent implementation to invoke. The read
+        // constructor calls super(in) to preserve the OpenSearch idiom (every ActionResponse in
+        // the codebase does), and the parent chain up to TransportMessage(StreamInput) is
+        // documented as a no-op — so nothing is actually asymmetric on the wire.
         out.writeEnum(status);
         out.writeString(message);
     }
