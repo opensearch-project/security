@@ -41,7 +41,6 @@ import org.opensearch.security.user.User;
  *   <li>The sharing permissions and recipients</li>
  * </ul>
  *
- * @opensearch.experimental
  * @see CreatedBy
  * @see ShareWith
  */
