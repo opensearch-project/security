@@ -41,6 +41,8 @@ public class StandaloneAuditComplianceDocTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES,
@@ -58,6 +60,8 @@ public class StandaloneAuditComplianceDocTest {
         .nodeSettings(
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
                 true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
@@ -263,6 +267,8 @@ public class StandaloneAuditComplianceDocTest {
         .nodeSettings(
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
                 true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),

@@ -40,6 +40,8 @@ public final class DisabledModeAuditTestUtils {
                 Map.of(
                     ConfigConstants.SECURITY_DISABLED,
                     true,
+                    ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                    true,
                     "plugins.security.audit.type",
                     TestRuleAuditLogSink.class.getName(),
                     "plugins.security.audit.config.log_request_body",

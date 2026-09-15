@@ -22,7 +22,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
@@ -30,12 +29,10 @@ import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResp
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.opensearch.core.GetRequest;
+import org.opensearch.client.opensearch.core.GetResponse;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.api.AbstractApiIntegrationTest;
@@ -49,6 +46,7 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.LocalOpenSearchCluster;
+import org.opensearch.test.framework.cluster.OpenSearchClientProvider.CloseableOpenSearchClient;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
 
@@ -63,7 +61,9 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_R
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
-import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
+import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
+import static org.opensearch.test.framework.matcher.client.GetResponseMatchers.containDocument;
+import static org.opensearch.test.framework.matcher.client.TransportExceptionMatchers.statusException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -139,14 +139,14 @@ public class SecurityIndexSnapshotRestoreTests extends AbstractApiIntegrationTes
     @Test
     public void testSecurityCacheReloadAfterRestore() throws Exception {
         // 1. Read data in custom index with LIMITED_READ_USER_1
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER_1)) {
-            GetResponse response = restHighLevelClient.get(new GetRequest(TEST_INDEX_NAME, DOC_ID), RequestOptions.DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_READ_USER_1)) {
+            GetResponse<?> response = client.get(GetRequest.of(r -> r.index(TEST_INDEX_NAME).id(DOC_ID)), Map.class);
             assertThat(response, containDocument(TEST_INDEX_NAME, DOC_ID));
         }
 
         // 2. Create snapshot of security index
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
-            SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
+        try (CloseableOpenSearchClient client = cluster.getClient(ADMIN_USER)) {
+            SnapshotSteps steps = new SnapshotSteps(client);
             steps.createSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, "test-snap", securityIndex);
             steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, "test-snap");
         }
@@ -159,8 +159,8 @@ public class SecurityIndexSnapshotRestoreTests extends AbstractApiIntegrationTes
         }
 
         // 4. Read data in custom index with LIMITED_READ_USER_2
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER_2)) {
-            GetResponse response = restHighLevelClient.get(new GetRequest(TEST_INDEX_NAME, DOC_ID), RequestOptions.DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_READ_USER_2)) {
+            GetResponse<?> response = client.get(GetRequest.of(r -> r.index(TEST_INDEX_NAME).id(DOC_ID)), Map.class);
             assertThat(response, containDocument(TEST_INDEX_NAME, DOC_ID));
         }
 
@@ -183,16 +183,17 @@ public class SecurityIndexSnapshotRestoreTests extends AbstractApiIntegrationTes
         }
 
         // 7. Read data in custom index with LIMITED_READ_USER_1 because it was in snapshot
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER_1)) {
-            GetResponse response = restHighLevelClient.get(new GetRequest(TEST_INDEX_NAME, DOC_ID), RequestOptions.DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_READ_USER_1)) {
+            GetResponse<?> response = client.get(GetRequest.of(r -> r.index(TEST_INDEX_NAME).id(DOC_ID)), Map.class);
             assertThat(response, containDocument(TEST_INDEX_NAME, DOC_ID));
         }
 
         // 8. Should get 401 error to read custom index with LIMITED_READ_USER_2 because it was not in snapshot
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER_2)) {
-            restHighLevelClient.get(new GetRequest(TEST_INDEX_NAME, DOC_ID), RequestOptions.DEFAULT);
-        } catch (OpenSearchStatusException exception) {
-            assertEquals(RestStatus.UNAUTHORIZED, exception.status());  // Verify it's a 401
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_READ_USER_2)) {
+            assertThatThrownBy(
+                () -> client.get(GetRequest.of(r -> r.index(TEST_INDEX_NAME).id(DOC_ID)), Map.class),
+                statusException(RestStatus.UNAUTHORIZED)
+            );
         }
 
         // 9. Verify all nodes have reloaded the security configuration by directly checking ConfigurationRepository

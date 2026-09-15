@@ -39,6 +39,8 @@ public class StandaloneAuditTransportInterceptTest {
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
                 true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
                 "plugins.security.audit.type",
                 TestRuleAuditLogSink.class.getName(),
                 ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT,

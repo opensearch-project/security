@@ -70,7 +70,10 @@ public class AuditCategoryTest {
                             "INDEX_SETTINGS_CHANGED",
                             "API_TOKEN_WRITE",
                             "REQUEST_AUDIT",
-                            "TRANSPORT_AUDIT"
+                            "TRANSPORT_AUDIT",
+                            "RESOURCE_ACCESS_GRANTED",
+                            "RESOURCE_ACCESS_DENIED",
+                            "RESOURCE_SHARING_CHANGED"
                         ),
                         EnumSet.allOf(AuditCategory.class) }, }
             );

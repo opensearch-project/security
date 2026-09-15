@@ -11,7 +11,9 @@
 
 package org.opensearch.security.auditlog.config;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -133,6 +135,12 @@ public class AuditConfig {
     public static class Filter {
         private static final Logger log = LogManager.getLogger(Filter.class);
         private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
+        /** Settings key for body logging exclusions — defined here to avoid circular init with SecuritySettings.
+         *  Must match {@code SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS}. */
+        static final String BODY_LOGGING_EXCLUSIONS_KEY = "plugins.security.audit.config.body_logging_exclusions";
+        /** Settings prefix for action groups — defined here to avoid circular init with SecuritySettings.
+         *  Must match {@code SecuritySettings.AUDIT_ACTION_GROUPS}. */
+        static final String ACTION_GROUPS_PREFIX = "plugins.security.audit.config.action_groups.";
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
 
@@ -154,6 +162,13 @@ public class AuditConfig {
         private volatile WildcardMatcher ignoredAuditRequestsMatcher;
         private final WildcardMatcher ignoredCustomHeadersMatcher;
         private volatile WildcardMatcher ignoredUrlParamsMatcher;
+        @JsonProperty("action_groups")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private volatile Map<String, List<String>> actionGroups = Collections.emptyMap();
+        private volatile WildcardMatcher bodyExclusionMatcher = WildcardMatcher.NONE;
+        @JsonProperty("body_logging_exclusions")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        private volatile List<String> bodyLoggingExclusions = Collections.emptyList();
         @JsonProperty("disabled_categories")
         private volatile Set<AuditCategory> disabledCategories;
         @Deprecated
@@ -287,7 +302,25 @@ public class AuditConfig {
                 || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey());
             warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
 
-            return new Filter(
+            final List<String> bodyExclusions = getOrDefault(properties, "body_logging_exclusions", Collections.emptyList());
+
+            // Parse action groups from security index — handle both formats:
+            // Map<String, List<String>> (correct) or Map<String, String> (comma-separated)
+            final Map<String, List<String>> actionGroupsFromConfig;
+            if (properties.containsKey("action_groups")) {
+                Object raw = properties.get("action_groups");
+                if (raw instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> rawMap = (Map<String, Object>) raw;
+                    actionGroupsFromConfig = parseActionGroupsFromMap(rawMap);
+                } else {
+                    actionGroupsFromConfig = Collections.emptyMap();
+                }
+            } else {
+                actionGroupsFromConfig = Collections.emptyMap();
+            }
+
+            Filter filter = new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
                 resolveBulkRequests,
@@ -302,6 +335,9 @@ public class AuditConfig {
                 disabledTransportCategories,
                 disabledCategories
             );
+            filter.setActionGroups(actionGroupsFromConfig);
+            filter.setBodyLoggingExclusions(bodyExclusions);
+            return filter;
 
         }
 
@@ -345,7 +381,7 @@ public class AuditConfig {
                 || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace());
             warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
 
-            return new Filter(
+            Filter filter = new Filter(
                 isRestApiAuditEnabled,
                 isTransportAuditEnabled,
                 resolveBulkRequests,
@@ -360,6 +396,19 @@ public class AuditConfig {
                 disabledTransportCategories,
                 disabledCategories
             );
+
+            // Load action groups from opensearch.yml (static)
+            Map<String, List<String>> groups = parseActionGroupsFromSettings(settings);
+            filter.setActionGroups(groups);
+
+            // Apply initial body logging exclusions
+            // NOTE: Read directly from Settings to avoid circular static initialization between
+            // AuditConfig and SecuritySettings (AuditConfig.Filter.DEFAULT triggers this path
+            // during class loading before SecuritySettings fields are initialized).
+            List<String> exclusions = settings.getAsList(BODY_LOGGING_EXCLUSIONS_KEY, Collections.emptyList());
+            filter.setBodyLoggingExclusions(exclusions);
+
+            return filter;
         }
 
         static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
@@ -399,6 +448,58 @@ public class AuditConfig {
         }
 
         /**
+         * Splits a raw settings value (which may be a single comma-separated string or an already-split
+         * list entry) into individual trimmed patterns. Shared by all action-group parsing paths.
+         */
+        static List<String> splitPatterns(List<String> rawList) {
+            List<String> patterns = new ArrayList<>();
+            for (String entry : rawList) {
+                if (entry.contains(",")) {
+                    for (String part : entry.split(",")) {
+                        patterns.add(part.trim());
+                    }
+                } else {
+                    patterns.add(entry.trim());
+                }
+            }
+            return patterns;
+        }
+
+        /**
+         * Parses action groups from an OpenSearch {@link Settings} object.
+         * Used by both {@code AuditConfig.Filter.from(Settings)} and
+         * {@code OpenSearchSecurityPlugin.parseActionGroups()}.
+         */
+        public static Map<String, List<String>> parseActionGroupsFromSettings(Settings settings) {
+            Settings groupSettings = settings.getByPrefix(ACTION_GROUPS_PREFIX);
+            Map<String, List<String>> groups = new HashMap<>();
+            for (String groupName : groupSettings.keySet()) {
+                List<String> rawList = settings.getAsList(ACTION_GROUPS_PREFIX + groupName);
+                groups.put(groupName, splitPatterns(rawList));
+            }
+            return Collections.unmodifiableMap(groups);
+        }
+
+        /**
+         * Parses action groups from a Map (security index deserialization path).
+         * Handles both {@code Map<String, List<String>>} and {@code Map<String, String>} formats.
+         */
+        static Map<String, List<String>> parseActionGroupsFromMap(Map<String, Object> rawMap) {
+            Map<String, List<String>> parsed = new HashMap<>();
+            for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+                Object val = entry.getValue();
+                if (val instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<String> list = (List<String>) val;
+                    parsed.put(entry.getKey(), list);
+                } else if (val instanceof String) {
+                    parsed.put(entry.getKey(), splitPatterns(List.of((String) val)));
+                }
+            }
+            return Collections.unmodifiableMap(parsed);
+        }
+
+        /**
          * Checks if auditing for REST API is enabled or disabled
          * @return true/false
          */
@@ -432,6 +533,90 @@ public class AuditConfig {
         @JsonProperty("log_request_body")
         public boolean shouldLogRequestBody() {
             return logRequestBody;
+        }
+
+        /**
+         * Check if request body logging should be excluded for the given action or path.
+         *
+         * <p><b>Two-namespace matching model:</b> This method is called with different string types
+         * depending on the audit layer:
+         * <ul>
+         *   <li><b>REST layer</b> ({@code AuditMessage.addRestRequestInfo}): matches against
+         *       {@code request.path()} — e.g. {@code /_bulk}, {@code /my-index/_search}.
+         *       Note that indexed-resource paths contain the index name, so a fixed path pattern
+         *       won't match them; use the transport action instead.</li>
+         *   <li><b>Transport layer</b> ({@code AbstractAuditLog}, {@code AuditActionFilter}): matches
+         *       against the transport action string — e.g. {@code indices:data/write/bulk[s][p]}.</li>
+         * </ul>
+         *
+         * <p>To fully suppress body logging for a request across both layers, an action group must
+         * contain both a path pattern and an action wildcard. For example, the BULK group needs:
+         * {@code indices:data/write/bulk*,/_bulk}.
+         *
+         * @param actionOrPath transport action string or REST path
+         * @return true if body should NOT be logged for this action/path
+         */
+        public boolean isBodyExcluded(String actionOrPath) {
+            return actionOrPath != null && bodyExclusionMatcher.test(actionOrPath);
+        }
+
+        /**
+         * Sets the action groups map (read from opensearch.yml at startup).
+         * Triggers a rebuild of the body exclusion matcher if exclusions are configured.
+         *
+         * <p><b>Thread-safety note:</b> This class is not internally synchronized. Correctness
+         * relies on action groups being static (set once at startup, never updated dynamically).
+         * Only {@link #setBodyLoggingExclusions} is called at runtime via dynamic settings.
+         * If action groups were ever made dynamic, the rebuild logic would need synchronization.
+         */
+        public void setActionGroups(Map<String, List<String>> groups) {
+            this.actionGroups = groups != null ? groups : Collections.emptyMap();
+            rebuildBodyExclusionMatcher();
+        }
+
+        /**
+         * Sets the body logging exclusions list. Group names are resolved against the
+         * current action groups map. Order of setActionGroups/setBodyLoggingExclusions
+         * does not matter — both trigger a matcher rebuild.
+         * Called at startup and when the dynamic body_logging_exclusions setting changes.
+         */
+        public void setBodyLoggingExclusions(List<String> exclusions) {
+            if (exclusions == null || exclusions.isEmpty()) {
+                this.bodyLoggingExclusions = Collections.emptyList();
+            } else {
+                this.bodyLoggingExclusions = List.copyOf(exclusions);
+            }
+            rebuildBodyExclusionMatcher();
+        }
+
+        /**
+         * Rebuilds the pre-compiled body exclusion matcher from the current exclusions
+         * and action groups. Called by both setters so order doesn't matter.
+         */
+        private void rebuildBodyExclusionMatcher() {
+            List<String> exclusions = this.bodyLoggingExclusions;
+            if (exclusions.isEmpty()) {
+                this.bodyExclusionMatcher = WildcardMatcher.NONE;
+                return;
+            }
+            Map<String, List<String>> groups = this.actionGroups;
+            List<String> expandedPatterns = new ArrayList<>();
+            for (String entry : exclusions) {
+                if (groups.containsKey(entry)) {
+                    expandedPatterns.addAll(groups.get(entry));
+                } else {
+                    expandedPatterns.add(entry);
+                    // Warn about entries that don't look like action patterns or paths
+                    if (!entry.contains(":") && !entry.startsWith("/") && !entry.contains("*")) {
+                        log.warn(
+                            "Body logging exclusion '{}' is not a known action group and does not look like "
+                                + "an action pattern or path — it will be treated as a literal match.",
+                            entry
+                        );
+                    }
+                }
+            }
+            this.bodyExclusionMatcher = WildcardMatcher.from(expandedPatterns);
         }
 
         /**

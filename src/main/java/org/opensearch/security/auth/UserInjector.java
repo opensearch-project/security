@@ -168,8 +168,7 @@ public class UserInjector {
         }
 
         threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, injectedUser.getUser());
-        threadPool.getThreadContext()
-            .putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, injectedUser.getUser()));
+        threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, injectedUser.getUser());
         auditLog.logSucceededLogin(injectedUser.getUser().getName(), true, null, request);
 
         return true;

@@ -23,14 +23,25 @@ import org.opensearch.security.support.WildcardMatcher;
  */
 public final class AuditHeaderUtils {
 
-    private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization").ignoreCase();
+    /**
+     * Request headers that can carry credentials or session identifiers. These are removed from
+     * audit events when {@code exclude_sensitive_headers} is enabled. Matching is case-insensitive.
+     */
+    private static final WildcardMatcher SENSITIVE_HEADERS = WildcardMatcher.from(
+        "Authorization",
+        "Proxy-Authorization",
+        "Cookie",
+        "Set-Cookie",
+        "X-Auth-Token"
+    ).ignoreCase();
 
     private AuditHeaderUtils() {}
 
     /**
      * Returns a filtered copy of the given headers map based on the audit filter config.
-     * If {@code exclude_sensitive_headers} is enabled, strips Authorization (case-insensitive).
-     * Returns an empty map if headers is null or empty.
+     * If {@code exclude_sensitive_headers} is enabled, strips headers that may carry credentials
+     * or session identifiers (Authorization, Proxy-Authorization, Cookie, Set-Cookie, X-Auth-Token),
+     * case-insensitively. Returns an empty map if headers is null or empty.
      */
     public static Map<String, List<String>> filterHeaders(Map<String, List<String>> headers, AuditConfig.Filter filter) {
         if (headers == null || headers.isEmpty()) {
@@ -38,7 +49,7 @@ public final class AuditHeaderUtils {
         }
         Map<String, List<String>> filtered = new HashMap<>(headers);
         if (filter.shouldExcludeSensitiveHeaders()) {
-            filtered.keySet().removeIf(AUTHORIZATION_HEADER);
+            filtered.keySet().removeIf(SENSITIVE_HEADERS);
         }
         return filtered;
     }

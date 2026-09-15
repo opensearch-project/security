@@ -35,7 +35,7 @@ import org.opensearch.security.user.User;
 
 public class HeaderHelper {
 
-    public static boolean isInterClusterRequest(final ThreadContext context) {
+    public static boolean isLocalClusterNodeRequest(final ThreadContext context) {
         return context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST) == Boolean.TRUE;
     }
 
@@ -67,7 +67,7 @@ public class HeaderHelper {
             return null;
         }
 
-        if (isInterClusterRequest(context) || isTrustedClusterRequest(context) || isDirectRequest(context)) {
+        if (isLocalClusterNodeRequest(context) || isRemoteClusterNodeRequest(context) || isDirectRequest(context)) {
             return context.getHeader(headerName);
         }
 
@@ -85,7 +85,7 @@ public class HeaderHelper {
         return null;
     }
 
-    public static boolean isTrustedClusterRequest(final ThreadContext context) {
+    public static boolean isRemoteClusterNodeRequest(final ThreadContext context) {
         return context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == Boolean.TRUE;
     }
 }

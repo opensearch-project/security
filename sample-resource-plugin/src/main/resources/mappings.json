@@ -9,6 +9,9 @@
     },
     "all_shared_principals": {
       "type": "keyword"
+    },
+    "workspaces": {
+      "type": "keyword"
     }
   }
 }

@@ -95,6 +95,7 @@ import org.opensearch.common.settings.SettingsFilter;
 import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.PageCacheRecycler;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.XContentConstraints;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
@@ -209,6 +210,7 @@ import org.opensearch.security.resources.api.share.ShareRestAction;
 import org.opensearch.security.resources.api.share.ShareTransportAction;
 import org.opensearch.security.resources.settings.ResourceSharingFeatureFlagSetting;
 import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
+import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -240,6 +242,7 @@ import org.opensearch.security.support.ReflectionHelper;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
+import org.opensearch.security.transport.RemoteClusterIdentityPolicy;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
@@ -376,8 +379,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.localClient = localClient;
         final Settings settings = environment.settings();
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
+        final boolean standaloneEnabled = SecuritySettings.AUDIT_ENABLE_STANDALONE.get(settings);
         final String auditType = settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null);
-        if (auditType != null) {
+        if (standaloneEnabled && auditType != null) {
             AuditLogImpl auditLogImpl = new AuditLogImpl(
                 settings,
                 configPath,
@@ -388,6 +392,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 environment,
                 new UserFactory.Simple()
             );
+
+            // Parse action groups and exclusions BEFORE setConfig so they're available
+            // when onAuditConfigFilterChanged fires from security index reload
+            Map<String, List<String>> actionGroups = parseActionGroups(settings);
+            auditLogImpl.setNodeActionGroups(actionGroups);
+            List<String> initialExclusions = SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS.get(settings);
+            auditLogImpl.setNodeBodyLoggingExclusions(initialExclusions);
+
             auditLogImpl.setConfig(AuditConfig.from(settings));
             auditLog = auditLogImpl;
             warnIfAuthCategoriesEnabled(settings);
@@ -468,7 +480,30 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 log.info("Compliance read_watched_fields dynamically updated");
                 auditLogImpl.getComplianceConfig().setWatchedReadFields(newValue);
             });
+
+            // Wire body logging exclusions dynamic setting (action groups already parsed above)
+            final AuditConfig.Filter auditFilter = auditLogImpl.getFilter();
+            auditFilter.setActionGroups(actionGroups);
+            auditFilter.setBodyLoggingExclusions(initialExclusions);
+
+            // Register dynamic consumer for runtime updates
+            clusterService.getClusterSettings().addSettingsUpdateConsumer(SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS, newValue -> {
+                log.info("Audit body_logging_exclusions dynamically updated to {}", newValue);
+                auditLogImpl.setNodeBodyLoggingExclusions(newValue);
+                AuditConfig.Filter currentFilter = auditLogImpl.getFilter();
+                if (currentFilter != null) {
+                    currentFilter.setBodyLoggingExclusions(newValue);
+                }
+            });
         } else {
+            if (!standaloneEnabled && auditType != null) {
+                log.info(
+                    "Audit type '{}' is configured but standalone audit is not enabled. "
+                        + "Set '{}' to true to enable audit logging in non-FGAC modes.",
+                    auditType,
+                    ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE
+                );
+            }
             auditLog = new NullAuditLog();
         }
     }
@@ -484,6 +519,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 enabledAuthOnly
             );
         }
+    }
+
+    /**
+     * Parses action groups from opensearch.yml settings.
+     * Delegates to {@link AuditConfig.Filter#parseActionGroupsFromSettings(Settings)}.
+     */
+    private static Map<String, List<String>> parseActionGroups(Settings settings) {
+        return AuditConfig.Filter.parseActionGroupsFromSettings(settings);
     }
 
     private static boolean isDisabled(final Settings settings) {
@@ -1118,10 +1161,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onNewReaderContext(ReaderContext readerContext) {
-                    final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                    final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
                         .equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                        && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
+                        && (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
                         readerContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);
@@ -1135,10 +1178,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
                 @Override
                 public void onNewScrollContext(ReaderContext readerContext) {
-                    final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
+                    final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
                         .equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                        && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
+                        && (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
                         readerContext.putInContext("_opendistro_security_scroll_auth_local", Boolean.TRUE);
@@ -1508,7 +1551,36 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (SSLConfig.isSslOnlyMode()) {
             auditLog = new NullAuditLog();
         } else {
-            auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment, userFactory);
+            AuditLogImpl fgacAuditLogImpl = new AuditLogImpl(
+                settings,
+                configPath,
+                localClient,
+                threadPool,
+                resolver,
+                clusterService,
+                environment,
+                userFactory
+            );
+
+            // Parse action groups and body logging exclusions from opensearch.yml
+            // so they persist across security index reloads (onAuditConfigFilterChanged)
+            Map<String, List<String>> actionGroups = parseActionGroups(settings);
+            fgacAuditLogImpl.setNodeActionGroups(actionGroups);
+
+            List<String> bodyExclusions = SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS.get(settings);
+            fgacAuditLogImpl.setNodeBodyLoggingExclusions(bodyExclusions);
+
+            // Register dynamic consumer for runtime updates of body logging exclusions
+            clusterService.getClusterSettings().addSettingsUpdateConsumer(SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS, newValue -> {
+                log.info("Audit body_logging_exclusions dynamically updated to {}", newValue);
+                fgacAuditLogImpl.setNodeBodyLoggingExclusions(newValue);
+                AuditConfig.Filter currentFilter = fgacAuditLogImpl.getFilter();
+                if (currentFilter != null) {
+                    currentFilter.setBodyLoggingExclusions(newValue);
+                }
+            });
+
+            auditLog = fgacAuditLogImpl;
         }
 
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
@@ -1644,6 +1716,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         cr.setDynamicConfigFactory(dcf);
 
+        RemoteClusterIdentityPolicy remoteClusterIdentityPolicy = new RemoteClusterIdentityPolicy(
+            settings.getAsBoolean(ConfigConstants.SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES, false)
+        );
+        clusterService.getClusterSettings()
+            .addSettingsUpdateConsumer(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING, newValue -> {
+                log.info("CCS ignore source security roles dynamically set to {}", newValue);
+                remoteClusterIdentityPolicy.setIgnoreSourceSecurityRoles(newValue);
+            });
+
         si = new SecurityInterceptor(
             settings,
             threadPool,
@@ -1656,7 +1737,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             Objects.requireNonNull(cih),
             SSLConfig,
             OpenSearchSecurityPlugin::isActionTraceEnabled,
-            userFactory
+            userFactory,
+            remoteClusterIdentityPolicy
         );
         components.add(principalExtractor);
 
@@ -1711,7 +1793,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         return List.of(
             new NamedWriteableRegistry.Entry(ClusterState.Custom.class, SecurityMetadata.TYPE, SecurityMetadata::new),
-            new NamedWriteableRegistry.Entry(NamedDiff.class, SecurityMetadata.TYPE, SecurityMetadata::readDiffFrom)
+            new NamedWriteableRegistry.Entry(NamedDiff.class, SecurityMetadata.TYPE, SecurityMetadata::readDiffFrom),
+            // Reader for ResourceSharing so ShareResponse's readNamedWriteable(ResourceSharing.class) round-trips.
+            new NamedWriteableRegistry.Entry(ResourceSharing.class, ResourceSharing.NAME, ResourceSharing::new)
         );
     }
 
@@ -1740,12 +1824,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
+        // CCS: allow remote cluster to ignore source-propagated security roles
+        settings.add(SecuritySettings.CCS_IGNORE_SOURCE_SECURITY_ROLES_SETTING);
+
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
         settings.add(SecuritySettings.SSL_DUAL_MODE_SETTING);
         settings.add(SecuritySettings.LEGACY_OPENDISTRO_SSL_DUAL_MODE_SETTING);
 
         // Dynamic audit toggle — works in all modes (FGAC, SSL-only, disabled)
         settings.add(SecuritySettings.AUDIT_ENABLED_SETTING);
+        settings.add(SecuritySettings.AUDIT_ENABLE_STANDALONE);
 
         // Protected index settings
         settings.add(
@@ -2016,7 +2104,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
         }).forEach(settings::add);
 
+        // Body logging exclusions (dynamic) and action groups (static)
+        settings.add(SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS);
+        settings.add(SecuritySettings.AUDIT_ACTION_GROUPS);
+
         // Security - Audit - Sink
+        //
+        // IMPORTANT: In SSL-only mode the settings filter no longer blanket-strips the entire
+        // plugins.security.audit.config.* subtree — it only strips the credential-bearing group
+        // settings (endpoints.* / routes.*). Every secret registered directly under config.*
+        // (passwords, tokens, webhook URLs, PEM material, host lists, TLS ciphers/protocols, etc.)
+        // MUST carry Property.Filtered individually. If you add a new sink credential under this
+        // prefix, add Property.Filtered to its registration — otherwise it will be exposed to
+        // unauthenticated settings readers in SSL-only mode.
+        // See: allSensitiveConfigSettingsAreFiltered() test for automated enforcement.
         settings.add(
             Setting.simpleString(
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,
@@ -2080,9 +2181,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS,
                 Lists.newArrayList("localhost:9200"),
                 Function.identity(),
-                Property.NodeScope
+                Property.NodeScope,
+                Property.Filtered
             )
-        ); // not filtered here
+        ); // Filtered: static external-sink infrastructure (host list), not panel-managed dynamic config
         settings.add(
             Setting.simpleString(
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_CONFIG_USERNAME,
@@ -2186,18 +2288,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS,
                 Collections.emptyList(),
                 Function.identity(),
-                Property.NodeScope
+                Property.NodeScope,
+                Property.Filtered
             )
-        );// not filtered here
+        );// Filtered: static external-sink TLS config, not panel-managed dynamic config
         settings.add(
             Setting.listSetting(
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX
                     + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS,
                 Collections.emptyList(),
                 Function.identity(),
-                Property.NodeScope
+                Property.NodeScope,
+                Property.Filtered
             )
-        );// not filtered here
+        );// Filtered: static external-sink TLS config, not panel-managed dynamic config
 
         // Webhooks
         settings.add(
@@ -2482,6 +2586,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+            settings.add(
+                Setting.intSetting(
+                    ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH,
+                    ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT,
+                    1,
+                    XContentConstraints.DEFAULT_MAX_STRING_LEN,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
 
             // Compliance settings moved outside the gate — see below
 
@@ -2628,6 +2742,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING);
             settings.add(SecuritySettings.DLS_WRITE_BLOCKED);
+
+            settings.add(Setting.groupSetting(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS_CONFIG + ".", Property.NodeScope
+            // do not make this Property.Dynamic - as a security measure,
+            // this can only be changed with access to the config file.
+            ));
         }
 
         return settings;
@@ -2651,7 +2770,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         settingsFilter.add("plugins.security.authcz.*");
         settingsFilter.add("plugins.security.password.*");
         settingsFilter.add("plugins.security.unsupported.*");
-        settingsFilter.add("plugins.security.audit.*");
+        // In SSL-only (standalone audit) mode there is no security index, so the audit config is stored in
+        // cluster settings and the dashboards audit panel must read it back via GET _cluster/settings. Narrow
+        // the audit filter to expose the dynamic config (plugins.security.audit.config.* and .compliance.*)
+        // while keeping the credential-bearing sink settings (endpoints/routes) hidden. Secrets registered with
+        // Property.Filtered (sink username/password/webhook.url, pem*, salt) remain stripped by core regardless.
+        // FGAC keeps the original broad filter (its real config lives in the security index, not cluster settings).
+        if (SSLConfig.isSslOnlyMode()) {
+            settingsFilter.add("plugins.security.audit.endpoints.*");
+            settingsFilter.add("plugins.security.audit.routes.*");
+        } else {
+            settingsFilter.add("plugins.security.audit.*");
+        }
         settingsFilter.add("plugins.security.compliance.*");
         return settingsFilter;
     }
@@ -2662,7 +2792,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
             if (apiTokenRepository != null) {
-                apiTokenRepository.reloadApiTokensFromIndex(
+                apiTokenRepository.reloadApiTokensOnNodeStart(
                     ActionListener.wrap(
                         unused -> log.debug("API tokens loaded on node start"),
                         e -> log.warn("Failed to load API tokens on node start", e)
@@ -2862,7 +2992,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         @Inject
         public GuiceHolder(
             final RepositoriesService repositoriesService,
-            final TransportService remoteClusterService,
+            final TransportService transportService,
             IndicesService indicesService,
             PitService pitService,
             ExtensionsManager extensionsManager,
@@ -2870,7 +3000,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             AuditLogImpl auditLog
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
-            GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
+            GuiceHolder.remoteClusterService = transportService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;

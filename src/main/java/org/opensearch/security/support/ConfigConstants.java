@@ -72,6 +72,8 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX + "filter_level_dls_done";
+    public static final String OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED = OPENDISTRO_SECURITY_CONFIG_PREFIX
+        + "dls_query_filter_applied";
     public static final String OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY = OPENDISTRO_SECURITY_CONFIG_PREFIX + "is_parent_child_query";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query_ccs";
@@ -87,6 +89,12 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address";
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "remote_address_header";
+
+    /**
+     * ThreadContext transient key for the audit request correlation ID.
+     * Set at REST entry point from X-Request-Id header or generated UUID.
+     */
+    public static final String SECURITY_AUDIT_REQUEST_ID = OPENDISTRO_SECURITY_CONFIG_PREFIX + "audit_request_id";
 
     public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX
         + "initial_action_class_header";
@@ -205,6 +213,7 @@ public class ConfigConstants {
     public static final int SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT = 19;
 
     public static final String SECURITY_AUDIT_TYPE_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.type";
+    public static final String SECURITY_AUDIT_ENABLE_STANDALONE = SECURITY_SETTINGS_PREFIX + "audit.enable_standalone";
     public static final String SECURITY_AUDIT_ENABLED = SECURITY_SETTINGS_PREFIX + "audit.enabled";
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.config";
     public static final String SECURITY_AUDIT_CONFIG_ROUTES = SECURITY_SETTINGS_PREFIX + "audit.routes";
@@ -222,13 +231,19 @@ public class ConfigConstants {
         "opendistro_security.audit.config.disabled_rest_categories";
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
-        AuditCategory.GRANTED_PRIVILEGES.toString()
+        AuditCategory.GRANTED_PRIVILEGES.toString(),
+        AuditCategory.RESOURCE_ACCESS_GRANTED.toString(),
+        AuditCategory.RESOURCE_ACCESS_DENIED.toString(),
+        AuditCategory.RESOURCE_SHARING_CHANGED.toString()
     );
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
         AuditCategory.GRANTED_PRIVILEGES.toString(),
         AuditCategory.CLUSTER_SETTINGS_CHANGED.toString(),
-        AuditCategory.INDEX_SETTINGS_CHANGED.toString()
+        AuditCategory.INDEX_SETTINGS_CHANGED.toString(),
+        AuditCategory.RESOURCE_ACCESS_GRANTED.toString(),
+        AuditCategory.RESOURCE_ACCESS_DENIED.toString(),
+        AuditCategory.RESOURCE_SHARING_CHANGED.toString()
     );
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
     public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
@@ -281,6 +296,7 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
     public static final String SECURITY_AUDIT_LOG4J_MAXIMUM_INDEX_CHARACTERS_PER_MESSAGE = "log4j.maximum_index_characters_per_message";
+    public static final String SECURITY_AUDIT_LOG4J_ENABLE_MDC_ROUTING = "log4j.enable_mdc_routing";
 
     // retry
     public static final String SECURITY_AUDIT_RETRY_COUNT = SECURITY_SETTINGS_PREFIX + "audit.config.retry_count";
@@ -358,6 +374,10 @@ public class ConfigConstants {
     public static final String SECURITY_RESTAPI_PASSWORD_MIN_LENGTH = SECURITY_SETTINGS_PREFIX + "restapi.password_min_length";
     public static final String SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH = SECURITY_SETTINGS_PREFIX
         + "restapi.password_score_based_validation_strength";
+    // Maximum allowed length for any string value in a Security REST API request body. Guards against oversized inputs
+    // while remaining configurable, since free-form fields such as DLS/FLS queries can legitimately exceed the default.
+    public static final String SECURITY_RESTAPI_MAX_STRING_LENGTH = SECURITY_SETTINGS_PREFIX + "restapi.max_string_length";
+    public static final int SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT = 4096;
     // Illegal Opcodes from here on
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = SECURITY_SETTINGS_PREFIX
         + "unsupported.disable_rest_auth_initially";
@@ -378,6 +398,10 @@ public class ConfigConstants {
         + "unsupported.restapi.allow_securityconfig_modification";
     public static final String SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES = SECURITY_SETTINGS_PREFIX + "unsupported.load_static_resources";
     public static final String SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG = SECURITY_SETTINGS_PREFIX + "unsupported.accept_invalid_config";
+
+    public static final String OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS_CONFIG = SECURITY_SETTINGS_PREFIX
+        + "unsupported.dls.allowed_request_headers";
+    public static final String OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS = OPENSEARCH_SECURITY_CONFIG_PREFIX + "dls_request_headers";
 
     public static final String SECURITY_PROTECTED_INDICES_ENABLED_KEY = SECURITY_SETTINGS_PREFIX + "protected_indices.enabled";
     public static final Boolean SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT = false;
@@ -438,6 +462,8 @@ public class ConfigConstants {
     public static final String OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES = "plugins.security.resource_sharing.protected_types";
     public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
                                                                                                       // protected
+
+    public static final String SECURITY_CCS_IGNORE_SOURCE_SECURITY_ROLES = SECURITY_SETTINGS_PREFIX + "ccs.ignore_source_security_roles";
 
     public static Set<String> getSettingAsSet(
         final Settings settings,

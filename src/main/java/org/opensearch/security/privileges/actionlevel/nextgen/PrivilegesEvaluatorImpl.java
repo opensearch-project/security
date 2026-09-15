@@ -73,6 +73,8 @@ import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS;
+
 /**
  * A next generation implementation of PrivilegesEvaluator with the following properties:
  * <ul>
@@ -240,7 +242,8 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             indexNameExpressionResolver,
             indicesRequestResolver,
             clusterStateSupplier,
-            actionPrivileges
+            actionPrivileges,
+            threadContext.getTransient(OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS)
         );
     }
 

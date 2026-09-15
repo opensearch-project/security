@@ -68,6 +68,20 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
+    public void reservedSubjectIsRejected() {
+        Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
+        String token = TestJwts.createSigned(TestJwts.create("plugin:org.opensearch.example.Plugin", null, null), TestJwk.OCT_1);
+        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+        AuthCredentials creds = jwtAuth.extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", token), new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(creds);
+    }
+
+    @Test
     public void jwksUriTest() {
         Settings settings = Settings.builder()
             .put("jwks_uri", mockIdpServer.getJwksUri())

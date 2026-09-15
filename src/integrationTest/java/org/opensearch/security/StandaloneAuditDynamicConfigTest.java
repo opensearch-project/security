@@ -34,7 +34,16 @@ public class StandaloneAuditDynamicConfigTest {
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .loadConfigurationIntoIndex(false)
-        .nodeSettings(Map.of(ConfigConstants.SECURITY_SSL_ONLY, true, "plugins.security.audit.type", TestRuleAuditLogSink.class.getName()))
+        .nodeSettings(
+            Map.of(
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
+                "plugins.security.audit.type",
+                TestRuleAuditLogSink.class.getName()
+            )
+        )
         .sslOnly(true)
         .build();
 

@@ -38,7 +38,16 @@ public class StandaloneAuditSinksTest {
     public static LocalCluster internalSinkCluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .loadConfigurationIntoIndex(false)
-        .nodeSettings(Map.of(ConfigConstants.SECURITY_SSL_ONLY, true, "plugins.security.audit.type", "internal_opensearch"))
+        .nodeSettings(
+            Map.of(
+                ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
+                true,
+                "plugins.security.audit.type",
+                "internal_opensearch"
+            )
+        )
         .sslOnly(true)
         .build();
 
@@ -49,6 +58,8 @@ public class StandaloneAuditSinksTest {
         .nodeSettings(
             Map.of(
                 ConfigConstants.SECURITY_SSL_ONLY,
+                true,
+                ConfigConstants.SECURITY_AUDIT_ENABLE_STANDALONE,
                 true,
                 "plugins.security.audit.type",
                 "log4j",

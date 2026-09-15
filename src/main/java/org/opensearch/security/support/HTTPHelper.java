@@ -28,8 +28,7 @@ package org.opensearch.security.support;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 import org.apache.logging.log4j.Logger;
 
@@ -85,17 +84,23 @@ public class HTTPHelper {
     }
 
     public static boolean containsBadHeader(final SecurityRequest request) {
-
-        final Map<String, List<String>> headers;
-
-        if (request != null && (headers = request.getHeaders()) != null) {
-            for (final String key : headers.keySet()) {
-                if (key != null && key.trim().toLowerCase().startsWith(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX.toLowerCase())) {
-                    return true;
-                }
-            }
+        if (request == null || request.getHeaders() == null) {
+            return false;
         }
 
-        return false;
+        return request.getHeaders()
+            .keySet()
+            .stream()
+            .filter(Objects::nonNull)
+            .map(String::toLowerCase)
+            .anyMatch(HTTPHelper::isSecurityConfigPrefix);
+    }
+
+    private static boolean isSecurityConfigPrefix(final String header) {
+        // most headers use the legacy opendistro prefix => check that first for speed reasons
+        // the header is already lowercased in the stream above, so we can use startsWith directly; the constants
+        // are also lowercase (which is ensured by HTTPHelperTest#ensureSecurityConfigPrefixConstantsAreLowercase).
+        return header.startsWith(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)
+            || header.startsWith(ConfigConstants.OPENSEARCH_SECURITY_CONFIG_PREFIX);
     }
 }
