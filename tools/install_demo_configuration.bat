@@ -2,13 +2,19 @@
 set DIR=%~dp0
 set CUR_DIR=%DIR%
 
-if defined OPENSEARCH_HOME goto find_home_done
+if defined OPENSEARCH_HOME (
+  if not "%OPENSEARCH_HOME:~-1%" == "\" set "OPENSEARCH_HOME=%OPENSEARCH_HOME%\"
+  goto find_home_done
+)
 
 set "OPENSEARCH_HOME=%DIR%"
 :find_home
 if exist "%OPENSEARCH_HOME%lib\opensearch-*.jar" goto find_home_done
-rem Strip the trailing "\" first: %%~dpI of "...\dir\." returns "...\dir\"
-rem (no ascent), so the loop would never terminate. See #6023.
+if "%OPENSEARCH_HOME:~1%" == ":\" (
+  echo Could not locate OpenSearch home. Set OPENSEARCH_HOME manually. 1>&2
+  exit /b 1
+)
+rem Remove the trailing separator before resolving the parent directory.
 for %%I in ("%OPENSEARCH_HOME:~0,-1%") do set "PARENT=%%~dpI"
 if /I "%PARENT%" == "%OPENSEARCH_HOME%" (
   echo Could not locate OpenSearch home. Set OPENSEARCH_HOME manually. 1>&2

@@ -67,24 +67,29 @@ jobs:
           admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 21
 
-      - name: Verify demo config script locates OpenSearch home on Windows
-        # Regression guard for #6023: run the demo installer natively under
-        # cmd.exe (start-opensearch invokes it via bash, which hid the bug) with
-        # OPENSEARCH_HOME unset, so the home-discovery loop must resolve it. -s
-        # makes an already-configured opensearch.yml exit 0; a discovery failure
-        # still exits non-zero.
+      - name: Verify OpenSearch home discovery on Windows
         if: ${{ runner.os == 'Windows' }}
         shell: cmd
         run: |
           set "OS_DIR=opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT9200"
+          set "EXPECTED=%CD%\%OS_DIR%\"
+          set "SCRIPT=%EXPECTED%plugins\opensearch-security\tools\install_demo_configuration.bat"
+
           set "OPENSEARCH_HOME="
-          call "%OS_DIR%\plugins\opensearch-security\tools\install_demo_configuration.bat" -y -i -c -s
-          set "RC=%errorlevel%"
-          if not "%RC%" == "0" (
-            echo install_demo_configuration.bat exited with code %RC% - home discovery failed 1>&2
+          call "%SCRIPT%" -h >nul
+          if not "%errorlevel%" == "0" exit /b 1
+          if /I not "%OPENSEARCH_HOME%" == "%EXPECTED%" (
+            echo Expected OPENSEARCH_HOME=%EXPECTED%, got %OPENSEARCH_HOME% 1>&2
             exit /b 1
           )
-          echo Home discovery succeeded on Windows (exit 0)
+
+          set "OPENSEARCH_HOME=%EXPECTED:~0,-1%"
+          call "%SCRIPT%" -h >nul
+          if not "%errorlevel%" == "0" exit /b 1
+          if /I not "%OPENSEARCH_HOME%" == "%EXPECTED%" (
+            echo Expected normalized OPENSEARCH_HOME=%EXPECTED%, got %OPENSEARCH_HOME% 1>&2
+            exit /b 1
+          )
 
       - name: Run sanity tests
         run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin "-Dpassword=${SECURITY_PASSWORD}" -i
