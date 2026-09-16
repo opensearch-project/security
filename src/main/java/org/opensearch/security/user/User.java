@@ -227,7 +227,9 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
         if (Objects.equals(requestedTenant, this.requestedTenant)) {
             return this;
         } else {
-            return new User(this.name, this.roles, this.securityRoles, requestedTenant, this.attributes, this.isInjected);
+            final User user = new User(this.name, this.roles, this.securityRoles, requestedTenant, this.attributes, this.isInjected);
+            user.setAuthenticatedBy(this.authenticatedBy);
+            return user;
         }
     }
 
