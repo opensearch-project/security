@@ -67,6 +67,20 @@ jobs:
           admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 21
 
+      - name: Verify preset OpenSearch home on Windows
+        if: ${{ runner.os == 'Windows' }}
+        shell: cmd
+        run: |
+          set "OS_DIR=opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT9200"
+          set "EXPECTED=%CD%\%OS_DIR%"
+          set "OPENSEARCH_HOME=%EXPECTED%"
+          call "%EXPECTED%\plugins\opensearch-security\tools\install_demo_configuration.bat" -h >nul
+          if not "%errorlevel%" == "0" exit /b 1
+          if /I not "%OPENSEARCH_HOME%" == "%EXPECTED%" (
+            echo install_demo_configuration.bat changed OPENSEARCH_HOME 1>&2
+            exit /b 1
+          )
+
       - name: Run sanity tests
         run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin "-Dpassword=${SECURITY_PASSWORD}" -i
         shell: bash
