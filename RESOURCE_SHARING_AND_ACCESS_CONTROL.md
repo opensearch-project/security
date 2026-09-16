@@ -493,12 +493,16 @@ This feature is controlled by the following flag:
   ```yaml
   plugins.security.resource_sharing.enabled: true
   ```
-> **Upgrading from a version that used the experimental flag (breaking change)**
+> **Upgrading from a version that used the experimental flag (deprecated, not yet removed)**
 >
-> Prior to graduation, these settings were named `plugins.security.experimental.resource_sharing.enabled` and `plugins.security.experimental.resource_sharing.protected_types`. The `experimental.` segment has been **removed with no fallback**, so the old keys no longer work. Before upgrading:
-> - **`opensearch.yml`:** rename the keys to the new names on every node. A node that still has an old `plugins.security.experimental.resource_sharing.*` key will **fail to start** (`unknown setting`).
-> - **Persistent cluster settings:** re-apply the setting under the new key after upgrading. On upgrade the old key is no longer recognized and is archived (`archived.plugins.security.experimental.resource_sharing.*`), so the feature reverts to its default (**disabled**) until you re-apply it.
-> - **During a rolling upgrade**, enforcement is inconsistent until all nodes are on the new version: the new key is rejected by not-yet-upgraded nodes and the old key by upgraded nodes. Plan for resource sharing to be effectively disabled in this window and re-apply the setting once the upgrade completes.
+> Prior to graduation these settings were named `plugins.security.experimental.resource_sharing.enabled` and `plugins.security.experimental.resource_sharing.protected_types`. **The old names are deprecated and will be removed in a future major version. Move to the new names.**
+>
+> Until then the old names keep working, so an upgrade does not require any change before it starts:
+> - **`opensearch.yml`:** a node that still has an old key starts normally and the value is honored. The log records that the setting is deprecated and names its replacement.
+> - **Cluster settings:** an existing `plugins.security.experimental.resource_sharing.*` cluster setting is honored, and is rewritten to the new name during cluster-state recovery so the deprecated key does not linger in `GET _cluster/settings`. A dynamic update that still uses the old name is also accepted and rewritten.
+> - **Precedence:** if both names are set, the new name wins. A leftover old key cannot override a deliberate new one.
+>
+> Rename the keys at your convenience. Once renamed, the deprecation warnings stop.
 
 ### **List protected types**
 
