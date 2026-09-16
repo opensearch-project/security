@@ -56,7 +56,7 @@ public class BCryptCustomConfigHashingTests extends HashingTests {
     @Before
     public void startCluster() {
         TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
-            .hash(generateBCryptHash("secret", minor, rounds));
+            .hash(generateBCryptHash(TestSecurityConfig.DEFAULT_TEST_PASSWORD, minor, rounds));
         cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
             .users(ADMIN_USER)
@@ -76,7 +76,7 @@ public class BCryptCustomConfigHashingTests extends HashingTests {
             .build();
         cluster.before();
 
-        try (TestRestClient client = cluster.getRestClient(ADMIN_USER.getName(), "secret")) {
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER.getName(), TestSecurityConfig.DEFAULT_TEST_PASSWORD)) {
             Awaitility.await()
                 .alias("Load default configuration")
                 .until(() -> client.securityHealth().getTextFromJsonBody("/status"), equalTo("UP"));

@@ -27,10 +27,15 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
 * JAAS utilities for Kerberos login.
 */
 public final class JaasKrbUtil {
+
+    private static final Logger log = LogManager.getLogger(JaasKrbUtil.class);
 
     private static boolean debug = false;
 
@@ -40,8 +45,11 @@ public final class JaasKrbUtil {
         JaasKrbUtil.debug = debug;
     }
 
-    public static Subject loginUsingKeytab(final Set<String> principalAsStrings, final Path keytabPath, final boolean initiator)
-        throws LoginException {
+    public static LoginContext loginUsingKeytabWithContext(
+        final Set<String> principalAsStrings,
+        final Path keytabPath,
+        final boolean initiator
+    ) throws LoginException {
         final Set<Principal> principals = new HashSet<Principal>();
 
         for (String p : principalAsStrings) {
@@ -54,7 +62,23 @@ public final class JaasKrbUtil {
         final String confName = "KeytabConf";
         final LoginContext loginContext = new LoginContext(confName, subject, null, conf);
         loginContext.login();
-        return loginContext.getSubject();
+        return loginContext;
+    }
+
+    /**
+     * Safely logout and clean up a LoginContext.
+     * This method should be called in a 'finally' block to ensure credentials are cleared.
+     *
+     * @param loginContext The LoginContext to logout
+     */
+    public static void logout(final LoginContext loginContext) {
+        if (loginContext != null) {
+            try {
+                loginContext.logout();
+            } catch (LoginException e) {
+                log.debug("Logout failed, credentials may not have been fully cleared", e);
+            }
+        }
     }
 
     public static Configuration useKeytab(final String principal, final Path keytabPath, final boolean initiator) {
