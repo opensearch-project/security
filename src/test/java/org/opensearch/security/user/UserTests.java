@@ -57,7 +57,7 @@ public class UserTests {
     }
 
     @Test
-    public void testRequestTenantContextDoesNotInventAuthenticationMethod() {
+    public void testRequestTenantContextPreservesUnsetAuthenticationMethod() {
         assertThat(new User("test-user").withRequestedTenant("tenant").getAuthenticatedBy(), nullValue());
     }
 
