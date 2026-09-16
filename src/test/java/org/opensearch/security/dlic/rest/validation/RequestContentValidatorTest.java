@@ -176,6 +176,38 @@ public class RequestContentValidatorTest {
     }
 
     @Test
+    public void testValidateIntegerField() throws Exception {
+        final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return Settings.EMPTY;
+            }
+
+            @Override
+            public Map<String, FieldConfiguration> allowedKeys() {
+                return Map.of("integer", FieldConfiguration.of(DataType.INTEGER, (name, value) -> {
+                    if (((JsonNode) value).asInt() < 1) {
+                        throw new IllegalArgumentException("must be positive");
+                    }
+                }));
+            }
+        });
+
+        when(httpRequest.content()).thenReturn(new BytesArray("{\"integer\":0}"));
+        final ValidationResult<JsonNode> validationResult = validator.validate(request);
+        final JsonNode errorMessage = xContentToJsonNode(validationResult.errorMessage());
+
+        assertFalse(validationResult.isValid());
+        assertErrorMessage(errorMessage, RequestContentValidator.ValidationError.WRONG_DATATYPE);
+        assertThat(errorMessage.get("integer").asText(), is("must be positive"));
+    }
+
+    @Test
     public void testValidateJsonKeys() throws Exception {
         final RequestContentValidator validator = RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
             @Override
