@@ -136,6 +136,10 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
             updateAuthFailuresResponseNoBackend.getStatusCode(),
             equalTo(HttpStatus.SC_BAD_REQUEST)
         );
+        assertThat(
+            updateAuthFailuresResponseNoBackend.getBody(),
+            containsString("username auth failure listeners must have 'internal' authentication backend")
+        );
 
         RestHelper.HttpResponse updateAuthFailuresResponseNoType = rh.executePutRequest(
             "/_plugins/_security/api/authfailurelisteners/test",
@@ -147,6 +151,7 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
             updateAuthFailuresResponseNoType.getStatusCode(),
             equalTo(HttpStatus.SC_BAD_REQUEST)
         );
+        assertThat(updateAuthFailuresResponseNoType.getBody(), containsString("type is required"));
 
         RestHelper.HttpResponse updateAuthFailuresResponseWithEnvExpression = rh.executePutRequest(
             "/_plugins/_security/api/authfailurelisteners/test",
@@ -157,6 +162,10 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
             updateAuthFailuresResponseWithEnvExpression.getBody(),
             updateAuthFailuresResponseWithEnvExpression.getStatusCode(),
             equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+        assertThat(
+            updateAuthFailuresResponseWithEnvExpression.getBody(),
+            containsString("ignore_hosts must not contain environment variable expressions")
         );
 
         RestHelper.HttpResponse updateAuthFailuresResponseWithMalformedHost = rh.executePutRequest(
@@ -169,6 +178,7 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
             updateAuthFailuresResponseWithMalformedHost.getStatusCode(),
             equalTo(HttpStatus.SC_BAD_REQUEST)
         );
+        assertThat(updateAuthFailuresResponseWithMalformedHost.getBody(), containsString("ignore_hosts should only contain string values"));
 
         RestHelper.HttpResponse updateAuthFailuresResponseWithNegativeLimit = rh.executePutRequest(
             "/_plugins/_security/api/authfailurelisteners/test",
@@ -179,6 +189,10 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
             updateAuthFailuresResponseWithNegativeLimit.getBody(),
             updateAuthFailuresResponseWithNegativeLimit.getStatusCode(),
             equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+        assertThat(
+            updateAuthFailuresResponseWithNegativeLimit.getBody(),
+            containsString("max_tracked_clients must be between 0 and 2147483647")
         );
 
     }

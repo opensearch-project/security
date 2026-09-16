@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -42,7 +43,6 @@ import tools.jackson.databind.node.ObjectNode;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.notFound;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
@@ -75,6 +75,7 @@ public class RateLimitersApiAction extends AbstractApiAction {
 
     private static final FieldValidator POSITIVE_INTEGER_VALIDATOR = integerRangeValidator(1, Integer.MAX_VALUE);
     private static final FieldValidator NON_NEGATIVE_INTEGER_VALIDATOR = integerRangeValidator(0, Integer.MAX_VALUE);
+    private static final Pattern REJECTED_PATTERNS = Pattern.compile("\\$\\{env");
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(
@@ -213,35 +214,25 @@ public class RateLimitersApiAction extends AbstractApiAction {
                 });
             }
         }).error((status, toXContent) -> response(channel, status, toXContent)))
-            .override(PUT, (channel, request, client) -> endpointValidator.createRequestContentValidator().validate(request).valid(body -> {
+            .override(PUT, (channel, request, client) -> endpointValidator.createRequestContentValidator().validate(request).map(body -> {
                 if (!(body instanceof ObjectNode objectBody)) {
-                    badRequest(channel, "request body must be a JSON object");
-                    return;
+                    return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("request body must be a JSON object"));
                 }
-                loadConfiguration(getConfigType(), false, false).valid(configuration -> {
-                    ConfigV7 config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
-
-                    String listenerName = request.param(NAME_JSON_PROPERTY);
-                    SecurityJsonNode authFailureListener = new SecurityJsonNode(objectBody);
-                    ValidationResult<SecurityJsonNode> validationResult = validateAuthFailureListener(authFailureListener, listenerName);
-
-                    if (!validationResult.isValid()) {
-                        response(channel, validationResult.status(), validationResult.errorMessage());
-                        return;
-                    }
-
-                    // Try to put the listener by name
-                    config.dynamic.auth_failure_listeners.getListeners()
-                        .put(listenerName, createAuthFailureListenerWithDefaults(authFailureListener));
-                    saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
-                        @Override
-                        public void onResponse(IndexResponse indexResponse) {
-
-                            ok(channel, authFailureContent(config));
-                        }
-                    });
-                }).error((status, toXContent) -> response(channel, status, toXContent));
-            }).error((status, toXContent) -> response(channel, status, toXContent)));
+                final String listenerName = request.param(NAME_JSON_PROPERTY);
+                return validateAuthFailureListener(new SecurityJsonNode(objectBody), listenerName).map(
+                    authFailureListener -> loadConfiguration(getConfigType(), false, false).map(configuration -> {
+                        final ConfigV7 config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
+                        config.dynamic.auth_failure_listeners.getListeners()
+                            .put(listenerName, createAuthFailureListenerWithDefaults(authFailureListener));
+                        return ValidationResult.success(configuration);
+                    })
+                );
+            }).valid(configuration -> saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
+                @Override
+                public void onResponse(IndexResponse indexResponse) {
+                    ok(channel, authFailureContent((ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString())));
+                }
+            })).error((status, toXContent) -> response(channel, status, toXContent)));
 
     }
 
@@ -296,7 +287,7 @@ public class RateLimitersApiAction extends AbstractApiAction {
         RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate(fieldName, value);
         if (value instanceof JsonNode arrayNode) {
             for (JsonNode element : arrayNode) {
-                if (element.isTextual() && element.asText().contains("${env")) {
+                if (element.isTextual() && REJECTED_PATTERNS.matcher(element.asText()).find()) {
                     throw new IllegalArgumentException(fieldName + " must not contain environment variable expressions");
                 }
             }
