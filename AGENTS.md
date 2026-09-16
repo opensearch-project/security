@@ -176,7 +176,6 @@ SpotBugs runs on main sources (not tests). Include-filter: `spotbugs-include.xml
 ## Security-Specific Guidelines
 
 - **Never log sensitive data** — passwords, tokens, certificates, and PII must never appear in log output.
-- **Tenant context changes** must preserve `User.authenticatedBy`; token issuance and account restrictions depend on authentication provenance.
 - **TLS changes** must be tested against both the transport layer and the HTTP layer.
 - **Privilege evaluation** (`privileges/`) is on the hot path — keep it free of I/O, side-effects, and unnecessary allocations.
 - **Security index schema changes** require migration logic for existing clusters; do not change field names or types without a migration path.

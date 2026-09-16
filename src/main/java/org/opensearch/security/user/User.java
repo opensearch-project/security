@@ -228,6 +228,7 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
             return this;
         } else {
             final User user = new User(this.name, this.roles, this.securityRoles, requestedTenant, this.attributes, this.isInjected);
+            // Tenant selection must preserve authentication provenance.
             user.setAuthenticatedBy(this.authenticatedBy);
             return user;
         }
