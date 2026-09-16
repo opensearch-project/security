@@ -1,4 +1,5 @@
 @echo off
+setlocal
 set DIR=%~dp0
 
 if not defined OPENSEARCH_HOME goto find_home_start
@@ -31,3 +32,4 @@ if defined OPENSEARCH_JAVA_HOME (
 )
 
 %BIN_PATH% -cp "%PLUGIN_DIR%\*;%PLUGIN_DIR%\deps\*;%OPENSEARCH_HOME%lib\*" org.opensearch.security.tools.Hasher %*
+exit /b %ERRORLEVEL%
