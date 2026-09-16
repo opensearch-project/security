@@ -457,9 +457,25 @@ public class ConfigConstants {
     public static final String OPENSEARCH_RESOURCE_SHARING_ENABLED = "plugins.security.resource_sharing.enabled";
     public static final boolean OPENSEARCH_RESOURCE_SHARING_ENABLED_DEFAULT = false;
 
+    /**
+     * Pre-graduation name of {@link #OPENSEARCH_RESOURCE_SHARING_ENABLED}. Retained so that a cluster
+     * configured before the feature graduated keeps working; {@code RESOURCE_SHARING_ENABLED} falls back
+     * to it and a setting upgrader rewrites it in the cluster state.
+     */
+    @Deprecated
+    public static final String OPENSEARCH_LEGACY_RESOURCE_SHARING_ENABLED = "plugins.security.experimental.resource_sharing.enabled";
+
     // Protected resource types
     // Resource sharing will only apply to these types
     public static final String OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES = "plugins.security.resource_sharing.protected_types";
+
+    /**
+     * Pre-graduation name of {@link #OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES}. See
+     * {@link #OPENSEARCH_LEGACY_RESOURCE_SHARING_ENABLED}.
+     */
+    @Deprecated
+    public static final String OPENSEARCH_LEGACY_RESOURCE_SHARING_PROTECTED_TYPES =
+        "plugins.security.experimental.resource_sharing.protected_types";
     public static final List<String> OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES_DEFAULT = List.of(); // defaults to no registered types as
                                                                                                       // protected
 

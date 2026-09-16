@@ -90,6 +90,7 @@ import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Setting.Property;
+import org.opensearch.common.settings.SettingUpgrader;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsFilter;
 import org.opensearch.common.util.BigArrays;
@@ -2709,6 +2710,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // Defaults to no resources as protected
             settings.add(resourceSharingProtectedResourceTypesSetting.getDynamicSetting());
 
+            // Pre-graduation names of the two settings above. Registered so that an existing configuration is
+            // still understood and so the setting upgraders below can resolve the old keys.
+            settings.add(ResourceSharingFeatureFlagSetting.LEGACY_RESOURCE_SHARING_ENABLED);
+            settings.add(ResourceSharingProtectedResourcesSetting.LEGACY_PROTECTED_TYPES);
+
             settings.add(UserFactory.Caching.MAX_SIZE);
             settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
 
@@ -2750,6 +2756,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         return settings;
+    }
+
+    @Override
+    public List<SettingUpgrader<?>> getSettingUpgraders() {
+        return List.of(
+            ResourceSharingFeatureFlagSetting.RESOURCE_SHARING_ENABLED_UPGRADER,
+            ResourceSharingProtectedResourcesSetting.PROTECTED_TYPES_UPGRADER
+        );
     }
 
     @Override
