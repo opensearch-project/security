@@ -2,11 +2,11 @@
 set DIR=%~dp0
 set CUR_DIR=%DIR%
 
-if defined OPENSEARCH_HOME (
-  if not "%OPENSEARCH_HOME:~-1%" == "\" set "OPENSEARCH_HOME=%OPENSEARCH_HOME%\"
-  goto find_home_done
-)
+if not defined OPENSEARCH_HOME goto find_home_start
+if not "%OPENSEARCH_HOME:~-1%"=="\" set "OPENSEARCH_HOME=%OPENSEARCH_HOME%\"
+goto find_home_done
 
+:find_home_start
 set "OPENSEARCH_HOME=%DIR%"
 :find_home
 if exist "%OPENSEARCH_HOME%lib\opensearch-*.jar" goto find_home_done
