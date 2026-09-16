@@ -10,13 +10,8 @@ if defined OPENSEARCH_HOME (
 set "OPENSEARCH_HOME=%DIR%"
 :find_home
 if exist "%OPENSEARCH_HOME%lib\opensearch-*.jar" goto find_home_done
-if "%OPENSEARCH_HOME:~1%" == ":\" (
-  echo Could not locate OpenSearch home. Set OPENSEARCH_HOME manually. 1>&2
-  exit /b 1
-)
-rem Remove the trailing separator before resolving the parent directory.
-for %%I in ("%OPENSEARCH_HOME:~0,-1%") do set "PARENT=%%~dpI"
-if /I "%PARENT%" == "%OPENSEARCH_HOME%" (
+for %%I in ("%OPENSEARCH_HOME%.") do set "PARENT=%%~dpI"
+if "%PARENT%" == "%OPENSEARCH_HOME%" (
   echo Could not locate OpenSearch home. Set OPENSEARCH_HOME manually. 1>&2
   exit /b 1
 )

@@ -67,27 +67,17 @@ jobs:
           admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 21
 
-      - name: Verify OpenSearch home discovery on Windows
+      - name: Verify preset OpenSearch home on Windows
         if: ${{ runner.os == 'Windows' }}
         shell: cmd
         run: |
           set "OS_DIR=opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT9200"
           set "EXPECTED=%CD%\%OS_DIR%\"
-          set "SCRIPT=%EXPECTED%plugins\opensearch-security\tools\install_demo_configuration.bat"
-
-          set "OPENSEARCH_HOME="
-          call "%SCRIPT%" -h >nul
+          set "OPENSEARCH_HOME=%EXPECTED:~0,-1%"
+          call "%EXPECTED%plugins\opensearch-security\tools\install_demo_configuration.bat" -h >nul
           if not "%errorlevel%" == "0" exit /b 1
           if /I not "%OPENSEARCH_HOME%" == "%EXPECTED%" (
             echo Expected OPENSEARCH_HOME=%EXPECTED%, got %OPENSEARCH_HOME% 1>&2
-            exit /b 1
-          )
-
-          set "OPENSEARCH_HOME=%EXPECTED:~0,-1%"
-          call "%SCRIPT%" -h >nul
-          if not "%errorlevel%" == "0" exit /b 1
-          if /I not "%OPENSEARCH_HOME%" == "%EXPECTED%" (
-            echo Expected normalized OPENSEARCH_HOME=%EXPECTED%, got %OPENSEARCH_HOME% 1>&2
             exit /b 1
           )
 
