@@ -1,4 +1,5 @@
 @echo off
+setlocal
 set DIR=%~dp0
 set CUR_DIR=%DIR%
 
@@ -42,4 +43,5 @@ if not exist "%JAVA%" (
 set "OPENSEARCH_HOME_ARG=%OPENSEARCH_HOME%"
 if "%OPENSEARCH_HOME_ARG:~-1%" == "\" set "OPENSEARCH_HOME_ARG=%OPENSEARCH_HOME_ARG:~0,-1%"
 
-"%JAVA%" -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "%PLUGIN_DIR%\*;%PLUGIN_DIR%\deps\*;%OPENSEARCH_HOME%lib\*" org.opensearch.security.tools.democonfig.Installer "%OPENSEARCH_HOME_ARG%" %* 2> nul
+"%JAVA%" -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "%PLUGIN_DIR%\*;%PLUGIN_DIR%\deps\*;%OPENSEARCH_HOME%lib\*" org.opensearch.security.tools.democonfig.Installer "%OPENSEARCH_HOME_ARG%" %*
+exit /b %ERRORLEVEL%
