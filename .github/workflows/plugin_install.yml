@@ -67,6 +67,31 @@ jobs:
           admin-password: ${{ steps.generate-password.outputs.password }}
           jdk-version: 21
 
+      - name: Verify demo configuration script locates OpenSearch home on Windows
+        # Regression guard for #6023: the tools/*.bat parent-directory walk used
+        # %~dpI on a path ending in "\." which does not ascend, so the script
+        # exited non-zero and OpenSearch failed to start on Windows with no error
+        # output. This runs the script natively under cmd.exe (the real startup
+        # environment, unlike the bash-invoked path in start-opensearch) and
+        # asserts a zero exit code and that OPENSEARCH_HOME resolved to a dir
+        # containing lib/opensearch-*.jar.
+        if: ${{ runner.os == 'Windows' }}
+        shell: cmd
+        run: |
+          set "OS_DIR=opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT9200"
+          if not exist "%OS_DIR%\plugins\opensearch-security\tools\install_demo_configuration.bat" (
+            echo Demo script not found under %OS_DIR% 1>&2
+            exit /b 1
+          )
+          rem Run with OPENSEARCH_HOME unset so the home-discovery loop is exercised.
+          set "OPENSEARCH_HOME="
+          call "%OS_DIR%\plugins\opensearch-security\tools\install_demo_configuration.bat" -y -i -c
+          if errorlevel 1 (
+            echo install_demo_configuration.bat exited with a non-zero code 1>&2
+            exit /b 1
+          )
+          echo Demo configuration script completed with exit code 0
+
       - name: Run sanity tests
         run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin "-Dpassword=${SECURITY_PASSWORD}" -i
         shell: bash

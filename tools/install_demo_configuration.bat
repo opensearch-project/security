@@ -7,8 +7,11 @@ if defined OPENSEARCH_HOME goto find_home_done
 set "OPENSEARCH_HOME=%DIR%"
 :find_home
 if exist "%OPENSEARCH_HOME%lib\opensearch-*.jar" goto find_home_done
-for %%I in ("%OPENSEARCH_HOME%.") do set "PARENT=%%~dpI"
-if "%PARENT%" == "%OPENSEARCH_HOME%" (
+rem Strip the trailing backslash before expanding the parent, otherwise
+rem %%~dpI on a path ending in "\." resolves to the same directory and the
+rem loop never ascends (breaks OpenSearch startup on Windows, silently).
+for %%I in ("%OPENSEARCH_HOME:~0,-1%") do set "PARENT=%%~dpI"
+if /I "%PARENT%" == "%OPENSEARCH_HOME%" (
   echo Could not locate OpenSearch home. Set OPENSEARCH_HOME manually. 1>&2
   exit /b 1
 )
