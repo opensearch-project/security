@@ -68,15 +68,11 @@ jobs:
           jdk-version: 21
 
       - name: Verify demo config script locates OpenSearch home on Windows
-        # Regression guard for #6023: the tools/*.bat parent-directory walk used
-        # %~dpI on a path ending in "\." which does not ascend, so the script
-        # exited non-zero and OpenSearch failed to start on Windows with no
-        # error output. Run the script natively under cmd.exe (unlike the
-        # bash-invoked path in start-opensearch), with OPENSEARCH_HOME unset so
-        # the home-discovery loop is exercised. The -s flag makes an
-        # already-configured opensearch.yml a benign exit 0 (start-opensearch
-        # already ran the installer), while a home-discovery failure still
-        # exits non-zero from setBaseDir - which is exactly what we guard.
+        # Regression guard for #6023: run the demo installer natively under
+        # cmd.exe (start-opensearch invokes it via bash, which hid the bug) with
+        # OPENSEARCH_HOME unset, so the home-discovery loop must resolve it. -s
+        # makes an already-configured opensearch.yml exit 0; a discovery failure
+        # still exits non-zero.
         if: ${{ runner.os == 'Windows' }}
         shell: cmd
         run: |
