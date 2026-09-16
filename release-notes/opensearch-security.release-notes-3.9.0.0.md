@@ -2,10 +2,6 @@
 
 Compatible with OpenSearch and OpenSearch Dashboards version 3.9.0
 
-### Breaking Changes
-
-* Graduate resource sharing feature out of experimental, renaming settings to drop the `.experimental` segment ([#6348](https://github.com/opensearch-project/security/pull/6348))
-
 ### Features
 
 * Enable standalone audit logging when security is fully disabled (`plugins.security.disabled: true`) for compliance without TLS or authentication ([#6341](https://github.com/opensearch-project/security/pull/6341))
@@ -21,6 +17,8 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.9.0
 
 ### Enhancements
 
+* Graduate resource sharing feature out of experimental, renaming settings to drop the `.experimental` segment ([#6348](https://github.com/opensearch-project/security/pull/6348))
+* Keep the pre-graduation resource sharing setting names working, deprecated ([#6513](https://github.com/opensearch-project/security/pull/6513))
 * Add setting to ignore source cluster security roles on cross-cluster search requests for independent remote access control ([#6402](https://github.com/opensearch-project/security/pull/6402))
 * Allow standalone granular REST API permissions without requiring `roles_enabled` membership ([#6493](https://github.com/opensearch-project/security/pull/6493))
 * Add missing index actions (`point_in_time/create`, `point_in_time/delete`, `resolve/index`, `field_caps*`) to `ppl_full_access` role ([#6471](https://github.com/opensearch-project/security/pull/6471))
