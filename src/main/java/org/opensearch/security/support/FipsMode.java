@@ -8,19 +8,19 @@
 
 package org.opensearch.security.support;
 
+import java.util.function.Supplier;
+
 /**
  * Single source of truth for FIPS mode detection.
  * Set {@code OPENSEARCH_FIPS_MODE=true} in the environment to enable.
  */
 public final class FipsMode {
 
-    static java.util.function.Supplier<String> envSupplier = () -> System.getenv("OPENSEARCH_FIPS_MODE");
+    static Supplier<String> envSupplier = () -> System.getenv("OPENSEARCH_FIPS_MODE");
 
     public static boolean isEnabled() {
         return "true".equalsIgnoreCase(envSupplier.get());
     }
 
-    private FipsMode() {
-        throw new UnsupportedOperationException();
-    }
+    private FipsMode() {}
 }
