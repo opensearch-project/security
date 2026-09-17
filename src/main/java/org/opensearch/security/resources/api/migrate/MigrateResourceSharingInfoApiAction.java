@@ -88,7 +88,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *          default_access_level: "<some-default-access-level>"     // optional: overrides the default access-level defined in resource-access-levels.yml
  *      }
  *   - Response:
- *      200 OK Migration Complete. migrated %d; skippedNoType %s; skippedExisting %s; failed %d // migrate -> successful migration count, skippedNoType -> records with no type, skippedExisting -> records that were already migrated, failed -> records that failed to migrate
+ *      200 OK Migration Complete. migrated %d; backfilledExisting %d; skippedNoType %s; skippedExisting %s; failed %d // migrate -> newly created records, backfilledExisting -> pre-existing records that gained workspace membership, skippedNoType -> records with no type, skippedExisting -> records already migrated with nothing to backfill, failed -> records that failed to migrate
  */
 public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
@@ -246,7 +246,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
             SearchRequest searchRequest = new SearchRequest(sourceIndex).scroll(scroll)
                 .source(
-                    new SearchSourceBuilder().query(QueryBuilders.matchAllQuery()).size(1_000)        // batch size per scroll “page”
+                    new SearchSourceBuilder().query(QueryBuilders.matchAllQuery())
+                        .size(1_000)                 // batch size per scroll “page”
+                        .seqNoAndPrimaryTerm(true)   // source-doc seq_no is the monotonic guard for workspace reconcile
                 );
 
             // 2) execute first search
@@ -291,6 +293,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                     // Extract parent ID if the provider declares a parentIdField
                     String parentId = null;
+                    // Workspace IDs, if the provider declares a workspaces field (see extractWorkspaces).
+                    Set<String> workspaces = Collections.emptySet();
                     if (type != null) {
                         ResourceProvider hitProvider = resourcePluginInfo.getResourceProvider(type);
                         if (hitProvider != null && hitProvider.parentIdField() != null) {
@@ -299,9 +303,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                                 parentId = null;
                             }
                         }
+                        if (hitProvider != null && hitProvider.workspacesField() != null) {
+                            workspaces = extractWorkspaces(rec, hitProvider.workspacesField());
+                        }
                     }
 
-                    results.add(new SourceDoc(id, username, backendRoles, type, parentId));
+                    results.add(new SourceDoc(id, username, backendRoles, type, parentId, workspaces, hit.getSeqNo()));
                 }
                 // 4) fetch next batch
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
@@ -345,6 +352,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     private ValidationResult<MigrationStats> createNewSharingRecords(ValidationResultArg sourceInfo) throws IOException {
         AtomicInteger migratedCount = new AtomicInteger();
         AtomicInteger skippedExisting = new AtomicInteger();
+        AtomicInteger backfilledExisting = new AtomicInteger();
         AtomicInteger failureCount = new AtomicInteger();
 
         // Thread-safe sets that we can mutate directly from listeners
@@ -403,6 +411,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 }
 
                 // 5) index the new record
+                final Set<String> docWorkspaces = doc.workspaces;
+                final long docSeqNo = doc.seqNo;
                 ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
                     if (entry != null) {
                         LOGGER.debug(
@@ -412,15 +422,30 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                             sourceInfo.sourceIndex
                         );
                         migratedCount.getAndIncrement();
+                        migrationStatsLatch.countDown();
                     } else {
-                        LOGGER.debug(
-                            "Skipping migration of resource sharing record for resource {} within index {} as an entry already exists",
+                        // Record already exists: reconcile its workspaces to exactly match the source doc (adds and
+                        // removals), bringing pre-existing records up to date. The source doc's seq_no is the monotonic
+                        // guard, so a concurrent live update is never overwritten by this migration.
+                        sharingIndexHandler.reconcileWorkspaces(
+                            sourceInfo.sourceIndex,
                             resourceId,
-                            sourceInfo.sourceIndex
+                            docWorkspaces,
+                            docSeqNo,
+                            ActionListener.wrap(changed -> {
+                                if (Boolean.TRUE.equals(changed)) {
+                                    backfilledExisting.getAndIncrement();
+                                } else {
+                                    skippedExisting.getAndIncrement();
+                                }
+                                migrationStatsLatch.countDown();
+                            }, e -> {
+                                LOGGER.warn("Failed to reconcile workspaces for existing record [{}]: {}", resourceId, e.getMessage());
+                                failureCount.getAndIncrement();
+                                migrationStatsLatch.countDown();
+                            })
                         );
-                        skippedExisting.getAndIncrement();
                     }
-                    migrationStatsLatch.countDown();
                 }, e -> {
                     LOGGER.debug(e.getMessage());
                     failureCount.getAndIncrement();
@@ -434,6 +459,10 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     .resourceType(provider.resourceType());
                 if (doc.parentId != null && provider.parentType() != null) {
                     sharingBuilder.parentId(doc.parentId).parentType(provider.parentType());
+                }
+                // Carry the source doc's workspaces onto the record (used by the write-path fan-out).
+                if (doc.workspaces != null && !doc.workspaces.isEmpty()) {
+                    sharingBuilder.workspaces(doc.workspaces);
                 }
                 ResourceSharing sharingInfo = sharingBuilder.build();
 
@@ -454,8 +483,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
         }
 
         String summary = String.format(
-            "Migration complete. migrated %d; skippedNoType %s; skippedExisting %s; failed %d",
+            "Migration complete. migrated %d; backfilledExisting %d; skippedNoType %s; skippedExisting %s; failed %d",
             migratedCount.get(),
+            backfilledExisting.get(),
             skippedNoType.size(),
             skippedExisting.get(),
             failureCount.get()
@@ -571,6 +601,36 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     /**
+     * Reads workspace IDs from a source document at {@code workspacesField} (a JSON array, or a single string).
+     * Blank ids are ignored. Package-private for testability.
+     *
+     * @param rec             the parsed source document
+     * @param workspacesField the provider-declared field path (dot-notation or JSON pointer)
+     * @return the workspace IDs, or empty if the field is absent/empty
+     */
+    static Set<String> extractWorkspaces(JsonNode rec, String workspacesField) {
+        if (workspacesField == null) {
+            return Collections.emptySet();
+        }
+        JsonNode wsNode = rec.at(jsonPointer(workspacesField));
+        Set<String> workspaces = new HashSet<>();
+        if (wsNode.isArray()) {
+            for (JsonNode ws : wsNode) {
+                addIfPresent(workspaces, ws.asText(null));
+            }
+        } else if (wsNode.isTextual()) {
+            addIfPresent(workspaces, wsNode.asText(null));
+        }
+        return workspaces;
+    }
+
+    private static void addIfPresent(Set<String> set, String value) {
+        if (value != null && !value.isEmpty()) {
+            set.add(value);
+        }
+    }
+
+    /**
      * Determine a document's resource type using, in order:
      * <ol>
      *   <li>the JSON pointer at each registered type-field path (first non-null value wins);</li>
@@ -605,7 +665,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             .orElse(null);
     }
 
-    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId) {
+    record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId, Set<String> workspaces,
+        long seqNo) {
     }
 
     record ValidationResultArg(String sourceIndex, String defaultOwnerName, Map<String, String> typeToDefaultAccessLevel, List<

@@ -7,15 +7,14 @@
 * compatible open source license.
 *
 */
-package org.opensearch.test.framework.matcher;
+package org.opensearch.test.framework.matcher.client;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
-import org.opensearch.client.indices.GetIndexResponse;
+import org.opensearch.client.opensearch.indices.GetIndexResponse;
 
 import static java.util.Objects.isNull;
 
@@ -32,10 +31,10 @@ class GetIndexResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatcher<G
 
     @Override
     protected boolean matchesSafely(GetIndexResponse response, Description mismatchDescription) {
-        List<String> actual = Arrays.asList(response.getIndices());
+        Set<String> actual = response.result().keySet();
         for (String index : expectedIndices) {
             if (!actual.contains(index)) {
-                mismatchDescription.appendText("Actual indices: ").appendValue(response.getIndices());
+                mismatchDescription.appendText("Actual indices: ").appendValue(response.result().keySet());
                 return false;
             }
         }

@@ -1,8 +1,12 @@
 @echo off
+setlocal
 set DIR=%~dp0
 
-if defined OPENSEARCH_HOME goto find_home_done
+if not defined OPENSEARCH_HOME goto find_home_start
+if not "%OPENSEARCH_HOME:~-1%"=="\" set "OPENSEARCH_HOME=%OPENSEARCH_HOME%\"
+goto find_home_done
 
+:find_home_start
 set "OPENSEARCH_HOME=%DIR%"
 :find_home
 if exist "%OPENSEARCH_HOME%lib\opensearch-*.jar" goto find_home_done
@@ -28,3 +32,4 @@ if defined OPENSEARCH_JAVA_HOME (
 )
 
 %BIN_PATH% -cp "%PLUGIN_DIR%\*;%PLUGIN_DIR%\deps\*;%OPENSEARCH_HOME%lib\*" org.opensearch.security.tools.Hasher %*
+exit /b %ERRORLEVEL%

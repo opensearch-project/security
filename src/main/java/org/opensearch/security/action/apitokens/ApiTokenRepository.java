@@ -29,21 +29,27 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.discovery.ClusterManagerNotDiscoveredException;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.configuration.TokenListener;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import static org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX;
 
 public class ApiTokenRepository {
     public static final String TOKEN_PREFIX = "os_";
+    private static final TimeValue STARTUP_RELOAD_RETRY_DELAY = TimeValue.timeValueSeconds(1);
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final ApiTokenIndexHandler apiTokenIndexHandler;
+    private final ThreadPool threadPool;
     private final List<TokenListener> tokenListener = new ArrayList<>();
     private static final Logger log = LogManager.getLogger(ApiTokenRepository.class);
 
@@ -101,6 +107,26 @@ public class ApiTokenRepository {
                 listener.onFailure(new OpenSearchSecurityException("Received error while reloading API tokens metadata from index", e));
             }
         });
+    }
+
+    public void reloadApiTokensOnNodeStart(ActionListener<Void> listener) {
+        reloadApiTokensFromIndex(ActionListener.wrap(listener::onResponse, e -> {
+            boolean retryable = ExceptionsHelper.unwrapCausesAndSuppressed(
+                e,
+                cause -> (cause instanceof ClusterBlockException clusterBlockException && clusterBlockException.retryable())
+                    || cause instanceof ClusterManagerNotDiscoveredException
+            ).isPresent();
+            if (retryable) {
+                log.debug("Cluster is not ready to load API tokens; retrying in {}", STARTUP_RELOAD_RETRY_DELAY);
+                threadPool.scheduleUnlessShuttingDown(
+                    STARTUP_RELOAD_RETRY_DELAY,
+                    ThreadPool.Names.GENERIC,
+                    () -> reloadApiTokensOnNodeStart(listener)
+                );
+                return;
+            }
+            listener.onFailure(e);
+        }));
     }
 
     private static RoleV7 buildRole(ApiToken tokenMetadata) {
@@ -181,15 +207,17 @@ public class ApiTokenRepository {
 
     public ApiTokenRepository(Client client, ClusterService clusterService) {
         apiTokenIndexHandler = new ApiTokenIndexHandler(client, clusterService);
+        threadPool = client.threadPool();
     }
 
-    private ApiTokenRepository(ApiTokenIndexHandler apiTokenIndexHandler) {
+    private ApiTokenRepository(ApiTokenIndexHandler apiTokenIndexHandler, ThreadPool threadPool) {
         this.apiTokenIndexHandler = apiTokenIndexHandler;
+        this.threadPool = threadPool;
     }
 
     @VisibleForTesting
-    static ApiTokenRepository forTest(ApiTokenIndexHandler apiTokenIndexHandler) {
-        return new ApiTokenRepository(apiTokenIndexHandler);
+    static ApiTokenRepository forTest(ApiTokenIndexHandler apiTokenIndexHandler, ThreadPool threadPool) {
+        return new ApiTokenRepository(apiTokenIndexHandler, threadPool);
     }
 
     public record TokenCreated(String id, String token) {

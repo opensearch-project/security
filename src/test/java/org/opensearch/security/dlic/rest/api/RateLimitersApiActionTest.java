@@ -136,6 +136,10 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
             updateAuthFailuresResponseNoBackend.getStatusCode(),
             equalTo(HttpStatus.SC_BAD_REQUEST)
         );
+        assertThat(
+            updateAuthFailuresResponseNoBackend.getBody(),
+            containsString("username auth failure listeners must have 'internal' authentication backend")
+        );
 
         RestHelper.HttpResponse updateAuthFailuresResponseNoType = rh.executePutRequest(
             "/_plugins/_security/api/authfailurelisteners/test",
@@ -146,6 +150,49 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
             updateAuthFailuresResponseNoType.getBody(),
             updateAuthFailuresResponseNoType.getStatusCode(),
             equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+        assertThat(updateAuthFailuresResponseNoType.getBody(), containsString("type is required"));
+
+        RestHelper.HttpResponse updateAuthFailuresResponseWithEnvExpression = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"ignore_hosts\":[\"${envbase64.IGNORED_HOST}\"]}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(
+            updateAuthFailuresResponseWithEnvExpression.getBody(),
+            updateAuthFailuresResponseWithEnvExpression.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+        assertThat(
+            updateAuthFailuresResponseWithEnvExpression.getBody(),
+            containsString("ignore_hosts must not contain environment variable expressions")
+        );
+
+        RestHelper.HttpResponse updateAuthFailuresResponseWithMalformedHost = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"ignore_hosts\":[42]}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(
+            updateAuthFailuresResponseWithMalformedHost.getBody(),
+            updateAuthFailuresResponseWithMalformedHost.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+        assertThat(updateAuthFailuresResponseWithMalformedHost.getBody(), containsString("ignore_hosts should only contain string values"));
+
+        RestHelper.HttpResponse updateAuthFailuresResponseWithNegativeLimit = rh.executePutRequest(
+            "/_plugins/_security/api/authfailurelisteners/test",
+            "{\"type\":\"ip\",\"max_tracked_clients\":-1}",
+            ADMIN_FULL_ACCESS_USER
+        );
+        assertThat(
+            updateAuthFailuresResponseWithNegativeLimit.getBody(),
+            updateAuthFailuresResponseWithNegativeLimit.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+        assertThat(
+            updateAuthFailuresResponseWithNegativeLimit.getBody(),
+            containsString("max_tracked_clients must be between 0 and 2147483647")
         );
 
     }

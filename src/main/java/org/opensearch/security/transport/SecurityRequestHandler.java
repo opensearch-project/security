@@ -26,9 +26,9 @@
 
 package org.opensearch.security.transport;
 
-import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -40,7 +40,6 @@ import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.DefaultObjectMapper;
@@ -53,10 +52,8 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.ssl.transport.SecuritySSLRequestHandler;
 import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
 import org.opensearch.security.util.ParentChildrenQueryDetector;
 import org.opensearch.tasks.Task;
@@ -71,6 +68,8 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnab
 
 public class SecurityRequestHandler<T extends TransportRequest> extends SecuritySSLRequestHandler<T> {
 
+    private static final String DIRECT_CHANNEL_TYPE = "direct";
+    private static final String STREAM_CHANNEL_TYPE = "stream-transport";
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
@@ -105,27 +104,13 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final TransportChannel transportChannel,
         Task task
     ) throws Exception {
-        String resolvedActionClass = request.getClass().getSimpleName();
-
-        if (request instanceof BulkShardRequest) {
-            if (((BulkShardRequest) request).items().length == 1) {
-                resolvedActionClass = ((BulkShardRequest) request).items()[0].request().getClass().getSimpleName();
-            }
-        }
-
-        if (request instanceof ConcreteShardRequest) {
-            resolvedActionClass = ((ConcreteShardRequest<?>) request).getRequest().getClass().getSimpleName();
-        }
+        final String resolvedActionClass = resolveActionClass(request);
 
         String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
 
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
 
-        final String originHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER);
-
-        if (!Strings.isNullOrEmpty(originHeader)) {
-            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originHeader);
-        }
+        TransportIdentityContext.restoreOrigin(getThreadContext());
 
         // restore headers used for DLS
         final var dlsRequestHeadersAsString = getThreadContext().getHeader(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS);
@@ -149,114 +134,25 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
 
-            if (request instanceof ShardSearchRequest) {
-                ShardSearchRequest sr = ((ShardSearchRequest) request);
-                if (sr.source() != null && sr.source().suggest() != null) {
-                    getThreadContext().putTransient("_opendistro_security_issuggest", Boolean.TRUE);
-                }
-                if (sr.source() != null && sr.source().query() != null) {
-                    if (ParentChildrenQueryDetector.hasParentOrChildQuery(sr.source().query())) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY, Boolean.TRUE);
-                    }
-                }
-            }
+            populateShardSearchContext(request);
 
             // bypass non-netty requests
-            if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null
-                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER) != null
-                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES) != null
-                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) != null) {
+            if (TransportIdentityContext.hasTransientIdentity(getThreadContext())) {
+                TransportIdentityContext.restoreRolesValidation(getThreadContext());
 
-                final String rolesValidation = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER
-                );
-                if (!Strings.isNullOrEmpty(rolesValidation)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
-                }
-
-                if (isActionTraceEnabled()) {
-                    getThreadContext().putHeader(
-                        "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
-                        Thread.currentThread().getName()
-                            + " DIR -> "
-                            + transportChannel.getChannelType()
-                            + " "
-                            + getThreadContext().getHeaders()
-                    );
-                }
+                addActionTrace("DIR", channelType, false);
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
             } else {
-                String authenticatedUserHeader = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER_HEADER
+                TransportIdentityContext.restoreSerializedIdentity(
+                    getThreadContext(),
+                    request.remoteAddress(),
+                    userFactory,
+                    remoteClusterIdentityPolicy
                 );
-                String userSameAsAuthenticatedUserHeader = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_USER_SAME_AS_SUBJECT_HEADER
-                );
-                String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-
-                // Deserialize and sanitize users.
-                User user = null;
-                if (userHeader != null) {
-                    user = this.userFactory.fromSerializedBase64(userHeader);
-                    user = remoteClusterIdentityPolicy.sanitize(user, getThreadContext());
-                }
-                User authenticatedUser = null;
-                if (authenticatedUserHeader != null) {
-                    authenticatedUser = this.userFactory.fromSerializedBase64(authenticatedUserHeader);
-                    authenticatedUser = remoteClusterIdentityPolicy.sanitize(authenticatedUser, getThreadContext());
-                }
-
-                // Store the authenticated user in persistent context (if not already set).
-                if (getThreadContext().getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                    if (Boolean.parseBoolean(userSameAsAuthenticatedUserHeader) && user != null) {
-                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
-                    } else if (authenticatedUser != null) {
-                        getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, authenticatedUser);
-                    }
-                }
-
-                // Store transient user or injected roles
-                final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
-                final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
-
-                if (Strings.isNullOrEmpty(userHeader)) {
-                    // Keeping role injection with higher priority as plugins under OpenSearch will be using this
-                    // on transport layer
-                    if (!Strings.isNullOrEmpty(injectedRolesHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
-                    } else if (!Strings.isNullOrEmpty(injectedUserHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
-                    }
-                } else {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                }
-
-                String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
-
-                if (!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                    getThreadContext().putTransient(
-                        ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS,
-                        new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress))
-                    );
-                } else {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
-                }
-
-                final String rolesValidation = getThreadContext().getHeader(
-                    ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER
-                );
-                if (!Strings.isNullOrEmpty(rolesValidation)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
-                }
             }
 
-            if (channelType.equals("direct")) {
-                super.messageReceivedDecorate(request, handler, transportChannel, task);
-                return;
-            }
-
-            if (channelType.equals("stream-transport")) {
+            if (isDirectOrStreamChannel(channelType)) {
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
             }
@@ -266,20 +162,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             ) == Boolean.TRUE;
 
             if (skipSecurityIfDualMode) {
-                if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) == null) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
-                }
-
-                if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
-                }
-
-                if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == null) {
-                    getThreadContext().putTransient(
-                        ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST,
-                        Boolean.TRUE
-                    );
-                }
+                populateDualModeContext(request);
 
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
@@ -342,36 +225,14 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     return;
                 }
 
-                if (isActionTraceEnabled()) {
-                    getThreadContext().putHeader(
-                        "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
-                        Thread.currentThread().getName()
-                            + " NETTI -> "
-                            + transportChannel.getChannelType()
-                            + " "
-                            + getThreadContext().getHeaders()
-                                .entrySet()
-                                .stream()
-                                .filter(p -> !p.getKey().startsWith("_opendistro_security_trace"))
-                                .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()))
-                    );
-                }
+                addActionTrace("NETTI", channelType, true);
 
                 putInitialActionClassHeader(initialActionClassValue, resolvedActionClass);
             }
             super.messageReceivedDecorate(request, handler, transportChannel, task);
         } finally {
 
-            if (isActionTraceEnabled()) {
-                getThreadContext().putHeader(
-                    "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
-                    Thread.currentThread().getName()
-                        + " FIN -> "
-                        + transportChannel.getChannelType()
-                        + " "
-                        + getThreadContext().getHeaders()
-                );
-            }
+            addActionTrace("FIN", transportChannel.getChannelType(), false);
 
             if (sgContext != null) {
                 sgContext.close();
@@ -380,15 +241,67 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     }
 
     private void putInitialActionClassHeader(String initialActionClassValue, String resolvedActionClass) {
-        if (initialActionClassValue == null) {
-            if (getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER, resolvedActionClass);
+        if (getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
+            getThreadContext().putHeader(
+                ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER,
+                initialActionClassValue == null ? resolvedActionClass : initialActionClassValue
+            );
+        }
+    }
+
+    private String resolveActionClass(TransportRequest request) {
+        if (request instanceof BulkShardRequest bulkShardRequest && bulkShardRequest.items().length == 1) {
+            return bulkShardRequest.items()[0].request().getClass().getSimpleName();
+        }
+        if (request instanceof ConcreteShardRequest<?> concreteShardRequest) {
+            return concreteShardRequest.getRequest().getClass().getSimpleName();
+        }
+        return request.getClass().getSimpleName();
+    }
+
+    private void populateShardSearchContext(TransportRequest request) {
+        if (request instanceof ShardSearchRequest shardSearchRequest && shardSearchRequest.source() != null) {
+            if (shardSearchRequest.source().suggest() != null) {
+                getThreadContext().putTransient("_opendistro_security_issuggest", Boolean.TRUE);
             }
-        } else {
-            if (getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER, initialActionClassValue);
+            if (shardSearchRequest.source().query() != null
+                && ParentChildrenQueryDetector.hasParentOrChildQuery(shardSearchRequest.source().query())) {
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY, Boolean.TRUE);
             }
         }
+    }
+
+    private boolean isDirectOrStreamChannel(String channelType) {
+        return DIRECT_CHANNEL_TYPE.equals(channelType) || STREAM_CHANNEL_TYPE.equals(channelType);
+    }
+
+    private void populateDualModeContext(TransportRequest request) {
+        if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) == null) {
+            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
+        }
+        if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
+            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
+        }
+        if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == null) {
+            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
+        }
+    }
+
+    private void addActionTrace(String stage, String channelType, boolean excludeTraceHeaders) {
+        if (!isActionTraceEnabled()) {
+            return;
+        }
+        final Map<String, String> headers = excludeTraceHeaders
+            ? getThreadContext().getHeaders()
+                .entrySet()
+                .stream()
+                .filter(entry -> !entry.getKey().startsWith(TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX))
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()))
+            : getThreadContext().getHeaders();
+        getThreadContext().putHeader(
+            TransportHeaderConstants.ACTION_TRACE_HEADER_PREFIX + System.currentTimeMillis() + "#" + UUID.randomUUID(),
+            Thread.currentThread().getName() + " " + stage + " -> " + channelType + " " + headers
+        );
 
     }
 
