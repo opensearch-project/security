@@ -9,13 +9,17 @@
 */
 package org.opensearch.security.http;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain;
 import org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.HttpAuthenticator;
@@ -66,7 +70,14 @@ public class CertificateAuthenticationTest {
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().nodeSettings(
-        Map.of("plugins.security.ssl.http.clientauth_mode", "OPTIONAL")
+        Map.of(
+            "plugins.security.ssl.http.clientauth_mode",
+            "OPTIONAL",
+            SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT,
+            "true",
+            SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE,
+            "DC=de,L=test,O=users,OU=bridge,CN=spock"
+        )
     )
         .clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .anonymousAuth(false)
@@ -161,6 +172,32 @@ public class CertificateAuthenticationTest {
             List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
             assertThat(roles, hasSize(1));
             assertThat(roles, containsInAnyOrder(ROLE_ALL_INDEX_SEARCH.getName()));
+        }
+    }
+
+    @Test
+    /**
+     * The test will result in resolving to user kirk associated role because header cert will get priority.
+     * In a external load balancer where TLS handshake is done at load balancer, opensearch will only get load balancer certificate
+     * in handshake. To pass original client cert to opensearch, it can be passed as header. OpenSearch can use this header to resolve
+     *  the role of original client instead of using load balancer certificate. This is specially useful in kubernetes environment
+     *  where load balancer is the only way to connect to the cluster in many cases.
+     */
+    public void shouldRetrieveBackendRoleFromCertificate_positiveRoleCaptain_fromheader() {
+        CertificateData userKirkCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_CAPTAIN, USER_KIRK);
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
+
+        String encodedKirkCert = URLEncoder.encode(userKirkCertificate.certificateInPemFormat(), StandardCharsets.UTF_8);
+        try (TestRestClient client = cluster.getRestClient(userSpockCertificate, new BasicHeader("x-client-cert", encodedKirkCert))) {
+
+            HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(200);
+            List<String> backendRoles = response.getTextArrayFromJsonBody(POINTER_BACKEND_ROLES);
+            assertThat(backendRoles, hasSize(1));
+            assertThat(backendRoles, containsInAnyOrder(BACKEND_ROLE_CAPTAIN));
+            List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
+            assertThat(roles, hasSize(0));
         }
     }
 
