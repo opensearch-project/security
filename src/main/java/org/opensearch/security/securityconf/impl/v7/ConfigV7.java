@@ -460,6 +460,18 @@ public class ConfigV7 {
         @JsonProperty("encryption_key")
         private String encryptionKey;
 
+        private final Map<String, Object> additionalSettings = new HashMap<>();
+
+        @JsonAnySetter
+        public void setAdditionalSetting(final String name, final Object value) {
+            additionalSettings.put(name, value);
+        }
+
+        @JsonAnyGetter
+        public Map<String, Object> getAdditionalSettings() {
+            return additionalSettings;
+        }
+
         @JsonIgnore
         public String configAsJson() {
             return DefaultObjectMapper.writeValueAsString(this, false);
@@ -491,7 +503,12 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "OnBehalfOfSettings [ enabled=" + enabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+            return String.format(
+                "OnBehalfOfSettings [ enabled=%s, signing_key=%s, encryption_key=%s]",
+                enabled,
+                signingKey != null ? "****" : "<not set>",
+                encryptionKey != null ? "****" : "<not set>"
+            );
         }
     }
 
