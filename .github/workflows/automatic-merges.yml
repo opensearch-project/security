@@ -9,28 +9,38 @@ on:
     types: completed
 
 jobs:
-  automatic-merge-version-bumps:
+  find-triggering-pr:
+    if: github.repository == 'opensearch-project/security'
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      pr-number: ${{ steps.find-triggering-pr.outputs.pr-number }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-
-      - name: GitHub App token
-        id: github_app_token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
       - id: find-triggering-pr
-        uses: peternied/find-triggering-pr@ebe6a5ff5d5edfdf31b1f8aca20f89167c57bbef # v1
+        # TODO: Pin this to the upstream opensearch-build commit after opensearch-build#6463 merges.
+        uses: cwperks/opensearch-build/.github/actions/find-triggering-pr@542adc329a07cbba2597a705c10d3bcdf619df86
         with:
-          token: ${{ steps.github_app_token.outputs.token }}
+          token: ${{ github.token }}
 
-      - uses: peternied/discerning-merger@07eafb14c195a2c23b291f6b008a686589cfb545 # v3
-        if: steps.find-triggering-pr.outputs.pr-number != null
+  automatic-merge-version-bumps:
+    needs: find-triggering-pr
+    if: needs.find-triggering-pr.outputs.pr-number != ''
+    permissions:
+      checks: read
+      contents: write
+      pull-requests: write
+    outputs:
+      merged: ${{ steps.merge.outputs.merged }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: merge
+        # TODO: Pin this to the upstream opensearch-build commit after opensearch-build#6463 merges.
+        uses: cwperks/opensearch-build/.github/actions/discerning-merger@542adc329a07cbba2597a705c10d3bcdf619df86
         with:
-          token: ${{ steps.github_app_token.outputs.token }}
-          pull-request-number: ${{ steps.find-triggering-pr.outputs.pr-number }}
+          token: ${{ github.token }}
+          pull-request-number: ${{ needs.find-triggering-pr.outputs.pr-number }}
           allowed-authors: |
             dependabot[bot]
             opensearch-trigger-bot[bot]
@@ -38,3 +48,17 @@ jobs:
             build.gradle
             CHANGELOG.md
             .github/workflows/*.yml
+
+  run-post-merge-workflows:
+    needs: automatic-merge-version-bumps
+    if: needs.automatic-merge-version-bumps.outputs.merged == 'true'
+    permissions:
+      actions: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run post-merge workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run maven-publish.yml --ref main --repo ${{ github.repository }}
+          gh workflow run release-drafter.yml --ref main --repo ${{ github.repository }}

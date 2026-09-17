@@ -197,6 +197,9 @@ Commit title ≤ 50 characters. Leave a blank line before the body; wrap body at
 
 - Always push to your personal fork. Never push directly to `opensearch-project/security` or to `main`.
 - Tests run automatically on all PRs across all supported JDK versions. All checks must pass before merging.
+- Automatic merges are limited to explicitly allowlisted bot authors and file patterns. The workflow uses
+  organization-owned actions with the repository `GITHUB_TOKEN`; successful automatic merges explicitly dispatch
+  workflows that have required post-merge side effects.
 
 ## Backports
 
