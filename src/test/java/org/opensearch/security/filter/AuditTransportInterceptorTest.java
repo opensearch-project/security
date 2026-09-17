@@ -21,6 +21,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.action.IndicesRequest;
+import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteReplicaRequest;
+import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
@@ -580,6 +583,155 @@ public class AuditTransportInterceptorTest {
         assertThat(msg.getCategory(), equalTo(AuditCategory.TRANSPORT_AUDIT));
         assertThat(msg.getPrivilege(), equalTo("indices:data/write/bulk[s][r]"));
 
+        verify(actualHandler).messageReceived(request, channel, task);
+    }
+
+    // =====================================================================
+    // Self-loop guard — shard-level replication requests
+    // =====================================================================
+
+    /**
+     * Concrete rather than mocked so the audited request type is a real class name,
+     * which is what an ignore_requests rule would be written against.
+     */
+    private static class ShardLevelWriteRequest extends TransportRequest implements IndicesRequest {
+        private final String[] indices;
+
+        ShardLevelWriteRequest(String... indices) {
+            this.indices = indices;
+        }
+
+        @Override
+        public String[] indices() {
+            return indices;
+        }
+
+        @Override
+        public IndicesOptions indicesOptions() {
+            return IndicesOptions.strictExpandOpen();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSelfLoopGuardUnwrapsConcreteShardRequest() throws Exception {
+        ShardLevelWriteRequest inner = new ShardLevelWriteRequest("security-auditlog-2026.09.17");
+        ConcreteShardRequest<ShardLevelWriteRequest> request = new ConcreteShardRequest<>(inner, "alloc-1", 1L);
+
+        TransportChannel channel = mock(TransportChannel.class);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(1L);
+        when(task.getParentTaskId()).thenReturn(null);
+        TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
+
+        TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
+            "indices:data/write/bulk[s][p]",
+            "generic",
+            false,
+            actualHandler
+        );
+
+        wrappedHandler.messageReceived(request, channel, task);
+
+        // Auditing this would write another audit document, which reroutes as another
+        // shard request, which is the loop
+        verify(auditLog, never()).logTransportAudit(org.mockito.ArgumentMatchers.any());
+        verify(actualHandler).messageReceived(request, channel, task);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSelfLoopGuardUnwrapsConcreteReplicaRequest() throws Exception {
+        ShardLevelWriteRequest inner = new ShardLevelWriteRequest("security-auditlog-2026.09.17");
+        ConcreteReplicaRequest<ShardLevelWriteRequest> request = new ConcreteReplicaRequest<>(inner, "alloc-1", 1L, 0L, 0L);
+
+        TransportChannel channel = mock(TransportChannel.class);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(2L);
+        when(task.getParentTaskId()).thenReturn(null);
+        TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
+
+        TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
+            "indices:data/write/bulk[s][r]",
+            "generic",
+            false,
+            actualHandler
+        );
+
+        wrappedHandler.messageReceived(request, channel, task);
+
+        verify(auditLog, never()).logTransportAudit(org.mockito.ArgumentMatchers.any());
+        verify(actualHandler).messageReceived(request, channel, task);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testConcreteShardRequestReportsInnerIndicesAndType() throws Exception {
+        ShardLevelWriteRequest inner = new ShardLevelWriteRequest("customer-data");
+        ConcreteShardRequest<ShardLevelWriteRequest> request = new ConcreteShardRequest<>(inner, "alloc-1", 1L);
+        request.remoteAddress(new TransportAddress(new InetSocketAddress(InetAddress.getByName("10.0.0.7"), 9300)));
+
+        TransportChannel channel = mock(TransportChannel.class);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(3L);
+        when(task.getParentTaskId()).thenReturn(null);
+        TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
+
+        TransportRequestHandler<TransportRequest> wrappedHandler = interceptor.interceptHandler(
+            "indices:data/write/bulk[s][p]",
+            "generic",
+            false,
+            actualHandler
+        );
+
+        wrappedHandler.messageReceived(request, channel, task);
+
+        ArgumentCaptor<AuditMessage> captor = ArgumentCaptor.forClass(AuditMessage.class);
+        verify(auditLog).logTransportAudit(captor.capture());
+
+        AuditMessage msg = captor.getValue();
+        Map<String, Object> fields = msg.getAsMap();
+        // The wrapper itself carries neither, so both come from the request it wraps
+        assertThat((String[]) fields.get(AuditMessage.INDICES), equalTo(new String[] { "customer-data" }));
+        assertThat(msg.getRequestType(), equalTo("ShardLevelWriteRequest"));
+        // Remote address stays on the wrapper — the transport layer sets it there
+        assertThat(fields.get(AuditMessage.REMOTE_ADDRESS), notNullValue());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testIgnoreRequestsMatchesUnwrappedRequestType() throws Exception {
+        ShardLevelWriteRequest inner = new ShardLevelWriteRequest("customer-data");
+
+        Settings ignoreSettings = Settings.builder()
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "ShardLevelWriteRequest")
+            .build();
+        AuditTransportInterceptor filteredInterceptor = new AuditTransportInterceptor(
+            auditLog,
+            clusterService,
+            threadPool,
+            AuditConfig.from(ignoreSettings).getFilter(),
+            "security-auditlog"
+        );
+
+        ConcreteShardRequest<ShardLevelWriteRequest> request = new ConcreteShardRequest<>(inner, "alloc-1", 1L);
+
+        TransportChannel channel = mock(TransportChannel.class);
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(4L);
+        when(task.getParentTaskId()).thenReturn(null);
+        TransportRequestHandler<TransportRequest> actualHandler = mock(TransportRequestHandler.class);
+
+        TransportRequestHandler<TransportRequest> wrappedHandler = filteredInterceptor.interceptHandler(
+            "indices:data/write/bulk[s][p]",
+            "generic",
+            false,
+            actualHandler
+        );
+
+        wrappedHandler.messageReceived(request, channel, task);
+
+        verify(auditLog, never()).logTransportAudit(org.mockito.ArgumentMatchers.any());
         verify(actualHandler).messageReceived(request, channel, task);
     }
 }
