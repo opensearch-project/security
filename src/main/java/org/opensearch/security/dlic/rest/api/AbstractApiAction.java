@@ -410,7 +410,11 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
-        return processPutRequest(nameParam(request), request);
+        final String entityName = nameParam(request);
+        if (entityName != null) {
+            return processPutRequest(entityName, request);
+        }
+        return processBulkPutRequest(request);
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final String entityName, final RestRequest request)
@@ -419,6 +423,61 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             .map(ignore -> loadConfigurationWithRequestContent(entityName, request))
             .map(endpointValidator::onConfigChange)
             .map(this::addEntityToConfig);
+    }
+
+    private ValidationResult<SecurityConfiguration> processBulkPutRequest(final RestRequest request) throws IOException {
+        final JsonNode requestContent;
+        try {
+            requestContent = Utils.toJsonNode(request.content().utf8ToString());
+        } catch (IOException e) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Request body must be valid JSON."));
+        }
+        if (requestContent.isObject() == false || requestContent.isEmpty()) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Request body must be a non-empty object keyed by resource name.")
+            );
+        }
+
+        return loadConfiguration(getConfigType(), false, false).map(
+            configuration -> validateAndAddEntities(request, requestContent, configuration)
+        );
+    }
+
+    private ValidationResult<SecurityConfiguration> validateAndAddEntities(
+        final RestRequest request,
+        final JsonNode requestContent,
+        final SecurityDynamicConfiguration<?> configuration
+    ) throws IOException {
+        for (final var entity : requestContent.properties()) {
+            final String entityName = entity.getKey();
+            final JsonNode entityContent = entity.getValue();
+            final var entityNameValidation = endpointValidator.withRequiredEntityName(entityName.isEmpty() ? null : entityName);
+            if (entityNameValidation.isValid() == false) {
+                return ValidationResult.error(entityNameValidation.status(), entityNameValidation.errorMessage());
+            }
+            if (entityContent.isObject() == false) {
+                return ValidationResult.error(
+                    RestStatus.BAD_REQUEST,
+                    badRequestMessage("Resource '" + entityName + "' must be a JSON object.")
+                );
+            }
+
+            final var contentValidation = endpointValidator.createRequestContentValidator(entityName).validate(request, entityContent);
+            if (contentValidation.isValid() == false) {
+                return ValidationResult.error(contentValidation.status(), contentValidation.errorMessage());
+            }
+            final var securityConfiguration = SecurityConfiguration.of(entityContent, entityName, configuration);
+            final var changeValidation = endpointValidator.onConfigChange(securityConfiguration);
+            if (changeValidation.isValid() == false) {
+                return ValidationResult.error(changeValidation.status(), changeValidation.errorMessage());
+            }
+        }
+
+        for (final var entity : requestContent.properties()) {
+            configuration.putCObject(entity.getKey(), Utils.toConfigObject(entity.getValue(), configuration.getImplementingClass()));
+        }
+        return ValidationResult.success(SecurityConfiguration.of(null, configuration));
     }
 
     protected final ValidationResult<SecurityConfiguration> addEntityToConfig(final SecurityConfiguration securityConfiguration)
