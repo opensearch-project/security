@@ -43,6 +43,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticationBackend;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationChangeListener;
@@ -51,6 +52,7 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
@@ -70,6 +72,8 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.EventBusBuilder;
 import org.greenrobot.eventbus.Logger.JavaLogger;
 import tools.jackson.databind.JsonNode;
+
+import static org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticationBackend.JWT_AUTH_BACKEND_TYPE;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 
@@ -145,6 +149,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final ThreadPool threadPool;
     private final Client client;
     private final ApiTokenRepository apiTokenRepository;
+    private final PrivilegesConfiguration privilegesConfiguration;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -156,7 +161,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         ThreadPool threadPool,
         ClusterInfoHolder cih,
         PasswordHasher passwordHasher,
-        ApiTokenRepository apiTokenRepository
+        ApiTokenRepository apiTokenRepository,
+        PrivilegesConfiguration privilegesConfiguration
     ) {
         super();
         this.cr = cr;
@@ -167,6 +173,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.threadPool = threadPool;
         this.client = client;
         this.apiTokenRepository = apiTokenRepository;
+        this.privilegesConfiguration = privilegesConfiguration;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -286,6 +293,12 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             eventBus.post(audit == null ? defaultAuditConfig : audit);
         }
 
+        dcm.getRestAuthDomains().forEach(d -> {
+            if (JWT_AUTH_BACKEND_TYPE.equalsIgnoreCase(d.getBackend().getType())) {
+                final var jwtAuthBackend = (HTTPJwtAuthenticationBackend) d.getBackend();
+                jwtAuthBackend.setPrivilegesConfiguration(privilegesConfiguration);
+            }
+        });
         log.debug("Dispatched config update notification to different subscribers");
 
         initialized.set(true);

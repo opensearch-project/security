@@ -39,6 +39,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ALL_REST_ADMIN_PERMISSIONS;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
@@ -56,7 +57,7 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
         new TestSecurityConfig.User(REST_API_ADMIN_ACTION_ROLES_ONLY).roles(
             new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.ROLES))
         )
-    ).roles(new TestSecurityConfig.Role(REST_ADMIN_PERMISSION_ROLE).clusterPermissions(allRestAdminPermissions())).build();
+    ).roles(new TestSecurityConfig.Role(REST_ADMIN_PERMISSION_ROLE).clusterPermissions(ALL_REST_ADMIN_PERMISSIONS)).build();
 
     public RolesRestApiIntegrationTest() {
         super("roles", new TestDescriptor() {
