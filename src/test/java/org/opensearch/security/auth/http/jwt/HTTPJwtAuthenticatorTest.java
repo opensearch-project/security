@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.AuthenticationFailureReason;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
@@ -505,7 +506,11 @@ public class HTTPJwtAuthenticatorTest {
             Jwts.builder().setSubject("plugin:org.opensearch.example.Plugin")
         );
 
-        Assert.assertNull(credentials);
+        Assert.assertNotNull(credentials);
+        Assert.assertTrue(credentials.isRejected());
+        Assert.assertFalse(credentials.isComplete());
+        assertThat(credentials.getAttemptedPrincipal(), is("plugin:org.opensearch.example.Plugin"));
+        assertThat(credentials.getFailureReason(), is(AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX));
     }
 
     @Test
@@ -515,7 +520,11 @@ public class HTTPJwtAuthenticatorTest {
             Jwts.builder().setSubject("token:administrative-token")
         );
 
-        Assert.assertNull(credentials);
+        Assert.assertNotNull(credentials);
+        Assert.assertTrue(credentials.isRejected());
+        Assert.assertFalse(credentials.isComplete());
+        assertThat(credentials.getAttemptedPrincipal(), is("token:administrative-token"));
+        assertThat(credentials.getFailureReason(), is(AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX));
     }
 
     @Test
@@ -525,7 +534,11 @@ public class HTTPJwtAuthenticatorTest {
             Jwts.builder().setSubject("Leonard McCoy").claim("asub", "plugin:org.opensearch.example.Plugin")
         );
 
-        Assert.assertNull(credentials);
+        Assert.assertNotNull(credentials);
+        Assert.assertTrue(credentials.isRejected());
+        Assert.assertFalse(credentials.isComplete());
+        assertThat(credentials.getAttemptedPrincipal(), is("plugin:org.opensearch.example.Plugin"));
+        assertThat(credentials.getFailureReason(), is(AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX));
     }
 
     @Test
