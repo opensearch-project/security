@@ -16,11 +16,14 @@ import java.util.List;
 import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import org.junit.ClassRule;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.security.ssl.CertificatesRule;
+import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
+import org.opensearch.test.BouncyCastleThreadFilter;
 
 import static java.util.Objects.nonNull;
 import static org.hamcrest.CoreMatchers.is;
@@ -29,6 +32,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
 public abstract class SslCertificatesLoaderTest extends RandomizedTest {
 
     @ClassRule
