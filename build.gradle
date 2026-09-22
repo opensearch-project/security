@@ -11,6 +11,7 @@
 
 
 import com.diffplug.gradle.spotless.JavaExtension
+import org.opensearch.gradle.info.FipsBuildParams
 import org.opensearch.gradle.test.RestIntegTestTask
 import groovy.json.JsonBuilder
 
@@ -69,6 +70,10 @@ plugins {
 allprojects {
     group = "org.opensearch"
     version = opensearch_build
+
+    ext {
+        isInFipsApprovedOnlyMode = FipsBuildParams::isInFipsApprovedOnlyMode
+    }
 }
 
 apply plugin: 'opensearch.opensearchplugin'

@@ -34,8 +34,7 @@
  * FIPS mode is driven by the OPENSEARCH_FIPS_MODE environment variable.
  */
 
-def fipsBuildParams = rootProject.buildscript.classLoader.loadClass('org.opensearch.gradle.info.FipsBuildParams')
-ext.fipsTestsEnabled = fipsBuildParams.isInFipsApprovedOnlyMode()
+ext.fipsTestsEnabled = ext.isInFipsApprovedOnlyMode()
 
 // Source file patterns identifying a FIPS variant.
 ext.fipsSourcePatterns = ['**/*FipsTests.java', '**/*FipsIT.java']
