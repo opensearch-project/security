@@ -16,6 +16,8 @@ import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.function.BooleanSupplier;
+import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
@@ -44,6 +46,9 @@ public class EncryptionDecryptionUtil {
     private static final int MINIMUM_IKM_BYTES = AES_KEY_LENGTH_BYTES;
 
     private final SecretKey aesKey;
+
+    private final LegacyRolesClaimFormat legacyFormat;
+
     private final SecureRandom secureRandom = Randomness.createSecure();
 
     /**
@@ -51,22 +56,48 @@ public class EncryptionDecryptionUtil {
      * (e.g. BCFKS, keeping the key out of cluster state) or a Base64-encoded plaintext value. Both issuance
      * and verification call this so they derive the same AES key from the same key material.
      *
+     * @param settings          the dynamic on-behalf-of settings holding the key or the keystore coordinates
+     * @param prefix            the setting name the key is configured under, e.g. {@code encryption_key}; the
+     *                          keystore variants are read from {@code <prefix>_keystore_*}
+     * @param configPath        the node's config directory, which relative keystore paths resolve against
+     * @param legacyFormatInUse whether the pre-upgrade AES/ECB format is still in play, see
+     *                          {@link LegacyRolesClaimFormat}
      * @return a util instance, or {@code null} if no key is configured
      */
-    public static EncryptionDecryptionUtil fromSettings(final Settings settings, final String prefix, final Path configPath) {
+    public static EncryptionDecryptionUtil fromSettings(
+        final Settings settings,
+        final String prefix,
+        final Path configPath,
+        final BooleanSupplier legacyFormatInUse
+    ) {
         final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, prefix, configPath);
         if (keystoreKey != null) {
-            return new EncryptionDecryptionUtil(keystoreKey.getEncoded());
+            return new EncryptionDecryptionUtil(keystoreKey.getEncoded(), legacyFormatInUse);
         }
         final String configured = settings.get(prefix);
-        return configured != null ? new EncryptionDecryptionUtil(configured) : null;
+        return configured != null ? new EncryptionDecryptionUtil(configured, legacyFormatInUse) : null;
     }
 
+    /**
+     * For tests only: AES-GCM without the pre-upgrade format, as if every node were upgraded. Production code
+     * goes through {@link #fromSettings}, which passes the cluster's actual gate.
+     */
     public EncryptionDecryptionUtil(final String encodedSecret) {
-        this(decodeBase64(encodedSecret));
+        this(encodedSecret, () -> false);
     }
 
+    /** For tests only, see {@link #EncryptionDecryptionUtil(String)}. */
     public EncryptionDecryptionUtil(final byte[] secretBytes) {
+        this(secretBytes, () -> false);
+    }
+
+    public EncryptionDecryptionUtil(final String encodedSecret, final BooleanSupplier legacyFormatInUse) {
+        this(decodeBase64(encodedSecret), legacyFormatInUse);
+    }
+
+    public EncryptionDecryptionUtil(final byte[] secretBytes, final BooleanSupplier legacyFormatInUse) {
+        // before deriveKey, which wipes secretBytes
+        this.legacyFormat = new LegacyRolesClaimFormat(secretBytes, legacyFormatInUse);
         this.aesKey = deriveKey(secretBytes);
     }
 
@@ -78,8 +109,15 @@ public class EncryptionDecryptionUtil {
         }
     }
 
+    /**
+     * Encrypts with AES-GCM, or with the pre-upgrade AES/ECB format while the cluster still contains a node
+     * that cannot read AES-GCM; see {@link LegacyRolesClaimFormat#writes()}.
+     */
     public String encrypt(final String data) {
         byte[] plaintext = data.getBytes(StandardCharsets.UTF_8);
+        if (legacyFormat.writes()) {
+            return legacyFormat.encrypt(plaintext);
+        }
         try {
             byte[] nonce = new byte[GCM_NONCE_LENGTH];
             secureRandom.nextBytes(nonce);
@@ -95,6 +133,14 @@ public class EncryptionDecryptionUtil {
         }
     }
 
+    /**
+     * Decrypts a value produced by {@link #encrypt(String)}, and one produced by an older node that still
+     * used AES/ECB. The two formats are told apart by trial decryption rather than by
+     * a marker: the GCM tag only verifies for a value this key actually produced in GCM, so a failing tag
+     * identifies the legacy format with a false-positive probability of 2^-128. Accepting the legacy format
+     * is not a forgery risk, because the surrounding JWT signature has already been verified by the time the
+     * roles claim is decrypted.
+     */
     public String decrypt(final String encryptedString) {
         byte[] decodedBytes = Base64.getDecoder().decode(encryptedString);
         try {
@@ -103,6 +149,8 @@ public class EncryptionDecryptionUtil {
             Cipher cipher = Cipher.getInstance(AES_GCM_NO_PADDING);
             cipher.init(Cipher.DECRYPT_MODE, aesKey, new GCMParameterSpec(GCM_TAG_LENGTH, nonce));
             return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+        } catch (final AEADBadTagException e) {
+            return legacyFormat.decrypt(decodedBytes, e);
         } catch (final Exception e) {
             throw new RuntimeException("Error processing data with cipher", e);
         }

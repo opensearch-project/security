@@ -497,7 +497,8 @@ public class OnBehalfOfAuthenticatorTest {
         final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(
             settings,
             "encryption_key",
-            tempDir.getRoot().toPath()
+            tempDir.getRoot().toPath(),
+            () -> false
         );
         final String encryptedRoles = issuerUtil.encrypt("role1,role2");
 
@@ -558,7 +559,8 @@ public class OnBehalfOfAuthenticatorTest {
         final EncryptionDecryptionUtil issuerUtil = EncryptionDecryptionUtil.fromSettings(
             settings,
             "encryption_key",
-            tempDir.getRoot().toPath()
+            tempDir.getRoot().toPath(),
+            () -> false
         );
         final String encryptedRoles = issuerUtil.encrypt("role1,role2");
 
