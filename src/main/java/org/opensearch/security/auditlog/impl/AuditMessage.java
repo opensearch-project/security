@@ -161,6 +161,32 @@ public final class AuditMessage {
     public static final String USER_ROLES = "audit_request_user_roles";
     public static final String AUTH_METHOD = "audit_request_auth_method";
 
+    /**
+     * Principal presented by a rejected credential on a {@link AuditCategory#FAILED_LOGIN}
+     * event. Distinct from {@link #REQUEST_EFFECTIVE_USER}, which is only populated when
+     * an identity has been established. Values are truncated to
+     * {@link #MAX_ATTEMPTED_USER_LENGTH} characters because attempted principals are
+     * untrusted input.
+     */
+    public static final String REQUEST_ATTEMPTED_USER = "audit_request_attempted_user";
+
+    /**
+     * Structured reason a credential was rejected (see
+     * {@link org.opensearch.security.auth.AuthenticationFailureReason}). Populated on
+     * {@link AuditCategory#FAILED_LOGIN} events alongside {@link #REQUEST_ATTEMPTED_USER}
+     * so investigators can distinguish rejection modes without parsing free-form log
+     * messages.
+     */
+    public static final String AUTHENTICATION_FAILURE_REASON = "audit_authentication_failure_reason";
+
+    /**
+     * Maximum length of the {@link #REQUEST_ATTEMPTED_USER} field. Untrusted input is
+     * truncated to protect downstream consumers of the audit log.
+     */
+    static final int MAX_ATTEMPTED_USER_LENGTH = 256;
+
+    private static final String TRUNCATION_MARKER = "...";
+
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
     private final Map<String, Object> auditInfo = new HashMap<String, Object>(50);
     private final AuditCategory msgCategory;
@@ -224,6 +250,37 @@ public final class AuditMessage {
         if (user != null) {
             auditInfo.put(REQUEST_EFFECTIVE_USER, user);
         }
+    }
+
+    /**
+     * Record the principal presented by a rejected credential. Values are truncated to
+     * {@link #MAX_ATTEMPTED_USER_LENGTH} characters because attempted principals are
+     * untrusted input.
+     *
+     * @param attemptedUser attempted principal, or {@code null} for no-op
+     */
+    public void addAttemptedUser(String attemptedUser) {
+        if (attemptedUser != null && !attemptedUser.isEmpty()) {
+            auditInfo.put(REQUEST_ATTEMPTED_USER, truncate(attemptedUser, MAX_ATTEMPTED_USER_LENGTH));
+        }
+    }
+
+    /**
+     * Record the structured reason authentication failed.
+     *
+     * @param failureReason reason enum name, or {@code null} for no-op
+     */
+    public void addAuthenticationFailureReason(String failureReason) {
+        if (failureReason != null && !failureReason.isEmpty()) {
+            auditInfo.put(AUTHENTICATION_FAILURE_REASON, failureReason);
+        }
+    }
+
+    private static String truncate(final String value, final int maxLength) {
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength - TRUNCATION_MARKER.length()) + TRUNCATION_MARKER;
     }
 
     public void addPath(String path) {

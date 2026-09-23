@@ -296,6 +296,7 @@ public class BackendRegistry {
         boolean authenticated = false;
         User authenticatedUser = null;
         AuthCredentials authCredentials = null;
+        AuthCredentials firstRejectedCredentials = null;
         HTTPAuthenticator firstChallengingHttpAuthenticator = null;
 
         /*
@@ -371,6 +372,44 @@ public class BackendRegistry {
             SAML and basic auth for example redirect/re-request credentials from clients.
              */
             authCredentials = ac;
+            if (ac != null && ac.isRejected()) {
+                /*
+                A candidate credential was presented but the authenticator refused it
+                (for example, a JWT subject that uses a reserved security prefix).
+                Emit a FAILED_LOGIN event that preserves the attempted principal and
+                rejection reason while keeping the effective user unset (<NONE>).
+
+                Behavior is otherwise modeled on the "no credentials + challenge" path
+                below: challenge authenticators (JWT) present their unauthorized response
+                and terminate; non-challenging authenticators just skip this domain and
+                let the outer loop try the next one, deferring emission of the failure
+                to the final-failure path where we surface {@code firstRejectedCredentials}.
+                 */
+                if (firstRejectedCredentials == null) {
+                    firstRejectedCredentials = ac;
+                }
+                if (authDomain.isChallenge()) {
+                    final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
+                    if (restResponse.isPresent()) {
+                        final AuthenticationFailureReason reason = ac.getFailureReason();
+                        auditLog.logFailedLogin(
+                            "<NONE>",
+                            false,
+                            null,
+                            request,
+                            ac.getAttemptedPrincipal(),
+                            reason != null ? reason.name() : null
+                        );
+                        notifyIpAuthFailureListeners(request, ac);
+                        request.queueForSending(restResponse.get());
+                        return false;
+                    }
+                }
+                // Non-challenging authenticator (or no challenge produced): treat like
+                // an absent credential and continue with the next configured auth domain.
+                authCredentials = null;
+                continue;
+            }
             if (ac == null) {
                 // no credentials found in request
                 if (!gRPC && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
@@ -551,7 +590,24 @@ public class BackendRegistry {
                 authCredentials == null ? null : authCredentials.getUsername(),
                 remoteAddress
             );
-            auditLog.logFailedLogin(authCredentials == null ? null : authCredentials.getUsername(), false, null, request);
+            final String finalAttemptedUser;
+            final String finalFailureReason;
+            if (firstRejectedCredentials != null) {
+                finalAttemptedUser = firstRejectedCredentials.getAttemptedPrincipal();
+                final AuthenticationFailureReason reason = firstRejectedCredentials.getFailureReason();
+                finalFailureReason = reason != null ? reason.name() : null;
+            } else {
+                finalAttemptedUser = null;
+                finalFailureReason = null;
+            }
+            auditLog.logFailedLogin(
+                authCredentials == null ? null : authCredentials.getUsername(),
+                false,
+                null,
+                request,
+                finalAttemptedUser,
+                finalFailureReason
+            );
 
             notifyIpAuthFailureListeners(request, authCredentials);
 

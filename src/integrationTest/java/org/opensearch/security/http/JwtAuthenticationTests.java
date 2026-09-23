@@ -242,6 +242,8 @@ public class JwtAuthenticationTests {
             Map<String, Object> fields = message.getAsMap();
             return message.getCategory() == AuditCategory.FAILED_LOGIN
                 && "<NONE>".equals(String.valueOf(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER)))
+                && "plugin:reserved-subject".equals(String.valueOf(fields.get(AuditMessage.REQUEST_ATTEMPTED_USER)))
+                && "RESERVED_SUBJECT_PREFIX".equals(String.valueOf(fields.get(AuditMessage.AUTHENTICATION_FAILURE_REASON)))
                 && "REST".equals(String.valueOf(fields.get(AuditMessage.ORIGIN)))
                 && "REST".equals(String.valueOf(fields.get(AuditMessage.REQUEST_LAYER)))
                 && GET.name().equals(String.valueOf(fields.get(AuditMessage.REST_REQUEST_METHOD)))

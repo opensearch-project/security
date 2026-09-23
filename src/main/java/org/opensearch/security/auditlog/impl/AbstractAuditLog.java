@@ -218,6 +218,18 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @Override
     public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request) {
+        logFailedLogin(effectiveUser, securityadmin, initiatingUser, request, null, null);
+    }
+
+    @Override
+    public void logFailedLogin(
+        String effectiveUser,
+        boolean securityadmin,
+        String initiatingUser,
+        SecurityRequest request,
+        String attemptedUser,
+        String failureReason
+    ) {
 
         if (!checkRestFilter(AuditCategory.FAILED_LOGIN, effectiveUser, request)) {
             return;
@@ -230,6 +242,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
         msg.addIsAdminDn(securityadmin);
+        msg.addAttemptedUser(attemptedUser);
+        msg.addAuthenticationFailureReason(failureReason);
         enrichWithUserContext(msg);
         save(msg);
     }

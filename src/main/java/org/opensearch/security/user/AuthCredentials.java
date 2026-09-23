@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.security.auth.AuthenticationFailureReason;
 
 /**
  * AuthCredentials are an abstraction to encapsulate credentials like passwords or generic
@@ -56,6 +57,8 @@ public final class AuthCredentials {
     private boolean complete;
     private final byte[] internalPasswordHash;
     private final Map<String, String> attributes = new HashMap<>();
+    private final boolean rejected;
+    private final AuthenticationFailureReason failureReason;
 
     /**
      * Create new credentials with a username and native credentials
@@ -143,6 +146,53 @@ public final class AuthCredentials {
         if (backendRoles != null && backendRoles.length > 0) {
             this.backendRoles.addAll(Arrays.asList(backendRoles));
         }
+
+        this.rejected = false;
+        this.failureReason = null;
+    }
+
+    /**
+     * Private constructor for rejected credentials. Rejected credentials preserve the
+     * attempted principal for audit purposes but MUST NOT be treated as successfully
+     * authenticated by downstream code — {@link #isComplete()} always returns {@code false}
+     * and {@link #isRejected()} returns {@code true}.
+     */
+    private AuthCredentials(final String attemptedPrincipal, final AuthenticationFailureReason failureReason) {
+        super();
+
+        if (attemptedPrincipal == null || attemptedPrincipal.isEmpty()) {
+            throw new IllegalArgumentException("attemptedPrincipal must not be null or empty");
+        }
+        if (failureReason == null) {
+            throw new IllegalArgumentException("failureReason must not be null");
+        }
+
+        this.username = attemptedPrincipal;
+        this.password = null;
+        this.nativeCredentials = null;
+        this.internalPasswordHash = null;
+        this.rejected = true;
+        this.failureReason = failureReason;
+    }
+
+    /**
+     * Build an {@link AuthCredentials} representing an authentication attempt that was
+     * rejected by an authenticator before authentication was performed against a backend
+     * (for example a JWT subject that uses a reserved security prefix).
+     *
+     * <p>The returned credentials will not authenticate — {@link #isComplete()} is
+     * {@code false} and {@link #isRejected()} is {@code true}. The attempted principal
+     * is preserved so a centralized audit path can record it via
+     * {@link org.opensearch.security.auditlog.impl.AuditMessage#REQUEST_ATTEMPTED_USER}
+     * without conflating it with an established (effective) user.</p>
+     *
+     * @param attemptedPrincipal the principal presented by the credential; must not be null or empty
+     * @param failureReason      the reason the credential was rejected; must not be null
+     * @return a rejected {@link AuthCredentials} instance
+     * @throws IllegalArgumentException if {@code attemptedPrincipal} is null/empty or {@code failureReason} is null
+     */
+    public static AuthCredentials rejected(final String attemptedPrincipal, final AuthenticationFailureReason failureReason) {
+        return new AuthCredentials(attemptedPrincipal, failureReason);
     }
 
     /**
@@ -252,5 +302,29 @@ public final class AuthCredentials {
 
     public ImmutableMap<String, String> getAttributes() {
         return ImmutableMap.copyOf(this.attributes);
+    }
+
+    /**
+     * @return {@code true} if these credentials represent a rejected authentication
+     *         attempt (see {@link #rejected(String, AuthenticationFailureReason)}).
+     */
+    public boolean isRejected() {
+        return rejected;
+    }
+
+    /**
+     * @return the principal presented by a rejected credential, or {@code null} if
+     *         {@link #isRejected()} is {@code false}.
+     */
+    public String getAttemptedPrincipal() {
+        return rejected ? username : null;
+    }
+
+    /**
+     * @return the structured reason a credential was rejected, or {@code null} if
+     *         {@link #isRejected()} is {@code false}.
+     */
+    public AuthenticationFailureReason getFailureReason() {
+        return failureReason;
     }
 }

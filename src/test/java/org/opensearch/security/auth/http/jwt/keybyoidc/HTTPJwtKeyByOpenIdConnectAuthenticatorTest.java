@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auth.AuthenticationFailureReason;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
@@ -78,7 +79,11 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
             null
         );
 
-        Assert.assertNull(creds);
+        Assert.assertNotNull(creds);
+        Assert.assertTrue(creds.isRejected());
+        Assert.assertFalse(creds.isComplete());
+        assertThat(creds.getAttemptedPrincipal(), is("plugin:org.opensearch.example.Plugin"));
+        assertThat(creds.getFailureReason(), is(AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX));
     }
 
     @Test
