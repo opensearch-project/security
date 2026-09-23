@@ -19,6 +19,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class EncryptionDecryptionUtilsTest {
@@ -53,7 +54,7 @@ public class EncryptionDecryptionUtilsTest {
         EncryptionDecryptionUtil util2 = new EncryptionDecryptionUtil(secret2);
         RuntimeException ex = Assert.assertThrows(RuntimeException.class, () -> util2.decrypt(encryptedString));
 
-        assertThat(ex.getMessage(), is("Error processing data with cipher"));
+        assertThat(ex.getMessage(), containsString("Error processing data with cipher"));
     }
 
     @Test

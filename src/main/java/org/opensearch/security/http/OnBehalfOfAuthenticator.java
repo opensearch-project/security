@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
@@ -60,15 +61,29 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     private final Boolean enabled;
     private final String clusterName;
     private final Path configPath;
+    private final BooleanSupplier legacyFormatWindow;
     private volatile boolean initialized = false;
     private volatile JwtParser jwtParser;
     private volatile EncryptionDecryptionUtil encryptionUtil;
 
-    public OnBehalfOfAuthenticator(Settings settings, String clusterName, Path configPath) {
+    /**
+     * Assumes nothing about the cluster's composition, so the pre-upgrade encryption format stays readable.
+     * For callers that have no cluster state to consult, such as tests.
+     */
+    OnBehalfOfAuthenticator(Settings settings, String clusterName, Path configPath) {
+        this(settings, clusterName, configPath, () -> true);
+    }
+
+    /**
+     * @param legacyFormatWindow whether this node still reads the pre-upgrade roles-claim format; in production
+     *                           {@code LegacyRolesClaimFormat.PreUpgradeNodeTracker#legacyFormatReadable}
+     */
+    public OnBehalfOfAuthenticator(Settings settings, String clusterName, Path configPath, BooleanSupplier legacyFormatWindow) {
         this.enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
         this.settings = settings;
         this.clusterName = clusterName;
         this.configPath = configPath;
+        this.legacyFormatWindow = legacyFormatWindow;
     }
 
     /**
@@ -81,7 +96,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             initialized = true;
             try {
                 jwtParser = AccessController.doPrivileged(this::buildJwtParser);
-                encryptionUtil = EncryptionDecryptionUtil.fromSettings(settings, ENCRYPTION_KEY, configPath);
+                encryptionUtil = EncryptionDecryptionUtil.fromSettings(settings, ENCRYPTION_KEY, configPath, legacyFormatWindow);
             } catch (final RuntimeException e) {
                 log.error("On-behalf-of authentication is misconfigured; OBO tokens will be rejected: {}", e.toString(), e);
             }

@@ -399,7 +399,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         if (signingKeyConfigured) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName(), this.configPath),
+                new OnBehalfOfAuthenticator(
+                    getDynamicOnBehalfOfSettings(),
+                    this.cih.getClusterName(),
+                    this.configPath,
+                    this.cih.preUpgradeNodeTracker()::legacyFormatReadable
+                ),
                 false,
                 -1
             );

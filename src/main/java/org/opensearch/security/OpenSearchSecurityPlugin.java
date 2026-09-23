@@ -163,6 +163,7 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.auth.RolesInjector;
+import org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormat;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import org.opensearch.security.compliance.ComplianceReadIndexSearcherWrapper;
@@ -1535,6 +1536,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final ClusterInfoHolder cih = new ClusterInfoHolder(this.cs.getClusterName().value());
         this.cs.addListener(cih);
+        // Transitional, see LegacyRolesClaimFormat: when this node last saw a node that cannot read AES-GCM OBO tokens
+        this.cs.addListener(cih.preUpgradeNodeTracker());
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
 
@@ -1813,6 +1816,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final Settings.Builder builder = Settings.builder();
 
         builder.put(super.additionalSettings());
+
+        builder.put(LegacyRolesClaimFormat.nodeAttributeSettings(settings));
 
         if (!SSLConfig.isSslOnlyMode()) {
             builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");

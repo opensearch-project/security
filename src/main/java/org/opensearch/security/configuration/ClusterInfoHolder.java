@@ -34,6 +34,7 @@ import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormat;
 
 public class ClusterInfoHolder implements ClusterStateListener {
     public static final String CLUSTER_MANAGER_NOT_PRESENT = "Cluster manager not present";
@@ -43,6 +44,7 @@ public class ClusterInfoHolder implements ClusterStateListener {
     private volatile Boolean isLocalNodeElectedClusterManager = null;
     private volatile boolean initialized;
     private final String clusterName;
+    private final LegacyRolesClaimFormat.PreUpgradeNodeTracker preUpgradeNodeTracker = new LegacyRolesClaimFormat.PreUpgradeNodeTracker();
 
     public ClusterInfoHolder(String clusterName) {
         this.clusterName = clusterName;
@@ -78,6 +80,15 @@ public class ClusterInfoHolder implements ClusterStateListener {
         }
 
         return nodes.getMinNodeVersion();
+    }
+
+    /**
+     * Transitional, see {@link LegacyRolesClaimFormat}: held here because this holder already reaches every
+     * place that builds an on-behalf-of authenticator. It is a listener of its own, which the plugin registers
+     * next to this one.
+     */
+    public LegacyRolesClaimFormat.PreUpgradeNodeTracker preUpgradeNodeTracker() {
+        return preUpgradeNodeTracker;
     }
 
     public Boolean hasNode(DiscoveryNode node) {

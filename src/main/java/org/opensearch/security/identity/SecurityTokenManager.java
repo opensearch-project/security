@@ -33,6 +33,7 @@ import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormat;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -135,7 +136,12 @@ public class SecurityTokenManager implements TokenManager {
         }
 
         final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(
-            EncryptionDecryptionUtil.fromSettings(oboSettings, "encryption_key", configPath)
+            EncryptionDecryptionUtil.fromSettings(
+                oboSettings,
+                "encryption_key",
+                configPath,
+                LegacyRolesClaimFormat.issuanceGate(() -> cs.state().nodes())
+            )
         );
 
         // Add obo claims
