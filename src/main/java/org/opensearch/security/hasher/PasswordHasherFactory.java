@@ -13,22 +13,116 @@ package org.opensearch.security.hasher;
 
 import java.util.Set;
 
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Setting.Property;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
-
-import static org.opensearch.security.support.ConfigConstants.ARGON2;
-import static org.opensearch.security.support.ConfigConstants.BCRYPT;
-import static org.opensearch.security.support.ConfigConstants.PBKDF2;
 
 public class PasswordHasherFactory {
+
+    public static final String BCRYPT = "bcrypt";
+    public static final String PBKDF2 = "pbkdf2";
+    public static final String ARGON2 = "argon2";
+
+    /** BCrypt logarithmic work factor. */
+    public static final Setting<Integer> BCRYPT_ROUNDS = Setting.intSetting(
+        "plugins.security.password.hashing.bcrypt.rounds",
+        12,
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** BCrypt minor version. */
+    public static final Setting<String> BCRYPT_MINOR = Setting.simpleString(
+        "plugins.security.password.hashing.bcrypt.minor",
+        "Y",
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** Algorithm used to hash new passwords. */
+    public static final Setting<String> ALGORITHM = Setting.simpleString(
+        "plugins.security.password.hashing.algorithm",
+        BCRYPT,
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** PBKDF2 iteration count. */
+    public static final Setting<Integer> PBKDF2_ITERATIONS = Setting.intSetting(
+        "plugins.security.password.hashing.pbkdf2.iterations",
+        600_000,
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** PBKDF2 derived key length in bits. */
+    public static final Setting<Integer> PBKDF2_LENGTH = Setting.intSetting(
+        "plugins.security.password.hashing.pbkdf2.length",
+        256,
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** PBKDF2 HMAC function. */
+    public static final Setting<String> PBKDF2_FUNCTION = Setting.simpleString(
+        "plugins.security.password.hashing.pbkdf2.function",
+        "SHA256",
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** Argon2 iteration count. */
+    public static final Setting<Integer> ARGON2_ITERATIONS = Setting.intSetting(
+        "plugins.security.password.hashing.argon2.iterations",
+        3,
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** Argon2 memory cost in KiB. */
+    public static final Setting<Integer> ARGON2_MEMORY = Setting.intSetting(
+        "plugins.security.password.hashing.argon2.memory",
+        65536,
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** Argon2 parallelism. */
+    public static final Setting<Integer> ARGON2_PARALLELISM = Setting.intSetting(
+        "plugins.security.password.hashing.argon2.parallelism",
+        1,
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** Argon2 hash length in bytes. */
+    public static final Setting<Integer> ARGON2_LENGTH = Setting.intSetting(
+        "plugins.security.password.hashing.argon2.length",
+        32,
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** Argon2 variant. */
+    public static final Setting<String> ARGON2_TYPE = Setting.simpleString(
+        "plugins.security.password.hashing.argon2.type",
+        "argon2id",
+        Property.NodeScope,
+        Property.Final
+    );
+
+    /** Argon2 version number. */
+    public static final Setting<Integer> ARGON2_VERSION = Setting.intSetting(
+        "plugins.security.password.hashing.argon2.version",
+        19,
+        Property.NodeScope,
+        Property.Final
+    );
 
     private static final Set<String> ALLOWED_BCRYPT_MINORS = Set.of("A", "B", "Y");
 
     public static PasswordHasher createPasswordHasher(Settings settings) {
-        String algorithm = settings.get(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT
-        );
+        String algorithm = ALGORITHM.get(settings);
 
         PasswordHasher passwordHasher;
         switch (algorithm.toLowerCase()) {
@@ -48,14 +142,8 @@ public class PasswordHasherFactory {
     }
 
     private static PasswordHasher getBCryptHasher(Settings settings) {
-        int rounds = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
-        );
-        String minor = settings.get(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT
-        ).toUpperCase();
+        int rounds = BCRYPT_ROUNDS.get(settings);
+        String minor = BCRYPT_MINOR.get(settings).toUpperCase();
 
         if (rounds < 4 || rounds > 31) {
             throw new IllegalArgumentException(String.format("BCrypt rounds must be between 4 and 31. Got: %d", rounds));
@@ -67,19 +155,10 @@ public class PasswordHasherFactory {
     }
 
     private static PasswordHasher getPBKDF2Hasher(Settings settings) {
-        String pbkdf2Function = settings.get(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT
-        ).toUpperCase();
+        String pbkdf2Function = PBKDF2_FUNCTION.get(settings).toUpperCase();
 
-        int iterations = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT
-        );
-        int length = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
-        );
+        int iterations = PBKDF2_ITERATIONS.get(settings);
+        int length = PBKDF2_LENGTH.get(settings);
 
         if (!pbkdf2Function.matches("SHA(1|224|256|384|512)")) {
             throw new IllegalArgumentException(
@@ -96,30 +175,12 @@ public class PasswordHasherFactory {
     }
 
     private static PasswordHasher getArgon2Hasher(Settings settings) {
-        int memory = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT
-        );
-        int iterations = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT
-        );
-        int parallelism = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT
-        );
-        int length = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT
-        );
-        String type = settings.get(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT
-        );
-        int version = settings.getAsInt(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
-        );
+        int memory = ARGON2_MEMORY.get(settings);
+        int iterations = ARGON2_ITERATIONS.get(settings);
+        int parallelism = ARGON2_PARALLELISM.get(settings);
+        int length = ARGON2_LENGTH.get(settings);
+        String type = ARGON2_TYPE.get(settings);
+        int version = ARGON2_VERSION.get(settings);
 
         if (memory <= 0) {
             throw new IllegalArgumentException(String.format("Argon2 memory must be a positive integer. Got: %d", memory));

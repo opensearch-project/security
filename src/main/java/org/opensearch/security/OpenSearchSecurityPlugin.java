@@ -589,16 +589,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     static void validateFipsMode(final String fipsModeEnvValue, final Settings settings) {
         if ("true".equalsIgnoreCase(fipsModeEnvValue)) {
-            String hashingAlgorithm = settings.get(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT
-            );
-            if (!ConfigConstants.PBKDF2.equalsIgnoreCase(hashingAlgorithm)) {
+            String hashingAlgorithm = PasswordHasherFactory.ALGORITHM.get(settings);
+            if (!PasswordHasherFactory.PBKDF2.equalsIgnoreCase(hashingAlgorithm)) {
                 throw new IllegalStateException(
                     "FIPS mode is enabled (OPENSEARCH_FIPS_MODE=true) but password hashing algorithm is set to '"
                         + hashingAlgorithm
                         + "'. Only PBKDF2 is allowed in FIPS mode. Set '"
-                        + ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM
+                        + PasswordHasherFactory.ALGORITHM.getKey()
                         + "' to 'pbkdf2'. Note: changing the hashing algorithm requires all existing passwords to be rehashed."
                 );
             }
@@ -1892,108 +1889,24 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             )
         );
 
-        settings.add(
-            Setting.simpleString(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
+        settings.add(PasswordHasherFactory.ALGORITHM);
 
-        settings.add(
-            Setting.intSetting(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
+        settings.add(PasswordHasherFactory.BCRYPT_ROUNDS);
 
-        settings.add(
-            Setting.simpleString(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
+        settings.add(PasswordHasherFactory.BCRYPT_MINOR);
 
-        settings.add(
-            Setting.intSetting(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
+        settings.add(PasswordHasherFactory.PBKDF2_ITERATIONS);
 
-        settings.add(
-            Setting.intSetting(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
+        settings.add(PasswordHasherFactory.PBKDF2_LENGTH);
 
-        settings.add(
-            Setting.simpleString(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
+        settings.add(PasswordHasherFactory.PBKDF2_FUNCTION);
 
-        settings.add(
-            Setting.intSetting(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
-        settings.add(
-            Setting.intSetting(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
-        settings.add(
-            Setting.intSetting(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
-        settings.add(
-            Setting.intSetting(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
-        settings.add(
-            Setting.simpleString(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
-        settings.add(
-            Setting.intSetting(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT,
-                Property.NodeScope,
-                Property.Final
-            )
-        );
+        settings.add(PasswordHasherFactory.ARGON2_ITERATIONS);
+        settings.add(PasswordHasherFactory.ARGON2_MEMORY);
+        settings.add(PasswordHasherFactory.ARGON2_PARALLELISM);
+        settings.add(PasswordHasherFactory.ARGON2_LENGTH);
+        settings.add(PasswordHasherFactory.ARGON2_TYPE);
+        settings.add(PasswordHasherFactory.ARGON2_VERSION);
 
         // Security - Audit (registered outside sslOnlyMode gate for standalone audit logging)
         settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
