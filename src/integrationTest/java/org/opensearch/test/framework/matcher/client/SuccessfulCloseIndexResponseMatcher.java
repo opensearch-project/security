@@ -7,23 +7,23 @@
 * compatible open source license.
 *
 */
-package org.opensearch.test.framework.matcher;
+package org.opensearch.test.framework.matcher.client;
 
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
-import org.opensearch.client.indices.CloseIndexResponse;
+import org.opensearch.client.opensearch.indices.CloseIndexResponse;
 
 class SuccessfulCloseIndexResponseMatcher extends TypeSafeDiagnosingMatcher<CloseIndexResponse> {
 
     @Override
     protected boolean matchesSafely(CloseIndexResponse response, Description mismatchDescription) {
-        if (!response.isShardsAcknowledged()) {
-            mismatchDescription.appendText("shardsAcknowledged is equal to ").appendValue(response.isShardsAcknowledged());
+        if (!response.shardsAcknowledged()) {
+            mismatchDescription.appendText("shardsAcknowledged is equal to ").appendValue(response.shardsAcknowledged());
             return false;
         }
-        if (!response.isAcknowledged()) {
-            mismatchDescription.appendText("acknowledged is equal to ").appendValue(response.isShardsAcknowledged());
+        if (!response.acknowledged()) {
+            mismatchDescription.appendText("acknowledged is equal to ").appendValue(response.acknowledged());
             return false;
         }
         return true;

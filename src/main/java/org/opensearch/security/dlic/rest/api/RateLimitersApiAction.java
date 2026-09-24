@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -25,23 +26,23 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.threadpool.ThreadPool;
 
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.notFound;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
@@ -71,6 +72,10 @@ public class RateLimitersApiAction extends AbstractApiAction {
     public static final String BLOCK_EXPIRY_JSON_PROPERTY = "block_expiry_seconds";
     public static final String MAX_BLOCKED_CLIENTS_JSON_PROPERTY = "max_blocked_clients";
     public static final String MAX_TRACKED_CLIENTS_JSON_PROPERTY = "max_tracked_clients";
+
+    private static final FieldValidator POSITIVE_INTEGER_VALIDATOR = integerRangeValidator(1, Integer.MAX_VALUE);
+    private static final FieldValidator NON_NEGATIVE_INTEGER_VALIDATOR = integerRangeValidator(0, Integer.MAX_VALUE);
+    private static final Pattern REJECTED_PATTERNS = Pattern.compile("\\$\\{env");
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(
@@ -145,13 +150,16 @@ public class RateLimitersApiAction extends AbstractApiAction {
                         final ImmutableMap.Builder<String, FieldConfiguration> allowedKeys = ImmutableMap.builder();
 
                         return allowedKeys.put(TYPE_JSON_PROPERTY, FieldConfiguration.of(DataType.STRING))
-                            .put(IGNORE_HOSTS_JSON_PROPERTY, FieldConfiguration.of(DataType.ARRAY))
+                            .put(
+                                IGNORE_HOSTS_JSON_PROPERTY,
+                                FieldConfiguration.of(DataType.ARRAY, RateLimitersApiAction::validateIgnoreHosts)
+                            )
                             .put(AUTHENTICATION_BACKEND_JSON_PROPERTY, FieldConfiguration.of(DataType.STRING))
-                            .put(ALLOWED_TRIES_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
-                            .put(TIME_WINDOW_SECONDS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
-                            .put(BLOCK_EXPIRY_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
-                            .put(MAX_BLOCKED_CLIENTS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
-                            .put(MAX_TRACKED_CLIENTS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER))
+                            .put(ALLOWED_TRIES_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER, POSITIVE_INTEGER_VALIDATOR))
+                            .put(TIME_WINDOW_SECONDS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER, NON_NEGATIVE_INTEGER_VALIDATOR))
+                            .put(BLOCK_EXPIRY_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER, NON_NEGATIVE_INTEGER_VALIDATOR))
+                            .put(MAX_BLOCKED_CLIENTS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER, NON_NEGATIVE_INTEGER_VALIDATOR))
+                            .put(MAX_TRACKED_CLIENTS_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER, NON_NEGATIVE_INTEGER_VALIDATOR))
                             .build();
                     }
                 });
@@ -206,31 +214,25 @@ public class RateLimitersApiAction extends AbstractApiAction {
                 });
             }
         }).error((status, toXContent) -> response(channel, status, toXContent)))
-            .override(PUT, (channel, request, client) -> loadConfiguration(getConfigType(), false, false).valid(configuration -> {
-                ConfigV7 config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
-
-                String listenerName = request.param(NAME_JSON_PROPERTY);
-
-                ObjectNode body = (ObjectNode) DefaultObjectMapper.readTree(request.content().utf8ToString());
-                SecurityJsonNode authFailureListener = new SecurityJsonNode(body);
-                ValidationResult<SecurityJsonNode> validationResult = validateAuthFailureListener(authFailureListener, listenerName);
-
-                if (!validationResult.isValid()) {
-                    badRequest(channel, validationResult.toString());
-                    return;
+            .override(PUT, (channel, request, client) -> endpointValidator.createRequestContentValidator().validate(request).map(body -> {
+                if (!(body instanceof ObjectNode objectBody)) {
+                    return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("request body must be a JSON object"));
                 }
-
-                // Try to put the listener by name
-                config.dynamic.auth_failure_listeners.getListeners()
-                    .put(listenerName, createAuthFailureListenerWithDefaults(authFailureListener));
-                saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
-                    @Override
-                    public void onResponse(IndexResponse indexResponse) {
-
-                        ok(channel, authFailureContent(config));
-                    }
-                });
-            }).error((status, toXContent) -> response(channel, status, toXContent)));
+                final String listenerName = request.param(NAME_JSON_PROPERTY);
+                return validateAuthFailureListener(new SecurityJsonNode(objectBody), listenerName).map(
+                    authFailureListener -> loadConfiguration(getConfigType(), false, false).map(configuration -> {
+                        final ConfigV7 config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
+                        config.dynamic.auth_failure_listeners.getListeners()
+                            .put(listenerName, createAuthFailureListenerWithDefaults(authFailureListener));
+                        return ValidationResult.success(configuration);
+                    })
+                );
+            }).valid(configuration -> saveOrUpdateConfiguration(client, configuration, new OnSucessActionListener<>(channel) {
+                @Override
+                public void onResponse(IndexResponse indexResponse) {
+                    ok(channel, authFailureContent((ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString())));
+                }
+            })).error((status, toXContent) -> response(channel, status, toXContent)));
 
     }
 
@@ -279,5 +281,26 @@ public class RateLimitersApiAction extends AbstractApiAction {
         }
 
         return ValidationResult.success(authFailureListener);
+    }
+
+    private static void validateIgnoreHosts(String fieldName, Object value) {
+        RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate(fieldName, value);
+        if (value instanceof JsonNode arrayNode) {
+            for (JsonNode element : arrayNode) {
+                if (element.isTextual() && REJECTED_PATTERNS.matcher(element.asText()).find()) {
+                    throw new IllegalArgumentException(fieldName + " must not contain environment variable expressions");
+                }
+            }
+        }
+    }
+
+    private static FieldValidator integerRangeValidator(int minimum, int maximum) {
+        return (fieldName, value) -> {
+            if (value instanceof JsonNode node) {
+                if (node.canConvertToInt() == false || node.asInt() < minimum || node.asInt() > maximum) {
+                    throw new IllegalArgumentException(fieldName + " must be between " + minimum + " and " + maximum);
+                }
+            }
+        };
     }
 }

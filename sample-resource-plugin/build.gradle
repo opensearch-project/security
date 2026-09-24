@@ -83,7 +83,7 @@ configurations {
             force libs.jspecify
 
             force "com.google.guava:failureaccess:1.0.3"
-            force "io.projectreactor:reactor-core:3.8.6"
+            force "io.projectreactor:reactor-core:3.8.7"
 
             // Netty version alignment with OpenSearch core
             force "io.netty:netty-buffer:${versions.netty}"
@@ -97,6 +97,7 @@ configurations {
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
 
+            force "jakarta.json:jakarta.json-api:2.1.3"
         }
     }
 }
@@ -107,6 +108,7 @@ dependencies {
 
     implementation "org.opensearch:common-utils:${common_utils_version}"
     implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
+    implementation 'org.opensearch.client:opensearch-java:3.10.0'
     implementation "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
 
     integrationTestImplementation 'org.ldaptive:ldaptive:1.2.3' // for running multinode tests

@@ -9,57 +9,57 @@
 */
 package org.opensearch.security;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
-import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
-import org.opensearch.action.get.MultiGetItemResponse;
-import org.opensearch.action.get.MultiGetRequest;
-import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.search.MultiSearchRequest;
-import org.opensearch.action.search.MultiSearchResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.search.SearchScrollRequest;
-import org.opensearch.client.Request;
-import org.opensearch.client.Response;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.opensearch._types.query_dsl.QueryBuilders;
+import org.opensearch.client.opensearch.cat.AliasesResponse;
+import org.opensearch.client.opensearch.cat.IndicesResponse;
+import org.opensearch.client.opensearch.cat.aliases.AliasesRecord;
+import org.opensearch.client.opensearch.cat.indices.IndicesRecord;
+import org.opensearch.client.opensearch.core.FieldCapsRequest;
+import org.opensearch.client.opensearch.core.FieldCapsResponse;
+import org.opensearch.client.opensearch.core.MgetRequest;
+import org.opensearch.client.opensearch.core.MgetResponse;
+import org.opensearch.client.opensearch.core.MsearchRequest;
+import org.opensearch.client.opensearch.core.MsearchResponse;
+import org.opensearch.client.opensearch.core.ScrollRequest;
+import org.opensearch.client.opensearch.core.SearchRequest;
+import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.mget.MultiGetResponseItem;
+import org.opensearch.client.opensearch.core.msearch.MultisearchBody;
+import org.opensearch.client.opensearch.core.msearch.MultisearchHeader;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.OpenSearchClientProvider.CloseableOpenSearchClient;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.arrayWithSize;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.security.Song.FIELD_STARS;
 import static org.opensearch.security.Song.FIELD_TITLE;
@@ -71,23 +71,23 @@ import static org.opensearch.security.Song.TITLE_MAGNUM_OPUS;
 import static org.opensearch.security.Song.TITLE_NEXT_SONG;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.getSearchScrollRequest;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.queryStringQueryRequest;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchRequestWithScroll;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.statsAggregationRequest;
+import static org.opensearch.test.framework.client.SearchRequestFactory.averageAggregationRequest;
+import static org.opensearch.test.framework.client.SearchRequestFactory.getSearchScrollRequest;
+import static org.opensearch.test.framework.client.SearchRequestFactory.queryStringQueryRequest;
+import static org.opensearch.test.framework.client.SearchRequestFactory.searchRequestWithScroll;
+import static org.opensearch.test.framework.client.SearchRequestFactory.statsAggregationRequest;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
-import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
-import static org.opensearch.test.framework.matcher.GetResponseMatchers.containOnlyDocumentId;
-import static org.opensearch.test.framework.matcher.GetResponseMatchers.documentContainField;
-import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containNotEmptyScrollingId;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfHitsInPageIsEqualTo;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.client.GetResultMatchers.containDocument;
+import static org.opensearch.test.framework.matcher.client.GetResultMatchers.containOnlyDocumentId;
+import static org.opensearch.test.framework.matcher.client.GetResultMatchers.documentContainField;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.containAggregationWithNameAndType;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.containNotEmptyScrollingId;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.isSuccessfulSearchResponse;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.numberOfHitsInPageIsEqualTo;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitContainsFieldWithValue;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.client.TransportExceptionMatchers.statusException;
 
 public class DoNotFailOnForbiddenTests {
 
@@ -181,19 +181,19 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldPerformSimpleSearch_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest(
                 new String[] { MARVELOUS_SONGS, HORRIBLE_SONGS },
                 QUERY_TITLE_MAGNUM_OPUS
             );
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThatContainOneSong(searchResponse, ID_1, TITLE_MAGNUM_OPUS);
         }
     }
 
-    private static void assertThatContainOneSong(SearchResponse searchResponse, String documentId, String title) {
+    private static void assertThatContainOneSong(SearchResponse<?> searchResponse, String documentId, String title) {
         assertThat(searchResponse, isSuccessfulSearchResponse());
         assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
         assertThat(searchResponse, searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, documentId));
@@ -202,19 +202,19 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldPerformSimpleSearch_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest(HORRIBLE_SONGS, QUERY_TITLE_POISON);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchForDocumentsViaIndexPattern_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest(BOTH_INDEX_PATTERN, QUERY_TITLE_MAGNUM_OPUS);
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThatContainOneSong(searchResponse, ID_1, TITLE_MAGNUM_OPUS);
         }
@@ -222,19 +222,19 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldSearchForDocumentsViaIndexPattern_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest(HORRIBLE_SONGS, QUERY_TITLE_POISON);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchForDocumentsViaAlias_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest(BOTH_INDEX_ALIAS, QUERY_TITLE_MAGNUM_OPUS);
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThatContainOneSong(searchResponse, ID_1, TITLE_MAGNUM_OPUS);
         }
@@ -242,19 +242,19 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldSearchForDocumentsViaAlias_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest(FORBIDDEN_INDEX_ALIAS, QUERY_TITLE_POISON);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldSearchForDocumentsViaAll_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest("_all", QUERY_TITLE_MAGNUM_OPUS);
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThatContainOneSong(searchResponse, ID_1, TITLE_MAGNUM_OPUS);
         }
@@ -262,10 +262,10 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldSearchForDocumentsViaAll_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = queryStringQueryRequest("_all", QUERY_TITLE_POISON);
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(0));
@@ -274,124 +274,142 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldMGetDocument_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            MultiGetRequest request = new MultiGetRequest().add(MARVELOUS_SONGS, ID_1).add(MARVELOUS_SONGS, ID_4);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            MgetRequest request = MgetRequest.of(
+                r -> r.docs(d -> d.index(MARVELOUS_SONGS).id(ID_1)).docs(d -> d.index(MARVELOUS_SONGS).id(ID_4))
+            );
 
-            MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
+            MgetResponse<?> response = client.mget(request, Map.class);
 
-            MultiGetItemResponse[] responses = response.getResponses();
-            assertThat(responses, arrayWithSize(2));
-            MultiGetItemResponse firstResult = responses[0];
-            MultiGetItemResponse secondResult = responses[1];
-            assertThat(firstResult.getFailure(), nullValue());
-            assertThat(secondResult.getFailure(), nullValue());
+            var responses = response.docs();
+            assertThat(responses, iterableWithSize(2));
+            MultiGetResponseItem<?> firstResult = responses.get(0);
+            MultiGetResponseItem<?> secondResult = responses.get(1);
+            assertThat(firstResult.isResult(), is(true));
+            assertThat(secondResult.isResult(), is(true));
             assertThat(
-                firstResult.getResponse(),
+                firstResult.result(),
                 allOf(containDocument(MARVELOUS_SONGS, ID_1), documentContainField(FIELD_TITLE, TITLE_MAGNUM_OPUS))
             );
-            assertThat(secondResult.getResponse(), containOnlyDocumentId(MARVELOUS_SONGS, ID_4));
+            assertThat(secondResult.result(), containOnlyDocumentId(MARVELOUS_SONGS, ID_4));
         }
     }
 
     @Test
     public void shouldMGetDocument_partial() throws Exception {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            MultiGetRequest request = new MultiGetRequest().add(MARVELOUS_SONGS, ID_1).add(HORRIBLE_SONGS, ID_4);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            MgetRequest request = MgetRequest.of(
+                r -> r.docs(d -> d.index(MARVELOUS_SONGS).id(ID_1)).docs(d -> d.index(HORRIBLE_SONGS).id(ID_4))
+            );
 
-            MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
+            MgetResponse<?> response = client.mget(request, Map.class);
 
-            MultiGetItemResponse[] responses = response.getResponses();
-            assertThat(responses, arrayWithSize(2));
-            MultiGetItemResponse firstResult = responses[0];
-            MultiGetItemResponse secondResult = responses[1];
-            assertThat(firstResult.getFailure(), nullValue());
+            var responses = response.docs();
+            assertThat(responses, iterableWithSize(2));
+            MultiGetResponseItem<?> firstResult = responses.get(0);
+            MultiGetResponseItem<?> secondResult = responses.get(1);
+            assertThat(firstResult.isResult(), is(true));
             assertThat(
-                firstResult.getResponse(),
+                firstResult.result(),
                 allOf(containDocument(MARVELOUS_SONGS, ID_1), documentContainField(FIELD_TITLE, TITLE_MAGNUM_OPUS))
             );
-            assertThat(secondResult.getFailure().getMessage(), containsString("no permissions for [indices:data/read/mget[shard]]"));
+            assertThat(secondResult.failure().error().reason(), containsString("no permissions for [indices:data/read/mget[shard]]"));
         }
     }
 
     @Test
     public void shouldMGetDocument_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            MultiGetRequest request = new MultiGetRequest().add(HORRIBLE_SONGS, ID_4);
-            MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
-            MultiGetItemResponse[] responses = response.getResponses();
-            assertThat(responses, arrayWithSize(1));
-            MultiGetItemResponse firstResult = responses[0];
-            assertThat(firstResult.getFailure().getMessage(), containsString("no permissions for [indices:data/read/mget[shard]]"));
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            MgetRequest request = MgetRequest.of(r -> r.index(HORRIBLE_SONGS).ids(ID_4));
+            MgetResponse<?> response = client.mget(request, Map.class);
+            var responses = response.docs();
+            assertThat(responses, iterableWithSize(1));
+            MultiGetResponseItem<?> firstResult = responses.get(0);
+            assertThat(firstResult.failure().error().reason(), containsString("no permissions for [indices:data/read/mget[shard]]"));
         }
     }
 
     @Test
     public void shouldMSearchDocument_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            MultiSearchRequest request = new MultiSearchRequest();
-            request.add(queryStringQueryRequest(BOTH_INDEX_PATTERN, QUERY_TITLE_MAGNUM_OPUS));
-            request.add(queryStringQueryRequest(BOTH_INDEX_PATTERN, QUERY_TITLE_NEXT_SONG));
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            MsearchRequest request = MsearchRequest.of(
+                r -> r.searches(
+                    s -> s.header(MultisearchHeader.of(h -> h.index(BOTH_INDEX_PATTERN)))
+                        .body(
+                            MultisearchBody.of(b -> b.query(QueryBuilders.queryString().query(QUERY_TITLE_MAGNUM_OPUS).build().toQuery()))
+                        )
+                )
+                    .searches(
+                        s -> s.header(MultisearchHeader.of(h -> h.index(BOTH_INDEX_PATTERN)))
+                            .body(
+                                MultisearchBody.of(b -> b.query(QueryBuilders.queryString().query(QUERY_TITLE_NEXT_SONG).build().toQuery()))
+                            )
+                    )
+            );
 
-            MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
+            MsearchResponse<?> response = client.msearch(request, Map.class);
+            var responses = response.responses();
+            assertThat(responses, iterableWithSize(2));
+            assertThat(responses.get(0).isResult(), is(true));
+            assertThat(responses.get(1).isResult(), is(true));
 
-            MultiSearchResponse.Item[] responses = response.getResponses();
-            assertThat(responses, Matchers.arrayWithSize(2));
-            assertThat(responses[0].getFailure(), nullValue());
-            assertThat(responses[1].getFailure(), nullValue());
-
-            assertThat(responses[0].getResponse(), searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
-            assertThat(responses[0].getResponse(), searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, ID_1));
-            assertThat(responses[1].getResponse(), searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_NEXT_SONG));
-            assertThat(responses[1].getResponse(), searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, ID_3));
+            assertThat(responses.get(0).result(), searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
+            assertThat(responses.get(0).result(), searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, ID_1));
+            assertThat(responses.get(1).result(), searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_NEXT_SONG));
+            assertThat(responses.get(1).result(), searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, ID_3));
         }
     }
 
     @Test
     public void shouldMSearchDocument_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            MultiSearchRequest request = new MultiSearchRequest();
-            request.add(queryStringQueryRequest(FORBIDDEN_INDEX_ALIAS, QUERY_TITLE_POISON));
-            MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
-            MultiSearchResponse.Item[] responses = response.getResponses();
-            assertThat(responses, Matchers.arrayWithSize(1));
-            assertThat(responses[0].getFailure().getMessage(), containsString("no permissions for [indices:data/read/search]"));
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            MsearchRequest request = MsearchRequest.of(
+                r -> r.searches(
+                    s -> s.header(MultisearchHeader.of(f -> f.index(FORBIDDEN_INDEX_ALIAS)))
+                        .body(MultisearchBody.of(b -> b.query(QueryBuilders.queryString().query(QUERY_TITLE_POISON).build().toQuery())))
+                )
+            );
+            MsearchResponse<?> response = client.msearch(request, Map.class);
+            var responses = response.responses();
+            assertThat(responses, iterableWithSize(1));
+            assertThat(responses.get(0).failure().error().reason(), containsString("no permissions for [indices:data/read/search]"));
         }
     }
 
     @Test
     public void shouldGetFieldCapabilities_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(MARVELOUS_SONGS, HORRIBLE_SONGS).fields(FIELD_TITLE);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            FieldCapsRequest request = FieldCapsRequest.of(r -> r.index(MARVELOUS_SONGS, HORRIBLE_SONGS).fields(FIELD_TITLE));
 
-            FieldCapabilitiesResponse response = restHighLevelClient.fieldCaps(request, DEFAULT);
+            FieldCapsResponse response = client.fieldCaps(request);
 
-            assertThat(response.get(), aMapWithSize(1));
-            assertThat(response.getIndices(), arrayWithSize(1));
-            assertThat(response.getField(FIELD_TITLE), hasKey("text"));
-            assertThat(response.getIndices(), arrayContainingInAnyOrder(MARVELOUS_SONGS));
+            assertThat(response.fields(), aMapWithSize(1));
+            assertThat(response.indices(), iterableWithSize(1));
+            assertThat(response.fields().get(FIELD_TITLE), hasKey("text"));
+            assertThat(response.indices(), containsInAnyOrder(MARVELOUS_SONGS));
         }
     }
 
     @Test
     public void shouldGetFieldCapabilities_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(HORRIBLE_SONGS).fields(FIELD_TITLE);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            FieldCapsRequest request = FieldCapsRequest.of(r -> r.index(HORRIBLE_SONGS).fields(FIELD_TITLE));
 
-            assertThatThrownBy(() -> restHighLevelClient.fieldCaps(request, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.fieldCaps(request), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldScrollOverSearchResults_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchRequestWithScroll(BOTH_INDEX_PATTERN, 2);
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, containNotEmptyScrollingId());
 
-            SearchScrollRequest scrollRequest = getSearchScrollRequest(searchResponse);
+            ScrollRequest scrollRequest = getSearchScrollRequest(searchResponse);
 
-            SearchResponse scrollResponse = restHighLevelClient.scroll(scrollRequest, DEFAULT);
+            SearchResponse<?> scrollResponse = client.scroll(scrollRequest, Map.class);
             assertThat(scrollResponse, isSuccessfulSearchResponse());
             assertThat(scrollResponse, containNotEmptyScrollingId());
             assertThat(scrollResponse, numberOfTotalHitsIsEqualTo(3));
@@ -401,19 +419,19 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldScrollOverSearchResults_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             SearchRequest searchRequest = searchRequestWithScroll(HORRIBLE_SONGS, 2);
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldPerformAggregation_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             final String aggregationName = "averageStars";
             SearchRequest searchRequest = averageAggregationRequest(BOTH_INDEX_PATTERN, aggregationName, FIELD_STARS);
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
@@ -422,21 +440,21 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldPerformAggregation_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             final String aggregationName = "averageStars";
             SearchRequest searchRequest = averageAggregationRequest(HORRIBLE_SONGS, aggregationName, FIELD_STARS);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldPerformStatAggregation_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             final String aggregationName = "statsStars";
             SearchRequest searchRequest = statsAggregationRequest(BOTH_INDEX_ALIAS, aggregationName, FIELD_STARS);
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "stats"));
@@ -445,23 +463,19 @@ public class DoNotFailOnForbiddenTests {
 
     @Test
     public void shouldPerformStatAggregation_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
             final String aggregationName = "statsStars";
             SearchRequest searchRequest = statsAggregationRequest(HORRIBLE_SONGS, aggregationName, FIELD_STARS);
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldPerformCatIndices_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            Request getIndicesRequest = new Request("GET", "/_cat/indices");
-            // High level client doesn't support _cat/_indices API
-            Response getIndicesResponse = restHighLevelClient.getLowLevelClient().performRequest(getIndicesRequest);
-            List<String> indexes = new BufferedReader(
-                new InputStreamReader(getIndicesResponse.getEntity().getContent(), StandardCharsets.UTF_8)
-            ).lines().collect(Collectors.toList());
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            IndicesResponse getIndicesResponse = client.cat().indices();
+            List<String> indexes = getIndicesResponse.valueBody().stream().map(IndicesRecord::index).toList();
 
             assertThat(indexes.size(), equalTo(1));
             assertThat(indexes.get(0), containsString("marvelous_songs"));
@@ -471,30 +485,21 @@ public class DoNotFailOnForbiddenTests {
     @Test
     public void shouldPerformCatAliases_positive() throws IOException {
         // DNFOF works for limited access user
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
-            Request getAliasesRequest = new Request("GET", "/_cat/aliases");
-            Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
-            List<String> aliases = new BufferedReader(
-                new InputStreamReader(getAliasesResponse.getEntity().getContent(), StandardCharsets.UTF_8)
-            ).lines().collect(Collectors.toList());
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_USER)) {
+            AliasesResponse getAliasesResponse = client.cat().aliases();
+            List<String> aliases = getAliasesResponse.valueBody().stream().map(AliasesRecord::index).sorted().toList();
 
             // Does not fail on forbidden, but alias response only contains index which user has access to
-            assertThat(getAliasesResponse.getStatusLine().getStatusCode(), equalTo(200));
             assertThat(aliases.size(), equalTo(1));
-            assertThat(aliases.get(0), containsString("marvelous_songs"));
-            assertThat(aliases.get(0), not(containsString("horrible_songs")));
+            assertThat(aliases, hasItem(containsString("marvelous_songs")));
+            assertThat(aliases, not(hasItem(containsString("horrible_songs"))));
 
         }
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
-            Request getAliasesRequest = new Request("GET", "/_cat/aliases");
-            Response getAliasesResponse = restHighLevelClient.getLowLevelClient().performRequest(getAliasesRequest);
-            List<String> aliases = new BufferedReader(
-                new InputStreamReader(getAliasesResponse.getEntity().getContent(), StandardCharsets.UTF_8)
-            ).lines().collect(Collectors.toList());
+        try (CloseableOpenSearchClient client = cluster.getClient(ADMIN_USER)) {
+            AliasesResponse getAliasesResponse = client.cat().aliases();
+            List<String> aliases = getAliasesResponse.valueBody().stream().map(AliasesRecord::index).sorted().toList();
 
-            // Admin has access to all
-            assertThat(getAliasesResponse.getStatusLine().getStatusCode(), equalTo(200));
             // Aliases have one entry for each index
             // This response is [(both-indices: marvelous_songs), (both-indices: horrible_songs), (forbidden-index: horrible_songs)]
             assertThat(aliases.size(), equalTo(3));

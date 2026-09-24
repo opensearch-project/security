@@ -40,6 +40,8 @@ import tools.jackson.core.JsonToken;
 import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE;
 
 public class RequestContentValidator implements ToXContent {
@@ -184,6 +186,9 @@ public class RequestContentValidator implements ToXContent {
 
     protected ValidationError validationError;
 
+    /** The effective max string length that was exceeded, captured so the error response can report the configured limit. */
+    protected int maxStringLengthLimit = SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT;
+
     protected final ValidationContext validationContext;
 
     protected final Map<String, String> wrongDataTypes = new HashMap<>();
@@ -297,6 +302,12 @@ public class RequestContentValidator implements ToXContent {
                             case INTEGER:
                                 if (valueToken != JsonToken.VALUE_NUMBER_INT) {
                                     wrongDataTypes.put(currentName, "Integer expected");
+                                } else if (fieldConfig != null && fieldConfig.getValidator() != null) {
+                                    try {
+                                        fieldConfig.validate(currentName, jsonContent.get(currentName));
+                                    } catch (IllegalArgumentException e) {
+                                        wrongDataTypes.put(currentName, e.getMessage());
+                                    }
                                 }
                                 break;
                             case STRING:
@@ -403,19 +414,22 @@ public class RequestContentValidator implements ToXContent {
     }
 
     private ValidationResult<JsonNode> validateStringLength(final JsonNode jsonContent) {
-        if (exceedsMaxStringLength(jsonContent)) {
+        final int maxStringLength = validationContext.settings()
+            .getAsInt(SECURITY_RESTAPI_MAX_STRING_LENGTH, SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT);
+        if (exceedsMaxStringLength(jsonContent, maxStringLength)) {
+            this.maxStringLengthLimit = maxStringLength;
             this.validationError = ValidationError.STRING_EXCEEDS_MAX_LENGTH;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }
         return ValidationResult.success(jsonContent);
     }
 
-    private boolean exceedsMaxStringLength(final JsonNode node) {
-        if (node.isTextual() && node.asText().length() > MAX_STRING_LENGTH) {
+    private boolean exceedsMaxStringLength(final JsonNode node, final int maxStringLength) {
+        if (node.isTextual() && node.asText().length() > maxStringLength) {
             return true;
         }
         for (final JsonNode child : node) {
-            if (exceedsMaxStringLength(child)) {
+            if (exceedsMaxStringLength(child, maxStringLength)) {
                 return true;
             }
         }
@@ -472,6 +486,13 @@ public class RequestContentValidator implements ToXContent {
                 for (Map.Entry<String, String> entry : wrongDataTypes.entrySet()) {
                     builder.field(entry.getKey(), entry.getValue());
                 }
+                break;
+            case STRING_EXCEEDS_MAX_LENGTH:
+                builder.field("status", "error");
+                builder.field(
+                    "reason",
+                    ValidationError.STRING_EXCEEDS_MAX_LENGTH.message() + " of " + maxStringLengthLimit + " characters"
+                );
                 break;
             default:
                 builder.field("status", "error");
@@ -541,7 +562,7 @@ public class RequestContentValidator implements ToXContent {
         PAYLOAD_MANDATORY("Request body required for this action."),
         SECURITY_NOT_INITIALIZED("Security index not initialized"),
         NULL_ARRAY_ELEMENT("`null` or blank values are not allowed as json array elements"),
-        STRING_EXCEEDS_MAX_LENGTH("String value exceeds the maximum allowed length of " + MAX_STRING_LENGTH + " characters");
+        STRING_EXCEEDS_MAX_LENGTH("String value exceeds the maximum allowed length");
 
         private final String message;
 

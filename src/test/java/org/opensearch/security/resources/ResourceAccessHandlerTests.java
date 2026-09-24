@@ -36,6 +36,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -155,6 +156,165 @@ public class ResourceAccessHandlerTests {
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
+        verify(listener).onResponse(false);
+    }
+
+    @Test
+    public void testHasPermission_grantedViaWorkspaceMembership() {
+        // Resource itself grants the user nothing, but it belongs to workspace "ws-1" and the user has
+        // "read" access on that workspace's own sharing record -> access is inherited from the workspace container.
+        User user = new User("erin", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        final String workspaceIndex = "workspace-index";
+        final String workspaceId = "ws-1";
+        when(resourcePluginInfo.indexByType("workspace")).thenReturn(workspaceIndex);
+
+        // The resource: no direct access, belongs to ws-1, not created by the user.
+        ResourceSharing resourceDoc = mock(ResourceSharing.class);
+        when(resourceDoc.isCreatedBy("erin")).thenReturn(false);
+        when(resourceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+        when(resourceDoc.getWorkspaces()).thenReturn(Set.of(workspaceId));
+
+        // The workspace record: shares "read" with the user.
+        ResourceSharing workspaceDoc = mock(ResourceSharing.class);
+        when(workspaceDoc.isCreatedBy("erin")).thenReturn(false);
+        when(workspaceDoc.getAccessLevelsForUser(user)).thenReturn(Set.of("read"));
+
+        FlattenedActionGroups ag = mock(FlattenedActionGroups.class);
+        when(resourcePluginInfo.flattenedForType("workspace")).thenReturn(ag);
+        when(ag.resolve(any())).thenReturn(ImmutableSet.of("read"));
+
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(resourceDoc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+
+        // Workspaces are resolved in a single batched mget, not per-workspace GETs.
+        doAnswer(inv -> {
+            ActionListener<java.util.Map<String, ResourceSharing>> l = inv.getArgument(2);
+            l.onResponse(java.util.Map.of(workspaceId, workspaceDoc));
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(workspaceIndex), any(), any());
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
+
+        verify(listener).onResponse(true);
+    }
+
+    @Test
+    public void testHasPermission_deniedWhenNoWorkspaceGrantsAccess() {
+        // Resource grants nothing and belongs to a workspace the user has no access on -> denied.
+        User user = new User("frank", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        final String workspaceIndex = "workspace-index";
+        final String workspaceId = "ws-9";
+        when(resourcePluginInfo.indexByType("workspace")).thenReturn(workspaceIndex);
+
+        ResourceSharing resourceDoc = mock(ResourceSharing.class);
+        when(resourceDoc.isCreatedBy("frank")).thenReturn(false);
+        when(resourceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+        when(resourceDoc.getParentId()).thenReturn(null);
+        when(resourceDoc.getWorkspaces()).thenReturn(Set.of(workspaceId));
+
+        ResourceSharing workspaceDoc = mock(ResourceSharing.class);
+        when(workspaceDoc.isCreatedBy("frank")).thenReturn(false);
+        when(workspaceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(resourceDoc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+
+        doAnswer(inv -> {
+            ActionListener<java.util.Map<String, ResourceSharing>> l = inv.getArgument(2);
+            l.onResponse(java.util.Map.of(workspaceId, workspaceDoc));
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(workspaceIndex), any(), any());
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
+
+        verify(listener).onResponse(false);
+    }
+
+    @Test
+    public void testHasPermission_dissociatedResourceLosesWorkspaceGrant() {
+        // A workspace record exists that WOULD grant the action, but the resource has been dissociated from it: its
+        // own workspace set is empty. checkContainers must not fan out to any workspace, so access is denied. This is
+        // the write-path half of associate/dissociate consistency -- a stale membership would leak authorization.
+        User user = new User("heidi", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        // The resource: no direct access, no parent, and NO workspaces (dissociated).
+        ResourceSharing resourceDoc = mock(ResourceSharing.class);
+        when(resourceDoc.isCreatedBy("heidi")).thenReturn(false);
+        when(resourceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+        when(resourceDoc.getParentId()).thenReturn(null);
+        when(resourceDoc.getWorkspaces()).thenReturn(Collections.emptySet());
+
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(resourceDoc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
+
+        verify(listener).onResponse(false);
+        // With no workspaces on the resource, the workspace index is never queried.
+        verify(sharingIndexHandler, never()).fetchSharingInfoForIds(any(), any(), any());
+    }
+
+    @Test
+    public void testHasPermission_workspaceIsLeafEvaluatedNoRecursion() {
+        // Workspaces are evaluated as leaves (their own share_with) and never recursed into, so even a malformed
+        // self-referential workspace terminates: the resource belongs to "ws-loop" which grants nothing, so access
+        // is denied without following ws-loop's own workspaces.
+        User user = new User("gwen", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        final String workspaceIndex = "workspace-index";
+        final String loopWs = "ws-loop";
+        when(resourcePluginInfo.indexByType("workspace")).thenReturn(workspaceIndex);
+
+        // Resource: no direct access, belongs to ws-loop.
+        ResourceSharing resourceDoc = mock(ResourceSharing.class);
+        when(resourceDoc.isCreatedBy("gwen")).thenReturn(false);
+        when(resourceDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+        when(resourceDoc.getParentId()).thenReturn(null);
+        when(resourceDoc.getWorkspaces()).thenReturn(Set.of(loopWs));
+
+        // Workspace ws-loop: grants nothing and (malformed) contains itself.
+        ResourceSharing loopDoc = mock(ResourceSharing.class);
+        when(loopDoc.isCreatedBy("gwen")).thenReturn(false);
+        when(loopDoc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(resourceDoc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+
+        doAnswer(inv -> {
+            ActionListener<java.util.Map<String, ResourceSharing>> l = inv.getArgument(2);
+            l.onResponse(java.util.Map.of(loopWs, loopDoc));
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(workspaceIndex), any(), any());
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
+
+        // Must terminate (no StackOverflow / infinite loop) and deny.
         verify(listener).onResponse(false);
     }
 

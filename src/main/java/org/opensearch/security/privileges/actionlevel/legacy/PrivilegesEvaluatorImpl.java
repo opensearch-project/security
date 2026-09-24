@@ -104,6 +104,7 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
+import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS;
 
 /**
  * The current implementation for action privilege evaluation.
@@ -303,7 +304,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             resolver,
             indicesRequestResolver,
             clusterStateSupplier,
-            actionPrivileges
+            actionPrivileges,
+            threadContext.getTransient(OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS)
         );
     }
 

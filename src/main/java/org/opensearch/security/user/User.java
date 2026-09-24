@@ -44,6 +44,7 @@ import java.util.Objects;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.identity.Subject;
@@ -60,6 +61,7 @@ import org.opensearch.security.support.Base64Helper;
  */
 public class User implements Serializable, CustomAttributesAware, Principal, Subject {
 
+    public static final String PLUGIN_USER_PREFIX = "plugin:";
     public static final User ANONYMOUS = new User("opendistro_security_anonymous").withRoles("opendistro_security_anonymous_backendrole");
 
     // This is a default user that is injected into a transport request when a user info is not present and passive_intertransport_auth is
@@ -158,6 +160,7 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
     }
 
     @Override
+    @JsonIgnore
     public Principal getPrincipal() {
         return this;
     }
@@ -224,7 +227,17 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
         if (Objects.equals(requestedTenant, this.requestedTenant)) {
             return this;
         } else {
-            return new User(this.name, this.roles, this.securityRoles, requestedTenant, this.attributes, this.isInjected);
+            final User userWithTenantContext = new User(
+                this.name,
+                this.roles,
+                this.securityRoles,
+                requestedTenant,
+                this.attributes,
+                this.isInjected
+            );
+            // Attaching request tenant context must preserve authentication provenance.
+            userWithTenantContext.setAuthenticatedBy(this.authenticatedBy);
+            return userWithTenantContext;
         }
     }
 
@@ -333,7 +346,7 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
      * @return true if it has a plugin account attributes, otherwise false
      */
     public boolean isPluginUser() {
-        return name != null && name.startsWith("plugin:");
+        return name != null && name.startsWith(PLUGIN_USER_PREFIX);
     }
 
     /**
@@ -343,12 +356,18 @@ public class User implements Serializable, CustomAttributesAware, Principal, Sub
         return name != null && name.startsWith(org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX);
     }
 
+    public static boolean hasReservedPrefix(String name) {
+        return name != null
+            && (name.startsWith(PLUGIN_USER_PREFIX)
+                || name.startsWith(org.opensearch.security.http.ApiTokenAuthenticator.API_TOKEN_USER_PREFIX));
+    }
+
     /**
      * If this user is a plugin user, returns the plugin Java class name. Otherwise, returns null.
      */
     public String getPluginName() {
         if (isPluginUser()) {
-            return name.substring("plugin:".length());
+            return name.substring(PLUGIN_USER_PREFIX.length());
         }
         return null;
     }

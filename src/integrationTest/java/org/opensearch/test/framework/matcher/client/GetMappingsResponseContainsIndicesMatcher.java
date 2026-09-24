@@ -7,19 +7,19 @@
 * compatible open source license.
 *
 */
-package org.opensearch.test.framework.matcher;
+package org.opensearch.test.framework.matcher.client;
 
 import java.util.Map;
 
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
-import org.opensearch.client.indices.GetMappingsResponse;
-import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.client.opensearch.indices.GetMappingResponse;
+import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 
 import static java.util.Objects.isNull;
 
-class GetMappingsResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatcher<GetMappingsResponse> {
+class GetMappingsResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatcher<GetMappingResponse> {
 
     private final String[] expectedIndices;
 
@@ -31,8 +31,8 @@ class GetMappingsResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatche
     }
 
     @Override
-    protected boolean matchesSafely(GetMappingsResponse response, Description mismatchDescription) {
-        Map<String, MappingMetadata> indicesMappings = response.mappings();
+    protected boolean matchesSafely(GetMappingResponse response, Description mismatchDescription) {
+        Map<String, IndexMappingRecord> indicesMappings = response.result();
         for (String index : expectedIndices) {
             if (!indicesMappings.containsKey(index)) {
                 mismatchDescription.appendText("Response contains mappings of indices: ").appendValue(indicesMappings.keySet());
