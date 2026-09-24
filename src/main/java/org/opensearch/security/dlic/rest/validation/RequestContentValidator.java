@@ -302,6 +302,12 @@ public class RequestContentValidator implements ToXContent {
                             case INTEGER:
                                 if (valueToken != JsonToken.VALUE_NUMBER_INT) {
                                     wrongDataTypes.put(currentName, "Integer expected");
+                                } else if (fieldConfig != null && fieldConfig.getValidator() != null) {
+                                    try {
+                                        fieldConfig.validate(currentName, jsonContent.get(currentName));
+                                    } catch (IllegalArgumentException e) {
+                                        wrongDataTypes.put(currentName, e.getMessage());
+                                    }
                                 }
                                 break;
                             case STRING:

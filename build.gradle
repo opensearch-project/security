@@ -17,7 +17,7 @@ import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.9.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.10.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -58,10 +58,10 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '8.10.1'
+    id 'com.diffplug.spotless' version '8.10.2'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.11.2"
-    id "org.gradle.test-retry" version "1.6.5"
+    id "org.gradle.test-retry" version "1.6.6"
     id 'eclipse'
     id "com.github.spotbugs" version "6.5.11"
     id "com.google.osdetector" version "1.7.3"
@@ -70,6 +70,10 @@ plugins {
 allprojects {
     group = "org.opensearch"
     version = opensearch_build
+
+    ext {
+        isInFipsApprovedOnlyMode = FipsBuildParams::isInFipsApprovedOnlyMode
+    }
 }
 
 apply plugin: 'opensearch.opensearchplugin'
@@ -77,6 +81,7 @@ apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.testclusters'
 apply from: 'gradle/formatting.gradle'
+apply from: 'gradle/fips.gradle'
 
 licenseFile = rootProject.file('LICENSE.txt')
 noticeFile = rootProject.file('NOTICE.txt')
@@ -235,6 +240,7 @@ tasks.register("listTasksAsJSON") {
         System.out.println(new JsonBuilder(["citest"] + taskNames))
     }
 }
+
 
 tasks.register('copyExtraTestResources', Copy) {
     dependsOn testClasses
@@ -511,8 +517,8 @@ configurations {
             force "org.apache.logging.log4j:log4j-core:${versions.log4j}"
 
             // for spotless transitive dependency CVE
-            force "org.eclipse.platform:org.eclipse.core.runtime:3.34.200"
-            force "org.eclipse.platform:org.eclipse.equinox.common:3.20.400"
+            force "org.eclipse.platform:org.eclipse.core.runtime:3.35.0"
+            force "org.eclipse.platform:org.eclipse.equinox.common:3.21.0"
             force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
             force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
             force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
@@ -528,7 +534,7 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.1"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.23.0"
-            force "net.bytebuddy:byte-buddy:1.18.13"
+            force "net.bytebuddy:byte-buddy:1.18.14"
             force "org.ow2.asm:asm:${versions.asm}"
 
             // For org.opensearch.plugin:transport-grpc
@@ -553,6 +559,9 @@ subprojects {
             if (project.configurations.findByName('integrationTestImplementation')) {
                 configurations.integrationTestImplementation.extendsFrom configurations.implementation
                 configurations.integrationTestRuntimeOnly.extendsFrom configurations.runtimeOnly
+            }
+            tasks.withType(Test).configureEach { t ->
+                rootProject.ext.configureFipsJvmArgs(t)
             }
         }
     }
@@ -599,6 +608,7 @@ allprojects {
                 integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
                 integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
                 integrationTestImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+                integrationTestImplementation "org.bouncycastle:bctls-fips:${versions.bouncycastle_tls}"
                 integrationTestImplementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
                 integrationTestImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
                 integrationTestImplementation('org.awaitility:awaitility:4.3.0') {
@@ -634,7 +644,6 @@ allprojects {
                 }
                 integrationTestImplementation "io.projectreactor.netty:reactor-netty-core:${versions.reactor_netty}"
                 integrationTestImplementation "io.projectreactor.netty:reactor-netty-http:${versions.reactor_netty}"
-                integrationTestImplementation 'org.opensearch.client:opensearch-java:3.10.0'
             }
         }
     }
@@ -696,7 +705,9 @@ check.dependsOn integrationTest
 dependencies {
     implementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
-    implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
+    implementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
+    implementation 'org.opensearch.client:opensearch-java:3.10.0'
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
@@ -705,16 +716,10 @@ dependencies {
 
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.11.0'
-    // When building with crypto.standard=FIPS-140-3 (set in gradle.properties), bcFips jars are provided by OpenSearch
-    if (FipsBuildParams.isInFipsMode()) {
-        compileOnly "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
-        compileOnly "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
-        compileOnly "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
-    } else {
-        implementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
-        implementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
-        implementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
-    }
+    compileOnly "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+    compileOnly "org.bouncycastle:bctls-fips:${versions.bouncycastle_tls}"
+    compileOnly "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
+    compileOnly "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'com.nimbusds:nimbus-jose-jwt:10.9.1'
     implementation 'com.rfksystems:blake2b:2.0.0'
@@ -820,13 +825,13 @@ dependencies {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     testImplementation "org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"
+    testImplementation "org.bouncycastle:bctls-fips:${versions.bouncycastle_tls}"
     testImplementation "org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"
     testImplementation "org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}"
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
 
     testImplementation libs.springframework.beans
-    testImplementation 'org.opensearch.client:opensearch-java:3.10.0'
 
     testRuntimeOnly(libs.springframework.core) {
         exclude(group: 'org.springframework', module: 'spring-jcl')
@@ -858,6 +863,18 @@ tasks.register('testsJar', Jar) {
     from(sourceSets.test.output)
 }
 
+def configureSecurityAdminBcFips(AbstractArchiveTask task) {
+    def bcFipsJars = configurations.detachedConfiguration(
+        dependencies.create("org.bouncycastle:bc-fips:${versions.bouncycastle_jce}"),
+        dependencies.create("org.bouncycastle:bctls-fips:${versions.bouncycastle_tls}"),
+        dependencies.create("org.bouncycastle:bcpkix-fips:${versions.bouncycastle_pkix}"),
+        dependencies.create("org.bouncycastle:bcutil-fips:${versions.bouncycastle_util}")
+    )
+    task.from(bcFipsJars) {
+        into 'deps/'
+    }
+}
+
 tasks.register("bundleSecurityAdminStandalone", Zip) {
     dependsOn(jar)
     archiveClassifier = 'securityadmin-standalone'
@@ -874,6 +891,7 @@ tasks.register("bundleSecurityAdminStandalone", Zip) {
         into 'deps/securityconfig'
     }
 }
+configureSecurityAdminBcFips(bundleSecurityAdminStandalone)
 
 tasks.register("bundleSecurityAdminStandaloneTarGz", Tar) {
     dependsOn(jar)
@@ -893,6 +911,7 @@ tasks.register("bundleSecurityAdminStandaloneTarGz", Tar) {
         into 'deps/securityconfig'
     }
 }
+configureSecurityAdminBcFips(bundleSecurityAdminStandaloneTarGz)
 
 buildRpm {
     arch = 'NOARCH'

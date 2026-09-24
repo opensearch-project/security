@@ -44,4 +44,15 @@ public class AddressBasedRateLimiterTest {
         assertTrue(rateLimiter.isBlocked(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 })));
 
     }
+
+    @Test
+    public void supportsLargeSecondValuesWithoutOverflow() {
+        Settings settings = Settings.builder()
+            .put("allowed_tries", 2)
+            .put("time_window_seconds", Integer.MAX_VALUE)
+            .put("block_expiry_seconds", Integer.MAX_VALUE)
+            .build();
+
+        new AddressBasedRateLimiter(settings, null);
+    }
 }
