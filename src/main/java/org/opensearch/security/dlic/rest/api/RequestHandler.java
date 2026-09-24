@@ -187,7 +187,7 @@ public interface RequestHandler {
             add(RestRequest.Method.GET, (channel, request, client) -> {
                 final ValidationResult<ToXContent> result = mapper.apply(request);
                 if (result != null) {
-                    result.valid(toXContent -> ok(channel, toXContent))
+                    result.valid(toXContent -> Responses.ok(channel, toXContent))
                         .error((status, toXContent) -> response(channel, status, toXContent));
                 } else {
                     legacyHandler.handle(channel, request, client);
