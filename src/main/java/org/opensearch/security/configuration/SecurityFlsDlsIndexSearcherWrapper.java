@@ -170,7 +170,8 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
 
                 }
 
-                if (!flsRule.isAllowAll() || !fmRule.isAllowAll()) {
+                if (documentAllowList.isAllowed(index.getName(), DocumentAllowList.ANY_DOCUMENT_ID)
+                    && (!flsRule.isAllowAll() || !fmRule.isAllowAll())) {
                     log.debug("Lifting FLS/FM for {} due to present document allowlist", index.getName());
                     flsRule = FieldPrivileges.FlsRule.ALLOW_ALL;
                     fmRule = FieldMasking.FieldMaskingRule.ALLOW_ALL;
