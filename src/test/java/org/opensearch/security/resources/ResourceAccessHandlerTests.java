@@ -165,7 +165,7 @@ public class ResourceAccessHandlerTests {
         // "read" access on that workspace's own sharing record -> access is inherited from the workspace container.
         User user = new User("erin", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         final String workspaceIndex = "workspace-index";
         final String workspaceId = "ws-1";
@@ -210,7 +210,7 @@ public class ResourceAccessHandlerTests {
         // Resource grants nothing and belongs to a workspace the user has no access on -> denied.
         User user = new User("frank", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         final String workspaceIndex = "workspace-index";
         final String workspaceId = "ws-9";
@@ -251,7 +251,7 @@ public class ResourceAccessHandlerTests {
         // the write-path half of associate/dissociate consistency -- a stale membership would leak authorization.
         User user = new User("heidi", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         // The resource: no direct access, no parent, and NO workspaces (dissociated).
         ResourceSharing resourceDoc = mock(ResourceSharing.class);
@@ -281,7 +281,7 @@ public class ResourceAccessHandlerTests {
         // is denied without following ws-loop's own workspaces.
         User user = new User("gwen", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         final String workspaceIndex = "workspace-index";
         final String loopWs = "ws-loop";

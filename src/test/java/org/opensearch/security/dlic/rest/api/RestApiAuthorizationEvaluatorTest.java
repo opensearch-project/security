@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
@@ -77,11 +78,14 @@ public class RestApiAuthorizationEvaluatorTest {
         final User adminUser = new User("admin");
         when(adminDNs.isAdmin(adminUser)).thenReturn(true);
 
+        final SuperAdminAuthority superAdminAuthority = mock(SuperAdminAuthority.class);
+        when(superAdminAuthority.getAdminDns()).thenReturn(adminDNs);
+
         final ThreadPool threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         final RestApiAuthorizationEvaluator evaluator = new RestApiAuthorizationEvaluator(
             Settings.EMPTY,
-            adminDNs,
+            superAdminAuthority,
             (user, caller) -> user.getSecurityRoles(),
             mock(PrincipalExtractor.class),
             mock(Path.class),
@@ -99,11 +103,14 @@ public class RestApiAuthorizationEvaluatorTest {
         final User regularUser = new User("regular");
         when(adminDNs.isAdmin(regularUser)).thenReturn(false);
 
+        final SuperAdminAuthority superAdminAuthority = mock(SuperAdminAuthority.class);
+        when(superAdminAuthority.getAdminDns()).thenReturn(adminDNs);
+
         final ThreadPool threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         final RestApiAuthorizationEvaluator evaluator = new RestApiAuthorizationEvaluator(
             Settings.EMPTY,
-            adminDNs,
+            superAdminAuthority,
             (user, caller) -> user.getSecurityRoles(),
             mock(PrincipalExtractor.class),
             mock(Path.class),
