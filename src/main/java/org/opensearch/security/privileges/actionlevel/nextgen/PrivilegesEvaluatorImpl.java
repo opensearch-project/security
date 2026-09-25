@@ -15,9 +15,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
@@ -61,6 +63,8 @@ import org.opensearch.security.privileges.IndicesRequestResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RoleMapper;
+import org.opensearch.security.privileges.SpecialIndices;
+import org.opensearch.security.privileges.SystemIndexRestoreEligibilityHelper;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
 import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
@@ -136,6 +140,8 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
     private final RoleMapper roleMapper;
     private final ThreadPool threadPool;
     private final RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection;
+    private final SpecialIndices specialIndices;
+    private final SystemIndexRestoreEligibilityHelper restoreEligibility;
     private final ActionConfiguration actionConfiguration;
     private volatile boolean indexReductionEnabled = true;
 
@@ -146,10 +152,13 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
         this.threadPool = coreDependencies.threadPool();
         this.clusterStateSupplier = coreDependencies.clusterStateSupplier();
         this.settings = coreDependencies.settings();
+        this.specialIndices = dynamicDependencies.specialIndices();
+        this.restoreEligibility = new SystemIndexRestoreEligibilityHelper(settings);
         this.specialIndexProtection = new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
-            dynamicDependencies.specialIndices()::isUniversallyDeniedIndex,
-            dynamicDependencies.specialIndices()::isSystemIndex,
-            indicesNeedingSpecialRoles(settings)
+            specialIndices::isUniversallyDeniedIndex,
+            specialIndices::isSystemIndex,
+            indicesNeedingSpecialRoles(settings),
+            this::isSecurityAdminRestoreOfEligibleIndex
         );
 
         this.actionConfiguration = new ActionConfiguration(settings);
@@ -655,12 +664,37 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
                 .reason("Could not retrieve information for snapshot " + request.repository() + "/" + request.snapshot());
         }
 
-        return checkIndexPermissionBasic(
+        PrivilegesEvaluatorResponse presponse = checkIndexPermissionBasic(
             context,
             ConfigConstants.SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES,
             resolvedIndices,
             request
         );
+
+        if (!presponse.isAllowed() && restoreEligibility.isSecurityAdmin(context.getMappedRoles())) {
+            Set<String> systemIndices = resolvedIndices.local()
+                .names()
+                .stream()
+                .filter(index -> specialIndices.isSystemIndex(index) || specialIndices.isUniversallyDeniedIndex(index))
+                .collect(Collectors.toSet());
+            Optional<String> denialReason = restoreEligibility.denialReason(request, systemIndices);
+            if (denialReason.isPresent()) {
+                log.warn("{} denied for security-admin: {}", context.getAction(), denialReason.get());
+                return PrivilegesEvaluatorResponse.insufficient(context.getAction()).reason(denialReason.get());
+            }
+        }
+
+        return presponse;
+    }
+
+    /**
+     * Lets a security-admin restore an allowlisted system index without the explicit system index privilege, as decided
+     * by {@link SystemIndexRestoreEligibilityHelper}.
+     */
+    private boolean isSecurityAdminRestoreOfEligibleIndex(PrivilegesEvaluationContext context, String index) {
+        return context.getRequest() instanceof RestoreSnapshotRequest restoreRequest
+            && restoreEligibility.isSecurityAdmin(context.getMappedRoles())
+            && restoreEligibility.isRestorableBySecurityAdmin(restoreRequest, index);
     }
 
     /**

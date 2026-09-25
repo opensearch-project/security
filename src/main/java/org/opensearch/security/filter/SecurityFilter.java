@@ -95,6 +95,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
+import org.opensearch.security.privileges.SystemIndexRestoreEligibilityHelper;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
@@ -407,6 +408,10 @@ public class SecurityFilter implements ActionFilter {
                         context.getMappedRoles()
                     )
                     : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
+                if (SystemIndexRestoreEligibilityHelper.isDenialReason(response.getReason())) {
+                    // Tell the caller which system indices may be restored and how
+                    err = err + ". " + response.getReason();
+                }
 
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));

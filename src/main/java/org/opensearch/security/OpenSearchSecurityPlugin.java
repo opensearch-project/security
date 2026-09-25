@@ -1891,6 +1891,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Property.Deprecated
             )
         );
+        settings.add(
+            Setting.listSetting(
+                ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY,
+                ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT,
+                Function.identity(),
+                Property.NodeScope,
+                Property.Filtered,
+                Property.Final
+            )
+        );
 
         settings.add(
             Setting.simpleString(

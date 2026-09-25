@@ -29,6 +29,7 @@ package org.opensearch.security.privileges.actionlevel.legacy;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
@@ -45,6 +47,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.SystemIndexRestoreEligibilityHelper;
 import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
@@ -74,6 +77,7 @@ public class SystemIndexAccessEvaluator {
 
     private final boolean isSystemIndexEnabled;
     private final boolean isSystemIndexPermissionEnabled;
+    private final SystemIndexRestoreEligibilityHelper restoreEligibility;
     private final static ImmutableSet<String> SYSTEM_INDEX_PERMISSION_SET = ImmutableSet.of(ConfigConstants.SYSTEM_INDEX_PERMISSION);
 
     public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
@@ -83,6 +87,7 @@ public class SystemIndexAccessEvaluator {
         );
         this.auditLog = auditLog;
         this.irr = irr;
+        this.restoreEligibility = new SystemIndexRestoreEligibilityHelper(settings);
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
         this.systemIndexMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
@@ -137,15 +142,24 @@ public class SystemIndexAccessEvaluator {
         final ActionPrivileges actionPrivileges,
         final User user
     ) {
-        PrivilegesEvaluatorResponse presponse = evaluateSystemIndicesAccess(
-            action,
-            requestedResolved,
-            request,
-            task,
-            context,
-            actionPrivileges,
-            user
-        );
+        final Set<String> systemIndicesToRestore = request instanceof RestoreSnapshotRequest
+            && restoreEligibility.isSecurityAdmin(context.getMappedRoles()) ? getAllSystemIndices(requestedResolved) : Set.of();
+
+        final PrivilegesEvaluatorResponse presponse;
+        if (!systemIndicesToRestore.isEmpty()) {
+            presponse = evaluateSecurityAdminRestore(
+                (RestoreSnapshotRequest) request,
+                systemIndicesToRestore,
+                action,
+                requestedResolved,
+                task,
+                context,
+                actionPrivileges,
+                user
+            );
+        } else {
+            presponse = evaluateSystemIndicesAccess(action, requestedResolved, request, task, context, actionPrivileges, user);
+        }
         if (presponse != null && !presponse.isAllowed()) {
             return presponse;
         }
@@ -167,6 +181,47 @@ public class SystemIndexAccessEvaluator {
                     log.debug("Disable realtime for this request");
                 }
             }
+        }
+        return presponse;
+    }
+
+    /**
+     * A security-admin may restore allowlisted system indices named explicitly in the request, without renaming. If the
+     * request does not meet those rules, the existing system index checks still apply (so a holder of
+     * {@code system:admin/system_index} keeps working as before); if those deny too, the denial carries the reason
+     * from {@link SystemIndexRestoreEligibilityHelper} so the caller knows what to change.
+     *
+     * @return null to continue with regular privilege evaluation, or a denial
+     */
+    private PrivilegesEvaluatorResponse evaluateSecurityAdminRestore(
+        final RestoreSnapshotRequest request,
+        final Set<String> systemIndices,
+        final String action,
+        final Resolved requestedResolved,
+        final Task task,
+        final PrivilegesEvaluationContext context,
+        final ActionPrivileges actionPrivileges,
+        final User user
+    ) {
+        final Optional<String> denialReason = restoreEligibility.denialReason(request, systemIndices);
+        if (denialReason.isEmpty()) {
+            if (log.isDebugEnabled()) {
+                log.debug("Security-admin restore of system indices {} allowed", systemIndices);
+            }
+            return null;
+        }
+        final PrivilegesEvaluatorResponse presponse = evaluateSystemIndicesAccess(
+            action,
+            requestedResolved,
+            request,
+            task,
+            context,
+            actionPrivileges,
+            user
+        );
+        if (presponse != null && !presponse.isAllowed()) {
+            log.warn("{} denied for security-admin: {}", action, denialReason.get());
+            return PrivilegesEvaluatorResponse.insufficient(action).reason(denialReason.get());
         }
         return presponse;
     }

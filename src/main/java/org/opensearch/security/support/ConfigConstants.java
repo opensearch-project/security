@@ -428,6 +428,8 @@ public class ConfigConstants {
     public static final Boolean SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
+    public static final String SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "system_indices.restore.indices";
+    public static final List<String> SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT = Collections.emptyList();
     public static final String SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT = SECURITY_SETTINGS_PREFIX + "masked_fields.algorithm.default";
 
     public static final String TENANCY_PRIVATE_TENANT_NAME = "private";

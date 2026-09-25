@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 import com.google.common.collect.ImmutableList;
@@ -359,11 +360,13 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
     protected abstract static class StaticIndexPrivileges {
         protected final Predicate<String> universallyDeniedIndices;
         protected final Predicate<String> indicesNeedingSystemIndexPrivileges;
+        protected final BiPredicate<PrivilegesEvaluationContext, String> systemIndexPrivilegeExemption;
         protected final SpecialIndexProtection.IndicesNeedingSpecialRoles indicesNeedingSpecialRoles;
 
         protected StaticIndexPrivileges(SpecialIndexProtection specialIndexProtection) {
             this.universallyDeniedIndices = specialIndexProtection.universallyDeniedIndices;
             this.indicesNeedingSystemIndexPrivileges = specialIndexProtection.indicesNeedingSystemIndexPrivileges;
+            this.systemIndexPrivilegeExemption = specialIndexProtection.systemIndexPrivilegeExemption;
             this.indicesNeedingSpecialRoles = specialIndexProtection.indicesNeedingSpecialRoles;
         }
 
@@ -563,7 +566,8 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
             List<PrivilegesEvaluationException> exceptions
         ) {
             if (this.indicesNeedingSystemIndexPrivileges.test(indexOrAlias)) {
-                return !providesExplicitPrivilege(context, indexOrAlias, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
+                return !this.systemIndexPrivilegeExemption.test(context, indexOrAlias)
+                    && !providesExplicitPrivilege(context, indexOrAlias, ConfigConstants.SYSTEM_INDEX_PERMISSION, exceptions);
             }
 
             IndexAbstraction indexAbstraction = context.getIndicesLookup().get(indexOrAlias);
@@ -656,14 +660,30 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
          */
         protected final IndicesNeedingSpecialRoles indicesNeedingSpecialRoles;
 
+        /**
+         * Grants access to an index matched by indicesNeedingSystemIndexPrivileges without the explicit system index
+         * privilege, when it returns true for the current request. Used for restoring allowlisted system indices.
+         */
+        protected final BiPredicate<PrivilegesEvaluationContext, String> systemIndexPrivilegeExemption;
+
         public SpecialIndexProtection(
             Predicate<String> universallyDeniedIndices,
             Predicate<String> indicesNeedingSystemIndexPrivileges,
             IndicesNeedingSpecialRoles indicesNeedingSpecialRoles
         ) {
+            this(universallyDeniedIndices, indicesNeedingSystemIndexPrivileges, indicesNeedingSpecialRoles, (context, index) -> false);
+        }
+
+        public SpecialIndexProtection(
+            Predicate<String> universallyDeniedIndices,
+            Predicate<String> indicesNeedingSystemIndexPrivileges,
+            IndicesNeedingSpecialRoles indicesNeedingSpecialRoles,
+            BiPredicate<PrivilegesEvaluationContext, String> systemIndexPrivilegeExemption
+        ) {
             this.universallyDeniedIndices = universallyDeniedIndices;
             this.indicesNeedingSystemIndexPrivileges = indicesNeedingSystemIndexPrivileges;
             this.indicesNeedingSpecialRoles = indicesNeedingSpecialRoles;
+            this.systemIndexPrivilegeExemption = systemIndexPrivilegeExemption;
         }
 
         /**
