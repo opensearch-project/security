@@ -229,16 +229,17 @@ public interface RequestHandler {
                     break;
                 case PUT:
                     add(method, (channel, request, client) -> mapper.apply(request).valid(securityConfiguration -> {
-                        final boolean isCreate = !securityConfiguration.entityExists();
+                        final var entityName = securityConfiguration.maybeEntityName();
+                        final boolean isCreate = entityName.isPresent() && !securityConfiguration.entityExists();
                         final RestStatus successStatus = isCreate ? RestStatus.CREATED : RestStatus.OK;
-                        final String entityName = securityConfiguration.entityName();
-                        final String successMessage = "'" + entityName + "' " + (isCreate ? "created" : "updated") + ".";
+                        final String successMessage = entityName.map(name -> "'" + name + "' " + (isCreate ? "created" : "updated") + ".")
+                            .orElse("Resources updated.");
                         if (asyncTaskSubmitter.trySubmit(
                             channel,
                             request,
                             client,
                             securityConfiguration.configuration(),
-                            entityName,
+                            entityName.orElse(null),
                             successMessage,
                             successStatus
                         )) {
