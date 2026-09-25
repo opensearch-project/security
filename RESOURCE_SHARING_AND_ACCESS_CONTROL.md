@@ -30,7 +30,7 @@ The **Resource Sharing and Access Control** feature in OpenSearch Security Plugi
 
 This feature ensures **secure** and **controlled** access to shareableResources while leveraging existing **index-level authorization** in OpenSearch.
 
-NOTE: This feature is marked as **`@opensearch.experimental`** and can be toggled using the feature flag: **`plugins.security.experimental.resource_sharing.enabled`**, which is **disabled by default**.
+NOTE: This feature can be toggled using the feature flag: **`plugins.security.resource_sharing.enabled`**, which is **disabled by default**.
 
 
 ## **2. What are the Components?**
@@ -142,8 +142,8 @@ integTest {
     ...
     node.setting("plugins.security.system_indices.enabled", "true")
     if (System.getProperty("resource_sharing.enabled") == "true") {
-        node.setting("plugins.security.experimental.resource_sharing.enabled", "true")
-        node.setting("plugins.security.experimental.resource_sharing.protected_types", "[\"anomaly-detector\", \"forecaster\"]")
+        node.setting("plugins.security.resource_sharing.enabled", "true")
+        node.setting("plugins.security.resource_sharing.protected_types", "[\"anomaly-detector\", \"forecaster\"]")
     }
     ...
 }
@@ -474,8 +474,8 @@ Since no entities are listed, the resource is accessible **only by its creator a
 
 
 ### **Additional Notes**
-- **Feature Flag:** These APIs are available only when `plugins.security.experimental.resource_sharing.enabled` is set to `true` in the configuration.
-- **Protected Types:** These APIs will only come into effect if concerned resources are marked as protected: `plugins.security.experimental.resource_sharing.protected_types: [<type-1>, <type-2>]`.
+- **Feature Flag:** These APIs are available only when `plugins.security.resource_sharing.enabled` is set to `true` in the configuration.
+- **Protected Types:** These APIs will only come into effect if concerned resources are marked as protected: `plugins.security.resource_sharing.protected_types: [<type-1>, <type-2>]`.
 
 ---
 
@@ -487,21 +487,32 @@ Since no entities are listed, the resource is accessible **only by its creator a
 ### **Feature Flag**
 This feature is controlled by the following flag:
 
-- **Feature flag:** `plugins.security.experimental.resource_sharing.enabled`
+- **Feature flag:** `plugins.security.resource_sharing.enabled`
 - **Default value:** `false`
 - **How to enable?** Set the flag to `true` in the opensearch configuration:
   ```yaml
-  plugins.security.experimental.resource_sharing.enabled: true
+  plugins.security.resource_sharing.enabled: true
   ```
+> **Upgrading from a version that used the experimental flag (deprecated, not yet removed)**
+>
+> Prior to graduation these settings were named `plugins.security.experimental.resource_sharing.enabled` and `plugins.security.experimental.resource_sharing.protected_types`. **The old names are deprecated and will be removed in a future major version. Move to the new names.**
+>
+> Until then the old names keep working, so an upgrade does not require any change before it starts:
+> - **`opensearch.yml`:** a node that still has an old key starts normally and the value is honored. The log records that the setting is deprecated and names its replacement.
+> - **Cluster settings:** an existing `plugins.security.experimental.resource_sharing.*` cluster setting is honored, and is rewritten to the new name during cluster-state recovery so the deprecated key does not linger in `GET _cluster/settings`. A dynamic update that still uses the old name is also accepted and rewritten.
+> - **Precedence:** if both names are set, the new name wins. A leftover old key cannot override a deliberate new one.
+>
+> Rename the keys at your convenience. Once renamed, the deprecation warnings stop.
+
 ### **List protected types**
 
 The list of protected types are controlled through following opensearch setting
 
-- **Setting:** `plugins.security.experimental.resource_sharing.protected_types`
+- **Setting:** `plugins.security.resource_sharing.protected_types`
 - **Default value:** `[]`
 - **How to specify a type?** Add entries of existing types in the list:
   ```yaml
-  plugins.security.experimental.resource_sharing.protected_types: [sample-resource]
+  plugins.security.resource_sharing.protected_types: [sample-resource]
   ```
 NOTE: These types will be available on documentation website.
 
@@ -516,7 +527,7 @@ This allows administrators to enable or disable the **Resource Sharing** feature
 PUT _cluster/settings
 {
   "transient": {
-    "plugins.security.experimental.resource_sharing.enabled": true
+    "plugins.security.resource_sharing.enabled": true
   }
 }
 ```
@@ -527,7 +538,7 @@ PUT _cluster/settings
 PUT _cluster/settings
 {
   "transient": {
-    "plugins.security.experimental.resource_sharing.protected_types": ["sample-resource", "ml-model"]
+    "plugins.security.resource_sharing.protected_types": ["sample-resource", "ml-model"]
   }
 }
 ```
@@ -538,7 +549,7 @@ PUT _cluster/settings
 PUT _cluster/settings
 {
   "transient": {
-    "plugins.security.experimental.resource_sharing.protected_types": []
+    "plugins.security.resource_sharing.protected_types": []
   }
 }
 ```

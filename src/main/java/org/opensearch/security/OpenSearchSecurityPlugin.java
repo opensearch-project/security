@@ -90,6 +90,7 @@ import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Setting.Property;
+import org.opensearch.common.settings.SettingUpgrader;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsFilter;
 import org.opensearch.common.util.BigArrays;
@@ -146,7 +147,9 @@ import org.opensearch.security.action.apitokens.ApiTokenAction;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.action.apitokens.ApiTokenUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
+import org.opensearch.security.action.configupdate.SecurityConfigWriteAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
+import org.opensearch.security.action.configupdate.TransportSecurityConfigWriteAction;
 import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
@@ -211,6 +214,7 @@ import org.opensearch.security.resources.api.share.ShareRestAction;
 import org.opensearch.security.resources.api.share.ShareTransportAction;
 import org.opensearch.security.resources.settings.ResourceSharingFeatureFlagSetting;
 import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
+import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
 import org.opensearch.security.rest.SecurityHealthAction;
@@ -1072,6 +1076,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
         if (!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
+            actions.add(new ActionHandler<>(SecurityConfigWriteAction.INSTANCE, TransportSecurityConfigWriteAction.class));
             actions.add(new ActionHandler<>(ApiTokenUpdateAction.INSTANCE, ApiTokenUpdateAction.TransportAction.class));
             // external storage does not support reload and does not provide SSL certs info
             if (!ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
@@ -1808,7 +1813,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         return List.of(
             new NamedWriteableRegistry.Entry(ClusterState.Custom.class, SecurityMetadata.TYPE, SecurityMetadata::new),
-            new NamedWriteableRegistry.Entry(NamedDiff.class, SecurityMetadata.TYPE, SecurityMetadata::readDiffFrom)
+            new NamedWriteableRegistry.Entry(NamedDiff.class, SecurityMetadata.TYPE, SecurityMetadata::readDiffFrom),
+            // Reader for ResourceSharing so ShareResponse's readNamedWriteable(ResourceSharing.class) round-trips.
+            new NamedWriteableRegistry.Entry(ResourceSharing.class, ResourceSharing.NAME, ResourceSharing::new)
         );
     }
 
@@ -2723,6 +2730,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // Defaults to no resources as protected
             settings.add(resourceSharingProtectedResourceTypesSetting.getDynamicSetting());
 
+            // Pre-graduation names of the two settings above. Registered so that an existing configuration is
+            // still understood and so the setting upgraders below can resolve the old keys.
+            settings.add(ResourceSharingFeatureFlagSetting.LEGACY_RESOURCE_SHARING_ENABLED);
+            settings.add(ResourceSharingProtectedResourcesSetting.LEGACY_PROTECTED_TYPES);
+
             settings.add(UserFactory.Caching.MAX_SIZE);
             settings.add(UserFactory.Caching.EXPIRE_AFTER_ACCESS);
 
@@ -2777,6 +2789,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     @Override
+    public List<SettingUpgrader<?>> getSettingUpgraders() {
+        return List.of(
+            ResourceSharingFeatureFlagSetting.RESOURCE_SHARING_ENABLED_UPGRADER,
+            ResourceSharingProtectedResourcesSetting.PROTECTED_TYPES_UPGRADER
+        );
+    }
+
+    @Override
     public List<String> getSettingsFilter() {
         List<String> settingsFilter = new ArrayList<>();
 
@@ -2816,7 +2836,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
             if (apiTokenRepository != null) {
-                apiTokenRepository.reloadApiTokensFromIndex(
+                apiTokenRepository.reloadApiTokensOnNodeStart(
                     ActionListener.wrap(
                         unused -> log.debug("API tokens loaded on node start"),
                         e -> log.warn("Failed to load API tokens on node start", e)
@@ -3016,7 +3036,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         @Inject
         public GuiceHolder(
             final RepositoriesService repositoriesService,
-            final TransportService remoteClusterService,
+            final TransportService transportService,
             IndicesService indicesService,
             PitService pitService,
             ExtensionsManager extensionsManager,
@@ -3024,7 +3044,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             AuditLogImpl auditLog
         ) {
             GuiceHolder.repositoriesService = repositoriesService;
-            GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
+            GuiceHolder.remoteClusterService = transportService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;

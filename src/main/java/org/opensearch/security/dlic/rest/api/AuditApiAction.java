@@ -263,6 +263,11 @@ public class AuditApiAction extends AbstractApiAction {
     }
 
     @Override
+    protected boolean supportsAsync() {
+        return true;
+    }
+
+    @Override
     protected void consumeParameters(RestRequest request) {}
 
     private void auditApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {

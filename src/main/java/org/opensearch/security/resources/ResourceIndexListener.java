@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,8 +29,6 @@ import org.opensearch.transport.client.Client;
 
 /**
  * This class implements an index operation listener for operations performed on resources stored in plugin's indices.
- *
- * @opensearch.experimental
  */
 public class ResourceIndexListener implements IndexingOperationListener {
 
@@ -78,7 +77,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
         if (provider == null) {
             log.warn(
-                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.experimental.resource_sharing.protected_types.",
+                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.resource_sharing.protected_types.",
                 resourceId,
                 resourceType
             );
@@ -92,6 +91,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
 
         if (!result.isCreated()) {
+            // Restore all_shared_principals on the resource doc (guards against a direct write tampering with it).
             ActionListener<Void> listener = ActionListener.wrap(unused -> {
                 log.debug(
                     "postIndex: Successfully updated the resource visibility for resource {} within index {}",
@@ -100,6 +100,22 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 );
             }, e -> { log.debug(e.getMessage()); });
             this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
+
+            // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
+            // so the write-path record tracks the read-path field. The op's seq_no is the monotonic guard.
+            if (provider.workspacesField() != null) {
+                Set<String> currentWorkspaces = ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
+                this.resourceSharingIndexHandler.reconcileWorkspaces(
+                    resourceIndex,
+                    resourceId,
+                    currentWorkspaces,
+                    result.getSeqNo(),
+                    ActionListener.wrap(
+                        changed -> log.debug("postIndex: workspace reconcile for {} changed={}", resourceId, changed),
+                        e -> log.warn("postIndex: failed to reconcile workspaces for {}: {}", resourceId, e.getMessage())
+                    )
+                );
+            }
             return;
         }
 
@@ -128,6 +144,11 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     .createdBy(new CreatedBy(user.getName()));
                 if (parentType != null) {
                     builder.parentType(parentType).parentId(parentId);
+                }
+                // Stamp the resource's workspaces onto the sharing record (used by the write-path access-level
+                // fan-out). Providers that declare no workspaces field are unaffected.
+                if (provider.workspacesField() != null) {
+                    builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
                 }
                 this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, builder.build(), listener);
             } catch (IOException e) {
@@ -175,15 +196,18 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 );
                 return;
             }
-            ResourceSharing sharingInfo = ResourceSharing.builder()
+            ResourceSharing.Builder childBuilder = ResourceSharing.builder()
                 .resourceId(resourceId)
                 .resourceType(resourceType)
                 .tenant(parentSharing.getTenant())
                 .createdBy(parentSharing.getCreatedBy())
                 .parentType(parentType)
-                .parentId(parentId)
-                .build();
-            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, sharingInfo, listener);
+                .parentId(parentId);
+            // Stamp the child's own workspaces onto its record; ownership is still inherited from the parent above.
+            if (provider.workspacesField() != null) {
+                childBuilder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
+            }
+            this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, childBuilder.build(), listener);
         },
             e -> log.warn(
                 "Failed to create a resource sharing entry for child resource {} in index {}: could not fetch parent {} sharing record: {}",
