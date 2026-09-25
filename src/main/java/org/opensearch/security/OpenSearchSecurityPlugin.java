@@ -245,6 +245,7 @@ import org.opensearch.security.support.ReflectionHelper;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
+import org.opensearch.security.transport.OIDClusterRequestEvaluator;
 import org.opensearch.security.transport.RemoteClusterIdentityPolicy;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
@@ -1541,13 +1542,58 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
 
-        final String className = settings.get(
-            ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
-            DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS
+        // Legacy FQCN-based selector, kept for back-compat. See issue #6479.
+        final String legacyClassName = settings.get(ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
+        final String typedEvaluator = settings.get(
+            ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR,
+            ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT
         );
-        log.debug("Using {} as intercluster request evaluator class", className);
-        if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
+
+        if (legacyClassName != null && !legacyClassName.isEmpty()) {
+            deprecationLogger.deprecate(
+                "intercluster_request_evaluator_class",
+                "The '{}' setting is deprecated and will be removed in a future major release. "
+                    + "Use '{}' with one of [{}, {}] instead. "
+                    + "See https://github.com/opensearch-project/security/issues/6479 for details.",
+                ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+                ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR,
+                ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT,
+                ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_OID
+            );
+            if (settings.hasValue(ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR)) {
+                log.warn(
+                    "Both '{}' (deprecated) and '{}' are configured. The deprecated setting takes precedence for back-compat.",
+                    ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+                    ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR
+                );
+            }
+            log.debug("Using {} as intercluster request evaluator class (legacy FQCN setting)", legacyClassName);
+            if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(legacyClassName)) {
+                interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(legacyClassName, settings);
+            }
+        } else {
+            switch (typedEvaluator) {
+                case ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT:
+                    // interClusterRequestEvaluator already initialized above
+                    log.debug("Using DefaultInterClusterRequestEvaluator (typed setting)");
+                    break;
+                case ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_OID:
+                    interClusterRequestEvaluator = new OIDClusterRequestEvaluator(settings);
+                    log.debug("Using OIDClusterRequestEvaluator (typed setting)");
+                    break;
+                default:
+                    throw new IllegalArgumentException(
+                        "Unknown value '"
+                            + typedEvaluator
+                            + "' for setting '"
+                            + ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR
+                            + "'. Expected one of ["
+                            + ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT
+                            + ", "
+                            + ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_OID
+                            + "]."
+                    );
+            }
         }
 
         UserFactory userFactory = new UserFactory.Caching(settings);
@@ -1751,9 +1797,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // communication with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence
         // the base values from opensearch.yml
         // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
-        if (DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
-            e.subscribeForChanges(dcf);
+        // Gate on the runtime type of the evaluator, not the configured class-name string: this correctly captures the case where a
+        // misconfigured or unloadable FQCN silently falls back to DefaultInterClusterRequestEvaluator (see issue #6479).
+        if (interClusterRequestEvaluator instanceof DefaultInterClusterRequestEvaluator) {
+            ((DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator).subscribeForChanges(dcf);
         }
 
         components.add(adminDns);
@@ -2484,6 +2531,31 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             settings.add(
                 Setting.simpleString(
                     ConfigConstants.SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+                    Property.NodeScope,
+                    Property.Filtered,
+                    Property.Deprecated
+                )
+            );
+            settings.add(
+                Setting.simpleString(
+                    ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR,
+                    ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT,
+                    value -> {
+                        if (!ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT.equals(value)
+                            && !ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_OID.equals(value)) {
+                            throw new IllegalArgumentException(
+                                "Unknown value '"
+                                    + value
+                                    + "' for setting '"
+                                    + ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR
+                                    + "'. Expected one of ["
+                                    + ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT
+                                    + ", "
+                                    + ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_OID
+                                    + "]."
+                            );
+                        }
+                    },
                     Property.NodeScope,
                     Property.Filtered
                 )
