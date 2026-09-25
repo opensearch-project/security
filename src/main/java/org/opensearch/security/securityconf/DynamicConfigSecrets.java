@@ -11,6 +11,7 @@ package org.opensearch.security.securityconf;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,21 +42,21 @@ public final class DynamicConfigSecrets implements AutoCloseable {
     public synchronized Settings resolve(Settings settings) {
         Settings.Builder resolved = Settings.builder().put(settings);
         settings.keySet().forEach(key -> {
-            String value = settings.get(key);
-            if (value != null) {
-                resolved.put(key, resolve(value));
+            List<String> values = settings.getAsList(key);
+            List<String> resolvedValues = values.stream().map(this::resolve).toList();
+            if (values.equals(resolvedValues) == false) {
+                if (resolvedValues.size() == 1) {
+                    resolved.put(key, resolvedValues.get(0));
+                } else {
+                    resolved.putList(key, resolvedValues);
+                }
             }
         });
         return resolved.build();
     }
 
     public synchronized void validate(Settings settings) {
-        settings.keySet().forEach(key -> {
-            String value = settings.get(key);
-            if (value != null) {
-                resolve(value);
-            }
-        });
+        settings.keySet().forEach(key -> settings.getAsList(key).forEach(this::resolve));
     }
 
     public synchronized void reload(Settings settings, Runnable rebuild) {
