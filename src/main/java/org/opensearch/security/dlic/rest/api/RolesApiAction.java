@@ -148,7 +148,9 @@ public class RolesApiAction extends AbstractApiAction {
     }
 
     private void rolesApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
+        requestHandlersBuilder.onCollectionGetRequest(getConfigType(), this::processGetRequest)
+            .onChangeRequest(Method.PATCH, this::processPatchRequest)
+            .override(Method.POST, methodNotImplementedHandler);
     }
 
     @Override

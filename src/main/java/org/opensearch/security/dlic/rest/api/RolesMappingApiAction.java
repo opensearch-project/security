@@ -69,7 +69,9 @@ public class RolesMappingApiAction extends AbstractApiAction {
     ) {
         super(Endpoint.ROLESMAPPING, clusterService, threadPool, securityApiDependencies);
         this.requestHandlersBuilder.configureRequestHandlers(
-            builder -> builder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler)
+            builder -> builder.onCollectionGetRequest(getConfigType(), this::processGetRequest)
+                .onChangeRequest(Method.PATCH, this::processPatchRequest)
+                .override(Method.POST, methodNotImplementedHandler)
         );
     }
 
