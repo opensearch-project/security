@@ -115,15 +115,17 @@ public class FileHelper {
      *   <li>JKS is excluded: its {@code engineSetKeyEntry} enforces {@code instanceof PrivateKey} (the
      *       asymmetric-key interface), so {@code SecretKey} entries are rejected with "Cannot store
      *       non-PrivateKeys".</li>
-     *   <li>JCEKS was introduced specifically to extend JKS with {@code SecretKey} support.</li>
-     *   <li>BCFKS (BC FIPS) also supports {@code SecretKey}.</li>
+     *   <li>JCEKS is excluded: it deserializes {@code SecretKey} entries, and once any test in the same JVM starts a
+     *       {@code Node}, the reject-all serial filter the node installs makes every later load fail with "Invalid
+     *       secret key format". {@code PemKeyReader} rejects JCEKS for secret keys for the same reason.</li>
+     *   <li>BCFKS (BC FIPS) and PKCS12 support {@code SecretKey}.</li>
      * </ul>
      * Requires the calling test to run under {@code @RunWith(RandomizedRunner.class)}.
      */
     public static String randomKeyStoreType() {
         return FipsMode.isEnabled() //
             ? randomFrom(new String[] { "bcfks" }) //
-            : randomFrom(new String[] { "bcfks", "jceks", "pkcs12" });
+            : randomFrom(new String[] { "bcfks", "pkcs12" });
     }
 
     public record TypedStore(Path path, String type) {
