@@ -33,7 +33,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.opensearch.security.tools.democonfig.Installer.RPM_DEB_OPENSEARCH_HOME;
 import static org.opensearch.security.tools.democonfig.Installer.printScriptHeaders;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
@@ -46,12 +45,6 @@ public class InstallerTests {
     private final InputStream originalIn = System.in;
 
     private static Installer installer;
-
-    // Installer.RPM_DEB_OPENSEARCH_HOME is static and is reassigned by testDetermineInstallType_rpm_deb,
-    // so its original value has to be restored after every test. Installer.resetInstance() only resets
-    // instance state, and leaving this pointing at the working directory makes determineInstallType()
-    // take the rpm/deb branch in later tests, which silently rewrites OPENSEARCH_CONF_FILE.
-    private static final File ORIGINAL_RPM_DEB_OPENSEARCH_HOME = RPM_DEB_OPENSEARCH_HOME;
 
     // Custom exception to simulate an exit call.
     public static class TestExitException extends RuntimeException {
@@ -80,7 +73,6 @@ public class InstallerTests {
         System.setIn(originalIn);
         // Reset installer state to avoid cross-test contamination.
         Installer.resetInstance();
-        RPM_DEB_OPENSEARCH_HOME = ORIGINAL_RPM_DEB_OPENSEARCH_HOME;
     }
 
     @Test
@@ -285,7 +277,7 @@ public class InstallerTests {
         installer.OS = "Linux";
         String dir = System.getProperty("user.dir");
         installer.BASE_DIR = dir;
-        RPM_DEB_OPENSEARCH_HOME = new File(dir);
+        installer.RPM_DEB_OPENSEARCH_HOME = new File(dir);
 
         String installType = installer.determineInstallType();
 
