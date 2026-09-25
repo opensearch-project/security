@@ -8,6 +8,7 @@
 
 package org.opensearch.security.securityconf;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
@@ -15,6 +16,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsException;
+import org.opensearch.common.xcontent.XContentType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -31,6 +33,33 @@ public class DynamicConfigSecretsTests {
 
             assertThat(resolved.get("password"), is("secret"));
             assertThat(resolved.get("username"), is("plain-value"));
+        }
+    }
+
+    @Test
+    public void testPreservesStructuredSettingsWhenNoSecretIsReferenced() {
+        Settings dynamicSettings = Settings.builder()
+            .loadFromSource("{\"signing_key\":[\"first\",\"second\"],\"nested\":{\"enabled\":true}}", XContentType.JSON)
+            .build();
+
+        try (DynamicConfigSecrets secrets = new DynamicConfigSecrets(Settings.EMPTY)) {
+            Settings resolved = secrets.resolve(dynamicSettings);
+
+            assertThat(resolved.getAsList("signing_key"), is(dynamicSettings.getAsList("signing_key")));
+            assertThat(resolved.get("nested.enabled"), is(dynamicSettings.get("nested.enabled")));
+        }
+    }
+
+    @Test
+    public void testResolvesKeystoreReferencesInLists() {
+        Settings dynamicSettings = Settings.builder()
+            .loadFromSource("{\"signing_key\":[\"${keystore:jwt.primary}\",\"second\"]}", XContentType.JSON)
+            .build();
+
+        try (DynamicConfigSecrets secrets = new DynamicConfigSecrets(secureSettings("jwt.primary", "first"))) {
+            Settings resolved = secrets.resolve(dynamicSettings);
+
+            assertThat(resolved.getAsList("signing_key"), is(List.of("first", "second")));
         }
     }
 
