@@ -161,7 +161,7 @@ public sealed interface TrustStoreConfiguration {
         @Override
         public KeyStore createTrustStore() {
             final var tokenStore = KeyStoreUtils.loadPkcs11Store(pin.chars());
-            return alias != null ? KeyStoreUtils.narrowToAlias(tokenStore, DEFAULT_STORE_TYPE, alias, SOURCE) : tokenStore;
+            return alias != null ? KeyStoreUtils.copyAlias(tokenStore, DEFAULT_STORE_TYPE, alias, SOURCE) : tokenStore;
         }
 
     }

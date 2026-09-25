@@ -195,6 +195,8 @@ public final class PemKeyReader {
         String storeType = extractStoreType(storePath, type);
         final char[] password = keyStorePassword == null ? null : keyStorePassword.toCharArray();
         final KeyStore store;
+        // A token is loaded without a stream, which logs into it - for a file-based type the same call would create
+        // an empty store, hence the file stream in the else branch.
         if (PKCS11.equalsIgnoreCase(storeType)) {
             try {
                 store = KeyStore.getInstance(storeType);

@@ -472,6 +472,8 @@ public class SslSettingsManager {
     }
 
     private boolean hasKeyOrTrustStoreSettings(final Settings settings) {
+        // A PKCS#11 store has no filepath, so its type alone counts - otherwise a token-only setup would be
+        // rejected as if neither a store nor PEM files were configured.
         return settings.hasValue(KEYSTORE_FILEPATH)
             || settings.hasValue(TRUSTSTORE_FILEPATH)
             || PemKeyReader.PKCS11.equalsIgnoreCase(settings.get(KEYSTORE_TYPE))
