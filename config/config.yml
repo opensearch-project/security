@@ -176,6 +176,8 @@ config:
             verify_hostnames: true
             hosts:
             - localhost:8389
+            # Values can reference plugins.security.dynamic_config.secrets.* entries in opensearch-keystore,
+            # for example ${keystore:ldap.bind_dn} and ${keystore:ldap.password}.
             bind_dn: null
             password: null
             userbase: 'ou=people,dc=example,dc=com'
@@ -203,6 +205,8 @@ config:
             verify_hostnames: true
             hosts:
             - localhost:8389
+            # Values can reference plugins.security.dynamic_config.secrets.* entries in opensearch-keystore,
+            # for example ${keystore:ldap.bind_dn} and ${keystore:ldap.password}.
             bind_dn: null
             password: null
             rolebase: 'ou=groups,dc=example,dc=com'
