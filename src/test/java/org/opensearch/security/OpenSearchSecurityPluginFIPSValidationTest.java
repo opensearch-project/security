@@ -14,7 +14,7 @@ package org.opensearch.security;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -38,7 +38,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
     @Test
     public void testFipsModeWithBcryptThrows() {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "bcrypt").build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "bcrypt").build();
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
@@ -50,7 +50,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
     @Test
     public void testFipsModeWithArgon2Throws() {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "argon2").build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "argon2").build();
 
         IllegalStateException ex = assertThrows(
             IllegalStateException.class,
@@ -61,7 +61,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
     @Test
     public void testFipsModeWithPbkdf2Succeeds() {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "pbkdf2").build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2").build();
 
         // Should not throw
         OpenSearchSecurityPlugin.validateFipsMode("true", settings);
@@ -69,7 +69,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
     @Test
     public void testFipsModeWithPbkdf2UpperCaseSucceeds() {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "PBKDF2").build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "PBKDF2").build();
 
         // Should not throw
         OpenSearchSecurityPlugin.validateFipsMode("true", settings);
@@ -77,7 +77,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
     @Test
     public void testFipsModeDisabledAllowsAnyAlgorithm() {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "bcrypt").build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "bcrypt").build();
 
         // Should not throw when FIPS mode is not enabled
         OpenSearchSecurityPlugin.validateFipsMode("false", settings);
@@ -85,7 +85,7 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
 
     @Test
     public void testFipsModeNullEnvAllowsAnyAlgorithm() {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, "bcrypt").build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "bcrypt").build();
 
         // Should not throw when env var is null
         OpenSearchSecurityPlugin.validateFipsMode(null, settings);

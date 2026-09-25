@@ -28,7 +28,6 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 import org.opensearch.transport.client.Client;
@@ -62,7 +61,7 @@ public class UserServiceUnitTests {
     @Before
     public void setup() throws Exception {
         String usersYmlFile = "./internal_users.yml";
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build();
         PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(settings);
         userService = new UserService(clusterService, configurationRepository, passwordHasher, settings, client);
         config = readConfigFromYml(usersYmlFile, CType.INTERNALUSERS);

@@ -53,7 +53,7 @@ public class UtilTests {
     }
 
     static private final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
     );
 
     @Test
@@ -156,7 +156,7 @@ public class UtilTests {
 
     @Test
     public void testEnvReplacePBKDF2() {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2).build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.PBKDF2).build();
         final PasswordHasher passwordHasherPBKDF2 = PasswordHasherFactory.createPasswordHasher(settings);
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
         assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings), is("abv${envbc.MYENV}xyz"));
