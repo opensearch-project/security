@@ -33,7 +33,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.opensearch.security.tools.democonfig.Installer.RPM_DEB_OPENSEARCH_HOME;
 import static org.opensearch.security.tools.democonfig.Installer.printScriptHeaders;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
@@ -278,7 +277,7 @@ public class InstallerTests {
         installer.OS = "Linux";
         String dir = System.getProperty("user.dir");
         installer.BASE_DIR = dir;
-        RPM_DEB_OPENSEARCH_HOME = new File(dir);
+        installer.RPM_DEB_OPENSEARCH_HOME = new File(dir);
 
         String installType = installer.determineInstallType();
 
