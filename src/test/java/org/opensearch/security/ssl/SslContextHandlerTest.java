@@ -33,11 +33,13 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.config.KeyStoreConfiguration;
 import org.opensearch.security.ssl.config.SslParameters;
+import org.opensearch.security.ssl.config.StorePassword;
 import org.opensearch.security.ssl.config.TrustStoreConfiguration;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
 import static org.junit.Assert.assertThrows;
@@ -313,6 +315,23 @@ public class SslContextHandlerTest {
         assertThat("Context reloaded", is(not(sslContextBefore.equals(sslContextHandler.sslContext()))));
     }
 
+    @Test
+    public void dependentFilesOfConfigurationWithoutTrustStoreContainNoNulls() {
+        final var sslParameters = SslParameters.loader(CertType.TRANSPORT, Settings.EMPTY).load();
+        final var keyStoreConfiguration = new KeyStoreConfiguration.PemKeyStoreConfiguration(
+            accessCertificatePath,
+            accessCertificatePrivateKeyPath,
+            StorePassword.of(certificatesRule.privateKeyPassword().toCharArray())
+        );
+        final var sslConfiguration = new SslConfiguration(
+            sslParameters,
+            TrustStoreConfiguration.EMPTY_CONFIGURATION,
+            keyStoreConfiguration
+        );
+
+        assertThat(sslConfiguration.dependentFiles(), contains(accessCertificatePath, accessCertificatePrivateKeyPath));
+    }
+
     List<ASN1Encodable> shuffledSans(Extension currentSans) {
         final var san1Sequence = ASN1Sequence.getInstance(currentSans.getParsedValue().toASN1Primitive());
 
@@ -333,7 +352,7 @@ public class SslContextHandlerTest {
         final var keyStoreConfiguration = new KeyStoreConfiguration.PemKeyStoreConfiguration(
             accessCertificatePath,
             accessCertificatePrivateKeyPath,
-            certificatesRule.privateKeyPassword().toCharArray()
+            StorePassword.of(certificatesRule.privateKeyPassword().toCharArray())
         );
 
         SslConfiguration sslConfiguration = new SslConfiguration(sslParameters, trustStoreConfiguration, keyStoreConfiguration);
