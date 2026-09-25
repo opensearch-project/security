@@ -60,6 +60,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.hasher.FipsErrors;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.GrpcRequestChannel;
 import org.opensearch.security.filter.SecurityRequest;
@@ -812,6 +813,14 @@ public class BackendRegistry {
                 log.debug("Can not authenticate {} due to exception", ac.getUsername(), e);
             }
             return null;
+        } catch (Error e) {
+            if (FipsErrors.isFipsUnapprovedOperationError(e)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Can not authenticate {} due to FIPS policy", ac.getUsername(), e);
+                }
+                return null;
+            }
+            throw e;
         } finally {
             ac.clearSecrets();
         }
