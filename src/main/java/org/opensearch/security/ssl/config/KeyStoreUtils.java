@@ -200,14 +200,14 @@ final class KeyStoreUtils {
 
     public static KeyStore loadTrustStore(final Path path, final String type, final String alias, final char[] password) {
         final var trustStore = loadKeyStore(path, type, password);
-        return alias != null ? narrowToAlias(trustStore, type, alias, path.toString()) : trustStore;
+        return alias != null ? copyAlias(trustStore, type, alias, path.toString()) : trustStore;
     }
 
     /**
      * Copies the certificate of a single alias into a new in-memory store of {@code targetType}, so that only
      * that certificate is trusted. The source store is never modified.
      */
-    public static KeyStore narrowToAlias(final KeyStore trustStore, final String targetType, final String alias, final String source) {
+    public static KeyStore copyAlias(final KeyStore trustStore, final String targetType, final String alias, final String source) {
         try {
             if (!trustStore.isCertificateEntry(alias)) {
                 throw new OpenSearchException("Alias " + alias + " does not contain a certificate entry");
@@ -330,6 +330,7 @@ final class KeyStoreUtils {
     public static KeyStore loadPkcs11Store(final char[] pin) {
         try {
             final var keyStore = KeyStore.getInstance(PemKeyReader.PKCS11);
+            // No stream: for PKCS#11 this logs into the token, whereas for a file-based type it creates an empty store.
             keyStore.load(null, pin);
             return keyStore;
         } catch (Exception e) {

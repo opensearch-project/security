@@ -65,6 +65,9 @@ public class SslCertificatesLoader {
         final var trustStoreType = settings.get(sslConfigSuffix + TRUSTSTORE_TYPE);
         final boolean isPkcs11Keystore = PemKeyReader.PKCS11.equalsIgnoreCase(keyStoreType);
         final boolean isPkcs11Truststore = PemKeyReader.PKCS11.equalsIgnoreCase(trustStoreType);
+        // A PKCS#11 store lives on the token, not on disk, so only its type shows it is configured - without this
+        // check a token key store would fall through to PEM, and a token trust store would silently fall back to the
+        // JDK's default trust.
         final boolean usesKeyStore = settings.hasValue(sslConfigSuffix + KEYSTORE_FILEPATH) || isPkcs11Keystore;
         final boolean usesTrustStore = settings.hasValue(sslConfigSuffix + TRUSTSTORE_FILEPATH) || isPkcs11Truststore;
         final boolean usesPemTrustedCas = sslConfigSettings.hasValue(PEM_TRUSTED_CAS_FILEPATH);
