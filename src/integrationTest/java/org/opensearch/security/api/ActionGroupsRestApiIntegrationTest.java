@@ -31,6 +31,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ALL_REST_ADMIN_PERMISSIONS;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
@@ -53,7 +54,7 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
             new TestSecurityConfig.ActionGroup(
                 REST_ADMIN_PERMISSION_ACTION_GROUP,
                 TestSecurityConfig.ActionGroup.Type.INDEX,
-                allRestAdminPermissions()
+                ALL_REST_ADMIN_PERMISSIONS
             )
         )
         .build();

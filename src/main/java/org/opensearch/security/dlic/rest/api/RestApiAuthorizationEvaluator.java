@@ -72,7 +72,9 @@ public class RestApiAuthorizationEvaluator {
 
     private static final String REST_ENDPOINT_ACTION_PERMISSION_PATTERN = REST_API_PERMISSION_PREFIX + "/%s/%s";
 
-    private static final WildcardMatcher REST_API_PERMISSION_PREFIX_MATCHER = WildcardMatcher.from(REST_API_PERMISSION_PREFIX + "/*");
+    public static final String REST_API_PERMISSION_ALL = REST_API_PERMISSION_PREFIX + "/*";
+
+    private static final WildcardMatcher REST_API_PERMISSION_PREFIX_MATCHER = WildcardMatcher.from(REST_API_PERMISSION_ALL);
 
     @FunctionalInterface
     public interface PermissionBuilder {
@@ -100,6 +102,27 @@ public class RestApiAuthorizationEvaluator {
         .put(Endpoint.SSL, action -> buildEndpointActionPermission(Endpoint.SSL, action))
         .put(Endpoint.RESOURCE_SHARING, action -> buildEndpointActionPermission(Endpoint.RESOURCE_SHARING, action))
         .build();
+
+    public static final String[] ALL_REST_ADMIN_PERMISSIONS;
+    static {
+        final var permissions = new String[ENDPOINTS_WITH_PERMISSIONS.size() + 1]; // 1 additional action for SSL update certs
+        var counter = 0;
+        for (final var e : ENDPOINTS_WITH_PERMISSIONS.entrySet()) {
+            if (e.getKey() == Endpoint.SSL) {
+                permissions[counter++] = e.getValue().build(CERTS_INFO_ACTION);
+                permissions[counter++] = e.getValue().build(RELOAD_CERTS_ACTION);
+            } else if (e.getKey() == Endpoint.CONFIG) {
+                permissions[counter++] = e.getValue().build(SECURITY_CONFIG_UPDATE);
+            } else if (e.getKey() == Endpoint.RESOURCE_SHARING) {
+                permissions[counter++] = e.getValue().build(RESOURCE_MIGRATE_ACTION);
+            } else {
+                permissions[counter++] = e.getValue().build();
+            }
+        }
+        ALL_REST_ADMIN_PERMISSIONS = permissions;
+    }
+
+    public final static Set<String> ALL_REST_ADMIN_PERMISSIONS_SET = Set.of(RestApiAuthorizationEvaluator.ALL_REST_ADMIN_PERMISSIONS);
 
     private final AdminDNs adminDNs;
     private final RoleMapper roleMapper;

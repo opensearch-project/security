@@ -39,11 +39,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.CrossClusterSearchTests.PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ALL_REST_ADMIN_PERMISSIONS;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ALL_REST_ADMIN_PERMISSIONS_SET;
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ENDPOINTS_WITH_PERMISSIONS;
-import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.RELOAD_CERTS_ACTION;
-import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.RESOURCE_MIGRATE_ACTION;
-import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.SECURITY_CONFIG_UPDATE;
 
 public abstract class AbstractApiIntegrationTest {
 
@@ -72,7 +70,7 @@ public abstract class AbstractApiIntegrationTest {
         new TestSecurityConfig.Role("all_access").clusterPermissions("*").indexPermissions("*").on("*")
     );
     public static final TestSecurityConfig.User REST_ADMIN_USER = new TestSecurityConfig.User("rest-api-admin").roles(
-        new TestSecurityConfig.Role("role").clusterPermissions(allRestAdminPermissions())
+        new TestSecurityConfig.Role("role").clusterPermissions(ALL_REST_ADMIN_PERMISSIONS)
     );
 
     public static final TestSecurityConfig.Role REST_ADMIN_REST_API_ACCESS_ROLE = new TestSecurityConfig.Role(
@@ -111,24 +109,6 @@ public abstract class AbstractApiIntegrationTest {
         return clusterSettings;
     }
 
-    protected static String[] allRestAdminPermissions() {
-        final var permissions = new String[ENDPOINTS_WITH_PERMISSIONS.size() + 1]; // 1 additional action for SSL update certs
-        var counter = 0;
-        for (final var e : ENDPOINTS_WITH_PERMISSIONS.entrySet()) {
-            if (e.getKey() == Endpoint.SSL) {
-                permissions[counter++] = e.getValue().build(CERTS_INFO_ACTION);
-                permissions[counter++] = e.getValue().build(RELOAD_CERTS_ACTION);
-            } else if (e.getKey() == Endpoint.CONFIG) {
-                permissions[counter++] = e.getValue().build(SECURITY_CONFIG_UPDATE);
-            } else if (e.getKey() == Endpoint.RESOURCE_SHARING) {
-                permissions[counter++] = e.getValue().build(RESOURCE_MIGRATE_ACTION);
-            } else {
-                permissions[counter++] = e.getValue().build();
-            }
-        }
-        return permissions;
-    }
-
     protected static String restAdminPermission(Endpoint endpoint) {
         return restAdminPermission(endpoint, null);
     }
@@ -142,7 +122,7 @@ public abstract class AbstractApiIntegrationTest {
     }
 
     protected String randomRestAdminPermission() {
-        final var permissions = List.of(allRestAdminPermissions());
+        final var permissions = List.copyOf(ALL_REST_ADMIN_PERMISSIONS_SET);
         return randomFrom(permissions);
     }
 

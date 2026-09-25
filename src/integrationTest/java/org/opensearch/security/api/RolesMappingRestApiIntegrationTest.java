@@ -39,6 +39,7 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ALL_REST_ADMIN_PERMISSIONS;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
@@ -59,8 +60,8 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
     @ClassRule
     public static LocalCluster localCluster = clusterBuilder().users(REST_API_ADMIN_ROLES_MAPPING_ONLY)
         .roles(
-            new Role(REST_ADMIN_ROLE).reserved(true).clusterPermissions(allRestAdminPermissions()),
-            new Role(REST_ADMIN_ROLE_WITH_MAPPING).clusterPermissions(allRestAdminPermissions())
+            new Role(REST_ADMIN_ROLE).reserved(true).clusterPermissions(ALL_REST_ADMIN_PERMISSIONS),
+            new Role(REST_ADMIN_ROLE_WITH_MAPPING).clusterPermissions(ALL_REST_ADMIN_PERMISSIONS)
         )
         .rolesMapping(new TestSecurityConfig.RoleMapping(REST_ADMIN_ROLE_WITH_MAPPING))
         .build();
