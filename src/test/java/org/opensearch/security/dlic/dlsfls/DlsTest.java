@@ -583,4 +583,254 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"D\""));
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"E\""));
     }
+
+    @Test
+    public void testDlsWithGlobalAggregation() throws Exception {
+        setup();
+
+        // Global aggregation bypasses the query filter entirely, which would leak
+        // DLS-restricted documents.
+        // Non-admin user with global aggregation. Expected to get error.
+        String queryGlobal = """
+            {
+                "size": 0,
+                "query": {"match_all": {}},
+                "aggs": {
+                    "all_docs": {
+                        "global": {},
+                        "aggs": {
+                            "total_amount": {"sum": {"field": "amount"}}
+                        }
+                    }
+                }
+            }
+            """;
+
+        HttpResponse response = rh.executePostRequest("/deals/_search", queryGlobal, encodeBasicHeader("dept_manager", "password"));
+
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+        Assert.assertTrue(response.getBody(), response.getBody().contains("global aggregations are not supported when DLS is activated"));
+
+        // Admin user with global aggregation. Expected to succeed since admin bypasses DLS.
+        HttpResponse adminResponse = rh.executePostRequest("/deals/_search", queryGlobal, encodeBasicHeader("admin", "admin"));
+
+        assertThat(adminResponse.getStatusCode(), is(HttpStatus.SC_OK));
+    }
+
+    @Test
+    public void testDlsWithNestedUnsafeAggregation() throws Exception {
+        setup();
+
+        try (Client client = getClient()) {
+            client.admin().indices().create(new CreateIndexRequest("logs").simpleMapping("termX", "type=keyword")).actionGet();
+
+            for (int i = 0; i < 3; i++) {
+                client.index(
+                    new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .source("amount", i, "termX", "A", "timestamp", "2022-01-06T09:05:00Z")
+                ).actionGet();
+            }
+        }
+
+        // Terms aggregation with min_doc_count=0 nested under a date_histogram.
+        // The recursive check should catch this.
+        String queryNestedTerms = """
+            {
+                "size": 0,
+                "aggs": {
+                    "by_date": {
+                        "date_histogram": {
+                            "field": "timestamp",
+                            "calendar_interval": "month"
+                        },
+                        "aggs": {
+                            "by_term": {
+                                "terms": {
+                                    "field": "termX",
+                                    "min_doc_count": 0
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            """;
+
+        HttpResponse response = rh.executePostRequest("logs*/_search", queryNestedTerms, encodeBasicHeader("dept_manager", "password"));
+
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+        Assert.assertTrue(response.getBody(), response.getBody().contains("min_doc_count 0 is not supported when DLS is activated"));
+
+        // Admin user should succeed
+        HttpResponse adminResponse = rh.executePostRequest("logs*/_search", queryNestedTerms, encodeBasicHeader("admin", "admin"));
+
+        assertThat(adminResponse.getStatusCode(), is(HttpStatus.SC_OK));
+    }
+
+    @Test
+    public void testDlsWithNestedGlobalAggregation() throws Exception {
+        setup();
+
+        // Global aggregation nested under a filter aggregation. The recursive check should catch this.
+        String queryNestedGlobal = """
+            {
+                "size": 0,
+                "aggs": {
+                    "my_filter": {
+                        "filter": {"match_all": {}},
+                        "aggs": {
+                            "all_docs": {
+                                "global": {},
+                                "aggs": {
+                                    "total": {"sum": {"field": "amount"}}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            """;
+
+        HttpResponse response = rh.executePostRequest("/deals/_search", queryNestedGlobal, encodeBasicHeader("dept_manager", "password"));
+
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+        Assert.assertTrue(response.getBody(), response.getBody().contains("global aggregations are not supported when DLS is activated"));
+
+        // Admin bypasses DLS, but OpenSearch itself rejects `global` as a sub-aggregation
+        // (it must be top-level), so the request still returns 500 — with a different error
+        // than the DLS block. Assert the response is NOT our DLS error, proving dept_manager's
+        // 500 above came from the security layer.
+        HttpResponse adminResponse = rh.executePostRequest("/deals/_search", queryNestedGlobal, encodeBasicHeader("admin", "admin"));
+
+        Assert.assertFalse(
+            adminResponse.getBody(),
+            adminResponse.getBody().contains("global aggregations are not supported when DLS is activated")
+        );
+    }
+
+    @Test
+    public void testDlsWithMultiTermsMinDocCountZero() throws Exception {
+        setup();
+
+        try (Client client = getClient()) {
+            client.admin()
+                .indices()
+                .create(new CreateIndexRequest("logs").simpleMapping("termX", "type=keyword", "termY", "type=keyword"))
+                .actionGet();
+
+            for (int i = 0; i < 3; i++) {
+                client.index(
+                    new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .source("amount", i, "termX", "A", "termY", "X", "timestamp", "2022-01-06T09:05:00Z")
+                ).actionGet();
+            }
+        }
+
+        // Multi-terms aggregation with min_doc_count=0 should be blocked.
+        String queryMultiTerms = """
+            {
+                "size": 0,
+                "aggs": {
+                    "multi": {
+                        "multi_terms": {
+                            "terms": [
+                                {"field": "termX"},
+                                {"field": "termY"}
+                            ],
+                            "min_doc_count": 0
+                        }
+                    }
+                }
+            }
+            """;
+
+        HttpResponse response = rh.executePostRequest("logs*/_search", queryMultiTerms, encodeBasicHeader("dept_manager", "password"));
+
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+        Assert.assertTrue(response.getBody(), response.getBody().contains("min_doc_count 0 is not supported when DLS is activated"));
+
+        // Multi-terms without min_doc_count=0 should be allowed.
+        String queryMultiTermsSafe = """
+            {
+                "size": 0,
+                "aggs": {
+                    "multi": {
+                        "multi_terms": {
+                            "terms": [
+                                {"field": "termX"},
+                                {"field": "termY"}
+                            ]
+                        }
+                    }
+                }
+            }
+            """;
+
+        HttpResponse safeResponse = rh.executePostRequest(
+            "logs*/_search",
+            queryMultiTermsSafe,
+            encodeBasicHeader("dept_manager", "password")
+        );
+
+        assertThat(safeResponse.getStatusCode(), is(HttpStatus.SC_OK));
+
+        // Admin user with min_doc_count=0 should succeed
+        HttpResponse adminResponse = rh.executePostRequest("logs*/_search", queryMultiTerms, encodeBasicHeader("admin", "admin"));
+
+        assertThat(adminResponse.getStatusCode(), is(HttpStatus.SC_OK));
+    }
+
+    @Test
+    public void testDlsWithDeeplyNestedUnsafeAggregation() throws Exception {
+        setup();
+
+        try (Client client = getClient()) {
+            client.admin().indices().create(new CreateIndexRequest("logs").simpleMapping("termX", "type=keyword")).actionGet();
+
+            for (int i = 0; i < 3; i++) {
+                client.index(
+                    new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .source("amount", i, "termX", "A", "timestamp", "2022-01-06T09:05:00Z")
+                ).actionGet();
+            }
+        }
+
+        // Three levels deep: date_histogram -> terms (safe) -> terms (min_doc_count=0)
+        String queryDeeplyNested = """
+            {
+                "size": 0,
+                "aggs": {
+                    "by_date": {
+                        "date_histogram": {
+                            "field": "timestamp",
+                            "calendar_interval": "month"
+                        },
+                        "aggs": {
+                            "by_term_safe": {
+                                "terms": {"field": "termX"},
+                                "aggs": {
+                                    "by_term_unsafe": {
+                                        "terms": {
+                                            "field": "termX",
+                                            "min_doc_count": 0
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            """;
+
+        HttpResponse response = rh.executePostRequest("logs*/_search", queryDeeplyNested, encodeBasicHeader("dept_manager", "password"));
+
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+        Assert.assertTrue(response.getBody(), response.getBody().contains("min_doc_count 0 is not supported when DLS is activated"));
+
+        // Admin user should succeed
+        HttpResponse adminResponse = rh.executePostRequest("logs*/_search", queryDeeplyNested, encodeBasicHeader("admin", "admin"));
+
+        assertThat(adminResponse.getStatusCode(), is(HttpStatus.SC_OK));
+    }
 }
