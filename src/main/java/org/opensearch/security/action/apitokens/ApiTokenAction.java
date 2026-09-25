@@ -34,8 +34,8 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityApiDependencies;
@@ -75,7 +75,7 @@ public class ApiTokenAction extends BaseRestHandler {
         ConfigurationRepository configurationRepository,
         PrivilegesConfiguration privilegesConfiguration,
         Settings settings,
-        AdminDNs adminDns,
+        SuperAdminAuthority superAdminAuthority,
         AuditLog auditLog,
         Path configPath,
         PrincipalExtractor principalExtractor,
@@ -90,12 +90,12 @@ public class ApiTokenAction extends BaseRestHandler {
         this.configurationRepository = configurationRepository;
         this.privilegesConfiguration = privilegesConfiguration;
         this.securityApiDependencies = new SecurityApiDependencies(
-            adminDns,
+            superAdminAuthority.getAdminDns(),
             configurationRepository,
             privilegesConfiguration,
             new RestApiAuthorizationEvaluator(
                 settings,
-                adminDns,
+                superAdminAuthority,
                 roleMapper,
                 principalExtractor,
                 configPath,

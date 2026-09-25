@@ -174,6 +174,7 @@ import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.configuration.DlsFlsValveImpl;
 import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesActionType;
@@ -316,6 +317,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
     private volatile AuditLog auditLog;
     private volatile BackendRegistry backendRegistry;
+    private volatile SuperAdminAuthority superAdminAuthority;
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
@@ -914,7 +916,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         Objects.requireNonNull(privilegesConfiguration),
                         Objects.requireNonNull(threadPool),
                         Objects.requireNonNull(cs),
-                        Objects.requireNonNull(adminDns),
+                        Objects.requireNonNull(superAdminAuthority),
                         Objects.requireNonNull(cr)
                     )
                 );
@@ -923,7 +925,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         settings,
                         restController,
                         Objects.requireNonNull(threadPool),
-                        adminDns,
+                        Objects.requireNonNull(superAdminAuthority),
                         configPath,
                         principalExtractor
                     )
@@ -933,7 +935,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         settings,
                         restController,
                         Objects.requireNonNull(threadPool),
-                        adminDns,
+                        Objects.requireNonNull(superAdminAuthority),
                         configPath,
                         principalExtractor
                     )
@@ -945,7 +947,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         cr,
                         privilegesConfiguration,
                         settings,
-                        adminDns,
+                        Objects.requireNonNull(superAdminAuthority),
                         auditLog,
                         configPath,
                         principalExtractor,
@@ -961,7 +963,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         configPath,
                         restController,
                         localClient,
-                        adminDns,
+                        Objects.requireNonNull(superAdminAuthority),
                         cr,
                         cs,
                         principalExtractor,
@@ -1062,7 +1064,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             };
         }
 
-        return (rh) -> securityRestHandler.wrap(rh, adminDns, headersToCopy);
+        return (rh) -> securityRestHandler.wrap(rh, superAdminAuthority, headersToCopy);
     }
 
     @Override
@@ -1098,7 +1100,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 indexService -> new SecurityFlsDlsIndexSearcherWrapper(
                     indexService,
                     settings,
-                    adminDns,
+                    superAdminAuthority,
                     cs,
                     auditLog,
                     ciol,
@@ -1598,7 +1600,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         userService = new UserService(cs, cr, passwordHasher, settings, localClient);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
-        backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool, cih);
+        superAdminAuthority = new SuperAdminAuthority(adminDns, settings, threadPool);
+        backendRegistry = new BackendRegistry(settings, superAdminAuthority, xffResolver, auditLog, threadPool, cih);
         backendRegistry.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
         cr.subscribeOnChange(configMap -> { backendRegistry.invalidateCache(); });
 
@@ -1633,7 +1636,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         );
         this.privilegesConfiguration = privilegesConfiguration;
 
-        dlsFlsBaseContext = new DlsFlsBaseContext(privilegesConfiguration, threadPool.getThreadContext(), adminDns);
+        dlsFlsBaseContext = new DlsFlsBaseContext(privilegesConfiguration, threadPool.getThreadContext(), superAdminAuthority);
 
         if (SSLConfig.isSslOnlyMode()) {
             dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
@@ -1645,13 +1648,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 xContentRegistry,
                 threadPool,
                 dlsFlsBaseContext,
-                adminDns,
+                superAdminAuthority,
                 resourcePluginInfo,
                 resourceSharingEnabledSetting
             );
         }
 
-        resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, adminDns, resourcePluginInfo);
+        resourceAccessHandler = new ResourceAccessHandler(threadPool, rsIndexHandler, superAdminAuthority, resourcePluginInfo);
 
         // Assign resource sharing client to each extension
         // Using the non-gated client (i.e. no additional permissions required)
@@ -1677,7 +1680,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         sf = new SecurityFilter(
             settings,
             privilegesConfiguration,
-            adminDns,
+            superAdminAuthority,
             dlsFlsValve,
             auditLog,
             threadPool,
@@ -1760,6 +1763,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(cr);
         components.add(xffResolver);
         components.add(backendRegistry);
+        components.add(superAdminAuthority);
         components.add(auditLog);
         components.add(privilegesConfiguration);
         components.add(restLayerEvaluator);
@@ -2751,6 +2755,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING);
             settings.add(SecuritySettings.DLS_WRITE_BLOCKED);
+            settings.add(SecuritySettings.SECURITY_SUPERADMIN_SECRET_SETTING);
+            settings.add(SecuritySettings.SECURITY_SUPERADMIN_SECRET_INSECURE_SETTING);
 
             settings.add(Setting.groupSetting(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS_CONFIG + ".", Property.NodeScope
             // do not make this Property.Dynamic - as a security measure,

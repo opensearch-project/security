@@ -15,8 +15,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.security.auditlog.config.AuditConfig;
 
 public class SecuritySettings {
@@ -62,6 +64,15 @@ public class SecuritySettings {
         Setting.Property.NodeScope,
         Setting.Property.Dynamic,
         Setting.Property.Sensitive
+    );
+
+    public static final Setting<SecureString> SECURITY_SUPERADMIN_SECRET_INSECURE_SETTING = SecureSetting.insecureString(
+        ConfigConstants.SECURITY_SUPERADMIN_SECRET
+    );
+
+    public static final Setting<SecureString> SECURITY_SUPERADMIN_SECRET_SETTING = SecureSetting.secureString(
+        ConfigConstants.SECURITY_SUPERADMIN_SECRET_SECURE,
+        SECURITY_SUPERADMIN_SECRET_INSECURE_SETTING
     );
 
     public static final Setting<Boolean> AUDIT_ENABLED_SETTING = Setting.boolSetting(

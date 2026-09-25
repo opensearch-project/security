@@ -21,7 +21,7 @@ import org.opensearch.OpenSearchStatusException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
@@ -49,7 +49,7 @@ public class ResourceAccessHandlerTests {
     @Mock
     private ResourceSharingIndexHandler sharingIndexHandler;
     @Mock
-    private AdminDNs adminDNs;
+    private SuperAdminAuthority superAdminAuthority;
 
     @Mock
     private ResourcePluginInfo resourcePluginInfo;
@@ -66,7 +66,7 @@ public class ResourceAccessHandlerTests {
     public void setup() {
         threadContext = new ThreadContext(Settings.EMPTY);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
-        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, adminDNs, resourcePluginInfo);
+        handler = new ResourceAccessHandler(threadPool, sharingIndexHandler, superAdminAuthority, resourcePluginInfo);
 
         // For tests that verify permission with action-group
         when(resourcePluginInfo.flattenedForType(any())).thenReturn(mock(FlattenedActionGroups.class));
@@ -81,7 +81,7 @@ public class ResourceAccessHandlerTests {
     public void testHasPermission_adminUserAllowed() {
         User user = new User("admin", ImmutableSet.of("admin"), ImmutableSet.of(), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(true);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(true);
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
@@ -93,7 +93,7 @@ public class ResourceAccessHandlerTests {
     public void testHasPermission_ownerAllowed() {
         User user = new User("alice", ImmutableSet.of("r1"), ImmutableSet.of("b1"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         ResourceSharing doc = mock(ResourceSharing.class);
         when(doc.isCreatedBy("alice")).thenReturn(true);
@@ -114,7 +114,7 @@ public class ResourceAccessHandlerTests {
     public void testHasPermission_sharedWithUserAllowed() {
         User user = new User("bob", ImmutableSet.of("role1"), ImmutableSet.of("backend1"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         // Document setup: shared with the user at access-level "read"
         ResourceSharing doc = mock(ResourceSharing.class);
@@ -142,7 +142,7 @@ public class ResourceAccessHandlerTests {
     public void testHasPermission_noAccessLevelsDenied() {
         User user = new User("charlie", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         ResourceSharing doc = mock(ResourceSharing.class);
         when(doc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
@@ -165,7 +165,7 @@ public class ResourceAccessHandlerTests {
         // "read" access on that workspace's own sharing record -> access is inherited from the workspace container.
         User user = new User("erin", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         final String workspaceIndex = "workspace-index";
         final String workspaceId = "ws-1";
@@ -210,7 +210,7 @@ public class ResourceAccessHandlerTests {
         // Resource grants nothing and belongs to a workspace the user has no access on -> denied.
         User user = new User("frank", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         final String workspaceIndex = "workspace-index";
         final String workspaceId = "ws-9";
@@ -251,7 +251,7 @@ public class ResourceAccessHandlerTests {
         // the write-path half of associate/dissociate consistency -- a stale membership would leak authorization.
         User user = new User("heidi", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         // The resource: no direct access, no parent, and NO workspaces (dissociated).
         ResourceSharing resourceDoc = mock(ResourceSharing.class);
@@ -281,7 +281,7 @@ public class ResourceAccessHandlerTests {
         // is denied without following ws-loop's own workspaces.
         User user = new User("gwen", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         final String workspaceIndex = "workspace-index";
         final String loopWs = "ws-loop";
@@ -322,7 +322,7 @@ public class ResourceAccessHandlerTests {
     public void testHasPermission_nullDocumentDenied() {
         User user = new User("dave", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         doAnswer(inv -> {
             ActionListener<ResourceSharing> l = inv.getArgument(2);
@@ -340,7 +340,7 @@ public class ResourceAccessHandlerTests {
     public void testGetOwnAndSharedResources_asAdmin() {
         User admin = new User("admin", ImmutableSet.of(), ImmutableSet.of(), null, ImmutableMap.of(), false);
         injectUser(admin);
-        when(adminDNs.isAdmin(admin)).thenReturn(true);
+        when(superAdminAuthority.isSuperAdmin(admin)).thenReturn(true);
 
         ActionListener<Set<String>> listener = mock(ActionListener.class);
 
@@ -358,7 +358,7 @@ public class ResourceAccessHandlerTests {
     public void testGetOwnAndSharedResources_asNormalUser() {
         User user = new User("alice", ImmutableSet.of("r1"), ImmutableSet.of("b1"), null, ImmutableMap.of(), false);
         injectUser(user);
-        when(adminDNs.isAdmin(user)).thenReturn(false);
+        when(superAdminAuthority.isSuperAdmin(user)).thenReturn(false);
 
         ActionListener<Set<String>> listener = mock(ActionListener.class);
 

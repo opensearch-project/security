@@ -11,10 +11,12 @@
 
 package org.opensearch.security;
 
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
@@ -148,5 +150,31 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         );
         assertThat(rh.executePutRequest("_plugins/_security/configupdate", "").getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
         assertThat(HttpStatus.SC_OK, is(rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "").getStatusCode()));
+    }
+
+    @Test
+    public void testEndpointsWithSuperAdminSecret() throws Exception {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put(ConfigConstants.SECURITY_SUPERADMIN_SECRET, "top-secret")
+            .build();
+        setup(settings);
+        final RestHelper rh = restHelper();
+        rh.enableHTTPClientSSL = true;
+        rh.trustHTTPServerCertificate = true;
+        rh.sendAdminCertificate = false;
+
+        final var secretHeader = new BasicHeader(ConfigConstants.SECURITY_SUPERADMIN_SECRET_HEADER, "top-secret");
+
+        RestHelper.HttpResponse res = rh.executeGetRequest("_plugins/_security/whoami", secretHeader);
+        assertThat(res.getStatusCode(), is(HttpStatus.SC_OK));
+        assertContains(res, "*\"is_admin\":true*");
+
+        assertThat(
+            rh.executePutRequest("_plugins/_security/configupdate?config_types=roles", "{}", secretHeader).getStatusCode(),
+            is(HttpStatus.SC_OK)
+        );
     }
 }
