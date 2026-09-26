@@ -9,7 +9,6 @@
 package org.opensearch.security.resources;
 
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -19,7 +18,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 
-import org.yaml.snakeyaml.Yaml;
+import org.snakeyaml.engine.v2.api.Load;
+import org.snakeyaml.engine.v2.api.LoadSettings;
 
 /**
  * Helper class to load `resource-access-levels.yml` file for all resource sharing extensions.
@@ -49,9 +49,10 @@ public class ResourceAccessLevelHelper {
             }
 
             try (var in = url.openStream()) {
-                String yaml = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                Load yaml = new Load(LoadSettings.builder().build());
+                @SuppressWarnings("unchecked")
+                Map<String, Object> root = (Map<String, Object>) yaml.loadFromInputStream(in);
 
-                Map<String, Object> root = new Yaml().load(yaml);
                 if (root == null) {
                     log.info("Empty resource-access-levels.yml for {}", ext.getClass().getName());
                     continue;

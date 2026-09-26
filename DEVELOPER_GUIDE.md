@@ -7,7 +7,8 @@ So you want to contribute code to OpenSearch Security? Excellent! We're glad you
     - [Native platforms](#native-platforms)
   - [Building](#building)
   - [Using IntelliJ IDEA](#using-intellij-idea)
-  - [Running integration tests](#running-integration-tests)
+  - [Running locally](#running-locally)
+  - [Running tests in the integrationTest package](#running-integration-tests)
     - [Bulk test runs](#bulk-test-runs)
     - [Checkstyle Violations](#checkstyle-violations)
   - [Authorization in REST Layer](#authorization-in-rest-layer)
@@ -173,6 +174,8 @@ export OPENSEARCH_INITIAL_ADMIN_PASSWORD=<password>
 
 **_Note:_** If no password is supplied, the installation will fail. The password supplied will also be tested for its strength and will be blocked if it is too simple. There is an option to skip this password validation by passing the `-t` option to the installation script. However, this should only be used for test environments.
 
+The demo installer does not read `plugins.security.restapi.password_min_length` or `plugins.security.restapi.password_validation_regex` from `opensearch.yml`. Those settings apply later, when you create or update users through the REST API or OpenSearch Dashboards. The installer runs before the node loads cluster settings, so it uses its own checks: at least 8 characters, one uppercase letter, one lowercase letter, one digit, one special character, and a strong zxcvbn score. Changing the REST API password settings does not change what the demo script accepts for `OPENSEARCH_INITIAL_ADMIN_PASSWORD`.
+
 
 ### Executing the demo installation script
 
@@ -265,6 +268,26 @@ public RepeatRule repeatRule = new RepeatRule();
 public void testMethod() {
     ...
 }
+```
+
+## Running locally
+
+It is often quite handy to be able to run the OpenSearch distribution with the locally modified plugin bundle. To do that, you could use the following command:
+
+```
+./gradlew run  -Pcrypto.standard=any-supported
+```
+
+If you need the ability to attach the debugger to the running OpenSearch process, use the following command instead:
+
+```
+./gradlew run  -Pcrypto.standard=any-supported --debug-server-jvm
+```
+
+By default, the cluster will be accessible using `admin` / `admin` credentials, for example:
+
+```
+curl 'https://localhost:9200/' -k -u admin:admin
 ```
 
 ## Running tests in the integrationTest package

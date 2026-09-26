@@ -42,6 +42,8 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -75,6 +77,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public final class ClusterHelper {
+
+    private static final int PORT_RANGE_SIZE = 5000;
+    private static final int PORT_RANGE_COUNT = (SocketUtils.PORT_RANGE_MAX - SocketUtils.PORT_RANGE_MIN + 1) / PORT_RANGE_SIZE;
+    private static final Pattern WORKER_NUMBER = Pattern.compile("(\\d+)$");
 
     static {
         resetSystemProperties();
@@ -147,15 +153,9 @@ public final class ClusterHelper {
 
         List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 
-        final String forkno = System.getProperty("forkno");
-        int forkNumber = 1;
-
-        if (forkno != null && forkno.length() > 0) {
-            forkNumber = Integer.parseInt(forkno.split("_")[1]);
-        }
-
-        final int min = SocketUtils.PORT_RANGE_MIN + (forkNumber * 5000);
-        final int max = SocketUtils.PORT_RANGE_MIN + ((forkNumber + 1) * 5000) - 1;
+        final int forkNumber = getPortRangeNumber(System.getProperty("forkno"), System.getProperty("org.gradle.test.worker"));
+        final int min = SocketUtils.PORT_RANGE_MIN + (forkNumber * PORT_RANGE_SIZE);
+        final int max = SocketUtils.PORT_RANGE_MIN + ((forkNumber + 1) * PORT_RANGE_SIZE) - 1;
 
         final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size() * 2, min, max);
         assert freePorts.size() == internalNodeSettings.size() * 2;
@@ -181,7 +181,7 @@ public final class ClusterHelper {
                 + min
                 + "-"
                 + max
-                + ") fork "
+                + ") test worker "
                 + forkNumber
         );
 
@@ -331,21 +331,76 @@ public final class ClusterHelper {
     }
 
     private void closeAllNodes() throws Exception {
+        RuntimeException closeFailure = null;
+
         // close non cluster manager nodes
-        opensearchNodes.stream().filter(n -> !n.isClusterManagerEligible()).forEach(ClusterHelper::closeNode);
+        closeFailure = closeNodes(false, closeFailure);
 
         // close cluster manager nodes
-        opensearchNodes.stream().filter(n -> n.isClusterManagerEligible()).forEach(ClusterHelper::closeNode);
+        closeFailure = closeNodes(true, closeFailure);
         opensearchNodes.clear();
         clusterState = ClusterState.STOPPED;
+
+        if (closeFailure != null) {
+            throw closeFailure;
+        }
+    }
+
+    private RuntimeException closeNodes(boolean clusterManagerNode, RuntimeException closeFailure) {
+        for (PluginAwareNode node : opensearchNodes) {
+            if (node.isClusterManagerEligible() == clusterManagerNode) {
+                try {
+                    closeNode(node);
+                } catch (RuntimeException e) {
+                    if (closeFailure == null) {
+                        closeFailure = e;
+                    } else {
+                        closeFailure.addSuppressed(e);
+                    }
+                }
+            }
+        }
+
+        return closeFailure;
     }
 
     private static void closeNode(Node node) {
         try {
             node.close();
-            node.awaitClose(5, TimeUnit.SECONDS);
-        } catch (Throwable e) {
-            // ignore
+            if (!node.awaitClose(30, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out while stopping node " + node);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while stopping node " + node, e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to stop node " + node, e);
+        }
+    }
+
+    static int getPortRangeNumber(String forkno, String gradleTestWorker) {
+        Integer workerNumber = getWorkerNumber(forkno);
+        if (workerNumber == null) {
+            workerNumber = getWorkerNumber(gradleTestWorker);
+        }
+
+        return workerNumber == null ? 1 : Math.floorMod(workerNumber, PORT_RANGE_COUNT);
+    }
+
+    private static Integer getWorkerNumber(String workerId) {
+        if (workerId == null || workerId.isBlank()) {
+            return null;
+        }
+
+        Matcher matcher = WORKER_NUMBER.matcher(workerId);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(matcher.group(1));
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

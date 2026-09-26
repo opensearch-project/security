@@ -1,5 +1,25 @@
 @echo off
+setlocal
 set DIR=%~dp0
+
+if not defined OPENSEARCH_HOME goto find_home_start
+if not "%OPENSEARCH_HOME:~-1%"=="\" set "OPENSEARCH_HOME=%OPENSEARCH_HOME%\"
+goto find_home_done
+
+:find_home_start
+set "OPENSEARCH_HOME=%DIR%"
+:find_home
+if exist "%OPENSEARCH_HOME%lib\opensearch-*.jar" goto find_home_done
+for %%I in ("%OPENSEARCH_HOME%.") do set "PARENT=%%~dpI"
+if "%PARENT%" == "%OPENSEARCH_HOME%" (
+  echo Could not locate OpenSearch home. Set OPENSEARCH_HOME manually. 1>&2
+  exit /b 1
+)
+set "OPENSEARCH_HOME=%PARENT%"
+goto find_home
+:find_home_done
+
+set "PLUGIN_DIR=%OPENSEARCH_HOME%plugins\opensearch-security"
 
 if defined OPENSEARCH_JAVA_HOME (
   set BIN_PATH="%OPENSEARCH_JAVA_HOME%\bin\java.exe"
@@ -11,4 +31,5 @@ if defined OPENSEARCH_JAVA_HOME (
   exit /b 1
 )
 
-%BIN_PATH% -cp "%DIR%\..\*;%DIR%\..\..\..\lib\*;%DIR%\..\deps\*" org.opensearch.security.tools.AuditConfigMigrater %*
+%BIN_PATH% -cp "%PLUGIN_DIR%\*;%PLUGIN_DIR%\deps\*;%OPENSEARCH_HOME%lib\*" org.opensearch.security.tools.AuditConfigMigrater %*
+exit /b %ERRORLEVEL%

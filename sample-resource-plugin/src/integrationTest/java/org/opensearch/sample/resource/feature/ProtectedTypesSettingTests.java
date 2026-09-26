@@ -260,7 +260,7 @@ public class ProtectedTypesSettingTests {
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 1; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 1; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
             );
         }
 

@@ -182,7 +182,8 @@ public class SystemIndexAccessEvaluatorTest {
             indexNameExpressionResolver,
             new IndicesRequestResolver(indexNameExpressionResolver),
             () -> clusterState,
-            actionPrivileges
+            actionPrivileges,
+            List.of()
         );
     }
 

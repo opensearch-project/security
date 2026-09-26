@@ -29,6 +29,7 @@
 package org.opensearch.test.framework.cluster;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -39,13 +40,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.hc.client5.http.auth.AuthScope;
@@ -56,20 +57,29 @@ import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBu
 import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
-import org.apache.hc.core5.reactor.ssl.TlsDetails;
 
-import org.opensearch.client.RestClient;
-import org.opensearch.client.RestClientBuilder;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.json.JsonpMapper;
+import org.opensearch.client.json.jackson3.JacksonJsonpMapper;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.OpenSearchException;
+import org.opensearch.client.opensearch.core.FieldCapsRequest;
+import org.opensearch.client.opensearch.core.FieldCapsResponse;
+import org.opensearch.client.opensearch.generic.Bodies;
+import org.opensearch.client.opensearch.generic.Requests;
+import org.opensearch.client.opensearch.generic.Requests.JsonBodyBuilder;
+import org.opensearch.client.opensearch.generic.Response;
+import org.opensearch.client.transport.OpenSearchTransport;
+import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBuilder;
+import org.opensearch.client.util.ApiTypeHelper;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
+import jakarta.json.stream.JsonGenerator;
 import reactor.netty.http.HttpProtocol;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
@@ -119,8 +129,60 @@ public interface OpenSearchClientProvider {
         return getRestClient(getTestCertificates().getAdminCertificateData());
     }
 
-    default RestHighLevelClient getRestHighLevelClient(String username, String password, Header... headers) {
-        return getRestHighLevelClient(new UserCredentialsHolder() {
+    static final class CloseableOpenSearchClient extends OpenSearchClient implements AutoCloseable {
+        public CloseableOpenSearchClient(OpenSearchTransport transport) {
+            super(transport);
+        }
+
+        @Override
+        public FieldCapsResponse fieldCaps(FieldCapsRequest request) throws IOException, OpenSearchException {
+            // Awaits https://github.com/opensearch-project/opensearch-java/issues/1792
+            final JsonpMapper jsonpMapper = _transport().jsonpMapper();
+
+            final FieldCapsRequest r = FieldCapsRequest.builder()
+                .fields(ApiTypeHelper.undefinedList())
+                .index(request.index())
+                .indexFilter(request.indexFilter())
+                .build();
+
+            String indexPrefix = "";
+            if (request.index().size() == 1) {
+                indexPrefix = "/" + request.index().get(0);
+            }
+
+            JsonBodyBuilder builder = Requests.builder()
+                .endpoint(indexPrefix + "/_field_caps")
+                .method("GET")
+                .query(Map.of("fields", request.fields().stream().collect(Collectors.joining(","))));
+
+            try (StringWriter writer = new StringWriter()) {
+                try (JsonGenerator generator = jsonpMapper.jsonProvider().createGenerator(writer)) {
+                    r.serialize(generator, jsonpMapper);
+                }
+                builder = builder.body(Bodies.json(writer.toString()));
+            }
+
+            final Response resp = generic().execute(builder.build());
+            return resp.getBody()
+                .map(body -> Bodies.json(body, FieldCapsResponse._DESERIALIZER, jsonpMapper))
+                .orElseThrow(() -> new IOException("Response body is required"));
+        }
+
+        @Override
+        public void close() throws IOException {
+            ForkJoinPool.commonPool().submit(() -> {
+                // Do the closing of the restClient asynchronously, as it might cause a 5 second delay
+                try {
+                    _transport().close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+    }
+
+    default CloseableOpenSearchClient getClient(String username, String password, Header... headers) {
+        return getClient(new UserCredentialsHolder() {
             @Override
             public String getName() {
                 return username;
@@ -133,11 +195,11 @@ public interface OpenSearchClientProvider {
         }, Arrays.asList(headers));
     }
 
-    default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
-        return getRestHighLevelClient(user, Collections.emptySet());
+    default CloseableOpenSearchClient getClient(UserCredentialsHolder user) {
+        return getClient(user, Collections.emptySet());
     }
 
-    default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user, Collection<? extends Header> defaultHeaders) {
+    default CloseableOpenSearchClient getClient(UserCredentialsHolder user, Collection<? extends Header> defaultHeaders) {
 
         BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(
@@ -145,29 +207,19 @@ public interface OpenSearchClientProvider {
             new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray())
         );
 
-        return getRestHighLevelClient(credentialsProvider, defaultHeaders);
+        return getClient(credentialsProvider, defaultHeaders);
     }
 
-    default RestHighLevelClient getRestHighLevelClient(Collection<? extends Header> defaultHeaders) {
-        return getRestHighLevelClient((BasicCredentialsProvider) null, defaultHeaders);
+    default CloseableOpenSearchClient getClient(Collection<? extends Header> defaultHeaders) {
+        return getClient((BasicCredentialsProvider) null, defaultHeaders);
     }
 
-    default RestHighLevelClient getRestHighLevelClient(
-        BasicCredentialsProvider credentialsProvider,
-        Collection<? extends Header> defaultHeaders
-    ) {
-        RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
+    default CloseableOpenSearchClient getClient(BasicCredentialsProvider credentialsProvider, Collection<? extends Header> defaultHeaders) {
+        ApacheHttpClient5TransportBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
             TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
                 .setSslContext(getSSLContext())
                 .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
-                    @Override
-                    public TlsDetails create(final SSLEngine sslEngine) {
-                        return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
-                    }
-                })
-                .build();
+                .buildAsync();
 
             final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create().setTlsStrategy(tlsStrategy).build();
 
@@ -181,20 +233,11 @@ public interface OpenSearchClientProvider {
         };
 
         InetSocketAddress httpAddress = getHttpAddress();
-        RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
-            .setHttpClientConfigCallback(configCallback);
+        ApacheHttpClient5TransportBuilder builder = ApacheHttpClient5TransportBuilder.builder(
+            new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort())
+        ).setHttpClientConfigCallback(configCallback);
 
-        return new RestHighLevelClient(builder.build(), (restClient) -> {
-            ForkJoinPool.commonPool().submit(() -> {
-                // Do the closing of the restClient asynchronously, as it might cause a 5 second delay
-                try {
-                    restClient.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        }, Collections.emptyList()) {
-        };
+        return new CloseableOpenSearchClient(builder.setMapper(new JacksonJsonpMapper()).build());
     }
 
     default CloseableHttpClient getClosableHttpClient(String[] supportedCipherSuit) {
@@ -234,7 +277,7 @@ public interface OpenSearchClientProvider {
      * Returns a generic HTTP/1.1/HTTP 2.0/HTTP 3.0 client.
      */
     default ReactorHttpClient getGenericClient(HttpProtocol protocol, boolean secure, Settings settings) {
-        return new ReactorHttpClient(true, true, settings, getHttpAddress());
+        return new ReactorHttpClient(protocol, true, secure, settings, getHttpAddress());
     }
 
     default TestRestClient getRestClient(Header... headers) {

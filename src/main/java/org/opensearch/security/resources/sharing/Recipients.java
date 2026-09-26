@@ -33,8 +33,6 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
  * "backend_roles": []
  * }
  * where "users", "roles" and "backend_roles" are the recipient entities, and "default" is the action-group
- *
- * @opensearch.experimental
  */
 public class Recipients implements ToXContentFragment, NamedWriteable {
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
 
 set -e
 
@@ -51,7 +52,7 @@ while getopts ":h:b:p:s:c:v:n:t:m:u:" arg; do
             OPENSEARCH_VERSION=$OPTARG
             ;;
         n)
-            # Do nothing as we're not consuming this param.
+            SNAPSHOT=$OPTARG
             ;;
         u)
             COMMON_UTILS_VERSION=$OPTARG
@@ -84,6 +85,11 @@ then
   SECURITY_ENABLED="true"
 fi
 
+if [ -z "$SNAPSHOT" ]
+then
+  SNAPSHOT="false"
+fi
+
 OPENSEARCH_REQUIRED_VERSION="2.12.0"
 if [ -z "$CREDENTIAL" ]
 then
@@ -104,4 +110,4 @@ fi
 USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
 PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
 
-./gradlew integTestRemote -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dsecurity_enabled=$SECURITY_ENABLED -Dtests.clustername=$CLUSTER_NAME -Dhttps=true -Duser=$USERNAME -Dpassword=$PASSWORD
+./gradlew integTestRemote -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dsecurity_enabled=$SECURITY_ENABLED -Dtests.clustername=$CLUSTER_NAME -Dhttps=true -Duser=$USERNAME -Dpassword=$PASSWORD

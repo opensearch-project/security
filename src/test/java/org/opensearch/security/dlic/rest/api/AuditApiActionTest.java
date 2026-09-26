@@ -693,6 +693,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                 "disabled_rest_categories": ["AUTHENTICATED"],
                 "enable_transport": true,
                 "disabled_transport_categories": ["SSL_EXCEPTION"],
+                "disabled_categories": [],
                 "resolve_bulk_requests": true,
                 "log_request_body": true,
                 "resolve_indices": true,

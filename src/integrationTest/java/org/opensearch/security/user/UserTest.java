@@ -135,4 +135,23 @@ public class UserTest {
     public void illegalName() {
         new User("");
     }
+
+    @Test
+    public void withoutSecurityRoles_stripsRoles() {
+        User original = new User("test_user").withSecurityRoles(Arrays.asList("all_access", "read_only"));
+        User stripped = original.withoutSecurityRoles();
+
+        assertEquals(ImmutableSet.of("all_access", "read_only"), original.getSecurityRoles());
+        assertEquals(ImmutableSet.of(), stripped.getSecurityRoles());
+        assertEquals(original.getName(), stripped.getName());
+        assertEquals(original.getRoles(), stripped.getRoles());
+    }
+
+    @Test
+    public void withoutSecurityRoles_alreadyEmpty_returnsSameInstance() {
+        User original = new User("test_user");
+        User stripped = original.withoutSecurityRoles();
+
+        assertSame(original, stripped);
+    }
 }

@@ -33,6 +33,7 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuil
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.TrustAllStrategy;
 import org.apache.hc.core5.http.ContentType;
@@ -390,6 +391,7 @@ public class WebhookSink extends AuditLogSink {
                     null,
                     null,
                     SSLBufferMode.STATIC,
+                    HostnameVerificationPolicy.CLIENT,
                     NoopHostnameVerifier.INSTANCE
                 );
 
@@ -410,6 +412,7 @@ public class WebhookSink extends AuditLogSink {
                 null,
                 null,
                 SSLBufferMode.STATIC,
+                HostnameVerificationPolicy.CLIENT,
                 new DefaultHostnameVerifier()
             );
 

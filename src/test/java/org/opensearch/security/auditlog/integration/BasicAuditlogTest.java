@@ -293,7 +293,9 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
 
         testJustAuthenticated();
         TestAuditlogImpl.clear();
-        testBadHeader();
+        testBadOpenDistroHeader();
+        TestAuditlogImpl.clear();
+        testBadOpenSearchHeader();
         TestAuditlogImpl.clear();
         testMissingPriv();
         TestAuditlogImpl.clear();
@@ -370,19 +372,23 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
         validateMsgs(TestAuditlogImpl.messages);
     }
 
-    public void testBadHeader() throws Exception {
+    private void testBadHeader(final String headerName) throws Exception {
 
-        HttpResponse response = rh.executeGetRequest(
-            "",
-            new BasicHeader("_opendistro_security_bad", "bad"),
-            encodeBasicHeader("admin", "admin")
-        );
+        HttpResponse response = rh.executeGetRequest("", new BasicHeader(headerName, "bad"), encodeBasicHeader("admin", "admin"));
         assertThat(response.getStatusCode(), is(HttpStatus.SC_FORBIDDEN));
         Assert.assertFalse(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("BAD_HEADERS"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("_opendistro_security_bad"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains(headerName));
         assertThat(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.messages.size(), is(1));
         validateMsgs(TestAuditlogImpl.messages);
+    }
+
+    public void testBadOpenDistroHeader() throws Exception {
+        testBadHeader("_opendistro_security_bad");
+    }
+
+    public void testBadOpenSearchHeader() throws Exception {
+        testBadHeader("_opensearch_security_bad");
     }
 
     public void testMissingPriv() throws Exception {

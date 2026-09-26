@@ -20,9 +20,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.opensearch.core.SearchRequest;
+import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.test.framework.AuthorizationBackend;
 import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.LdapAuthenticationConfigBuilder;
@@ -36,6 +35,7 @@ import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.OpenSearchClientProvider.CloseableOpenSearchClient;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.ldap.EmbeddedLDAPServer;
@@ -49,7 +49,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.security.http.DirectoryInformationTrees.CN_GROUP_ADMIN;
@@ -74,12 +73,12 @@ import static org.opensearch.security.http.DirectoryInformationTrees.USER_SPOCK;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC_AUTH_DOMAIN_ORDER;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.queryStringQueryRequest;
+import static org.opensearch.test.framework.client.SearchRequestFactory.queryStringQueryRequest;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
-import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.isSuccessfulSearchResponse;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.client.TransportExceptionMatchers.statusException;
 
 /**
 * Test uses plain TLS connection between OpenSearch and LDAP server.
@@ -277,10 +276,10 @@ public class LdapTlsAuthenticationTest {
 
     @Test
     public void shouldPerformAuthorizationAgainstLdapToAccessIndex_positive() throws IOException {
-        try (RestHighLevelClient client = cluster.getRestHighLevelClient(USER_KIRK, PASSWORD_KIRK)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_KIRK, PASSWORD_KIRK)) {
             SearchRequest request = queryStringQueryRequest(SONG_INDEX_NAME, "*");
 
-            SearchResponse searchResponse = client.search(request, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(request, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
@@ -290,19 +289,19 @@ public class LdapTlsAuthenticationTest {
 
     @Test
     public void shouldPerformAuthorizationAgainstLdapToAccessIndex_negative() throws IOException {
-        try (RestHighLevelClient client = cluster.getRestHighLevelClient(USER_LEONARD, PASSWORD_LEONARD)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_LEONARD, PASSWORD_LEONARD)) {
             SearchRequest request = queryStringQueryRequest(SONG_INDEX_NAME, "*");
 
-            assertThatThrownBy(() -> client.search(request, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(request, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void shouldResolveUserAttributesLoadedFromLdap_positive() throws IOException {
-        try (RestHighLevelClient client = cluster.getRestHighLevelClient(USER_SPOCK, PASSWORD_SPOCK)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_SPOCK, PASSWORD_SPOCK)) {
             SearchRequest request = queryStringQueryRequest(PERSONAL_INDEX_NAME_SPOCK, "*");
 
-            SearchResponse searchResponse = client.search(request, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(request, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
@@ -312,10 +311,10 @@ public class LdapTlsAuthenticationTest {
 
     @Test
     public void shouldResolveUserAttributesLoadedFromLdap_negative() throws IOException {
-        try (RestHighLevelClient client = cluster.getRestHighLevelClient(USER_SPOCK, PASSWORD_SPOCK)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_SPOCK, PASSWORD_SPOCK)) {
             SearchRequest request = queryStringQueryRequest(PERSONAL_INDEX_NAME_KIRK, "*");
 
-            assertThatThrownBy(() -> client.search(request, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(request, Map.class), statusException(FORBIDDEN));
         }
     }
 
@@ -386,10 +385,10 @@ public class LdapTlsAuthenticationTest {
     @Test
     public void shouldAccessImpersonatedUserPersonalIndex_positive() throws IOException {
         BasicHeader impersonateHeader = new BasicHeader(HEADER_NAME_IMPERSONATE, USER_SPOCK);
-        try (RestHighLevelClient client = cluster.getRestHighLevelClient(USER_KIRK, PASSWORD_KIRK, impersonateHeader)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_KIRK, PASSWORD_KIRK, impersonateHeader)) {
             SearchRequest request = queryStringQueryRequest(PERSONAL_INDEX_NAME_SPOCK, "*");
 
-            SearchResponse searchResponse = client.search(request, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(request, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
@@ -400,10 +399,10 @@ public class LdapTlsAuthenticationTest {
     @Test
     public void shouldAccessImpersonatedUserPersonalIndex_negative() throws IOException {
         BasicHeader impersonateHeader = new BasicHeader(HEADER_NAME_IMPERSONATE, USER_SPOCK);
-        try (RestHighLevelClient client = cluster.getRestHighLevelClient(USER_KIRK, PASSWORD_KIRK, impersonateHeader)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(USER_KIRK, PASSWORD_KIRK, impersonateHeader)) {
             SearchRequest request = queryStringQueryRequest(PERSONAL_INDEX_NAME_KIRK, "*");
 
-            assertThatThrownBy(() -> client.search(request, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(request, Map.class), statusException(FORBIDDEN));
         }
     }
 }

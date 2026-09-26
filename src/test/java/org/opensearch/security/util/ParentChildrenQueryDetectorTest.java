@@ -13,6 +13,7 @@ import org.apache.lucene.search.join.ScoreMode;
 import org.junit.Test;
 
 import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.join.query.HasChildQueryBuilder;
@@ -20,6 +21,9 @@ import org.opensearch.join.query.HasParentQueryBuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ParentChildrenQueryDetectorTest {
 
@@ -40,6 +44,22 @@ public class ParentChildrenQueryDetectorTest {
     @Test
     public void topLevelHasChildQueryShouldBeDetected() {
         HasChildQueryBuilder query = new HasChildQueryBuilder("my_type", QueryBuilders.termQuery("field", "value"), ScoreMode.None);
+
+        assertThat(ParentChildrenQueryDetector.hasParentOrChildQuery(query), equalTo(true));
+    }
+
+    @Test
+    public void hasParentQueryShouldBeDetectedByWriteableName() {
+        QueryBuilder query = mock(QueryBuilder.class, CALLS_REAL_METHODS);
+        when(query.getWriteableName()).thenReturn("has_parent");
+
+        assertThat(ParentChildrenQueryDetector.hasParentOrChildQuery(query), equalTo(true));
+    }
+
+    @Test
+    public void hasChildQueryShouldBeDetectedByWriteableName() {
+        QueryBuilder query = mock(QueryBuilder.class, CALLS_REAL_METHODS);
+        when(query.getWriteableName()).thenReturn("has_child");
 
         assertThat(ParentChildrenQueryDetector.hasParentOrChildQuery(query), equalTo(true));
     }
