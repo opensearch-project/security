@@ -1007,7 +1007,9 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         }, 2);
 
-        messages.forEach(message -> assertThat(message.toJson(), message.getAsMap().get(AuditMessage.REQUEST_TENANT), equalTo("engineering_tenant")));
+        messages.forEach(
+            message -> assertThat(message.toJson(), message.getAsMap().get(AuditMessage.REQUEST_TENANT), equalTo("engineering_tenant"))
+        );
         validateMsgs(messages);
     }
 
