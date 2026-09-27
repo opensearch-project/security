@@ -35,6 +35,7 @@ import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -52,6 +53,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.MockIndexMetadataBuilder;
 import org.opensearch.tasks.Task;
@@ -161,7 +163,8 @@ public class SystemIndexAccessEvaluatorTest {
                 .put(ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY, isSystemIndexPermissionsEnabled)
                 .build(),
             auditLog,
-            irr
+            irr,
+            new ClusterSettings(Settings.EMPTY, Set.of(SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING))
         );
         evaluator.log = log;
 

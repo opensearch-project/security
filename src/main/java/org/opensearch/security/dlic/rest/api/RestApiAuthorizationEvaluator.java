@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -42,6 +41,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.RestAdminRoles;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -111,7 +111,7 @@ public class RestApiAuthorizationEvaluator {
     private final PrivilegesConfiguration privilegesConfiguration;
     private final boolean restapiAdminEnabled;
 
-    private final Set<String> allowedRoles = new HashSet<>();
+    private final RestAdminRoles restAdminRoles;
 
     private final Map<String, Map<Endpoint, List<Method>>> disabledEndpointsForRoles = new HashMap<>();
 
@@ -150,8 +150,8 @@ public class RestApiAuthorizationEvaluator {
         }
         this.allEndpoints = Collections.unmodifiableMap(allEndpoints);
 
-        allowedRoles.addAll(settings.getAsList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED));
-        this.roleBasedAccessEnabled = allowedRoles.isEmpty() == false;
+        this.restAdminRoles = new RestAdminRoles(settings);
+        this.roleBasedAccessEnabled = restAdminRoles.isEmpty() == false;
 
         final Settings globalSettings = settings.getAsSettings(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".global");
         if (globalSettings.isEmpty() == false) {
@@ -163,7 +163,7 @@ public class RestApiAuthorizationEvaluator {
             logger.debug("Globally disabled endpoints: {}", globallyDisabledEndpoints);
         }
 
-        for (String role : allowedRoles) {
+        for (String role : restAdminRoles.roles()) {
             final Settings settingsForRole = settings.getAsSettings(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + "." + role);
             if (settingsForRole.isEmpty()) {
                 if (isDebugEnabled) {
@@ -318,7 +318,7 @@ public class RestApiAuthorizationEvaluator {
     }
 
     public boolean currentUserHasRestApiAccess(Set<String> userRoles) {
-        return Collections.disjoint(allowedRoles, userRoles) == false;
+        return restAdminRoles.matches(userRoles);
     }
 
     public Map<Endpoint, List<Method>> getDisabledEndpointsForCurrentUser(String userPrincipal, Set<String> userRoles) {

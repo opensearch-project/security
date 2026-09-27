@@ -42,7 +42,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 /**
- * Restoring allowlisted system indices by a security-admin (a holder of a role in
+ * Restoring allowlisted system indices by a REST admin (a holder of a role in
  * {@code plugins.security.restapi.roles_enabled}), for both the legacy and the V4 privilege evaluation.
  */
 @RunWith(Parameterized.class)
@@ -54,22 +54,22 @@ public class SystemIndexRestoreIntTests {
     static final String REPOSITORY = "restore_repository";
 
     static final TestSecurityConfig.Role ADMIN_ROLE = new TestSecurityConfig.Role("restore_admin")//
-        .clusterPermissions("cluster_composite_ops", "cluster_monitor", "manage_snapshots")//
+        .clusterPermissions("cluster_composite_ops", "cluster_monitor", "manage_snapshots", "cluster:admin/settings/update")//
         .indexPermissions("*")
         .on("*");
 
-    static final TestSecurityConfig.User SECURITY_ADMIN = new TestSecurityConfig.User("security_admin").roles(ADMIN_ROLE);
+    static final TestSecurityConfig.User REST_ADMIN = new TestSecurityConfig.User("rest_admin").roles(ADMIN_ROLE);
 
     /**
-     * Same privileges as SECURITY_ADMIN, but its role is not listed in plugins.security.restapi.roles_enabled.
+     * Same privileges as REST_ADMIN, but its role is not listed in plugins.security.restapi.roles_enabled.
      */
-    static final TestSecurityConfig.User NOT_SECURITY_ADMIN = new TestSecurityConfig.User("not_security_admin").roles(ADMIN_ROLE);
+    static final TestSecurityConfig.User NOT_REST_ADMIN = new TestSecurityConfig.User("not_rest_admin").roles(ADMIN_ROLE);
 
-    static final List<String> SECURITY_ADMIN_ROLES = List.of("user_" + SECURITY_ADMIN.getName() + "__" + ADMIN_ROLE.getName());
+    static final List<String> REST_ADMIN_ROLES = List.of("user_" + REST_ADMIN.getName() + "__" + ADMIN_ROLE.getName());
 
     static LocalCluster.Builder clusterBuilder() {
         return defaultClusterBuilder().nodeSettings(
-            Map.of(SECURITY_RESTAPI_ROLES_ENABLED, SECURITY_ADMIN_ROLES, SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of(ELIGIBLE))
+            Map.of(SECURITY_RESTAPI_ROLES_ENABLED, REST_ADMIN_ROLES, SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of(ELIGIBLE))
         );
     }
 
@@ -79,9 +79,9 @@ public class SystemIndexRestoreIntTests {
     static LocalCluster.Builder defaultClusterBuilder() {
         return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(SECURITY_ADMIN, NOT_SECURITY_ADMIN)
+            .users(REST_ADMIN, NOT_REST_ADMIN)
             .snapshotRepositories(REPOSITORY)
-            .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, SECURITY_ADMIN_ROLES))
+            .nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, REST_ADMIN_ROLES))
             .plugin(RestorableSystemIndexTestPlugin.class);
     }
 
@@ -94,9 +94,9 @@ public class SystemIndexRestoreIntTests {
     final LocalCluster cluster;
 
     @Test
-    public void securityAdmin_restoresExplicitAllowlistedSystemIndex() {
+    public void restAdmin_restoresExplicitAllowlistedSystemIndex() {
         createIndicesAndSnapshot("snap_eligible", ELIGIBLE, REGULAR);
-        try (TestRestClient client = cluster.getRestClient(SECURITY_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
             TestRestClient.HttpResponse response = client.post(restorePath("snap_eligible"), json("indices", List.of(ELIGIBLE, REGULAR)));
             assertThat(response, isOk());
         } finally {
@@ -105,9 +105,9 @@ public class SystemIndexRestoreIntTests {
     }
 
     @Test
-    public void notSecurityAdmin_cannotRestoreAllowlistedSystemIndex() {
+    public void notRestAdmin_cannotRestoreAllowlistedSystemIndex() {
         createIndicesAndSnapshot("snap_not_admin", ELIGIBLE);
-        try (TestRestClient client = cluster.getRestClient(NOT_SECURITY_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(NOT_REST_ADMIN)) {
             TestRestClient.HttpResponse response = client.post(restorePath("snap_not_admin"), json("indices", List.of(ELIGIBLE)));
             assertThat(response, isForbidden());
         } finally {
@@ -116,9 +116,9 @@ public class SystemIndexRestoreIntTests {
     }
 
     @Test
-    public void securityAdmin_cannotRestoreNonAllowlistedSystemIndex() {
+    public void restAdmin_cannotRestoreNonAllowlistedSystemIndex() {
         createIndicesAndSnapshot("snap_not_eligible", ELIGIBLE, NOT_ELIGIBLE);
-        try (TestRestClient client = cluster.getRestClient(SECURITY_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
             TestRestClient.HttpResponse response = client.post(
                 restorePath("snap_not_eligible"),
                 json("indices", List.of(ELIGIBLE, NOT_ELIGIBLE))
@@ -132,9 +132,9 @@ public class SystemIndexRestoreIntTests {
     }
 
     @Test
-    public void securityAdmin_cannotRestoreSystemIndexMatchedByWildcard() {
+    public void restAdmin_cannotRestoreSystemIndexMatchedByWildcard() {
         createIndicesAndSnapshot("snap_wildcard", ELIGIBLE);
-        try (TestRestClient client = cluster.getRestClient(SECURITY_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
             TestRestClient.HttpResponse response = client.post(
                 restorePath("snap_wildcard"),
                 json("indices", List.of(".opendistro-alerting-c*"))
@@ -147,9 +147,9 @@ public class SystemIndexRestoreIntTests {
     }
 
     @Test
-    public void securityAdmin_cannotRenameIntoSystemIndex() {
+    public void restAdmin_cannotRenameIntoSystemIndex() {
         createIndicesAndSnapshot("snap_rename", REGULAR);
-        try (TestRestClient client = cluster.getRestClient(SECURITY_ADMIN)) {
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
             TestRestClient.HttpResponse response = client.post(
                 restorePath("snap_rename"),
                 json("indices", List.of(REGULAR), "rename_pattern", REGULAR, "rename_replacement", ELIGIBLE)
@@ -158,6 +158,45 @@ public class SystemIndexRestoreIntTests {
             assertThat(response.getBody(), containsString("Renaming indices is not allowed"));
         } finally {
             cleanup("snap_rename", REGULAR, ELIGIBLE);
+        }
+    }
+
+    @Test
+    public void restAdmin_canUpdateRestorableIndicesAtRuntime() {
+        createIndicesAndSnapshot("snap_dynamic", NOT_ELIGIBLE);
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
+            assertThat(client.post(restorePath("snap_dynamic"), json("indices", List.of(NOT_ELIGIBLE))), isForbidden());
+
+            assertThat(client.putJson("_cluster/settings", restorableIndicesSetting("[\"" + NOT_ELIGIBLE + "\"]")), isOk());
+
+            assertThat(client.post(restorePath("snap_dynamic"), json("indices", List.of(NOT_ELIGIBLE))), isOk());
+        } finally {
+            resetRestorableIndices();
+            cleanup("snap_dynamic", NOT_ELIGIBLE);
+        }
+    }
+
+    @Test
+    public void notRestAdmin_cannotUpdateRestorableIndices() {
+        try (TestRestClient client = cluster.getRestClient(NOT_REST_ADMIN)) {
+            TestRestClient.HttpResponse response = client.putJson(
+                "_cluster/settings",
+                restorableIndicesSetting("[\"" + NOT_ELIGIBLE + "\"]")
+            );
+            assertThat(response, isForbidden());
+            assertThat(response.getBody(), containsString("does not have permission to update sensitive cluster settings"));
+        } finally {
+            resetRestorableIndices();
+        }
+    }
+
+    private static String restorableIndicesSetting(String value) {
+        return "{\"persistent\":{\"" + SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY + "\":" + value + "}}";
+    }
+
+    private void resetRestorableIndices() {
+        try (TestRestClient admin = cluster.getAdminCertRestClient()) {
+            assertThat(admin.putJson("_cluster/settings", restorableIndicesSetting("null")), isOk());
         }
     }
 

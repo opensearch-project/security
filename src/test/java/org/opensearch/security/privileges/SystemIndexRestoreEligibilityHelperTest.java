@@ -18,8 +18,10 @@ import java.util.Set;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -34,38 +36,70 @@ public class SystemIndexRestoreEligibilityHelperTest {
     private static final String ALERT_HISTORY = ".opendistro-alerting-alert-history-2026.09.24-1";
     private static final String SECURITY_INDEX = ".opendistro_security";
 
-    private final SystemIndexRestoreEligibilityHelper helper = new SystemIndexRestoreEligibilityHelper(
+    private final SystemIndexRestoreEligibilityHelper helper = helper(
         Settings.builder()
             .putList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, List.of("all_access", "security_rest_api_access"))
             .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of(ALERTING_CONFIG, ".opendistro-reports-*"))
             .build()
     );
 
-    private final SystemIndexRestoreEligibilityHelper helperWithDefaults = new SystemIndexRestoreEligibilityHelper(
+    private final SystemIndexRestoreEligibilityHelper helperWithDefaults = helper(
         Settings.builder().putList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, List.of("all_access")).build()
     );
+
+    /** Builds a helper whose cluster settings start from the given node settings. */
+    private static SystemIndexRestoreEligibilityHelper helper(Settings nodeSettings) {
+        return new SystemIndexRestoreEligibilityHelper(
+            nodeSettings,
+            new ClusterSettings(nodeSettings, Set.of(SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING))
+        );
+    }
 
     private static RestoreSnapshotRequest restore(String... indices) {
         return new RestoreSnapshotRequest("repo", "snap").indices(indices);
     }
 
     @Test
-    public void isSecurityAdmin_trueForRestApiRole() {
-        assertThat(helper.isSecurityAdmin(Set.of("all_access")), is(true));
-        assertThat(helper.isSecurityAdmin(Set.of("readall", "security_rest_api_access")), is(true));
+    public void isRestAdmin_trueForRestApiRole() {
+        assertThat(helper.isRestAdmin(Set.of("all_access")), is(true));
+        assertThat(helper.isRestAdmin(Set.of("readall", "security_rest_api_access")), is(true));
     }
 
     @Test
-    public void isSecurityAdmin_falseForOtherRolesOrNone() {
-        assertThat(helper.isSecurityAdmin(Set.of("readall")), is(false));
-        assertThat(helper.isSecurityAdmin(Set.of()), is(false));
-        assertThat(helper.isSecurityAdmin(null), is(false));
+    public void isRestAdmin_falseForOtherRolesOrNone() {
+        assertThat(helper.isRestAdmin(Set.of("readall")), is(false));
+        assertThat(helper.isRestAdmin(Set.of()), is(false));
+        assertThat(helper.isRestAdmin(null), is(false));
     }
 
     @Test
-    public void isSecurityAdmin_falseWhenRestApiRolesNotConfigured() {
-        SystemIndexRestoreEligibilityHelper unconfigured = new SystemIndexRestoreEligibilityHelper(Settings.EMPTY);
-        assertThat(unconfigured.isSecurityAdmin(Set.of("all_access")), is(false));
+    public void isRestAdmin_falseWhenRestApiRolesNotConfigured() {
+        SystemIndexRestoreEligibilityHelper unconfigured = helper(Settings.EMPTY);
+        assertThat(unconfigured.isRestAdmin(Set.of("all_access")), is(false));
+    }
+
+    @Test
+    public void clusterSettingsUpdate_replacesEligibleIndicesAndDenialMessage() {
+        Settings nodeSettings = Settings.builder()
+            .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of(ALERTING_CONFIG))
+            .build();
+        ClusterSettings clusterSettings = new ClusterSettings(
+            nodeSettings,
+            Set.of(SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING)
+        );
+        SystemIndexRestoreEligibilityHelper dynamic = new SystemIndexRestoreEligibilityHelper(nodeSettings, clusterSettings);
+        assertThat(dynamic.isEligible(REPORTS_DEFINITIONS), is(false));
+
+        clusterSettings.applySettings(
+            Settings.builder().putList(ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of(REPORTS_DEFINITIONS)).build()
+        );
+
+        assertThat(dynamic.isEligible(REPORTS_DEFINITIONS), is(true));
+        assertThat(dynamic.isEligible(ALERTING_CONFIG), is(false));
+        assertThat(
+            dynamic.denialReason(restore(ALERTING_CONFIG), Set.of(ALERTING_CONFIG)).orElseThrow(),
+            containsString("Restorable system indices: [" + REPORTS_DEFINITIONS + "]")
+        );
     }
 
     @Test
@@ -86,7 +120,7 @@ public class SystemIndexRestoreEligibilityHelperTest {
     public void denialReason_emptyForExplicitAllowlistedIndices() {
         RestoreSnapshotRequest request = restore(ALERTING_CONFIG, REPORTS_DEFINITIONS, "my-data");
         assertThat(helper.denialReason(request, Set.of(ALERTING_CONFIG, REPORTS_DEFINITIONS)), equalTo(Optional.empty()));
-        assertThat(helper.isRestorableBySecurityAdmin(request, ALERTING_CONFIG), is(true));
+        assertThat(helper.isRestorableByRestAdmin(request, ALERTING_CONFIG), is(true));
     }
 
     @Test
@@ -123,7 +157,7 @@ public class SystemIndexRestoreEligibilityHelperTest {
     public void denialReason_wildcardMatchIsNotExplicit() {
         Optional<String> reason = helper.denialReason(restore(".opendistro-alerting-*"), Set.of(ALERTING_CONFIG));
         assertThat(reason.get(), containsString("must be named explicitly"));
-        assertThat(helper.isRestorableBySecurityAdmin(restore("*"), ALERTING_CONFIG), is(false));
+        assertThat(helper.isRestorableByRestAdmin(restore("*"), ALERTING_CONFIG), is(false));
     }
 
     @Test

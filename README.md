@@ -134,8 +134,10 @@ The Security plugin protects system indices registered by OpenSearch plugins. Th
 indices through `SystemIndexPlugin.getSystemIndexDescriptors`.
 
 Users whose mapped roles are listed in `plugins.security.restapi.roles_enabled` can restore only the system indices matched by
-`plugins.security.system_indices.restore.indices`. The setting is empty by default, so no system index is restorable this way
-until an operator lists it in `opensearch.yml`. It does not allow restoring the Security configuration index:
+`plugins.security.system_indices.restore.indices`. The default list is empty today. System indices will be added to it as their
+plugin owners confirm they restore safely. An operator can set the list in `opensearch.yml`, or at runtime with
+`PUT _cluster/settings`, which takes precedence over the file. A configured value replaces the default list and is not merged
+with it. The Security configuration index can never be restored this way:
 
 ```
 plugins.security.system_indices.restore.indices:

@@ -28,7 +28,9 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.logging.Loggers;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -45,6 +47,7 @@ import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.user.User;
 import org.opensearch.test.framework.log.LogsRule;
 
@@ -270,7 +273,7 @@ public class PrivilegesEvaluatorImplTest {
 
         return new PrivilegesEvaluatorImpl(
             new PrivilegesEvaluator.CoreDependencies(
-                null,
+                clusterService(),
                 () -> clusterState,
                 null,
                 roleMapper,
@@ -285,5 +288,13 @@ public class PrivilegesEvaluatorImplTest {
             ),
             dynamicDependencies.with(compiledRoles)
         );
+    }
+
+    private static ClusterService clusterService() {
+        ClusterService clusterService = Mockito.mock(ClusterService.class);
+        when(clusterService.getClusterSettings()).thenReturn(
+            new ClusterSettings(Settings.EMPTY, Set.of(SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING))
+        );
+        return clusterService;
     }
 }

@@ -41,6 +41,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.indices.SystemIndexRegistry;
 import org.opensearch.security.auditlog.AuditLog;
@@ -80,14 +81,19 @@ public class SystemIndexAccessEvaluator {
     private final SystemIndexRestoreEligibilityHelper restoreEligibility;
     private final static ImmutableSet<String> SYSTEM_INDEX_PERMISSION_SET = ImmutableSet.of(ConfigConstants.SYSTEM_INDEX_PERMISSION);
 
-    public SystemIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
+    public SystemIndexAccessEvaluator(
+        final Settings settings,
+        AuditLog auditLog,
+        IndexResolverReplacer irr,
+        ClusterSettings clusterSettings
+    ) {
         this.securityIndex = settings.get(
             ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
             ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
         );
         this.auditLog = auditLog;
         this.irr = irr;
-        this.restoreEligibility = new SystemIndexRestoreEligibilityHelper(settings);
+        this.restoreEligibility = new SystemIndexRestoreEligibilityHelper(settings, clusterSettings);
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
         this.systemIndexMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
@@ -143,11 +149,11 @@ public class SystemIndexAccessEvaluator {
         final User user
     ) {
         final Set<String> systemIndicesToRestore = request instanceof RestoreSnapshotRequest
-            && restoreEligibility.isSecurityAdmin(context.getMappedRoles()) ? getAllSystemIndices(requestedResolved) : Set.of();
+            && restoreEligibility.isRestAdmin(context.getMappedRoles()) ? getAllSystemIndices(requestedResolved) : Set.of();
 
         final PrivilegesEvaluatorResponse presponse;
         if (!systemIndicesToRestore.isEmpty()) {
-            presponse = evaluateSecurityAdminRestore(
+            presponse = evaluateRestAdminRestore(
                 (RestoreSnapshotRequest) request,
                 systemIndicesToRestore,
                 action,
@@ -186,14 +192,14 @@ public class SystemIndexAccessEvaluator {
     }
 
     /**
-     * A security-admin may restore allowlisted system indices named explicitly in the request, without renaming. If the
+     * A REST admin may restore allowlisted system indices named explicitly in the request, without renaming. If the
      * request does not meet those rules, the existing system index checks still apply (so a holder of
      * {@code system:admin/system_index} keeps working as before); if those deny too, the denial carries the reason
      * from {@link SystemIndexRestoreEligibilityHelper} so the caller knows what to change.
      *
      * @return null to continue with regular privilege evaluation, or a denial
      */
-    private PrivilegesEvaluatorResponse evaluateSecurityAdminRestore(
+    private PrivilegesEvaluatorResponse evaluateRestAdminRestore(
         final RestoreSnapshotRequest request,
         final Set<String> systemIndices,
         final String action,
@@ -206,7 +212,7 @@ public class SystemIndexAccessEvaluator {
         final Optional<String> denialReason = restoreEligibility.denialReason(request, systemIndices);
         if (denialReason.isEmpty()) {
             if (log.isDebugEnabled()) {
-                log.debug("Security-admin restore of system indices {} allowed", systemIndices);
+                log.debug("REST admin restore of system indices {} allowed", systemIndices);
             }
             return null;
         }
@@ -220,7 +226,7 @@ public class SystemIndexAccessEvaluator {
             user
         );
         if (presponse != null && !presponse.isAllowed()) {
-            log.warn("{} denied for security-admin: {}", action, denialReason.get());
+            log.warn("{} denied for REST admin: {}", action, denialReason.get());
             return PrivilegesEvaluatorResponse.insufficient(action).reason(denialReason.get());
         }
         return presponse;

@@ -64,6 +64,15 @@ public class SecuritySettings {
         Setting.Property.Sensitive
     );
 
+    public static final Setting<List<String>> SYSTEM_INDICES_RESTORE_INDICES_SETTING = Setting.listSetting(
+        ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY,
+        ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT,
+        Function.identity(),
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
+    );
+
     public static final Setting<Boolean> AUDIT_ENABLED_SETTING = Setting.boolSetting(
         ConfigConstants.SECURITY_AUDIT_ENABLED,
         true,

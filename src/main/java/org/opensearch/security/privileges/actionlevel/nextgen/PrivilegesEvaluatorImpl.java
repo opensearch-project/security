@@ -153,12 +153,12 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
         this.clusterStateSupplier = coreDependencies.clusterStateSupplier();
         this.settings = coreDependencies.settings();
         this.specialIndices = dynamicDependencies.specialIndices();
-        this.restoreEligibility = new SystemIndexRestoreEligibilityHelper(settings);
+        this.restoreEligibility = new SystemIndexRestoreEligibilityHelper(settings, coreDependencies.clusterService().getClusterSettings());
         this.specialIndexProtection = new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
             specialIndices::isUniversallyDeniedIndex,
             specialIndices::isSystemIndex,
             indicesNeedingSpecialRoles(settings),
-            this::isSecurityAdminRestoreOfEligibleIndex
+            this::isRestAdminRestoreOfEligibleIndex
         );
 
         this.actionConfiguration = new ActionConfiguration(settings);
@@ -671,7 +671,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             request
         );
 
-        if (!presponse.isAllowed() && restoreEligibility.isSecurityAdmin(context.getMappedRoles())) {
+        if (!presponse.isAllowed() && restoreEligibility.isRestAdmin(context.getMappedRoles())) {
             Set<String> systemIndices = resolvedIndices.local()
                 .names()
                 .stream()
@@ -679,7 +679,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
                 .collect(Collectors.toSet());
             Optional<String> denialReason = restoreEligibility.denialReason(request, systemIndices);
             if (denialReason.isPresent()) {
-                log.warn("{} denied for security-admin: {}", context.getAction(), denialReason.get());
+                log.warn("{} denied for REST admin: {}", context.getAction(), denialReason.get());
                 return PrivilegesEvaluatorResponse.insufficient(context.getAction()).reason(denialReason.get());
             }
         }
@@ -688,13 +688,13 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
     }
 
     /**
-     * Lets a security-admin restore an allowlisted system index without the explicit system index privilege, as decided
+     * Lets a REST admin restore an allowlisted system index without the explicit system index privilege, as decided
      * by {@link SystemIndexRestoreEligibilityHelper}.
      */
-    private boolean isSecurityAdminRestoreOfEligibleIndex(PrivilegesEvaluationContext context, String index) {
+    private boolean isRestAdminRestoreOfEligibleIndex(PrivilegesEvaluationContext context, String index) {
         return context.getRequest() instanceof RestoreSnapshotRequest restoreRequest
-            && restoreEligibility.isSecurityAdmin(context.getMappedRoles())
-            && restoreEligibility.isRestorableBySecurityAdmin(restoreRequest, index);
+            && restoreEligibility.isRestAdmin(context.getMappedRoles())
+            && restoreEligibility.isRestorableByRestAdmin(restoreRequest, index);
     }
 
     /**

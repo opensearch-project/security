@@ -14,20 +14,22 @@ package org.opensearch.security.privileges;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.WildcardMatcher;
 
 /**
- * Decides whether a security-admin may restore system indices from a snapshot.
+ * Decides whether a REST admin may restore system indices from a snapshot.
  *
- * <p>A security-admin is a caller holding a role listed in {@code plugins.security.restapi.roles_enabled}. Such a caller
+ * <p>A REST admin is a caller holding a role listed in {@code plugins.security.restapi.roles_enabled}. Such a caller
  * may restore a system index only when all of the following hold for the request:
  * <ol>
  *   <li>the index matches {@code plugins.security.system_indices.restore.indices} (empty by default),</li>
@@ -48,42 +50,48 @@ public final class SystemIndexRestoreEligibilityHelper {
      */
     private static final String DENIAL_PREFIX = "System index restore denied: ";
 
-    private final WildcardMatcher securityAdminRoles;
-    private final List<String> restorableIndices;
-    private final WildcardMatcher restorableIndicesMatcher;
+    private final RestAdminRoles restAdminRoles;
+    private final ClusterSettings clusterSettings;
 
-    public SystemIndexRestoreEligibilityHelper(final Settings settings) {
-        this.securityAdminRoles = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED));
-        this.restorableIndices = settings.getAsList(
-            ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY,
-            ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT
-        );
-        this.restorableIndicesMatcher = WildcardMatcher.from(restorableIndices);
+    /**
+     * @param settings node settings, used for {@code plugins.security.restapi.roles_enabled}
+     * @param clusterSettings source of the {@code plugins.security.system_indices.restore.indices} value
+     */
+    public SystemIndexRestoreEligibilityHelper(final Settings settings, final ClusterSettings clusterSettings) {
+        this.restAdminRoles = new RestAdminRoles(settings);
+        this.clusterSettings = Objects.requireNonNull(clusterSettings, "clusterSettings");
+    }
+
+    /**
+     * @return the restorable system indices
+     */
+    private RestorableIndices getRestorableIndices() {
+        return RestorableIndices.of(clusterSettings.get(SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING));
     }
 
     /**
      * @return true if the caller holds at least one role listed in {@code plugins.security.restapi.roles_enabled}
      */
-    public boolean isSecurityAdmin(final Collection<String> mappedRoles) {
-        return mappedRoles != null && !mappedRoles.isEmpty() && securityAdminRoles.matchAny(mappedRoles);
+    public boolean isRestAdmin(final Collection<String> mappedRoles) {
+        return restAdminRoles.matches(mappedRoles);
     }
 
     /**
      * @return true if the index matches {@code plugins.security.system_indices.restore.indices}
      */
     boolean isEligible(final String index) {
-        return restorableIndicesMatcher.test(index);
+        return getRestorableIndices().matcher().test(index);
     }
 
     /**
-     * @return true if a security-admin may restore this single system index with this request
+     * @return true if a REST admin may restore this single system index with this request
      */
-    public boolean isRestorableBySecurityAdmin(final RestoreSnapshotRequest request, final String systemIndex) {
+    public boolean isRestorableByRestAdmin(final RestoreSnapshotRequest request, final String systemIndex) {
         return denialReason(request, Set.of(systemIndex)).isEmpty();
     }
 
     /**
-     * Checks a security-admin's restore request against the rules in the class description.
+     * Checks a REST admin's restore request against the rules in the class description.
      *
      * @param request the restore request
      * @param systemIndices the system indices the request restores (target names)
@@ -96,11 +104,14 @@ public final class SystemIndexRestoreEligibilityHelper {
         if (isRename(request)) {
             return denial("Renaming indices is not allowed when restoring system indices " + sorted(systemIndices) + ".");
         }
-        final Set<String> nonEligible = systemIndices.stream().filter(index -> !isEligible(index)).collect(Collectors.toSet());
+        final RestorableIndices restorableIndices = getRestorableIndices();
+        final Set<String> nonEligible = systemIndices.stream()
+            .filter(index -> !restorableIndices.matcher().test(index))
+            .collect(Collectors.toSet());
         if (!nonEligible.isEmpty()) {
             String message = "System indices " + sorted(nonEligible) + " are not eligible for restore.";
-            if (!restorableIndices.isEmpty()) {
-                message += " Restorable system indices: " + restorableIndices + ".";
+            if (!restorableIndices.names().isEmpty()) {
+                message += " Restorable system indices: " + restorableIndices.names() + ".";
             }
             return denial(message);
         }
@@ -131,5 +142,12 @@ public final class SystemIndexRestoreEligibilityHelper {
 
     private static Set<String> sorted(final Collection<String> indices) {
         return new TreeSet<>(indices);
+    }
+
+    /** A consistent snapshot of the setting: names for the denial message and the matcher built from them. */
+    private record RestorableIndices(List<String> names, WildcardMatcher matcher) {
+        static RestorableIndices of(final List<String> names) {
+            return new RestorableIndices(List.copyOf(names), WildcardMatcher.from(names));
+        }
     }
 }
