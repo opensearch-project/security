@@ -386,6 +386,7 @@ checkstyle {
 
 tasks.withType(Checkstyle) {
     dependsOn(':precommit')
+    maxHeapSize = "512m"
     reports {
         ignoreFailures = false
     }

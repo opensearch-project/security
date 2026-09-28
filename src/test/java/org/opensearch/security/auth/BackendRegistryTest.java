@@ -35,6 +35,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.configuration.SuperAdminAuthority;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.http.HTTPBasicAuthenticator;
@@ -77,6 +78,9 @@ public class BackendRegistryTest {
     private AdminDNs adminDns;
 
     @Mock
+    private SuperAdminAuthority superAdminAuthority;
+
+    @Mock
     private ClusterInfoHolder clusterInfoHolder;
 
     private BackendRegistry backendRegistry;
@@ -88,11 +92,12 @@ public class BackendRegistryTest {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         when(adminDns.isAdmin(any())).thenReturn(false);
         when(adminDns.isAdminDN(any())).thenReturn(false);
+        when(superAdminAuthority.getAdminDns()).thenReturn(adminDns);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
         when(clusterInfoHolder.hasClusterManager()).thenReturn(true);
         when(xffResolver.resolve(any())).thenReturn(new TransportAddress(new InetSocketAddress("127.0.0.1", 9200)));
 
-        backendRegistry = new BackendRegistry(Settings.EMPTY, adminDns, xffResolver, auditLog, threadPool, clusterInfoHolder);
+        backendRegistry = new BackendRegistry(Settings.EMPTY, superAdminAuthority, xffResolver, auditLog, threadPool, clusterInfoHolder);
     }
 
     @Test

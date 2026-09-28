@@ -229,7 +229,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
-        msg.addIsAdminDn(securityadmin);
+        msg.addIsAdminDn(isDnAdmin(securityadmin, request));
+        msg.addIsSuperadminSecret(isSecretAdmin(securityadmin, request));
         enrichWithUserContext(msg);
         save(msg);
     }
@@ -247,7 +248,9 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
-        msg.addIsAdminDn(securityadmin);
+        msg.addIsAdminDn(isDnAdmin(securityadmin, request));
+        msg.addIsSuperadminSecret(isSecretAdmin(securityadmin, request));
+
         enrichWithUserContext(msg);
         save(msg);
     }
@@ -1454,5 +1457,13 @@ public abstract class AbstractAuditLog implements AuditLog {
         for (AuthDomain authDomain : authDomains) {
             ignoredUrlParams.addAll(authDomain.getHttpAuthenticator().getSensitiveUrlParams());
         }
+    }
+
+    private boolean isDnAdmin(boolean securityadmin, SecurityRequest request) {
+        return (securityadmin && request.header(ConfigConstants.SECURITY_SUPERADMIN_SECRET_HEADER) == null);
+    }
+
+    private boolean isSecretAdmin(boolean securityadmin, SecurityRequest request) {
+        return (securityadmin && request.header(ConfigConstants.SECURITY_SUPERADMIN_SECRET_HEADER) != null);
     }
 }
