@@ -242,6 +242,7 @@ import org.opensearch.security.support.GuardedSearchOperationWrapper;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.ModuleInfo;
 import org.opensearch.security.support.ReflectionHelper;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
@@ -2902,15 +2903,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
         List<SystemIndexDescriptor> systemIndexDescriptors = new ArrayList<>();
 
-        final String indexPattern = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+        final SecurityIndexIdentity securityIndex = new SecurityIndexIdentity(settings);
         final SystemIndexDescriptor apiTokenSystemIndexDescriptor = new SystemIndexDescriptor(
             ConfigConstants.OPENSEARCH_API_TOKENS_INDEX,
             "Security API token index"
         );
-        final SystemIndexDescriptor securityIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
+        final SystemIndexDescriptor securityIndexDescriptor = securityIndex.getDescriptor();
         systemIndexDescriptors.add(securityIndexDescriptor);
         systemIndexDescriptors.add(apiTokenSystemIndexDescriptor);
 
