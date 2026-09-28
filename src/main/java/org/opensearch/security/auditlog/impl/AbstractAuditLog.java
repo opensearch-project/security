@@ -77,6 +77,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
@@ -142,16 +143,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
-        this.securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
-        this.securityIndicesMatcher = WildcardMatcher.from(
-            List.of(
-                settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
-                ConfigConstants.OPENSEARCH_API_TOKENS_INDEX
-            )
-        );
+        this.securityIndex = new SecurityIndexIdentity(settings).getName();
+        this.securityIndicesMatcher = WildcardMatcher.from(List.of(this.securityIndex, ConfigConstants.OPENSEARCH_API_TOKENS_INDEX));
         this.environment = environment;
         this.userFactory = userFactory;
     }

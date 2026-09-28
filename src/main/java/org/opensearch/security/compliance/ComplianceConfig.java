@@ -56,6 +56,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -220,7 +221,7 @@ public class ComplianceConfig {
             logDiffsForWrite,
             watchedWriteIndicesPatterns,
             ignoredComplianceUsersForWrite,
-            settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+            new SecurityIndexIdentity(settings).getName(),
             settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null),
             settings.get(
                 ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,

@@ -63,7 +63,11 @@ public class Installer {
 
     final String FILE_EXTENSION;
 
-    static File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
+    static final File DEFAULT_RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
+
+    // Held per instance rather than as a mutable static so that it is reset along with the rest of the
+    // instance state by resetInstance(), instead of leaking between tests.
+    File RPM_DEB_OPENSEARCH_HOME = DEFAULT_RPM_DEB_OPENSEARCH_HOME;
 
     private final Options options;
 

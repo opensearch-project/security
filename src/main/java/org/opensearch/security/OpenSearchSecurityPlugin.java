@@ -242,6 +242,7 @@ import org.opensearch.security.support.GuardedSearchOperationWrapper;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.ModuleInfo;
 import org.opensearch.security.support.ReflectionHelper;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
@@ -702,7 +703,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         if (!client) {
             final List<Path> filesWithWrongPermissions = AccessController.doPrivileged(() -> {
                 final Path confPath = new Environment(settings, configPath).configDir().toAbsolutePath();
-                if (Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
+                if (Files.isDirectory(confPath)) {
                     try (Stream<Path> s = Files.walk(confPath)) {
                         return s.distinct().filter(p -> checkFilePermissions(p)).collect(Collectors.toList());
                     } catch (Exception e) {
@@ -716,7 +717,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             if (filesWithWrongPermissions != null && filesWithWrongPermissions.size() > 0) {
                 for (final Path p : filesWithWrongPermissions) {
-                    if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
+                    if (Files.isDirectory(p)) {
                         log.warn("Directory {} has insecure file permissions (should be 0700)", p);
                     } else {
                         log.warn("File {} has insecure file permissions (should be 0600)", p);
@@ -809,7 +810,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
     }
 
-    private boolean checkFilePermissions(final Path p) {
+    /**
+     * Checks whether the file or directory at the given path has permissions that are too permissive.
+     * <p>
+     * Symlinks are followed so that the permissions of the file that will actually be read are the ones
+     * being validated. Inspecting the link itself is pointless: on Linux a symlink's own permissions are
+     * always 0777 and cannot be changed, so checking them reports a warning for every symlink. This matters
+     * for Kubernetes-style deployments, where mounted secrets are exposed as symlinks into a versioned
+     * directory.
+     * <p>
+     * Package-private so that {@code OpenSearchSecurityPluginFilePermissionsTest} can exercise it directly.
+     *
+     * @return true if the permissions are too permissive, false otherwise or if they cannot be determined
+     */
+    boolean checkFilePermissions(final Path p) {
 
         if (p == null) {
             return false;
@@ -818,16 +832,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         Set<PosixFilePermission> perms;
 
         try {
-            perms = Files.getPosixFilePermissions(p, LinkOption.NOFOLLOW_LINKS);
+            perms = Files.getPosixFilePermissions(p);
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
                 log.debug("Cannot determine posix file permissions for {} due to {}", p, e);
             }
-            // ignore, can happen on windows
+            // ignore, can happen on windows or for a dangling symlink
             return false;
         }
 
-        if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
+        if (Files.isDirectory(p)) {
             if (perms.contains(PosixFilePermission.OTHERS_EXECUTE)) {
                 // no x for others must be set
                 return true;
@@ -2890,15 +2904,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
         List<SystemIndexDescriptor> systemIndexDescriptors = new ArrayList<>();
 
-        final String indexPattern = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+        final SecurityIndexIdentity securityIndex = new SecurityIndexIdentity(settings);
         final SystemIndexDescriptor apiTokenSystemIndexDescriptor = new SystemIndexDescriptor(
             ConfigConstants.OPENSEARCH_API_TOKENS_INDEX,
             "Security API token index"
         );
-        final SystemIndexDescriptor securityIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
+        final SystemIndexDescriptor securityIndexDescriptor = securityIndex.getDescriptor();
         systemIndexDescriptors.add(securityIndexDescriptor);
         systemIndexDescriptors.add(apiTokenSystemIndexDescriptor);
 

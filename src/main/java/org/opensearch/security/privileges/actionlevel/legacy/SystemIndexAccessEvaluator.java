@@ -51,6 +51,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.SystemIndexRestoreEligibilityHelper;
 import org.opensearch.security.privileges.actionlevel.legacy.IndexResolverReplacer.Resolved;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -87,10 +88,7 @@ public class SystemIndexAccessEvaluator {
         IndexResolverReplacer irr,
         ClusterSettings clusterSettings
     ) {
-        this.securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+        this.securityIndex = new SecurityIndexIdentity(settings).getName();
         this.auditLog = auditLog;
         this.irr = irr;
         this.restoreEligibility = new SystemIndexRestoreEligibilityHelper(settings, clusterSettings);
