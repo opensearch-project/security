@@ -74,16 +74,13 @@ public class ResourceAccessEvaluator {
      * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
      */
     public void evaluateAsync(
-        final ActionRequest request,
+        final DocRequest request,
         final String action,
         final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
     ) {
         log.debug("Evaluating resource access");
 
-        // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
-        DocRequest req = (DocRequest) request;
-
-        resourceAccessHandler.hasPermission(req.id(), req.type(), action, ActionListener.wrap(hasAccess -> {
+        resourceAccessHandler.hasPermission(request.id(), request.type(), action, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
                 pResponseListener.onResponse(PrivilegesEvaluatorResponse.ok());
             } else {

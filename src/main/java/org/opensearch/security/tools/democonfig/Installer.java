@@ -63,7 +63,11 @@ public class Installer {
 
     final String FILE_EXTENSION;
 
-    static File RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
+    static final File DEFAULT_RPM_DEB_OPENSEARCH_HOME = new File("/usr/share/opensearch");
+
+    // Held per instance rather than as a mutable static so that it is reset along with the rest of the
+    // instance state by resetInstance(), instead of leaking between tests.
+    File RPM_DEB_OPENSEARCH_HOME = DEFAULT_RPM_DEB_OPENSEARCH_HOME;
 
     private final Options options;
 
@@ -258,8 +262,8 @@ public class Installer {
      * Sets the base directory to be used by the script.
      */
     void setBaseDir() {
-        File baseDirFile = new File(SCRIPT_DIR).getParentFile().getParentFile().getParentFile();
-        BASE_DIR = baseDirFile != null ? baseDirFile.getAbsolutePath() : null;
+        File baseDirFile = new File(SCRIPT_DIR);
+        BASE_DIR = baseDirFile.isDirectory() ? baseDirFile.getAbsolutePath() : null;
 
         if (BASE_DIR == null || !new File(BASE_DIR).isDirectory()) {
             System.out.println("DEBUG: basedir does not exist");

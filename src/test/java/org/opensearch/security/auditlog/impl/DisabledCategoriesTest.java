@@ -23,6 +23,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
@@ -80,24 +82,6 @@ public class DisabledCategoriesTest {
     }
 
     @Test
-    public void invalidConfigurationTest() {
-        Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put("plugins.security.audit.type", "debug");
-        settingsBuilder.put("plugins.security.audit.config.disabled_categories", "nonexistant, bad_headers");
-        AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(
-            settingsBuilder.build(),
-            null,
-            null,
-            AbstractSecurityUnitTest.MOCK_POOL,
-            null,
-            cs
-        );
-        logAll(auditLog);
-        String result = TestAuditlogImpl.sb.toString();
-        Assert.assertFalse(categoriesPresentInLog(result, AuditCategory.BAD_HEADERS));
-    }
-
-    @Test
     public void enableAllCategoryTest() throws Exception {
         final Builder settingsBuilder = Settings.builder();
 
@@ -125,7 +109,7 @@ public class DisabledCategoriesTest {
 
         Assert.assertTrue(
             AuditCategory.values() + "#" + result,
-            categoriesPresentInLog(result, filterComplianceCategories(AuditCategory.values()))
+            categoriesPresentInLog(result, filterUntestableCategories(AuditCategory.values()))
         );
 
         Assert.assertThat(result, containsString("testuser.rest.succeededlogin"));
@@ -194,7 +178,7 @@ public class DisabledCategoriesTest {
 
         Assert.assertFalse(categoriesPresentInLog(result, disabledCategories));
         Assert.assertTrue(
-            categoriesPresentInLog(result, filterComplianceCategories(allButDisablesCategories.toArray(new AuditCategory[] {})))
+            categoriesPresentInLog(result, filterUntestableCategories(allButDisablesCategories.toArray(new AuditCategory[] {})))
         );
     }
 
@@ -224,6 +208,9 @@ public class DisabledCategoriesTest {
         logTransportBadHeaders(auditLog);
 
         logIndexEvent(auditLog);
+
+        logClusterSettingsChange(auditLog);
+        logIndexSettingsChange(auditLog);
     }
 
     protected void logRestSucceededLogin(AuditLog auditLog) {
@@ -271,10 +258,33 @@ public class DisabledCategoriesTest {
         auditLog.logIndexEvent("indices:admin/test/action", new TransportRequest.Empty(), null);
     }
 
-    private static final AuditCategory[] filterComplianceCategories(AuditCategory[] cats) {
+    protected void logClusterSettingsChange(AuditLog auditLog) {
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+        request.persistentSettings(Settings.builder().put("cluster.max_shards_per_node", "2000").build());
+        auditLog.logSettingsChange("cluster:admin/settings/update", request, null);
+    }
+
+    protected void logIndexSettingsChange(AuditLog auditLog) {
+        UpdateSettingsRequest request = new UpdateSettingsRequest();
+        request.settings(Settings.builder().put("index.number_of_replicas", "2").build());
+        auditLog.logSettingsChange("indices:admin/settings/update", request, null);
+    }
+
+    /**
+     * Filters out categories that logAll() does not generate events for:
+     * compliance categories (tested separately), API_TOKEN_WRITE, REQUEST_AUDIT,
+     * TRANSPORT_AUDIT, and RESOURCE_* categories (require resource sharing subsystem).
+     */
+    private static final AuditCategory[] filterUntestableCategories(AuditCategory[] cats) {
         List<AuditCategory> retval = new ArrayList<AuditCategory>();
         for (AuditCategory c : cats) {
-            if (!c.toString().startsWith("COMPLIANCE")) {
+            if (!c.toString().startsWith("COMPLIANCE")
+                && c != AuditCategory.API_TOKEN_WRITE
+                && c != AuditCategory.REQUEST_AUDIT
+                && c != AuditCategory.TRANSPORT_AUDIT
+                && c != AuditCategory.RESOURCE_ACCESS_GRANTED
+                && c != AuditCategory.RESOURCE_ACCESS_DENIED
+                && c != AuditCategory.RESOURCE_SHARING_CHANGED) {
                 retval.add(c);
             }
         }

@@ -17,13 +17,12 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
 
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -54,7 +53,8 @@ import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -73,8 +73,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
-public class SecurityIndexHandlerTest {
+public class SecurityIndexHandlerTest extends LuceneTestCase {
 
     final static String INDEX_NAME = "some_index";
 
@@ -145,6 +144,7 @@ public class SecurityIndexHandlerTest {
 
     @Before
     public void setupClient() throws IOException {
+        MockitoAnnotations.openMocks(this);
         when(client.admin()).thenReturn(mock(AdminClient.class));
         when(client.admin().indices()).thenReturn(indicesAdminClient);
         when(client.threadPool()).thenReturn(threadPool);
@@ -386,7 +386,7 @@ public class SecurityIndexHandlerTest {
         );
         doAnswer(invocation -> {
 
-            final var objectMapper = DefaultObjectMapper.objectMapper;
+            final var objectMapper = DefaultObjectMapper.objectMapper();
 
             ActionListener<MultiGetResponse> actionListener = invocation.getArgument(1);
             final var getResult = mock(GetResult.class);
@@ -421,7 +421,7 @@ public class SecurityIndexHandlerTest {
             }
         }, e -> fail("Unexpected behave")));
         doAnswer(invocation -> {
-            final var objectMapper = DefaultObjectMapper.objectMapper;
+            final var objectMapper = DefaultObjectMapper.objectMapper();
             ActionListener<MultiGetResponse> actionListener = invocation.getArgument(1);
 
             final var responses = new MultiGetItemResponse[CType.values().size()];
@@ -462,7 +462,7 @@ public class SecurityIndexHandlerTest {
     }
 
     private ObjectNode minimumRequiredConfig(final CType<?> cType) {
-        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var objectMapper = DefaultObjectMapper.objectMapper();
         return objectMapper.createObjectNode()
             .set("_meta", objectMapper.createObjectNode().put("type", cType.toLCString()).put("config_version", DEFAULT_CONFIG_VERSION));
     }

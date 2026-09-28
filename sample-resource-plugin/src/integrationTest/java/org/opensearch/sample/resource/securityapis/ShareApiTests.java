@@ -95,7 +95,7 @@ public class ShareApiTests {
                     SECURITY_SHARE_ENDPOINT + "?resource_id=" + "some-id" + "&resource_type=" + RESOURCE_TYPE
                 );
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN); // since resource-index exists but resource-id doesn't, but user
-                                                                    // shouldn't know that
+                // shouldn't know that
 
                 response = client.get(SECURITY_SHARE_ENDPOINT + "?resource_id=" + adminResId + "&resource_type=" + "some-type");
                 response.assertStatusCode(HttpStatus.SC_BAD_REQUEST); // since type doesn't exist, so does the corresponding index
@@ -108,7 +108,7 @@ public class ShareApiTests {
                     putSharingInfoPayload("some-id", RESOURCE_TYPE, SAMPLE_READ_ONLY, Recipient.USERS, NO_ACCESS_USER.getName())
                 );
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN); // since resource-index exists but resource-id doesn't, but user
-                                                                    // shouldn't know that
+                // shouldn't know that
 
                 response = client.putJson(
                     SECURITY_SHARE_ENDPOINT,
@@ -342,6 +342,102 @@ public class ShareApiTests {
                 response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
             }
         }
-    }
 
+        @Test
+        public void testShareApi_putAndPatch_invalidPayloadValidation() {
+            // Use admin so we actually hit payload parsing & validation, not auth failures
+            try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+
+                // 1) PUT with invalid resource_id (invalid chars)
+                String putInvalidResourceIdPayload = """
+                    {
+                      "resource_id": "invalid id",
+                      "resource_type": "%s",
+                      "share_with": {
+                        "%s": {
+                          "users": ["%s"]
+                        }
+                      }
+                    }
+                    """.formatted(RESOURCE_TYPE, SAMPLE_READ_ONLY, NO_ACCESS_USER.getName());
+
+                TestRestClient.HttpResponse response = client.putJson(SECURITY_SHARE_ENDPOINT, putInvalidResourceIdPayload);
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                assertThat(response.getBody(), containsString("resource_id"));
+                assertThat(response.getBody(), containsString("contains invalid characters"));
+
+                // 2) PUT with invalid principal value (users entry contains space)
+                String putInvalidUserPayload = """
+                    {
+                      "resource_id": "%s",
+                      "resource_type": "%s",
+                      "share_with": {
+                        "%s": {
+                          "users": ["invalid user"]
+                        }
+                      }
+                    }
+                    """.formatted(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY);
+
+                response = client.putJson(SECURITY_SHARE_ENDPOINT, putInvalidUserPayload);
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                assertThat(response.getBody(), containsString("users"));
+                assertThat(response.getBody(), containsString("contains invalid characters"));
+
+                // 3) PUT with invalid access level key
+                String putInvalidAccessLevelPayload = """
+                    {
+                      "resource_id": "%s",
+                      "resource_type": "%s",
+                      "share_with": {
+                        "blah": {
+                          "users": ["%s"]
+                        }
+                      }
+                    }
+                    """.formatted(adminResId, RESOURCE_TYPE, NO_ACCESS_USER.getName());
+
+                response = client.putJson(SECURITY_SHARE_ENDPOINT, putInvalidAccessLevelPayload);
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                assertThat(response.getBody(), containsString("access_level must be one of:"));
+                assertThat(response.getBody(), not(containsString("blah")));
+
+                // 4) PATCH with invalid principal value (same validation path as PUT, via Recipients)
+                String patchInvalidUserPayload = """
+                    {
+                      "resource_id": "%s",
+                      "resource_type": "%s",
+                      "add": {
+                        "%s": {
+                          "users": ["invalid user"]
+                        }
+                      }
+                    }
+                    """.formatted(adminResId, RESOURCE_TYPE, SAMPLE_READ_ONLY);
+
+                response = client.patch(SECURITY_SHARE_ENDPOINT, patchInvalidUserPayload);
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                assertThat(response.getBody(), containsString("users"));
+                assertThat(response.getBody(), containsString("contains invalid characters"));
+
+                // 5) PATCH with invalid access level key
+                String patchInvalidAccessLevelPayload = """
+                    {
+                      "resource_id": "%s",
+                      "resource_type": "%s",
+                      "add": {
+                        "blah": {
+                          "users": ["%s"]
+                        }
+                      }
+                    }
+                    """.formatted(adminResId, RESOURCE_TYPE, NO_ACCESS_USER.getName());
+
+                response = client.patch(SECURITY_SHARE_ENDPOINT, patchInvalidAccessLevelPayload);
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                assertThat(response.getBody(), containsString("access_level must be one of:"));
+                assertThat(response.getBody(), not(containsString("blah")));
+            }
+        }
+    }
 }

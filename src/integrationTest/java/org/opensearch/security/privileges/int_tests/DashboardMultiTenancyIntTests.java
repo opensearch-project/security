@@ -158,6 +158,11 @@ public class DashboardMultiTenancyIntTests {
         RestIndexMatchers.IndexMatcher.class
     );
 
+    /**
+     * Finance tenant index; not initially created
+     */
+    static final TestIndex dashboards_index_finance = TestIndex.name(".kibana_-853258278_finance_1").build();
+
     // -------------------------------------------------------------------------------------------------------
     // Test users
     // -------------------------------------------------------------------------------------------------------
@@ -214,7 +219,8 @@ public class DashboardMultiTenancyIntTests {
                 dashboards_alias_private_bi,
                 dashboards_index_private_bi,
                 dashboards_alias_business_intelligence,
-                dashboards_index_business_intelligence
+                dashboards_index_business_intelligence,
+                dashboards_index_finance
             )
         )
         .reference(
@@ -223,7 +229,8 @@ public class DashboardMultiTenancyIntTests {
                 dashboards_alias_private_bi,
                 dashboards_index_private_bi,
                 dashboards_alias_business_intelligence,
-                dashboards_index_business_intelligence
+                dashboards_index_business_intelligence,
+                dashboards_index_finance
             )
         );
 
@@ -292,7 +299,9 @@ public class DashboardMultiTenancyIntTests {
     static final TestSecurityConfig.User WILDCARD_TENANT_USER = new TestSecurityConfig.User("wildcard_tenant_user").description("r/w to *")
         .roles(
             TestSecurityConfig.Role.KIBANA_USER,
-            new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops")
+            new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops", "cluster_monitor")
+                .indexPermissions("indices:monitor/*")
+                .on("*")
                 .tenantPermissions("kibana_all_write")
                 .on("*")
         )
@@ -306,7 +315,9 @@ public class DashboardMultiTenancyIntTests {
                 dashboards_alias_business_intelligence,
                 dashboards_index_business_intelligence,
                 dashboards_alias_human_resources,
-                dashboards_index_human_resources
+                dashboards_index_human_resources,
+                dashboards_index_finance
+
             )
         )
         .reference(
@@ -319,7 +330,9 @@ public class DashboardMultiTenancyIntTests {
                 dashboards_alias_business_intelligence,
                 dashboards_index_business_intelligence,
                 dashboards_alias_human_resources,
-                dashboards_index_human_resources
+                dashboards_index_human_resources,
+                dashboards_index_finance
+
             )
         );
 
@@ -435,10 +448,85 @@ public class DashboardMultiTenancyIntTests {
         }
     }
 
+    /**
+     * This is a search request that goes directly against the alias for the tenant, bypassing the tenant resolution.
+     * Still, the user's tenant permissions must be checked and enforced.
+     */
+    @Test
+    public void search_withTenantHeader_direct_alias() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                ".kibana_1592542611_humanresources/_search/?pretty",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_human_resources).at("hits.hits[*]._index")
+                        .butForbiddenIfIncomplete(user.reference(READ))
+                );
+            }
+        }
+    }
+
+    /**
+     * This is a search request that goes directly against the index for the tenant, bypassing the tenant resolution.
+     * Still, the user's tenant permissions must be checked and enforced.
+     */
+    @Test
+    public void search_withTenantHeader_direct_index() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                ".kibana_1592542611_humanresources_1/_search/?pretty",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_human_resources).at("hits.hits[*]._index")
+                        .butForbiddenIfIncomplete(user.reference(READ))
+                );
+            }
+        }
+    }
+
+    /**
+     * This is a search request that goes directly against the index for a tenant, that is different from the one specified in the tenant header.
+     * Thus, these requests must be always forbidden.
+     */
+    @Test
+    public void search_withTenantHeader_direct_wrongIndex() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                ".kibana_1592542612_businessintelligence/_search/?pretty",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(response, isForbidden());
+            }
+        }
+    }
+
+    @Test
+    public void search_withoutTenantHeader_direct_wrongIndex() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse response = restClient.get(".kibana_1592542612_businessintelligence_1/_search/?pretty");
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(response, isForbidden());
+            }
+        }
+    }
+
     @Test
     public void msearch_withTenantHeader_humanResources() {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse response = restClient.postJson("_msearch/?pretty", """
+                {"index":".kibana", "ignore_unavailable": false}
+                {"size":10, "query":{"bool":{"must":{"match_all":{}}}}}
                 {"index":".kibana", "ignore_unavailable": false}
                 {"size":10, "query":{"bool":{"must":{"match_all":{}}}}}
                 """, new BasicHeader("securitytenant", "human_resources"));
@@ -447,7 +535,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("responses[*].hits.hits[*]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(isOk())
+                    .whenEmpty(clusterConfig.legacyPrivilegeEvaluation ? isForbidden() : isOk())
             );
         }
     }
@@ -489,7 +577,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("docs[?(@.found == true)]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(isOk())
+                    .whenEmpty(isForbidden())
             );
         }
     }
@@ -520,6 +608,31 @@ public class DashboardMultiTenancyIntTests {
     }
 
     @Test
+    public void index_withTenantHeader_nonExistingIndexOrAlias() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String indexDoc = """
+                {
+                  "foo": "bar"
+                }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.putJson(
+                ".kibana/_doc/test_mt_write_1?pretty",
+                indexDoc,
+                new BasicHeader("securitytenant", "finance")
+            );
+
+            if (user.reference(WRITE).covers(dashboards_index_finance)) {
+                assertThat(response, isCreated());
+            } else {
+                assertThat(response, isForbidden());
+            }
+        } finally {
+            delete(".kibana_-853258278_finance_1");
+        }
+    }
+
+    @Test
     public void bulk_withTenantHeader_humanResources() {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             String bulkBody = """
@@ -539,13 +652,97 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
                     .reducedBy(user.reference(WRITE))
-                    .whenEmpty(isOk())
+                    .whenEmpty(isForbidden())
             );
         } finally {
             delete(
                 dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_1",
                 dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_2"
             );
+        }
+    }
+
+    @Test
+    public void bulk_withTenantHeader_direct_humanResources_alias() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String bulkBody = """
+                { "index" : { "_index" : ".kibana_1592542611_humanresources", "_id" : "mt_bulk_doc_1" } }
+                { "type": "config", "config": { "buildNum": 12345 } }
+                { "index" : { "_index" : ".kibana_1592542611_humanresources", "_id" : "mt_bulk_doc_2" } }
+                { "type": "index-pattern", "index-pattern": { "title": "logs*" } }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.postJson(
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_human_resources).at("items[*].index[?(@.result == 'created')]._index")
+                        .reducedBy(user.reference(WRITE))
+                        .whenEmpty(isForbidden())
+                );
+            }
+        } finally {
+            delete(
+                dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_1",
+                dashboards_index_human_resources.name() + "/_doc/mt_bulk_doc_2"
+            );
+        }
+    }
+
+    @Test
+    public void bulk_withTenantHeader_direct_global_index() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String bulkBody = """
+                { "index" : { "_index" : ".kibana_1", "_id" : "mt_bulk_doc_1" } }
+                { "type": "config", "config": { "buildNum": 12345 } }
+                { "index" : { "_index" : ".kibana_1", "_id" : "mt_bulk_doc_2" } }
+                { "type": "index-pattern", "index-pattern": { "title": "logs*" } }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.postJson("_bulk?pretty", bulkBody);
+
+            if (!clusterConfig.legacyPrivilegeEvaluation) {
+                assertThat(
+                    response,
+                    containsExactly(dashboards_index_global).at("items[*].index[?(@.result == 'created')]._index")
+                        .reducedBy(user.reference(WRITE))
+                        .whenEmpty(isOk())
+                );
+            }
+        } finally {
+            delete(dashboards_index_global.name() + "/_doc/mt_bulk_doc_1", dashboards_index_global.name() + "/_doc/mt_bulk_doc_2");
+        }
+    }
+
+    @Test
+    public void bulk_withTenantHeader_nonExistingIndexOrAlias() {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            String bulkBody = """
+                { "index" : { "_index" : ".kibana", "_id" : "mt_bulk_doc_1" } }
+                { "type": "config", "config": { "buildNum": 12345 } }
+                { "index" : { "_index" : ".kibana", "_id" : "mt_bulk_doc_2" } }
+                { "type": "index-pattern", "index-pattern": { "title": "logs*" } }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.postJson(
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "finance")
+            );
+
+            assertThat(
+                response,
+                containsExactly(dashboards_index_finance).at("items[*].index[?(@.result == 'created')]._index")
+                    .reducedBy(user.reference(WRITE))
+                    .whenEmpty(isForbidden())
+            );
+        } finally {
+            delete(".kibana_-853258278_finance_1");
         }
     }
 
@@ -613,7 +810,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("items[*].delete[?(@.result == 'deleted')]._index")
                     .reducedBy(user.reference(WRITE))
-                    .whenEmpty(isOk())
+                    .whenEmpty(isForbidden())
             );
         } finally {
             delete(
@@ -663,13 +860,12 @@ public class DashboardMultiTenancyIntTests {
                         .reducedBy(user.reference(WRITE))
                         .whenEmpty(isOk())
                 );
+            } else if (clusterConfig.legacyPrivilegeEvaluation) {
+                // In the legacy mode, cross-tenant access is denied
+                assertThat(response, isForbidden());
             } else {
-                assertThat(
-                    response,
-                    containsExactly(dashboards_index_human_resources).at("items[*].update[?(@.result == 'updated')]._index")
-                        .reducedBy(user.reference(WRITE))
-                        .whenEmpty(isOk())
-                );
+                // In the new privilege evaluation mode, the whole bulk request fails
+                assertThat(response, isForbidden());
             }
         } finally {
             delete(
@@ -700,7 +896,7 @@ public class DashboardMultiTenancyIntTests {
                 response,
                 containsExactly(dashboards_index_human_resources).at("docs[?(@.found == true)]._index")
                     .reducedBy(user.reference(READ))
-                    .whenEmpty(isOk())
+                    .whenEmpty(isForbidden())
             );
         }
     }
@@ -775,4 +971,83 @@ public class DashboardMultiTenancyIntTests {
             }
         }
     }
+
+    /**
+     * Verifies that broad index queries with a securitytenant header are NOT denied by the
+     * multi-tenancy interceptor. The cross-tenant check should only apply when the user explicitly
+     * targets a concrete tenant index, not when tenant indices are incidentally included in the
+     * resolved set (e.g., _cat/indices with a broad pattern that resolves to include .kibana_*
+     * tenant indices).
+     */
+    @Test
+    public void catIndices_withTenantHeader_shouldNotBeDenied() {
+        // Only run once (not for every parameterized user)
+        if (!user.equals(WILDCARD_TENANT_USER)) {
+            return;
+        }
+
+        try (TestRestClient restClient = cluster.getRestClient(WILDCARD_TENANT_USER)) {
+            // Use .kib* pattern which resolves to .kibana_* tenant indices but does not
+            // literally start with ".kibana_", so the interceptor should not deny it.
+            // This simulates a broad query that incidentally includes tenant indices.
+            TestRestClient.HttpResponse response = restClient.get(
+                "_cat/indices/.kib*?format=json",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isOk());
+        }
+    }
+
+    /**
+     * Verifies that the paginated list indices API is not denied when its internal monitor
+     * requests operate on a concrete page that includes dashboards tenant indices.
+     */
+    @Test
+    public void listIndices_withTenantHeader_shouldNotBeDenied() {
+        // Only run once (not for every parameterized user)
+        if (!user.equals(WILDCARD_TENANT_USER)) {
+            return;
+        }
+
+        try (TestRestClient restClient = cluster.getRestClient(WILDCARD_TENANT_USER)) {
+            TestRestClient.HttpResponse response = restClient.get(
+                "_list/indices/.kib*",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isOk());
+        }
+    }
+
+    /**
+     * Verifies that deliberately targeting another tenant's concrete index in a multi-document
+     * request is denied. This is the cross-tenant protection that the interceptor provides:
+     * users should not be able to directly access .kibana_{hash}_{tenant} indices that belong
+     * to other tenants.
+     */
+    @Test
+    public void bulk_directlyTargetingOtherTenantConcreteIndex_shouldBeDenied() {
+        // Only run once (not for every parameterized user)
+        if (!user.equals(HR_EMPLOYEE)) {
+            return;
+        }
+
+        try (TestRestClient restClient = cluster.getRestClient(HR_EMPLOYEE)) {
+            // Directly target the business_intelligence tenant's concrete index
+            String bulkBody = """
+                { "index" : { "_index" : ".kibana_1592542612_businessintelligence", "_id" : "cross_tenant_doc" } }
+                { "type": "config", "config": { "buildNum": 99999 } }
+                """;
+
+            TestRestClient.HttpResponse response = restClient.postJson(
+                "_bulk?pretty",
+                bulkBody,
+                new BasicHeader("securitytenant", "human_resources")
+            );
+
+            assertThat(response, isForbidden());
+        }
+    }
+
 }

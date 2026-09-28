@@ -1,30 +1,12 @@
+---
 name: Backport
 on:
   pull_request_target:
-    types:
-      - closed
-      - labeled
+    types: [closed, labeled]
 
 jobs:
   backport:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    name: Backport
-    steps:
-      - name: GitHub App token
-        id: github_app_token
-        uses: tibdex/github-app-token@v2.1.0
-        with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_PRIVATE_KEY }}
-          installation_id: 22958780
-
-      - name: Backport
-        uses: VachaShah/backport@v2.2.0
-        with:
-          github_token: ${{ steps.github_app_token.outputs.token }}
-          head_template: backport/backport-<%= number %>-to-<%= base %>
-          failure_labels: backport-failed
+    if: github.repository == 'opensearch-project/security'
+    uses: opensearch-project/opensearch-build/.github/workflows/backport-pr.yml@main
+    secrets:
+      OPENSEARCH_CI_BOT_TOKEN: ${{ secrets.OPENSEARCH_CI_BOT_TOKEN }}

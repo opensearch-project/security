@@ -1,4 +1,5 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright 2015-2019 floragunn GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,5 +43,16 @@ public class AddressBasedRateLimiterTest {
         rateLimiter.onAuthFailure(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 }), null, null);
         assertTrue(rateLimiter.isBlocked(InetAddress.getByAddress(new byte[] { 1, 2, 3, 4 })));
 
+    }
+
+    @Test
+    public void supportsLargeSecondValuesWithoutOverflow() {
+        Settings settings = Settings.builder()
+            .put("allowed_tries", 2)
+            .put("time_window_seconds", Integer.MAX_VALUE)
+            .put("block_expiry_seconds", Integer.MAX_VALUE)
+            .build();
+
+        new AddressBasedRateLimiter(settings, null);
     }
 }

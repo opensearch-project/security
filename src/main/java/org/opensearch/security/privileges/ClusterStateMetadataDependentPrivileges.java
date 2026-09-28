@@ -11,12 +11,13 @@
 package org.opensearch.security.privileges;
 
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -35,8 +36,8 @@ public abstract class ClusterStateMetadataDependentPrivileges {
      * i.e., a further update will be only initiated after the previous update has finished. This is okay as this class
      * can handle the case that it do not have the most recent information. It will fall back to slower methods then.
      */
-    public synchronized void updateClusterStateMetadataAsync(ClusterService clusterService, ThreadPool threadPool) {
-        long currentMetadataVersion = clusterService.state().metadata().version();
+    public synchronized void updateClusterStateMetadataAsync(Supplier<ClusterState> clusterStateSupplier, ThreadPool threadPool) {
+        long currentMetadataVersion = clusterStateSupplier.get().metadata().version();
 
         if (currentMetadataVersion <= getCurrentlyUsedMetadataVersion()) {
             return;
@@ -55,7 +56,7 @@ public abstract class ClusterStateMetadataDependentPrivileges {
                         }
                     }
 
-                    Metadata metadata = clusterService.state().metadata();
+                    Metadata metadata = clusterStateSupplier.get().metadata();
 
                     synchronized (ClusterStateMetadataDependentPrivileges.this) {
                         if (metadata.version() <= ClusterStateMetadataDependentPrivileges.this.getCurrentlyUsedMetadataVersion()) {

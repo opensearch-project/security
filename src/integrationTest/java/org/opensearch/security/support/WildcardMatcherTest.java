@@ -247,6 +247,49 @@ public class WildcardMatcherTest {
         assertFalse(subject2.test(base2 + "_more"));
     }
 
+    @Test
+    public void isExactPattern() {
+        // null and empty are considered exact by implementation
+        assertTrue(WildcardMatcher.isExactPattern(null));
+        assertTrue(WildcardMatcher.isExactPattern(""));
+
+        // plain strings and strings with only one-side slashes are exact
+        assertTrue(WildcardMatcher.isExactPattern("index"));
+        assertTrue(WildcardMatcher.isExactPattern("/foo"));
+        assertTrue(WildcardMatcher.isExactPattern("foo/"));
+
+        // patterns containing wildcards or regex markers are not exact
+        assertFalse(WildcardMatcher.isExactPattern("ind*ex"));
+        assertFalse(WildcardMatcher.isExactPattern("*index"));
+        assertFalse(WildcardMatcher.isExactPattern("index*"));
+        assertFalse(WildcardMatcher.isExactPattern("ind?ex"));
+        assertFalse(WildcardMatcher.isExactPattern("/foo/"));
+        assertFalse(WildcardMatcher.isExactPattern("/a*/"));
+    }
+
+    @Test
+    public void isPrefixPattern() {
+        // null or empty => false
+        assertFalse(WildcardMatcher.isPrefixPattern(null));
+        assertFalse(WildcardMatcher.isPrefixPattern(""));
+
+        // Although this is technically also a prefix pattern (with zero length prefix), we should treat this as full wildcard pattern
+        assertFalse(WildcardMatcher.isPrefixPattern("*"));
+
+        assertTrue(WildcardMatcher.isPrefixPattern("index*"));
+        assertTrue(WildcardMatcher.isPrefixPattern("a*"));
+
+        // star not only at end
+        assertFalse(WildcardMatcher.isPrefixPattern("a**"));
+        assertFalse(WildcardMatcher.isPrefixPattern("*index"));
+        assertFalse(WildcardMatcher.isPrefixPattern("in*dex"));
+
+        // presence of question mark invalidates prefix pattern
+        assertFalse(WildcardMatcher.isPrefixPattern("index?"));
+        assertFalse(WildcardMatcher.isPrefixPattern("index?*"));
+        assertFalse(WildcardMatcher.isPrefixPattern("?*"));
+    }
+
     public WildcardMatcherTest(boolean ignoreCase) {
         this.ignoreCase = ignoreCase;
     }

@@ -22,6 +22,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.indices.SystemIndexDescriptor;
+import org.opensearch.indices.UnrestrictedSystemIndexDescriptor;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
@@ -55,7 +56,7 @@ public class SystemIndexPlugin2 extends Plugin implements SystemIndexPlugin {
 
     @Override
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
-        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(SYSTEM_INDEX_2, "System index 2");
+        final SystemIndexDescriptor systemIndexDescriptor = new UnrestrictedSystemIndexDescriptor(SYSTEM_INDEX_2, "System index 2");
         return Collections.singletonList(systemIndexDescriptor);
     }
 }

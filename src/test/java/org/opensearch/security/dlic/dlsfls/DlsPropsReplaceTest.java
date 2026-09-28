@@ -69,7 +69,8 @@ public class DlsPropsReplaceTest extends AbstractDlsFlsTest {
             HttpStatus.SC_OK,
             is((res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode())
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 5,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 5,"));
+        Assert.assertTrue(res.getBody().contains("\"relation\""));
 
         assertThat(
             HttpStatus.SC_OK,
@@ -78,7 +79,8 @@ public class DlsPropsReplaceTest extends AbstractDlsFlsTest {
                     .getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 3,"));
+        Assert.assertTrue(res.getBody().contains("\"relation\""));
 
         assertThat(
             HttpStatus.SC_OK,
@@ -87,7 +89,8 @@ public class DlsPropsReplaceTest extends AbstractDlsFlsTest {
                     .getStatusCode()
             )
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 6060"));
+        Assert.assertTrue(res.getBody().contains("\"value\" : 1,"));
+        Assert.assertTrue(res.getBody().contains("\"relation\""));
+        Assert.assertTrue(res.getBody().contains("\"amount\": 6060"));
     }
 }

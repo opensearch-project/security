@@ -19,10 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.JsonPointer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,6 +38,7 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentHelper;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
@@ -53,6 +50,8 @@ import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
+import org.opensearch.security.action.configupdate.SecurityConfigWriteAction;
+import org.opensearch.security.action.configupdate.SecurityConfigWriteRequest;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -67,9 +66,13 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
-import com.flipkart.zjsonpatch.JsonDiff;
-import com.flipkart.zjsonpatch.JsonPatch;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonPatch;
 import com.flipkart.zjsonpatch.JsonPatchApplicationException;
+import tools.jackson.core.JsonPointer;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
@@ -119,13 +122,95 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
     }
 
     private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
-        builder.withAccessHandler(request -> securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint))
+        builder.withAccessHandler(request -> securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint))
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
+            .withAsyncTaskSubmitter(this::maybeSubmitAsTask)
             .add(Method.POST, methodNotImplementedHandler)
             .add(Method.PATCH, methodNotImplementedHandler)
             .onGetRequest(this::processGetRequest)
             .onChangeRequest(Method.DELETE, this::processDeleteRequest)
             .onChangeRequest(Method.PUT, this::processPutRequest);
+    }
+
+    /**
+     * Endpoint-level opt-in for the {@code wait_for_completion} query parameter and the OpenSearch
+     * task framework. When {@code false} (the default), every change request is handled fully
+     * synchronously and {@code wait_for_completion} is ignored, exactly matching the pre-existing
+     * behavior. Subclasses that override this to {@code true} allow callers to pass
+     * {@code wait_for_completion=false}, in which case the update is submitted as a Task and
+     * {@code {"task":"nodeId:taskId"}} is returned immediately.
+     */
+    protected boolean supportsAsync() {
+        return false;
+    }
+
+    /**
+     * Pre-branch invoked from {@link RequestHandler.RequestHandlersBuilder#onChangeRequest} before
+     * the sync save path. Returns {@code true} only when the endpoint has opted in via
+     * {@link #supportsAsync()} <b>and</b> the caller passed {@code wait_for_completion=false} — the
+     * update is then dispatched through the task framework, a task-id response is written to the
+     * channel, and the caller is expected to skip the sync path.
+     *
+     * <p>Any other combination returns {@code false}, so the existing sync path handles the request
+     * unchanged.
+     */
+    private boolean maybeSubmitAsTask(
+        final RestChannel channel,
+        final RestRequest request,
+        final Client client,
+        final SecurityDynamicConfiguration<?> configuration,
+        final String entityName,
+        final String successMessage,
+        final RestStatus successStatus
+    ) {
+        if (!supportsAsync()) {
+            return false;
+        }
+        if (request.paramAsBoolean("wait_for_completion", true)) {
+            return false;
+        }
+        if (!(client instanceof NodeClient)) {
+            // Defensive: this handler always runs off a NodeClient today, so this branch is
+            // effectively unreachable — but avoid a runtime ClassCastException if that ever
+            // changes and gracefully fall back to sync execution.
+            LOGGER.debug("Client is not a NodeClient; cannot submit as task, falling back to sync path");
+            return false;
+        }
+        final NodeClient nodeClient = (NodeClient) client;
+        final CType<?> cType = getConfigType();
+
+        // Build the IndexRequest using the same helper the sync path uses, so async and sync
+        // writes stay byte-identical. Includes seqNo/primaryTerm preconditions for optimistic
+        // concurrency and the correct refresh policy for security-index writes.
+        final IndexRequest indexRequest = createIndexRequestForConfig(securityApiDependencies, cType, configuration);
+
+        final String description = entityName == null ? cType.toLCString() : cType.toLCString() + "/" + entityName;
+        final SecurityConfigWriteRequest updateRequest = new SecurityConfigWriteRequest(
+            indexRequest,
+            cType.toLCString(),
+            description,
+            successMessage,
+            successStatus
+        );
+
+        // Persist the eventual task result in .tasks so callers can retrieve it via
+        // GET /_tasks/{task_id} after completion. The request itself always signals this via
+        // getShouldStoreResult() — see SecurityConfigWriteRequest.
+        final org.opensearch.tasks.Task task = nodeClient.executeLocally(
+            SecurityConfigWriteAction.INSTANCE,
+            updateRequest,
+            org.opensearch.tasks.LoggingTaskListener.instance()
+        );
+
+        try (final XContentBuilder builder = channel.newBuilder()) {
+            builder.startObject();
+            builder.field("task", nodeClient.getLocalNodeId() + ":" + task.getId());
+            builder.endObject();
+            channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+        } catch (final IOException e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+        return true;
     }
 
     protected final ValidationResult<SecurityConfiguration> processDeleteRequest(final RestRequest request) throws IOException {
@@ -205,7 +290,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                     final var entityAsJson = (ObjectNode) configurationAsJson.get(entityName);
                     return withJsonPatchException(
                         () -> endpointValidator.createRequestContentValidator(entityName)
-                            .validate(request, JsonPatch.apply(patchContent, entityAsJson), configurationAsJson.get(entityName))
+                            .validate(request, Jackson3JsonPatch.apply(patchContent, entityAsJson), configurationAsJson.get(entityName))
                             .map(
                                 patchedEntity -> endpointValidator.onConfigChange(
                                     SecurityConfiguration.of(patchedEntity, entityName, configuration)
@@ -239,8 +324,8 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         final var configuration = securityConfiguration.configuration();
         final var configurationAsJson = (ObjectNode) Utils.convertJsonToJackson(configuration, true);
         return withIOException(() -> withJsonPatchException(() -> {
-            final var patchedConfigurationAsJson = JsonPatch.apply(patchContent, configurationAsJson);
-            JsonNode patch = JsonDiff.asJson(configurationAsJson, patchedConfigurationAsJson);
+            final var patchedConfigurationAsJson = Jackson3JsonPatch.apply(patchContent, configurationAsJson);
+            JsonNode patch = Jackson3JsonDiff.asJson(configurationAsJson, patchedConfigurationAsJson);
             if (patch.isEmpty()) {
                 return ValidationResult.error(RestStatus.OK, payload(RestStatus.OK, "No updates required"));
             }
@@ -262,7 +347,11 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                 }
                 // create or update case of the entity. we need to verify new JSON configuration for them
                 if ((beforePatchEntity == null) || !Objects.equals(beforePatchEntity, patchedEntity)) {
-                    final var requestCheck = endpointValidator.createRequestContentValidator(entityName).validate(request, patchedEntity);
+                    final var validator = endpointValidator.createRequestContentValidator(entityName);
+                    if (beforePatchEntity != null) {
+                        validator.withOriginalContent(beforePatchEntity);
+                    }
+                    final var requestCheck = validator.validate(request, patchedEntity);
                     if (!requestCheck.isValid()) {
                         return ValidationResult.error(requestCheck.status(), requestCheck.errorMessage());
                     }
@@ -397,7 +486,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             );
         }
         if (omitSensitiveData) {
-            if (!securityApiDependencies.restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint)) {
+            if (!securityApiDependencies.restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint)) {
                 configuration.removeHidden();
             }
             configuration.clearHashes();
@@ -423,8 +512,8 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
@@ -515,7 +604,13 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         client.index(ir, new ConfigUpdatingActionListener<>(new String[] { cType.toLCString() }, client, actionListener));
     }
 
-    private static IndexRequest createIndexRequestForConfig(
+    /**
+     * Build the {@link IndexRequest} that persists a {@link SecurityDynamicConfiguration} document
+     * to the security index. Exposed for reuse by the async task path
+     * ({@link org.opensearch.security.action.configupdate.TransportSecurityConfigWriteAction}) so
+     * that the sync and async write flows share one implementation.
+     */
+    public static IndexRequest createIndexRequestForConfig(
         final SecurityApiDependencies dependencies,
         final CType<?> cType,
         final SecurityDynamicConfiguration<?> configuration
@@ -535,7 +630,13 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             .source(cType.toLCString(), content);
     }
 
-    protected static class ConfigUpdatingActionListener<Response> implements ActionListener<Response> {
+    /**
+     * Wraps an {@link ActionListener} so that after a successful config-index write it fans a
+     * {@link ConfigUpdateAction} out to every node, and only completes the delegate listener once
+     * every node has acknowledged the reload. Exposed for reuse by the async task path — sync and
+     * async writes both go through this listener so their completion semantics stay in lockstep.
+     */
+    public static class ConfigUpdatingActionListener<Response> implements ActionListener<Response> {
         private final String[] cTypes;
         private final Client client;
         private final ActionListener<Response> delegate;
@@ -587,6 +688,10 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         // consume all parameters first so we can return a correct HTTP status,
         // not 400
         consumeParameters(request);
+        // Consume the async opt-in flag centrally (not in consumeParameters), so subclasses that
+        // override consumeParameters — and don't call super — still don't reject
+        // ?wait_for_completion=... as an unrecognized parameter.
+        request.paramAsBoolean("wait_for_completion", true);
 
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
@@ -594,7 +699,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         }
 
         // check if request is authorized
-        final String authError = securityApiDependencies.restApiPrivilegesEvaluator().checkAccessPermissions(request, endpoint);
+        final String authError = securityApiDependencies.restApiAuthorizationEvaluator().checkAccessPermissions(request, endpoint);
 
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String userName = user == null ? null : user.getName();

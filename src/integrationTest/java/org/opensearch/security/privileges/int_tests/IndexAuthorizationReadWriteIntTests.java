@@ -52,6 +52,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
+import static org.junit.Assert.assertEquals;
 
 /**
  * This class defines a huge test matrix for index related access controls. This class is especially for read/write operations on indices and aliases.
@@ -663,6 +664,14 @@ public class IndexAuthorizationReadWriteIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                if (user != LIMITED_USER_NONE && user != LIMITED_READ_ONLY_ALL && user != LIMITED_READ_ONLY_A) {
+                    assertThat(httpResponse, isOk());
+                    int expectedDeleteCount = containsExactly(index_aw1, index_bw1).at("_index").reducedBy(user.reference(WRITE)).size();
+                    assertEquals(httpResponse.getBody(), expectedDeleteCount, httpResponse.bodyAsMap().get("deleted"));
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
 
         } finally {
@@ -713,6 +722,12 @@ public class IndexAuthorizationReadWriteIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                if (user.reference(WRITE).coversAll(alias_ab1w)) {
+                    assertThat(httpResponse, isCreated());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         } finally {
             delete("alias_ab1w/_doc/put_doc_alias_test_1");
@@ -740,21 +755,35 @@ public class IndexAuthorizationReadWriteIntTests {
                 {"a": 1}
                 """);
 
-            if (user == LIMITED_USER_A || user == LIMITED_USER_AB1_ALIAS_READ_ONLY) {
-                // Theoretically, a user with privileges for index_aw* could write into alias_ab2w, as the write index is index_aw1
-                // However, the index resolution code is not aware that this is a write operation; thus it resolves
-                // to all alias members which contain also index_bw1, for which we do not have permissions
-                assertThat(httpResponse, containsExactly().at("items[*].index[?(@.result == 'created')]._index"));
-            } else if (user != LIMITED_USER_NONE) {
-                assertThat(
-                    httpResponse,
-                    containsExactly(index_aw1).at("items[*].index[?(@.result == 'created')]._index")
-                        .reducedBy(user.reference(WRITE))
-                        .whenEmpty(isOk())
-                );
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == LIMITED_USER_A || user == LIMITED_USER_AB1_ALIAS_READ_ONLY) {
+                    // Theoretically, a user with privileges for index_aw* could write into alias_ab2w, as the write index is index_aw1
+                    // However, the index resolution code is not aware that this is a write operation; thus it resolves
+                    // to all alias members which contain also index_bw1, for which we do not have permissions
+                    assertThat(httpResponse, containsExactly().at("items[*].index[?(@.result == 'created')]._index"));
+                } else if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_aw1).at("items[*].index[?(@.result == 'created')]._index")
+                            .reducedBy(user.reference(WRITE))
+                            .whenEmpty(isOk())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             } else {
-                assertThat(httpResponse, isForbidden());
+                if (user != LIMITED_USER_NONE) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_aw1).at("items[*].index[?(@.result == 'created')]._index")
+                            .reducedBy(user.reference(WRITE))
+                            .whenEmpty(isOk())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
+
         } finally {
             delete("index_aw1/_doc/put_doc_alias_bulk_test_1");
         }
@@ -791,13 +820,15 @@ public class IndexAuthorizationReadWriteIntTests {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             HttpResponse httpResponse = restClient.putJson(".system_index_plugin_not_existing", "{}");
 
-            if (user.reference(CREATE_INDEX).covers(system_index_plugin_not_existing)) {
+            if (clusterConfig.systemIndexPrivilegeEnabled && user.reference(CREATE_INDEX).covers(system_index_plugin_not_existing)) {
                 assertThat(httpResponse, isOk());
-            } else if (user == SUPER_UNLIMITED_USER || (user == UNLIMITED_USER && !clusterConfig.systemIndexPrivilegeEnabled)) {
-                assertThat(httpResponse, isOk());
-            } else {
-                assertThat(httpResponse, isForbidden());
-            }
+            } else if (user == SUPER_UNLIMITED_USER
+                || (clusterConfig == ClusterConfig.LEGACY_PRIVILEGES_EVALUATION
+                    && (user == UNLIMITED_USER || user == LIMITED_USER_B_SYSTEM_INDEX_MANAGE))) {
+                        assertThat(httpResponse, isOk());
+                    } else {
+                        assertThat(httpResponse, isForbidden());
+                    }
         } finally {
             delete(system_index_plugin_not_existing);
         }
@@ -854,6 +885,16 @@ public class IndexAuthorizationReadWriteIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                if (user.reference(MANAGE_ALIAS).coversAll(alias_bwx, index_bwx1)) {
+                    assertThat(httpResponse, isOk());
+                    assertThat(
+                        httpResponse,
+                        containsExactly(index_bwx1).at("index").reducedBy(user.reference(CREATE_INDEX)).whenEmpty(isForbidden())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         } finally {
             delete(index_bwx1);
@@ -873,7 +914,14 @@ public class IndexAuthorizationReadWriteIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                if (user.reference(MANAGE_ALIAS).covers(alias_bwx)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
+
         } finally {
             delete(alias_bwx);
         }
@@ -886,12 +934,20 @@ public class IndexAuthorizationReadWriteIntTests {
 
             HttpResponse httpResponse = restClient.delete("*/_aliases/alias_bwx");
 
-            if (user == SUPER_UNLIMITED_USER) {
-                assertThat(httpResponse, isOk());
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
+                    // WARN SystemIndexAccessEvaluator:361 - indices:admin/aliases for '_all' indices is not allowed for a regular user
+                    assertThat(httpResponse, isForbidden());
+                }
             } else {
-                // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
-                // WARN SystemIndexAccessEvaluator:361 - indices:admin/aliases for '_all' indices is not allowed for a regular user
-                assertThat(httpResponse, isForbidden());
+                if (user.reference(MANAGE_ALIAS).coversAll(alias_bwx)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         } finally {
             delete(alias_bwx);
@@ -915,6 +971,12 @@ public class IndexAuthorizationReadWriteIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                if (user.reference(MANAGE_ALIAS).coversAll(alias_bwx, index_bw1)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
 
         } finally {
@@ -933,6 +995,12 @@ public class IndexAuthorizationReadWriteIntTests {
                 }""");
             if (clusterConfig.legacyPrivilegeEvaluation) {
                 if (user.reference(MANAGE_ALIAS).coversAll(index_bw1, index_bw2)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            } else {
+                if (user.reference(MANAGE_ALIAS).coversAll(alias_bwx, index_bw1, index_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());
@@ -961,6 +1029,12 @@ public class IndexAuthorizationReadWriteIntTests {
                 } else {
                     assertThat(httpResponse, isForbidden());
                 }
+            } else {
+                if (user.reference(MANAGE_ALIAS).covers(alias_bwx)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         } finally {
             delete(alias_bwx);
@@ -979,13 +1053,22 @@ public class IndexAuthorizationReadWriteIntTests {
                   ]
                 }""");
 
-            if (user == SUPER_UNLIMITED_USER) {
-                assertThat(httpResponse, isOk());
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
+                    // WARN SystemIndexAccessEvaluator:361 - indices:admin/aliases for '_all' indices is not allowed for a regular user
+                    assertThat(httpResponse, isForbidden());
+                }
             } else {
-                // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
-                // WARN SystemIndexAccessEvaluator:361 - indices:admin/aliases for '_all' indices is not allowed for a regular user
-                assertThat(httpResponse, isForbidden());
+                if (user.reference(MANAGE_ALIAS).coversAll(alias_bwx)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
+
         } finally {
             delete(alias_bwx);
         }
@@ -1079,12 +1162,26 @@ public class IndexAuthorizationReadWriteIntTests {
     public void closeIndex_wildcard() throws Exception {
         try (TestRestClient restClient = cluster.getRestClient(user)) {
             HttpResponse httpResponse = restClient.post("*/_close");
-            if (user == SUPER_UNLIMITED_USER) {
-                assertThat(httpResponse, isOk());
+
+            if (clusterConfig.legacyPrivilegeEvaluation) {
+                if (user == SUPER_UNLIMITED_USER) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
+                    // WARN SystemIndexAccessEvaluator:361 - indices:admin/close for '_all' indices is not allowed for a regular user
+                    assertThat(httpResponse, isForbidden());
+                }
             } else {
-                // For all non super admin users, this will be rejected by SystemIndexAccessEvaluator:
-                // WARN SystemIndexAccessEvaluator:361 - indices:admin/close for '_all' indices is not allowed for a regular user
-                assertThat(httpResponse, isForbidden());
+                if (!user.reference(MANAGE_INDEX).isEmpty()) {
+                    assertThat(
+                        httpResponse,
+                        containsExactly(ALL_NON_HIDDEN_INDICES).at("indices.keys()")
+                            .reducedBy(user.reference(MANAGE_INDEX))
+                            .whenEmpty(isOk())
+                    );
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
             }
         } finally {
             cluster.getInternalNodeClient().admin().indices().open(new OpenIndexRequest("*")).actionGet();
@@ -1125,6 +1222,12 @@ public class IndexAuthorizationReadWriteIntTests {
 
             if (clusterConfig.legacyPrivilegeEvaluation) {
                 if (user.reference(MANAGE_ALIAS).covers(index_bw1) && user.reference(MANAGE_INDEX).covers(index_bw2)) {
+                    assertThat(httpResponse, isOk());
+                } else {
+                    assertThat(httpResponse, isForbidden());
+                }
+            } else {
+                if (user.reference(MANAGE_ALIAS).covers(alias_bwx) && user.reference(MANAGE_INDEX).covers(index_bw2)) {
                     assertThat(httpResponse, isOk());
                 } else {
                     assertThat(httpResponse, isForbidden());

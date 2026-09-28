@@ -28,6 +28,7 @@ package org.opensearch.security.support;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,6 +37,8 @@ import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequ
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.RestoreInProgress;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.IndexUtils;
 import org.opensearch.core.index.Index;
@@ -60,7 +63,23 @@ public class SnapshotRestoreHelper {
         } else {
             return IndexUtils.filterIndices(snapshotInfo.indices(), restoreRequest.indices(), restoreRequest.indicesOptions());
         }
+    }
 
+    public static OptionallyResolvedIndices resolveTargetIndices(RestoreSnapshotRequest request) {
+        List<String> indices = resolveOriginalIndices(request);
+        if (indices == null) {
+            return ResolvedIndices.unknown();
+        }
+
+        if (request.renameReplacement() != null && request.renamePattern() != null) {
+            return ResolvedIndices.of(
+                indices.stream()
+                    .map(index -> index.replaceAll(request.renamePattern(), request.renameReplacement()))
+                    .collect(Collectors.toSet())
+            );
+        } else {
+            return ResolvedIndices.of(indices);
+        }
     }
 
     public static SnapshotInfo getSnapshotInfo(RestoreSnapshotRequest restoreRequest) {

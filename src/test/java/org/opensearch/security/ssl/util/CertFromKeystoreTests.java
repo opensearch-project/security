@@ -30,11 +30,8 @@ public class CertFromKeystoreTests {
     @Test
     public void testLoadSameCertForClientServerUsage() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException,
         KeyStoreException, IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        var ks0 = FileHelper.resolveStore("ssl/node-0-keystore");
+        KeystoreProps props = new KeystoreProps(ks0.path().toString(), ks0.type(), "changeit");
 
         CertFromKeystore cert = new CertFromKeystore(props, "node-0", "changeit");
 
@@ -49,11 +46,8 @@ public class CertFromKeystoreTests {
     @Test
     public void testLoadSameCertWithoutAlias() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException,
         KeyStoreException, IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        var ks1 = FileHelper.resolveStore("ssl/node-0-keystore");
+        KeystoreProps props = new KeystoreProps(ks1.path().toString(), ks1.type(), "changeit");
 
         CertFromKeystore cert = new CertFromKeystore(props, null, "changeit");
 
@@ -65,11 +59,8 @@ public class CertFromKeystoreTests {
     @Test
     public void testLoadDifferentCertsForClientServerUsage() throws UnrecoverableKeyException, CertificateException,
         NoSuchAlgorithmException, KeyStoreException, IOException {
-        KeystoreProps props = new KeystoreProps(
-            FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/node-0-keystore.jks").toString(),
-            "JKS",
-            "changeit"
-        );
+        var ks2 = FileHelper.resolveStore("ssl/extended_key_usage/node-0-keystore");
+        KeystoreProps props = new KeystoreProps(ks2.path().toString(), ks2.type(), "changeit");
 
         CertFromKeystore cert = new CertFromKeystore(props, "node-0-server", "node-0-client", "changeit", "changeit");
 

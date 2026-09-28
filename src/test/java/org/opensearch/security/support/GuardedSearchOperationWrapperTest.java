@@ -12,6 +12,7 @@ package org.opensearch.security.support;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.index.shard.SearchOperationListener;
@@ -26,7 +27,8 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-public class GuardedSearchOperationWrapperTest {
+@LuceneTestCase.SuppressSysoutChecks(bugUrl = "Test intentionally exercises exception paths that log stack traces")
+public class GuardedSearchOperationWrapperTest extends LuceneTestCase {
 
     @Test
     public void onNewReaderContextCanThrowException() {

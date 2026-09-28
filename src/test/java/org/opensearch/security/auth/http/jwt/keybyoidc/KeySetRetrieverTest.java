@@ -113,12 +113,14 @@ public class KeySetRetrieverTest {
         }) {
             SSLContextBuilder sslContextBuilder = SSLContexts.custom();
 
-            KeyStore trustStore = KeyStore.getInstance("JKS");
-            InputStream trustStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("jwt/truststore.jks").toFile());
+            var typedTrustStore = FileHelper.resolveStore("jwt/truststore");
+            KeyStore trustStore = KeyStore.getInstance(typedTrustStore.type());
+            InputStream trustStream = new FileInputStream(typedTrustStore.path().toFile());
             trustStore.load(trustStream, "changeit".toCharArray());
 
-            KeyStore keyStore = KeyStore.getInstance("JKS");
-            InputStream keyStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("jwt/spock-keystore.jks").toFile());
+            var typedKeyStore = FileHelper.resolveStore("jwt/spock-keystore");
+            KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
+            InputStream keyStream = new FileInputStream(typedKeyStore.path().toFile());
 
             keyStore.load(keyStream, "changeit".toCharArray());
 

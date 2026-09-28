@@ -46,7 +46,7 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
             .build();
         setup(settings);
 
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
         assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
@@ -67,7 +67,7 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
             .build();
         setup(settings);
 
-        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.keystore = "restapi/kirk-keystore";
         rh.sendHTTPClientCredentials = true;
         rh.sendAdminCertificate = true;
 

@@ -21,7 +21,7 @@ public class UpdateResourceGroupAction extends ActionType<CreateResourceGroupRes
     /**
      * Update sample resource group action name
      */
-    public static final String NAME = "cluster:admin/sample-resource-plugin/group/update";
+    public static final String NAME = "sampleresourcegroup:update";
 
     private UpdateResourceGroupAction() {
         super(NAME, CreateResourceGroupResponse::new);

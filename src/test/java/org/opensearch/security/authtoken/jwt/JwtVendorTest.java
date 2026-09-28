@@ -12,18 +12,17 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.function.LongSupplier;
 
-import com.google.common.io.BaseEncoding;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchException;
@@ -43,6 +42,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -55,7 +55,7 @@ public class JwtVendorTest {
 
     final static String signingKey =
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
-    final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
+    final static String signingKeyB64Encoded = Base64.getEncoder().encodeToString(signingKey.getBytes(StandardCharsets.UTF_8));
 
     @Test
     public void testCreateJwkFromSettings() {
@@ -70,18 +70,49 @@ public class JwtVendorTest {
     @Test
     public void testCreateJwkFromSettingsWithWeakKey() {
         Settings settings = Settings.builder().put("signing_key", "abcd1234").build();
-        Throwable exception = Assert.assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Throwable exception = assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }
 
     @Test
     public void testCreateJwkFromSettingsWithoutSigningKey() {
         Settings settings = Settings.builder().put("jwt", "").build();
-        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
+        Throwable exception = assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings));
         assertThat(
             exception.getMessage(),
             equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")
         );
+    }
+
+    @Test
+    public void testCreateJwtWithRolesNoEncryptionKey() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "audience_0";
+        List<String> roles = List.of("IT", "HR");
+        String expectedRoles = "IT,HR";
+        int expirySeconds = 300;
+        LongSupplier currentTime = () -> 1696413600000L;
+        // No encryption_key — roles should be written as plain 'dr' claim
+        Settings settings = Settings.builder().put("signing_key", signingKeyB64Encoded).build();
+        Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
+
+        JwtVendor OBOJwtVendor = new JwtVendor(settings);
+        final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
+            new OBOJwtClaimsBuilder(null).addRoles(roles)
+                .issuer(issuer)
+                .subject(subject)
+                .audience(audience)
+                .expirationTime(expiryTime)
+                .issueTime(new Date(currentTime.getAsLong())),
+            subject,
+            expiryTime,
+            (long) expirySeconds
+        );
+
+        SignedJWT signedJWT = SignedJWT.parse(authToken.getCompleteToken());
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("encrypted_roles"), nullValue());
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("roles").toString(), equalTo(expectedRoles));
     }
 
     @Test
@@ -124,8 +155,11 @@ public class JwtVendorTest {
         // 2023 oct 4, 10:05:00 AM GMT
         assertThat(((Date) signedJWT.getJWTClaimsSet().getClaims().get("exp")).getTime(), is(1696413900000L));
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br"), nullValue());
+        assertThat(
+            encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("encrypted_roles").toString()),
+            equalTo(expectedRoles)
+        );
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("backend_roles"), nullValue());
     }
 
     @Test
@@ -169,11 +203,14 @@ public class JwtVendorTest {
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("aud").toString(), equalTo("[audience_0]"));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("iat"), is(notNullValue()));
         assertThat(signedJWT.getJWTClaimsSet().getClaims().get("exp"), is(notNullValue()));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br"), is(notNullValue()));
-        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("br").toString(), equalTo(expectedBackendRoles));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("backend_roles"), is(notNullValue()));
+        assertThat(signedJWT.getJWTClaimsSet().getClaims().get("backend_roles").toString(), equalTo(expectedBackendRoles));
 
         EncryptionDecryptionUtil encryptionUtil = new EncryptionDecryptionUtil(claimsEncryptionKey);
-        assertThat(encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("er").toString()), equalTo(expectedRoles));
+        assertThat(
+            encryptionUtil.decrypt(signedJWT.getJWTClaimsSet().getClaims().get("encrypted_roles").toString()),
+            equalTo(expectedRoles)
+        );
     }
 
     @Test
@@ -222,4 +259,5 @@ public class JwtVendorTest {
         final String[] parts = logMessage.split("\\.");
         assertTrue(parts.length >= 3);
     }
+
 }

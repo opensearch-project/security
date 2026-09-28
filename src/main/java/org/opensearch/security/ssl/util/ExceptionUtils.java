@@ -1,4 +1,5 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright 2017 floragunn GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,6 +67,10 @@ public class ExceptionUtils {
 
     public static OpenSearchException invalidUsageOfOBOTokenException() {
         return new OpenSearchException("On-Behalf-Of Token is not allowed to be used for accessing this endpoint.");
+    }
+
+    public static OpenSearchException invalidUsageOfApiTokenException() {
+        return new OpenSearchException("Api Tokens are not allowed to be used for accessing this endpoint.");
     }
 
     public static OpenSearchException createJwkCreationException() {

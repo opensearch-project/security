@@ -37,7 +37,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -47,14 +46,13 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.hc.client5.http.config.TlsConfig;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.http2.HttpVersionPolicy;
-import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
@@ -72,9 +70,9 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.RestClient;
-import org.opensearch.client.RestClientBuilder;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.json.jackson3.JacksonJsonpMapper;
+import org.opensearch.client.transport.OpenSearchTransport;
+import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBuilder;
 import org.opensearch.cluster.node.DiscoveryNodeRole;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
@@ -91,6 +89,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.netty4.ssl.SslUtils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -150,11 +149,11 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         );
     }
 
-    protected RestHighLevelClient getRestClient(ClusterInfo info, String keyStoreName, String trustStoreName) {
-        return getRestClient(info, keyStoreName, trustStoreName, null);
+    protected OpenSearchTransport getClientTransport(ClusterInfo info, String keyStoreName, String trustStoreName) {
+        return getClientTransport(info, keyStoreName, trustStoreName, null);
     }
 
-    protected RestHighLevelClient getRestClient(
+    protected OpenSearchTransport getClientTransport(
         ClusterInfo info,
         String keyStoreName,
         String trustStoreName,
@@ -164,13 +163,15 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
         try {
             SSLContextBuilder sslContextBuilder = SSLContexts.custom();
-            File keyStoreFile = FileHelper.getAbsoluteFilePathFromClassPath(prefix + keyStoreName).toFile();
-            KeyStore keyStore = KeyStore.getInstance(keyStoreName.endsWith(".jks") ? "JKS" : "PKCS12");
+            var typedKeyStore = FileHelper.resolveStore(prefix + keyStoreName);
+            File keyStoreFile = typedKeyStore.path().toFile();
+            KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
             keyStore.load(new FileInputStream(keyStoreFile), null);
             sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
 
-            KeyStore trustStore = KeyStore.getInstance(trustStoreName.endsWith(".jks") ? "JKS" : "PKCS12");
-            File trustStoreFile = FileHelper.getAbsoluteFilePathFromClassPath(prefix + trustStoreName).toFile();
+            var typedTrustStore = FileHelper.resolveStore(prefix + trustStoreName);
+            File trustStoreFile = typedTrustStore.path().toFile();
+            KeyStore trustStore = KeyStore.getInstance(typedTrustStore.type());
             trustStore.load(new FileInputStream(trustStoreFile), "changeit".toCharArray());
 
             sslContextBuilder.loadTrustMaterial(trustStore, null);
@@ -178,29 +179,24 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
             HttpHost httpHost = new HttpHost("https", info.httpHost, info.httpPort);
 
-            RestClientBuilder restClientBuilder = RestClient.builder(httpHost).setHttpClientConfigCallback(builder -> {
-                TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
-                    .setSslContext(sslContext)
-                    .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
-                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                    .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
-                        @Override
-                        public TlsDetails create(final SSLEngine sslEngine) {
-                            return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
-                        }
-                    })
-                    .build();
+            final ApacheHttpClient5TransportBuilder transportBuilder = ApacheHttpClient5TransportBuilder.builder(httpHost)
+                .setHttpClientConfigCallback(builder -> {
+                    TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                        .setSslContext(sslContext)
+                        .setTlsVersions(SslUtils.DEFAULT_SSL_PROTOCOLS)
+                        .setHostVerificationPolicy(HostnameVerificationPolicy.CLIENT)
+                        .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                        .buildAsync();
 
-                final PoolingAsyncClientConnectionManagerBuilder cm = PoolingAsyncClientConnectionManagerBuilder.create()
-                    .setTlsStrategy(tlsStrategy);
+                    final PoolingAsyncClientConnectionManagerBuilder cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                        .setTlsStrategy(tlsStrategy);
 
-                if (httpVersionPolicy != null) {
-                    cm.setDefaultTlsConfig(TlsConfig.custom().setVersionPolicy(httpVersionPolicy).build());
-                }
-                return builder.setConnectionManager(cm.build());
-            });
-            return new RestHighLevelClient(restClientBuilder);
+                    if (httpVersionPolicy != null) {
+                        cm.setDefaultTlsConfig(TlsConfig.custom().setVersionPolicy(httpVersionPolicy).build());
+                    }
+                    return builder.setConnectionManager(cm.build());
+                });
+            return transportBuilder.setMapper(new JacksonJsonpMapper()).build();
         } catch (Exception e) {
             log.error("Cannot create client", e);
             throw new RuntimeException("Cannot create client", e);
@@ -298,12 +294,9 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             builder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put(
                     SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                    FileHelper.getAbsoluteFilePathFromClassPath(prefix + "node-0-keystore.jks")
+                    FileHelper.resolveStore(prefix + "node-0-keystore").path()
                 )
-                .put(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                    FileHelper.getAbsoluteFilePathFromClassPath(prefix + "truststore.jks")
-                )
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore(prefix + "truststore").path())
                 .put("transport.ssl.enforce_hostname_verification", false);
         }
 

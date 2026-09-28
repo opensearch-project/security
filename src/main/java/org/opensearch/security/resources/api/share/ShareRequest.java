@@ -9,6 +9,8 @@
 package org.opensearch.security.resources.api.share;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -20,6 +22,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.sharing.ShareWith;
 
@@ -40,6 +43,10 @@ public class ShareRequest extends ActionRequest implements DocRequest {
     private final ShareWith add;
     @JsonProperty("revoke")
     private final ShareWith revoke;
+    /** True if general_access was explicitly present in the patch request (even if null). */
+    private final boolean generalAccessPresent;
+    @JsonProperty("general_access")
+    private final String generalAccess;
 
     private final RestRequest.Method method;
 
@@ -53,6 +60,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.shareWith = builder.shareWith;
         this.add = builder.add;
         this.revoke = builder.revoke;
+        this.generalAccessPresent = builder.generalAccessPresent;
+        this.generalAccess = builder.generalAccess;
         this.method = builder.method;
     }
 
@@ -65,6 +74,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         this.shareWith = in.readOptionalWriteable(ShareWith::new);
         this.add = in.readOptionalWriteable(ShareWith::new);
         this.revoke = in.readOptionalWriteable(ShareWith::new);
+        this.generalAccessPresent = in.readBoolean();
+        this.generalAccess = in.readOptionalString();
     }
 
     @Override
@@ -76,6 +87,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         out.writeOptionalWriteable(shareWith);
         out.writeOptionalWriteable(add);
         out.writeOptionalWriteable(revoke);
+        out.writeBoolean(generalAccessPresent);
+        out.writeOptionalString(generalAccess);
     }
 
     @Override
@@ -95,8 +108,11 @@ public class ShareRequest extends ActionRequest implements DocRequest {
             arv.addValidationError("share_with is required");
             throw arv;
         }
-        if ((method == RestRequest.Method.PATCH || method == RestRequest.Method.POST) && add == null && revoke == null) {
-            arv.addValidationError("either add or revoke must be present");
+        if ((method == RestRequest.Method.PATCH || method == RestRequest.Method.POST)
+            && add == null
+            && revoke == null
+            && !generalAccessPresent) {
+            arv.addValidationError("at least one of add, revoke, or general_access must be present");
             throw arv;
         }
         return null;
@@ -112,6 +128,14 @@ public class ShareRequest extends ActionRequest implements DocRequest {
 
     public ShareWith getRevoke() {
         return revoke;
+    }
+
+    public boolean isGeneralAccessPresent() {
+        return generalAccessPresent;
+    }
+
+    public String getGeneralAccess() {
+        return generalAccess;
     }
 
     public RestRequest.Method getMethod() {
@@ -153,6 +177,8 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         ShareWith shareWith;
         ShareWith add;
         ShareWith revoke;
+        boolean generalAccessPresent;
+        String generalAccess;
         RestRequest.Method method;
 
         public void resourceId(String resourceId) {
@@ -188,6 +214,15 @@ public class ShareRequest extends ActionRequest implements DocRequest {
         }
 
         public void parseContent(XContentParser xContentParser, ResourcePluginInfo resourcePluginInfo) throws IOException {
+            final List<String> allowedTypes = resourcePluginInfo.currentProtectedTypes();
+            final Set<String> validAccessLevels = resourcePluginInfo.availableAccessLevels();
+
+            // Create access level validator using the pre-built helper
+            final RequestContentValidator.FieldValidator accessLevelValidator = RequestContentValidator.allowedValuesValidator(
+                validAccessLevels,
+                null
+            );
+
             try (XContentParser parser = xContentParser) {
                 XContentParser.Token token; // START_OBJECT
                 while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
@@ -196,25 +231,76 @@ public class ShareRequest extends ActionRequest implements DocRequest {
                         parser.nextToken();
                         switch (name) {
                             case "resource_id":
-                                this.resourceId(parser.text());
+                                String resourceId = parser.text();
+                                RequestContentValidator.validateSafeValue(
+                                    "resource_id",
+                                    resourceId,
+                                    RequestContentValidator.MAX_STRING_LENGTH
+                                );
+                                this.resourceId(resourceId);
                                 break;
                             case "resource_type":
-                                this.resourceType(parser.text());
-                                this.resourceIndex(resourcePluginInfo.indexByType(parser.text()));
+                                String resourceType = parser.text();
+
+                                // Validate type syntax + membership in dynamic protected-types list
+                                RequestContentValidator.validateValueInSet(
+                                    "resource_type",
+                                    resourceType,
+                                    RequestContentValidator.MAX_STRING_LENGTH,
+                                    allowedTypes
+                                );
+
+                                // Resolve to index, using pluginInfo
+                                String indexName = resourcePluginInfo.indexByType(resourceType);
+                                if (indexName == null) {
+                                    throw new IllegalArgumentException(
+                                        "Invalid resource_type [" + resourceType + "]. Allowed types: " + String.join(", ", allowedTypes)
+                                    );
+                                }
+
+                                this.resourceType(resourceType);
+                                this.resourceIndex(resourcePluginInfo.indexByType(resourceType));
                                 break;
                             case "share_with":
-                                this.shareWith(ShareWith.fromXContent(parser));
+                                this.shareWith(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
                             case "add":
-                                this.add(ShareWith.fromXContent(parser));
+                                this.add(ShareWith.fromXContent(parser, accessLevelValidator));
                                 break;
                             case "revoke":
-                                this.revoke(ShareWith.fromXContent(parser));
+                                this.revoke(ShareWith.fromXContent(parser, accessLevelValidator));
+                                break;
+                            case "general_access":
+                                this.generalAccessPresent = true;
+                                this.generalAccess = parser.currentToken() == XContentParser.Token.VALUE_NULL ? null : parser.text();
                                 break;
                             default:
                                 parser.skipChildren();
                         }
                     }
+                }
+            }
+            rejectSharePermissionOnGeneralAccess(resourcePluginInfo);
+        }
+
+        /**
+         * Rejects any general_access value whose resolved actions include share permission.
+         * general_access is content access only — it must never grant policy-control (share) permission.
+         */
+        private void rejectSharePermissionOnGeneralAccess(ResourcePluginInfo resourcePluginInfo) {
+            if (resourceType == null) return;
+            var actionGroups = resourcePluginInfo.flattenedForType(resourceType);
+            // check top-level general_access (PATCH) and share_with.general_access (PUT)
+            String putLevel = shareWith != null ? shareWith.getGeneralAccess() : null;
+            for (String level : new String[] { generalAccess, putLevel }) {
+                if (level == null) continue;
+                if (actionGroups.resolve(Set.of(level)).contains(ShareAction.NAME)) {
+                    throw new IllegalArgumentException(
+                        "general_access level ['"
+                            + level
+                            + "'] includes share permission, which is not allowed. "
+                            + "general_access controls content access only."
+                    );
                 }
             }
         }

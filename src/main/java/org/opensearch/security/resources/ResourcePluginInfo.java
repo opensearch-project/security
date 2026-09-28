@@ -37,8 +37,6 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 /**
  * This class provides information about resource plugins and their associated resource providers and indices.
  * It follows the Singleton pattern to ensure that only one instance of the class exists.
- *
- * @opensearch.experimental
  */
 public class ResourcePluginInfo {
 
@@ -57,6 +55,9 @@ public class ResourcePluginInfo {
     // AuthZ: resolved (flattened) groups per type
     private final Map<String, FlattenedActionGroups> typeToFlattened = new HashMap<>();
 
+    // default access level per type (for migration)
+    private final Map<String, String> typeToDefaultAccessLevel = new HashMap<>();
+
     // cache current protected types and their indices
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
 
@@ -72,6 +73,10 @@ public class ResourcePluginInfo {
 
             // Enforce resource-type unique-ness
             Set<String> resourceTypes = new HashSet<>();
+            // Providers may share a resource index, but must then agree on the workspaces field: DLS filters a single
+            // field per index while ingestion uses each provider's declared field, so a disagreement would silently
+            // mis-scope read visibility. Reject conflicting non-null declarations at registration.
+            Map<String, String> indexToWorkspacesField = new HashMap<>();
             for (ResourceSharingExtension extension : extensions) {
                 for (var rp : extension.getResourceProviders()) {
                     if (!resourceTypes.contains(rp.resourceType())) {
@@ -87,6 +92,22 @@ public class ResourcePluginInfo {
                                 extension.getClass().getName()
                             )
                         );
+                    }
+
+                    String workspacesField = rp.workspacesField();
+                    if (workspacesField != null) {
+                        String existing = indexToWorkspacesField.putIfAbsent(rp.resourceIndexName(), workspacesField);
+                        if (existing != null && !existing.equals(workspacesField)) {
+                            throw new OpenSearchSecurityException(
+                                String.format(
+                                    "Conflicting workspaces fields declared for resource index [%s]: [%s] and [%s]. All providers sharing"
+                                        + " an index must declare the same workspaces field (or null to opt out).",
+                                    rp.resourceIndexName(),
+                                    existing,
+                                    workspacesField
+                                )
+                            );
+                        }
                     }
                 }
             }
@@ -146,39 +167,63 @@ public class ResourcePluginInfo {
     }
 
     /**
+     * Extracts all values of a multi-valued field from the Lucene document backing an {@link Engine.Index} op —
+     * e.g. the set of workspace IDs a resource belongs to (see {@link ResourceProvider#workspacesField()}). Unlike
+     * {@link #extractFieldFromIndexOp} it collects every {@link IndexableField} for {@code fieldName}, which is how a
+     * {@code keyword} array surfaces (one field per element). Values only surface for indexed/stored mappings, not
+     * {@code doc_values}-only fields.
+     *
+     * @param fieldName the multi-valued field to extract; must not be {@code null}
+     * @param indexOp   the index op whose parsed document is inspected; must not be {@code null}
+     * @return the field's values, or empty if none
+     */
+    public static Set<String> extractMultiValuedFieldFromIndexOp(String fieldName, Engine.Index indexOp) {
+        Set<String> values = new HashSet<>();
+        for (IndexableField f : indexOp.parsedDoc().rootDoc().getFields(fieldName)) {
+            if (f.stringValue() != null) {
+                values.add(f.stringValue());
+            } else if (f.binaryValue() != null) { // e.g., BytesRef-backed
+                values.add(f.binaryValue().utf8ToString());
+            }
+        }
+        return values;
+    }
+
+    /**
      * Resolves the resource type for the given index operation and resource index.
      * <p>
-     * The method acquires a read lock and selects the first registered provider whose resource index name
-     * matches {@code resourceIndex}. If such a provider defines a {@code typeField}, the value of that
-     * field is extracted from {@code indexOp} via {@link #extractFieldFromIndexOp(String, Engine.Index)}.
-     * If {@code typeField} is not defined, it is assumed that the index hosts a single resource type and
-     * the provider's configured resource type is returned.
+     * The method iterates over every registered {@link ResourceProvider} whose resource index name
+     * matches {@code resourceIndex}. For each candidate:
+     * <ul>
+     *   <li>If the provider does not declare a {@link ResourceProvider#typeField()}, its
+     *   configured resource type is returned. This preserves the single-type-per-index behavior
+     *   for plugins that don't need to discriminate.</li>
+     *   <li>Otherwise the provider's {@code typeField} is extracted from {@code indexOp}; the
+     *   first provider whose extraction yields a non-null value wins.</li>
+     * </ul>
+     * This allows multiple providers to share an index (for example, monitors and workflows both
+     * living in {@code .opendistro-alerting-config}) by declaring type-specific paths for their
+     * {@code typeField} — the first path that resolves on a given document identifies the type.
      * <p>
-     * If no provider is found for the supplied {@code resourceIndex}, {@code null} is returned.
-     *
-     * @param resourceIndex the name of the resource index associated with the index operation
-     * @param indexOp       the index operation from which a dynamic type field may be extracted
-     * @return the resolved resource type, or {@code null} if no matching provider exists for {@code resourceIndex}
+     * If no provider is registered for {@code resourceIndex}, {@code null} is returned.
      */
     public String getResourceTypeForIndexOp(String resourceIndex, Engine.Index indexOp) {
         lock.readLock().lock();
         try {
-            // Eagerly use type field from first matching provider of same index as the indexOp
-            // If typeField is not present, assume single resource type per index and return type from provider
-            var provider = typeToProvider.values()
-                .stream()
-                .filter(p -> p.resourceIndexName().equals(resourceIndex))
-                .findFirst()
-                .orElse(null);
-            if (provider == null) {
-                // should not happen
-                return null;
+            for (ResourceProvider provider : typeToProvider.values()) {
+                if (!provider.resourceIndexName().equals(resourceIndex)) {
+                    continue;
+                }
+                if (provider.typeField() == null) {
+                    // Single-type-per-index provider — its own resourceType() is the answer.
+                    return provider.resourceType();
+                }
+                String extracted = extractFieldFromIndexOp(provider.typeField(), indexOp);
+                if (extracted != null) {
+                    return extracted;
+                }
             }
-            if (provider.typeField() != null) {
-                return extractFieldFromIndexOp(provider.typeField(), indexOp);
-            }
-            // If `typeField` is not defined, assume single type to index and return type from provider
-            return provider.resourceType();
+            return null;
         } finally {
             lock.readLock().unlock();
         }
@@ -186,6 +231,35 @@ public class ResourcePluginInfo {
 
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
         return ImmutableSet.copyOf(resourceSharingExtensions);
+    }
+
+    /**
+     * Aggregates {@link ResourceSharingExtension#resolveWorkspacesForUser} across every registered extension into a
+     * single trusted set of workspace IDs for the user. Empty if no extension contributes any. Called on the DLS hot
+     * path — each extension's implementation is required by contract to be I/O-free.
+     *
+     * @param user the authenticated user
+     * @return the union of workspace IDs contributed by all registered extensions
+     */
+    public Set<String> resolveWorkspacesForUser(org.opensearch.security.user.User user) {
+        lock.readLock().lock();
+        try {
+            if (resourceSharingExtensions.isEmpty()) {
+                return java.util.Collections.emptySet();
+            }
+            Set<String> securityRoles = user.getSecurityRoles() == null ? java.util.Collections.emptySet() : user.getSecurityRoles();
+            Set<String> backendRoles = user.getRoles() == null ? java.util.Collections.emptySet() : user.getRoles();
+            Set<String> merged = new HashSet<>();
+            for (ResourceSharingExtension extension : resourceSharingExtensions) {
+                Set<String> contributed = extension.resolveWorkspacesForUser(user.getName(), securityRoles, backendRoles);
+                if (contributed != null && !contributed.isEmpty()) {
+                    merged.addAll(contributed);
+                }
+            }
+            return merged;
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public void setResourceSharingClient(ResourceSharingClient resourceAccessControlClient) {
@@ -208,7 +282,11 @@ public class ResourcePluginInfo {
         }
     }
 
-    public void registerAccessLevels(String resourceType, SecurityDynamicConfiguration<ActionGroupsV7> accessLevels) {
+    public void registerAccessLevels(
+        String resourceType,
+        SecurityDynamicConfiguration<ActionGroupsV7> accessLevels,
+        String defaultAccessLevel
+    ) {
         if (resourceType == null || accessLevels == null) return;
         lock.writeLock().lock();
         try {
@@ -216,6 +294,9 @@ public class ResourcePluginInfo {
             typeToFlattened.put(resourceType, flattened);
             typeToAccessLevels.computeIfAbsent(resourceType, k -> new LinkedHashSet<>())
                 .addAll(accessLevels.getCEntries().keySet().stream().toList());
+            if (defaultAccessLevel != null) {
+                typeToDefaultAccessLevel.put(resourceType, defaultAccessLevel);
+            }
         } finally {
             lock.writeLock().unlock();
         }
@@ -225,6 +306,15 @@ public class ResourcePluginInfo {
         lock.readLock().lock();
         try {
             return typeToFlattened.getOrDefault(resourceType, FlattenedActionGroups.EMPTY);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public String getDefaultAccessLevel(String resourceType) {
+        lock.readLock().lock();
+        try {
+            return typeToDefaultAccessLevel.get(resourceType);
         } finally {
             lock.readLock().unlock();
         }
@@ -246,6 +336,56 @@ public class ResourcePluginInfo {
                 return null;
             }
             return typeToProvider.get(type).resourceIndexName();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public String getParentIdField(String resourceType) {
+        lock.readLock().lock();
+        try {
+            if (!typeToProvider.containsKey(resourceType)) {
+                return null;
+            }
+            return typeToProvider.get(resourceType).parentIdField();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public String getParentType(String resourceType) {
+        lock.readLock().lock();
+        try {
+            if (!typeToProvider.containsKey(resourceType)) {
+                return null;
+            }
+            return typeToProvider.get(resourceType).parentType();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Returns the provider-declared workspaces field name for the resource index (see
+     * {@link ResourceProvider#workspacesField()}), or {@code null} if no provider on that index declares one.
+     * Used by DLS to filter workspace membership on the field a provider actually declares, rather than a fixed name.
+     * When multiple providers share an index, the first declared (non-null) field wins.
+     */
+    /**
+     * Returns the workspaces field for the given resource index, or {@code null} if no provider on that index
+     * declares one. Providers sharing an index are required to agree on this field — conflicting non-null
+     * declarations are rejected at registration (see {@link #setResourceSharingExtensions}) — so the value is
+     * unambiguous regardless of map iteration order.
+     */
+    public String workspacesFieldForIndex(String index) {
+        lock.readLock().lock();
+        try {
+            for (ResourceProvider provider : typeToProvider.values()) {
+                if (provider.resourceIndexName().equals(index) && provider.workspacesField() != null) {
+                    return provider.workspacesField();
+                }
+            }
+            return null;
         } finally {
             lock.readLock().unlock();
         }
@@ -290,6 +430,24 @@ public class ResourcePluginInfo {
                 .filter(e -> resourceTypes.contains(e.getKey()))
                 .map(e -> e.getValue().resourceIndexName())
                 .collect(Collectors.toSet());
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public List<String> currentProtectedTypes() {
+        lock.readLock().lock();
+        try {
+            return protectedTypesSetting.getDynamicSettingValue();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public Set<String> availableAccessLevels() {
+        lock.readLock().lock();
+        try {
+            return typeToAccessLevels.values().stream().flatMap(Set::stream).collect(Collectors.toCollection(LinkedHashSet::new));
         } finally {
             lock.readLock().unlock();
         }

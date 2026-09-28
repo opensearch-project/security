@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.TriConsumer;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -29,10 +30,8 @@ import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.transport.client.Client;
 
-import static org.opensearch.security.dlic.rest.api.Responses.created;
 import static org.opensearch.security.dlic.rest.api.Responses.forbidden;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplemented;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
 
 @FunctionalInterface
@@ -43,6 +42,30 @@ public interface RequestHandler {
     RequestHandler accessDeniedHandler = (channel, request, client) -> forbidden(channel, "Access denied");
 
     void handle(final RestChannel channel, final RestRequest request, final Client client) throws IOException;
+
+    /**
+     * Optional pre-branch invoked before the synchronous save path. When the endpoint has opted in
+     * to async execution (via {@link AbstractApiAction#supportsAsync()}) and the caller passed
+     * {@code wait_for_completion=false}, the implementation submits the update through the task
+     * framework and writes a {@code {"task":"nodeId:taskId"}} response to {@code channel}, returning
+     * {@code true} so the outer handler skips the sync path.
+     *
+     * <p>Returning {@code false} indicates the sync path should proceed unchanged.
+     */
+    @FunctionalInterface
+    interface AsyncTaskSubmitter {
+        boolean trySubmit(
+            RestChannel channel,
+            RestRequest request,
+            Client client,
+            SecurityDynamicConfiguration<?> configuration,
+            String entityName,
+            String successMessage,
+            RestStatus successStatus
+        );
+
+        AsyncTaskSubmitter NEVER = (channel, request, client, configuration, entityName, successMessage, successStatus) -> false;
+    }
 
     final class RequestHandlersBuilder {
 
@@ -64,6 +87,8 @@ public interface RequestHandler {
             Client,
             SecurityDynamicConfiguration<?>,
             AbstractApiAction.OnSucessActionListener<IndexResponse>> saveOrUpdateConfigurationHandler;
+
+        private AsyncTaskSubmitter asyncTaskSubmitter = AsyncTaskSubmitter.NEVER;
 
         private Predicate<RestRequest> accessHandler;
 
@@ -129,6 +154,11 @@ public interface RequestHandler {
             return this;
         }
 
+        RequestHandlersBuilder withAsyncTaskSubmitter(final AsyncTaskSubmitter asyncTaskSubmitter) {
+            this.asyncTaskSubmitter = Objects.requireNonNull(asyncTaskSubmitter, "asyncTaskSubmitter can't be null");
+            return this;
+        }
+
         public RequestHandlersBuilder onGetRequest(
             final CheckedFunction<RestRequest, ValidationResult<SecurityConfiguration>, IOException> mapper
         ) {
@@ -136,7 +166,7 @@ public interface RequestHandler {
             add(
                 RestRequest.Method.GET,
                 (channel, request, client) -> mapper.apply(request)
-                    .valid(securityConfiguration -> ok(channel, securityConfiguration.configuration()))
+                    .valid(securityConfiguration -> Responses.ok(channel, securityConfiguration.configuration()))
                     .error((status, toXContent) -> response(channel, status, toXContent))
             );
             return this;
@@ -149,7 +179,7 @@ public interface RequestHandler {
             add(
                 RestRequest.Method.GET,
                 (channel, request, client) -> mapper.apply(request)
-                    .valid(toXContent -> ok(channel, toXContent))
+                    .valid(toXContent -> Responses.ok(channel, toXContent))
                     .error((status, toXContent) -> response(channel, status, toXContent))
             );
             return this;
@@ -166,41 +196,61 @@ public interface RequestHandler {
             }
             switch (method) {
                 case PATCH:
-                    add(
-                        method,
-                        (channel, request, client) -> mapper.apply(request)
-                            .valid(
-                                securityConfiguration -> saveOrUpdateConfigurationHandler.apply(
-                                    client,
-                                    securityConfiguration.configuration(),
-                                    new AbstractApiAction.OnSucessActionListener<>(channel) {
-                                        @Override
-                                        public void onResponse(IndexResponse indexResponse) {
-                                            if (securityConfiguration.maybeEntityName().isPresent()) {
-                                                ok(channel, "'" + securityConfiguration.entityName() + "' updated.");
-                                            } else {
-                                                ok(channel, "Resource updated.");
-                                            }
-                                        }
-                                    }
-                                )
-                            )
-                            .error((status, toXContent) -> response(channel, status, toXContent))
-                    );
-                    break;
-                case PUT:
                     add(method, (channel, request, client) -> mapper.apply(request).valid(securityConfiguration -> {
+                        // Message + status for both the sync response body AND the async
+                        // stored task result must be identical, so we resolve them once
+                        // here based on the loaded configuration state.
+                        final boolean hasEntityName = securityConfiguration.maybeEntityName().isPresent();
+                        final String entityName = hasEntityName ? securityConfiguration.entityName() : null;
+                        final String successMessage = hasEntityName ? "'" + entityName + "' updated." : "Resource updated.";
+                        final RestStatus successStatus = RestStatus.OK;
+                        if (asyncTaskSubmitter.trySubmit(
+                            channel,
+                            request,
+                            client,
+                            securityConfiguration.configuration(),
+                            entityName,
+                            successMessage,
+                            successStatus
+                        )) {
+                            return;
+                        }
                         saveOrUpdateConfigurationHandler.apply(
                             client,
                             securityConfiguration.configuration(),
                             new AbstractApiAction.OnSucessActionListener<>(channel) {
                                 @Override
-                                public void onResponse(IndexResponse response) {
-                                    if (securityConfiguration.entityExists()) {
-                                        ok(channel, "'" + securityConfiguration.entityName() + "' updated.");
-                                    } else {
-                                        created(channel, "'" + securityConfiguration.entityName() + "' created.");
-                                    }
+                                public void onResponse(IndexResponse indexResponse) {
+                                    response(channel, successStatus, Responses.payload(successStatus, successMessage));
+                                }
+                            }
+                        );
+                    }).error((status, toXContent) -> response(channel, status, toXContent)));
+                    break;
+                case PUT:
+                    add(method, (channel, request, client) -> mapper.apply(request).valid(securityConfiguration -> {
+                        final boolean isCreate = !securityConfiguration.entityExists();
+                        final RestStatus successStatus = isCreate ? RestStatus.CREATED : RestStatus.OK;
+                        final String entityName = securityConfiguration.entityName();
+                        final String successMessage = "'" + entityName + "' " + (isCreate ? "created" : "updated") + ".";
+                        if (asyncTaskSubmitter.trySubmit(
+                            channel,
+                            request,
+                            client,
+                            securityConfiguration.configuration(),
+                            entityName,
+                            successMessage,
+                            successStatus
+                        )) {
+                            return;
+                        }
+                        saveOrUpdateConfigurationHandler.apply(
+                            client,
+                            securityConfiguration.configuration(),
+                            new AbstractApiAction.OnSucessActionListener<>(channel) {
+                                @Override
+                                public void onResponse(IndexResponse indexResponse) {
+                                    response(channel, successStatus, Responses.payload(successStatus, successMessage));
                                 }
                             }
                         );
@@ -208,23 +258,32 @@ public interface RequestHandler {
                     break;
                 case DELETE:
                     Objects.requireNonNull(mapper, "onDeleteRequest request handler can't be null");
-                    add(
-                        RestRequest.Method.DELETE,
-                        (channel, request, client) -> mapper.apply(request)
-                            .valid(
-                                securityConfiguration -> saveOrUpdateConfigurationHandler.apply(
-                                    client,
-                                    securityConfiguration.configuration(),
-                                    new AbstractApiAction.OnSucessActionListener<>(channel) {
-                                        @Override
-                                        public void onResponse(IndexResponse response) {
-                                            ok(channel, "'" + securityConfiguration.entityName() + "' deleted.");
-                                        }
-                                    }
-                                )
-                            )
-                            .error((status, toXContent) -> response(channel, status, toXContent))
-                    );
+                    add(RestRequest.Method.DELETE, (channel, request, client) -> mapper.apply(request).valid(securityConfiguration -> {
+                        final String entityName = securityConfiguration.entityName();
+                        final String successMessage = "'" + entityName + "' deleted.";
+                        final RestStatus successStatus = RestStatus.OK;
+                        if (asyncTaskSubmitter.trySubmit(
+                            channel,
+                            request,
+                            client,
+                            securityConfiguration.configuration(),
+                            entityName,
+                            successMessage,
+                            successStatus
+                        )) {
+                            return;
+                        }
+                        saveOrUpdateConfigurationHandler.apply(
+                            client,
+                            securityConfiguration.configuration(),
+                            new AbstractApiAction.OnSucessActionListener<>(channel) {
+                                @Override
+                                public void onResponse(IndexResponse indexResponse) {
+                                    response(channel, successStatus, Responses.payload(successStatus, successMessage));
+                                }
+                            }
+                        );
+                    }).error((status, toXContent) -> response(channel, status, toXContent)));
                     break;
             }
             return this;

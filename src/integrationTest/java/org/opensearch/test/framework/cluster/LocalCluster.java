@@ -54,6 +54,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.test.framework.ApiTokenConfig;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.AuthzDomain;
@@ -461,6 +462,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder nodeSetting(String key, Object value) {
+            nodeOverrideSettingsBuilder.put(key, String.valueOf(value));
+            return this;
+        }
+
         public Builder nodeSpecificSettings(int nodeNumber, Map<String, Object> settings) {
             if (!nodeSpecificOverrideSettingsBuilder.containsKey(nodeNumber)) {
                 Settings.Builder builderCopy = Settings.builder();
@@ -659,6 +665,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
+        public Builder apiToken(ApiTokenConfig apiTokenConfig) {
+            testSecurityConfig.apiToken(apiTokenConfig);
+            return this;
+        }
+
         public Builder loadConfigurationIntoIndex(boolean loadConfigurationIntoIndex) {
             this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
             return this;
@@ -671,6 +682,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
         public Builder doNotFailOnForbidden(boolean doNotFailOnForbidden) {
             testSecurityConfig.doNotFailOnForbidden(doNotFailOnForbidden);
+            return this;
+        }
+
+        public Builder privilegesEvaluationType(String privilegesEvaluationType) {
+            testSecurityConfig.privilegesEvaluationType(privilegesEvaluationType);
             return this;
         }
 

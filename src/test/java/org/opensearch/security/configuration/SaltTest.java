@@ -13,6 +13,7 @@ package org.opensearch.security.configuration;
 
 import java.nio.charset.StandardCharsets;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -26,7 +27,7 @@ import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.configuration.Salt.SALT_SIZE;
 import static org.junit.Assert.assertArrayEquals;
 
-public class SaltTest {
+public class SaltTest extends LuceneTestCase {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -39,6 +40,22 @@ public class SaltTest {
         // assert
         assertThat(salt.getSalt16().length, is(SALT_SIZE));
         assertArrayEquals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
+    }
+
+    @Test
+    public void testDefaultSaltRejectedInProduction() {
+        // assert
+        thrown.expect(OpenSearchException.class);
+        thrown.expectMessage("Default compliance salt is not allowed in production");
+
+        // act - validation rejects default salt when allow_unsafe_democertificates is false
+        Salt.validateSaltSettings(Settings.EMPTY);
+    }
+
+    @Test
+    public void testDefaultSaltAllowedWithDemoFlag() {
+        // should not throw
+        Salt.validateSaltSettings(Settings.builder().put(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, true).build());
     }
 
     @Test

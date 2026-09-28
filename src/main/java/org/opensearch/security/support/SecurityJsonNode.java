@@ -1,4 +1,5 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright 2015-2018 floragunn GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,10 +23,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
-
 import org.opensearch.security.DefaultObjectMapper;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeType;
 
 public final class SecurityJsonNode {
 

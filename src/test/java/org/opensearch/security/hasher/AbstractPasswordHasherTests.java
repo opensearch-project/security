@@ -13,6 +13,7 @@ package org.opensearch.security.hasher;
 
 import java.nio.CharBuffer;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -22,7 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 
-public abstract class AbstractPasswordHasherTests {
+public abstract class AbstractPasswordHasherTests extends LuceneTestCase {
 
     PasswordHasher passwordHasher;
 

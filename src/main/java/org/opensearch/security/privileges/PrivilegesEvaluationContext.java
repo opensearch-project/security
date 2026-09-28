@@ -11,16 +11,21 @@
 package org.opensearch.security.privileges;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.security.privileges.dlsfls.DlsRequestHeadersUtil;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -38,13 +43,22 @@ public class PrivilegesEvaluationContext {
     private final User user;
     private final String action;
     private final ActionRequest request;
-    private IndexResolverReplacer.Resolved resolvedRequest;
+
+    private OptionallyResolvedIndices resolvedIndices;
     private Map<String, IndexAbstraction> indicesLookup;
     private final Task task;
     private ImmutableSet<String> mappedRoles;
-    private final IndexResolverReplacer indexResolverReplacer;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
+
+    private final IndicesRequestResolver indicesRequestResolver;
     private final Supplier<ClusterState> clusterStateSupplier;
+
+    /**
+     * Maps index names to a boolean reflecting the return value of DlsFlsValve.hasFlsOrFieldMasking().
+     * We do not have to care about cache invalidation here as the life cycle of PrivilegesEvaluationContext is limited
+     * to a single request on a single node.
+     */
+    private final ConcurrentHashMap<String, Boolean> hasFlsOrFieldMaskingCache = new ConcurrentHashMap<>();
 
     /**
      * Stores the ActionPrivileges instance to be used for this request. Plugin system users or users created from
@@ -59,26 +73,37 @@ public class PrivilegesEvaluationContext {
      */
     private final Map<String, WildcardMatcher> renderedPatternTemplateCache = new HashMap<>();
 
+    private final ActionRequestMetadata<?, ?> actionRequestMetadata;
+
+    /**
+     * allowlisted headers can be accessed in DLS queries.
+     */
+    private final List<DlsRequestHeadersUtil.DlsRequestHeader> headersForDls;
+
     public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
         String action,
         ActionRequest request,
+        ActionRequestMetadata<?, ?> actionRequestMetadata,
         Task task,
-        IndexResolverReplacer indexResolverReplacer,
         IndexNameExpressionResolver indexNameExpressionResolver,
+        IndicesRequestResolver indicesRequestResolver,
         Supplier<ClusterState> clusterStateSupplier,
-        ActionPrivileges actionPrivileges
+        ActionPrivileges actionPrivileges,
+        List<DlsRequestHeadersUtil.DlsRequestHeader> headersForDls
     ) {
         this.user = user;
         this.mappedRoles = mappedRoles;
         this.action = action;
         this.request = request;
         this.clusterStateSupplier = clusterStateSupplier;
-        this.indexResolverReplacer = indexResolverReplacer;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
+        this.indicesRequestResolver = indicesRequestResolver;
         this.task = task;
+        this.actionRequestMetadata = actionRequestMetadata;
         this.actionPrivileges = actionPrivileges;
+        this.headersForDls = (headersForDls == null) ? List.of() : headersForDls;
     }
 
     public User getUser() {
@@ -118,12 +143,14 @@ public class PrivilegesEvaluationContext {
         return request;
     }
 
-    public IndexResolverReplacer.Resolved getResolvedRequest() {
-        IndexResolverReplacer.Resolved result = this.resolvedRequest;
-
+    public OptionallyResolvedIndices getResolvedIndices() {
+        OptionallyResolvedIndices result = this.resolvedIndices;
         if (result == null) {
-            result = indexResolverReplacer.resolveRequest(request);
-            this.resolvedRequest = result;
+            this.resolvedIndices = result = this.indicesRequestResolver.resolve(
+                this.request,
+                this.actionRequestMetadata,
+                this.clusterStateSupplier
+            );
         }
 
         return result;
@@ -137,20 +164,8 @@ public class PrivilegesEvaluationContext {
         return mappedRoles;
     }
 
-    /**
-     * Note: Ideally, mappedRoles would be an unmodifiable attribute. PrivilegesEvaluator however contains logic
-     * related to OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION which first validates roles and afterwards modifies
-     * them again. Thus, we need to be able to set this attribute.
-     *
-     * However, this method should be only used for this one particular phase. Normally, all roles should be determined
-     * upfront and stay constant during the whole privilege evaluation process.
-     */
-    void setMappedRoles(ImmutableSet<String> mappedRoles) {
-        this.mappedRoles = mappedRoles;
-    }
-
-    public Supplier<ClusterState> getClusterStateSupplier() {
-        return clusterStateSupplier;
+    public ClusterState clusterState() {
+        return clusterStateSupplier.get();
     }
 
     public Map<String, IndexAbstraction> getIndicesLookup() {
@@ -174,6 +189,10 @@ public class PrivilegesEvaluationContext {
 
     @Override
     public String toString() {
+        final var headersForDlsOutput = headersForDls.isEmpty()
+            ? ""
+            : ", headersForDls[keys]="
+                + headersForDls.stream().map(DlsRequestHeadersUtil.DlsRequestHeader::name).collect(Collectors.joining(", "));
         return "PrivilegesEvaluationContext{"
             + "user="
             + user
@@ -182,10 +201,19 @@ public class PrivilegesEvaluationContext {
             + '\''
             + ", request="
             + request
-            + ", resolvedRequest="
-            + resolvedRequest
+            + ", resolvedIndices="
+            + resolvedIndices
             + ", mappedRoles="
             + mappedRoles
+            + headersForDlsOutput
             + '}';
+    }
+
+    public ConcurrentHashMap<String, Boolean> hasFlsOrFieldMaskingCache() {
+        return hasFlsOrFieldMaskingCache;
+    }
+
+    public List<DlsRequestHeadersUtil.DlsRequestHeader> getHeadersForDls() {
+        return headersForDls;
     }
 }

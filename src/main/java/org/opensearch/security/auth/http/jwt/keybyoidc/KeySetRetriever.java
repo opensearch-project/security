@@ -232,10 +232,8 @@ public class KeySetRetriever implements KeySetProvider {
                     throw new AuthenticatorUnavailableException("Error while getting " + openIdConnectEndpoint + ": Empty response entity");
                 }
 
-                OpenIdProviderConfiguration parsedEntity = DefaultObjectMapper.objectMapper.readValue(
-                    httpEntity.getContent(),
-                    OpenIdProviderConfiguration.class
-                );
+                OpenIdProviderConfiguration parsedEntity = DefaultObjectMapper.objectMapper()
+                    .readValue(httpEntity.getContent(), OpenIdProviderConfiguration.class);
 
                 return parsedEntity.getJwksUri();
 

@@ -19,8 +19,8 @@ import org.opensearch.security.util.FakeRestRequest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.CERTS_INFO_ACTION;
-import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator.RELOAD_CERTS_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
+import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.RELOAD_CERTS_ACTION;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -50,8 +50,8 @@ public class SecuritySSLCertsApiActionValidationTest extends AbstractApiActionVa
             true,
             securityApiDependencies
         );
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.SSL, CERTS_INFO_ACTION)).thenReturn(false);
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.SSL, RELOAD_CERTS_ACTION)).thenReturn(false);
+        when(restApiAuthorizationEvaluator.isCurrentUserAdminFor(Endpoint.SSL, CERTS_INFO_ACTION)).thenReturn(false);
+        when(restApiAuthorizationEvaluator.isCurrentUserAdminFor(Endpoint.SSL, RELOAD_CERTS_ACTION)).thenReturn(false);
         assertFalse(securitySSLCertsApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
         assertFalse(securitySSLCertsApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
 
@@ -71,8 +71,8 @@ public class SecuritySSLCertsApiActionValidationTest extends AbstractApiActionVa
             true,
             securityApiDependencies
         );
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.SSL, CERTS_INFO_ACTION)).thenReturn(true);
-        when(restApiAdminPrivilegesEvaluator.isCurrentUserAdminFor(Endpoint.SSL, RELOAD_CERTS_ACTION)).thenReturn(true);
+        when(restApiAuthorizationEvaluator.isCurrentUserAdminFor(Endpoint.SSL, CERTS_INFO_ACTION)).thenReturn(true);
+        when(restApiAuthorizationEvaluator.isCurrentUserAdminFor(Endpoint.SSL, RELOAD_CERTS_ACTION)).thenReturn(true);
         assertTrue(securitySSLCertsApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.GET).build()));
         assertTrue(securitySSLCertsApiAction.accessHandler(FakeRestRequest.builder().withMethod(RestRequest.Method.PUT).build()));
 

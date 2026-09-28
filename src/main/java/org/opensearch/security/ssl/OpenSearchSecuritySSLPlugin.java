@@ -1,4 +1,5 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright 2015-2017 floragunn GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +31,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.fasterxml.jackson.databind.InjectableValues;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
@@ -92,6 +92,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
+import tools.jackson.databind.InjectableValues;
 
 import static org.opensearch.common.network.NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_AUX_CLIENTAUTH_MODE;

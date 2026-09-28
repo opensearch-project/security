@@ -20,9 +20,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.opensearch.ExceptionsHelper;
@@ -45,6 +42,12 @@ import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
+
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -69,7 +72,9 @@ public class Utils {
     public final static String OPENDISTRO_API_DEPRECATION_MESSAGE =
         "[_opendistro/_security] is a deprecated endpoint path. Please use _plugins/_security instead.";
 
-    private static final ObjectMapper internalMapper = new ObjectMapper();
+    private static final ObjectMapper internalMapper = JsonMapper.builder()
+        .accessorNaming(new DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
+        .build();
 
     public static Map<String, Object> convertJsonToxToStructuredMap(ToXContent jsonContent) {
         Map<String, Object> map = null;

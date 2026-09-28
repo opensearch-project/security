@@ -160,6 +160,30 @@ public abstract class PrivilegeEvaluatorResponseMatcher extends DiagnosingMatche
         };
     }
 
+    public static PrivilegeEvaluatorResponseMatcher reason(String reason) {
+        return new PrivilegeEvaluatorResponseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("The reason is ");
+                description.appendValue(reason);
+            }
+
+            @Override
+            protected boolean matches(PrivilegesEvaluatorResponse response, Description mismatchDescription) {
+                if (response.getReason() == null) {
+                    mismatchDescription.appendText("no reason specified");
+                    return false;
+                }
+                if (!response.getReason().contains(reason)) {
+                    mismatchDescription.appendText("getReason() returns ").appendValue(response.getReason());
+                    return false;
+                }
+
+                return true;
+            }
+        };
+    }
+
     @Override
     protected boolean matches(Object o, Description mismatchDescription) {
         if (!(o instanceof PrivilegesEvaluatorResponse)) {

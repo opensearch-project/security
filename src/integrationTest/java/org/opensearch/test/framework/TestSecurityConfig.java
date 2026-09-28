@@ -45,9 +45,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Streams;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -77,6 +74,10 @@ import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCreden
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.transport.client.Client;
 
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLFactory;
+
 import static java.util.Arrays.asList;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -93,8 +94,6 @@ import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE
 * the configuration index of the security plugin.
 */
 public class TestSecurityConfig {
-
-    public static final String REST_ADMIN_REST_API_ACCESS = "rest_admin__rest_api_access";
 
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
@@ -143,6 +142,11 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public TestSecurityConfig privilegesEvaluationType(String privilegesEvaluationType) {
+        config.privilegesEvaluationType(privilegesEvaluationType);
+        return this;
+    }
+
     public TestSecurityConfig xff(XffConfig xffConfig) {
         config.xffConfig(xffConfig);
         return this;
@@ -150,6 +154,11 @@ public class TestSecurityConfig {
 
     public TestSecurityConfig onBehalfOf(OnBehalfOfConfig onBehalfOfConfig) {
         config.onBehalfOfConfig(onBehalfOfConfig);
+        return this;
+    }
+
+    public TestSecurityConfig apiToken(ApiTokenConfig apiTokenConfig) {
+        config.apiTokenConfig(apiTokenConfig);
         return this;
     }
 
@@ -178,18 +187,6 @@ public class TestSecurityConfig {
     public TestSecurityConfig users(User... users) {
         for (User user : users) {
             this.user(user);
-        }
-        return this;
-    }
-
-    public TestSecurityConfig withRestAdminUser(final String name, final String... permissions) {
-        if (!internalUsers.containsKey(name)) {
-            user(new User(name).description("REST Admin with permissions: " + Arrays.toString(permissions)).reserved(true));
-            final var roleName = name + "__rest_admin_role";
-            roles(new Role(roleName).clusterPermissions(permissions));
-
-            rolesMapping.computeIfAbsent(roleName, RoleMapping::new).users(name);
-            rolesMapping.computeIfAbsent(REST_ADMIN_REST_API_ACCESS, RoleMapping::new).users(name);
         }
         return this;
     }
@@ -262,26 +259,24 @@ public class TestSecurityConfig {
      * Can be used to simulate invalid configuration or legacy configuration.
      */
     public TestSecurityConfig rawConfigurationDocumentYaml(String configTypeId, String configDocumentAsYaml) {
-        try {
-            if (this.rawConfigurationDocuments == null) {
-                this.rawConfigurationDocuments = new LinkedHashMap<>();
-            }
-
-            JsonNode node = new ObjectMapper(new YAMLFactory()).readTree(configDocumentAsYaml);
-
-            this.rawConfigurationDocuments.put(configTypeId, new ObjectMapper().writeValueAsString(node));
-            return this;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (this.rawConfigurationDocuments == null) {
+            this.rawConfigurationDocuments = new LinkedHashMap<>();
         }
+
+        JsonNode node = new ObjectMapper(new YAMLFactory()).readTree(configDocumentAsYaml);
+
+        this.rawConfigurationDocuments.put(configTypeId, new ObjectMapper().writeValueAsString(node));
+        return this;
     }
 
     public static class Config implements ToXContentObject {
         private boolean anonymousAuth;
 
         private Boolean doNotFailOnForbidden;
+        private String privilegesEvaluationType;
         private XffConfig xffConfig;
         private OnBehalfOfConfig onBehalfOfConfig;
+        private ApiTokenConfig apiTokenConfig;
         private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
         private AuthFailureListeners authFailureListeners;
@@ -297,6 +292,11 @@ public class TestSecurityConfig {
             return this;
         }
 
+        public Config privilegesEvaluationType(String privilegesEvaluationType) {
+            this.privilegesEvaluationType = privilegesEvaluationType;
+            return this;
+        }
+
         public Config xffConfig(XffConfig xffConfig) {
             this.xffConfig = xffConfig;
             return this;
@@ -304,6 +304,11 @@ public class TestSecurityConfig {
 
         public Config onBehalfOfConfig(OnBehalfOfConfig onBehalfOfConfig) {
             this.onBehalfOfConfig = onBehalfOfConfig;
+            return this;
+        }
+
+        public Config apiTokenConfig(ApiTokenConfig apiTokenConfig) {
+            this.apiTokenConfig = apiTokenConfig;
             return this;
         }
 
@@ -331,6 +336,10 @@ public class TestSecurityConfig {
                 xContentBuilder.field("on_behalf_of", onBehalfOfConfig);
             }
 
+            if (apiTokenConfig != null) {
+                xContentBuilder.field("api_tokens", apiTokenConfig);
+            }
+
             if (anonymousAuth || (xffConfig != null)) {
                 xContentBuilder.startObject("http");
                 xContentBuilder.field("anonymous_auth_enabled", anonymousAuth);
@@ -341,6 +350,9 @@ public class TestSecurityConfig {
             }
             if (doNotFailOnForbidden != null) {
                 xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
+            }
+            if (privilegesEvaluationType != null) {
+                xContentBuilder.field("privileges_evaluation_type", privilegesEvaluationType);
             }
             xContentBuilder.field("authc", authcDomainMap);
             if (authzDomainMap.isEmpty() == false) {

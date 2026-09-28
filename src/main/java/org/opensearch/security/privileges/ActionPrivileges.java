@@ -13,7 +13,7 @@ package org.opensearch.security.privileges;
 
 import java.util.Set;
 
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 
 /**
  * Defines the general interface for evaluating privileges on actions. References to ActionPrivileges instances
@@ -77,8 +77,17 @@ public interface ActionPrivileges {
     PrivilegesEvaluatorResponse hasIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
-        IndexResolverReplacer.Resolved resolvedIndices
+        OptionallyResolvedIndices resolvedIndices
     );
+
+    /**
+     * Checks whether this instance provides privileges for the provided actions on any possible index.
+     * <p>
+     * Returns a PrivilegesEvaluatorResponse with allowed=true if privileges are available.
+     * <p>
+     * If no privileges are available, this method will return PrivilegeEvaluatorResponse.insufficient()
+     */
+    PrivilegesEvaluatorResponse hasIndexPrivilegeForAnyIndex(PrivilegesEvaluationContext context, Set<String> actions);
 
     /**
      * Checks whether this instance provides explicit privileges for the combination of the provided action,
@@ -90,7 +99,7 @@ public interface ActionPrivileges {
     PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
         PrivilegesEvaluationContext context,
         Set<String> actions,
-        IndexResolverReplacer.Resolved resolvedIndices
+        OptionallyResolvedIndices resolvedIndices
     );
 
     ActionPrivileges EMPTY = new ActionPrivileges() {
@@ -113,8 +122,13 @@ public interface ActionPrivileges {
         public PrivilegesEvaluatorResponse hasIndexPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices
+            OptionallyResolvedIndices resolvedIndices
         ) {
+            return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
+        }
+
+        @Override
+        public PrivilegesEvaluatorResponse hasIndexPrivilegeForAnyIndex(PrivilegesEvaluationContext context, Set<String> actions) {
             return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
         }
 
@@ -122,7 +136,7 @@ public interface ActionPrivileges {
         public PrivilegesEvaluatorResponse hasExplicitIndexPrivilege(
             PrivilegesEvaluationContext context,
             Set<String> actions,
-            IndexResolverReplacer.Resolved resolvedIndices
+            OptionallyResolvedIndices resolvedIndices
         ) {
             return PrivilegesEvaluatorResponse.insufficient("all of " + actions).reason("User has no privileges");
         }

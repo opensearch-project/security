@@ -104,6 +104,8 @@ class TestJwts {
 
     static final String MC_COY_SIGNED_RSA_1 = createSigned(MC_COY, TestJwk.RSA_1);
 
+    static final String MC_COY_SIGNED_EC_1 = createSigned(MC_COY, TestJwk.EC_1);
+
     static final String MC_COY_SIGNED_RSA_X = createSigned(MC_COY, TestJwk.RSA_X);
 
     static final String MC_COY_EXPIRED_SIGNED_OCT_1 = createSigned(MC_COY_EXPIRED, TestJwk.OCT_1);

@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import org.apache.hc.core5.http.HttpHost;
 
 import org.opensearch.client.Request;
@@ -26,6 +27,9 @@ import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.io.PathUtils;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.commons.rest.SecureRestClientBuilder;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
+import org.opensearch.test.BouncyCastleThreadFilter;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
@@ -41,6 +45,11 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_H
  * Modify this test class as needed
  */
 @SuppressWarnings("unchecked")
+// Re-lists BouncyCastleThreadFilter because ThreadLeakControl resolves @ThreadLeakFilters with
+// firstAnnotated(), so the nearest declaration replaces -- rather than merges with -- the one on
+// OpenSearchTestCase. BC FIPS is registered as a provider for these tasks, and its entropy daemon
+// starts on first use, which lands inside suite scope.
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
 public class SecurityRestTestCase extends OpenSearchRestTestCase {
 
     private static final String CERT_FILE_DIRECTORY = "sanity-tests/";
@@ -65,7 +74,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
             .put(SECURITY_SSL_HTTP_ENABLED, isHttps())
             // this is incorrect on common-utils side. It should be using `pemtrustedcas_filepath`
             .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "root-ca.pem")
-            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, CERT_FILE_DIRECTORY + "kirk-keystore.jks")
+            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, FileHelper.resolveStore(CERT_FILE_DIRECTORY + "kirk-keystore").path())
             .put(SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.insecurePropertyName, "changeit")
             .put(SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.insecurePropertyName, "changeit")
             .build();

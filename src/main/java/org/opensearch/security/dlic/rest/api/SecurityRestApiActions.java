@@ -20,6 +20,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -36,8 +37,6 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
-
-import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class SecurityRestApiActions {
 
@@ -59,19 +58,23 @@ public class SecurityRestApiActions {
         final boolean certificatesReloadEnabled,
         final PasswordHasher passwordHasher,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
-        final ResourcePluginInfo resourcePluginInfo
+        final ResourcePluginInfo resourcePluginInfo,
+        final ApiTokenRepository apiTokenRepository
     ) {
+        final var restApiAuthorizationEvaluator = new RestApiAuthorizationEvaluator(
+            settings,
+            adminDns,
+            roleMapper,
+            principalExtractor,
+            configPath,
+            threadPool,
+            privilegesConfiguration
+        );
         final var securityApiDependencies = new SecurityApiDependencies(
             adminDns,
             configurationRepository,
             privilegesConfiguration,
-            new RestApiPrivilegesEvaluator(settings, adminDns, roleMapper, principalExtractor, configPath, threadPool),
-            new RestApiAdminPrivilegesEvaluator(
-                threadPool.getThreadContext(),
-                privilegesConfiguration,
-                adminDns,
-                settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
-            ),
+            restApiAuthorizationEvaluator,
             auditLog,
             settings
         );
@@ -81,7 +84,7 @@ public class SecurityRestApiActions {
                 new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
                 new RolesApiAction(clusterService, threadPool, securityApiDependencies),
                 new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
-                new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies),
+                new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies, apiTokenRepository),
                 new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies),
                 // FIXME Change inheritance for PermissionsInfoAction
                 new PermissionsInfoAction(
@@ -94,6 +97,7 @@ public class SecurityRestApiActions {
                     clusterService,
                     principalExtractor,
                     roleMapper,
+                    privilegesConfiguration,
                     threadPool,
                     auditLog
                 ),

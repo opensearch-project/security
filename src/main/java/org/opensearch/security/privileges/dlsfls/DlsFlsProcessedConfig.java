@@ -10,7 +10,7 @@
  */
 package org.opensearch.security.privileges.dlsfls;
 
-import java.util.Map;
+import java.util.SortedMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,8 +20,7 @@ import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.privileges.ClusterStateMetadataDependentPrivileges;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.privileges.CompiledRoles;
 
 /**
  * Encapsulates the processed DLS/FLS configuration from roles.yml.
@@ -36,15 +35,15 @@ public class DlsFlsProcessedConfig extends ClusterStateMetadataDependentPrivileg
     private long metadataVersionEffective = -1;
 
     public DlsFlsProcessedConfig(
-        SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
-        Map<String, IndexAbstraction> indexMetadata,
+        CompiledRoles compiledRoles,
+        SortedMap<String, IndexAbstraction> indexMetadata,
         NamedXContentRegistry xContentRegistry,
         Settings settings,
         FieldMasking.Config fieldMaskingConfig
     ) {
-        this.documentPrivileges = new DocumentPrivileges(rolesConfiguration, indexMetadata, xContentRegistry, settings);
-        this.fieldPrivileges = new FieldPrivileges(rolesConfiguration, indexMetadata, settings);
-        this.fieldMasking = new FieldMasking(rolesConfiguration, indexMetadata, fieldMaskingConfig, settings);
+        this.documentPrivileges = new DocumentPrivileges(compiledRoles, indexMetadata, xContentRegistry, settings);
+        this.fieldPrivileges = new FieldPrivileges(compiledRoles, indexMetadata, settings);
+        this.fieldMasking = new FieldMasking(compiledRoles, indexMetadata, fieldMaskingConfig, settings);
     }
 
     public DocumentPrivileges getDocumentPrivileges() {
@@ -62,7 +61,7 @@ public class DlsFlsProcessedConfig extends ClusterStateMetadataDependentPrivileg
     @Override
     protected void updateClusterStateMetadata(Metadata metadata) {
         long start = System.currentTimeMillis();
-        Map<String, IndexAbstraction> indexLookup = metadata.getIndicesLookup();
+        SortedMap<String, IndexAbstraction> indexLookup = metadata.getIndicesLookup();
 
         this.documentPrivileges.updateIndices(indexLookup);
         this.fieldPrivileges.updateIndices(indexLookup);

@@ -47,6 +47,7 @@ import com.google.common.collect.Multimaps;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.secure_sm.AccessController;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthenticationBackend;
@@ -57,6 +58,7 @@ import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.http.ApiTokenAuthenticator;
 import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.securityconf.impl.DashboardSignInOption;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
@@ -65,8 +67,6 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authz;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthzDomain;
 import org.opensearch.security.support.ReflectionHelper;
-
-import static org.opensearch.security.util.AuthTokenUtils.isKeyNull;
 
 public class DynamicConfigModelV7 extends DynamicConfigModel {
 
@@ -83,13 +83,15 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
     private final ClusterInfoHolder cih;
+    private final ApiTokenRepository apiTokenRepository;
 
     public DynamicConfigModelV7(
         ConfigV7 config,
         Settings opensearchSettings,
         Path configPath,
         InternalAuthenticationBackend iab,
-        ClusterInfoHolder cih
+        ClusterInfoHolder cih,
+        ApiTokenRepository apiTokenRepository
     ) {
         super();
         this.config = config;
@@ -97,6 +99,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         this.configPath = configPath;
         this.iab = iab;
         this.cih = cih;
+        this.apiTokenRepository = apiTokenRepository;
         buildAAA();
     }
 
@@ -364,13 +367,33 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         }
 
         /*
+         * If the Api token authentication is configured:
+         * Add the ApiToken authbackend in to the auth domains
+         * Challenge: false - no need to iterate through the auth domains again when ApiToken authentication failed
+         * order: -2 - prioritize the Api token authentication when it gets enabled
+         */
+        if (Boolean.TRUE.equals(config.dynamic.api_tokens.getEnabled())) {
+            final AuthDomain _ad = new AuthDomain(
+                new NoOpAuthenticationBackend(Settings.EMPTY, null),
+                new ApiTokenAuthenticator(
+                    Settings.builder().loadFromSource(config.dynamic.api_tokens.configAsJson(), XContentType.JSON).build(),
+                    this.cih.getClusterName(),
+                    apiTokenRepository
+                ),
+                false,
+                -2
+            );
+            restAuthDomains0.add(_ad);
+        }
+
+        /*
          * If the OnBehalfOf (OBO) authentication is configured:
          * Add the OBO authbackend in to the auth domains
          * Challenge: false - no need to iterate through the auth domains again when OBO authentication failed
          * order: -1 - prioritize the OBO authentication when it gets enabled
          */
         Settings oboSettings = getDynamicOnBehalfOfSettings();
-        if (!isKeyNull(oboSettings, "signing_key") && !isKeyNull(oboSettings, "encryption_key")) {
+        if (oboSettings.get("signing_key") != null) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
                 new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.cih.getClusterName()),

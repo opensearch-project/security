@@ -14,7 +14,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
+
+import org.opensearch.common.io.stream.BytesStreamOutput;
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.xcontent.XContentParser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -33,7 +39,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link org.opensearch.security.resources.sharing.ResourceSharing}.
  */
-public class ResourceSharingTests {
+public class ResourceSharingTests extends LuceneTestCase {
 
     private CreatedBy mockCreatedBy(String username) {
         CreatedBy createdBy = mock(CreatedBy.class);
@@ -195,11 +201,11 @@ public class ResourceSharingTests {
     }
 
     @Test
-    public void fetchAccessLevels_returnsLevelsWithWildcardOrIntersection() {
+    public void fetchAccessLevels_returnsLevelsWithIntersection() {
         CreatedBy cb = mockCreatedBy("o");
 
-        // level:read has users {"u1", "*"} -> wildcard = match
-        Recipients rRead = mockRecipients(Map.of(Recipient.USERS, new HashSet<>(Set.of("u1", "*"))));
+        // level:read has users {"u1", "u2"} -> intersection with {"u2"} = match
+        Recipients rRead = mockRecipients(Map.of(Recipient.USERS, new HashSet<>(Set.of("u1", "u2"))));
         // level:write has roles {"roleA"} -> no match for {"roleB"} unless overlap
         Recipients rWrite = mockRecipients(Map.of(Recipient.ROLES, new HashSet<>(Set.of("roleA"))));
         // level:admin has backend {"br1","br2"} -> intersection with {"br2"} = match
@@ -214,9 +220,12 @@ public class ResourceSharingTests {
 
         ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
 
-        // users, looking for anything in {"any"} -> wildcard on read makes it match
-        Set<String> levelsUsers = rs.fetchAccessLevels(Recipient.USERS, Set.of("any"));
+        // users, looking for {"u2"} -> intersection with read makes it match
+        Set<String> levelsUsers = rs.fetchAccessLevels(Recipient.USERS, Set.of("u2"));
         assertEquals(Set.of("read"), levelsUsers);
+
+        // users, looking for {"unknown"} -> no match
+        assertTrue(rs.fetchAccessLevels(Recipient.USERS, Set.of("unknown")).isEmpty());
 
         // roles, looking for {"roleB"} -> no match; {"roleA"} -> match write
         assertTrue(rs.fetchAccessLevels(Recipient.ROLES, Set.of("roleB")).isEmpty());
@@ -260,10 +269,258 @@ public class ResourceSharingTests {
     }
 
     @Test
+    public void getAccessLevelsForUser_includesNamedRecipientsAndGeneralAccess() {
+        CreatedBy cb = mockCreatedBy("owner");
+
+        Recipients readRecipients = mockRecipients(Map.of(Recipient.USERS, new HashSet<>(Set.of("alice"))));
+        Recipients writeRecipients = mockRecipients(Map.of(Recipient.ROLES, new HashSet<>(Set.of("editor"))));
+
+        Map<String, Recipients> info = new HashMap<>();
+        info.put("read", readRecipients);
+        info.put("write", writeRecipients);
+
+        ShareWith sw = mock(ShareWith.class);
+        when(sw.getSharingInfo()).thenReturn(info);
+        when(sw.getGeneralAccess()).thenReturn("read");
+        info.forEach((level, r) -> when(sw.atAccessLevel(level)).thenReturn(r));
+
+        org.opensearch.security.user.User user = new org.opensearch.security.user.User("bob").withSecurityRoles(Set.of("editor"));
+
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
+        Set<String> levels = rs.getAccessLevelsForUser(user);
+
+        // general_access contributes "read"; role "editor" contributes "write"
+        assertEquals(Set.of("read", "write"), levels);
+    }
+
+    @Test
+    public void getAccessLevelsForUser_noGeneralAccess_onlyNamedRecipients() {
+        CreatedBy cb = mockCreatedBy("owner");
+
+        Recipients readRecipients = mockRecipients(Map.of(Recipient.USERS, new HashSet<>(Set.of("alice"))));
+
+        Map<String, Recipients> info = new HashMap<>();
+        info.put("read", readRecipients);
+
+        ShareWith sw = mock(ShareWith.class);
+        when(sw.getSharingInfo()).thenReturn(info);
+        when(sw.getGeneralAccess()).thenReturn(null);
+        when(sw.atAccessLevel("read")).thenReturn(readRecipients);
+
+        org.opensearch.security.user.User user = new org.opensearch.security.user.User("alice");
+
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(cb).shareWith(sw).build();
+        Set<String> levels = rs.getAccessLevelsForUser(user);
+
+        assertEquals(Set.of("read"), levels);
+    }
+
+    @Test
     public void getAllPrincipals_handlesNullShareWith() {
         ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(mockCreatedBy("owner")).build();
         List<String> principals = rs.getAllPrincipals();
         assertEquals(1, principals.size());
         assertEquals("user:owner", principals.get(0));
+    }
+
+    @Test
+    public void fromXContent_parsesTopLevelTenant() throws Exception {
+        String json = """
+            {
+              "resource_id": "r1",
+              "resource_type": "sample-resource",
+              "tenant": "customtenant",
+              "created_by": {
+                "user": "owner"
+              }
+            }
+            """;
+
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing sharing = ResourceSharing.fromXContent(parser);
+            assertEquals("customtenant", sharing.getTenant());
+            assertEquals("owner", sharing.getCreatedBy().getUsername());
+        }
+    }
+
+    // --- Workspace-awareness ------------------------------------------------------------------------
+
+    @Test
+    public void getWorkspaces_defaultsToEmptyWhenAbsent() {
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").createdBy(mockCreatedBy("owner")).build();
+        assertNotNull(rs.getWorkspaces());
+        assertTrue(rs.getWorkspaces().isEmpty());
+    }
+
+    @Test
+    public void getAllPrincipals_doesNotProjectWorkspaces() {
+        // Workspace membership is NOT denormalized into all_shared_principals; read-path visibility uses the
+        // resource's own `workspaces` field in DLS instead. getAllPrincipals stays usernames/roles only.
+        ResourceSharing rs = ResourceSharing.builder()
+            .resourceId("dash-1")
+            .resourceType("dashboard")
+            .createdBy(mockCreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-analytics", "ws-executive")))
+            .build();
+
+        List<String> principals = rs.getAllPrincipals();
+        assertTrue(principals.contains("user:owner"));
+        assertTrue(principals.stream().noneMatch(p -> p.startsWith("workspace:")));
+    }
+
+    @Test
+    public void toXContent_omitsWorkspacesWhenEmpty_andRoundTripsWhenPresent() throws Exception {
+        // Uses a real CreatedBy (not a mock) because this test drives the real toXContent serialization.
+        // Empty -> field omitted (byte-identical to pre-change records).
+        ResourceSharing empty = ResourceSharing.builder()
+            .resourceId("r")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .build();
+        assertFalse(toJson(empty).contains("workspaces"));
+
+        // Present -> serialized and round-trips through fromXContent.
+        ResourceSharing withWs = ResourceSharing.builder()
+            .resourceId("r")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-a", "ws-b")))
+            .build();
+        String json = toJson(withWs);
+        assertTrue(json.contains("workspaces"));
+
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing parsed = ResourceSharing.fromXContent(parser);
+            assertEquals(Set.of("ws-a", "ws-b"), parsed.getWorkspaces());
+        }
+    }
+
+    // ResourceSharing is a ToXContentFragment that opens/closes its own object, so serialize with a bare
+    // builder rather than XContentHelper (which would open an outer object and double-wrap).
+    private static String toJson(ResourceSharing rs) throws Exception {
+        org.opensearch.core.xcontent.XContentBuilder builder = JsonXContent.contentBuilder();
+        rs.toXContent(builder, org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS);
+        return builder.toString();
+    }
+
+    // Note: CreatedBy/ShareWith use identity equality (no value equals), so these assert fields explicitly
+    // rather than whole-object ResourceSharing equality.
+    @Test
+    public void streamSerialization_roundTripsIncludingWorkspaces() throws Exception {
+        ResourceSharing original = ResourceSharing.builder()
+            .resourceId("r1")
+            .resourceType("dashboard")
+            .tenant("t1")
+            .createdBy(new CreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-a", "ws-b")))
+            .build();
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            original.writeTo(out);
+            try (StreamInput in = out.bytes().streamInput()) {
+                ResourceSharing read = new ResourceSharing(in);
+                assertEquals("r1", read.getResourceId());
+                assertEquals("t1", read.getTenant());
+                assertEquals("owner", read.getCreatedBy().getUsername());
+                assertEquals(Set.of("ws-a", "ws-b"), read.getWorkspaces());
+            }
+        }
+    }
+
+    @Test
+    public void streamSerialization_roundTripsWithNoWorkspaces() throws Exception {
+        ResourceSharing original = ResourceSharing.builder()
+            .resourceId("r1")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .build();
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            original.writeTo(out);
+            try (StreamInput in = out.bytes().streamInput()) {
+                ResourceSharing read = new ResourceSharing(in);
+                assertEquals("r1", read.getResourceId());
+                assertEquals("owner", read.getCreatedBy().getUsername());
+                assertTrue(read.getWorkspaces().isEmpty());
+            }
+        }
+    }
+
+    @Test
+    public void fromXContent_parsesWorkspacesArray() throws Exception {
+        String json = """
+            {
+              "resource_id": "r1",
+              "resource_type": "dashboard",
+              "workspaces": ["ws-1", "ws-2"],
+              "created_by": {
+                "user": "owner"
+              }
+            }
+            """;
+
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing sharing = ResourceSharing.fromXContent(parser);
+            assertEquals(Set.of("ws-1", "ws-2"), sharing.getWorkspaces());
+        }
+    }
+
+    @Test
+    public void workspacesSeqNo_survivesXContentRoundTrip() throws Exception {
+        // share()/revoke()/patch() re-index the whole record via toXContent -> fromXContent. The monotonic guard
+        // (workspaces_seq_no) MUST survive that round-trip, otherwise a share would reset it and let an older,
+        // still-retrying reconcile re-apply stale workspaces.
+        ResourceSharing rs = ResourceSharing.builder()
+            .resourceId("r")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-a")))
+            .workspacesSeqNo(42L)
+            .build();
+
+        String json = toJson(rs);
+        assertTrue(json.contains("workspaces_seq_no"));
+        try (XContentParser parser = JsonXContent.jsonXContent.createParser(null, null, json)) {
+            parser.nextToken();
+            ResourceSharing parsed = ResourceSharing.fromXContent(parser);
+            assertEquals(42L, parsed.getWorkspacesSeqNo());
+            assertEquals(Set.of("ws-a"), parsed.getWorkspaces());
+        }
+    }
+
+    @Test
+    public void workspacesSeqNo_omittedWhenUnassigned() throws Exception {
+        // A record that has never been reconciled carries no guard field (stays byte-clean).
+        ResourceSharing rs = ResourceSharing.builder().resourceId("r").resourceType("dashboard").createdBy(new CreatedBy("owner")).build();
+        assertFalse(toJson(rs).contains("workspaces_seq_no"));
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            rs.writeTo(out);
+            try (StreamInput in = out.bytes().streamInput()) {
+                ResourceSharing read = new ResourceSharing(in);
+                assertEquals(org.opensearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO, read.getWorkspacesSeqNo());
+            }
+        }
+    }
+
+    @Test
+    public void streamSerialization_roundTripsWorkspacesSeqNo() throws Exception {
+        ResourceSharing original = ResourceSharing.builder()
+            .resourceId("r1")
+            .resourceType("dashboard")
+            .createdBy(new CreatedBy("owner"))
+            .workspaces(new HashSet<>(Set.of("ws-a")))
+            .workspacesSeqNo(7L)
+            .build();
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            original.writeTo(out);
+            try (StreamInput in = out.bytes().streamInput()) {
+                assertEquals(7L, new ResourceSharing(in).getWorkspacesSeqNo());
+            }
+        }
     }
 }

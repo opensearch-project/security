@@ -17,9 +17,6 @@ import java.nio.file.Files;
 import java.util.Optional;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,11 +34,9 @@ import org.opensearch.security.user.UserService;
 import org.opensearch.transport.client.Client;
 
 import org.mockito.Mock;
-import org.passay.CharacterCharacteristicsRule;
-import org.passay.CharacterRule;
-import org.passay.EnglishCharacterData;
-import org.passay.LengthRule;
-import org.passay.PasswordData;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLFactory;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -127,28 +122,18 @@ public class UserServiceUnitTests {
     @Test
     public void testGeneratedPasswordContents() {
         String password = UserService.generatePassword();
-        PasswordData data = new PasswordData(password);
 
-        LengthRule lengthRule = new LengthRule(8, 16);
+        // Verify length is 8-16
+        assertThat(password.length() >= 8 && password.length() <= 16, is(true));
 
-        CharacterCharacteristicsRule characteristicsRule = new CharacterCharacteristicsRule();
+        // Verify at least 1 lowercase, 1 uppercase, 1 digit
+        assertThat(password.chars().anyMatch(Character::isLowerCase), is(true));
+        assertThat(password.chars().anyMatch(Character::isUpperCase), is(true));
+        assertThat(password.chars().anyMatch(Character::isDigit), is(true));
 
-        // Define M (3 in this case)
-        characteristicsRule.setNumberOfCharacteristics(3);
-
-        // Define elements of N (upper, lower, digit, symbol)
-        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.UpperCase, 1));
-        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.LowerCase, 1));
-        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.Digit, 1));
-        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.Special, 1));
-
-        org.passay.PasswordValidator validator = new org.passay.PasswordValidator(lengthRule, characteristicsRule);
-        validator.validate(data);
-
+        // Verify two generated passwords are different
         String password2 = UserService.generatePassword();
-        PasswordData data2 = new PasswordData(password2);
         assertNotEquals(password, password2);
-        assertNotEquals(data, data2);
     }
 
 }

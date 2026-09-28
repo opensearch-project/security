@@ -28,6 +28,8 @@ package org.opensearch.security.privileges;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
@@ -44,6 +46,13 @@ public class PrivilegesEvaluatorResponse {
     private final CheckTable<String, String> indexToActionCheckTable;
     private String privilegeMatrix;
     private final String reason;
+    private ImmutableList<PrivilegesEvaluatorResponse> subResults;
+
+    /**
+     * If the result was modified, i.e., it was changed from partially ok to ok, because the indices were reduced,
+     * this contains the result before modification.
+     */
+    private final PrivilegesEvaluatorResponse originalResult;
 
     /**
      * Contains issues that were encountered during privilege evaluation. Can be used for logging.
@@ -57,7 +66,9 @@ public class PrivilegesEvaluatorResponse {
         String privilegeMatrix,
         String reason,
         ImmutableList<PrivilegesEvaluationException> evaluationExceptions,
-        CreateIndexRequestBuilder createIndexRequestBuilder
+        CreateIndexRequestBuilder createIndexRequestBuilder,
+        PrivilegesEvaluatorResponse originalResult,
+        ImmutableList<PrivilegesEvaluatorResponse> subResults
     ) {
         this.allowed = allowed;
         this.createIndexRequestBuilder = createIndexRequestBuilder;
@@ -66,6 +77,8 @@ public class PrivilegesEvaluatorResponse {
         this.privilegeMatrix = privilegeMatrix;
         this.reason = reason;
         this.evaluationExceptions = evaluationExceptions;
+        this.originalResult = originalResult;
+        this.subResults = subResults;
     }
 
     public PrivilegesEvaluatorResponse(
@@ -80,6 +93,8 @@ public class PrivilegesEvaluatorResponse {
         this.privilegeMatrix = null;
         this.reason = null;
         this.evaluationExceptions = ImmutableList.of();
+        this.originalResult = null;
+        this.subResults = ImmutableList.of();
     }
 
     /**
@@ -128,7 +143,9 @@ public class PrivilegesEvaluatorResponse {
             this.privilegeMatrix,
             reason,
             this.evaluationExceptions,
-            this.createIndexRequestBuilder
+            this.createIndexRequestBuilder,
+            this.originalResult,
+            this.subResults
         );
     }
 
@@ -136,6 +153,10 @@ public class PrivilegesEvaluatorResponse {
      * Returns a diagnostic string that contains issues that were encountered during privilege evaluation. Can be used for logging.
      */
     public String getEvaluationExceptionInfo() {
+        if (this.evaluationExceptions.isEmpty()) {
+            return "";
+        }
+
         StringBuilder result = new StringBuilder("Exceptions encountered during privilege evaluation:\n");
 
         for (PrivilegesEvaluationException evaluationException : this.evaluationExceptions) {
@@ -160,7 +181,9 @@ public class PrivilegesEvaluatorResponse {
             this.privilegeMatrix,
             this.reason,
             ImmutableList.<PrivilegesEvaluationException>builder().addAll(this.evaluationExceptions).addAll(evaluationExceptions).build(),
-            this.createIndexRequestBuilder
+            this.createIndexRequestBuilder,
+            this.originalResult,
+            this.subResults
         );
     }
 
@@ -172,7 +195,24 @@ public class PrivilegesEvaluatorResponse {
         String result = this.privilegeMatrix;
 
         if (result == null) {
-            result = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            String topLevelMatrix;
+
+            if (this.indexToActionCheckTable != null) {
+                topLevelMatrix = this.indexToActionCheckTable.toTableString("ok", "MISSING");
+            } else {
+                topLevelMatrix = "n/a";
+            }
+
+            if (subResults.isEmpty()) {
+                result = topLevelMatrix;
+            } else {
+                StringBuilder resultBuilder = new StringBuilder(topLevelMatrix);
+                for (PrivilegesEvaluatorResponse subResult : subResults) {
+                    resultBuilder.append("\n");
+                    resultBuilder.append(subResult.getPrivilegeMatrix());
+                }
+                result = resultBuilder.toString();
+            }
             this.privilegeMatrix = result;
         }
         return result;
@@ -194,7 +234,73 @@ public class PrivilegesEvaluatorResponse {
             this.privilegeMatrix,
             this.reason,
             this.evaluationExceptions,
-            createIndexRequestBuilder
+            createIndexRequestBuilder,
+            this.originalResult,
+            this.subResults
+        );
+    }
+
+    public PrivilegesEvaluatorResponse originalResult() {
+        return this.originalResult;
+    }
+
+    public PrivilegesEvaluatorResponse originalResult(PrivilegesEvaluatorResponse originalResult) {
+        if (originalResult != null) {
+            ImmutableList<PrivilegesEvaluationException> evaluationExceptions = this.evaluationExceptions;
+            if (!originalResult.evaluationExceptions.isEmpty()) {
+                evaluationExceptions = ImmutableList.<PrivilegesEvaluationException>builder()
+                    .addAll(evaluationExceptions)
+                    .addAll(originalResult.evaluationExceptions)
+                    .build();
+            }
+
+            return new PrivilegesEvaluatorResponse(
+                this.allowed,
+                this.onlyAllowedForIndices,
+                this.indexToActionCheckTable,
+                this.privilegeMatrix,
+                this.reason,
+                evaluationExceptions,
+                this.createIndexRequestBuilder,
+                originalResult,
+                this.subResults
+            );
+        } else {
+            return this;
+        }
+    }
+
+    /**
+     * Returns true if we have all the privileges for the request without having to reduce indices inside the request.
+     */
+    public boolean privilegesAreComplete() {
+        if (originalResult != null && !originalResult.privilegesAreComplete()) {
+            return false;
+        } else if (indexToActionCheckTable != null && !indexToActionCheckTable.isComplete()) {
+            return false;
+        } else if (!subResults.isEmpty() && subResults.stream().anyMatch(subResult -> !subResult.privilegesAreComplete())) {
+            return false;
+        } else {
+            return this.allowed;
+        }
+    }
+
+    /**
+     * Marks an existing response (potentially ok or partially ok) as insufficient due to missing privileges in sub-results.
+     */
+    public PrivilegesEvaluatorResponse insufficient(List<PrivilegesEvaluatorResponse> subResults) {
+        return new PrivilegesEvaluatorResponse(
+            false,
+            ImmutableSet.of(),
+            this.indexToActionCheckTable,
+            this.privilegeMatrix,
+            this.reason != null
+                ? this.reason
+                : subResults.stream().map(result -> result.reason).filter(Objects::nonNull).findFirst().orElse(null),
+            this.evaluationExceptions,
+            this.createIndexRequestBuilder,
+            this.originalResult,
+            ImmutableList.<PrivilegesEvaluatorResponse>builder().addAll(this.subResults).addAll(subResults).build()
         );
     }
 
@@ -211,6 +317,10 @@ public class PrivilegesEvaluatorResponse {
 
     public static PrivilegesEvaluatorResponse ok() {
         return new PrivilegesEvaluatorResponse(true, ImmutableSet.of(), null);
+    }
+
+    public static PrivilegesEvaluatorResponse ok(CheckTable<String, String> indexToActionCheckTable) {
+        return new PrivilegesEvaluatorResponse(true, ImmutableSet.of(), indexToActionCheckTable);
     }
 
     public static PrivilegesEvaluatorResponse partiallyOk(

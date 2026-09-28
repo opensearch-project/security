@@ -19,6 +19,7 @@ import javax.naming.ldap.LdapName;
 import org.opensearch.secure_sm.AccessController;
 
 import org.ldaptive.ConnectionFactory;
+import org.ldaptive.DerefAliases;
 import org.ldaptive.FilterTemplate;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
@@ -51,6 +52,7 @@ public class LdapHelper {
                     .dn(baseDn)
                     .filter(filter)
                     .scope(searchScope)
+                    .aliases(DerefAliases.ALWAYS)
                     .returnAttributes(returnAttributes)
                     .build();
 

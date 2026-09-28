@@ -17,11 +17,17 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IntSummaryStatistics;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -39,6 +45,7 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.common.util.CollectionUtils;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.rest.RestRequest;
@@ -132,6 +139,28 @@ public final class AuditMessage {
     public static final String COMPLIANCE_OPERATION = "audit_compliance_operation";
     public static final String COMPLIANCE_DOC_VERSION = "audit_compliance_doc_version";
 
+    public static final String SETTINGS_CHANGES = "audit_settings_changes";
+
+    public static final String SPLIT_MESSAGE_IDENTIFIER = "audit_split_message_id";
+
+    // Resource Sharing audit fields
+    public static final String RESOURCE_ID = "audit_resource_id";
+    public static final String RESOURCE_TYPE = "audit_resource_type";
+    public static final String RESOURCE_INDEX = "audit_resource_index";
+    public static final String RESOURCE_ACCESS_RESULT = "audit_resource_access_result";
+    public static final String RESOURCE_SHARING_ACTION = "audit_resource_sharing_action";
+    public static final String RESOURCE_SHARING_RESULT = "audit_resource_sharing_result";
+    public static final String RESOURCE_RECIPIENTS_ADDED = "audit_resource_recipients_added";
+    public static final String RESOURCE_RECIPIENTS_REVOKED = "audit_resource_recipients_revoked";
+    public static final String RESOURCE_SHARE_WITH = "audit_resource_share_with";
+
+    public static final String REQUEST_ID = "audit_request_id";
+
+    // Audit field enrichment — high-value fields for investigability
+    public static final String USER_AGENT = "audit_request_user_agent";
+    public static final String USER_ROLES = "audit_request_user_roles";
+    public static final String AUTH_METHOD = "audit_request_auth_method";
+
     private static final DateTimeFormatter DEFAULT_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
     private final Map<String, Object> auditInfo = new HashMap<String, Object>(50);
     private final AuditCategory msgCategory;
@@ -160,6 +189,12 @@ public final class AuditMessage {
     public void addRemoteAddress(TransportAddress remoteAddress) {
         if (remoteAddress != null && remoteAddress.getAddress() != null) {
             auditInfo.put(REMOTE_ADDRESS, remoteAddress.getAddress());
+        }
+    }
+
+    public void addRequestId(String requestId) {
+        if (requestId != null && !requestId.isEmpty()) {
+            auditInfo.put(REQUEST_ID, requestId);
         }
     }
 
@@ -399,7 +434,23 @@ public final class AuditMessage {
             addRestParams(request.params(), filter);
             addRestMethod(request.method());
 
-            if (filter.shouldLogRequestBody()) {
+            // Extract User-Agent as a top-level field for easy filtering.
+            // Respects the ignore_headers configuration — uses the actual header key from the
+            // request (e.g. "User-Agent") for the exclusion check, consistent with addRestHeaders().
+            Map<String, List<String>> headers = request.getHeaders();
+            if (headers != null) {
+                headers.entrySet().stream().filter(e -> "user-agent".equalsIgnoreCase(e.getKey())).findFirst().ifPresent(entry -> {
+                    // Gate on the actual header key so casing matches what addRestHeaders() uses
+                    if (!filter.shouldExcludeHeader(entry.getKey())) {
+                        List<String> values = entry.getValue();
+                        if (values != null && !values.isEmpty()) {
+                            addUserAgent(values.get(0));
+                        }
+                    }
+                });
+            }
+
+            if (filter.shouldLogRequestBody() && !filter.isBodyExcluded(path)) {
 
                 if (!(request instanceof OpenSearchRequest)) {
                     // The request body is only available on some request sources
@@ -451,6 +502,88 @@ public final class AuditMessage {
 
     public void addComplianceDocVersion(long version) {
         auditInfo.put(COMPLIANCE_DOC_VERSION, version);
+    }
+
+    public void addSettingsChanges(List<Map<String, Object>> changes) {
+        if (changes != null && !changes.isEmpty()) {
+            auditInfo.put(SETTINGS_CHANGES, changes);
+        }
+    }
+
+    // --- Resource Sharing audit field setters ---
+
+    public void addResourceId(String resourceId) {
+        if (resourceId != null && !resourceId.isEmpty()) {
+            auditInfo.put(RESOURCE_ID, resourceId);
+        }
+    }
+
+    public void addResourceType(String resourceType) {
+        if (resourceType != null && !resourceType.isEmpty()) {
+            auditInfo.put(RESOURCE_TYPE, resourceType);
+        }
+    }
+
+    public void addResourceIndex(String resourceIndex) {
+        if (resourceIndex != null && !resourceIndex.isEmpty()) {
+            auditInfo.put(RESOURCE_INDEX, resourceIndex);
+        }
+    }
+
+    public void addResourceAccessResult(String result) {
+        if (result != null && !result.isEmpty()) {
+            auditInfo.put(RESOURCE_ACCESS_RESULT, result);
+        }
+    }
+
+    public void addResourceSharingAction(String action) {
+        if (action != null && !action.isEmpty()) {
+            auditInfo.put(RESOURCE_SHARING_ACTION, action);
+        }
+    }
+
+    public void addResourceSharingResult(String result) {
+        if (result != null && !result.isEmpty()) {
+            auditInfo.put(RESOURCE_SHARING_RESULT, result);
+        }
+    }
+
+    public void addResourceRecipientsAdded(String recipients) {
+        if (recipients != null && !recipients.isEmpty()) {
+            auditInfo.put(RESOURCE_RECIPIENTS_ADDED, recipients);
+        }
+    }
+
+    public void addResourceRecipientsRevoked(String recipients) {
+        if (recipients != null && !recipients.isEmpty()) {
+            auditInfo.put(RESOURCE_RECIPIENTS_REVOKED, recipients);
+        }
+    }
+
+    public void addResourceShareWith(String shareWith) {
+        if (shareWith != null && !shareWith.isEmpty()) {
+            auditInfo.put(RESOURCE_SHARE_WITH, shareWith);
+        }
+    }
+
+    // --- Audit field enrichment methods ---
+
+    public void addUserAgent(String userAgent) {
+        if (userAgent != null && !userAgent.isEmpty()) {
+            auditInfo.put(USER_AGENT, userAgent);
+        }
+    }
+
+    public void addUserRoles(Set<String> roles) {
+        if (roles != null && !roles.isEmpty()) {
+            auditInfo.put(USER_ROLES, List.copyOf(new TreeSet<>(roles)));
+        }
+    }
+
+    public void addAuthMethod(String method) {
+        if (method != null && !method.isEmpty()) {
+            auditInfo.put(AUTH_METHOD, method);
+        }
     }
 
     public Map<String, Object> getAsMap() {
@@ -506,6 +639,105 @@ public final class AuditMessage {
         try {
             return JsonXContent.contentBuilder().map(getAsMap()).toString();
         } catch (final IOException e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+    }
+
+    public List<String> toJsonSplitIndices(final int maximumIndexCharsPerMessage) {
+        // early-exit and don't split if the maximum is set to the default value
+        if (maximumIndexCharsPerMessage == Integer.MAX_VALUE) {
+            return List.of(toJson());
+        }
+
+        final List<String> indices = Arrays.asList((String[]) auditInfo.getOrDefault(INDICES, new String[0]));
+        final List<String> resolvedIndices = Arrays.asList((String[]) auditInfo.getOrDefault(RESOLVED_INDICES, new String[0]));
+
+        // Calculates sum and max at the same time
+        final IntSummaryStatistics indicesCharsStats = indices.stream().mapToInt(String::length).summaryStatistics();
+        final IntSummaryStatistics resolvedIndicesCharsStats = resolvedIndices.stream().mapToInt(String::length).summaryStatistics();
+
+        final long totalIndexChars = indicesCharsStats.getSum() + resolvedIndicesCharsStats.getSum();
+
+        // Only split if there are too many characters
+        if (totalIndexChars < maximumIndexCharsPerMessage) {
+            return List.of(toJson());
+        }
+
+        auditInfo.put(SPLIT_MESSAGE_IDENTIFIER, UUID.randomUUID().toString());
+
+        final int longestIndexName = Math.max(indicesCharsStats.getMax(), resolvedIndicesCharsStats.getMax());
+
+        // How many index names we can safely include without exceeding maximumIndexCharsPerMessage.
+        // This may cause some messages to be smaller than they need to be, but simplifies processing logic compared to
+        // inspecting the length of each index name individually.
+        final int maximumIndicesPerMessage = maximumIndexCharsPerMessage / longestIndexName;
+
+        final List<String> splitMessages = new ArrayList<>();
+
+        int indicesRemaining = indices.size();
+        int resolvedIndicesRemaining = resolvedIndices.size();
+
+        while (indicesRemaining + resolvedIndicesRemaining > 0) {
+            List<String> indicesPartition;
+            List<String> resolvedIndicesPartition;
+
+            // Process all indices first before starting on resolvedIndices.
+            if (indicesRemaining > 0) {
+                // Grab the next sublist of up to maximumIndicesPerMessage length
+                final int fromIndex = indices.size() - indicesRemaining;
+                indicesPartition = indices.subList(fromIndex, Math.min(indices.size(), fromIndex + maximumIndicesPerMessage));
+
+                // If there weren't enough indices to reach the maximum, add resolved indices up to the maximum
+                if (indicesPartition.size() < maximumIndicesPerMessage) {
+                    resolvedIndicesPartition = resolvedIndices.subList(
+                        resolvedIndices.size() - resolvedIndicesRemaining,
+                        Math.min(resolvedIndices.size(), maximumIndicesPerMessage - indicesPartition.size())
+                    );
+                } else { // Otherwise, don't include any resolvedIndices in this split message
+                    resolvedIndicesPartition = Collections.emptyList();
+                }
+            } else { // Only resolvedIndices remain
+                indicesPartition = Collections.emptyList();
+
+                // Grab the next sublist of up to maximumIndicesPerMessage length
+                final int fromIndex = resolvedIndices.size() - resolvedIndicesRemaining;
+                resolvedIndicesPartition = resolvedIndices.subList(
+                    fromIndex,
+                    Math.min(resolvedIndices.size(), fromIndex + maximumIndicesPerMessage)
+                );
+            }
+
+            indicesRemaining -= indicesPartition.size();
+            resolvedIndicesRemaining -= resolvedIndicesPartition.size();
+
+            // Create and add new split message with the indices and resolvedIndices partitions
+            splitMessages.add(getSplitMessage(indicesPartition, resolvedIndicesPartition));
+        }
+
+        return splitMessages;
+    }
+
+    private String getSplitMessage(final List<String> indices, final List<String> resolvedIndices) {
+        // Create a shallow copy of the audit message information, which will have indices information overwritten
+        final HashMap<String, Object> splitAuditInfo = new HashMap<>(auditInfo);
+
+        // If either indices or resolvedIndices is empty, remove the corresponding field from the split message.
+        // Otherwise, overwrite the shallow copy with the split lists.
+        if (CollectionUtils.isEmpty(indices)) {
+            splitAuditInfo.remove(INDICES);
+        } else {
+            splitAuditInfo.put(INDICES, indices);
+        }
+
+        if (CollectionUtils.isEmpty(resolvedIndices)) {
+            splitAuditInfo.remove(RESOLVED_INDICES);
+        } else {
+            splitAuditInfo.put(RESOLVED_INDICES, resolvedIndices);
+        }
+
+        try {
+            return JsonXContent.contentBuilder().map(splitAuditInfo).toString();
+        } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }

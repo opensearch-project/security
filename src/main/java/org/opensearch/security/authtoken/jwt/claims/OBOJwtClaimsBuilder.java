@@ -20,19 +20,23 @@ public class OBOJwtClaimsBuilder extends JwtClaimsBuilder {
 
     public OBOJwtClaimsBuilder(String encryptionKey) {
         super();
-        this.encryptionDecryptionUtil = new EncryptionDecryptionUtil(encryptionKey);
+        this.encryptionDecryptionUtil = encryptionKey != null ? new EncryptionDecryptionUtil(encryptionKey) : null;
     }
 
     public OBOJwtClaimsBuilder addRoles(List<String> roles) {
         final String listOfRoles = String.join(",", roles);
-        this.addCustomClaim("er", encryptionDecryptionUtil.encrypt(listOfRoles));
+        if (encryptionDecryptionUtil != null) {
+            this.addCustomClaim("encrypted_roles", encryptionDecryptionUtil.encrypt(listOfRoles));
+        } else {
+            this.addCustomClaim("roles", listOfRoles);
+        }
         return this;
     }
 
     public OBOJwtClaimsBuilder addBackendRoles(Boolean includeBackendRoles, List<String> backendRoles) {
         if (includeBackendRoles && backendRoles != null) {
             final String listOfBackendRoles = String.join(",", backendRoles);
-            this.addCustomClaim("br", listOfBackendRoles);
+            this.addCustomClaim("backend_roles", listOfBackendRoles);
         }
         return this;
     }

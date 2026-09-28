@@ -16,18 +16,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.regex.PatternSyntaxException;
 
 import com.google.common.collect.ImmutableList;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -41,18 +41,8 @@ import org.opensearch.security.support.WildcardMatcher;
  * Instances of this class are managed by DlsFlsProcessedConfig.
  */
 public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges.FlsRule, FieldPrivileges.FlsRule> {
-    public FieldPrivileges(SecurityDynamicConfiguration<RoleV7> roles, Map<String, IndexAbstraction> indexMetadata, Settings settings) {
-        super(roles, indexMetadata, FieldPrivileges::roleToRule, settings);
-    }
-
-    static FlsRule roleToRule(RoleV7.Index rolePermissions) throws PrivilegesConfigurationValidationException {
-        List<String> flsPatterns = rolePermissions.getFls();
-
-        if (flsPatterns != null && !flsPatterns.isEmpty()) {
-            return FlsRule.from(rolePermissions);
-        } else {
-            return null;
-        }
+    public FieldPrivileges(CompiledRoles compiledRoles, SortedMap<String, IndexAbstraction> indexMetadata, Settings settings) {
+        super(compiledRoles, indexMetadata, (indexPermissions) -> indexPermissions.fls, settings);
     }
 
     @Override
@@ -78,7 +68,7 @@ public class FieldPrivileges extends AbstractRuleBasedPrivileges<FieldPrivileges
             return from(FlsPattern.parse(Arrays.asList(rules)), ImmutableList.of());
         }
 
-        static FlsRule from(RoleV7.Index role) throws PrivilegesConfigurationValidationException {
+        public static FlsRule from(RoleV7.Index role) throws PrivilegesConfigurationValidationException {
             return from(FlsPattern.parse(role.getFls()), ImmutableList.of(role));
         }
 

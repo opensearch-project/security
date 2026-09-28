@@ -16,15 +16,15 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityIndexIdentity;
 
 public class SecurityApiDependencies {
     private AdminDNs adminDNs;
     private final ConfigurationRepository configurationRepository;
-    private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
-    private final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
+    private final RestApiAuthorizationEvaluator restApiAuthorizationEvaluator;
     private final AuditLog auditLog;
     private final Settings settings;
+    private final SecurityIndexIdentity securityIndex;
 
     private final PrivilegesConfiguration privilegesConfiguration;
 
@@ -32,18 +32,17 @@ public class SecurityApiDependencies {
         final AdminDNs adminDNs,
         final ConfigurationRepository configurationRepository,
         final PrivilegesConfiguration privilegesConfiguration,
-        final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator,
-        final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator,
+        final RestApiAuthorizationEvaluator restApiAuthorizationEvaluator,
         final AuditLog auditLog,
         final Settings settings
     ) {
         this.adminDNs = adminDNs;
         this.configurationRepository = configurationRepository;
         this.privilegesConfiguration = privilegesConfiguration;
-        this.restApiPrivilegesEvaluator = restApiPrivilegesEvaluator;
-        this.restApiAdminPrivilegesEvaluator = restApiAdminPrivilegesEvaluator;
+        this.restApiAuthorizationEvaluator = restApiAuthorizationEvaluator;
         this.auditLog = auditLog;
         this.settings = settings;
+        this.securityIndex = new SecurityIndexIdentity(settings);
     }
 
     public AdminDNs adminDNs() {
@@ -58,12 +57,8 @@ public class SecurityApiDependencies {
         return configurationRepository;
     }
 
-    public RestApiPrivilegesEvaluator restApiPrivilegesEvaluator() {
-        return restApiPrivilegesEvaluator;
-    }
-
-    public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-        return restApiAdminPrivilegesEvaluator;
+    public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+        return restApiAuthorizationEvaluator;
     }
 
     public AuditLog auditLog() {
@@ -75,6 +70,6 @@ public class SecurityApiDependencies {
     }
 
     public String securityIndexName() {
-        return settings().get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        return securityIndex.getName();
     }
 }

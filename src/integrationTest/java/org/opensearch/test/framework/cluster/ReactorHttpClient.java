@@ -1,0 +1,218 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
+
+/*
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+package org.opensearch.test.framework.cluster;
+
+import java.io.Closeable;
+import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Settings;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.EmptyHttpHeaders;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http2.HttpConversionUtil;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.resolver.DefaultAddressResolverGroup;
+import io.netty.util.ReferenceCountUtil;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.netty.http.Http11SslContextSpec;
+import reactor.netty.http.Http2SslContextSpec;
+import reactor.netty.http.Http3SslContextSpec;
+import reactor.netty.http.HttpProtocol;
+import reactor.netty.http.client.HttpClient;
+
+import static org.opensearch.http.HttpTransportSettings.SETTING_HTTP_MAX_CONTENT_LENGTH;
+
+/**
+ * Tiny helper to send http requests over netty.
+ */
+public class ReactorHttpClient implements Closeable {
+    private final boolean compression;
+    private final boolean secure;
+    private final HttpProtocol protocol;
+    private final Settings settings;
+    private final InetSocketAddress remoteAddress;
+
+    public ReactorHttpClient(
+        HttpProtocol protocol,
+        boolean compression,
+        boolean secure,
+        Settings settings,
+        InetSocketAddress remoteAddress
+    ) {
+        validateProtocol(protocol, secure);
+        this.compression = compression;
+        this.secure = secure;
+        this.protocol = protocol;
+        this.settings = settings;
+        this.remoteAddress = remoteAddress;
+    }
+
+    public final Collection<FullHttpResponse> post(List<Tuple<String, byte[]>> urisAndBodies, int parallelism) {
+        return processRequestsWithBody(HttpMethod.POST, remoteAddress, urisAndBodies, parallelism);
+    }
+
+    private List<FullHttpResponse> processRequestsWithBody(
+        HttpMethod method,
+        InetSocketAddress remoteAddress,
+        List<Tuple<String, byte[]>> urisAndBodies,
+        int parallelism
+    ) {
+        return sendRequests(remoteAddress, urisAndBodies.stream().map(uriAndBody -> {
+            ByteBuf content = Unpooled.copiedBuffer(uriAndBody.v2());
+            FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, uriAndBody.v1(), content);
+            request.headers().add(HttpHeaderNames.HOST, "localhost");
+            request.headers().add(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
+            request.headers().add(HttpHeaderNames.CONTENT_TYPE, "application/json");
+            request.headers().add(HttpHeaderNames.CONTENT_ENCODING, "gzip");
+            request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), secure ? "https" : "http");
+            return request;
+        }).toList(), false, parallelism);
+    }
+
+    private List<FullHttpResponse> sendRequests(
+        final InetSocketAddress remoteAddress,
+        final Collection<FullHttpRequest> requests,
+        boolean ordered,
+        int parallelism
+    ) {
+        if (parallelism <= 0) {
+            throw new IllegalArgumentException("parallelism must be greater than zero");
+        }
+        final EventLoopGroup eventLoopGroup = new MultiThreadIoEventLoopGroup(parallelism, NioIoHandler.newFactory());
+        try {
+            final HttpClient client = createClient(remoteAddress, eventLoopGroup);
+
+            final Flux<Mono<FullHttpResponse>> responses = Flux.fromIterable(requests)
+                .map(
+                    request -> client.headers(h -> h.add(request.headers()))
+                        .baseUrl(request.uri())
+                        .request(request.method())
+                        .send(Mono.fromSupplier(() -> request.content()))
+                        .responseSingle(
+                            (r, body) -> body.switchIfEmpty(Mono.just(Unpooled.EMPTY_BUFFER))
+                                .map(
+                                    b -> new DefaultFullHttpResponse(
+                                        r.version(),
+                                        r.status(),
+                                        b.retain(),
+                                        r.responseHeaders(),
+                                        EmptyHttpHeaders.INSTANCE
+                                    )
+                                )
+                        )
+                );
+
+            return collectResponses(responses, ordered, parallelism);
+        } finally {
+            eventLoopGroup.shutdownGracefully().awaitUninterruptibly();
+        }
+    }
+
+    static List<FullHttpResponse> collectResponses(Flux<Mono<FullHttpResponse>> responses, boolean ordered, int parallelism) {
+        Flux<FullHttpResponse> responseFlux = ordered
+            ? responses.concatMap(response -> response)
+            : responses.flatMap(response -> response, parallelism);
+
+        return responseFlux.collectList().doOnDiscard(FullHttpResponse.class, ReferenceCountUtil::release).block(Duration.ofMinutes(2));
+    }
+
+    private static void validateProtocol(HttpProtocol protocol, boolean secure) {
+        if (protocol == null) {
+            throw new IllegalArgumentException("protocol must not be null");
+        }
+
+        boolean supported = secure
+            ? protocol == HttpProtocol.HTTP11 || protocol == HttpProtocol.H2 || protocol == HttpProtocol.HTTP3
+            : protocol == HttpProtocol.HTTP11 || protocol == HttpProtocol.H2C;
+        if (supported == false) {
+            throw new IllegalArgumentException("Protocol " + protocol + " is not compatible with secure=" + secure);
+        }
+    }
+
+    private HttpClient createClient(final InetSocketAddress remoteAddress, final EventLoopGroup eventLoopGroup) {
+        final HttpClient client = HttpClient.newConnection()
+            .resolver(DefaultAddressResolverGroup.INSTANCE)
+            .runOn(eventLoopGroup)
+            .host(remoteAddress.getHostString())
+            .port(remoteAddress.getPort())
+            .compress(compression);
+
+        if (secure) {
+            if (protocol == HttpProtocol.HTTP11) {
+                return client.protocol(protocol)
+                    .secure(
+                        spec -> spec.sslContext(
+                            Http11SslContextSpec.forClient()
+                                .configure(s -> s.clientAuth(ClientAuth.NONE).trustManager(InsecureTrustManagerFactory.INSTANCE))
+                        ).handshakeTimeout(Duration.ofSeconds(30))
+                    );
+            } else if (protocol == HttpProtocol.H2) {
+                return client.protocol(new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2 })
+                    .secure(
+                        spec -> spec.sslContext(
+                            Http2SslContextSpec.forClient()
+                                .configure(s -> s.clientAuth(ClientAuth.NONE).trustManager(InsecureTrustManagerFactory.INSTANCE))
+                        ).handshakeTimeout(Duration.ofSeconds(30))
+                    );
+            } else {
+                return client.protocol(protocol)
+                    .secure(
+                        spec -> spec.sslContext(
+                            Http3SslContextSpec.forClient().configure(s -> s.trustManager(InsecureTrustManagerFactory.INSTANCE))
+                        ).handshakeTimeout(Duration.ofSeconds(30))
+                    )
+                    .http3Settings(
+                        spec -> spec.idleTimeout(Duration.ofSeconds(5))
+                            .maxData(SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings).getBytes())
+                            .maxStreamDataBidirectionalLocal(1000000)
+                            .maxStreamDataBidirectionalRemote(1000000)
+                            .maxStreamsBidirectional(100L)
+                    );
+            }
+        } else {
+            if (protocol == HttpProtocol.HTTP11) {
+                return client.protocol(protocol);
+            } else {
+                return client.protocol(new HttpProtocol[] { HttpProtocol.HTTP11, HttpProtocol.H2C });
+            }
+        }
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    public HttpProtocol protocol() {
+        return protocol;
+    }
+
+}

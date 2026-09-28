@@ -14,6 +14,7 @@ package org.opensearch.security.filter;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.rest.RestRequest;
@@ -29,7 +30,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class GrpcRequestChannelTest {
+public class GrpcRequestChannelTest extends LuceneTestCase {
 
     private static class TestMarshaller<T> implements MethodDescriptor.Marshaller<T> {
         @Override

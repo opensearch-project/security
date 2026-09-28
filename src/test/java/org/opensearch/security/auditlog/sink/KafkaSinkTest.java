@@ -17,8 +17,12 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.test.KafkaClusterTestKit;
+import org.apache.kafka.common.test.TestKitNodes;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -31,15 +35,12 @@ import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.test.helper.file.FileHelper;
 
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.EmbeddedKafkaKraftBroker;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class KafkaSinkTest extends AbstractAuditlogUnitTest {
 
-    private static EmbeddedKafkaBroker embeddedKafka;
+    private static KafkaClusterTestKit kafkaCluster;
     private static UncaughtExceptionHandler origHandler;
 
     @BeforeClass
@@ -48,14 +49,23 @@ public class KafkaSinkTest extends AbstractAuditlogUnitTest {
         origHandler = Thread.getDefaultUncaughtExceptionHandler();
 
         // 1 broker, 1 partition per topic, create topic “compliance”
-        embeddedKafka = new EmbeddedKafkaKraftBroker(1, 1, "compliance");
-        embeddedKafka.afterPropertiesSet();   // <— starts the broker
+        TestKitNodes nodes = new TestKitNodes.Builder().setCombined(true).setNumBrokerNodes(1).setNumControllerNodes(1).build();
+        kafkaCluster = new KafkaClusterTestKit.Builder(nodes).setConfigProp("offsets.topic.replication.factor", "1")
+            .setConfigProp("transaction.state.log.replication.factor", "1")
+            .setConfigProp("transaction.state.log.min.isr", "1")
+            .build();
+        kafkaCluster.format();
+        kafkaCluster.startup();
+        kafkaCluster.waitForReadyBrokers();
+        try (Admin admin = kafkaCluster.admin()) {
+            admin.createTopics(Arrays.asList(new NewTopic("compliance", 1, (short) 1))).all().get();
+        }
     }
 
     @AfterClass
-    public static void stopKafka() {
-        if (embeddedKafka != null) {
-            embeddedKafka.destroy();
+    public static void stopKafka() throws Exception {
+        if (kafkaCluster != null) {
+            kafkaCluster.close();
         }
         Thread.setDefaultUncaughtExceptionHandler(origHandler);
     }
@@ -63,7 +73,7 @@ public class KafkaSinkTest extends AbstractAuditlogUnitTest {
     @Test
     public void testKafka() throws Exception {
         String configYml = FileHelper.loadFile("auditlog/endpoints/sink/configuration_kafka.yml")
-            .replace("_RPLC_BOOTSTRAP_SERVERS_", embeddedKafka.getBrokersAsString());
+            .replace("_RPLC_BOOTSTRAP_SERVERS_", kafkaCluster.bootstrapServers());
 
         Settings.Builder settingsBuilder = Settings.builder().loadFromSource(configYml, YamlXContent.yamlXContent.mediaType());
 
@@ -89,7 +99,7 @@ public class KafkaSinkTest extends AbstractAuditlogUnitTest {
 
     private KafkaConsumer<Long, String> createConsumer() {
         Properties props = new Properties();
-        props.put("bootstrap.servers", embeddedKafka.getBrokersAsString());
+        props.put("bootstrap.servers", kafkaCluster.bootstrapServers());
         props.put("auto.offset.reset", "earliest");
         props.put("group.id", "mygroup" + System.currentTimeMillis() + "_" + new Random().nextDouble());
         props.put("key.deserializer", "org.apache.kafka.common.serialization.LongDeserializer");

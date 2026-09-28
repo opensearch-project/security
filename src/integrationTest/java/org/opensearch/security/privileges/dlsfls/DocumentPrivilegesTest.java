@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -32,12 +33,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
-import org.opensearch.action.IndicesRequest;
-import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -52,11 +53,12 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.security.privileges.ActionPrivileges;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.User;
@@ -64,6 +66,8 @@ import org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.dataStreams;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.junit.Assert.assertEquals;
@@ -383,6 +387,10 @@ public class DocumentPrivilegesTest {
                 if (index == index_a1) {
                     if (userSpec.roles.contains("dls_role_1") && userSpec.roles.contains("dls_role_2")) {
                         assertNotNull(exception);
+                        assertThat(
+                            exception.getMessage(),
+                            equalTo("DLS query references undefined user attributes: [attr.attr_a]. Available attributes are: [none]")
+                        );
                     }
                 }
             } else if (userSpec.roles.contains("non_dls_role") && dfmEmptyOverridesAll) {
@@ -531,25 +539,28 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 null,
+                null,
                 () -> CLUSTER_STATE,
-                ActionPrivileges.EMPTY
+                ActionPrivileges.EMPTY,
+                List.of()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
         }
 
         private DocumentPrivileges createSubject(SecurityDynamicConfiguration<RoleV7> roleConfig) {
+            Settings settings = Settings.builder()
+                .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                .put(
+                    RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                    statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                )
+                .build();
             return new DocumentPrivileges(
-                roleConfig,
-                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT, false),
+                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
-                Settings.builder()
-                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
-                    .put(
-                        RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
-                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
-                    )
-                    .build()
+                settings
             );
         }
     }
@@ -567,17 +578,12 @@ public class DocumentPrivilegesTest {
         final static IndexNameExpressionResolver INDEX_NAME_EXPRESSION_RESOLVER = new IndexNameExpressionResolver(
             new ThreadContext(Settings.EMPTY)
         );
-        final static IndexResolverReplacer RESOLVER_REPLACER = new IndexResolverReplacer(
-            INDEX_NAME_EXPRESSION_RESOLVER,
-            () -> CLUSTER_STATE,
-            null
-        );
 
         final Statefulness statefulness;
         final UserSpec userSpec;
         final User user;
         final IndicesSpec indicesSpec;
-        final IndexResolverReplacer.Resolved resolvedIndices;
+        final ResolvedIndices resolvedIndices;
         final PrivilegesEvaluationContext context;
         final boolean dfmEmptyOverridesAll;
 
@@ -685,7 +691,7 @@ public class DocumentPrivilegesTest {
             DocumentPrivileges subject = createSubject(roleConfig);
             boolean result = subject.isUnrestricted(context, resolvedIndices);
 
-            if (resolvedIndices.getAllIndices().contains("index_b1")) {
+            if (resolvedIndices.local().names().contains("index_b1")) {
                 // index_b1 is not covered by any of the above roles, so there should be always a restriction
                 assertFalse(result);
             } else if (dfmEmptyOverridesAll && userSpec.roles.contains("non_dls_role")) {
@@ -741,7 +747,7 @@ public class DocumentPrivilegesTest {
             DocumentPrivileges subject = createSubject(roleConfig);
             boolean result = subject.isUnrestricted(context, resolvedIndices);
 
-            if (resolvedIndices.getAllIndices().contains("index_b1")) {
+            if (resolvedIndices.local().names().contains("index_b1")) {
                 // index_b1 is not covered by any of the above roles, so there should be always a restriction
                 assertFalse(result);
             } else if (dfmEmptyOverridesAll && userSpec.roles.contains("non_dls_role")) {
@@ -771,7 +777,7 @@ public class DocumentPrivilegesTest {
             if (userSpec.attributes.isEmpty()) {
                 // All roles defined above use attributes. If there are no user attributes, we must get a restricted result.
                 assertFalse(result);
-            } else if (resolvedIndices.getAllIndices().contains("index_b1")) {
+            } else if (resolvedIndices.local().names().contains("index_b1")) {
                 // index_b1 is not covered by any of the above roles, so there should be always a restriction
                 assertFalse(result);
             } else if (dfmEmptyOverridesAll && userSpec.roles.contains("non_dls_role")) {
@@ -828,50 +834,37 @@ public class DocumentPrivilegesTest {
             this.userSpec = userSpec;
             this.indicesSpec = indicesSpec;
             this.user = userSpec.buildUser();
-            this.resolvedIndices = RESOLVER_REPLACER.resolveRequest(new IndicesRequest.Replaceable() {
-
-                @Override
-                public String[] indices() {
-                    return indicesSpec.indices.toArray(new String[0]);
-                }
-
-                @Override
-                public IndicesOptions indicesOptions() {
-                    return IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED;
-                }
-
-                @Override
-                public IndicesRequest indices(String... strings) {
-                    return this;
-                }
-            });
+            this.resolvedIndices = ResolvedIndices.of(indicesSpec.indices);
             this.context = new PrivilegesEvaluationContext(
                 this.user,
                 ImmutableSet.copyOf(userSpec.roles),
                 null,
                 null,
+                ActionRequestMetadata.empty(),
                 null,
-                RESOLVER_REPLACER,
                 INDEX_NAME_EXPRESSION_RESOLVER,
+                null,
                 () -> CLUSTER_STATE,
-                ActionPrivileges.EMPTY
+                ActionPrivileges.EMPTY,
+                List.of()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
         }
 
         private DocumentPrivileges createSubject(SecurityDynamicConfiguration<RoleV7> roleConfig) {
+            Settings settings = Settings.builder()
+                .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                .put(
+                    RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                    statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                )
+                .build();
             return new DocumentPrivileges(
-                roleConfig,
-                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT, false),
+                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
-                Settings.builder()
-                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
-                    .put(
-                        RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
-                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
-                    )
-                    .build()
+                settings
             );
         }
     }
@@ -1119,17 +1112,18 @@ public class DocumentPrivilegesTest {
         }
 
         private DocumentPrivileges createSubject(SecurityDynamicConfiguration<RoleV7> roleConfig) {
+            Settings settings = Settings.builder()
+                .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
+                .put(
+                    RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
+                    statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
+                )
+                .build();
             return new DocumentPrivileges(
-                roleConfig,
-                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : Map.of(),
+                new CompiledRoles(roleConfig, FlattenedActionGroups.EMPTY, xContentRegistry, FieldMasking.Config.DEFAULT, false),
+                statefulness == Statefulness.STATEFUL ? INDEX_METADATA.getIndicesLookup() : new TreeMap<>(),
                 xContentRegistry,
-                Settings.builder()
-                    .put("plugins.security.dfm_empty_overrides_all", this.dfmEmptyOverridesAll)
-                    .put(
-                        RoleBasedActionPrivileges.PRECOMPUTED_PRIVILEGES_ENABLED.getKey(),
-                        statefulness == Statefulness.STATEFUL || statefulness == Statefulness.NON_STATEFUL
-                    )
-                    .build()
+                settings
             );
         }
 
@@ -1151,8 +1145,11 @@ public class DocumentPrivilegesTest {
                 null,
                 null,
                 null,
+                null,
                 () -> CLUSTER_STATE,
-                ActionPrivileges.EMPTY
+
+                ActionPrivileges.EMPTY,
+                List.of()
             );
             this.statefulness = statefulness;
             this.dfmEmptyOverridesAll = dfmEmptyOverridesAll == DfmEmptyOverridesAll.DFM_EMPTY_OVERRIDES_ALL_TRUE;
@@ -1173,6 +1170,33 @@ public class DocumentPrivilegesTest {
         public void invalidTemplatedQuery() throws Exception {
             DocumentPrivileges.DlsQuery.create("{\"invalid\": \"totally ${attr.foo}\"}", xContentRegistry)
                 .evaluate(MockPrivilegeEvaluationContextBuilder.ctx().get());
+        }
+
+        @Test
+        public void invalidTemplatedQuery_errorMessageIdentifiesUndefinedAttribute() throws Exception {
+            try {
+                DocumentPrivileges.DlsQuery.create("{\"terms\":{\"arr\":[${attr.jwt.array}]}}", xContentRegistry)
+                    .evaluate(MockPrivilegeEvaluationContextBuilder.ctx().attr("attr.jwt.other", "x").get());
+                fail("Expected PrivilegesEvaluationException");
+            } catch (PrivilegesEvaluationException e) {
+                assertThat(e.getMessage(), containsString("attr.jwt.array"));
+                assertThat(e.getMessage(), containsString("attr.jwt.other"));
+            }
+        }
+
+        @Test
+        public void invalidTemplatedQuery_errorMessageTruncatesWhenMoreThanTenAvailableAttributes() throws Exception {
+            MockPrivilegeEvaluationContextBuilder ctx = MockPrivilegeEvaluationContextBuilder.ctx();
+            for (int i = 1; i <= 12; i++) {
+                ctx.attr("attr.jwt.attr" + i, "v" + i);
+            }
+            try {
+                DocumentPrivileges.DlsQuery.create("{\"term\":{\"dept\":\"${attr.jwt.missing}\"}}", xContentRegistry).evaluate(ctx.get());
+                fail("Expected PrivilegesEvaluationException");
+            } catch (PrivilegesEvaluationException e) {
+                assertThat(e.getMessage(), containsString("attr.jwt.missing"));
+                assertThat(e.getMessage(), containsString("... and 2 more"));
+            }
         }
 
         @Test

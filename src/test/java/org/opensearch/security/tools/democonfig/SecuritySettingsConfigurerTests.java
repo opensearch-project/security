@@ -252,7 +252,7 @@ public class SecuritySettingsConfigurerTests {
     public void testBuildSecurityConfigMap() {
         Map<String, Object> actual = securitySettingsConfigurer.buildSecurityConfigMap();
 
-        assertThat(actual.size(), is(16));
+        assertThat(actual.size(), is(17));
         assertThat(actual.get("plugins.security.ssl.transport.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemtrustedcas_filepath"), equalTo(Certificates.ROOT_CA.getFileName()));
@@ -262,6 +262,8 @@ public class SecuritySettingsConfigurerTests {
         assertThat(actual.get("plugins.security.ssl.http.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
         assertThat(actual.get("plugins.security.ssl.http.pemtrustedcas_filepath"), equalTo(Certificates.ROOT_CA.getFileName()));
         assertThat(actual.get("plugins.security.allow_unsafe_democertificates"), equalTo(true));
+        assertThat(actual.containsKey(ConfigConstants.SECURITY_COMPLIANCE_SALT), equalTo(true));
+        assertThat(((String) actual.get(ConfigConstants.SECURITY_COMPLIANCE_SALT)).length(), equalTo(16));
         assertThat(actual.get("plugins.security.authcz.admin_dn"), equalTo(List.of("CN=kirk,OU=client,O=client,L=test,C=de")));
         assertThat(actual.get("plugins.security.audit.type"), equalTo("internal_opensearch"));
         assertThat(actual.get("plugins.security.enable_snapshot_restore_privilege"), equalTo(true));

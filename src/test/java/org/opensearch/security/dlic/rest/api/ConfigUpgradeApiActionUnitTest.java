@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.google.common.collect.ImmutableList;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,6 +33,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.transport.client.Client;
 
 import org.mockito.Mock;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -71,7 +71,7 @@ public class ConfigUpgradeApiActionUnitTest extends AbstractApiActionValidationT
 
         configUpgradeApiAction = spy(new ConfigUpgradeApiAction(clusterService, threadPool, securityApiDependencies));
 
-        final var objectMapper = DefaultObjectMapper.objectMapper;
+        final var objectMapper = DefaultObjectMapper.objectMapper();
         final var config = objectMapper.createObjectNode();
         config.set("_meta", objectMapper.createObjectNode().put("type", CType.ROLES.toLCString()).put("config_version", 2));
         config.set("kibana_read_only", objectMapper.createObjectNode().put("reserved", true));

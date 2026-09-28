@@ -12,20 +12,22 @@ package org.opensearch.security.privileges;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.indices.SystemIndexRegistry;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
-import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.identity.SecurePluginSubject;
+import org.opensearch.security.privileges.actionlevel.RuntimeOptimizedActionPrivileges;
+import org.opensearch.security.privileges.actionlevel.SubjectBasedActionPrivileges;
+import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
+import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.CType;
@@ -34,8 +36,8 @@ import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.client.Client;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 
 /**
  * This class manages and gives access to various additional classes which are derived from privileges related configuration in
@@ -58,13 +60,16 @@ public class PrivilegesConfiguration {
 
     private final AtomicReference<TenantPrivileges> tenantPrivileges = new AtomicReference<>(TenantPrivileges.EMPTY);
     private final AtomicReference<PrivilegesEvaluator> privilegesEvaluator;
-    private final AtomicReference<FlattenedActionGroups> actionGroups = new AtomicReference<>(FlattenedActionGroups.EMPTY);
-    private final Map<String, RoleV7> pluginIdToRolePrivileges = new HashMap<>();
+    private final AtomicReference<RawConfiguration> rawConfiguration = new AtomicReference<>();
+    private final Map<String, SubjectBasedActionPrivileges.PrivilegeSpecification> pluginIdToRolePrivileges = new HashMap<>();
     private final AtomicReference<DashboardsMultiTenancyConfiguration> multiTenancyConfiguration = new AtomicReference<>(
         DashboardsMultiTenancyConfiguration.DEFAULT
     );
-    private final PrivilegesInterceptorImpl privilegesInterceptor;
+    private final SpecialIndices specialIndices;
+    private final AtomicReference<DlsFlsProcessedConfig> dlsFlsProcessedConfig = new AtomicReference<>();
 
+    private ApiTokenRepository apiTokenRepository;
+    private final Map<String, ActionPrivileges> tokenIdToActionPrivileges = new ConcurrentHashMap<>();
     /**
      * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
      * not have knowledge of any action groups defined in the dynamic configuration. All other functionality should
@@ -73,30 +78,46 @@ public class PrivilegesConfiguration {
      */
     private final FlattenedActionGroups staticActionGroups;
 
-    public PrivilegesConfiguration(
-        ConfigurationRepository configurationRepository,
-        ClusterService clusterService,
-        Supplier<ClusterState> clusterStateSupplier,
-        Client client,
-        RoleMapper roleMapper,
-        ThreadPool threadPool,
-        IndexNameExpressionResolver resolver,
-        AuditLog auditLog,
-        Settings settings,
-        Supplier<String> unavailablityReasonSupplier,
-        IndexResolverReplacer indexResolverReplacer
-    ) {
+    private final FieldMasking.Config fieldMaskingConfig;
 
-        this.privilegesEvaluator = new AtomicReference<>(new PrivilegesEvaluator.NotInitialized(unavailablityReasonSupplier));
-        this.privilegesInterceptor = new PrivilegesInterceptorImpl(
-            resolver,
-            clusterService,
-            client,
-            threadPool,
-            this.tenantPrivileges::get,
-            this.multiTenancyConfiguration::get
+    public PrivilegesConfiguration(ConfigurationRepository configurationRepository, PrivilegesEvaluator.CoreDependencies coreDependencies) {
+
+        this.privilegesEvaluator = new AtomicReference<>(
+            new PrivilegesEvaluator.NotInitialized(coreDependencies.unavailablityReasonSupplier())
         );
         this.staticActionGroups = buildStaticActionGroups();
+        this.specialIndices = new SpecialIndices(coreDependencies.settings());
+        this.fieldMaskingConfig = FieldMasking.Config.fromSettings(coreDependencies.settings());
+
+        ApiTokenRepository apiTokenRepository = coreDependencies.apiTokenRepository();
+        this.apiTokenRepository = apiTokenRepository;
+
+        if (apiTokenRepository != null) {
+            Settings settings = coreDependencies.settings();
+            RuntimeOptimizedActionPrivileges.SpecialIndexProtection tokenIndexProtection =
+                new RuntimeOptimizedActionPrivileges.SpecialIndexProtection(
+                    specialIndices::isSystemIndex,
+                    specialIndices::isSystemIndex,
+                    indicesNeedingSpecialRoles(settings)
+                );
+
+            apiTokenRepository.subscribeOnChange(() -> {
+                SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration = configurationRepository.getConfiguration(
+                    CType.ACTIONGROUPS
+                );
+                FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+                Map<String, ActionPrivileges> newTokenPrivileges = new java.util.HashMap<>();
+                apiTokenRepository.forEachToken(
+                    (tokenId, role) -> newTokenPrivileges.put(
+                        tokenId,
+                        new SubjectBasedActionPrivileges(role, flattenedActionGroups, tokenIndexProtection, false)
+                    )
+                );
+                // Atomic swap: add/update new entries, then remove stale ones
+                tokenIdToActionPrivileges.putAll(newTokenPrivileges);
+                tokenIdToActionPrivileges.keySet().retainAll(newTokenPrivileges.keySet());
+            });
+        }
 
         if (configurationRepository != null) {
             configurationRepository.subscribeOnChange(configMap -> {
@@ -109,41 +130,98 @@ public class PrivilegesConfiguration {
                     .withStaticConfig();
                 ConfigV7 generalConfiguration = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
 
-                FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
-                this.actionGroups.set(flattenedActionGroups);
+                RawConfiguration rawConfiguration = new RawConfiguration(
+                    actionGroupsConfiguration,
+                    rolesConfiguration,
+                    tenantConfiguration,
+                    PrivilegesEvaluator.GlobalDynamicSettings.fromConfigV7(generalConfiguration)
+                );
+
+                RawConfiguration oldRawConfiguration = this.rawConfiguration.getAndSet(rawConfiguration);
 
                 PrivilegesEvaluator currentPrivilegesEvaluator = privilegesEvaluator.get();
 
                 // We are targeting an initialized PrivilegesEvaluator; this might seem a bit redundant, but gives us
                 // in the future the flexibility to introduce different implementations of PrivilegesEvaluator
-                PrivilegesEvaluator.PrivilegesEvaluatorType targetType = PrivilegesEvaluator.PrivilegesEvaluatorType.STANDARD;
+                PrivilegesEvaluator.PrivilegesEvaluatorType targetType = PrivilegesEvaluator.PrivilegesEvaluatorType.getFrom(
+                    configurationRepository.getConfiguration(CType.CONFIG)
+                );
                 PrivilegesEvaluator.PrivilegesEvaluatorType currentType = currentPrivilegesEvaluator.type();
 
-                if (currentType != targetType) {
-                    PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
-                        new org.opensearch.security.privileges.PrivilegesEvaluatorImpl(
-                            clusterService,
-                            clusterStateSupplier,
-                            roleMapper,
-                            threadPool,
-                            threadPool.getThreadContext(),
-                            resolver,
-                            auditLog,
-                            settings,
-                            privilegesInterceptor,
-                            indexResolverReplacer,
-                            flattenedActionGroups,
-                            staticActionGroups,
-                            rolesConfiguration,
-                            generalConfiguration,
-                            pluginIdToRolePrivileges
-                        )
+                boolean privilegesChanged = oldRawConfiguration == null
+                    || !oldRawConfiguration.equals(rawConfiguration)
+                    || currentType != targetType;
+                if (privilegesChanged) {
+                    log.debug("Privileges for PrivilegesEvaluator or DLS/FLS changed; updating.");
+
+                    FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
+
+                    boolean memberIndexPrivilegesYieldAliasPrivileges = currentType != PrivilegesEvaluator.PrivilegesEvaluatorType.V4;
+
+                    CompiledRoles newCompiledRoles = new CompiledRoles(
+                        rolesConfiguration.withStaticConfig(),
+                        flattenedActionGroups,
+                        coreDependencies.namedXContentRegistry(),
+                        fieldMaskingConfig,
+                        memberIndexPrivilegesYieldAliasPrivileges
                     );
-                    if (oldInstance != null) {
-                        oldInstance.shutdown();
+
+                    PrivilegesEvaluator.DynamicDependencies dynamicDependencies = new PrivilegesEvaluator.DynamicDependencies(
+                        flattenedActionGroups,
+                        staticActionGroups,
+                        newCompiledRoles,
+                        rawConfiguration.privilegesEvaluatorGlobalSettings,
+                        specialIndices,
+                        this.tenantPrivileges::get,
+                        this.multiTenancyConfiguration::get,
+                        this.pluginIdToRolePrivileges,
+                        this.tokenIdToActionPrivileges
+                    );
+
+                    if (currentType != targetType) {
+                        PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
+                            targetType.factory.create(coreDependencies, dynamicDependencies)
+                        );
+                        if (oldInstance != null) {
+                            oldInstance.shutdown();
+                        }
+                    } else {
+                        privilegesEvaluator.get()
+                            .updateConfiguration(
+                                flattenedActionGroups,
+                                newCompiledRoles,
+                                rawConfiguration.privilegesEvaluatorGlobalSettings
+                            );
+                    }
+
+                    try {
+                        this.dlsFlsProcessedConfig.set(
+                            new DlsFlsProcessedConfig(
+                                newCompiledRoles,
+                                coreDependencies.clusterStateSupplier().get().metadata().getIndicesLookup(),
+                                coreDependencies.namedXContentRegistry(),
+                                coreDependencies.settings(),
+                                fieldMaskingConfig
+                            )
+                        );
+                    } catch (Exception e) {
+                        log.error("Error while updating DlsFlsProcessedConfig", e);
+                    }
+
+                    try {
+                        this.tenantPrivileges.set(
+                            new TenantPrivileges(
+                                rolesConfiguration,
+                                tenantConfiguration,
+                                flattenedActionGroups,
+                                targetType == PrivilegesEvaluator.PrivilegesEvaluatorType.LEGACY
+                            )
+                        );
+                    } catch (Exception e) {
+                        log.error("Error while updating TenantPrivileges", e);
                     }
                 } else {
-                    privilegesEvaluator.get().updateConfiguration(flattenedActionGroups, rolesConfiguration, generalConfiguration);
+                    log.debug("Privileges for PrivilegesEvaluator and DLS/FLS did not change.");
                 }
 
                 try {
@@ -152,16 +230,14 @@ public class PrivilegesConfiguration {
                     log.error("Error while updating DashboardsMultiTenancyConfiguration", e);
                 }
 
-                try {
-                    this.tenantPrivileges.set(new TenantPrivileges(rolesConfiguration, tenantConfiguration, flattenedActionGroups));
-                } catch (Exception e) {
-                    log.error("Error while updating TenantPrivileges", e);
-                }
             });
         }
 
-        if (clusterService != null) {
-            clusterService.addListener(event -> { this.privilegesEvaluator.get().updateClusterStateMetadata(clusterService); });
+        // For unit testing purposes, clusterService can be null
+        if (coreDependencies.clusterService() != null) {
+            coreDependencies.clusterService().addListener(event -> {
+                this.privilegesEvaluator.get().updateClusterStateMetadata(coreDependencies.clusterStateSupplier());
+            });
         }
     }
 
@@ -171,8 +247,9 @@ public class PrivilegesConfiguration {
      */
     public PrivilegesConfiguration(PrivilegesEvaluator privilegesEvaluator) {
         this.privilegesEvaluator = new AtomicReference<>(privilegesEvaluator);
-        this.privilegesInterceptor = null;
         this.staticActionGroups = buildStaticActionGroups();
+        this.specialIndices = new SpecialIndices(Settings.EMPTY);
+        this.fieldMaskingConfig = FieldMasking.Config.DEFAULT;
     }
 
     /**
@@ -192,14 +269,6 @@ public class PrivilegesConfiguration {
     }
 
     /**
-     * Returns the current action groups configuration. Important: Do not store the references to the instances returned here; these will change
-     * after configuration updates.
-     */
-    public FlattenedActionGroups actionGroups() {
-        return this.actionGroups.get();
-    }
-
-    /**
      * Returns the current Dashboards multi tenancy configuration. Important: Do not store the references to the instances returned here; these will change
      * after configuration updates.
      */
@@ -207,12 +276,87 @@ public class PrivilegesConfiguration {
         return this.multiTenancyConfiguration.get();
     }
 
+    public DlsFlsProcessedConfig dlsFlsProcessedConfig() {
+        return this.dlsFlsProcessedConfig.get();
+    }
+
     public void updatePluginToActionPrivileges(String pluginIdentifier, RoleV7 pluginPermissions) {
-        pluginIdToRolePrivileges.put(pluginIdentifier, pluginPermissions);
+        String pluginClassName = SecurePluginSubject.getPluginClassNameFromPrincipal(pluginIdentifier);
+        if (pluginClassName == null) {
+            log.error("Cannot update action privileges for plugin identifier '{}', invalid format", pluginIdentifier);
+            return;
+        }
+        pluginIdToRolePrivileges.put(
+            pluginIdentifier,
+            new SubjectBasedActionPrivileges.PrivilegeSpecification(
+                pluginPermissions,
+                index -> SystemIndexRegistry.getPluginSystemIndexPredicate(pluginClassName).test(index)
+            )
+        );
     }
 
     private static FlattenedActionGroups buildStaticActionGroups() {
         return new FlattenedActionGroups(DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS)));
+    }
+
+    private static RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles indicesNeedingSpecialRoles(
+        Settings settings
+    ) {
+        if (!settings.getAsBoolean(
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY,
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT
+        )) {
+            return RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles.DISABLED;
+        }
+        WildcardMatcher indexMatcher = WildcardMatcher.from(
+            settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_DEFAULT)
+        );
+        WildcardMatcher allowedRolesMatcher = WildcardMatcher.from(
+            settings.getAsList(
+                ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY,
+                ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_DEFAULT
+            )
+        );
+        return new RuntimeOptimizedActionPrivileges.SpecialIndexProtection.IndicesNeedingSpecialRoles(
+            true,
+            indexMatcher,
+            allowedRolesMatcher
+        );
+    }
+
+    private static class RawConfiguration {
+        final SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration;
+        final SecurityDynamicConfiguration<RoleV7> rolesConfiguration;
+        final SecurityDynamicConfiguration<TenantV7> tenantConfiguration;
+        final PrivilegesEvaluator.GlobalDynamicSettings privilegesEvaluatorGlobalSettings;
+
+        RawConfiguration(
+            SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsConfiguration,
+            SecurityDynamicConfiguration<RoleV7> rolesConfiguration,
+            SecurityDynamicConfiguration<TenantV7> tenantConfiguration,
+            PrivilegesEvaluator.GlobalDynamicSettings privilegesEvaluatorGlobalSettings
+        ) {
+            this.actionGroupsConfiguration = actionGroupsConfiguration;
+            this.rolesConfiguration = rolesConfiguration;
+            this.tenantConfiguration = tenantConfiguration;
+            this.privilegesEvaluatorGlobalSettings = privilegesEvaluatorGlobalSettings;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof RawConfiguration that)) {
+                return false;
+            }
+            return Objects.equals(actionGroupsConfiguration, that.actionGroupsConfiguration)
+                && Objects.equals(rolesConfiguration, that.rolesConfiguration)
+                && Objects.equals(tenantConfiguration, that.tenantConfiguration)
+                && Objects.equals(privilegesEvaluatorGlobalSettings, that.privilegesEvaluatorGlobalSettings);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(actionGroupsConfiguration, rolesConfiguration, tenantConfiguration, privilegesEvaluatorGlobalSettings);
+        }
     }
 
 }

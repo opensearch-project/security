@@ -22,6 +22,8 @@ config:
     disabled_transport_categories:
       - AUTHENTICATED
       - GRANTED_PRIVILEGES
+      - CLUSTER_SETTINGS_CHANGED
+      - INDEX_SETTINGS_CHANGED
 
     # Users to be excluded from auditing. Wildcard patterns are supported. Eg:
     # ignore_users: ["test-user", "employee-*"]

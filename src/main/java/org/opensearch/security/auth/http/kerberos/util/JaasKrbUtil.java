@@ -14,7 +14,6 @@ package org.opensearch.security.auth.http.kerberos.util;
 //Source: Apache Kerby project
 //https://directory.apache.org/kerby/
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.security.Principal;
 import java.util.HashMap;
@@ -22,10 +21,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.security.auth.Subject;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
@@ -45,33 +40,6 @@ public final class JaasKrbUtil {
         JaasKrbUtil.debug = debug;
     }
 
-    public static Subject loginUsingPassword(final String principal, final String password) throws LoginException {
-        final Set<Principal> principals = new HashSet<Principal>();
-        principals.add(new KerberosPrincipal(principal));
-
-        final Subject subject = new Subject(false, principals, new HashSet<Object>(), new HashSet<Object>());
-
-        final Configuration conf = usePassword(principal);
-        final String confName = "PasswordConf";
-        final CallbackHandler callback = new KrbCallbackHandler(principal, password);
-        final LoginContext loginContext = new LoginContext(confName, subject, callback, conf);
-        loginContext.login();
-        return loginContext.getSubject();
-    }
-
-    public static Subject loginUsingTicketCache(final String principal, final Path cachePath) throws LoginException {
-        final Set<Principal> principals = new HashSet<Principal>();
-        principals.add(new KerberosPrincipal(principal));
-
-        final Subject subject = new Subject(false, principals, new HashSet<Object>(), new HashSet<Object>());
-
-        final Configuration conf = useTicketCache(principal, cachePath);
-        final String confName = "TicketCacheConf";
-        final LoginContext loginContext = new LoginContext(confName, subject, null, conf);
-        loginContext.login();
-        return loginContext.getSubject();
-    }
-
     public static Subject loginUsingKeytab(final Set<String> principalAsStrings, final Path keytabPath, final boolean initiator)
         throws LoginException {
         final Set<Principal> principals = new HashSet<Principal>();
@@ -87,14 +55,6 @@ public final class JaasKrbUtil {
         final LoginContext loginContext = new LoginContext(confName, subject, null, conf);
         loginContext.login();
         return loginContext.getSubject();
-    }
-
-    public static Configuration usePassword(final String principal) {
-        return new PasswordJaasConf(principal);
-    }
-
-    public static Configuration useTicketCache(final String principal, final Path credentialPath) {
-        return new TicketCacheJaasConf(principal, credentialPath);
     }
 
     public static Configuration useKeytab(final String principal, final Path keytabPath, final boolean initiator) {
@@ -133,80 +93,6 @@ public final class JaasKrbUtil {
 
             return new AppConfigurationEntry[] {
                 new AppConfigurationEntry(getKrb5LoginModuleName(), AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options) };
-        }
-    }
-
-    static class TicketCacheJaasConf extends Configuration {
-        private final String principal;
-        private final Path clientCredentialPath;
-
-        public TicketCacheJaasConf(final String principal, final Path clientCredentialPath) {
-            this.principal = principal;
-            this.clientCredentialPath = clientCredentialPath;
-        }
-
-        @Override
-        public AppConfigurationEntry[] getAppConfigurationEntry(final String name) {
-            final Map<String, String> options = new HashMap<String, String>();
-            options.put("principal", principal);
-            options.put("storeKey", "false");
-            options.put("doNotPrompt", "false");
-            options.put("useTicketCache", "true");
-            options.put("renewTGT", "true");
-            options.put("refreshKrb5Config", "true");
-            options.put("isInitiator", "true");
-            options.put("ticketCache", clientCredentialPath.toAbsolutePath().toString());
-            options.put("debug", String.valueOf(debug));
-
-            return new AppConfigurationEntry[] {
-                new AppConfigurationEntry(getKrb5LoginModuleName(), AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options) };
-        }
-    }
-
-    static class PasswordJaasConf extends Configuration {
-        private final String principal;
-
-        public PasswordJaasConf(final String principal) {
-            this.principal = principal;
-        }
-
-        @Override
-        public AppConfigurationEntry[] getAppConfigurationEntry(final String name) {
-            final Map<String, String> options = new HashMap<>();
-            options.put("principal", principal);
-            options.put("storeKey", "true");
-            options.put("useTicketCache", "true");
-            options.put("useKeyTab", "false");
-            options.put("renewTGT", "true");
-            options.put("refreshKrb5Config", "true");
-            options.put("isInitiator", "true");
-            options.put("debug", String.valueOf(debug));
-
-            return new AppConfigurationEntry[] {
-                new AppConfigurationEntry(getKrb5LoginModuleName(), AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options) };
-        }
-    }
-
-    public static class KrbCallbackHandler implements CallbackHandler {
-        private final String principal;
-        private final String password;
-
-        public KrbCallbackHandler(final String principal, final String password) {
-            this.principal = principal;
-            this.password = password;
-        }
-
-        @Override
-        public void handle(final Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-            for (int i = 0; i < callbacks.length; i++) {
-                if (callbacks[i] instanceof PasswordCallback) {
-                    final PasswordCallback pc = (PasswordCallback) callbacks[i];
-                    if (pc.getPrompt().contains(principal)) {
-                        pc.setPassword(password.toCharArray());
-                        break;
-                    }
-                }
-            }
         }
     }
 

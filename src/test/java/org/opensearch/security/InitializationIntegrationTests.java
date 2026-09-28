@@ -28,8 +28,9 @@ package org.opensearch.security;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpVersion;
@@ -42,9 +43,11 @@ import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Request;
-import org.opensearch.client.Response;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch.generic.Body;
+import org.opensearch.client.opensearch.generic.Requests;
+import org.opensearch.client.opensearch.generic.Response;
+import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.transport.TransportAddress;
@@ -61,6 +64,8 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.transport.client.Client;
 
+import tools.jackson.databind.JsonNode;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -72,8 +77,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(Settings.EMPTY, null, settings, false);
         final RestHelper rh = restHelper(); // ssl resthelper
@@ -90,7 +95,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             is(rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode())
         );
 
-        rh.keystore = "kirk-keystore.jks";
+        rh.keystore = "kirk-keystore";
         assertThat(
             HttpStatus.SC_CREATED,
             is(rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode())
@@ -130,8 +135,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testWhoAmI() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(
             Settings.EMPTY,
@@ -140,12 +145,13 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             true
         );
 
-        try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "spock-keystore.jks", "truststore.jks")) {
-            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
-            assertThat(200, is(whoAmIRes.getStatusLine().getStatusCode()));
+        try (OpenSearchTransport transport = getClientTransport(clusterInfo, "spock-keystore", "truststore")) {
+            OpenSearchClient client = new OpenSearchClient(transport);
+            Response whoAmIRes = client.generic().execute(Requests.create("GET", "/_plugins/_security/whoami", List.of(), Map.of(), null));
+            assertThat(200, is(whoAmIRes.getStatus()));
             // Should be using HTTP/2 by default
-            assertThat(HttpVersion.HTTP_2, is(whoAmIRes.getStatusLine().getProtocolVersion()));
-            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+            assertThat(whoAmIRes.getProtocol(), is(HttpVersion.HTTP_2.toString()));
+            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper().readTree(whoAmIRes.getBody().map(Body::bodyAsString).orElse(null));
             String whoAmIResponsePayload = whoAmIResNode.toPrettyString();
             assertThat(whoAmIResponsePayload, whoAmIResNode.get("dn").asText(), is("CN=spock,OU=client,O=client,L=Test,C=DE"));
             Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_admin").asBoolean());
@@ -157,8 +163,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testWhoAmIForceHttp1() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.resolveStore("node-0-keystore").path())
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.resolveStore("truststore").path())
             .build();
         setup(
             Settings.EMPTY,
@@ -168,18 +174,14 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         );
 
         try (
-            RestHighLevelClient restHighLevelClient = getRestClient(
-                clusterInfo,
-                "spock-keystore.jks",
-                "truststore.jks",
-                HttpVersionPolicy.FORCE_HTTP_1
-            )
+            OpenSearchTransport transport = getClientTransport(clusterInfo, "spock-keystore", "truststore", HttpVersionPolicy.FORCE_HTTP_1)
         ) {
-            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
-            assertThat(200, is(whoAmIRes.getStatusLine().getStatusCode()));
+            OpenSearchClient client = new OpenSearchClient(transport);
+            Response whoAmIRes = client.generic().execute(Requests.create("GET", "/_plugins/_security/whoami", List.of(), Map.of(), null));
+            assertThat(200, is(whoAmIRes.getStatus()));
             // The HTTP/1.1 is forced and should be used instead
-            assertThat(whoAmIRes.getStatusLine().getProtocolVersion(), is(HttpVersion.HTTP_1_1));
-            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+            assertThat(whoAmIRes.getProtocol(), is(HttpVersion.HTTP_1_1.toString()));
+            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper().readTree(whoAmIRes.getBody().map(Body::bodyAsString).orElse(null));
             String whoAmIResponsePayload = whoAmIResNode.toPrettyString();
             assertThat(whoAmIResponsePayload, whoAmIResNode.get("dn").asText(), is("CN=spock,OU=client,O=client,L=Test,C=DE"));
             Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_admin").asBoolean());

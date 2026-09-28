@@ -26,14 +26,21 @@ public class SecurePluginSubject implements PluginSubject {
     private final NamedPrincipal pluginPrincipal;
     private final User pluginUser;
 
-    public static String getPluginPrincipalName(String canonicalClassName) {
-        return "plugin:" + canonicalClassName;
+    public static String getPluginPrincipalName(Plugin plugin) {
+        return User.PLUGIN_USER_PREFIX + plugin.getClass().getCanonicalName();
+    }
+
+    public static String getPluginClassNameFromPrincipal(String name) {
+        if (name.startsWith(User.PLUGIN_USER_PREFIX)) {
+            return name.substring(User.PLUGIN_USER_PREFIX.length());
+        }
+        return null;
     }
 
     public SecurePluginSubject(ThreadPool threadPool, Settings settings, Plugin plugin) {
         super();
         this.threadPool = threadPool;
-        String principal = getPluginPrincipalName(plugin.getClass().getCanonicalName());
+        String principal = getPluginPrincipalName(plugin);
         this.pluginPrincipal = new NamedPrincipal(principal);
         // Convention for plugin username. Prefixed with 'plugin:'. ':' is forbidden from usernames, so this
         // guarantees that a user with this username cannot be created by other means.

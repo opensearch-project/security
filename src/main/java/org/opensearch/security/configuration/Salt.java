@@ -85,4 +85,27 @@ public class Salt {
         );
         return new Salt(saltAsString);
     }
+
+    /**
+     * Validates that the default compliance salt is not used unless allow_unsafe_democertificates is enabled.
+     * Must be called after node settings are fully loaded (e.g. during plugin startup).
+     * @param settings fully loaded node settings
+     * @throws OpenSearchException if the default salt is used without the demo flag
+     */
+    public static void validateSaltSettings(final Settings settings) {
+        final String saltAsString = settings.get(
+            ConfigConstants.SECURITY_COMPLIANCE_SALT,
+            ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT
+        );
+        final boolean allowUnsafeDemoCertificates = settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false);
+        if (ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.equals(saltAsString) && !allowUnsafeDemoCertificates) {
+            throw new OpenSearchException(
+                "Default compliance salt is not allowed in production. Please configure "
+                    + ConfigConstants.SECURITY_COMPLIANCE_SALT
+                    + " to a random 16-character string, or set "
+                    + ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES
+                    + " to true for demo/test environments."
+            );
+        }
+    }
 }

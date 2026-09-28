@@ -21,6 +21,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.privileges.dlsfls.DlsRequestHeadersUtil;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
@@ -77,7 +78,8 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 return new AuthNGrpcInterceptor(
                     threadContext,
                     OpenSearchSecurityPlugin.GuiceHolder.getBackendRegistry(),
-                    OpenSearchSecurityPlugin.GuiceHolder.getAuditLog()
+                    OpenSearchSecurityPlugin.GuiceHolder.getAuditLog(),
+                    settings
                 );
             }
         });
@@ -92,11 +94,13 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
         private final ThreadContext threadContext;
         private final BackendRegistry backendRegistry;
         private final AuditLog auditLog;
+        private final Settings settings;
 
-        public AuthNGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry, AuditLog auditLog) {
+        public AuthNGrpcInterceptor(ThreadContext threadContext, BackendRegistry backendRegistry, AuditLog auditLog, Settings settings) {
             this.threadContext = threadContext;
             this.backendRegistry = backendRegistry;
             this.auditLog = auditLog;
+            this.settings = settings;
         }
 
         @Override
@@ -173,6 +177,8 @@ public class SecurityGrpcFilter implements GrpcInterceptorProvider {
                 if (user != null) {
                     auditLog.logSucceededLogin(user.getName(), false, null, requestChannel);
                 }
+
+                DlsRequestHeadersUtil.extractAndStoreDlsRequestHeaders(requestChannel, threadContext, settings);
 
                 // Caller was authorized - Proceed with request
                 return serverCallHandler.startCall(serverCall, metadata);

@@ -15,7 +15,7 @@ import java.util.Objects;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.dlic.rest.api.Endpoint;
-import org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvaluator;
+import org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator;
 import org.opensearch.security.dlic.rest.api.SecurityConfiguration;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -28,7 +28,11 @@ public interface EndpointValidator {
 
     Endpoint endpoint();
 
-    RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator();
+    RestApiAuthorizationEvaluator restApiAuthorizationEvaluator();
+
+    default boolean isCurrentUserSuperAdmin() {
+        return restApiAuthorizationEvaluator().isCurrentUserSuperAdmin();
+    }
 
     private String resourceName() {
         if (Objects.isNull(endpoint())) {
@@ -59,12 +63,18 @@ public interface EndpointValidator {
     }
 
     default boolean isCurrentUserAdmin() {
-        return restApiAdminPrivilegesEvaluator().isCurrentUserAdminFor(endpoint());
+        return restApiAuthorizationEvaluator().isCurrentUserAdminFor(endpoint());
     }
 
     default ValidationResult<String> withRequiredEntityName(final String entityName) {
         if (entityName == null) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("No " + resourceName() + " specified."));
+        }
+        if (entityName.length() > RequestContentValidator.MAX_STRING_LENGTH) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage(resourceName() + " name exceeds maximum length of " + RequestContentValidator.MAX_STRING_LENGTH + ".")
+            );
         }
         return ValidationResult.success(entityName);
     }
@@ -156,10 +166,13 @@ public interface EndpointValidator {
     default ValidationResult<SecurityConfiguration> isAllowedToChangeEntityWithRestAdminPermissions(
         final SecurityConfiguration securityConfiguration
     ) throws IOException {
+        if (isCurrentUserSuperAdmin()) {
+            return ValidationResult.success(securityConfiguration);
+        }
         final var configuration = securityConfiguration.configuration();
         if (securityConfiguration.entityExists()) {
             final var existingEntity = configuration.getCEntry(securityConfiguration.entityName());
-            if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(existingEntity)) {
+            if (restApiAuthorizationEvaluator().containsRestApiAdminPermissions(existingEntity)) {
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         }
@@ -168,7 +181,7 @@ public interface EndpointValidator {
                 securityConfiguration.requestContent(),
                 configuration.getImplementingClass()
             );
-            if (restApiAdminPrivilegesEvaluator().containsRestApiAdminPermissions(newConfigEntityContent)) {
+            if (restApiAuthorizationEvaluator().containsRestApiAdminPermissions(newConfigEntityContent)) {
                 return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Access denied"));
             }
         }

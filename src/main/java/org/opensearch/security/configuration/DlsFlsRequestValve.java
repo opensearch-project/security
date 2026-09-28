@@ -27,29 +27,27 @@
 package org.opensearch.security.configuration;
 
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
 
     boolean invoke(PrivilegesEvaluationContext context, ActionListener<?> listener);
 
-    void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
+    void handleSearchContext(SearchContext context, ThreadPool threadPool);
 
     void onQueryPhase(QuerySearchResult queryResult);
-
-    DlsFlsProcessedConfig getCurrentConfig();
 
     boolean hasFlsOrFieldMasking(String index) throws PrivilegesEvaluationException;
 
     boolean hasFieldMasking(String index) throws PrivilegesEvaluationException;
 
     boolean isFieldAllowed(String index, String field, PrivilegesEvaluationContext ctx) throws PrivilegesEvaluationException;
+
+    boolean indexHasFlsRestrictions(String index, PrivilegesEvaluationContext ctx) throws PrivilegesEvaluationException;
 
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
@@ -59,18 +57,13 @@ public interface DlsFlsRequestValve {
         }
 
         @Override
-        public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
+        public void handleSearchContext(SearchContext context, ThreadPool threadPool) {
 
         }
 
         @Override
         public void onQueryPhase(QuerySearchResult queryResult) {
 
-        }
-
-        @Override
-        public DlsFlsProcessedConfig getCurrentConfig() {
-            return null;
         }
 
         @Override
@@ -86,6 +79,11 @@ public interface DlsFlsRequestValve {
         @Override
         public boolean isFieldAllowed(String index, String field, PrivilegesEvaluationContext ctx) {
             return true;
+        }
+
+        @Override
+        public boolean indexHasFlsRestrictions(String index, PrivilegesEvaluationContext ctx) {
+            return false;
         }
     }
 

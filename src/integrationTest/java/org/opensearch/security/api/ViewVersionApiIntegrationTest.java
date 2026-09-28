@@ -11,28 +11,33 @@
 
 package org.opensearch.security.api;
 
-import java.util.Map;
-
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isOneOf;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED;
+import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
+import static org.opensearch.test.framework.matcher.RestMatchers.isUnauthorized;
 
 public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
 
-    static {
-        testSecurityConfig.user(new TestSecurityConfig.User("limitedUser").password("limitedPass"));
-    }
+    @Rule
+    public LocalCluster localCluster = clusterBuilder().users(new TestSecurityConfig.User("limitedUser").password("limitedPass"))
+        .nodeSetting(EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, true)
+        .build();
 
     private static final TestSecurityConfig.User USER = new TestSecurityConfig.User("user");
 
@@ -48,37 +53,32 @@ public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
         return endpointPrefix() + "/version/" + versionId;
     }
 
-    @Override
-    protected Map<String, Object> getClusterSettings() {
-        Map<String, Object> settings = super.getClusterSettings();
-        settings.put(EXPERIMENTAL_SECURITY_CONFIGURATIONS_VERSIONS_ENABLED, true);
-        return settings;
-    }
-
     @Before
     public void setupIndexAndCerts() throws Exception {
-        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             client.createUser(USER.getName(), USER).assertStatusCode(201);
         }
     }
 
     @Test
     public void testViewAllVersions() throws Exception {
-        withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
-            var response = ok(() -> client.get(viewVersionBase()));
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            var response = client.get(viewVersionBase());
+            assertThat(response, isOk());
             var json = response.bodyAsJsonNode();
 
             assertThat(json.has("versions"), is(true));
             var versions = json.get("versions");
             assertThat(versions.isArray(), is(true));
             assertThat(versions.size(), greaterThan(0));
-        });
+        }
     }
 
     @Test
     public void testViewSpecificVersionFound() throws Exception {
-        withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
-            var response = ok(() -> client.get(viewVersion("v1")));
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            var response = client.get(viewVersion("v1"));
+            assertThat(response, isOk());
             var json = response.bodyAsJsonNode();
 
             assertThat(json.has("versions"), is(true));
@@ -88,13 +88,14 @@ public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
 
             var ver = versions.get(0);
             assertThat(ver.get("version_id").asText(), equalTo("v1"));
-        });
+        }
     }
 
     @Test
     public void testViewSpecificVersionNotFound() throws Exception {
-        withUser(ADMIN_USER_NAME, DEFAULT_PASSWORD, client -> {
-            var response = notFound(() -> client.get(viewVersion("does-not-exist")));
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            var response = client.get(viewVersion("does-not-exist"));
+            assertThat(response, isNotFound());
             var json = response.bodyAsJsonNode();
 
             assertThat(json.has("status"), is(true));
@@ -102,14 +103,14 @@ public class ViewVersionApiIntegrationTest extends AbstractApiIntegrationTest {
 
             assertThat(json.has("message"), is(true));
             assertThat(json.get("message").asText(), containsString("not found"));
-        });
+        }
     }
 
     @Test
     public void testViewAllVersions_forbiddenWithoutAdminCert() throws Exception {
-        withUser("limitedUser", "limitedPass", client -> {
+        try (TestRestClient client = localCluster.getRestClient("limitedUser", "limitedPass")) {
             var response = client.get(viewVersionBase());
-            assertThat(response.getStatusCode(), isOneOf(401, 403));
-        });
+            assertThat(response, anyOf(isUnauthorized(), isForbidden()));
+        }
     }
 }

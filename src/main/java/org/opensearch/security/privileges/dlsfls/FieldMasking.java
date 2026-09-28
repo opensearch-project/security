@@ -16,8 +16,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.SortedMap;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
@@ -30,10 +30,10 @@ import org.bouncycastle.util.encoders.Hex;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.configuration.Salt;
+import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesConfigurationValidationException;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluationException;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
@@ -55,24 +55,13 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
     private final FieldMasking.Config fieldMaskingConfig;
 
     public FieldMasking(
-        SecurityDynamicConfiguration<RoleV7> roles,
-        Map<String, IndexAbstraction> indexMetadata,
+        CompiledRoles compiledRoles,
+        SortedMap<String, IndexAbstraction> indexMetadata,
         FieldMasking.Config fieldMaskingConfig,
         Settings settings
     ) {
-        super(roles, indexMetadata, (rolePermissions) -> roleToRule(rolePermissions, fieldMaskingConfig), settings);
+        super(compiledRoles, indexMetadata, (indexPermissions) -> indexPermissions.maskedFields, settings);
         this.fieldMaskingConfig = fieldMaskingConfig;
-    }
-
-    static FieldMaskingRule.SimpleRule roleToRule(RoleV7.Index rolePermissions, FieldMasking.Config fieldMaskingConfig)
-        throws PrivilegesConfigurationValidationException {
-        List<String> fmExpressions = rolePermissions.getMasked_fields();
-
-        if (fmExpressions != null && !fmExpressions.isEmpty()) {
-            return new FieldMaskingRule.SimpleRule(rolePermissions, fieldMaskingConfig);
-        } else {
-            return null;
-        }
     }
 
     @Override
@@ -129,7 +118,8 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             final RoleV7.Index sourceIndex;
             final ImmutableList<FieldMaskingRule.Field> expressions;
 
-            SimpleRule(RoleV7.Index sourceIndex, FieldMasking.Config fieldMaskingConfig) throws PrivilegesConfigurationValidationException {
+            public SimpleRule(RoleV7.Index sourceIndex, FieldMasking.Config fieldMaskingConfig)
+                throws PrivilegesConfigurationValidationException {
                 this.sourceIndex = sourceIndex;
                 this.expressions = parseExpressions(sourceIndex, fieldMaskingConfig);
             }

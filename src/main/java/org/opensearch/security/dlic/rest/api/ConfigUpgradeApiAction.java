@@ -25,10 +25,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,6 +45,7 @@ import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -58,7 +55,11 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import com.flipkart.zjsonpatch.DiffFlags;
-import com.flipkart.zjsonpatch.JsonDiff;
+import com.flipkart.zjsonpatch.Jackson3JsonDiff;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.response;
@@ -222,7 +223,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
         return withIOException(() -> loadConfiguration(configType, false, false).map(activeRoles -> {
             final var activeRolesJson = Utils.convertJsonToJackson(activeRoles, true);
             final var defaultRolesJson = loadConfigFileAsJson(configType);
-            final var rawDiff = JsonDiff.asJson(activeRolesJson, defaultRolesJson, EnumSet.of(DiffFlags.OMIT_VALUE_ON_REMOVE));
+            final var rawDiff = Jackson3JsonDiff.asJson(activeRolesJson, defaultRolesJson, EnumSet.of(DiffFlags.OMIT_VALUE_ON_REMOVE));
             return ValidationResult.success(new Tuple<>(configType, filterRemoveOperations(rawDiff)));
         }));
     }
@@ -235,9 +236,9 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                     filteredRoles.put(entity, (RoleV7) activeRoles.getCEntry(entity));
                 }
             }
-            final var filteredRolesJson = DefaultObjectMapper.objectMapper.valueToTree(filteredRoles);
+            final var filteredRolesJson = DefaultObjectMapper.objectMapper().valueToTree(filteredRoles);
             final var defaultRolesJson = loadEntitiesFromConfigFileAsJson(configType, entities);
-            final var rawDiff = JsonDiff.asJson(filteredRolesJson, defaultRolesJson, EnumSet.of(DiffFlags.OMIT_VALUE_ON_REMOVE));
+            final var rawDiff = Jackson3JsonDiff.asJson(filteredRolesJson, defaultRolesJson, EnumSet.of(DiffFlags.OMIT_VALUE_ON_REMOVE));
             return ValidationResult.success(new Tuple<>(configType, filterRemoveOperations(rawDiff)));
         }));
     }
@@ -294,16 +295,16 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
     }
 
     private static String pathRoot(final JsonNode node) {
-        return node.get("path").asText().split("/")[1];
+        return node.get("path").asString().split("/")[1];
     }
 
     private static boolean hasRootLevelPath(final JsonNode node) {
-        final var jsonPath = node.get("path").asText();
+        final var jsonPath = node.get("path").asString();
         return jsonPath.charAt(0) == '/' && !jsonPath.substring(1).contains("/");
     }
 
     private static boolean isRemoveOperation(final JsonNode node) {
-        return node.get("op").asText().equals("remove");
+        return node.get("op").asString().equals("remove");
     }
 
     private <T> SecurityDynamicConfiguration<T> loadYamlFile(final String filepath, final CType<T> cType) throws IOException {
@@ -336,7 +337,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                         filteredEntities.put(entity, loadedConfiguration.getCEntry(entity));
                     }
                 }
-                return DefaultObjectMapper.objectMapper.valueToTree(filteredEntities);
+                return DefaultObjectMapper.objectMapper().valueToTree(filteredEntities);
             });
         } catch (final Exception e) {
             LOGGER.error("Error when loading configuration from file", e);
@@ -369,8 +370,8 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
@@ -399,8 +400,13 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        return Map.of(REQUEST_PARAM_CONFIGS_KEY, DataType.ARRAY, REQUEST_PARAM_ENTITIES_KEY, DataType.ARRAY);
+                    public Map<String, FieldConfiguration> allowedKeys() {
+                        return Map.of(
+                            REQUEST_PARAM_CONFIGS_KEY,
+                            FieldConfiguration.of(DataType.ARRAY),
+                            REQUEST_PARAM_ENTITIES_KEY,
+                            FieldConfiguration.of(DataType.ARRAY)
+                        );
                     }
                 });
             }
@@ -453,7 +459,7 @@ public class ConfigUpgradeApiAction extends AbstractApiAction {
             final var items = new HashMap<String, String>();
             differences.forEach(node -> {
                 final var item = pathRoot(node);
-                final var operation = node.get("op").asText();
+                final var operation = node.get("op").asString();
                 if (items.containsKey(item) && !items.get(item).equals(operation)) {
                     items.put(item, "modify");
                 } else {

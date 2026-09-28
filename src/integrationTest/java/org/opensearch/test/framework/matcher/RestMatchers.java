@@ -12,11 +12,12 @@ package org.opensearch.test.framework.matcher;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
 
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+
+import tools.jackson.databind.JsonNode;
 
 public class RestMatchers {
 
@@ -64,6 +65,14 @@ public class RestMatchers {
 
     public static OpenSearchErrorHttpResponseMatcher isNotFound() {
         return new OpenSearchErrorHttpResponseMatcher(404, "Not Found");
+    }
+
+    public static OpenSearchErrorHttpResponseMatcher isNotAllowed() {
+        return new OpenSearchErrorHttpResponseMatcher(405, "Not Allowed");
+    }
+
+    public static OpenSearchErrorHttpResponseMatcher isUnauthorized() {
+        return new OpenSearchErrorHttpResponseMatcher(401, "Unauthorized");
     }
 
     public static class HttpResponseMatcher extends DiagnosingMatcher<HttpResponse> {

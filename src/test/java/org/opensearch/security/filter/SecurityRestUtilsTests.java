@@ -10,6 +10,7 @@
 
 package org.opensearch.security.filter;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.http.netty4.Netty4HttpChannel;
@@ -23,7 +24,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class SecurityRestUtilsTests {
+public class SecurityRestUtilsTests extends LuceneTestCase {
 
     @Test
     public void testShouldSkipAuthentication_positive() {

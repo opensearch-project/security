@@ -35,13 +35,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
@@ -69,11 +69,13 @@ import org.opensearch.transport.client.Client;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.EventBusBuilder;
 import org.greenrobot.eventbus.Logger.JavaLogger;
+import tools.jackson.databind.JsonNode;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 
     public static final EventBusBuilder EVENT_BUS_BUILDER = EventBus.builder();
     private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty(CType.ROLES);
+    private static SecurityDynamicConfiguration<RoleV7> pluginDefaultRoles = SecurityDynamicConfiguration.empty(CType.ROLES);
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS);
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty(CType.TENANTS);
     private static final AllowlistingSettings defaultAllowlistingSettings = new AllowlistingSettings();
@@ -81,34 +83,48 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
     static void resetStatics() {
         staticRoles = SecurityDynamicConfiguration.empty(CType.ROLES);
+        pluginDefaultRoles = SecurityDynamicConfiguration.empty(CType.ROLES);
         staticActionGroups = SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS);
         staticTenants = SecurityDynamicConfiguration.empty(CType.TENANTS);
     }
 
     private void loadStaticConfig() throws IOException {
-        JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml")
-        );
+        JsonNode staticRolesJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
         staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
 
-        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml")
-        );
+        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
         staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
 
-        JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml")
-        );
+        JsonNode staticTenantsJsonNode = DefaultObjectMapper.yamlMapper()
+            .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
         staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
     }
 
+    /**
+     * Sets plugin-provided default roles. These take precedence over static_roles.yml entries.
+     * Called from {@link org.opensearch.security.OpenSearchSecurityPlugin#loadExtensions} after
+     * discovering {@link org.opensearch.security.spi.SecurityConfigExtension} implementations.
+     */
+    public static void setPluginDefaultRoles(SecurityDynamicConfiguration<RoleV7> roles) {
+        pluginDefaultRoles = roles;
+    }
+
+    @SuppressWarnings("unchecked")
     public final static <T> SecurityDynamicConfiguration<T> addStatics(SecurityDynamicConfiguration<T> original) {
         if (original.getCType() == CType.ACTIONGROUPS && !staticActionGroups.getCEntries().isEmpty()) {
             original.add(staticActionGroups.deepClone());
         }
 
-        if (original.getCType() == CType.ROLES && !staticRoles.getCEntries().isEmpty()) {
-            original.add(staticRoles.deepClone());
+        if (original.getCType() == CType.ROLES) {
+            if (!staticRoles.getCEntries().isEmpty()) {
+                original.add(staticRoles.deepClone());
+            }
+            // Plugin default roles override static_roles.yml entries (putAll semantics)
+            if (!pluginDefaultRoles.getCEntries().isEmpty()) {
+                original.add((SecurityDynamicConfiguration<T>) pluginDefaultRoles.deepClone());
+            }
         }
 
         if (original.getCType() == CType.TENANTS && !staticTenants.getCEntries().isEmpty()) {
@@ -128,6 +144,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final ClusterInfoHolder cih;
     private final ThreadPool threadPool;
     private final Client client;
+    private final ApiTokenRepository apiTokenRepository;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -138,7 +155,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         Client client,
         ThreadPool threadPool,
         ClusterInfoHolder cih,
-        PasswordHasher passwordHasher
+        PasswordHasher passwordHasher,
+        ApiTokenRepository apiTokenRepository
     ) {
         super();
         this.cr = cr;
@@ -148,6 +166,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.iab = new InternalAuthenticationBackend(passwordHasher);
         this.threadPool = threadPool;
         this.client = client;
+        this.apiTokenRepository = apiTokenRepository;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -244,6 +263,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         mergeStaticConfigWithWarning("action groups", actionGroups, staticActionGroups, log);
         mergeStaticConfigWithWarning("tenants", tenants, staticTenants, log);
 
+        // Plugin-provided default roles override both dynamic and static_roles.yml entries
+        mergeStaticConfigWithWarning("plugin default roles", roles, pluginDefaultRoles, log);
+
         log.debug(
             "Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
             roles.getCEntries().size(),
@@ -252,7 +274,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         );
 
         // rebuild v7 Models
-        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih);
+        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih, apiTokenRepository);
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
 
         // notify subscribers

@@ -124,7 +124,7 @@ public class AuditLogsRule implements TestRule {
         List<AuditMessage> copy = new ArrayList<>(currentTestAuditMessages);
         String auditMessages = auditMessagesToString(copy);
         log.error(
-            "Timeout occured due to insufficient number ('{}') of captured audit messages during test '{}'\n{}",
+            "Timeout occurred due to insufficient number ('{}') of captured audit messages during test '{}'\n{}",
             copy.size(),
             methodName,
             auditMessages

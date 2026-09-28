@@ -23,7 +23,6 @@ import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
 import org.hamcrest.Matcher;
@@ -39,8 +38,9 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+import tools.jackson.core.JacksonException;
 
-import static com.fasterxml.jackson.core.JsonToken.START_ARRAY;
+import static tools.jackson.core.JsonToken.START_ARRAY;
 
 /**
  * This class provides Hamcrest matchers that can be used as test oracles on the HTTP responses of index REST APIs.
@@ -289,11 +289,11 @@ public class RestIndexMatchers {
 
                 try {
                     if (response.getBody().startsWith(START_ARRAY.asString())) {
-                        item = DefaultObjectMapper.objectMapper.readValue(response.getBody(), List.class);
+                        item = DefaultObjectMapper.objectMapper().readValue(response.getBody(), List.class);
                     } else {
-                        item = DefaultObjectMapper.objectMapper.readValue(response.getBody(), Map.class);
+                        item = DefaultObjectMapper.objectMapper().readValue(response.getBody(), Map.class);
                     }
-                } catch (JsonProcessingException e) {
+                } catch (JacksonException e) {
                     mismatchDescription.appendText("Unable to parse body: ").appendValue(e.getMessage());
                     return false;
                 }

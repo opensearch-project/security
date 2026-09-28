@@ -391,11 +391,11 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 userRoleAttributeValue = Utils.getSingleStringValue(userRoleAttribute);
             }
 
-            if (rolesearchEnabled) {
-                if (connectionFactory == null) {
-                    connectionFactory = getConnectionFactory(settings, configPath);
-                }
+            if (connectionFactory == null) {
+                connectionFactory = getConnectionFactory(settings, configPath);
+            }
 
+            if (rolesearchEnabled) {
                 for (Map.Entry<String, Settings> roleSearchSettingsEntry : roleBaseSettings) {
                     Settings roleSearchSettings = roleSearchSettingsEntry.getValue();
 
@@ -433,10 +433,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
                 for (final LdapName roleLdapName : ldapRoles) {
                     Set<Map.Entry<String, Settings>> nameRoleSearchBaseKeys = resultRoleSearchBaseKeys.get(roleLdapName);
-                    if (nameRoleSearchBaseKeys == null) continue;
-
-                    if (connectionFactory == null) {
-                        connectionFactory = getConnectionFactory(settings, configPath);
+                    if (nameRoleSearchBaseKeys == null) {
+                        log.error("Could not find roleSearchBaseKeys for " + roleLdapName + "; existing: " + resultRoleSearchBaseKeys);
+                        continue;
                     }
 
                     final Set<LdapName> nestedRoles = resolveNestedRoles(

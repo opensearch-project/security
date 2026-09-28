@@ -11,9 +11,9 @@
 
 package org.opensearch.security.configuration;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import org.opensearch.Version;
 import org.opensearch.cluster.ClusterChangedEvent;
@@ -22,7 +22,7 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -30,8 +30,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
-public class ClusterInfoHolderTest {
+public class ClusterInfoHolderTest extends LuceneTestCase {
 
     private ClusterInfoHolder clusterInfoHolder;
 
@@ -50,7 +49,8 @@ public class ClusterInfoHolderTest {
     private static final String TEST_CLUSTER_NAME = "test-cluster";
 
     @Before
-    public void setUp() {
+    public void setupClusterInfoHolder() {
+        MockitoAnnotations.openMocks(this);
         clusterInfoHolder = new ClusterInfoHolder(TEST_CLUSTER_NAME);
         when(mockEvent.state()).thenReturn(mockClusterState);
         when(mockClusterState.nodes()).thenReturn(mockNodes);

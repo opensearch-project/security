@@ -27,6 +27,8 @@
 
 package org.opensearch.security.securityconf.impl.v7;
 
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.opensearch.security.securityconf.Hideable;
@@ -79,4 +81,14 @@ public class TenantV7 implements Hideable, StaticDefinable {
         return "TenantV7 [reserved=" + reserved + ", hidden=" + hidden + ", _static=" + _static + ", description=" + description + "]";
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof TenantV7 tenantV7)) return false;
+        return Objects.equals(description, tenantV7.description);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(description);
+    }
 }

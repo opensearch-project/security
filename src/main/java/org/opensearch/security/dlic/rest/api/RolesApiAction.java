@@ -19,8 +19,6 @@ import java.util.stream.StreamSupport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.fasterxml.jackson.core.JsonPointer;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.opensearch.cluster.service.ClusterService;
@@ -33,10 +31,14 @@ import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
+
+import tools.jackson.core.JsonPointer;
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
@@ -138,6 +140,13 @@ public class RolesApiAction extends AbstractApiAction {
         return CType.ROLES;
     }
 
+    @Override
+    protected boolean supportsAsync() {
+        // Enabled per issue #6337: role writes fan out to every node and are exactly the shape
+        // (index write + cluster reload) that benefits from the task framework.
+        return true;
+    }
+
     private void rolesApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
     }
@@ -152,8 +161,8 @@ public class RolesApiAction extends AbstractApiAction {
             }
 
             @Override
-            public RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator() {
-                return securityApiDependencies.restApiAdminPrivilegesEvaluator();
+            public RestApiAuthorizationEvaluator restApiAuthorizationEvaluator() {
+                return securityApiDependencies.restApiAuthorizationEvaluator();
             }
 
             @Override
@@ -178,16 +187,16 @@ public class RolesApiAction extends AbstractApiAction {
                     }
 
                     @Override
-                    public Map<String, DataType> allowedKeys() {
-                        final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                    public Map<String, FieldConfiguration> allowedKeys() {
+                        final ImmutableMap.Builder<String, FieldConfiguration> allowedKeys = ImmutableMap.builder();
                         if (isCurrentUserAdmin()) {
-                            allowedKeys.put("hidden", DataType.BOOLEAN);
-                            allowedKeys.put("reserved", DataType.BOOLEAN);
+                            allowedKeys.put("hidden", FieldConfiguration.of(DataType.BOOLEAN));
+                            allowedKeys.put("reserved", FieldConfiguration.of(DataType.BOOLEAN));
                         }
-                        return allowedKeys.put("cluster_permissions", DataType.ARRAY)
-                            .put("tenant_permissions", DataType.ARRAY)
-                            .put("index_permissions", DataType.ARRAY)
-                            .put("description", DataType.STRING)
+                        return allowedKeys.put("cluster_permissions", FieldConfiguration.of(DataType.ARRAY))
+                            .put("tenant_permissions", FieldConfiguration.of(DataType.ARRAY))
+                            .put("index_permissions", FieldConfiguration.of(DataType.ARRAY))
+                            .put("description", FieldConfiguration.of(DataType.STRING))
                             .build();
                     }
                 });

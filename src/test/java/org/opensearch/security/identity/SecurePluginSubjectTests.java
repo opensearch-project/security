@@ -11,12 +11,13 @@
 
 package org.opensearch.security.identity;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.IdentityAwarePlugin;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.security.auth.UserSubjectImplTests;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
@@ -32,7 +33,7 @@ public class SecurePluginSubjectTests {
     }
 
     @Test
-    public void testSecurityUserSubjectRunAs() throws Exception {
+    public void testSecurePluginSubjectRunAs() throws Exception {
         final ThreadPool threadPool = new TestThreadPool(getClass().getName());
 
         final Plugin testPlugin = new TestIdentityAwarePlugin();
@@ -51,6 +52,6 @@ public class SecurePluginSubjectTests {
 
         assertNull(threadPool.getThreadContext().getTransient(OPENDISTRO_SECURITY_USER));
 
-        UserSubjectImplTests.terminate(threadPool);
+        ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
     }
 }
