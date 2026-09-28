@@ -135,8 +135,9 @@ indices through `SystemIndexPlugin.getSystemIndexDescriptors`.
 
 Users whose mapped roles are listed in `plugins.security.restapi.roles_enabled` can restore only the system indices matched by
 `plugins.security.system_indices.restore.indices`. The default list is empty today. System indices will be added to it as their
-plugin owners confirm they restore safely. An operator can set the list in `opensearch.yml`, or at runtime with
-`PUT _cluster/settings`, which takes precedence over the file. A configured value replaces the default list and is not merged
+plugin owners confirm they restore safely. An operator sets the list in `opensearch.yml`. To also allow changing it at runtime
+with `PUT _cluster/settings`, set `plugins.security.system_indices.restore.dynamic.enabled: true` in `opensearch.yml`; the runtime
+value then takes precedence over the file. A configured value replaces the default list and is not merged
 with it. The Security configuration index can never be restored this way:
 
 ```

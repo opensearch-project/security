@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -99,6 +100,7 @@ import org.opensearch.security.privileges.SystemIndexRestoreEligibilityHelper;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.SourceFieldsContext;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.ThreadContextUserInfo;
@@ -126,6 +128,7 @@ public class SecurityFilter implements ActionFilter {
     private final ResourceAccessEvaluator resourceAccessEvaluator;
     private final ThreadContextUserInfo threadContextUserInfo;
     private final Set<String> restApiAllowedRoles;
+    private final boolean restoreIndicesDynamicEnabled;
 
     public SecurityFilter(
         final Settings settings,
@@ -153,6 +156,7 @@ public class SecurityFilter implements ActionFilter {
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         this.resourceAccessEvaluator = resourceAccessEvaluator;
         this.restApiAllowedRoles = Set.copyOf(settings.getAsList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED));
+        this.restoreIndicesDynamicEnabled = SecuritySettings.SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_SETTING.get(settings);
         this.threadContextUserInfo = new ThreadContextUserInfo(
             threadPool.getThreadContext(),
             privilegesConfiguration,
@@ -446,6 +450,11 @@ public class SecurityFilter implements ActionFilter {
                 return;
             }
 
+            // Block runtime updates of the restorable system indices unless they are enabled
+            if (handleBlockedRestoreIndicesUpdate(action, request, listener)) {
+                return;
+            }
+
             // not a resource‐sharing request → fall back into the normal PrivilegesEvaluator
             PrivilegesEvaluatorResponse pres = eval.evaluate(context);
 
@@ -539,16 +548,7 @@ public class SecurityFilter implements ActionFilter {
         PrivilegesEvaluationContext context,
         ActionListener<Response> listener
     ) {
-        if (!ClusterUpdateSettingsAction.NAME.equals(action)) {
-            return false;
-        }
-        ClusterUpdateSettingsRequest settingsRequest = (ClusterUpdateSettingsRequest) request;
-        boolean touchesSensitiveSetting = Stream.concat(
-            settingsRequest.transientSettings().keySet().stream(),
-            settingsRequest.persistentSettings().keySet().stream()
-        ).anyMatch(key -> cs.getClusterSettings().isSensitiveSetting(key));
-
-        if (!touchesSensitiveSetting) {
+        if (!isSettingsUpdateTouching(action, request, key -> cs.getClusterSettings().isSensitiveSetting(key))) {
             return false;
         }
         if (Collections.disjoint(restApiAllowedRoles, context.getMappedRoles())) {
@@ -562,6 +562,43 @@ public class SecurityFilter implements ActionFilter {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Unless {@code plugins.security.system_indices.restore.dynamic.enabled} is true, the restorable system indices are
+     * set only in {@code opensearch.yml}, so a cluster-settings update that touches them is rejected.
+     *
+     * @return true if the request was rejected
+     */
+    private <Request extends ActionRequest, Response extends ActionResponse> boolean handleBlockedRestoreIndicesUpdate(
+        String action,
+        Request request,
+        ActionListener<Response> listener
+    ) {
+        if (restoreIndicesDynamicEnabled
+            || !isSettingsUpdateTouching(action, request, SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING::match)) {
+            return false;
+        }
+        String message = ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY
+            + " can only be set in opensearch.yml unless "
+            + ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY
+            + " is true";
+        log.debug(message);
+        listener.onFailure(new OpenSearchSecurityException(message, RestStatus.FORBIDDEN));
+        return true;
+    }
+
+    /**
+     * @return true if the request is a cluster-settings update that sets or resets a transient or persistent key
+     *         matching {@code keyMatcher}
+     */
+    private static boolean isSettingsUpdateTouching(String action, ActionRequest request, Predicate<String> keyMatcher) {
+        if (!ClusterUpdateSettingsAction.NAME.equals(action)) {
+            return false;
+        }
+        ClusterUpdateSettingsRequest settingsRequest = (ClusterUpdateSettingsRequest) request;
+        return Stream.concat(settingsRequest.transientSettings().keySet().stream(), settingsRequest.persistentSettings().keySet().stream())
+            .anyMatch(keyMatcher);
     }
 
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {

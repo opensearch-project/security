@@ -73,6 +73,13 @@ public class SecuritySettings {
         Setting.Property.Sensitive
     );
 
+    public static final Setting<Boolean> SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_SETTING = Setting.boolSetting(
+        ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY,
+        ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_DEFAULT,
+        Setting.Property.NodeScope,
+        Setting.Property.Final
+    );
+
     public static final Setting<Boolean> AUDIT_ENABLED_SETTING = Setting.boolSetting(
         ConfigConstants.SECURITY_AUDIT_ENABLED,
         true,

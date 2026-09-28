@@ -34,16 +34,19 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.cluster.TestRestClient.json;
+import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 /**
  * Restoring allowlisted system indices by a REST admin (a holder of a role in
- * {@code plugins.security.restapi.roles_enabled}), for both the legacy and the V4 privilege evaluation.
+ * {@code plugins.security.restapi.roles_enabled}), for both the legacy and the V4 privilege evaluation. The restorable
+ * system indices are set in {@code opensearch.yml} and runtime updates are left disabled, as by default.
  */
 @RunWith(Parameterized.class)
 public class SystemIndexRestoreIntTests {
@@ -71,6 +74,13 @@ public class SystemIndexRestoreIntTests {
         return defaultClusterBuilder().nodeSettings(
             Map.of(SECURITY_RESTAPI_ROLES_ENABLED, REST_ADMIN_ROLES, SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of(ELIGIBLE))
         );
+    }
+
+    /**
+     * Like {@link #clusterBuilder()}, with {@code plugins.security.system_indices.restore.dynamic.enabled} set to true.
+     */
+    static LocalCluster.Builder dynamicClusterBuilder() {
+        return clusterBuilder().nodeSettings(Map.of(SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY, true));
     }
 
     /**
@@ -162,41 +172,52 @@ public class SystemIndexRestoreIntTests {
     }
 
     @Test
-    public void restAdmin_canUpdateRestorableIndicesAtRuntime() {
-        createIndicesAndSnapshot("snap_dynamic", NOT_ELIGIBLE);
+    public void restAdmin_cannotUpdateRestorableIndicesWhenDynamicUpdatesDisabled() {
+        List<String> updates = List.of(
+            restorableIndicesSetting("persistent", "[\"" + NOT_ELIGIBLE + "\"]"),
+            restorableIndicesSetting("transient", "[\"" + NOT_ELIGIBLE + "\"]"),
+            restorableIndicesSetting("persistent", "null"),
+            "{\"persistent\":{\"plugins\":{\"security\":{\"system_indices\":{\"restore\":{\"indices\":[\"" + NOT_ELIGIBLE + "\"]}}}}}}"
+        );
         try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
-            assertThat(client.post(restorePath("snap_dynamic"), json("indices", List.of(NOT_ELIGIBLE))), isForbidden());
-
-            assertThat(client.putJson("_cluster/settings", restorableIndicesSetting("[\"" + NOT_ELIGIBLE + "\"]")), isOk());
-
-            assertThat(client.post(restorePath("snap_dynamic"), json("indices", List.of(NOT_ELIGIBLE))), isOk());
-        } finally {
-            resetRestorableIndices();
-            cleanup("snap_dynamic", NOT_ELIGIBLE);
+            for (String update : updates) {
+                TestRestClient.HttpResponse response = client.putJson("_cluster/settings", update);
+                assertThat(update, response, isForbidden());
+                assertThat(update, response.getBody(), containsString(SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY + " is true"));
+            }
         }
     }
 
     @Test
-    public void notRestAdmin_cannotUpdateRestorableIndices() {
-        try (TestRestClient client = cluster.getRestClient(NOT_REST_ADMIN)) {
+    public void restAdmin_cannotEnableDynamicUpdatesAtRuntime() {
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
             TestRestClient.HttpResponse response = client.putJson(
                 "_cluster/settings",
-                restorableIndicesSetting("[\"" + NOT_ELIGIBLE + "\"]")
+                "{\"persistent\":{\"" + SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY + "\":true}}"
             );
-            assertThat(response, isForbidden());
-            assertThat(response.getBody(), containsString("does not have permission to update sensitive cluster settings"));
-        } finally {
-            resetRestorableIndices();
+            assertThat(response, isBadRequest());
+            assertThat(response.getBody(), containsString("not updateable"));
         }
     }
 
-    private static String restorableIndicesSetting(String value) {
-        return "{\"persistent\":{\"" + SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY + "\":" + value + "}}";
+    @Test
+    public void restAdmin_canUpdateOtherSettingsWhenDynamicUpdatesDisabled() {
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
+            assertThat(client.putJson("_cluster/settings", "{\"persistent\":{\"cluster.routing.allocation.enable\":\"all\"}}"), isOk());
+        } finally {
+            try (TestRestClient admin = cluster.getAdminCertRestClient()) {
+                assertThat(admin.putJson("_cluster/settings", "{\"persistent\":{\"cluster.routing.allocation.enable\":null}}"), isOk());
+            }
+        }
     }
 
-    private void resetRestorableIndices() {
+    static String restorableIndicesSetting(String scope, String value) {
+        return "{\"" + scope + "\":{\"" + SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY + "\":" + value + "}}";
+    }
+
+    static void resetRestorableIndices(LocalCluster cluster) {
         try (TestRestClient admin = cluster.getAdminCertRestClient()) {
-            assertThat(admin.putJson("_cluster/settings", restorableIndicesSetting("null")), isOk());
+            assertThat(admin.putJson("_cluster/settings", restorableIndicesSetting("persistent", "null")), isOk());
         }
     }
 

@@ -1906,6 +1906,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             )
         );
         settings.add(SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING);
+        settings.add(SecuritySettings.SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_SETTING);
 
         settings.add(
             Setting.simpleString(
