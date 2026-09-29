@@ -24,7 +24,6 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -91,7 +90,7 @@ public abstract class AbstractApiIntegrationTest {
     public static final ToXContentObject EMPTY_BODY = (builder, params) -> builder.startObject().endObject();
 
     public static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
     );
 
     protected static LocalCluster.Builder clusterBuilder() {

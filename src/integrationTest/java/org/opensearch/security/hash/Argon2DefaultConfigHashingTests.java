@@ -18,6 +18,8 @@ import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -32,12 +34,12 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
         .hash(
             generateArgon2Hash(
                 "secret",
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
+                PasswordHasherFactory.ARGON2_MEMORY.getDefault(Settings.EMPTY),
+                PasswordHasherFactory.ARGON2_ITERATIONS.getDefault(Settings.EMPTY),
+                PasswordHasherFactory.ARGON2_PARALLELISM.getDefault(Settings.EMPTY),
+                PasswordHasherFactory.ARGON2_LENGTH.getDefault(Settings.EMPTY),
+                PasswordHasherFactory.ARGON2_TYPE.getDefault(Settings.EMPTY),
+                PasswordHasherFactory.ARGON2_VERSION.getDefault(Settings.EMPTY)
             )
         );
 
@@ -50,8 +52,8 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
             Map.of(
                 ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
-                ConfigConstants.ARGON2
+                PasswordHasherFactory.ALGORITHM.getKey(),
+                PasswordHasherFactory.ARGON2
             )
         )
         .build();
@@ -60,12 +62,12 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
     public void shouldAuthenticateWithCorrectPassword() {
         String hash = generateArgon2Hash(
             PASSWORD,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
+            PasswordHasherFactory.ARGON2_MEMORY.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_ITERATIONS.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_PARALLELISM.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_LENGTH.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_TYPE.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_VERSION.getDefault(Settings.EMPTY)
         );
         createUserWithHashedPassword(cluster, "user_1", hash);
         testPasswordAuth(cluster, "user_1", PASSWORD, HttpStatus.SC_OK);
@@ -78,12 +80,12 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
     public void shouldNotAuthenticateWithIncorrectPassword() {
         String hash = generateArgon2Hash(
             PASSWORD,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
+            PasswordHasherFactory.ARGON2_MEMORY.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_ITERATIONS.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_PARALLELISM.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_LENGTH.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_TYPE.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_VERSION.getDefault(Settings.EMPTY)
         );
         createUserWithHashedPassword(cluster, "user_3", hash);
         testPasswordAuth(cluster, "user_3", "wrongpassword", HttpStatus.SC_UNAUTHORIZED);
