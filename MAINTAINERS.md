@@ -1,5 +1,6 @@
 - [Overview](#overview)
 - [Current Maintainers](#current-maintainers)
+- [Emeritus](#emeritus)
 - [Practices](#practices)
   - [Updating Practices](#updating-practices)
   - [Reverting Commits](#reverting-commits)
@@ -27,12 +28,22 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 
 ## Emeritus
 
-| Maintainer       | GitHub ID                                               | Affiliation |
-|------------------|---------------------------------------------------------|-------------|
-| Peter Nied       | [peternied](https://github.com/peternied)               | Airbnb      |
-| Dave Lago        | [davidlago](https://github.com/davidlago)               | Contributor |
-| Chang Liu        | [cliu123](https://github.com/cliu123)                   | Amazon      |
-| Stephen Crawford | [stephen-crawford](https://github.com/stephen-crawford) | Contributor |
+We thank our emeritus maintainers for their contributions and stewardship of OpenSearch Security.
+
+| Maintainer       | GitHub ID                                               | Affiliation            |
+|------------------|---------------------------------------------------------|------------------------|
+| Peter Nied       | [peternied](https://github.com/peternied)               | Airbnb                 |
+| Dave Lago        | [davidlago](https://github.com/davidlago)               | Contributor            |
+| Chang Liu        | [cliu123](https://github.com/cliu123)                   | Amazon                 |
+| Stephen Crawford | [stephen-crawford](https://github.com/stephen-crawford) | Contributor            |
+| afazel           | [afazel](https://github.com/afazel)                     | Amazon (during tenure) |
+| Andy             | [andy840314](https://github.com/andy840314)             | Amazon (during tenure) |
+| hardik-k-shah    | [hardik-k-shah](https://github.com/hardik-k-shah)       | Amazon (during tenure) |
+| hsiang9431-amzn  | [hsiang9431-amzn](https://github.com/hsiang9431-amzn)   | Amazon (during tenure) |
+| lukkoor          | [lukkoor](https://github.com/lukkoor)                   | Amazon (during tenure) |
+| Palash Hedau     | [palashhedau](https://github.com/palashhedau)           | Amazon (during tenure) |
+| Vlad Rozov       | [vrozov](https://github.com/vrozov)                     | Amazon (during tenure) |
+| vengadanathan-s  | [vengadanathan-s](https://github.com/vengadanathan-s)   | Amazon (during tenure) |
 
 
 ## Practices
