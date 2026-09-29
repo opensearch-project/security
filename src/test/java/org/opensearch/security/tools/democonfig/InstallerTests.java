@@ -26,7 +26,9 @@ import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -45,6 +47,13 @@ public class InstallerTests {
     private final InputStream originalIn = System.in;
 
     private static Installer installer;
+
+    /**
+     * Roots the directories created by {@link #setUpSecurityDirectories()} in a per-test location, so they
+     * cannot collide with the other test classes in this package running in parallel forks.
+     */
+    @Rule
+    public TemporaryFolder tempDir = new TemporaryFolder();
 
     // Custom exception to simulate an exit call.
     public static class TestExitException extends RuntimeException {
@@ -458,9 +467,13 @@ public class InstallerTests {
         String[] validBaseDir = { currentDir, "-y" };
         installer.readOptions(validBaseDir);
         installer.setBaseDir();
-        installer.OPENSEARCH_PLUGINS_DIR = installer.BASE_DIR + "plugins" + File.separator;
-        installer.OPENSEARCH_LIB_PATH = installer.BASE_DIR + "lib" + File.separator;
-        installer.OPENSEARCH_CONF_DIR = installer.BASE_DIR + "test-conf" + File.separator;
+        // Rooted in a per-test temporary directory rather than under BASE_DIR (which is user.dir). The test
+        // classes in this package run in separate parallel forks that share user.dir, so fixed directory
+        // names would let one class's teardown delete the tree another class is still writing into.
+        String testRoot = tempDir.getRoot().getAbsolutePath() + File.separator;
+        installer.OPENSEARCH_PLUGINS_DIR = testRoot + "plugins" + File.separator;
+        installer.OPENSEARCH_LIB_PATH = testRoot + "lib" + File.separator;
+        installer.OPENSEARCH_CONF_DIR = testRoot + "test-conf" + File.separator;
 
         createDirectory(installer.OPENSEARCH_PLUGINS_DIR);
         createDirectory(installer.OPENSEARCH_LIB_PATH);
