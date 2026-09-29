@@ -129,16 +129,23 @@ See the [plugin-authorization-flows](ARCHITECTURE.md#plugin-authorization-flows)
 
 ### System Index Protection
 
-The Security Plugin provides protection to system indices used by plugins. The system index names must be explicitly registered in `opensearch.yml` under the `plugins.security.system_indices.indices` setting. See below for an example setup of system index protection from the demo configuration:
+The Security plugin protects system indices registered by OpenSearch plugins. The deprecated
+`plugins.security.system_indices.indices` setting remains available for compatibility with plugins that do not register their system
+indices through `SystemIndexPlugin.getSystemIndexDescriptors`.
+
+Users whose mapped roles are listed in `plugins.security.restapi.roles_enabled` can restore only the system indices matched by
+`plugins.security.system_indices.restore.indices`. The default list is empty today. System indices will be added to it as their
+plugin owners confirm they restore safely. An operator sets the list in `opensearch.yml`. To also allow changing it at runtime
+with `PUT _cluster/settings`, set `plugins.security.system_indices.restore.dynamic.enabled: true` in `opensearch.yml`; the runtime
+value then takes precedence over the file. A configured value replaces the default list and is not merged
+with it. The Security configuration index can never be restored this way:
 
 ```
-plugins.security.system_indices.enabled: true
-plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]
+plugins.security.system_indices.restore.indices:
+  - ".opendistro-alerting-config"
 ```
 
-The demo configuration can be modified in the following files to add a new system index to the demo configuration:
-
-- https://github.com/opensearch-project/security/blob/main/src/main/java/org/opensearch/security/tools/democonfig/SecuritySettingsConfigurer.java
+The user must still have the snapshot restore cluster permission.
 
 
 ## Contributing
