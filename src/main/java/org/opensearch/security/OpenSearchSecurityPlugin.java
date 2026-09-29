@@ -73,6 +73,8 @@ import org.opensearch.action.bulk.BulkAction;
 import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
+import org.opensearch.action.support.ReadAccessPolicy;
+import org.opensearch.action.support.ReadAccessPolicyProvider;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.NamedDiff;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -121,6 +123,7 @@ import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
+import org.opensearch.plugins.AccessPolicyProviderPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.ExtensiblePlugin;
 import org.opensearch.plugins.ExtensionAwarePlugin;
@@ -199,6 +202,7 @@ import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.privileges.actionlevel.RoleBasedActionPrivileges;
 import org.opensearch.security.privileges.dlsfls.DlsFlsBaseContext;
+import org.opensearch.security.privileges.dlsfls.ReadAccessPolicyProviderImpl;
 import org.opensearch.security.resources.PluginDefaultRolesHelper;
 import org.opensearch.security.resources.ResourceAccessControlClient;
 import org.opensearch.security.resources.ResourceAccessHandler;
@@ -290,7 +294,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         MapperPlugin,
         IdentityPlugin,
         ExtensionAwarePlugin,
-        ExtensiblePlugin
+        ExtensiblePlugin,
+        AccessPolicyProviderPlugin
 
 {
 
@@ -307,6 +312,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private boolean sslCertReloadEnabled;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesConfiguration privilegesConfiguration;
+    private volatile ReadAccessPolicyProvider readAccessPolicyProvider = context -> ReadAccessPolicy.unrestricted();
     private volatile RoleMapper roleMapper;
     private volatile UserService userService;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
@@ -348,6 +354,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     public static void traceAction(String message, Object p0) {
         actionTrace.trace(message, p0);
+    }
+
+    @Override
+    public ReadAccessPolicyProvider getReadAccessPolicyProvider() {
+        return readAccessPolicyProvider;
     }
 
     @Override
@@ -1648,6 +1659,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.privilegesConfiguration = privilegesConfiguration;
 
         dlsFlsBaseContext = new DlsFlsBaseContext(privilegesConfiguration, threadPool.getThreadContext(), adminDns);
+        readAccessPolicyProvider = new ReadAccessPolicyProviderImpl(dlsFlsBaseContext);
 
         if (SSLConfig.isSslOnlyMode()) {
             dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
