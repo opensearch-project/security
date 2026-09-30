@@ -16,6 +16,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.opensearch.sample.client.ResourceSharingClientAccessor;
+import org.opensearch.sample.resource.SampleResourceByNameResolver;
+import org.opensearch.security.spi.resources.GatingResourceResolver;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -58,6 +60,15 @@ public class SampleResourceExtension implements ResourceSharingExtension {
             }
             // workspacesField() defaults to "workspaces" — no override needed.
         });
+    }
+
+    /**
+     * Requests that address a resource by name carry no resource id, so this resolver names the resource that governs
+     * them; the security plugin then authorizes that resource.
+     */
+    @Override
+    public Set<GatingResourceResolver> getGatingResourceResolvers() {
+        return Set.of(new SampleResourceByNameResolver());
     }
 
     @Override
