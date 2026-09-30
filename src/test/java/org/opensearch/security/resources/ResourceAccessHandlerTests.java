@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
@@ -334,6 +335,63 @@ public class ResourceAccessHandlerTests {
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
+    }
+
+    @Test
+    public void testHasPermission_multipleIds_allowedWhenEveryIdGrantsAction() {
+        User user = new User("erin", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        stubOwnedBy(user, "res-1");
+        stubOwnedBy(user, "res-2");
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(List.of("res-1", "res-2"), TYPE, ACTION, listener);
+
+        verify(listener).onResponse(true);
+    }
+
+    @Test
+    public void testHasPermission_multipleIds_deniedWhenOneIdDoesNotGrantAction() {
+        User user = new User("frank", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        stubOwnedBy(user, "res-1");
+        // no sharing record for the second resource, so it grants nothing
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(null);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq("res-2"), any());
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(List.of("res-1", "res-2"), TYPE, ACTION, listener);
+
+        verify(listener).onResponse(false);
+    }
+
+    @Test
+    public void testHasPermission_multipleIds_deniedWhenNoIdGiven() {
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(Collections.emptyList(), TYPE, ACTION, listener);
+
+        verify(listener).onResponse(false);
+        verify(sharingIndexHandler, never()).fetchSharingInfo(any(), any(), any());
+    }
+
+    /**
+     * Makes the sharing record of {@code resourceId} report {@code user} as its creator, which grants every action.
+     */
+    private void stubOwnedBy(User user, String resourceId) {
+        ResourceSharing doc = mock(ResourceSharing.class);
+        when(doc.isCreatedBy(user.getName())).thenReturn(true);
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(doc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(resourceId), any());
     }
 
     @Test

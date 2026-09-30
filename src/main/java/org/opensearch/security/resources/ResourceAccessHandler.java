@@ -12,7 +12,9 @@
 package org.opensearch.security.resources;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.action.support.GroupedActionListener;
 import org.opensearch.common.Nullable;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -117,6 +120,50 @@ public class ResourceAccessHandler {
 
         // 3) Fetch all accessible resource sharing records
         resourceSharingIndexHandler.fetchAccessibleResourceSharingRecords(resourceIndex, resourceType, user, flatPrincipals, listener);
+    }
+
+    /**
+     * Checks whether current user has permission to access every one of the given resources. A request that names
+     * several resources is authorized as a whole: the action is allowed only if it is allowed on all of them.
+     * <p>
+     * Each id is checked with {@link #hasPermission(String, String, String, ActionListener)}, so each one gets the same
+     * owner, share and container evaluation. The checks are issued together rather than in sequence, and there is no
+     * short circuit on the first denial: a denial is known once every check has answered.
+     * <p>
+     * An empty collection is denied. The evaluator does not send one — a request naming no resource is left to the
+     * regular privileges evaluator — so this is the safe answer to a caller that asks about nothing.
+     *
+     * @param resourceIds   The resource IDs to check access for.
+     * @param resourceType  The resource type shared by all of the ids.
+     * @param action        The action to check permission for
+     * @param listener      Notified with true only if every id grants the action.
+     */
+    public void hasPermission(
+        @NonNull Collection<String> resourceIds,
+        @NonNull String resourceType,
+        @NonNull String action,
+        ActionListener<Boolean> listener
+    ) {
+        final Set<String> distinctIds = new HashSet<>(resourceIds);
+
+        if (distinctIds.isEmpty()) {
+            LOGGER.debug("No resource id to authorize for action {}; denying", action);
+            listener.onResponse(false);
+            return;
+        }
+
+        if (distinctIds.size() == 1) {
+            hasPermission(distinctIds.iterator().next(), resourceType, action, listener);
+            return;
+        }
+
+        final GroupedActionListener<Boolean> groupedListener = new GroupedActionListener<>(
+            ActionListener.wrap(results -> listener.onResponse(results.stream().allMatch(Boolean::booleanValue)), listener::onFailure),
+            distinctIds.size()
+        );
+        for (String resourceId : distinctIds) {
+            hasPermission(resourceId, resourceType, action, groupedListener);
+        }
     }
 
     /**

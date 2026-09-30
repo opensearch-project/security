@@ -10,6 +10,7 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -24,6 +25,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.MultiResourceRequest;
 
 /**
  * Evaluates access to resources. The resource plugins must register the indices which hold resource information.
@@ -69,6 +71,9 @@ public class ResourceAccessEvaluator {
      * 2. Even if a user has access to all indices, they will not be able to access a resource that they are not the owner of and is not shared with them.
      * 3. A user with no index permissions may not be able to create a resource, however, they can modify and delete a resource shared with them at full-access level.
      *
+     * A request that carries several ids ({@link MultiResourceRequest}) is allowed only if the user holds the action on
+     * every one of them.
+     *
      * @param request                         may contain information about the index and the resource being requested
      * @param action                          the action being requested to be performed on the resource
      * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
@@ -80,7 +85,7 @@ public class ResourceAccessEvaluator {
     ) {
         log.debug("Evaluating resource access");
 
-        resourceAccessHandler.hasPermission(request.id(), request.type(), action, ActionListener.wrap(hasAccess -> {
+        resourceAccessHandler.hasPermission(resourceIds(request), request.type(), action, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
                 pResponseListener.onResponse(PrivilegesEvaluatorResponse.ok());
             } else {
@@ -117,8 +122,8 @@ public class ResourceAccessEvaluator {
          */
         if (request instanceof GetRequest) return false;
         if (request instanceof DocWriteRequest<?>) return false;
-        if (Strings.isNullOrEmpty(docRequest.id())) {
-            log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
+        if (!carriesResourceIds(docRequest)) {
+            log.debug("Request carries no resource id, request is of type {}", docRequest.getClass().getName());
             return false;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
@@ -129,6 +134,37 @@ public class ResourceAccessEvaluator {
 
         // if a resource is not included in protected resource list, we do not perform resource-level authorization
         return protectedTypes.contains(docRequest.type());
+    }
+
+    /**
+     * The resource ids a request asks to act on: the several ids of a {@link MultiResourceRequest}, or the single
+     * {@link DocRequest#id()} of any other request. Every id returned is authorized individually.
+     *
+     * @param request the request being evaluated
+     * @return the ids, empty if the request names none
+     */
+    public static List<String> resourceIds(final DocRequest request) {
+        if (request instanceof MultiResourceRequest multiResourceRequest) {
+            Collection<String> ids = multiResourceRequest.ids();
+            return ids == null ? List.of() : ids.stream().distinct().toList();
+        }
+        return Strings.isNullOrEmpty(request.id()) ? List.of() : List.of(request.id());
+    }
+
+    /**
+     * Whether a request names resource ids this evaluator can authorize. A {@link MultiResourceRequest} qualifies only
+     * when its collection is non-empty and holds no blank id: a partly blank collection is not narrowed silently to the
+     * ids that are present, it is left to the regular evaluator, which is what a blank single id does as well.
+     *
+     * @param request the request being evaluated
+     * @return true if every id the request names can be authorized
+     */
+    private static boolean carriesResourceIds(final DocRequest request) {
+        if (request instanceof MultiResourceRequest multiResourceRequest) {
+            Collection<String> ids = multiResourceRequest.ids();
+            return ids != null && !ids.isEmpty() && ids.stream().noneMatch(Strings::isNullOrEmpty);
+        }
+        return !Strings.isNullOrEmpty(request.id());
     }
 
 }

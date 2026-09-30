@@ -192,6 +192,36 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
 }
 ```
 
+A request that operates on several resources at once implements `MultiResourceRequest` instead. It reports its ids through `ids()`, and the security plugin authorizes every one of them: the request is allowed only if the user holds the action on all of them. All ids must be of the type returned by `type()`; a request mixing types should be split.
+
+```java
+public class MultiGetResourceRequest extends ActionRequest implements MultiResourceRequest {
+
+    private final List<String> resourceIds;
+
+    public MultiGetResourceRequest(List<String> resourceIds) {
+        this.resourceIds = resourceIds;
+    }
+
+    @Override
+    public String type() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
+    public String index() {
+        return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public List<String> ids() {
+        return resourceIds;
+    }
+}
+```
+
+A collection that is empty, or that holds a blank id, is not evaluated: such a request falls through to the regular privileges evaluator, as a blank `id()` does. A request meaning "all resources" is therefore still filtered by the plugin itself.
+
 ---
 
 #### **8. Using the Client **

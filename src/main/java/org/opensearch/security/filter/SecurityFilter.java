@@ -27,6 +27,7 @@
 package org.opensearch.security.filter;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -426,17 +427,23 @@ public class SecurityFilter implements ActionFilter {
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             if (resourceAccessEvaluator.shouldEvaluate(request)) {
                 final DocRequest docRequest = (DocRequest) request;
+                // A request may name several resources, and each is authorized in its own right, so each is audited.
+                final List<String> resourceIds = ResourceAccessEvaluator.resourceIds(docRequest);
                 resourceAccessEvaluator.evaluateAsync(docRequest, action, ActionListener.wrap(response -> {
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }
                     if (response.isAllowed()) {
-                        auditLog.logResourceAccessGranted(action, docRequest.id(), docRequest.type(), docRequest.index(), request, task);
+                        resourceIds.forEach(
+                            id -> auditLog.logResourceAccessGranted(action, id, docRequest.type(), docRequest.index(), request, task)
+                        );
                         auditLog.logIndexEvent(action, request, task);
                         auditLog.logSettingsChange(action, request, task);
                         chain.proceed(task, action, request, listener);
                     } else {
-                        auditLog.logResourceAccessDenied(action, docRequest.id(), docRequest.type(), docRequest.index(), request, task);
+                        resourceIds.forEach(
+                            id -> auditLog.logResourceAccessDenied(action, id, docRequest.type(), docRequest.index(), request, task)
+                        );
                         handleUnauthorized.accept(response);
                     }
                 }, listener::onFailure));

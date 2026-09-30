@@ -8,10 +8,16 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -19,6 +25,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.MultiResourceRequest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 
@@ -33,6 +40,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings("unchecked") // action listener mock
@@ -46,10 +54,16 @@ public class ResourceAccessEvaluatorTest {
     @Mock
     private PrivilegesEvaluationContext context;
 
+    @Mock
+    private OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
+    @Mock
+    private OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting;
+
     private ThreadContext threadContext;
     private ResourceAccessEvaluator evaluator;
 
     private static final String IDX = "resource-index";
+    private static final String TYPE = "sample-resource";
 
     @Before
     public void setup() {
@@ -57,9 +71,40 @@ public class ResourceAccessEvaluatorTest {
         evaluator = new ResourceAccessEvaluator(
             resourcePluginInfo,
             resourceAccessHandler,
-            mock(OpensearchDynamicSetting.class),
-            mock(OpensearchDynamicSetting.class)
+            resourceSharingEnabledSetting,
+            protectedResourceTypesSetting
         );
+    }
+
+    /**
+     * A request naming several resources of one type, as a plugin would implement it.
+     */
+    private static class MultiIdRequest extends ActionRequest implements MultiResourceRequest {
+        private final List<String> ids;
+
+        MultiIdRequest(List<String> ids) {
+            this.ids = ids;
+        }
+
+        @Override
+        public ActionRequestValidationException validate() {
+            return null;
+        }
+
+        @Override
+        public String type() {
+            return TYPE;
+        }
+
+        @Override
+        public String index() {
+            return IDX;
+        }
+
+        @Override
+        public List<String> ids() {
+            return ids;
+        }
     }
 
     private void stubAuthenticatedUser() {
@@ -77,7 +122,7 @@ public class ResourceAccessEvaluatorTest {
             ActionListener<Boolean> listener = inv.getArgument(3);
             listener.onResponse(hasPermission);
             return null;
-        }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq("indices"), eq("read"), any());
+        }).when(resourceAccessHandler).hasPermission(eq(List.of("anyId")), eq("indices"), eq("read"), any());
 
         ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
 
@@ -98,6 +143,99 @@ public class ResourceAccessEvaluatorTest {
     @Test
     public void testEvaluateAsync_whenHasPermissionFalse_thenNotAllowed() {
         assertEvaluateAsync(false, false);
+    }
+
+    @Test
+    public void testEvaluateAsync_multiIdRequest_authorizesEveryId() {
+        stubAuthenticatedUser();
+        MultiIdRequest req = new MultiIdRequest(List.of("id-1", "id-2"));
+
+        doAnswer(inv -> {
+            ActionListener<Boolean> listener = inv.getArgument(3);
+            listener.onResponse(true);
+            return null;
+        }).when(resourceAccessHandler).hasPermission(eq(List.of("id-1", "id-2")), eq(TYPE), eq("read"), any());
+
+        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+        evaluator.evaluateAsync(req, "read", callback);
+
+        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        verify(callback).onResponse(captor.capture());
+        assertThat(captor.getValue().isAllowed(), equalTo(true));
+    }
+
+    @Test
+    public void testEvaluateAsync_multiIdRequest_deniedWhenOneIdIsDenied() {
+        stubAuthenticatedUser();
+        MultiIdRequest req = new MultiIdRequest(List.of("id-1", "id-2"));
+
+        doAnswer(inv -> {
+            ActionListener<Boolean> listener = inv.getArgument(3);
+            listener.onResponse(false);
+            return null;
+        }).when(resourceAccessHandler).hasPermission(eq(List.of("id-1", "id-2")), eq(TYPE), eq("read"), any());
+
+        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+        evaluator.evaluateAsync(req, "read", callback);
+
+        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        verify(callback).onResponse(captor.capture());
+        assertThat(captor.getValue().isAllowed(), equalTo(false));
+    }
+
+    @Test
+    public void testResourceIds_singleIdRequest() {
+        assertThat(ResourceAccessEvaluator.resourceIds(new IndexRequest(IDX).id("anyId")), equalTo(List.of("anyId")));
+    }
+
+    @Test
+    public void testResourceIds_blankSingleId() {
+        assertThat(ResourceAccessEvaluator.resourceIds(new IndexRequest(IDX)), equalTo(List.of()));
+    }
+
+    @Test
+    public void testResourceIds_multiIdRequestDeduplicates() {
+        assertThat(
+            ResourceAccessEvaluator.resourceIds(new MultiIdRequest(List.of("id-1", "id-2", "id-1"))),
+            equalTo(List.of("id-1", "id-2"))
+        );
+    }
+
+    private boolean shouldEvaluate(ActionRequest request) {
+        when(resourceSharingEnabledSetting.getDynamicSettingValue()).thenReturn(true);
+        when(protectedResourceTypesSetting.getDynamicSettingValue()).thenReturn(List.of(TYPE));
+        return evaluator.shouldEvaluate(request);
+    }
+
+    @Test
+    public void testShouldEvaluate_multiIdRequestWithIds() {
+        when(resourcePluginInfo.getResourceIndicesForProtectedTypes()).thenReturn(Set.of(IDX));
+        assertThat(shouldEvaluate(new MultiIdRequest(List.of("id-1", "id-2"))), equalTo(true));
+    }
+
+    @Test
+    public void testShouldEvaluate_multiIdRequestWithNoIds() {
+        assertThat(shouldEvaluate(new MultiIdRequest(List.of())), equalTo(false));
+    }
+
+    /**
+     * A collection holding a blank id is not narrowed silently to the ids that are present; the request is left to the
+     * regular evaluator, exactly as a blank single id is.
+     */
+    @Test
+    public void testShouldEvaluate_multiIdRequestWithBlankId() {
+        assertThat(shouldEvaluate(new MultiIdRequest(Arrays.asList("id-1", ""))), equalTo(false));
+    }
+
+    @Test
+    public void testShouldEvaluate_multiIdRequestWithNullIds() {
+        assertThat(shouldEvaluate(new MultiIdRequest(null)), equalTo(false));
+    }
+
+    @Test
+    public void testShouldEvaluate_multiIdRequestOfUnprotectedType() {
+        when(resourcePluginInfo.getResourceIndicesForProtectedTypes()).thenReturn(Set.of("some-other-index"));
+        assertThat(shouldEvaluate(new MultiIdRequest(List.of("id-1"))), equalTo(false));
     }
 
 }

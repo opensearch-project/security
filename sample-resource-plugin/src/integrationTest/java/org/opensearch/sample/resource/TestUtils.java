@@ -84,6 +84,7 @@ public final class TestUtils {
 
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
+    public static final String SAMPLE_RESOURCE_MGET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/mget";
     public static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
     public static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
     public static final String SAMPLE_RESOURCE_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/search";
@@ -427,6 +428,16 @@ public final class TestUtils {
         public TestRestClient.HttpResponse getResource(String resourceId, TestSecurityConfig.User user) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            }
+        }
+
+        /**
+         * Requests several resources in one call. The request names all of its ids, so the security plugin authorizes
+         * every one of them and the call is allowed only if all of them are accessible to the user.
+         */
+        public TestRestClient.HttpResponse multiGetResources(List<String> resourceIds, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_MGET_ENDPOINT + "/" + String.join(",", resourceIds));
             }
         }
 
