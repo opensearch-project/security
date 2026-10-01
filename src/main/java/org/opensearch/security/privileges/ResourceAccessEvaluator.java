@@ -74,18 +74,18 @@ public class ResourceAccessEvaluator {
      * A request that carries several ids ({@link MultiResourceRequest}) is allowed only if the user holds the action on
      * every one of them.
      *
-     * @param request                         may contain information about the index and the resource being requested
+     * @param request                         the index, type and ids the request names, from {@link #resourceRequest}
      * @param action                          the action being requested to be performed on the resource
      * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
      */
     public void evaluateAsync(
-        final DocRequest request,
+        final ResourceRequest request,
         final String action,
         final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
     ) {
         log.debug("Evaluating resource access");
 
-        resourceAccessHandler.hasPermission(resourceIds(request), request.type(), action, ActionListener.wrap(hasAccess -> {
+        resourceAccessHandler.hasPermission(request.ids(), request.type(), action, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
                 pResponseListener.onResponse(PrivilegesEvaluatorResponse.ok());
             } else {
@@ -104,7 +104,6 @@ public class ResourceAccessEvaluator {
         List<String> protectedTypes = protectedResourceTypesSetting.getDynamicSettingValue();
 
         if (!isResourceSharingFeatureEnabled) return false;
-        if (!(request instanceof DocRequest docRequest)) return false;
         /**
          * Authorization notes:
          *
@@ -122,49 +121,68 @@ public class ResourceAccessEvaluator {
          */
         if (request instanceof GetRequest) return false;
         if (request instanceof DocWriteRequest<?>) return false;
-        if (!carriesResourceIds(docRequest)) {
-            log.debug("Request carries no resource id, request is of type {}", docRequest.getClass().getName());
+
+        final ResourceRequest resourceRequest = resourceRequest(request);
+        if (resourceRequest == null) return false;
+
+        if (!carriesResourceIds(resourceRequest)) {
+            log.debug("Request carries no resource id, request is of type {}", request.getClass().getName());
             return false;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(docRequest.index())) {
-            log.debug("Request index {} is not a protected resource index", docRequest.index());
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceRequest.index())) {
+            log.debug("Request index {} is not a protected resource index", resourceRequest.index());
             return false;
         }
 
         // if a resource is not included in protected resource list, we do not perform resource-level authorization
-        return protectedTypes.contains(docRequest.type());
+        return protectedTypes.contains(resourceRequest.type());
     }
 
     /**
-     * The resource ids a request asks to act on: the several ids of a {@link MultiResourceRequest}, or the single
-     * {@link DocRequest#id()} of any other request. Every id returned is authorized individually.
+     * The index, type and resource ids a request names, normalized from either interface a plugin may implement:
+     * {@link DocRequest}, which names one id, or {@link MultiResourceRequest}, which names several. Everything past this
+     * point treats the two the same way, so neither interface has to pretend to be the other.
+     *
+     * @param index the index holding the resources
+     * @param type  the shareable resource type of every id
+     * @param ids   the ids the request names, each authorized in its own right
+     */
+    public record ResourceRequest(String index, String type, List<String> ids) {
+    }
+
+    /**
+     * Normalizes a request into the resources it names.
      *
      * @param request the request being evaluated
-     * @return the ids, empty if the request names none
+     * @return the index, type and ids the request names, or null if it names no resource at all
      */
-    public static List<String> resourceIds(final DocRequest request) {
+    public static ResourceRequest resourceRequest(final ActionRequest request) {
         if (request instanceof MultiResourceRequest multiResourceRequest) {
             Collection<String> ids = multiResourceRequest.ids();
-            return ids == null ? List.of() : ids.stream().distinct().toList();
+            return new ResourceRequest(
+                multiResourceRequest.index(),
+                multiResourceRequest.type(),
+                ids == null ? List.of() : ids.stream().distinct().toList()
+            );
         }
-        return Strings.isNullOrEmpty(request.id()) ? List.of() : List.of(request.id());
+        if (request instanceof DocRequest docRequest) {
+            List<String> ids = Strings.isNullOrEmpty(docRequest.id()) ? List.of() : List.of(docRequest.id());
+            return new ResourceRequest(docRequest.index(), docRequest.type(), ids);
+        }
+        return null;
     }
 
     /**
-     * Whether a request names resource ids this evaluator can authorize. A {@link MultiResourceRequest} qualifies only
-     * when its collection is non-empty and holds no blank id: a partly blank collection is not narrowed silently to the
-     * ids that are present, it is left to the regular evaluator, which is what a blank single id does as well.
+     * Whether a request names resource ids this evaluator can authorize. A collection that is empty, or that holds a
+     * blank id, does not qualify: it is not narrowed silently to the ids that are present, it is left to the regular
+     * evaluator, which is what a blank single id does as well.
      *
-     * @param request the request being evaluated
+     * @param request the normalized request
      * @return true if every id the request names can be authorized
      */
-    private static boolean carriesResourceIds(final DocRequest request) {
-        if (request instanceof MultiResourceRequest multiResourceRequest) {
-            Collection<String> ids = multiResourceRequest.ids();
-            return ids != null && !ids.isEmpty() && ids.stream().noneMatch(Strings::isNullOrEmpty);
-        }
-        return !Strings.isNullOrEmpty(request.id());
+    private static boolean carriesResourceIds(final ResourceRequest request) {
+        return !request.ids().isEmpty() && request.ids().stream().noneMatch(Strings::isNullOrEmpty);
     }
 
 }

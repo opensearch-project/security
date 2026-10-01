@@ -192,7 +192,7 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
 }
 ```
 
-A request that operates on several resources at once implements `MultiResourceRequest` instead. It reports its ids through `ids()`, and the security plugin authorizes every one of them: the request is allowed only if the user holds the action on all of them. All ids must be of the type returned by `type()`; a request mixing types should be split.
+A request that operates on several resources at once implements `MultiResourceRequest` instead, which is the counterpart of `DocRequest` rather than a subtype of it: a request naming several resources has no single id to report. It declares its index and type the same way and reports its ids through `ids()`, and the security plugin authorizes every one of them, allowing the request only if the user holds the action on all of them. All ids must be of the type returned by `type()`; a request mixing types should be split.
 
 ```java
 public class MultiGetResourceRequest extends ActionRequest implements MultiResourceRequest {

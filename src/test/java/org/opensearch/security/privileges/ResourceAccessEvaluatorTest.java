@@ -77,6 +77,16 @@ public class ResourceAccessEvaluatorTest {
     }
 
     /**
+     * A request implementing neither resource interface.
+     */
+    private static class PlainRequest extends ActionRequest {
+        @Override
+        public ActionRequestValidationException validate() {
+            return null;
+        }
+    }
+
+    /**
      * A request naming several resources of one type, as a plugin would implement it.
      */
     private static class MultiIdRequest extends ActionRequest implements MultiResourceRequest {
@@ -126,7 +136,7 @@ public class ResourceAccessEvaluatorTest {
 
         ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
 
-        evaluator.evaluateAsync(req, "read", callback);
+        evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(req), "read", callback);
 
         ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
         verify(callback).onResponse(captor.capture());
@@ -157,7 +167,7 @@ public class ResourceAccessEvaluatorTest {
         }).when(resourceAccessHandler).hasPermission(eq(List.of("id-1", "id-2")), eq(TYPE), eq("read"), any());
 
         ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
-        evaluator.evaluateAsync(req, "read", callback);
+        evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(req), "read", callback);
 
         ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
         verify(callback).onResponse(captor.capture());
@@ -176,7 +186,7 @@ public class ResourceAccessEvaluatorTest {
         }).when(resourceAccessHandler).hasPermission(eq(List.of("id-1", "id-2")), eq(TYPE), eq("read"), any());
 
         ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
-        evaluator.evaluateAsync(req, "read", callback);
+        evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(req), "read", callback);
 
         ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
         verify(callback).onResponse(captor.capture());
@@ -184,21 +194,34 @@ public class ResourceAccessEvaluatorTest {
     }
 
     @Test
-    public void testResourceIds_singleIdRequest() {
-        assertThat(ResourceAccessEvaluator.resourceIds(new IndexRequest(IDX).id("anyId")), equalTo(List.of("anyId")));
+    public void testResourceRequest_singleIdRequest() {
+        ResourceAccessEvaluator.ResourceRequest request = ResourceAccessEvaluator.resourceRequest(new IndexRequest(IDX).id("anyId"));
+        assertThat(request.index(), equalTo(IDX));
+        assertThat(request.ids(), equalTo(List.of("anyId")));
     }
 
     @Test
-    public void testResourceIds_blankSingleId() {
-        assertThat(ResourceAccessEvaluator.resourceIds(new IndexRequest(IDX)), equalTo(List.of()));
+    public void testResourceRequest_blankSingleId() {
+        assertThat(ResourceAccessEvaluator.resourceRequest(new IndexRequest(IDX)).ids(), equalTo(List.of()));
     }
 
     @Test
-    public void testResourceIds_multiIdRequestDeduplicates() {
-        assertThat(
-            ResourceAccessEvaluator.resourceIds(new MultiIdRequest(List.of("id-1", "id-2", "id-1"))),
-            equalTo(List.of("id-1", "id-2"))
+    public void testResourceRequest_multiIdRequestDeduplicates() {
+        ResourceAccessEvaluator.ResourceRequest request = ResourceAccessEvaluator.resourceRequest(
+            new MultiIdRequest(List.of("id-1", "id-2", "id-1"))
         );
+        assertThat(request.index(), equalTo(IDX));
+        assertThat(request.type(), equalTo(TYPE));
+        assertThat(request.ids(), equalTo(List.of("id-1", "id-2")));
+    }
+
+    /**
+     * A request implementing neither interface names no resource, so there is nothing to normalize.
+     */
+    @Test
+    public void testResourceRequest_requestNamingNoResource() {
+        assertThat(ResourceAccessEvaluator.resourceRequest(new PlainRequest()), equalTo(null));
+        assertThat(shouldEvaluate(new PlainRequest()), equalTo(false));
     }
 
     private boolean shouldEvaluate(ActionRequest request) {
