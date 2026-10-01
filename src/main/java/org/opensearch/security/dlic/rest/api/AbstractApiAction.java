@@ -52,6 +52,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.action.configupdate.SecurityConfigWriteAction;
 import org.opensearch.security.action.configupdate.SecurityConfigWriteRequest;
+import org.opensearch.security.dlic.rest.api.pagination.PaginationHelper;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -692,6 +693,11 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         // override consumeParameters — and don't call super — still don't reject
         // ?wait_for_completion=... as an unrecognized parameter.
         request.paramAsBoolean("wait_for_completion", true);
+        // Same rationale for the cursor-based pagination parameters used by collection GETs.
+        // Subclasses opt into pagination behavior via
+        // {@link RequestHandler.RequestHandlersBuilder#onCollectionGetRequest}; consuming here
+        // means unopted endpoints simply ignore the parameters rather than 400-ing on them.
+        PaginationHelper.consumeParameters(request);
 
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
