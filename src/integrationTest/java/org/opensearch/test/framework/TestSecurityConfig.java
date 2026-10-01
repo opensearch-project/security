@@ -701,6 +701,9 @@ public class TestSecurityConfig {
          */
         public static Role KIBANA_USER = new Role("kibana_user").isPredefined(true);
 
+        /** Represents the base Dashboards role without concrete tenant-index patterns. */
+        public static Role BASE_DASHBOARDS_USER = new Role("base_dashboards_user").isPredefined(true);
+
         private String name;
         private List<String> clusterPermissions = new ArrayList<>();
         private List<IndexPermission> indexPermissions = new ArrayList<>();
