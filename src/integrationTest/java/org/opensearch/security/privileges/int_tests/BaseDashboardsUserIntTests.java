@@ -49,13 +49,17 @@ public class BaseDashboardsUserIntTests {
     private static final TestSecurityConfig.User LEGACY_USER = new TestSecurityConfig.User("legacy_user").roles(
         TestSecurityConfig.Role.KIBANA_USER
     );
+    private static final TestSecurityConfig.User READ_ONLY_BASE_USER = new TestSecurityConfig.User("read_only_base_user").roles(
+        TestSecurityConfig.Role.BASE_DASHBOARDS_USER_READ_ONLY,
+        new TestSecurityConfig.Role("read_only_tenants").tenantPermissions("kibana_all_read").on("global_tenant", "human_resources")
+    );
     private static final TestIndex GLOBAL = TestIndex.name(".kibana_1").documentCount(1).seed(1).build();
     private static final TestIndex HR = TestIndex.name(".kibana_1592542611_humanresources_1").documentCount(1).seed(2).build();
 
     @ClassRule
     public static final ClusterConfig.ClusterInstances CLUSTERS = new ClusterConfig.ClusterInstances(
         () -> new LocalCluster.Builder().authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(BASE_USER, WRITER, READER, LEGACY_USER)
+            .users(BASE_USER, WRITER, READER, LEGACY_USER, READ_ONLY_BASE_USER)
             .tenants(new TestSecurityConfig.Tenant("human_resources"))
             .indices(GLOBAL, HR)
             .aliases(new TestAlias(".kibana").on(GLOBAL), new TestAlias(".kibana_1592542611_humanresources").on(HR))
@@ -101,7 +105,7 @@ public class BaseDashboardsUserIntTests {
 
     @Test
     public void separateTenantRoleAllowsAliasReads() {
-        for (TestSecurityConfig.User user : List.of(READER, WRITER)) {
+        for (TestSecurityConfig.User user : List.of(READER, WRITER, READ_ONLY_BASE_USER)) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 TestRestClient.HttpResponse global = client.get(".kibana/_search");
                 assertThat(global, isOk());
@@ -119,6 +123,17 @@ public class BaseDashboardsUserIntTests {
             BasicHeader tenant = new BasicHeader("securitytenant", "human_resources");
             assertThat(reader.postJson(".kibana/_doc", "{\"title\":\"denied\"}", tenant), isForbidden());
             assertThat(writer.postJson(".kibana/_doc", "{\"title\":\"allowed\"}", tenant), isCreated());
+        }
+    }
+
+    @Test
+    public void readOnlyBaseRoleWorksWithReadOnlyTenantPermissions() {
+        try (TestRestClient client = cluster.getRestClient(READ_ONLY_BASE_USER)) {
+            assertThat(client.postJson(".kibana/_doc", "{\"title\":\"denied\"}"), isForbidden());
+            assertThat(
+                client.postJson(".kibana/_doc", "{\"title\":\"denied\"}", new BasicHeader("securitytenant", "human_resources")),
+                isForbidden()
+            );
         }
     }
 

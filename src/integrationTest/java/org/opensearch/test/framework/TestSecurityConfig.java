@@ -146,6 +146,11 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public TestSecurityConfig multitenancyEnabled(boolean enabled) {
+        config.multitenancyEnabled = enabled;
+        return this;
+    }
+
     public TestSecurityConfig xff(XffConfig xffConfig) {
         config.xffConfig(xffConfig);
         return this;
@@ -272,6 +277,7 @@ public class TestSecurityConfig {
         private boolean anonymousAuth;
 
         private Boolean doNotFailOnForbidden;
+        private Boolean multitenancyEnabled;
         private String privilegesEvaluationType;
         private XffConfig xffConfig;
         private OnBehalfOfConfig onBehalfOfConfig;
@@ -352,6 +358,9 @@ public class TestSecurityConfig {
             }
             if (privilegesEvaluationType != null) {
                 xContentBuilder.field("privileges_evaluation_type", privilegesEvaluationType);
+            }
+            if (multitenancyEnabled != null) {
+                xContentBuilder.field("kibana", Map.of("multitenancy_enabled", multitenancyEnabled));
             }
             xContentBuilder.field("authc", authcDomainMap);
             if (authzDomainMap.isEmpty() == false) {
@@ -703,6 +712,8 @@ public class TestSecurityConfig {
 
         /** Represents the base Dashboards role without concrete tenant-index patterns. */
         public static Role BASE_DASHBOARDS_USER = new Role("base_dashboards_user").isPredefined(true);
+
+        public static Role BASE_DASHBOARDS_USER_READ_ONLY = new Role("base_dashboards_user_read_only").isPredefined(true);
 
         private String name;
         private List<String> clusterPermissions = new ArrayList<>();
