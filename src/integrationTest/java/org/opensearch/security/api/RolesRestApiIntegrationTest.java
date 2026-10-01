@@ -85,6 +85,9 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     @Test
     public void forbiddenForRegularUsers() throws Exception {
         super.forbiddenForRegularUsers(localCluster);
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
+            assertThat(client.putJson(apiPath(), roles(Map.of("some_role", roleWithClusterPermissions("cluster_monitor")))), isForbidden());
+        }
     }
 
     @Test
@@ -100,6 +103,59 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     @Test
     public void availableForRESTAdminUser() throws Exception {
         super.availableForRESTAdminUser(localCluster);
+    }
+
+    @Test
+    public void bulkPutCreatesAndUpdatesRolesAtomically() throws Exception {
+        final String firstRole = "bulk_first_" + randomAlphanumericString();
+        final String secondRole = "bulk_second_" + randomAlphanumericString();
+        final String thirdRole = "bulk_third_" + randomAlphanumericString();
+        final String rejectedRole = "bulk_rejected_" + randomAlphanumericString();
+        final var firstRoleContent = roleWithClusterPermissions("cluster_monitor");
+        final var secondRoleContent = roleWithClusterPermissions("cluster_composite_ops_ro");
+
+        try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
+            assertThat(client.putJson(apiPath(), roles(Map.of(firstRole, firstRoleContent, secondRole, secondRoleContent))), isOk());
+            assertRole(
+                ok(() -> client.get(apiPath(firstRole))),
+                firstRole,
+                null,
+                null,
+                Strings.toString(XContentType.JSON, firstRoleContent)
+            );
+            assertRole(
+                ok(() -> client.get(apiPath(secondRole))),
+                secondRole,
+                null,
+                null,
+                Strings.toString(XContentType.JSON, secondRoleContent)
+            );
+
+            final var updatedFirstRoleContent = roleWithClusterPermissions("cluster_all");
+            final var thirdRoleContent = roleWithClusterPermissions("cluster_monitor");
+            assertThat(client.putJson(apiPath(), roles(Map.of(firstRole, updatedFirstRoleContent, thirdRole, thirdRoleContent))), isOk());
+            assertRole(
+                ok(() -> client.get(apiPath(firstRole))),
+                firstRole,
+                null,
+                null,
+                Strings.toString(XContentType.JSON, updatedFirstRoleContent)
+            );
+            assertThat(client.get(apiPath(secondRole)), isOk());
+            assertThat(client.get(apiPath(thirdRole)), isOk());
+
+            final ToXContentObject invalidRole = (builder, params) -> builder.startObject()
+                .field("unknown_json_property", true)
+                .endObject();
+            assertThat(
+                client.putJson(
+                    apiPath(),
+                    roles(Map.of(rejectedRole, roleWithClusterPermissions("cluster_monitor"), "invalid_" + rejectedRole, invalidRole))
+                ),
+                isBadRequest()
+            );
+            assertThat(client.get(apiPath(rejectedRole)), isNotFound());
+        }
     }
 
     @Override
@@ -163,6 +219,10 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     @Override
     void verifyBadRequestOperations(TestRestClient client) throws Exception {
         // put
+        assertThat(client.putJson(apiPath(), "{}"), isBadRequest());
+        assertThat(client.putJson(apiPath(), "[]"), isBadRequest());
+        assertThat(client.putJson(apiPath(), "{\"role\":\"not an object\"}"), isBadRequest());
+        assertThat(client.putJson(apiPath(), roles(Map.of("", roleWithClusterPermissions("cluster_monitor")))), isBadRequest());
         assertThat(client.putJson(apiPath(randomAlphanumericString()), EMPTY_BODY), isBadRequest());
         assertThat(client.putJson(apiPath(randomAlphanumericString()), (builder, params) -> {
             builder.startObject();
@@ -268,6 +328,10 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     void forbiddenToCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
         assertThat(client.putJson(apiPath("new_rest_admin_role"), roleWithClusterPermissions(randomRestAdminPermission())), isForbidden());
         assertThat(
+            client.putJson(apiPath(), roles(Map.of("new_bulk_rest_admin_role", roleWithClusterPermissions(randomRestAdminPermission())))),
+            isForbidden()
+        );
+        assertThat(
             client.patch(apiPath(), patch(addOp("new_rest_admin_role", roleWithClusterPermissions(randomRestAdminPermission())))),
             isForbidden()
         );
@@ -276,6 +340,10 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
     @Override
     void forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
         // update
+        assertThat(
+            client.putJson(apiPath(), roles(Map.of(REST_ADMIN_PERMISSION_ROLE, roleWithClusterPermissions("cluster_monitor")))),
+            isForbidden()
+        );
         assertThat(
             client.putJson(
                 apiPath(REST_ADMIN_PERMISSION_ROLE),
@@ -402,6 +470,17 @@ public class RolesRestApiIntegrationTest extends AbstractConfigEntityApiIntegrat
 
     static ToXContentObject roleWithClusterPermissions(final String... clusterPermissions) {
         return roleWithClusterPermissions(null, null, null, clusterPermissions);
+    }
+
+    static ToXContentObject roles(final Map<String, ToXContentObject> roles) {
+        return (builder, params) -> {
+            builder.startObject();
+            for (final var role : roles.entrySet()) {
+                builder.field(role.getKey());
+                role.getValue().toXContent(builder, params);
+            }
+            return builder.endObject();
+        };
     }
 
     static ToXContentObject roleWithClusterPermissions(
