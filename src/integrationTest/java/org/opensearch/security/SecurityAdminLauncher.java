@@ -62,4 +62,21 @@ class SecurityAdminLauncher {
 
         return SecurityAdmin.execute(commandLineArguments);
     }
+
+    public int backup(Path backupFolder) throws Exception {
+        String[] commandLineArguments = {
+            "-cacert",
+            certificates.getRootCertificate().getAbsolutePath(),
+            "-cert",
+            certificates.getAdminCertificate().getAbsolutePath(),
+            "-key",
+            certificates.getAdminKey(null).getAbsolutePath(),
+            "-nhnv",
+            "-p",
+            String.valueOf(port),
+            "-backup",
+            backupFolder.toString() };
+
+        return SecurityAdmin.execute(commandLineArguments);
+    }
 }
