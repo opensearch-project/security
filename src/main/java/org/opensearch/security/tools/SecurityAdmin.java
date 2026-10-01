@@ -45,6 +45,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -1104,13 +1105,28 @@ public class SecurityAdmin {
         return retVal;
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T> String convertToYaml(String type, Map<?, ?> document, boolean prettyPrint) throws IOException {
-        try (XContentBuilder builder = XContentFactory.yamlBuilder()) {
+    /**
+     * Converts a security index document to YAML. The configuration is stored as a base64 encoded JSON value in
+     * the field named after the document id, so that field has to be decoded rather than the document serialized
+     * as is.
+     *
+     * @return the YAML, or null if the document does not contain a base64 encoded value for the given type
+     */
+    static String convertToYaml(String type, Map<?, ?> document, boolean prettyPrint) throws IOException {
+        if (!(document.get(type) instanceof String encoded)) {
+            return null;
+        }
+        final byte[] json = Base64.getDecoder().decode(encoded);
+        try (
+            XContentParser parser = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, json);
+            XContentBuilder builder = XContentFactory.yamlBuilder()
+        ) {
             if (prettyPrint) {
                 builder.prettyPrint();
             }
-            builder.map((Map<String, ?>) document);
+            parser.nextToken();
+            builder.copyCurrentStructure(parser);
             return builder.toString();
         }
     }
