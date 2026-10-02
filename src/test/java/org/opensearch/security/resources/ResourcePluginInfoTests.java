@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -115,7 +116,7 @@ public class ResourcePluginInfoTests {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
             @Override
             public Set<ResourceProvider> getResourceProviders() {
-                var providers = new java.util.LinkedHashSet<ResourceProvider>();
+                var providers = new LinkedHashSet<ResourceProvider>();
                 providers.add(workspacesProvider("a", ".shared-index", "workspaces"));
                 providers.add(workspacesProvider("b", ".shared-index", "ws"));
                 return providers;
@@ -138,7 +139,7 @@ public class ResourcePluginInfoTests {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
             @Override
             public Set<ResourceProvider> getResourceProviders() {
-                var providers = new java.util.LinkedHashSet<ResourceProvider>();
+                var providers = new LinkedHashSet<ResourceProvider>();
                 providers.add(workspacesProvider("a", ".shared-index", "workspaces"));
                 providers.add(workspacesProvider("b", ".shared-index", "workspaces"));
                 providers.add(workspacesProvider("c", ".shared-index", null));
@@ -173,6 +174,19 @@ public class ResourcePluginInfoTests {
         assertTrue(ex.getMessage().contains("is a registered resource type"));
     }
 
+    /**
+     * {@code "indices"} is what {@link org.opensearch.action.DocRequest#type()} reports for a request that declares no
+     * type, so a resolver claiming it would be consulted for every such request in the cluster.
+     */
+    @Test
+    public void testRejectsGatingResourceResolverClaimingTheDefaultRequestType() {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> resourcePluginInfo.setResourceSharingExtensions(Set.of(gatingResolverExtension("monitor", "indices", "monitor")))
+        );
+        assertTrue(ex.getMessage().contains("default reported by"));
+    }
+
     @Test
     public void testRejectsTwoGatingResourceResolversForTheSameRequestType() {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
@@ -183,7 +197,7 @@ public class ResourcePluginInfoTests {
 
             @Override
             public Set<GatingResourceResolver> getGatingResourceResolvers() {
-                var resolvers = new java.util.LinkedHashSet<GatingResourceResolver>();
+                var resolvers = new LinkedHashSet<GatingResourceResolver>();
                 resolvers.add(gatingResolver("alerting-comment", "monitor"));
                 resolvers.add(gatingResolver("alerting-comment", "monitor"));
                 return resolvers;
@@ -266,7 +280,7 @@ public class ResourcePluginInfoTests {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
             @Override
             public Set<ResourceProvider> getResourceProviders() {
-                var providers = new java.util.LinkedHashSet<ResourceProvider>();
+                var providers = new LinkedHashSet<ResourceProvider>();
                 for (String type : types) {
                     providers.add(new ResourceProvider() {
                         @Override
@@ -298,7 +312,7 @@ public class ResourcePluginInfoTests {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
             @Override
             public Set<ResourceProvider> getResourceProviders() {
-                var providers = new java.util.LinkedHashSet<ResourceProvider>();
+                var providers = new LinkedHashSet<ResourceProvider>();
                 providers.add(makeProvider(type1, indexName, tf1));
                 providers.add(makeProvider(type2, indexName, tf2));
                 return providers;

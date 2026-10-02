@@ -13,6 +13,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sample.client.PluginClientAccessor;
+import org.opensearch.sample.resource.actions.rest.get.GetResourceByNameRequest;
 import org.opensearch.sample.utils.PluginClient;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -49,9 +50,12 @@ public class SampleResourceByNameResolver implements GatingResourceResolver {
 
         // The resource index is a system index, so the lookup runs as the plugin rather than as the requesting user. The
         // caller is carried in a persistent header and so survives into the access check that follows.
+        // Read from the request itself rather than from id(), which such a request does not report
+        String resourceName = request instanceof GetResourceByNameRequest byName ? byName.getResourceName() : request.id();
+
         SearchSourceBuilder source = new SearchSourceBuilder().size(1)
             .fetchSource(false)
-            .query(QueryBuilders.termQuery("name.keyword", request.id()));
+            .query(QueryBuilders.termQuery("name.keyword", resourceName));
 
         pluginClient.search(new SearchRequest(RESOURCE_INDEX_NAME).source(source), ActionListener.wrap(searchResponse -> {
             SearchHit[] hits = searchResponse.getHits().getHits();

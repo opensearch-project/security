@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
@@ -50,8 +51,12 @@ public class ResourcePluginInfo {
     // type <-> resource provider
     private final Map<String, ResourceProvider> typeToProvider = new HashMap<>();
 
-    // request type <-> resolver of the resource that governs access to requests of that type
-    private final Map<String, GatingResourceResolver> requestTypeToGatingResolver = new HashMap<>();
+    // request type <-> resolver of the resource that governs access to requests of that type. Read on the privilege path,
+    // more than once per request, so it is held in a concurrent map rather than behind the registration lock.
+    private final Map<String, GatingResourceResolver> requestTypeToGatingResolver = new ConcurrentHashMap<>();
+
+    // The value DocRequest.type() reports when a request does not declare one of its own
+    private static final String DEFAULT_DOC_REQUEST_TYPE = "indices";
 
     // UI: access-level *names* per type
     private final Map<String, LinkedHashSet<String>> typeToAccessLevels = new HashMap<>();
@@ -135,6 +140,18 @@ public class ResourcePluginInfo {
     private void registerGatingResolvers(Set<ResourceSharingExtension> extensions, Set<String> resourceTypes) {
         for (ResourceSharingExtension extension : extensions) {
             for (var resolver : extension.getGatingResourceResolvers()) {
+                // "indices" is what DocRequest.type() returns when a request does not override it, so a resolver claiming
+                // it would be consulted for every such request in the cluster
+                if (DEFAULT_DOC_REQUEST_TYPE.equals(resolver.requestType())) {
+                    throw new OpenSearchSecurityException(
+                        String.format(
+                            "Request type [%s] declared by the gating resource resolver of %s is the default reported by"
+                                + " requests that do not declare a type. A gated request must declare a type of its own.",
+                            resolver.requestType(),
+                            extension.getClass().getName()
+                        )
+                    );
+                }
                 if (resourceTypes.contains(resolver.requestType())) {
                     throw new OpenSearchSecurityException(
                         String.format(
@@ -167,12 +184,7 @@ public class ResourcePluginInfo {
      * @return the resolver, or null if requests of this type are authorized against the type and id they report
      */
     public GatingResourceResolver gatingResolver(String requestType) {
-        lock.readLock().lock();
-        try {
-            return requestTypeToGatingResolver.get(requestType);
-        } finally {
-            lock.readLock().unlock();
-        }
+        return requestTypeToGatingResolver.get(requestType);
     }
 
     public void updateProtectedTypes(List<String> protectedTypes) {

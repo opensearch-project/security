@@ -169,15 +169,19 @@ public class ResourceAccessEvaluator {
          */
         if (request instanceof GetRequest) return false;
         if (request instanceof DocWriteRequest<?>) return false;
-        if (Strings.isNullOrEmpty(docRequest.id())) {
-            log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
-            return false;
-        }
-        // a request whose access is governed by another resource is evaluated while that resource's type is protected.
-        // Its own index is not a resource index, and the document it names need not exist, so the checks below do not apply.
+
+        // A request whose access is governed by another resource is evaluated while that resource's type is protected,
+        // and the resolver decides from there. This is checked before the id below because such a request need not name a
+        // document of its own: a create has nothing to name yet, and the id it would report is null. Its own index is not
+        // a resource index either, so neither check that follows applies to it.
         final GatingResourceResolver gatingResolver = resourcePluginInfo.gatingResolver(docRequest.type());
         if (gatingResolver != null) {
             return protectedTypes.contains(gatingResolver.gatingResourceType());
+        }
+
+        if (Strings.isNullOrEmpty(docRequest.id())) {
+            log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
+            return false;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
         if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(docRequest.index())) {

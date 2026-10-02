@@ -62,8 +62,9 @@ public interface ResourceSharingExtension extends SecurityConfigExtension {
     }
 
     /**
-     * Returns the resolvers for requests whose access is governed by a resource other than the one they name, keyed by
-     * the value those requests report as their type. See {@link GatingResourceResolver} for the contract.
+     * Returns the resolvers for requests whose access is governed by a resource other than the one they name. Each
+     * resolver declares the request type it claims, and no two may claim the same one. See
+     * {@link GatingResourceResolver} for the contract.
      *
      * <p>Defaults to none, which leaves every request authorized against the type and id it reports.
      *

@@ -26,14 +26,24 @@ import org.opensearch.core.action.ActionListener;
  *
  * <p>Notes for implementers:
  * <ul>
- *   <li>{@link #requestType()} must not be a registered resource type. A request of a registered type is authorized
- *       directly against that type, so a resolver claiming the same name is ignored.</li>
- *   <li>The request's own index need not be a resource index, and the document it names need not exist yet, which is
- *       what lets a create be gated by an existing parent.</li>
+ *   <li>{@link #requestType()} must declare a type of the plugin's own. It may not be a registered resource type, since
+ *       a request of a registered type is authorized against that type directly, and it may not be {@code "indices"},
+ *       which is what {@link DocRequest#type()} reports for a request that declares nothing: a resolver claiming it would
+ *       be consulted for every such request in the cluster. Both are rejected at registration.</li>
+ *   <li>The request's own index need not be a resource index, and the document it names need not exist yet, which is what
+ *       lets a create be gated by an existing parent. A create may report a null {@link DocRequest#id()}; the resolver
+ *       receives the whole request and reads whatever field carries the link to the governing resource.</li>
+ *   <li>A core {@link org.opensearch.action.DocWriteRequest} or {@link org.opensearch.action.get.GetRequest} cannot be
+ *       gated this way. Those are index actions and the evaluator declines them before any resolver is consulted.</li>
  *   <li>{@link #resolveGatingResourceId} is called on the transport thread while the request is being authorized, so it
  *       must not block. Perform the read with the plugin's own client, since the requesting user usually holds no
- *       permission on the index being read. Stashing the thread context for that read is safe: the authenticated user is
- *       carried in a persistent header, which survives a stash, so the subsequent access check still sees the caller.</li>
+ *       permission on the index being read.</li>
+ *   <li><b>Restore the caller's context before completing the listener.</b> The access check that follows, and the
+ *       transport action after it, run on whatever context the listener is invoked with. Reading as the plugin is fine,
+ *       but hand the caller's context back first: {@code PluginClient} in the sample plugin shows the pattern, wrapping
+ *       the listener in {@code ActionListener.runBefore(listener, storedContext::restore)}. The authenticated user itself
+ *       travels in a persistent header and survives a stash, so the check would still identify the caller, but the
+ *       downstream action would run with the plugin's transient state.</li>
  * </ul>
  */
 public interface GatingResourceResolver {

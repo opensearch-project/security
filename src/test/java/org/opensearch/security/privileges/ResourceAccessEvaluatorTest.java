@@ -179,6 +179,21 @@ public class ResourceAccessEvaluatorTest {
         assertThat(evaluator.shouldEvaluate(new GatedRequest()), equalTo(true));
     }
 
+    /**
+     * A gated request reporting no id must still be evaluated. The blank-id check used to run first, which took exactly
+     * the case the hook exists for, a create, out of resource evaluation entirely.
+     */
+    @Test
+    public void testShouldEvaluate_gatedRequestReportingNoId() {
+        when(resourceSharingEnabledSetting.getDynamicSettingValue()).thenReturn(true);
+        when(protectedResourceTypesSetting.getDynamicSettingValue()).thenReturn(List.of(GATING_TYPE));
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(GATING_ID, null));
+
+        GatedRequest request = new GatedRequest();
+        assertThat(request.id(), equalTo(null));
+        assertThat(evaluator.shouldEvaluate(request), equalTo(true));
+    }
+
     @Test
     public void testShouldEvaluate_gatedRequestWhenGatingTypeIsNotProtected() {
         when(resourceSharingEnabledSetting.getDynamicSettingValue()).thenReturn(true);
@@ -239,9 +254,13 @@ public class ResourceAccessEvaluatorTest {
             return "some-other-index";
         }
 
+        /**
+         * A create has no document of its own yet, so it reports no id. The resolver reads the link to the governing
+         * resource from the request instead.
+         */
         @Override
         public String id() {
-            return "comment-1";
+            return null;
         }
     }
 

@@ -63,8 +63,13 @@ public class GetResourceByNameRequest extends ActionRequest implements DocReques
         return RESOURCE_INDEX_NAME;
     }
 
+    /**
+     * No id of its own: the resource is addressed by name, and its id is only known after the lookup the plugin's
+     * {@code GatingResourceResolver} performs. This is the shape a create has as well, where the document does not exist
+     * yet.
+     */
     @Override
     public String id() {
-        return resourceName;
+        return null;
     }
 }
