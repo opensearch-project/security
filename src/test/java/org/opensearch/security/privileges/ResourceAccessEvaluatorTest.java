@@ -35,6 +35,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -193,6 +194,29 @@ public class ResourceAccessEvaluatorTest {
         assertThat(captor.getValue().isAllowed(), equalTo(false));
     }
 
+    /**
+     * A check that fails rather than answering denies the request. Reading a sharing record can fail, and a failure must
+     * not read as an allow.
+     */
+    @Test
+    public void testEvaluateAsync_whenTheCheckFails_thenNotAllowed() {
+        stubAuthenticatedUser();
+        MultiIdRequest req = new MultiIdRequest(List.of("id-1", "id-2"));
+
+        doAnswer(inv -> {
+            ActionListener<Boolean> listener = inv.getArgument(3);
+            listener.onFailure(new RuntimeException("sharing record read failed"));
+            return null;
+        }).when(resourceAccessHandler).hasPermission(eq(List.of("id-1", "id-2")), eq(TYPE), eq("read"), any());
+
+        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+        evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(req), "read", callback);
+
+        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        verify(callback).onResponse(captor.capture());
+        assertThat(captor.getValue().isAllowed(), equalTo(false));
+    }
+
     @Test
     public void testResourceRequest_singleIdRequest() {
         ResourceAccessEvaluator.ResourceRequest request = ResourceAccessEvaluator.resourceRequest(new IndexRequest(IDX).id("anyId"));
@@ -203,6 +227,14 @@ public class ResourceAccessEvaluatorTest {
     @Test
     public void testResourceRequest_blankSingleId() {
         assertThat(ResourceAccessEvaluator.resourceRequest(new IndexRequest(IDX)).ids(), equalTo(List.of()));
+    }
+
+    @Test
+    public void testResourceRequest_dropsBlankIds() {
+        ResourceAccessEvaluator.ResourceRequest request = ResourceAccessEvaluator.resourceRequest(
+            new MultiIdRequest(Arrays.asList("id-1", "", null, "id-2"))
+        );
+        assertThat(request.ids(), equalTo(List.of("id-1", "id-2")));
     }
 
     @Test
@@ -225,9 +257,13 @@ public class ResourceAccessEvaluatorTest {
     }
 
     private boolean shouldEvaluate(ActionRequest request) {
+        return evaluableResourceRequest(request) != null;
+    }
+
+    private ResourceAccessEvaluator.ResourceRequest evaluableResourceRequest(ActionRequest request) {
         when(resourceSharingEnabledSetting.getDynamicSettingValue()).thenReturn(true);
         when(protectedResourceTypesSetting.getDynamicSettingValue()).thenReturn(List.of(TYPE));
-        return evaluator.shouldEvaluate(request);
+        return evaluator.evaluableResourceRequest(request);
     }
 
     @Test
@@ -242,12 +278,27 @@ public class ResourceAccessEvaluatorTest {
     }
 
     /**
-     * A collection holding a blank id is not narrowed silently to the ids that are present; the request is left to the
-     * regular evaluator, exactly as a blank single id is.
+     * A blank id names no resource, so it is dropped and the real id beside it is still authorized. Disqualifying the
+     * whole request instead would hand that real id to the regular evaluator, which is a way past resource evaluation
+     * for a caller who holds the action through a role.
      */
     @Test
-    public void testShouldEvaluate_multiIdRequestWithBlankId() {
-        assertThat(shouldEvaluate(new MultiIdRequest(Arrays.asList("id-1", ""))), equalTo(false));
+    public void testShouldEvaluate_multiIdRequestWithBlankIdStillGatesTheRealId() {
+        when(resourcePluginInfo.getResourceIndicesForProtectedTypes()).thenReturn(Set.of(IDX));
+
+        ResourceAccessEvaluator.ResourceRequest request = evaluableResourceRequest(new MultiIdRequest(Arrays.asList("id-1", "")));
+
+        assertThat(request, not(equalTo(null)));
+        assertThat(request.ids(), equalTo(List.of("id-1")));
+    }
+
+    /**
+     * Dropping the only id leaves nothing to authorize, which still falls through, as a request meaning "all resources"
+     * relies on.
+     */
+    @Test
+    public void testShouldEvaluate_multiIdRequestWithOnlyBlankIds() {
+        assertThat(shouldEvaluate(new MultiIdRequest(Arrays.asList("", null))), equalTo(false));
     }
 
     @Test

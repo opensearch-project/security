@@ -10,6 +10,7 @@ package org.opensearch.security.resources;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
@@ -22,6 +23,7 @@ import org.opensearch.OpenSearchStatusException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
@@ -34,6 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -338,38 +341,95 @@ public class ResourceAccessHandlerTests {
     }
 
     @Test
-    public void testHasPermission_multipleIds_allowedWhenEveryIdGrantsAction() {
+    public void testHasPermission_multipleIds_allowedWhenEveryRecordGrantsAction() {
         User user = new User("erin", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
 
-        stubOwnedBy(user, "res-1");
-        stubOwnedBy(user, "res-2");
+        // Several ids are read in one mget rather than a GET each
+        stubSharingInfoForIds(Map.of("res-1", ownedBy(user), "res-2", ownedBy(user)));
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(List.of("res-1", "res-2"), TYPE, ACTION, listener);
 
         verify(listener).onResponse(true);
+        verify(sharingIndexHandler, never()).fetchSharingInfo(any(), any(), any());
     }
 
     @Test
-    public void testHasPermission_multipleIds_deniedWhenOneIdDoesNotGrantAction() {
+    public void testHasPermission_multipleIds_deniedWhenOneIdHasNoRecord() {
         User user = new User("frank", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
 
-        stubOwnedBy(user, "res-1");
-        // no sharing record for the second resource, so it grants nothing
-        doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(2);
-            l.onResponse(null);
-            return null;
-        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq("res-2"), any());
+        // res-2 is absent from the mget response, so nothing grants it
+        stubSharingInfoForIds(Map.of("res-1", ownedBy(user)));
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(List.of("res-1", "res-2"), TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
+    }
+
+    /**
+     * An id whose own record does not grant the action falls back to its containers, exactly as it does on the single-id
+     * path. Here the container check denies, so the request as a whole is denied.
+     */
+    @Test
+    public void testHasPermission_multipleIds_deniedWhenContainerFallbackDenies() {
+        User user = new User("grace", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        ResourceSharing grantsNothing = mock(ResourceSharing.class);
+        when(grantsNothing.isCreatedBy(user.getName())).thenReturn(false);
+        when(grantsNothing.getAccessLevelsForUser(user)).thenReturn(Set.of());
+        stubSharingInfoForIds(Map.of("res-1", ownedBy(user), "res-2", grantsNothing));
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(List.of("res-1", "res-2"), TYPE, ACTION, listener);
+
+        verify(listener).onResponse(false);
+    }
+
+    @Test
+    public void testHasPermission_multipleIds_deniedWhenTheReadFails() {
+        User user = new User("heidi", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        doAnswer(inv -> {
+            ActionListener<Map<String, ResourceSharing>> l = inv.getArgument(2);
+            l.onFailure(new OpenSearchStatusException("boom", RestStatus.INTERNAL_SERVER_ERROR));
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(INDEX), any(), any());
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(List.of("res-1", "res-2"), TYPE, ACTION, listener);
+
+        // Reported as a failure rather than a silent allow; the evaluator turns it into a denial
+        verify(listener).onFailure(any(OpenSearchStatusException.class));
+        verify(listener, never()).onResponse(anyBoolean());
+    }
+
+    /**
+     * One id is the common case, and the single-id path already owns the whole evaluation, so the collection overload
+     * delegates to it rather than paying for an mget.
+     */
+    @Test
+    public void testHasPermission_singleIdCollection_delegatesToTheSingleIdPath() {
+        User user = new User("ivan", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        stubOwnedBy(user, RESOURCE_ID);
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(List.of(RESOURCE_ID, RESOURCE_ID), TYPE, ACTION, listener);
+
+        verify(listener).onResponse(true);
+        verify(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+        verify(sharingIndexHandler, never()).fetchSharingInfoForIds(any(), any(), any());
     }
 
     @Test
@@ -379,6 +439,21 @@ public class ResourceAccessHandlerTests {
 
         verify(listener).onResponse(false);
         verify(sharingIndexHandler, never()).fetchSharingInfo(any(), any(), any());
+        verify(sharingIndexHandler, never()).fetchSharingInfoForIds(any(), any(), any());
+    }
+
+    private ResourceSharing ownedBy(User user) {
+        ResourceSharing doc = mock(ResourceSharing.class);
+        when(doc.isCreatedBy(user.getName())).thenReturn(true);
+        return doc;
+    }
+
+    private void stubSharingInfoForIds(Map<String, ResourceSharing> recordsById) {
+        doAnswer(inv -> {
+            ActionListener<Map<String, ResourceSharing>> l = inv.getArgument(2);
+            l.onResponse(recordsById);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(INDEX), any(), any());
     }
 
     /**

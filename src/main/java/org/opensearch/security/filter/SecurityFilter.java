@@ -423,10 +423,11 @@ public class SecurityFilter implements ActionFilter {
             // NOTE: Since resource-access evaluation requires fetching documents from index, we make the call async otherwise it would
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
-            if (resourceAccessEvaluator.shouldEvaluate(request)) {
-                // The request names its resources through one of two interfaces, normalized here. A request may name
-                // several, and each is authorized in its own right, so each is audited.
-                final ResourceAccessEvaluator.ResourceRequest resourceRequest = ResourceAccessEvaluator.resourceRequest(request);
+            // The request names its resources through one of two interfaces, normalized by the evaluator, which returns
+            // null when it is not the one to authorize this request. The verdict covers the request as a whole, and is
+            // recorded against each id it names.
+            final ResourceAccessEvaluator.ResourceRequest resourceRequest = resourceAccessEvaluator.evaluableResourceRequest(request);
+            if (resourceRequest != null) {
                 resourceAccessEvaluator.evaluateAsync(resourceRequest, action, ActionListener.wrap(response -> {
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;

@@ -100,10 +100,22 @@ public class ResourceAccessEvaluator {
      * @return true if request should be evaluated, false otherwise
      */
     public boolean shouldEvaluate(ActionRequest request) {
+        return evaluableResourceRequest(request) != null;
+    }
+
+    /**
+     * The resources a request names, if this evaluator is the one to authorize it. Normalizing and gating in a single
+     * call means the caller does not rebuild the view afterwards: a request whose {@code ids()} is not a stable snapshot
+     * would otherwise be free to pass the checks here and present something else to {@link #evaluateAsync}.
+     *
+     * @param request the action request to be evaluated
+     * @return the index, type and ids to authorize, or null if this evaluator should not handle the request
+     */
+    public ResourceRequest evaluableResourceRequest(ActionRequest request) {
         boolean isResourceSharingFeatureEnabled = resourceSharingEnabledSetting.getDynamicSettingValue();
         List<String> protectedTypes = protectedResourceTypesSetting.getDynamicSettingValue();
 
-        if (!isResourceSharingFeatureEnabled) return false;
+        if (!isResourceSharingFeatureEnabled) return null;
         /**
          * Authorization notes:
          *
@@ -119,24 +131,24 @@ public class ResourceAccessEvaluator {
          *   ({@link IndexRequest}, {@link UpdateRequest}, {@link DeleteRequest}) and may appear as items
          *   in a {@code _bulk} request.
          */
-        if (request instanceof GetRequest) return false;
-        if (request instanceof DocWriteRequest<?>) return false;
+        if (request instanceof GetRequest) return null;
+        if (request instanceof DocWriteRequest<?>) return null;
 
         final ResourceRequest resourceRequest = resourceRequest(request);
-        if (resourceRequest == null) return false;
+        if (resourceRequest == null) return null;
 
-        if (!carriesResourceIds(resourceRequest)) {
+        if (resourceRequest.ids().isEmpty()) {
             log.debug("Request carries no resource id, request is of type {}", request.getClass().getName());
-            return false;
+            return null;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
         if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceRequest.index())) {
             log.debug("Request index {} is not a protected resource index", resourceRequest.index());
-            return false;
+            return null;
         }
 
         // if a resource is not included in protected resource list, we do not perform resource-level authorization
-        return protectedTypes.contains(resourceRequest.type());
+        return protectedTypes.contains(resourceRequest.type()) ? resourceRequest : null;
     }
 
     /**
@@ -152,7 +164,10 @@ public class ResourceAccessEvaluator {
     }
 
     /**
-     * Normalizes a request into the resources it names.
+     * Normalizes a request into the resources it names, dropping blank ids. A blank id names no resource, so dropping it
+     * leaves the rest to be authorized: disqualifying the whole request instead would send a real id to the regular
+     * evaluator alongside the blank one, which is a way past resource evaluation for the id that does exist. A request
+     * left with no id at all still falls through, which is what a request meaning "all resources" relies on.
      *
      * @param request the request being evaluated
      * @return the index, type and ids the request names, or null if it names no resource at all
@@ -163,7 +178,7 @@ public class ResourceAccessEvaluator {
             return new ResourceRequest(
                 multiResourceRequest.index(),
                 multiResourceRequest.type(),
-                ids == null ? List.of() : ids.stream().distinct().toList()
+                ids == null ? List.of() : ids.stream().filter(id -> !Strings.isNullOrEmpty(id)).distinct().toList()
             );
         }
         if (request instanceof DocRequest docRequest) {
@@ -171,18 +186,6 @@ public class ResourceAccessEvaluator {
             return new ResourceRequest(docRequest.index(), docRequest.type(), ids);
         }
         return null;
-    }
-
-    /**
-     * Whether a request names resource ids this evaluator can authorize. A collection that is empty, or that holds a
-     * blank id, does not qualify: it is not narrowed silently to the ids that are present, it is left to the regular
-     * evaluator, which is what a blank single id does as well.
-     *
-     * @param request the normalized request
-     * @return true if every id the request names can be authorized
-     */
-    private static boolean carriesResourceIds(final ResourceRequest request) {
-        return !request.ids().isEmpty() && request.ids().stream().noneMatch(Strings::isNullOrEmpty);
     }
 
 }

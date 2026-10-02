@@ -25,6 +25,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.ROLE_ONLY_MGET_USER;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
@@ -84,6 +85,21 @@ public class MultiIdRequestAccessTests {
     @Test
     public void noIdShared_isForbidden() throws Exception {
         forbidden(() -> api.multiGetResources(List.of(resourceOne, resourceTwo), NO_ACCESS_USER));
+    }
+
+    /**
+     * A blank id alongside a real one must not take the request out of resource evaluation. This user holds the multi-get
+     * action through a role and is shared nothing, so if the blank made the evaluator stand aside, the role alone would
+     * carry the request and the unshared resource would be readable.
+     */
+    @Test
+    public void blankIdBesideARealId_doesNotBypassEvaluation() throws Exception {
+        forbidden(() -> api.multiGetResources(List.of(resourceOne, "", resourceTwo), ROLE_ONLY_MGET_USER));
+        forbidden(() -> api.multiGetResources(List.of(resourceOne, ""), ROLE_ONLY_MGET_USER));
+
+        // and the same user is allowed once the resource is actually shared, so the denials above are about the share
+        ok(() -> api.shareResource(resourceOne, USER_ADMIN, ROLE_ONLY_MGET_USER, SAMPLE_READ_ONLY));
+        ok(() -> api.multiGetResources(List.of(resourceOne, ""), ROLE_ONLY_MGET_USER));
     }
 
     @Test

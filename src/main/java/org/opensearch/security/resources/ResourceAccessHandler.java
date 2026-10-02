@@ -126,12 +126,15 @@ public class ResourceAccessHandler {
      * Checks whether current user has permission to access every one of the given resources. A request that names
      * several resources is authorized as a whole: the action is allowed only if it is allowed on all of them.
      * <p>
-     * Each id is checked with {@link #hasPermission(String, String, String, ActionListener)}, so each one gets the same
-     * owner, share and container evaluation. The checks are issued together rather than in sequence, and there is no
-     * short circuit on the first denial: a denial is known once every check has answered.
+     * The sharing records are read in one {@link ResourceSharingIndexHandler#fetchSharingInfoForIds mget} rather than a
+     * GET per id, which is what the privilege path can afford. Each record is then evaluated exactly as a single-id
+     * check would evaluate it: the record itself first, and its containers (parent and workspaces) only for the ids whose
+     * own record does not grant the action. An id with no record at all is denied, as it is on the single-id path.
      * <p>
-     * An empty collection is denied. The evaluator does not send one — a request naming no resource is left to the
-     * regular privileges evaluator — so this is the safe answer to a caller that asks about nothing.
+     * There is no short circuit on the first denial, so a denial is known once every id has answered.
+     * <p>
+     * An empty collection is denied. The evaluator does not send one, since a request naming no resource is left to the
+     * regular privileges evaluator, so this is the safe answer to a caller that asks about nothing.
      *
      * @param resourceIds   The resource IDs to check access for.
      * @param resourceType  The resource type shared by all of the ids.
@@ -144,6 +147,8 @@ public class ResourceAccessHandler {
         @NonNull String action,
         ActionListener<Boolean> listener
     ) {
+        // Deduplicated here rather than trusting the caller: this is the authorization boundary, and a duplicate would
+        // otherwise cost an extra record lookup
         final Set<String> distinctIds = new HashSet<>(resourceIds);
 
         if (distinctIds.isEmpty()) {
@@ -152,18 +157,63 @@ public class ResourceAccessHandler {
             return;
         }
 
+        // One id is the common case and the single-id path already owns the whole evaluation, containers included
         if (distinctIds.size() == 1) {
             hasPermission(distinctIds.iterator().next(), resourceType, action, listener);
             return;
         }
 
-        final GroupedActionListener<Boolean> groupedListener = new GroupedActionListener<>(
-            ActionListener.wrap(results -> listener.onResponse(results.stream().allMatch(Boolean::booleanValue)), listener::onFailure),
-            distinctIds.size()
-        );
-        for (String resourceId : distinctIds) {
-            hasPermission(resourceId, resourceType, action, groupedListener);
+        final User user = getAuthenticatedUser();
+        if (user == null) {
+            LOGGER.warn("No authenticated user found. Access to resources {} is not authorized.", distinctIds);
+            listener.onResponse(false);
+            return;
         }
+
+        if (adminDNs.isAdmin(user)) {
+            LOGGER.debug("User '{}' is admin, automatically granted permission on {}", user.getName(), distinctIds);
+            listener.onResponse(true);
+            return;
+        }
+
+        final String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+        if (resourceIndex == null) {
+            LOGGER.debug("No resourceIndex mapping found for type '{}'; denying action {}", resourceType, action);
+            listener.onResponse(false);
+            return;
+        }
+
+        resourceSharingIndexHandler.fetchSharingInfoForIds(resourceIndex, distinctIds, ActionListener.wrap(sharingInfoById -> {
+            final List<ResourceSharing> needContainerCheck = new ArrayList<>();
+            for (String resourceId : distinctIds) {
+                ResourceSharing sharingInfo = sharingInfoById.get(resourceId);
+                if (sharingInfo == null) {
+                    // No record means nothing grants this id, which is a denial for the request as a whole
+                    LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, action);
+                    listener.onResponse(false);
+                    return;
+                }
+                if (!recordGrantsAction(sharingInfo, resourceType, user, action)) {
+                    needContainerCheck.add(sharingInfo);
+                }
+            }
+
+            if (needContainerCheck.isEmpty()) {
+                listener.onResponse(true);
+                return;
+            }
+
+            final GroupedActionListener<Boolean> groupedListener = new GroupedActionListener<>(
+                ActionListener.wrap(results -> listener.onResponse(results.stream().allMatch(Boolean::booleanValue)), listener::onFailure),
+                needContainerCheck.size()
+            );
+            for (ResourceSharing sharingInfo : needContainerCheck) {
+                checkContainers(sharingInfo, action, groupedListener);
+            }
+        }, e -> {
+            LOGGER.error("Error while checking permission for user {} on resources {}: {}", user.getName(), distinctIds, e.getMessage());
+            listener.onFailure(e);
+        }));
     }
 
     /**

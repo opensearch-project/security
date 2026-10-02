@@ -74,6 +74,12 @@ public final class TestUtils {
     // No Permission
     public final static TestSecurityConfig.User NO_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_no_perms");
 
+    // Holds the multi-get action through a role but is never shared any resource. A caller shaped like this is what makes
+    // a gap in resource evaluation observable: a zero-permission user is denied either way, so it cannot tell the
+    // difference between resource evaluation denying the request and the request never being evaluated.
+    public final static TestSecurityConfig.User ROLE_ONLY_MGET_USER = new TestSecurityConfig.User("resource_sharing_test_user_role_mget")
+        .roles(new TestSecurityConfig.Role("shared_role_mget_only").clusterPermissions("sampleresource:mget"));
+
     public static final String SAMPLE_READ_ONLY = "sample_read_only";
     public static final String SAMPLE_READ_WRITE = "sample_read_write";
     public static final String SAMPLE_FULL_ACCESS = "sample_full_access";
@@ -121,7 +127,7 @@ public final class TestUtils {
             )
             .anonymousAuth(true)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
+            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER, ROLE_ONLY_MGET_USER)
             .nodeSettings(
                 Map.of(
                     OPENSEARCH_RESOURCE_SHARING_ENABLED,
