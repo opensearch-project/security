@@ -13,7 +13,9 @@ package org.opensearch.security.identity;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,14 +24,17 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.ClusterName;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.authtoken.jwt.claims.JwtClaimsBuilder;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -43,9 +48,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormatTest.cluster;
+import static org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormatTest.encryptWithLegacyEcb;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -56,7 +64,11 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class SecurityTokenManagerTest {
 
+    static final String OBO_ROLE = "obo-role";
+
     private SecurityTokenManager tokenManager;
+
+    String encryptionKeyB64;
 
     @Mock
     private JwtVendor jwtVendor;
@@ -69,7 +81,18 @@ public class SecurityTokenManagerTest {
 
     @Before
     public void setup() {
-        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService, (user, caller) -> user.getSecurityRoles()));
+        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService, (user, caller) -> user.getSecurityRoles(), null));
+        clusterOf(false);
+    }
+
+    /**
+     * Puts a cluster state behind the cluster service, with or without a node that cannot read the AES-GCM
+     * roles claim. Issuance reads it to decide whether the claim still has to be written in the pre-upgrade
+     * encryption format.
+     */
+    void clusterOf(final boolean withPreUpgradeNode) {
+        lenient().when(cs.state())
+            .thenReturn(ClusterState.builder(new ClusterName("cluster17")).nodes(cluster(withPreUpgradeNode)).build());
     }
 
     @After
@@ -103,16 +126,27 @@ public class SecurityTokenManagerTest {
 
     /** Creates the jwt vendor and returns a mock for validation if needed */
     private DynamicConfigModel createMockJwtVendorInTokenManager(boolean includeEncryptionKey) {
+        encryptionKeyB64 = includeEncryptionKey ? fipsCompatibleEncryptionKey() : null;
         final Settings settings = Settings.builder()
             .put("enabled", true)
             .put("signing_key", signingKeyB64Encoded)
-            .put("encryption_key", (includeEncryptionKey ? "1234567890" : null))
+            .put("encryption_key", encryptionKeyB64)
             .build();
         final DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.getDynamicOnBehalfOfSettings()).thenReturn(settings);
         doAnswer((invocation) -> jwtVendor).when(tokenManager).createJwtVendor(settings);
         tokenManager.onDynamicConfigModelChanged(dcm);
         return dcm;
+    }
+
+    /**
+     * Returns a base64-encoded key with 32 bytes of material, so the AES-256 key derived by
+     * {@code EncryptionDecryptionUtil} clears the BC FIPS IKM floor (>= 112 bits; 32 bytes for AES-256).
+     */
+    private static String fipsCompatibleEncryptionKey() {
+        final byte[] keyMaterial = new byte[32];
+        new SecureRandom().nextBytes(keyMaterial);
+        return Base64.getEncoder().encodeToString(keyMaterial);
     }
 
     @Test
@@ -264,6 +298,50 @@ public class SecurityTokenManagerTest {
         verify(jwtVendor).createJwt(any(), any(), any(), longCaptor.capture());
 
         assertThat(600L, equalTo(longCaptor.getValue()));
+    }
+
+    @Test
+    public void issueOnBehalfOfToken_writesPreUpgradeFormatWhileAnOldNodeIsInTheCluster() throws Exception {
+        clusterOf(true);
+
+        final String rolesClaim = issueAndCaptureRolesClaim();
+
+        assertThat(rolesClaim, is(encryptWithLegacyEcb(encryptionKeyB64, OBO_ROLE)));
+    }
+
+    @Test
+    public void issueOnBehalfOfToken_writesCurrentFormatOnceEveryNodeIsUpgraded() throws Exception {
+        clusterOf(false);
+
+        final String rolesClaim = issueAndCaptureRolesClaim();
+
+        assertThat(readWithoutLegacyFormat(rolesClaim), is(OBO_ROLE));
+    }
+
+    /**
+     * Decrypts the claim the way a node does once every node is upgraded: AES-GCM only. A claim written in the
+     * pre-upgrade format fails here, because that node no longer reads it.
+     */
+    String readWithoutLegacyFormat(final String rolesClaim) {
+        return new EncryptionDecryptionUtil(encryptionKeyB64).decrypt(rolesClaim);
+    }
+
+    /** Issues a token and returns the encrypted_roles claim the vendor was asked to sign. */
+    String issueAndCaptureRolesClaim() throws Exception {
+        doAnswer(invocation -> new ClusterName("cluster17")).when(cs).getClusterName();
+        doAnswer(invocation -> true).when(tokenManager).issueOnBehalfOfTokenAllowed();
+        final ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("Jon").withSecurityRoles(List.of(OBO_ROLE)));
+        when(threadPool.getThreadContext()).thenReturn(threadContext);
+
+        createMockJwtVendorInTokenManager(true);
+        when(jwtVendor.createJwt(any(), any(), any(), any())).thenReturn(mock(ExpiringBearerAuthToken.class));
+
+        tokenManager.issueOnBehalfOfToken(null, new OnBehalfOfClaims("elmo", 450L));
+
+        final ArgumentCaptor<JwtClaimsBuilder> claimsCaptor = ArgumentCaptor.forClass(JwtClaimsBuilder.class);
+        verify(jwtVendor).createJwt(claimsCaptor.capture(), any(), any(), any());
+        return (String) claimsCaptor.getValue().build().getClaim("encrypted_roles");
     }
 
     @Test
