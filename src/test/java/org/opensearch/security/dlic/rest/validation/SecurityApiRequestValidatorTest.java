@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class EnvironmentVariableExpressionValidatorTest {
+public class SecurityApiRequestValidatorTest {
     @Test
     public void rejectsExpressionsInNestedValuesAndKeys() throws Exception {
         for (String expression : List.of(
@@ -100,7 +100,7 @@ public class EnvironmentVariableExpressionValidatorTest {
     }
 
     private ValidationResult<RestRequest> validate(RestRequest.Method method, String body, Map<String, String> params) {
-        return EnvironmentVariableExpressionValidator.validate(
+        return SecurityApiRequestValidator.validate(
             FakeRestRequest.builder().withMethod(method).withParams(params).withContent(new BytesArray(body)).build()
         );
     }

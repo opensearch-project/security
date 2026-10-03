@@ -16,9 +16,12 @@ import tools.jackson.core.JsonToken;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 
-/** Rejects REST-supplied environment expressions before configuration is persisted and reloaded. */
-public final class EnvironmentVariableExpressionValidator {
-    private EnvironmentVariableExpressionValidator() {}
+/**
+ * Shared input validation before dispatching security API requests to endpoint-specific handlers.
+ * Currently rejects environment expressions that could be expanded when persisted configuration is loaded.
+ */
+public final class SecurityApiRequestValidator {
+    private SecurityApiRequestValidator() {}
 
     public static ValidationResult<RestRequest> validate(RestRequest request) {
         if (request.method() != RestRequest.Method.PUT
