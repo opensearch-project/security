@@ -21,6 +21,39 @@ all_access:
       allowed_actions:
         - "kibana_all_write"
 
+# Base Dashboards permissions; grant shared/global tenant permissions through separate roles.
+# Alias permissions also cover backing indices under the existing authorization rules.
+base_dashboards_user:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide base Dashboards alias permissions; tenant permissions must be granted separately"
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - ".kibana"
+        - ".opensearch_dashboards"
+      allowed_actions:
+        - "delete"
+        - "index"
+        - "manage"
+        - "read"
+
+base_dashboards_user_read_only:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide read-only Dashboards alias permissions; tenant permissions must be granted separately"
+  cluster_permissions:
+    - "cluster_composite_ops_ro"
+  index_permissions:
+    - index_patterns:
+        - ".kibana"
+        - ".opensearch_dashboards"
+      allowed_actions:
+        - "read"
+
 kibana_user:
   reserved: true
   hidden: false
