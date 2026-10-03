@@ -333,6 +333,14 @@ Checkstyle enforces several rules within this codebase. Sometimes it will be nec
 See [REST_AUTHZ_FOR_PLUGINS](REST_AUTHZ_FOR_PLUGINS.md).
 
 
+## Configuration API input validation
+
+`AbstractApiAction.prepareRequest` rejects environment variable expressions in POST, PUT, and PATCH input before dispatching to endpoint-specific handlers. The shared check covers decoded route/query parameter names and values, JSON property names, nested string values, and JSON Patch paths and values. It also runs before asynchronous configuration writes are submitted.
+
+This prevents REST-supplied expressions from being stored in the security index and expanded when configuration is loaded. The reserved `${env` prefix includes `${env.NAME}`, `${envbc.NAME}`, `${envbase64.NAME}`, and malformed variants. The validator neither resolves environment variables nor includes rejected input in its error response. Endpoint-specific schema validation still applies.
+
+`${user.name}` and other user-attribute DLS templates are unaffected. File-based environment substitution is unchanged. GET and DELETE are not rejected by this check, so existing configuration can still be inspected or removed; this change does not clean up previously stored expressions.
+
 ## Submitting Changes
 
 See [CONTRIBUTING](CONTRIBUTING.md).

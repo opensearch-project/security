@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -27,6 +26,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
+import org.opensearch.security.dlic.rest.validation.EnvironmentVariableExpressionValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
@@ -75,7 +75,6 @@ public class RateLimitersApiAction extends AbstractApiAction {
 
     private static final FieldValidator POSITIVE_INTEGER_VALIDATOR = integerRangeValidator(1, Integer.MAX_VALUE);
     private static final FieldValidator NON_NEGATIVE_INTEGER_VALIDATOR = integerRangeValidator(0, Integer.MAX_VALUE);
-    private static final Pattern REJECTED_PATTERNS = Pattern.compile("\\$\\{env");
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(
@@ -287,7 +286,7 @@ public class RateLimitersApiAction extends AbstractApiAction {
         RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate(fieldName, value);
         if (value instanceof JsonNode arrayNode) {
             for (JsonNode element : arrayNode) {
-                if (element.isTextual() && REJECTED_PATTERNS.matcher(element.asText()).find()) {
+                if (element.isTextual() && EnvironmentVariableExpressionValidator.containsExpression(element.asText())) {
                     throw new IllegalArgumentException(fieldName + " must not contain environment variable expressions");
                 }
             }
