@@ -41,6 +41,7 @@ import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ImpersonationBackend;
+import org.opensearch.security.auth.InvalidCredentialsException;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.InternalUsersModel;
 import org.opensearch.security.user.AuthCredentials;
@@ -119,7 +120,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Imp
         }
 
         if (password == null || password.length == 0) {
-            throw new OpenSearchSecurityException("empty passwords not supported");
+            throw new InvalidCredentialsException("empty passwords not supported");
         }
 
         ByteBuffer wrap = ByteBuffer.wrap(password);
@@ -141,9 +142,9 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Imp
                 return new User(credentials.getUsername(), backendRoles, securityRoles, null, attributeMap, false);
             } else {
                 if (!userExists) {
-                    throw new OpenSearchSecurityException(credentials.getUsername() + " not found");
+                    throw new InvalidCredentialsException(credentials.getUsername() + " not found");
                 }
-                throw new OpenSearchSecurityException("password does not match");
+                throw new InvalidCredentialsException("password does not match");
             }
         } finally {
             Arrays.fill(wrap.array(), (byte) 0);
@@ -172,6 +173,15 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Imp
         } else {
             return user;
         }
+    }
+
+    @Override
+    public Optional<Boolean> userExists(String username) {
+        InternalUsersModel model = this.internalUsersModel;
+        if (model == null) {
+            return Optional.empty();
+        }
+        return Optional.of(model.exists(username));
     }
 
     @Subscribe
