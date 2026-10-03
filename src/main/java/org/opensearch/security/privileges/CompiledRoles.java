@@ -232,19 +232,14 @@ public class CompiledRoles {
                 NamedXContentRegistry xContentRegistry
             ) {
                 try {
-                    if (rawIndex.getDls() != null) {
+                    if (rawIndex.getDls() != null && !rawIndex.getDls().isEmpty()) {
                         return DocumentPrivileges.DlsQuery.create(rawIndex.getDls(), xContentRegistry);
                     } else {
                         return null;
                     }
                 } catch (PrivilegesConfigurationValidationException e) {
-                    log.error(
-                        "Invalid DLS query for role '{}': {}\nIgnoring DLS configuration for this index permission.",
-                        roleName,
-                        rawIndex.getDls(),
-                        e
-                    );
-                    return null;
+                    log.error("Invalid DLS query for role '{}'; access through this DLS rule will be denied", roleName);
+                    return DocumentPrivileges.DlsQuery.invalid(rawIndex.getDls());
                 }
             }
 
