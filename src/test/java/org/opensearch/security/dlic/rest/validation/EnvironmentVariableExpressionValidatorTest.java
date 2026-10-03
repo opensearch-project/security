@@ -75,7 +75,20 @@ public class EnvironmentVariableExpressionValidatorTest {
 
     @Test
     public void rejectsMalformedJson() {
-        assertEquals(RestStatus.BAD_REQUEST, validate(RestRequest.Method.PUT, "{", Map.of()).status());
+        for (String body : List.of("{", "{\"a\": [1,", "{\"a\":\"unterminated", "{} trailing")) {
+            assertEquals(RestStatus.BAD_REQUEST, validate(RestRequest.Method.PUT, body, Map.of()).status());
+        }
+    }
+
+    @Test
+    public void rejectsDuplicateProperties() {
+        assertEquals(RestStatus.BAD_REQUEST, validate(RestRequest.Method.PUT, "{\"a\":1,\"a\":2}", Map.of()).status());
+    }
+
+    @Test
+    public void scansNestedSiblings() {
+        assertRejected("{\"first\":[null,1,{\"safe\":true}],\"last\":{\"nested\":[\"${env.NAME}\"]}}", Map.of());
+        assertRejected("{\"first\":{},\"last\":[{\"${env.NAME}\":false}]}", Map.of());
     }
 
     private void assertRejected(String body, Map<String, String> params) {

@@ -7,13 +7,12 @@
  */
 package org.opensearch.security.dlic.rest.validation;
 
-import java.io.IOException;
-
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 
-import tools.jackson.databind.JsonNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonToken;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 
@@ -34,12 +33,15 @@ public final class EnvironmentVariableExpressionValidator {
             }
         }
         if (request.hasContent()) {
-            try {
-                // Inspect decoded keys and values, including JSON escapes and JSON Patch paths.
-                if (containsExpression(DefaultObjectMapper.readTree(request.content().utf8ToString()))) {
-                    return rejected();
+            try (var parser = DefaultObjectMapper.objectMapper().createParser(request.content().utf8ToString())) {
+                // Jackson handles nesting and escapes for both property names and string values.
+                JsonToken token;
+                while ((token = parser.nextToken()) != null) {
+                    if ((token == JsonToken.PROPERTY_NAME || token == JsonToken.VALUE_STRING) && containsExpression(parser.getString())) {
+                        return rejected();
+                    }
                 }
-            } catch (IOException e) {
+            } catch (JacksonException e) {
                 return ValidationResult.error(
                     RestStatus.BAD_REQUEST,
                     (builder, params) -> builder.startObject()
@@ -55,29 +57,6 @@ public final class EnvironmentVariableExpressionValidator {
     private static boolean containsExpression(String value) {
         // Include malformed forms as well as supported environment substitution syntax.
         return value != null && value.contains("${env");
-    }
-
-    private static boolean containsExpression(JsonNode node) {
-        if (node == null) {
-            return false;
-        }
-        if (node.isTextual()) {
-            return containsExpression(node.asText());
-        }
-        if (node.isObject()) {
-            for (var property : node.properties()) {
-                if (containsExpression(property.getKey()) || containsExpression(property.getValue())) {
-                    return true;
-                }
-            }
-        } else if (node.isArray()) {
-            for (JsonNode element : node) {
-                if (containsExpression(element)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private static ValidationResult<RestRequest> rejected() {
