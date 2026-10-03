@@ -400,7 +400,17 @@ public class BackendRegistry {
                         if (authenticatorType.equals(BASIC_TYPE)) {
                             log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
-                        notifyIpAuthFailureListeners(request, authCredentials);
+                        /*
+                        Only count this as an authentication failure if the request actually presented
+                        credentials for some auth domain. Issuing a challenge to a request that carried
+                        none is the specified first round trip of HTTP authentication, not a failure, and
+                        treating it as one lets ordinary unauthenticated traffic exhaust allowed_tries.
+                        That blocks the client ADDRESS, so every client sharing it (a NAT, a proxy, an
+                        egress gateway) is then refused regardless of credentials.
+                         */
+                        if (authCredentials != null) {
+                            notifyIpAuthFailureListeners(request, authCredentials);
+                        }
                         request.queueForSending(restResponse.get());
                         return false;
                     }

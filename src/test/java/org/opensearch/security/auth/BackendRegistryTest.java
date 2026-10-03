@@ -11,6 +11,7 @@
 
 package org.opensearch.security.auth;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -33,6 +34,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auth.limiting.AddressBasedRateLimiter;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.filter.SecurityRequestChannel;
@@ -64,6 +66,8 @@ import static org.mockito.Mockito.when;
 
 public class BackendRegistryTest {
 
+    private static final InetAddress CLIENT_ADDRESS = new InetSocketAddress("127.0.0.1", 9200).getAddress();
+
     @Mock
     private ThreadPool threadPool;
 
@@ -81,6 +85,9 @@ public class BackendRegistryTest {
 
     private BackendRegistry backendRegistry;
 
+    /** Registered as both the ip auth failure listener and the ip client block registry. */
+    private AddressBasedRateLimiter ipRateLimiter;
+
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -93,6 +100,13 @@ public class BackendRegistryTest {
         when(xffResolver.resolve(any())).thenReturn(new TransportAddress(new InetSocketAddress("127.0.0.1", 9200)));
 
         backendRegistry = new BackendRegistry(Settings.EMPTY, adminDns, xffResolver, auditLog, threadPool, clusterInfoHolder);
+
+        // allowed_tries 1 so that a single notification blocks the address, which makes
+        // "was the limiter armed?" answerable without driving a whole window of requests.
+        ipRateLimiter = new AddressBasedRateLimiter(
+            Settings.builder().put("allowed_tries", 1).put("time_window_seconds", 60).put("block_expiry_seconds", 180).build(),
+            null
+        );
     }
 
     @Test
@@ -166,14 +180,80 @@ public class BackendRegistryTest {
         verify(auditLog).logFailedLogin(eq("testuser"), eq(false), isNull(), same(request));
     }
 
+    @Test
+    public void testBasicChallengeWithoutCredentialsDoesNotBlockClientAddress() throws Exception {
+        AuthDomain basicAuthDomain = basicAuthDomain(rejectingBackend(), true, 1);
+        configureAuthDomains(basicAuthDomain);
+
+        TestSecurityRequestChannel request = new TestSecurityRequestChannel(Collections.emptyMap());
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("Authentication should fail when no credentials are presented", authenticated);
+        assertEquals("Challenge should return unauthorized response", 401, request.getQueuedResponse().get().getStatus());
+        assertFalse(
+            "Challenging a request that presented no credentials must not block the client address",
+            ipRateLimiter.isBlocked(CLIENT_ADDRESS)
+        );
+    }
+
+    @Test
+    public void testSamlRedirectWithoutCredentialsDoesNotBlockClientAddress() throws Exception {
+        AuthDomain samlAuthDomain = samlAuthDomain(1);
+        configureAuthDomains(samlAuthDomain);
+
+        TestSecurityRequestChannel request = new TestSecurityRequestChannel(Collections.emptyMap());
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("Authentication should fail while SAML redirects", authenticated);
+        assertEquals("SAML challenge should return redirect response", 302, request.getQueuedResponse().get().getStatus());
+        assertFalse("A SAML redirect must not block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
+    }
+
+    @Test
+    public void testUnauthenticatedChallengeDoesNotLockOutValidCredentials() throws Exception {
+        // The user-visible consequence: with ip_rate_limiting configured, unauthenticated requests
+        // exhausting allowed_tries used to block the client ADDRESS, so a subsequent request with
+        // perfectly good credentials from that same address was refused, and so was every other
+        // client sharing it.
+        AuthDomain basicAuthDomain = basicAuthDomain(acceptingBackend("testuser"), true, 1);
+        configureAuthDomains(basicAuthDomain);
+
+        backendRegistry.authenticate(new TestSecurityRequestChannel(Collections.emptyMap()));
+
+        // Each real request carries its own thread context; the remote-address transient can only
+        // be written once per context.
+        when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
+
+        TestSecurityRequestChannel withCredentials = requestWithBasicAuth("testuser", "correct-password");
+        boolean authenticated = backendRegistry.authenticate(withCredentials);
+
+        assertTrue("Valid credentials must still authenticate after an unauthenticated challenge", authenticated);
+        assertFalse("No challenge response should be queued", withCredentials.getQueuedResponse().isPresent());
+    }
+
+    @Test
+    public void testRejectedCredentialsBeforeSamlChallengeBlocksClientAddress() throws Exception {
+        // The limiter must still do its job: credentials were presented and rejected, so this is a
+        // real authentication failure and the address is tracked.
+        AuthDomain basicAuthDomain = basicAuthDomain(rejectingBackend(), false, 1);
+        AuthDomain samlAuthDomain = samlAuthDomain(2);
+        configureAuthDomains(basicAuthDomain, samlAuthDomain);
+
+        TestSecurityRequestChannel request = requestWithBasicAuth("testuser", "wrong-password");
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("Authentication should fail when Basic Auth backend rejects credentials", authenticated);
+        assertTrue("Rejected credentials must still block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
+    }
+
     private void configureAuthDomains(AuthDomain... authDomains) {
         DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.isAnonymousAuthenticationEnabled()).thenReturn(false);
         when(dcm.getRestAuthDomains()).thenReturn(new TreeSet<>(List.of(authDomains)));
         when(dcm.getRestAuthorizers()).thenReturn(Collections.emptySet());
-        when(dcm.getIpAuthFailureListeners()).thenReturn(Collections.emptyList());
+        when(dcm.getIpAuthFailureListeners()).thenReturn(List.of(ipRateLimiter));
         when(dcm.getAuthBackendFailureListeners()).thenReturn(ImmutableMultimap.of());
-        when(dcm.getIpClientBlockRegistries()).thenReturn(Collections.emptyList());
+        when(dcm.getIpClientBlockRegistries()).thenReturn(List.of(ipRateLimiter));
         when(dcm.getAuthBackendClientBlockRegistries()).thenReturn(ImmutableMultimap.of());
         when(dcm.getHostsResolverMode()).thenReturn("ip-only");
 
