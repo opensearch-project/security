@@ -4,6 +4,7 @@ resource_types:
         default: true
         allowed_actions:
           - "sampleresource:get"
+          - "sampleresource:mget"
 
       sample_read_write:
         allowed_actions:
