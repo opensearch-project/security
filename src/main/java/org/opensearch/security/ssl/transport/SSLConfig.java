@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecuritySettings;
 
@@ -23,17 +24,34 @@ public class SSLConfig {
 
     private static final Logger logger = LogManager.getLogger(SSLConfig.class);
 
+    public final static SSLConfig NO_SSL_CONFIG = new SSLConfig(false, false, false, false);
+
     private final boolean sslOnly;
+
     private volatile boolean dualModeEnabled;
 
-    public SSLConfig(final boolean sslOnly, final boolean dualModeEnabled) {
+    private final boolean httpEnabled;
+
+    private final boolean transportEnabled;
+
+    protected SSLConfig(final boolean sslOnly, final boolean dualModeEnabled, final boolean httpEnabled, final boolean transportEnabled) {
         this.sslOnly = sslOnly;
         this.dualModeEnabled = dualModeEnabled;
+        this.httpEnabled = httpEnabled;
+        this.transportEnabled = transportEnabled;
         logger.info("SSL dual mode is {}", isDualModeEnabled() ? "enabled" : "disabled");
     }
 
     public SSLConfig(final Settings settings) {
-        this(settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false), SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings));
+        this(
+            settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false),
+            SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings),
+            settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT),
+            settings.getAsBoolean(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED,
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT
+            )
+        );
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
@@ -56,5 +74,13 @@ public class SSLConfig {
 
     public boolean isSslOnlyMode() {
         return sslOnly;
+    }
+
+    public boolean httpEnabled() {
+        return httpEnabled;
+    }
+
+    public boolean transportEnabled() {
+        return transportEnabled;
     }
 }
