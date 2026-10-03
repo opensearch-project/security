@@ -23,7 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class EnvironmentVariableExpressionsApiIntegrationTest {
+public class SecurityApiRequestValidationIntegrationTest {
     private static final String BASE = "_plugins/_security/api/";
     private static final String EXPRESSION = "${env.SECURITY_API_VALIDATION_TEST:-synthetic}";
     private static final String ROLE_BODY = "{\"cluster_permissions\":[\"cluster:monitor/main\"]}";
