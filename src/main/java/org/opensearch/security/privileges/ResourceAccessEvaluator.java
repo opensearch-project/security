@@ -24,6 +24,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.GatingResourceResolver;
 
 /**
  * Evaluates access to resources. The resource plugins must register the indices which hold resource information.
@@ -69,6 +70,9 @@ public class ResourceAccessEvaluator {
      * 2. Even if a user has access to all indices, they will not be able to access a resource that they are not the owner of and is not shared with them.
      * 3. A user with no index permissions may not be able to create a resource, however, they can modify and delete a resource shared with them at full-access level.
      *
+     * When the plugin has registered a {@link GatingResourceResolver} for the request's type, access is evaluated against
+     * the resource that resolver names rather than the one the request names.
+     *
      * @param request                         may contain information about the index and the resource being requested
      * @param action                          the action being requested to be performed on the resource
      * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
@@ -80,7 +84,55 @@ public class ResourceAccessEvaluator {
     ) {
         log.debug("Evaluating resource access");
 
-        resourceAccessHandler.hasPermission(request.id(), request.type(), action, ActionListener.wrap(hasAccess -> {
+        final GatingResourceResolver gatingResolver = resourcePluginInfo.gatingResolver(request.type());
+        if (gatingResolver != null) {
+            resolveThenCheck(request, action, gatingResolver, pResponseListener);
+            return;
+        }
+
+        checkPermission(request.id(), request.type(), action, pResponseListener);
+    }
+
+    /**
+     * Authorizes a request against the resource that governs it rather than the one it names, by asking the plugin's
+     * resolver for that resource first. A resolution that yields no id, or that fails, denies the request.
+     *
+     * @param request           the request being authorized
+     * @param action            the action being requested
+     * @param gatingResolver    the resolver claiming this request type
+     * @param pResponseListener notified with the evaluation result
+     */
+    private void resolveThenCheck(
+        final DocRequest request,
+        final String action,
+        final GatingResourceResolver gatingResolver,
+        final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
+    ) {
+        gatingResolver.resolveGatingResourceId(request, ActionListener.wrap(gatingResourceId -> {
+            if (Strings.isNullOrEmpty(gatingResourceId)) {
+                log.debug(
+                    "No gating resource of type {} resolved for request of type {}; action {} is not allowed",
+                    gatingResolver.gatingResourceType(),
+                    request.type(),
+                    action
+                );
+                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action));
+                return;
+            }
+            checkPermission(gatingResourceId, gatingResolver.gatingResourceType(), action, pResponseListener);
+        }, e -> {
+            log.debug("Failed to resolve the gating resource for request of type {}: {}", request.type(), e.getMessage());
+            pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action));
+        }));
+    }
+
+    private void checkPermission(
+        final String resourceId,
+        final String resourceType,
+        final String action,
+        final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
+    ) {
+        resourceAccessHandler.hasPermission(resourceId, resourceType, action, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
                 pResponseListener.onResponse(PrivilegesEvaluatorResponse.ok());
             } else {
@@ -117,6 +169,16 @@ public class ResourceAccessEvaluator {
          */
         if (request instanceof GetRequest) return false;
         if (request instanceof DocWriteRequest<?>) return false;
+
+        // A request whose access is governed by another resource is evaluated while that resource's type is protected,
+        // and the resolver decides from there. This is checked before the id below because such a request need not name a
+        // document of its own: a create has nothing to name yet, and the id it would report is null. Its own index is not
+        // a resource index either, so neither check that follows applies to it.
+        final GatingResourceResolver gatingResolver = resourcePluginInfo.gatingResolver(docRequest.type());
+        if (gatingResolver != null) {
+            return protectedTypes.contains(gatingResolver.gatingResourceType());
+        }
+
         if (Strings.isNullOrEmpty(docRequest.id())) {
             log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
             return false;

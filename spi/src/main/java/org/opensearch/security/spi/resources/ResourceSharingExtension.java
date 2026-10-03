@@ -60,4 +60,17 @@ public interface ResourceSharingExtension extends SecurityConfigExtension {
     default Set<String> resolveWorkspacesForUser(String username, Set<String> securityRoles, Set<String> backendRoles) {
         return Collections.emptySet();
     }
+
+    /**
+     * Returns the resolvers for requests whose access is governed by a resource other than the one they name. Each
+     * resolver declares the request type it claims, and no two may claim the same one. See
+     * {@link GatingResourceResolver} for the contract.
+     *
+     * <p>Defaults to none, which leaves every request authorized against the type and id it reports.
+     *
+     * @return the gating resource resolvers, or an empty set if the plugin has none
+     */
+    default Set<GatingResourceResolver> getGatingResourceResolvers() {
+        return Collections.emptySet();
+    }
 }

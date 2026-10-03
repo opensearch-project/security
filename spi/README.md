@@ -192,6 +192,37 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
 }
 ```
 
+When access to a request is governed by a resource the request does not name, and that resource is known only after a read, the plugin registers a `GatingResourceResolver` for the value its requests report as `type()`. The security plugin asks the resolver for the gating resource id and authorizes that resource instead; a resolution that yields nothing, or fails, denies the request. alerting's alert comments are the case: an index, update or delete carries an alert or comment id and the monitor that governs access is only known after reading it.
+
+```java
+public class AlertingCommentResolver implements GatingResourceResolver {
+
+    @Override
+    public String requestType() {
+        return "alerting-comment"; // the value the comment requests report as type()
+    }
+
+    @Override
+    public String gatingResourceType() {
+        return "monitor";
+    }
+
+    @Override
+    public void resolveGatingResourceId(DocRequest request, ActionListener<String> listener) {
+        // read the alert as the plugin, then hand back the monitor id
+    }
+}
+```
+
+```java
+@Override
+public Set<GatingResourceResolver> getGatingResourceResolvers() {
+    return Set.of(new AlertingCommentResolver());
+}
+```
+
+The request type a resolver claims must not be a registered resource type, since a request of a registered type is authorized against that type directly. Resolution is only performed while the gating type is protected, and the request's own index need not be a resource index, which is what lets a create be gated by an existing parent. The resolver is called while the request is being authorized, so it must not block; perform the read with the plugin's own client, since the requesting user usually holds no permission on the index being read. Stashing the thread context for that read is safe: the authenticated user travels in a persistent header, which survives a stash, so the access check that follows still sees the caller.
+
 ---
 
 #### **8. Using the Client **

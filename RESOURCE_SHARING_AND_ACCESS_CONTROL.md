@@ -470,6 +470,7 @@ Since no entities are listed, the resource is accessible **only by its creator a
 ## **7. Best Practices For Plugin Developers**
 - **Declare resources properly** in the `ResourceSharingExtension`.
 - **Implement DocRequest** to utilize resource access control framework.
+- **Register a GatingResourceResolver** for a request whose access is governed by a resource it does not name, so the framework resolves that resource and produces the denial itself.
 - **Use the resource sharing client** to curb access.
 
 
