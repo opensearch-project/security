@@ -231,7 +231,7 @@ public class SecurityAdmin {
                 .longOpt("clustername")
                 .hasArg()
                 .argName("clustername")
-                .desc("Clustername (do not use together with -icl)")
+                .desc("Expected cluster name (default: opensearch; do not use together with -icl)")
                 .build()
         );
         options.addOption("sniff", "enable-sniffing", false, "Enable client.transport.sniff");
@@ -347,6 +347,7 @@ public class SecurityAdmin {
         boolean nhnv = false;
 
         String clustername = "opensearch";
+        boolean ignoreClusterName = false;
         String file = null;
         String type = null;
         boolean retrieve = false;
@@ -412,6 +413,7 @@ public class SecurityAdmin {
             tst = line.getOptionValue("tst", tst);
             nhnv = line.hasOption("nhnv");
             clustername = line.getOptionValue("cn", clustername);
+            ignoreClusterName = line.hasOption("icl");
             file = line.getOptionValue("f", file);
             type = line.getOptionValue("t", type);
             retrieve = line.hasOption("r");
@@ -565,7 +567,7 @@ public class SecurityAdmin {
             }
 
             try {
-                if (issueWarnings(client) != 0) {
+                if (checkCluster(client, clustername, ignoreClusterName) != 0) {
                     return (-1);
                 }
             } catch (Exception e1) {
@@ -697,9 +699,8 @@ public class SecurityAdmin {
             }
 
             System.out.println(
-                "Contacting opensearch cluster '"
-                    + clustername
-                    + "'"
+                "Contacting opensearch cluster"
+                    + (ignoreClusterName ? "" : " '" + clustername + "'")
                     + (acceptRedCluster ? "" : " and wait for YELLOW clusterstate")
                     + " ..."
             );
@@ -1250,7 +1251,7 @@ public class SecurityAdmin {
         return new String(console.readPassword("[%s]", passwordName + " password:"));
     }
 
-    private static int issueWarnings(OpenSearchClient client) throws IOException {
+    private static int checkCluster(OpenSearchClient client, String expectedClusterName, boolean ignoreClusterName) throws IOException {
         Response res = client.generic().execute(Requests.create("GET", "/_nodes", List.of(), Map.of(), null));
 
         if (res.getStatus() != 200) {
@@ -1259,6 +1260,22 @@ public class SecurityAdmin {
         }
 
         JsonNode resNode = DefaultObjectMapper.objectMapper().readTree(res.getBody().map(Body::bodyAsString).orElse(null));
+
+        // Check before any writes, including settings/reload operations that precede the cluster-health request.
+        if (!ignoreClusterName) {
+            JsonNode actualClusterName = resNode.path("cluster_name");
+            if (!actualClusterName.isTextual() || !expectedClusterName.equals(actualClusterName.asText())) {
+                System.out.println(
+                    "ERR: Expected cluster name '"
+                        + expectedClusterName
+                        + "' but connected to '"
+                        + actualClusterName.asText("<unknown>")
+                        + "'."
+                );
+                System.out.println("Verify the target host and port. Use -cn to select the expected cluster or -icl to skip this check.");
+                return -1;
+            }
+        }
 
         int nodeCount = Iterators.size(resNode.at("/nodes").iterator());
 
