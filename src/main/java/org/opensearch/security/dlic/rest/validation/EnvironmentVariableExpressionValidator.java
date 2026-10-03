@@ -52,8 +52,8 @@ public final class EnvironmentVariableExpressionValidator {
         return ValidationResult.success(request);
     }
 
-    public static boolean containsExpression(String value) {
-        // Include malformed forms, matching the existing auth-failure-listener validation.
+    private static boolean containsExpression(String value) {
+        // Include malformed forms as well as supported environment substitution syntax.
         return value != null && value.contains("${env");
     }
 

@@ -26,7 +26,6 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
-import org.opensearch.security.dlic.rest.validation.EnvironmentVariableExpressionValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
@@ -151,7 +150,7 @@ public class RateLimitersApiAction extends AbstractApiAction {
                         return allowedKeys.put(TYPE_JSON_PROPERTY, FieldConfiguration.of(DataType.STRING))
                             .put(
                                 IGNORE_HOSTS_JSON_PROPERTY,
-                                FieldConfiguration.of(DataType.ARRAY, RateLimitersApiAction::validateIgnoreHosts)
+                                FieldConfiguration.of(DataType.ARRAY, RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR)
                             )
                             .put(AUTHENTICATION_BACKEND_JSON_PROPERTY, FieldConfiguration.of(DataType.STRING))
                             .put(ALLOWED_TRIES_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER, POSITIVE_INTEGER_VALIDATOR))
@@ -280,17 +279,6 @@ public class RateLimitersApiAction extends AbstractApiAction {
         }
 
         return ValidationResult.success(authFailureListener);
-    }
-
-    private static void validateIgnoreHosts(String fieldName, Object value) {
-        RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate(fieldName, value);
-        if (value instanceof JsonNode arrayNode) {
-            for (JsonNode element : arrayNode) {
-                if (element.isTextual() && EnvironmentVariableExpressionValidator.containsExpression(element.asText())) {
-                    throw new IllegalArgumentException(fieldName + " must not contain environment variable expressions");
-                }
-            }
-        }
     }
 
     private static FieldValidator integerRangeValidator(int minimum, int maximum) {
