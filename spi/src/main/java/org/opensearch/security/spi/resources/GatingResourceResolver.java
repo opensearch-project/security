@@ -8,6 +8,9 @@
 
 package org.opensearch.security.spi.resources;
 
+import java.util.Collection;
+
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
 import org.opensearch.core.action.ActionListener;
 
@@ -64,10 +67,15 @@ public interface GatingResourceResolver {
     String gatingResourceType();
 
     /**
-     * Resolves the id of the resource that governs access to this request.
+     * Resolves the resources that govern access to this request. All of them must grant the action, which is what lets a
+     * request naming several resources be gated as a whole.
+     * <p>
+     * The request arrives as an {@link ActionRequest} rather than a {@link DocRequest}, because a request naming several
+     * resources implements {@link MultiResourceRequest} and is deliberately not a {@link DocRequest}. Cast to the plugin's
+     * own request type to read whichever field links to the governing resource.
      *
      * @param request  the request being authorized
-     * @param listener notified with the gating resource id; a null or empty id denies the request, as does a failure
+     * @param listener notified with the gating resource ids; nothing resolved denies the request, as does a failure
      */
-    void resolveGatingResourceId(DocRequest request, ActionListener<String> listener);
+    void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener);
 }

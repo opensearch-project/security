@@ -8,7 +8,10 @@
 
 package org.opensearch.sample.resource;
 
-import org.opensearch.action.DocRequest;
+import java.util.Collection;
+import java.util.List;
+
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilders;
@@ -41,7 +44,7 @@ public class SampleResourceByNameResolver implements GatingResourceResolver {
     }
 
     @Override
-    public void resolveGatingResourceId(DocRequest request, ActionListener<String> listener) {
+    public void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener) {
         PluginClient pluginClient = PluginClientAccessor.getPluginClient();
         if (pluginClient == null) {
             listener.onFailure(new IllegalStateException("Plugin client is not available to resolve the gating resource"));
@@ -50,8 +53,12 @@ public class SampleResourceByNameResolver implements GatingResourceResolver {
 
         // The resource index is a system index, so the lookup runs as the plugin rather than as the requesting user. The
         // caller is carried in a persistent header and so survives into the access check that follows.
-        // Read from the request itself rather than from id(), which such a request does not report
-        String resourceName = request instanceof GetResourceByNameRequest byName ? byName.getResourceName() : request.id();
+        // Read from the request itself: a request addressing a resource by name reports no id
+        if (!(request instanceof GetResourceByNameRequest byNameRequest)) {
+            listener.onFailure(new IllegalStateException("Unexpected request type for the by-name resolver: " + request.getClass()));
+            return;
+        }
+        String resourceName = byNameRequest.getResourceName();
 
         SearchSourceBuilder source = new SearchSourceBuilder().size(1)
             .fetchSource(false)
@@ -60,7 +67,7 @@ public class SampleResourceByNameResolver implements GatingResourceResolver {
         pluginClient.search(new SearchRequest(RESOURCE_INDEX_NAME).source(source), ActionListener.wrap(searchResponse -> {
             SearchHit[] hits = searchResponse.getHits().getHits();
             // No hit means no resource governs the request, which the evaluator treats as a denial.
-            listener.onResponse(hits.length == 0 ? null : hits[0].getId());
+            listener.onResponse(hits.length == 0 ? List.of() : List.of(hits[0].getId()));
         }, listener::onFailure));
     }
 }

@@ -45,6 +45,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -230,11 +231,11 @@ public class SecurityAdmin {
                 .longOpt("clustername")
                 .hasArg()
                 .argName("clustername")
-                .desc("Clustername (do not use together with -icl)")
+                .desc("Expected cluster name (not checked by default; do not use together with -icl)")
                 .build()
         );
         options.addOption("sniff", "enable-sniffing", false, "Enable client.transport.sniff");
-        options.addOption("icl", "ignore-clustername", false, "Ignore clustername (do not use together with -cn)");
+        options.addOption("icl", "ignore-clustername", false, "Ignore clustername (default behavior; do not use together with -cn)");
         options.addOption(Option.builder("r").longOpt("retrieve").desc("retrieve current config").build());
         options.addOption(Option.builder("f").longOpt("file").hasArg().argName("file").desc("file").build());
         options.addOption(Option.builder("t").longOpt("type").hasArg().argName("file-type").desc("file-type").build());
@@ -345,7 +346,7 @@ public class SecurityAdmin {
         String tst = null;
         boolean nhnv = false;
 
-        String clustername = "opensearch";
+        String clustername = null;
         String file = null;
         String type = null;
         boolean retrieve = false;
@@ -564,7 +565,7 @@ public class SecurityAdmin {
             }
 
             try {
-                if (issueWarnings(client) != 0) {
+                if (checkCluster(client, clustername) != 0) {
                     return (-1);
                 }
             } catch (Exception e1) {
@@ -696,9 +697,8 @@ public class SecurityAdmin {
             }
 
             System.out.println(
-                "Contacting opensearch cluster '"
-                    + clustername
-                    + "'"
+                "Contacting opensearch cluster"
+                    + (clustername == null ? "" : " '" + clustername + "'")
                     + (acceptRedCluster ? "" : " and wait for YELLOW clusterstate")
                     + " ..."
             );
@@ -1104,13 +1104,28 @@ public class SecurityAdmin {
         return retVal;
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T> String convertToYaml(String type, Map<?, ?> document, boolean prettyPrint) throws IOException {
-        try (XContentBuilder builder = XContentFactory.yamlBuilder()) {
+    /**
+     * Converts a security index document to YAML. The configuration is stored as a base64 encoded JSON value in
+     * the field named after the document id, so that field has to be decoded rather than the document serialized
+     * as is.
+     *
+     * @return the YAML, or null if the document does not contain a base64 encoded value for the given type
+     */
+    static String convertToYaml(String type, Map<?, ?> document, boolean prettyPrint) throws IOException {
+        if (!(document.get(type) instanceof String encoded)) {
+            return null;
+        }
+        final byte[] json = Base64.getDecoder().decode(encoded);
+        try (
+            XContentParser parser = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, json);
+            XContentBuilder builder = XContentFactory.yamlBuilder()
+        ) {
             if (prettyPrint) {
                 builder.prettyPrint();
             }
-            builder.map((Map<String, ?>) document);
+            parser.nextToken();
+            builder.copyCurrentStructure(parser);
             return builder.toString();
         }
     }
@@ -1234,7 +1249,7 @@ public class SecurityAdmin {
         return new String(console.readPassword("[%s]", passwordName + " password:"));
     }
 
-    private static int issueWarnings(OpenSearchClient client) throws IOException {
+    private static int checkCluster(OpenSearchClient client, String expectedClusterName) throws IOException {
         Response res = client.generic().execute(Requests.create("GET", "/_nodes", List.of(), Map.of(), null));
 
         if (res.getStatus() != 200) {
@@ -1243,6 +1258,22 @@ public class SecurityAdmin {
         }
 
         JsonNode resNode = DefaultObjectMapper.objectMapper().readTree(res.getBody().map(Body::bodyAsString).orElse(null));
+
+        // Only an explicit -cn enables validation. Check before any writes, including settings/reload operations.
+        if (expectedClusterName != null) {
+            JsonNode actualClusterName = resNode.path("cluster_name");
+            if (!actualClusterName.isTextual() || !expectedClusterName.equals(actualClusterName.asText())) {
+                System.out.println(
+                    "ERR: Expected cluster name '"
+                        + expectedClusterName
+                        + "' but connected to '"
+                        + actualClusterName.asText("<unknown>")
+                        + "'."
+                );
+                System.out.println("Verify the target host and port. Use -cn to select the expected cluster or -icl to skip this check.");
+                return -1;
+            }
+        }
 
         int nodeCount = Iterators.size(resNode.at("/nodes").iterator());
 

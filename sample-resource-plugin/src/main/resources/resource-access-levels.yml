@@ -5,6 +5,7 @@ resource_types:
         allowed_actions:
           - "sampleresource:get"
           - "sampleresource:get_by_name"
+          - "sampleresource:mget"
 
       sample_read_write:
         allowed_actions:

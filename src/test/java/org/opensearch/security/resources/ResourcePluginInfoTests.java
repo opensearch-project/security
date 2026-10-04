@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,7 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.DocRequest;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.mapper.ParsedDocument;
@@ -246,8 +247,8 @@ public class ResourcePluginInfoTests {
             }
 
             @Override
-            public void resolveGatingResourceId(DocRequest request, ActionListener<String> listener) {
-                listener.onResponse(null);
+            public void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener) {
+                listener.onResponse(List.of());
             }
         };
     }

@@ -192,6 +192,31 @@ public class ShareResourceRequest extends ActionRequest implements DocRequest {
 }
 ```
 
+A request that operates on several resources at once implements `MultiResourceRequest` instead, which is the counterpart of `DocRequest` rather than a subtype of it: a request naming several resources has no single id to report. It declares its index and type the same way and reports its ids through `ids()`, and the security plugin authorizes every one of them, allowing the request only if the user holds the action on all of them. All ids must be of the type returned by `type()`; a request mixing types should be split.
+
+```java
+public class MultiGetResourceRequest extends ActionRequest implements MultiResourceRequest {
+
+    private final List<String> resourceIds;
+
+    public MultiGetResourceRequest(List<String> resourceIds) {
+        this.resourceIds = resourceIds;
+    }
+
+    @Override
+    public String type() {
+        return RESOURCE_TYPE;
+    }
+
+    @Override
+    public String index() {
+        return RESOURCE_INDEX_NAME;
+    }
+
+    @Override
+    public List<String> ids() {
+        return resourceIds;
+
 When access to a request is governed by a resource the request does not name, and that resource is known only after a read, the plugin registers a `GatingResourceResolver` for the value its requests report as `type()`. The security plugin asks the resolver for the gating resource id and authorizes that resource instead; a resolution that yields nothing, or fails, denies the request. alerting's alert comments are the case: an index, update or delete carries an alert or comment id and the monitor that governs access is only known after reading it.
 
 ```java
@@ -208,11 +233,13 @@ public class AlertingCommentResolver implements GatingResourceResolver {
     }
 
     @Override
-    public void resolveGatingResourceId(DocRequest request, ActionListener<String> listener) {
+    public void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener) {
         // read the alert as the plugin, then hand back the monitor id
     }
 }
 ```
+
+A blank id is dropped and the rest of the collection is still authorized, since a blank names no resource. A request left with no id at all is not evaluated and falls through to the regular privileges evaluator, as a blank `id()` does, so a request meaning "all resources" is still filtered by the plugin itself.
 
 ```java
 @Override
@@ -221,7 +248,11 @@ public Set<GatingResourceResolver> getGatingResourceResolvers() {
 }
 ```
 
-The request type a resolver claims must not be a registered resource type, since a request of a registered type is authorized against that type directly. Resolution is only performed while the gating type is protected, and the request's own index need not be a resource index, which is what lets a create be gated by an existing parent. The resolver is called while the request is being authorized, so it must not block; perform the read with the plugin's own client, since the requesting user usually holds no permission on the index being read. Stashing the thread context for that read is safe: the authenticated user travels in a persistent header, which survives a stash, so the access check that follows still sees the caller.
+Every resolved id must grant the action, which is what lets a request naming several resources be gated as a whole. Nothing resolved denies the request.
+
+The request type a resolver claims must be the plugin's own: not a registered resource type, since a request of a registered type is authorized against that type directly, and not `indices`, which is what `DocRequest.type()` reports for a request that declares nothing. Resolution is only performed while the gating type is protected. The request's own index need not be a resource index and it need not name a resource at all, which is what lets a create be gated by an existing parent; the resolver receives the request and reads whichever field carries the link.
+
+The resolver is called while the request is being authorized, so it must not block, and the read should use the plugin's own client since the requesting user usually holds no permission on the index being read. Restore the caller's context before completing the listener: the access check and the transport action after it run on whatever context the listener carries. `PluginClient` in the sample plugin shows the pattern, wrapping the listener in `ActionListener.runBefore(listener, storedContext::restore)`.
 
 ---
 

@@ -44,7 +44,6 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
-import org.opensearch.action.DocRequest;
 import org.opensearch.action.DocWriteRequest.OpType;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -424,23 +423,31 @@ public class SecurityFilter implements ActionFilter {
             // NOTE: Since resource-access evaluation requires fetching documents from index, we make the call async otherwise it would
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
-            if (resourceAccessEvaluator.shouldEvaluate(request)) {
-                final DocRequest docRequest = (DocRequest) request;
-                resourceAccessEvaluator.evaluateAsync(docRequest, action, ActionListener.wrap(evaluation -> {
+            // The request names its resources through one of two interfaces, normalized by the evaluator, which returns
+            // null when it is not the one to authorize this request. The verdict covers the request as a whole, and is
+            // recorded against the resources it was decided on, which for a gated request are the ones its resolver named
+            // rather than the ones the request reports.
+            final ResourceAccessEvaluator.ResourceRequest resourceRequest = resourceAccessEvaluator.evaluableResourceRequest(request);
+            if (resourceRequest != null) {
+                resourceAccessEvaluator.evaluateAsync(resourceRequest, action, ActionListener.wrap(evaluation -> {
                     final PrivilegesEvaluatorResponse response = evaluation.response();
-                    // The audited resource is the one the decision was made on, which for a gated request is the resource
-                    // its resolver named rather than the one the request reports
                     final ResourceAccessEvaluator.AuthorizedResource resource = evaluation.resource();
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }
                     if (response.isAllowed()) {
-                        auditLog.logResourceAccessGranted(action, resource.id(), resource.type(), resource.index(), request, task);
+                        auditResources(
+                            resource,
+                            id -> auditLog.logResourceAccessGranted(action, id, resource.type(), resource.index(), request, task)
+                        );
                         auditLog.logIndexEvent(action, request, task);
                         auditLog.logSettingsChange(action, request, task);
                         chain.proceed(task, action, request, listener);
                     } else {
-                        auditLog.logResourceAccessDenied(action, resource.id(), resource.type(), resource.index(), request, task);
+                        auditResources(
+                            resource,
+                            id -> auditLog.logResourceAccessDenied(action, id, resource.type(), resource.index(), request, task)
+                        );
                         handleUnauthorized.accept(response);
                     }
                 }, listener::onFailure));
@@ -678,5 +685,20 @@ public class SecurityFilter implements ActionFilter {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Records one audit entry per resource the decision was made on. A gated request that resolved nothing names no
+     * resource at all, and a denial still has to leave a trail, so it is recorded once with no id.
+     *
+     * @param resource the resources the evaluation was decided on
+     * @param record   writes the entry for one id
+     */
+    private static void auditResources(final ResourceAccessEvaluator.AuthorizedResource resource, final Consumer<String> record) {
+        if (resource.ids().isEmpty()) {
+            record.accept(null);
+            return;
+        }
+        resource.ids().forEach(record);
     }
 }

@@ -74,6 +74,12 @@ public final class TestUtils {
     // No Permission
     public final static TestSecurityConfig.User NO_ACCESS_USER = new TestSecurityConfig.User("resource_sharing_test_user_no_perms");
 
+    // Holds the multi-get action through a role but is never shared any resource. A caller shaped like this is what makes
+    // a gap in resource evaluation observable: a zero-permission user is denied either way, so it cannot tell the
+    // difference between resource evaluation denying the request and the request never being evaluated.
+    public final static TestSecurityConfig.User ROLE_ONLY_MGET_USER = new TestSecurityConfig.User("resource_sharing_test_user_role_mget")
+        .roles(new TestSecurityConfig.Role("shared_role_mget_only").clusterPermissions("sampleresource:mget"));
+
     public static final String SAMPLE_READ_ONLY = "sample_read_only";
     public static final String SAMPLE_READ_WRITE = "sample_read_write";
     public static final String SAMPLE_FULL_ACCESS = "sample_full_access";
@@ -84,6 +90,7 @@ public final class TestUtils {
 
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
+    public static final String SAMPLE_RESOURCE_MGET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/mget";
     public static final String SAMPLE_RESOURCE_GET_BY_NAME_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get_by_name";
     public static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
     public static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
@@ -121,7 +128,7 @@ public final class TestUtils {
             )
             .anonymousAuth(true)
             .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER)
+            .users(USER_ADMIN, FULL_ACCESS_USER, LIMITED_ACCESS_USER, NO_ACCESS_USER, ROLE_ONLY_MGET_USER)
             .nodeSettings(
                 Map.of(
                     OPENSEARCH_RESOURCE_SHARING_ENABLED,
@@ -438,6 +445,16 @@ public final class TestUtils {
         public TestRestClient.HttpResponse getResource(String resourceId, TestSecurityConfig.User user) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_GET_ENDPOINT + "/" + resourceId);
+            }
+        }
+
+        /**
+         * Requests several resources in one call. The request names all of its ids, so the security plugin authorizes
+         * every one of them and the call is allowed only if all of them are accessible to the user.
+         */
+        public TestRestClient.HttpResponse multiGetResources(List<String> resourceIds, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_MGET_ENDPOINT + "/" + String.join(",", resourceIds));
             }
         }
 
