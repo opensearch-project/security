@@ -31,11 +31,14 @@ public class SecurityAdminClusterNameTests extends SingleClusterTest {
         assertEquals(-1, execute("-cn", "wrong-" + clusterInfo.clustername, "-cd", TEST_RESOURCE_ABSOLUTE_PATH));
         assertEquals(404, adminClient().executeGetRequest(".opendistro_security").getStatusCode());
 
-        // Without either option, the expected cluster name is still "opensearch".
-        assertEquals(-1, execute("-cd", TEST_RESOURCE_ABSOLUTE_PATH));
-        assertEquals(404, adminClient().executeGetRequest(".opendistro_security").getStatusCode());
-
         assertEquals(0, execute("-cn", clusterInfo.clustername, "-cd", TEST_RESOURCE_ABSOLUTE_PATH));
+        assertEquals(200, adminClient().executeGetRequest(".opendistro_security").getStatusCode());
+    }
+
+    @Test
+    public void testNoClusterNameOptionAllowsInitialization() throws Exception {
+        startCluster(false);
+        assertEquals(0, execute("-cd", TEST_RESOURCE_ABSOLUTE_PATH));
         assertEquals(200, adminClient().executeGetRequest(".opendistro_security").getStatusCode());
     }
 
@@ -78,6 +81,7 @@ public class SecurityAdminClusterNameTests extends SingleClusterTest {
             getJson(admin, ".opendistro_security/_settings").at("/.opendistro_security/settings/index/number_of_replicas").asText()
         );
         assertEquals(0, execute("--ignore-clustername", "-rl"));
+        assertEquals(0, execute("-rl"));
         assertEquals(-1, execute("-cn", clusterInfo.clustername, "-icl", "-rl"));
     }
 
