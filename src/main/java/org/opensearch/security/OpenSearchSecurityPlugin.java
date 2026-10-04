@@ -359,7 +359,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     }
 
     private final SslExceptionHandler evaluateSslExceptionHandler() {
-        if (client || disabled || SSLConfig.isSslOnlyMode()) {
+        if (client || disabled || sslConfig.isSslOnlyMode()) {
             return new SslExceptionHandler() {
             };
         }
@@ -639,7 +639,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
         }
 
-        if (SSLConfig.isSslOnlyMode()) {
+        if (sslConfig.isSslOnlyMode()) {
             this.sslCertReloadEnabled = false;
             log.warn("OpenSearch Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
@@ -693,7 +693,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         log.info("Clustername: {}", settings.get("cluster.name", "opensearch"));
 
-        if (!transportSSLEnabled && !SSLConfig.isSslOnlyMode()) {
+        if (!sslConfig.transportEnabled() && !sslConfig.isSslOnlyMode()) {
             throw new IllegalStateException(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED + " must be set to 'true'");
         }
 
@@ -893,7 +893,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
 
             // FGAC enabled == not sslOnly
-            if (!SSLConfig.isSslOnlyMode()) {
+            if (!sslConfig.isSslOnlyMode()) {
                 handlers.add(
                     new SecurityInfoAction(
                         settings,
@@ -1014,7 +1014,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext, Set<RestHeaderDefinition> headersToCopy) {
 
-        if (client || disabled || SSLConfig.isSslOnlyMode()) {
+        if (client || disabled || sslConfig.isSslOnlyMode()) {
             return (rh) -> new RestHandler() {
                 @Override
                 public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
@@ -1079,7 +1079,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
-        if (!disabled && !SSLConfig.isSslOnlyMode()) {
+        if (!disabled && !sslConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(SecurityConfigWriteAction.INSTANCE, TransportSecurityConfigWriteAction.class));
             actions.add(new ActionHandler<>(ApiTokenUpdateAction.INSTANCE, ApiTokenUpdateAction.TransportAction.class));
@@ -1099,7 +1099,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public void onIndexModule(IndexModule indexModule) {
         // called for every index!
 
-        if (!disabled && !client && !SSLConfig.isSslOnlyMode()) {
+        if (!disabled && !client && !sslConfig.isSslOnlyMode()) {
             log.debug("Handle auditLog {} for onIndexModule() of index {}", auditLog.getClass(), indexModule.getIndex().getName());
 
             final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog, threadPool);
@@ -1251,7 +1251,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }.toListener());
 
             indexModule.addIndexEventListener(cr);
-        } else if ((disabled || SSLConfig.isSslOnlyMode()) && !client && auditLog != null && !(auditLog instanceof NullAuditLog)) {
+        } else if ((disabled || sslConfig.isSslOnlyMode()) && !client && auditLog != null && !(auditLog instanceof NullAuditLog)) {
             // Non-FGAC mode (SSL-only or disabled): register compliance listener for standalone audit
             final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog, threadPool);
             indexModule.addIndexOperationListener(ciol);
@@ -1268,7 +1268,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public List<ActionFilter> getActionFilters() {
         List<ActionFilter> filters = new ArrayList<>(1);
-        if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
+        if (!client && !disabled && !sslConfig.isSslOnlyMode()) {
             filters.add(Objects.requireNonNull(sf));
 
             // !(auditLog instanceof NullAuditLog) prevents registering AuditActionFilter when there's no real sink to send events to. No
@@ -1293,7 +1293,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         // Audit transport interceptor — non-FGAC modes only (SSL-only, disabled)
         // FGAC audits through SecurityFilter; adding transport audit to FGAC is a separate effort
-        if (!client && (disabled || SSLConfig.isSslOnlyMode()) && auditLog != null && !(auditLog instanceof NullAuditLog)) {
+        if (!client && (disabled || sslConfig.isSslOnlyMode()) && auditLog != null && !(auditLog instanceof NullAuditLog)) {
             interceptors.add(
                 new AuditTransportInterceptor(
                     auditLog,
@@ -1305,7 +1305,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
         }
 
-        if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
+        if (!client && !disabled && !sslConfig.isSslOnlyMode()) {
             interceptors.add(new TransportInterceptor() {
 
                 @Override
@@ -1362,7 +1362,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     ) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
 
-        if (SSLConfig.isSslOnlyMode()) {
+        if (sslConfig.isSslOnlyMode()) {
             return super.getSecureTransports(
                 settings,
                 threadPool,
@@ -1375,7 +1375,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             );
         }
 
-        if (transportSSLEnabled) {
+        if (sslConfig.transportEnabled()) {
             transports.put(
                 "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
                 () -> new SecureNetty4Transport(
@@ -1410,7 +1410,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         Tracer tracer
     ) {
 
-        if (SSLConfig.isSslOnlyMode()) {
+        if (sslConfig.isSslOnlyMode()) {
             return super.getSecureHttpTransports(
                 settings,
                 threadPool,
@@ -1427,7 +1427,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         }
 
         if (!disabled) {
-            if (!client && httpSSLEnabled) {
+            if (!client && sslConfig.httpEnabled()) {
 
                 final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(
                     threadPool.getThreadContext(),
@@ -1508,8 +1508,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-        SSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
-        if (SSLConfig.isSslOnlyMode()) {
+        sslConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        if (sslConfig.isSslOnlyMode()) {
             initStandaloneAuditIfEnabled(localClient, threadPool, clusterService, environment);
             return super.createComponents(
                 localClient,
@@ -1563,7 +1563,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
-        if (SSLConfig.isSslOnlyMode()) {
+        if (sslConfig.isSslOnlyMode()) {
             auditLog = new NullAuditLog();
         } else {
             AuditLogImpl fgacAuditLogImpl = new AuditLogImpl(
@@ -1646,7 +1646,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         dlsFlsBaseContext = new DlsFlsBaseContext(privilegesConfiguration, threadPool.getThreadContext(), adminDns);
 
-        if (SSLConfig.isSslOnlyMode()) {
+        if (sslConfig.isSslOnlyMode()) {
             dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
         } else {
             dlsFlsValve = new DlsFlsValveImpl(
@@ -1750,7 +1750,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             cs,
             Objects.requireNonNull(sslExceptionHandler),
             Objects.requireNonNull(cih),
-            SSLConfig,
+            sslConfig,
             OpenSearchSecurityPlugin::isActionTraceEnabled,
             userFactory,
             remoteClusterIdentityPolicy
@@ -1797,7 +1797,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final var allowDefaultInit = settings.getAsBoolean(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false);
         final var useClusterState = useClusterStateToInitSecurityConfig(settings);
-        if (!SSLConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
+        if (!sslConfig.isSslOnlyMode() && !isDisabled(settings) && allowDefaultInit && useClusterState) {
             clusterService.addListener(cr);
         }
 
@@ -1825,7 +1825,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         builder.put(super.additionalSettings());
 
-        if (!SSLConfig.isSslOnlyMode()) {
+        if (!sslConfig.isSslOnlyMode()) {
             builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
             builder.put(NetworkModule.HTTP_TYPE_KEY, "org.opensearch.security.http.SecurityHttpServerTransport");
         }
@@ -2394,7 +2394,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             )
         );
 
-        if (!SSLConfig.isSslOnlyMode()) {
+        if (!sslConfig.isSslOnlyMode()) {
             settings.add(
                 Setting.listSetting(
                     ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN,
@@ -2722,7 +2722,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // while keeping the credential-bearing sink settings (endpoints/routes) hidden. Secrets registered with
         // Property.Filtered (sink username/password/webhook.url, pem*, salt) remain stripped by core regardless.
         // FGAC keeps the original broad filter (its real config lives in the security index, not cluster settings).
-        if (SSLConfig.isSslOnlyMode()) {
+        if (sslConfig.isSslOnlyMode()) {
             settingsFilter.add("plugins.security.audit.endpoints.*");
             settingsFilter.add("plugins.security.audit.routes.*");
         } else {
@@ -2735,7 +2735,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.localNode.set(localNode);
-        if (!SSLConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
+        if (!sslConfig.isSslOnlyMode() && !client && !disabled && !useClusterStateToInitSecurityConfig(settings)) {
             cr.initOnNodeStart();
             if (apiTokenRepository != null) {
                 apiTokenRepository.reloadApiTokensOnNodeStart(
@@ -2772,7 +2772,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
 
-        if (client || disabled || SSLConfig.isSslOnlyMode()) {
+        if (client || disabled || sslConfig.isSslOnlyMode()) {
             return Collections.emptyList();
         }
 
@@ -2859,7 +2859,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
         PluginSubject subject = new SecurePluginSubject(threadPool, settings, plugin);
-        if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
+        if (!client && !disabled && !sslConfig.isSslOnlyMode()) {
             String pluginPrincipal = subject.getPrincipal().getName();
             URL resource = plugin.getClass().getClassLoader().getResource("plugin-additional-permissions.yml");
             RoleV7 pluginPermissions;
@@ -2891,7 +2891,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 sslSettingsManager,
                 evaluateSslExceptionHandler(),
                 securityRestHandler,
-                SSLConfig
+                sslConfig
             )
         );
     }
