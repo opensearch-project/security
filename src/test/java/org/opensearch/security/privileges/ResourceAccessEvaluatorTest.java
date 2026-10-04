@@ -67,6 +67,7 @@ public class ResourceAccessEvaluatorTest {
     private static final String REQUEST_TYPE = "alerting-comment";
     private static final String GATING_TYPE = "monitor";
     private static final String GATING_ID = "monitor-1";
+    private static final String GATING_INDEX = ".alerting-config";
 
     @Before
     public void setup() {
@@ -96,15 +97,18 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(resourceAccessHandler).hasPermission(eq("anyId"), eq("indices"), eq("read"), any());
 
-        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+        ActionListener<ResourceAccessEvaluator.Evaluation> callback = mock(ActionListener.class);
 
         evaluator.evaluateAsync(req, "read", callback);
 
-        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        ArgumentCaptor<ResourceAccessEvaluator.Evaluation> captor = ArgumentCaptor.forClass(ResourceAccessEvaluator.Evaluation.class);
         verify(callback).onResponse(captor.capture());
 
-        PrivilegesEvaluatorResponse out = captor.getValue();
-        assertThat(out.isAllowed(), equalTo(expectedAllowed));
+        ResourceAccessEvaluator.Evaluation out = captor.getValue();
+        assertThat(out.response().isAllowed(), equalTo(expectedAllowed));
+        // the resource audited for an ordinary request is the one it names
+        assertThat(out.resource().id(), equalTo("anyId"));
+        assertThat(out.resource().index(), equalTo(IDX));
     }
 
     @Test
@@ -131,8 +135,28 @@ public class ResourceAccessEvaluatorTest {
             listener.onResponse(true);
             return null;
         }).when(resourceAccessHandler).hasPermission(eq(GATING_ID), eq(GATING_TYPE), eq("read"), any());
+        when(resourcePluginInfo.indexByType(GATING_TYPE)).thenReturn(GATING_INDEX);
 
-        assertGatedEvaluation(true);
+        ResourceAccessEvaluator.Evaluation evaluation = assertGatedEvaluation(true);
+
+        // Audited against the resource the decision was made on, not the one the request names, which has no id at all
+        assertThat(evaluation.resource().type(), equalTo(GATING_TYPE));
+        assertThat(evaluation.resource().id(), equalTo(GATING_ID));
+        assertThat(evaluation.resource().index(), equalTo(GATING_INDEX));
+    }
+
+    /**
+     * Nothing resolved means no gating resource to name, so the request's own reference is audited and the denial still
+     * leaves a trail.
+     */
+    @Test
+    public void testEvaluateAsync_gatedRequest_auditsTheRequestWhenNothingResolves() {
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(null, null));
+
+        ResourceAccessEvaluator.Evaluation evaluation = assertGatedEvaluation(false);
+
+        assertThat(evaluation.resource().type(), equalTo(REQUEST_TYPE));
+        assertThat(evaluation.resource().id(), equalTo(null));
     }
 
     @Test
@@ -203,13 +227,14 @@ public class ResourceAccessEvaluatorTest {
         assertThat(evaluator.shouldEvaluate(new GatedRequest()), equalTo(false));
     }
 
-    private void assertGatedEvaluation(boolean expectedAllowed) {
-        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+    private ResourceAccessEvaluator.Evaluation assertGatedEvaluation(boolean expectedAllowed) {
+        ActionListener<ResourceAccessEvaluator.Evaluation> callback = mock(ActionListener.class);
         evaluator.evaluateAsync(new GatedRequest(), "read", callback);
 
-        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        ArgumentCaptor<ResourceAccessEvaluator.Evaluation> captor = ArgumentCaptor.forClass(ResourceAccessEvaluator.Evaluation.class);
         verify(callback).onResponse(captor.capture());
-        assertThat(captor.getValue().isAllowed(), equalTo(expectedAllowed));
+        assertThat(captor.getValue().response().isAllowed(), equalTo(expectedAllowed));
+        return captor.getValue();
     }
 
     private GatingResourceResolver resolverReturning(String gatingId, Exception failure) {

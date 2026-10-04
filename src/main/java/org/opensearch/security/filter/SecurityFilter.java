@@ -426,17 +426,21 @@ public class SecurityFilter implements ActionFilter {
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             if (resourceAccessEvaluator.shouldEvaluate(request)) {
                 final DocRequest docRequest = (DocRequest) request;
-                resourceAccessEvaluator.evaluateAsync(docRequest, action, ActionListener.wrap(response -> {
+                resourceAccessEvaluator.evaluateAsync(docRequest, action, ActionListener.wrap(evaluation -> {
+                    final PrivilegesEvaluatorResponse response = evaluation.response();
+                    // The audited resource is the one the decision was made on, which for a gated request is the resource
+                    // its resolver named rather than the one the request reports
+                    final ResourceAccessEvaluator.AuthorizedResource resource = evaluation.resource();
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }
                     if (response.isAllowed()) {
-                        auditLog.logResourceAccessGranted(action, docRequest.id(), docRequest.type(), docRequest.index(), request, task);
+                        auditLog.logResourceAccessGranted(action, resource.id(), resource.type(), resource.index(), request, task);
                         auditLog.logIndexEvent(action, request, task);
                         auditLog.logSettingsChange(action, request, task);
                         chain.proceed(task, action, request, listener);
                     } else {
-                        auditLog.logResourceAccessDenied(action, docRequest.id(), docRequest.type(), docRequest.index(), request, task);
+                        auditLog.logResourceAccessDenied(action, resource.id(), resource.type(), resource.index(), request, task);
                         handleUnauthorized.accept(response);
                     }
                 }, listener::onFailure));

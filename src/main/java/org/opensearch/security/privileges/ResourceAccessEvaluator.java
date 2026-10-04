@@ -77,11 +77,7 @@ public class ResourceAccessEvaluator {
      * @param action                          the action being requested to be performed on the resource
      * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
      */
-    public void evaluateAsync(
-        final DocRequest request,
-        final String action,
-        final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
-    ) {
+    public void evaluateAsync(final DocRequest request, final String action, final ActionListener<Evaluation> pResponseListener) {
         log.debug("Evaluating resource access");
 
         final GatingResourceResolver gatingResolver = resourcePluginInfo.gatingResolver(request.type());
@@ -90,12 +86,16 @@ public class ResourceAccessEvaluator {
             return;
         }
 
-        checkPermission(request.id(), request.type(), action, pResponseListener);
+        checkPermission(request.id(), request.type(), request.index(), action, pResponseListener);
     }
 
     /**
      * Authorizes a request against the resource that governs it rather than the one it names, by asking the plugin's
      * resolver for that resource first. A resolution that yields no id, or that fails, denies the request.
+     * <p>
+     * The resolved resource is what the audit trail records, since it is the one whose sharing record decided the request.
+     * When nothing resolves, there is no such resource, so the request's own reference is recorded instead, which still
+     * leaves a denial in the trail.
      *
      * @param request           the request being authorized
      * @param action            the action being requested
@@ -106,7 +106,7 @@ public class ResourceAccessEvaluator {
         final DocRequest request,
         final String action,
         final GatingResourceResolver gatingResolver,
-        final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
+        final ActionListener<Evaluation> pResponseListener
     ) {
         gatingResolver.resolveGatingResourceId(request, ActionListener.wrap(gatingResourceId -> {
             if (Strings.isNullOrEmpty(gatingResourceId)) {
@@ -116,29 +116,68 @@ public class ResourceAccessEvaluator {
                     request.type(),
                     action
                 );
-                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action));
+                pResponseListener.onResponse(
+                    new Evaluation(
+                        PrivilegesEvaluatorResponse.insufficient(action),
+                        new AuthorizedResource(request.type(), request.id(), request.index())
+                    )
+                );
                 return;
             }
-            checkPermission(gatingResourceId, gatingResolver.gatingResourceType(), action, pResponseListener);
+            checkPermission(
+                gatingResourceId,
+                gatingResolver.gatingResourceType(),
+                resourcePluginInfo.indexByType(gatingResolver.gatingResourceType()),
+                action,
+                pResponseListener
+            );
         }, e -> {
             log.debug("Failed to resolve the gating resource for request of type {}: {}", request.type(), e.getMessage());
-            pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action));
+            pResponseListener.onResponse(
+                new Evaluation(
+                    PrivilegesEvaluatorResponse.insufficient(action),
+                    new AuthorizedResource(request.type(), request.id(), request.index())
+                )
+            );
         }));
+    }
+
+    /**
+     * The outcome of an evaluation together with the resource it was decided on, which is not always the one the request
+     * names: a gated request is decided on the resource its resolver named. The caller audits that resource rather than
+     * guessing from the request, which for a create reports no id at all.
+     *
+     * @param response the evaluation outcome
+     * @param resource the resource whose sharing record decided it
+     */
+    public record Evaluation(PrivilegesEvaluatorResponse response, AuthorizedResource resource) {
+    }
+
+    /**
+     * A resource as the audit trail refers to it.
+     *
+     * @param type  the shareable resource type
+     * @param id    the resource id, which may be null when a request names none and nothing was resolved for it
+     * @param index the index holding the resource
+     */
+    public record AuthorizedResource(String type, String id, String index) {
     }
 
     private void checkPermission(
         final String resourceId,
         final String resourceType,
+        final String resourceIndex,
         final String action,
-        final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
+        final ActionListener<Evaluation> pResponseListener
     ) {
+        final AuthorizedResource resource = new AuthorizedResource(resourceType, resourceId, resourceIndex);
         resourceAccessHandler.hasPermission(resourceId, resourceType, action, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
-                pResponseListener.onResponse(PrivilegesEvaluatorResponse.ok());
+                pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.ok(), resource));
             } else {
-                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action));
+                pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.insufficient(action), resource));
             }
-        }, e -> { pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action)); }));
+        }, e -> pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.insufficient(action), resource))));
     }
 
     /**
