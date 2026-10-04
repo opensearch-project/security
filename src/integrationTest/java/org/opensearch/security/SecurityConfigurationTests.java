@@ -229,7 +229,11 @@ public class SecurityConfigurationTests {
 
     @Test
     public void shouldUseSecurityAdminTool() throws Exception {
-        SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
+        SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(
+            cluster.getHttpPort(),
+            cluster.getTestCertificates(),
+            cluster.getClusterName()
+        );
         File rolesMapping = configurationDirectory.newFile(CType.ROLESMAPPING.configFileName());
         ConfigurationFiles.copyResourceToFile(CType.ROLESMAPPING.configFileName(), rolesMapping.toPath());
 
@@ -249,7 +253,11 @@ public class SecurityConfigurationTests {
      */
     @Test
     public void shouldBackupSecurityConfiguration() throws Exception {
-        SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
+        SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(
+            cluster.getHttpPort(),
+            cluster.getTestCertificates(),
+            cluster.getClusterName()
+        );
         Path backupDirectory = configurationDirectory.newFolder("backup").toPath();
 
         // The exit code is not asserted: this cluster has no audit document and securityadmin reports a missing
