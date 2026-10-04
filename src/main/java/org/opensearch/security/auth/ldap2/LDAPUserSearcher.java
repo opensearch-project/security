@@ -27,15 +27,14 @@ import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
 
-import org.ldaptive.Connection;
+import org.ldaptive.ConnectionFactory;
+import org.ldaptive.FilterTemplate;
 import org.ldaptive.LdapEntry;
-import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
 
 public class LDAPUserSearcher {
     protected static final Logger log = LogManager.getLogger(LDAPUserSearcher.class);
 
-    private static final int ZERO_PLACEHOLDER = 0;
     private static final String DEFAULT_USERBASE = "";
     private static final String DEFAULT_USERSEARCH_PATTERN = "(sAMAccountName={0})";
 
@@ -70,21 +69,21 @@ public class LDAPUserSearcher {
         }
     }
 
-    LdapEntry exists(Connection ldapConnection, String user, final String[] returnAttributes, final boolean shouldFollowReferrals)
+    LdapEntry exists(ConnectionFactory connectionFactory, String user, final String[] returnAttributes, final boolean shouldFollowReferrals)
         throws Exception {
 
         if (settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)
             || settings.getAsBoolean(ConfigConstants.LDAP_SEARCH_ALL_BASES, false)
             || settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
-            return existsSearchingAllBases(ldapConnection, user, returnAttributes, shouldFollowReferrals);
+            return existsSearchingAllBases(connectionFactory, user, returnAttributes, shouldFollowReferrals);
         } else {
-            return existsSearchingUntilFirstHit(ldapConnection, user, returnAttributes, shouldFollowReferrals);
+            return existsSearchingUntilFirstHit(connectionFactory, user, returnAttributes, shouldFollowReferrals);
         }
 
     }
 
     private LdapEntry existsSearchingUntilFirstHit(
-        Connection ldapConnection,
+        ConnectionFactory connectionFactory,
         String user,
         final String[] returnAttributes,
         final boolean shouldFollowReferrals
@@ -94,14 +93,15 @@ public class LDAPUserSearcher {
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
             Settings baseSettings = entry.getValue();
 
-            SearchFilter f = new SearchFilter();
-            f.setFilter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN));
-            f.setParameter(ZERO_PLACEHOLDER, username);
+            FilterTemplate filter = FilterTemplate.builder()
+                .filter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN))
+                .parameters(username)
+                .build();
 
             List<LdapEntry> result = LdapHelper.search(
-                ldapConnection,
+                connectionFactory,
                 baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
-                f,
+                filter,
                 SearchScope.SUBTREE,
                 returnAttributes,
                 shouldFollowReferrals
@@ -120,7 +120,7 @@ public class LDAPUserSearcher {
     }
 
     private LdapEntry existsSearchingAllBases(
-        Connection ldapConnection,
+        ConnectionFactory connectionFactory,
         String user,
         final String[] returnAttributes,
         final boolean shouldFollowReferrals
@@ -131,14 +131,15 @@ public class LDAPUserSearcher {
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
             Settings baseSettings = entry.getValue();
 
-            SearchFilter f = new SearchFilter();
-            f.setFilter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN));
-            f.setParameter(ZERO_PLACEHOLDER, username);
+            FilterTemplate filter = FilterTemplate.builder()
+                .filter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN))
+                .parameters(username)
+                .build();
 
             List<LdapEntry> foundEntries = LdapHelper.search(
-                ldapConnection,
+                connectionFactory,
                 baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
-                f,
+                filter,
                 SearchScope.SUBTREE,
                 returnAttributes,
                 shouldFollowReferrals
