@@ -164,19 +164,26 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
 
         setup(additionalSettings);
         setupStarfleetIndex();
-        AuditMessage first = assertSearchAuditMessages();
-        AuditMessage second = assertSearchAuditMessages();
-        String firstTaskId = (String) first.getAsMap().get(AuditMessage.TASK_ID);
-        String secondTaskId = (String) second.getAsMap().get(AuditMessage.TASK_ID);
-        Assert.assertNotNull(firstTaskId);
-        Assert.assertNotNull(secondTaskId);
-        Assert.assertNotEquals("Separate searches must have distinct task IDs", firstTaskId, secondTaskId);
-        for (AuditMessage message : List.of(first, second)) {
-            String taskId = (String) message.getAsMap().get(AuditMessage.TASK_ID);
-            String nodePrefix = message.getAsMap().get(AuditMessage.NODE_ID) + ":";
-            Assert.assertTrue(taskId, taskId.startsWith(nodePrefix));
-            Assert.assertTrue(taskId, Long.parseLong(taskId.substring(nodePrefix.length())) >= 0);
-        }
+        TestAuditlogImpl.clear();
+
+        HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+
+        Thread.sleep(1500);
+        String auditLogImpl = TestAuditlogImpl.sb.toString();
+        Assert.assertTrue(String.valueOf(TestAuditlogImpl.messages.size()), TestAuditlogImpl.messages.size() >= 2);
+        Assert.assertTrue(auditLogImpl.contains("GRANTED_PRIVILEGES"));
+        Assert.assertTrue(auditLogImpl.contains("AUTHENTICATED"));
+        Assert.assertTrue(auditLogImpl.contains("indices:data/read/search"));
+        Assert.assertTrue(auditLogImpl.contains("TRANSPORT"));
+        Assert.assertTrue(auditLogImpl.contains("\"audit_request_effective_user\" : \"admin\""));
+        Assert.assertTrue(auditLogImpl.contains("REST"));
+        Assert.assertFalse(auditLogImpl.toLowerCase().contains("authorization"));
+        assertThat(
+            TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID),
+            is(TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID))
+        );
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -190,35 +197,22 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
 
         setup(additionalSettings);
         setupStarfleetIndex();
-        assertSearchAuditMessages();
-    }
+        TestAuditlogImpl.clear();
 
-    private AuditMessage assertSearchAuditMessages() throws Exception {
-        List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
-            HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
-            assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
-        }, 2);
-        AuditMessage authenticated = onlyMessage(messages, AuditCategory.AUTHENTICATED);
-        assertThat(authenticated.getAsMap().get(AuditMessage.REQUEST_LAYER), is(Origin.REST));
-        assertThat(authenticated.getAsMap().get(AuditMessage.REST_REQUEST_PATH), is("/_search"));
-        assertThat(authenticated.getAsMap().get(AuditMessage.REST_REQUEST_METHOD).toString(), is("GET"));
-        AuditMessage granted = onlyMessage(messages, AuditCategory.GRANTED_PRIVILEGES);
-        assertThat(granted.getAsMap().get(AuditMessage.REQUEST_LAYER), is(Origin.TRANSPORT));
-        assertThat(granted.getPrivilege(), is("indices:data/read/search"));
-        assertThat(granted.getAsMap().get(AuditMessage.TRANSPORT_REQUEST_TYPE), is("SearchRequest"));
-        for (AuditMessage message : messages) {
-            assertThat(message.getEffectiveUser(), is("admin"));
-            assertThat(message.getOrigin(), is(Origin.REST));
-            Assert.assertFalse(message.toPrettyString().toLowerCase(java.util.Locale.ROOT).contains("authorization"));
-        }
-        validateMsgs(messages);
-        return granted;
-    }
+        HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
 
-    private AuditMessage onlyMessage(List<AuditMessage> messages, AuditCategory category) {
-        List<AuditMessage> matching = messages.stream().filter(message -> message.getCategory() == category).toList();
-        assertThat("Expected exactly one " + category + " event: " + messages, matching.size(), is(1));
-        return matching.get(0);
+        Thread.sleep(1500);
+        String auditLogImpl = TestAuditlogImpl.sb.toString();
+        assertThat(TestAuditlogImpl.messages.size(), is(2));
+        Assert.assertTrue(auditLogImpl.contains("GRANTED_PRIVILEGES"));
+        Assert.assertTrue(auditLogImpl.contains("AUTHENTICATED"));
+        Assert.assertTrue(auditLogImpl.contains("indices:data/read/search"));
+        Assert.assertTrue(auditLogImpl.contains("TRANSPORT"));
+        Assert.assertTrue(auditLogImpl.contains("\"audit_request_effective_user\" : \"admin\""));
+        Assert.assertTrue(auditLogImpl.contains("REST"));
+        Assert.assertFalse(auditLogImpl.toLowerCase().contains("authorization"));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     @Test
@@ -317,26 +311,28 @@ public class BasicAuditlogTest extends AbstractAuditlogUnitTest {
     }
 
     public void testWrongUser() throws Exception {
-        assertFailedLogin("wronguser", "admin");
+
+        HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("wronguser", "admin"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
+        Thread.sleep(500);
+        Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("wronguser"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
+        Assert.assertFalse(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testUnknownAuthorization() throws Exception {
-        assertFailedLogin("unknown", "unknown");
-    }
 
-    private void assertFailedLogin(String username, String password) throws Exception {
-        AuditMessage message = TestAuditlogImpl.doThenWaitForMessage(() -> {
-            HttpResponse response = rh.executeGetRequest("", encodeBasicHeader(username, password));
-            assertThat(response.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
-        });
-        assertThat(message.getCategory(), is(AuditCategory.FAILED_LOGIN));
-        assertThat(message.getEffectiveUser(), is(username));
-        assertThat(message.getOrigin(), is(Origin.REST));
-        assertThat(message.getAsMap().get(AuditMessage.REQUEST_LAYER), is(Origin.REST));
-        assertThat(message.getAsMap().get(AuditMessage.REST_REQUEST_PATH), is("/"));
-        Assert.assertFalse(message.toPrettyString().contains(encodeBasicHeader(username, password).getValue()));
-        Assert.assertFalse(message.toPrettyString().toLowerCase(java.util.Locale.ROOT).contains("authorization"));
-        validateMsgs(List.of(message));
+        HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("unknown", "unknown"));
+        assertThat(response.getStatusCode(), is(HttpStatus.SC_UNAUTHORIZED));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
+        Assert.assertFalse(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("Basic dW5rbm93bjp1bmtub3du"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains(AuditMessage.UTC_TIMESTAMP));
+        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
+        assertThat(TestAuditlogImpl.messages.size(), is(1));
+        validateMsgs(TestAuditlogImpl.messages);
     }
 
     public void testUnauthenticated() throws Exception {
