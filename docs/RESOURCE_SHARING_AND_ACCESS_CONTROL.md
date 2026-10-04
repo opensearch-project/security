@@ -73,9 +73,9 @@ opensearchplugin {
     extendedPlugins = ['opensearch-security;optional=true', <any-other-extensions>]
 }
 ```
-- **Implement** the `ResourceSharingExtension` interface. For guidance, refer [SPI README.md](./spi/README.md#4-implement-the-resourcesharingextension-interface).
-- **Implement** the `ResourceSharingClientAccessor` wrapper class to access ResourceSharingClient. Refer [SPI README.md](./spi/README.md#5-implement-the-resourcesharingclientaccessor-class).
-- If plugin implements search, add a **plugin client** if not already present. Can be copied from sample-plugin's [PluginClient.java](./sample-resource-plugin/src/main/java/org/opensearch/sample/utils/PluginClient.java).
+- **Implement** the `ResourceSharingExtension` interface. For guidance, refer [SPI README.md](../spi/README.md#4-implement-the-resourcesharingextension-interface).
+- **Implement** the `ResourceSharingClientAccessor` wrapper class to access ResourceSharingClient. Refer [SPI README.md](../spi/README.md#5-implement-the-resourcesharingclientaccessor-class).
+- If plugin implements search, add a **plugin client** if not already present. Can be copied from sample-plugin's [PluginClient.java](../sample-resource-plugin/src/main/java/org/opensearch/sample/utils/PluginClient.java).
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
@@ -303,10 +303,10 @@ in the `all_shared_principals` section. Note that `user:*` is the convention use
 
 ## **4b. Using the Client for Access Control**
 
-[`opensearch-security-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
+[`opensearch-security-spi` README.md](../spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
 
 ### **Calling Access Control Methods from the ResourceSharingClient Client**
-The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-security-spi` README.md](./spi/README.md#available-java-apis)
+The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-security-spi` README.md](../spi/README.md#available-java-apis)
 
 ### **1. `verifyAccess`**
 
@@ -341,7 +341,7 @@ public static boolean shouldUseResourceAuthz(String resourceType) {
 }
 ```
 
-> For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
+> For more details, refer [spi/README.md](../spi/README.md#available-java-apis)
 
 #### **Sample Request Flow:**
 
@@ -903,7 +903,7 @@ The **Resource Sharing and Access Control** feature enhances OpenSearch security
 
 By implementing the **Service Provider Interface (SPI)** and following **best practices**, developers can seamlessly integrate this feature into their plugins to enforce controlled resource sharing and access management.
 
-For detailed implementation and examples, refer to the **[sample plugin](./sample-resource-plugin/README.md)** included in the security plugin repository.
+For detailed implementation and examples, refer to the **[sample plugin](../sample-resource-plugin/)** included in the security plugin repository.
 
 ---
 

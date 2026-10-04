@@ -1,8 +1,13 @@
-# Maintainer documentation
+# Repository documentation
 
-This directory contains implementation and testing guidance for contributors.
+This directory contains development, architecture, and maintainer guides.
 Public configuration and usage documentation belongs on [docs.opensearch.org](https://docs.opensearch.org/latest/security/).
 
-- [Audit logging tests](testing/audit-logging.md)
+- [Developer guide](DEVELOPER_GUIDE.md)
+- [Developing with Docker](DEVELOPING_WITH_DOCKER.md)
+- [Architecture](ARCHITECTURE.md)
+- [REST authorization for plugins](REST_AUTHZ_FOR_PLUGINS.md)
+- [Resource sharing and access control](RESOURCE_SHARING_AND_ACCESS_CONTROL.md)
+- [Triaging](TRIAGING.md)
 
-See also the root [Developer Guide](../DEVELOPER_GUIDE.md) and [Architecture](../ARCHITECTURE.md).
+See also [Contributing](../CONTRIBUTING.md).

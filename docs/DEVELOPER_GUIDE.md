@@ -2,8 +2,6 @@
 
 So you want to contribute code to OpenSearch Security? Excellent! We're glad you're here. Here's what you need to do.
 
-Focused maintainer guides are indexed in [docs/README.md](docs/README.md), including [audit logging tests](docs/testing/audit-logging.md).
-
 - [Developer Guide](#developer-guide)
   - [Prerequisites](#prerequisites)
     - [Native platforms](#native-platforms)
@@ -337,7 +335,7 @@ See [REST_AUTHZ_FOR_PLUGINS](REST_AUTHZ_FOR_PLUGINS.md).
 
 ## Submitting Changes
 
-See [CONTRIBUTING](CONTRIBUTING.md).
+See [CONTRIBUTING](../CONTRIBUTING.md).
 
 ## Backports
 

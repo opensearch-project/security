@@ -41,7 +41,7 @@ This document outlines a new feature <YOUR_FEATURE>.
 
 
 
-<!--_Some features are best explained using architecture diagrams. In particular, Mermaid diagrams are supported by GitHub and preferred. You can find examples of Mermaid diagrams in the [ARCHITECTURE.md](./ARCHITECTURE.md) file._-->
+<!--_Some features are best explained using architecture diagrams. In particular, Mermaid diagrams are supported by GitHub and preferred. You can find examples of Mermaid diagrams in the [ARCHITECTURE.md](https://github.com/opensearch-project/security/blob/main/docs/ARCHITECTURE.md) file._-->
 
 <!--Here is a generic graph diagram you can modify:-->
 
