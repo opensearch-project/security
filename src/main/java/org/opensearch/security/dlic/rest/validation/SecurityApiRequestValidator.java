@@ -7,6 +7,8 @@
  */
 package org.opensearch.security.dlic.rest.validation;
 
+import java.util.regex.Pattern;
+
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
@@ -21,6 +23,9 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
  * Currently rejects environment expressions that could be expanded when persisted configuration is loaded.
  */
 public final class SecurityApiRequestValidator {
+    // Matches the shared prefix of ${env.}, ${envbc.} and ${envbase64.} substitutions, including malformed forms.
+    private static final Pattern ENV_EXPRESSION_PATTERN = Pattern.compile("\\$\\{env");
+
     private SecurityApiRequestValidator() {}
 
     public static ValidationResult<RestRequest> validate(RestRequest request) {
@@ -58,8 +63,7 @@ public final class SecurityApiRequestValidator {
     }
 
     private static boolean containsExpression(String value) {
-        // Include malformed forms as well as supported environment substitution syntax.
-        return value != null && value.contains("${env");
+        return value != null && ENV_EXPRESSION_PATTERN.matcher(value).find();
     }
 
     private static ValidationResult<RestRequest> rejected() {
