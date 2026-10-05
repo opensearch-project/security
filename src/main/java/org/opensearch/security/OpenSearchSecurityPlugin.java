@@ -175,6 +175,7 @@ import org.opensearch.security.configuration.DlsFlsValveImpl;
 import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.security.dlic.rest.api.RegisteredActions;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesActionType;
 import org.opensearch.security.dlic.rest.api.ssl.TransportCertificatesInfoNodesAction;
@@ -312,6 +313,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
     private volatile ApiTokenRepository apiTokenRepository;
+    private final RegisteredActions registeredActions = new RegisteredActions();
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
@@ -986,7 +988,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         passwordHasher,
                         rsIndexHandler,
                         resourcePluginInfo,
-                        apiTokenRepository
+                        apiTokenRepository,
+                        registeredActions
                     )
                 );
 
@@ -1779,6 +1782,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(userService);
         components.add(passwordHasher);
         components.add(apiTokenRepository);
+        components.add(registeredActions);
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
