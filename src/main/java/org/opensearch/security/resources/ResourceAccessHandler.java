@@ -208,7 +208,9 @@ public class ResourceAccessHandler {
                 needContainerCheck.size()
             );
             for (ResourceSharing sharingInfo : needContainerCheck) {
-                checkContainers(sharingInfo, action, groupedListener);
+                // Each id walks its own parent chain, so each gets its own visited set: these run concurrently and a
+                // shared set would be mutated from several threads at once
+                checkContainers(sharingInfo, action, new HashSet<>(), groupedListener);
             }
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resources {}: {}", user.getName(), distinctIds, e.getMessage());
@@ -228,6 +230,20 @@ public class ResourceAccessHandler {
         @NonNull String resourceId,
         @NonNull String resourceType,
         @NonNull String action,
+        ActionListener<Boolean> listener
+    ) {
+        hasPermission(resourceId, resourceType, action, new HashSet<>(), listener);
+    }
+
+    /**
+     * The single-id check, carrying the set of records the parent chain has already consulted so that a cyclic chain
+     * terminates. See {@link #checkParent} for why the chain can be cyclic at all.
+     */
+    private void hasPermission(
+        @NonNull String resourceId,
+        @NonNull String resourceType,
+        @NonNull String action,
+        Set<String> visitedChain,
         ActionListener<Boolean> listener
     ) {
         final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
@@ -269,7 +285,7 @@ public class ResourceAccessHandler {
             }
 
             // resource itself does not grant the action: fall back to its containers (parent and/or workspaces)
-            checkContainers(sharingInfo, action, listener);
+            checkContainers(sharingInfo, action, visitedChain, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
@@ -304,11 +320,12 @@ public class ResourceAccessHandler {
      * {@link #WORKSPACE_RESOURCE_TYPE} is a placeholder until the workspace provider is registered via the SPI; if it
      * isn't, {@code indexByType} returns null and the workspace branch denies cleanly.
      *
-     * @param sharingInfo the sharing record of the resource whose containers should be consulted
-     * @param action      the action being authorized
-     * @param listener    notified with {@code true} if any container grants access, {@code false} otherwise
+     * @param sharingInfo  the sharing record of the resource whose containers should be consulted
+     * @param action       the action being authorized
+     * @param visitedChain the records the parent chain has already consulted, carried so a cycle terminates
+     * @param listener     notified with {@code true} if any container grants access, {@code false} otherwise
      */
-    private void checkContainers(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
+    private void checkContainers(ResourceSharing sharingInfo, String action, Set<String> visitedChain, ActionListener<Boolean> listener) {
         final User user = getAuthenticatedUser();
         if (user == null) {
             listener.onResponse(false);
@@ -329,23 +346,43 @@ public class ResourceAccessHandler {
                         return;
                     }
                 }
-                checkParent(sharingInfo, action, listener);
+                checkParent(sharingInfo, action, visitedChain, listener);
             }, listener::onFailure));
         } else {
-            checkParent(sharingInfo, action, listener);
+            checkParent(sharingInfo, action, visitedChain, listener);
         }
     }
 
     /**
      * Resolves access inherited from the single hierarchical parent (if any), recursing via {@link #hasPermission} so
      * grandparent chains continue to work. Denies when there is no parent.
+     * <p>
+     * A record's parent id comes from a field the owning plugin writes on the resource document, and its parent type
+     * from what that plugin's provider declares. A provider is free to declare a type as its own parent type (nested
+     * groups) or two types as each other's, and nothing rejects that at registration, so the chain a document describes
+     * can be cyclic. Each hop is a sharing-record read, so a cycle would not exhaust the stack; it would issue reads
+     * forever and never answer the caller. {@code visitedChain} ends the walk at the first record it reaches twice, and
+     * the answer there is a denial: a cycle has no terminating ancestor, so nothing in it grants the action.
      */
-    private void checkParent(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
-        if (sharingInfo.getParentId() != null) {
-            hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-        } else {
+    private void checkParent(ResourceSharing sharingInfo, String action, Set<String> visitedChain, ActionListener<Boolean> listener) {
+        final String parentId = sharingInfo.getParentId();
+        if (parentId == null) {
             listener.onResponse(false);
+            return;
         }
+        final String parentType = sharingInfo.getParentType();
+        if (!visitedChain.add(parentType + "/" + parentId)) {
+            LOGGER.warn(
+                "Parent chain of resource '{}' revisits {} '{}'; the hierarchy is cyclic. Action {} is not allowed.",
+                sharingInfo.getResourceId(),
+                parentType,
+                parentId,
+                action
+            );
+            listener.onResponse(false);
+            return;
+        }
+        hasPermission(parentId, parentType, action, visitedChain, listener);
     }
 
     /**
