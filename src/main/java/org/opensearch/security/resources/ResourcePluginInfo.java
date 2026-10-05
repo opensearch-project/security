@@ -58,11 +58,45 @@ public class ResourcePluginInfo {
     // default access level per type (for migration)
     private final Map<String, String> typeToDefaultAccessLevel = new HashMap<>();
 
+    // Resource indices of the types currently listed as protected. Every index and delete operation in the cluster
+    // consults this, so it is kept as a snapshot recomputed when the registry or the protected-types setting changes,
+    // rather than rebuilt per read.
+    private volatile Set<String> protectedResourceIndices = Collections.emptySet();
+
     // cache current protected types and their indices
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
 
     public void setProtectedTypesSetting(OpensearchDynamicSetting<List<String>> protectedTypesSetting) {
-        this.protectedTypesSetting = protectedTypesSetting;
+        lock.writeLock().lock();
+        try {
+            this.protectedTypesSetting = protectedTypesSetting;
+            refreshProtectedResourceIndices(currentlyProtectedTypes());
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /** Extensions are registered before the setting is wired, so the setting may still be null. */
+    private List<String> currentlyProtectedTypes() {
+        return protectedTypesSetting == null ? null : protectedTypesSetting.getDynamicSettingValue();
+    }
+
+    /**
+     * Recomputes {@link #protectedResourceIndices} from the registry and the given protected-types list. Must be called
+     * with the write lock held, so that a reader never observes a snapshot that disagrees with {@link #typeToProvider}.
+     */
+    private void refreshProtectedResourceIndices(List<String> protectedTypes) {
+        if (protectedTypes == null || protectedTypes.isEmpty()) {
+            protectedResourceIndices = Collections.emptySet();
+            return;
+        }
+        Set<String> indices = new HashSet<>();
+        for (Map.Entry<String, ResourceProvider> entry : typeToProvider.entrySet()) {
+            if (protectedTypes.contains(entry.getKey())) {
+                indices.add(entry.getValue().resourceIndexName());
+            }
+        }
+        protectedResourceIndices = Set.copyOf(indices);
     }
 
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
@@ -112,6 +146,7 @@ public class ResourcePluginInfo {
                 }
             }
             resourceSharingExtensions.addAll(extensions);
+            refreshProtectedResourceIndices(currentlyProtectedTypes());
         } finally {
             lock.writeLock().unlock();
         }
@@ -123,17 +158,16 @@ public class ResourcePluginInfo {
             // Rebuild mappings based on the current allowlist
             typeToProvider.clear();
 
-            if (protectedTypes == null || protectedTypes.isEmpty()) {
-                return;
-            }
-
-            for (ResourceSharingExtension extension : resourceSharingExtensions) {
-                for (var rp : extension.getResourceProviders()) {
-                    final String type = rp.resourceType();
-                    if (!protectedTypes.contains(type)) continue;
-                    typeToProvider.put(rp.resourceType(), rp);
+            if (protectedTypes != null && !protectedTypes.isEmpty()) {
+                for (ResourceSharingExtension extension : resourceSharingExtensions) {
+                    for (var rp : extension.getResourceProviders()) {
+                        final String type = rp.resourceType();
+                        if (!protectedTypes.contains(type)) continue;
+                        typeToProvider.put(rp.resourceType(), rp);
+                    }
                 }
             }
+            refreshProtectedResourceIndices(protectedTypes);
         } finally {
             lock.writeLock().unlock();
         }
@@ -417,22 +451,13 @@ public class ResourcePluginInfo {
         }
     }
 
+    /**
+     * The resource indices of the currently protected types. Consulted on every index and delete operation in the
+     * cluster, so it answers from the snapshot {@link #refreshProtectedResourceIndices(List)} maintains rather than taking
+     * the lock and rebuilding the set per call. The returned set is immutable.
+     */
     public Set<String> getResourceIndicesForProtectedTypes() {
-        List<String> resourceTypes = this.protectedTypesSetting.getDynamicSettingValue();
-        if (resourceTypes == null || resourceTypes.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        lock.readLock().lock();
-        try {
-            return typeToProvider.entrySet()
-                .stream()
-                .filter(e -> resourceTypes.contains(e.getKey()))
-                .map(e -> e.getValue().resourceIndexName())
-                .collect(Collectors.toSet());
-        } finally {
-            lock.readLock().unlock();
-        }
+        return protectedResourceIndices;
     }
 
     public List<String> currentProtectedTypes() {
