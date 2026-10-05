@@ -209,8 +209,11 @@ public class ResourceAccessHandler {
             );
             for (ResourceSharing sharingInfo : needContainerCheck) {
                 // Each id walks its own parent chain, so each gets its own visited set: these run concurrently and a
-                // shared set would be mutated from several threads at once
-                checkContainers(sharingInfo, action, new HashSet<>(), groupedListener);
+                // shared set would be mutated from several threads at once. The record in hand has been consulted
+                // already, which the single-id path records on entry and this path has to record for itself.
+                final Set<String> visitedChain = new HashSet<>();
+                visitedChain.add(chainKey(resourceType, sharingInfo.getResourceId()));
+                checkContainers(sharingInfo, action, visitedChain, groupedListener);
             }
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resources {}: {}", user.getName(), distinctIds, e.getMessage());
@@ -246,6 +249,9 @@ public class ResourceAccessHandler {
         Set<String> visitedChain,
         ActionListener<Boolean> listener
     ) {
+        // This is the one place a record is consulted, so it is where the chain records having consulted it
+        visitedChain.add(chainKey(resourceType, resourceId));
+
         final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
@@ -371,7 +377,7 @@ public class ResourceAccessHandler {
             return;
         }
         final String parentType = sharingInfo.getParentType();
-        if (!visitedChain.add(parentType + "/" + parentId)) {
+        if (visitedChain.contains(chainKey(parentType, parentId))) {
             LOGGER.warn(
                 "Parent chain of resource '{}' revisits {} '{}'; the hierarchy is cyclic. Action {} is not allowed.",
                 sharingInfo.getResourceId(),
@@ -383,6 +389,11 @@ public class ResourceAccessHandler {
             return;
         }
         hasPermission(parentId, parentType, action, visitedChain, listener);
+    }
+
+    /** Identifies a sharing record within one parent chain. A parent is named by type and id, so both are needed. */
+    private static String chainKey(String resourceType, String resourceId) {
+        return resourceType + "/" + resourceId;
     }
 
     /**

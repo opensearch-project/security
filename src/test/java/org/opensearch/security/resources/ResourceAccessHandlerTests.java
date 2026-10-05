@@ -337,6 +337,9 @@ public class ResourceAccessHandlerTests {
         handler.hasPermission("res-a", TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
+        // Each record in the cycle is read once: the walk stops at the first one it is asked to consult twice
+        verify(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq("res-a"), any());
+        verify(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq("res-b"), any());
     }
 
     @Test
@@ -353,6 +356,8 @@ public class ResourceAccessHandlerTests {
         handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
 
         verify(listener).onResponse(false);
+        // The record naming itself is read once, not again as its own parent
+        verify(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
     }
 
     @Test
