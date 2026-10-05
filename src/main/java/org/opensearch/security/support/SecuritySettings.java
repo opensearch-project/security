@@ -49,6 +49,16 @@ public class SecuritySettings {
         Setting.Property.Dynamic
     ); // Not filtered
 
+    /**
+     * Environment variable substitution in security configuration is disabled unless explicitly enabled by setting this to false.
+     */
+    public static final Setting<Boolean> DISABLE_ENVVAR_REPLACEMENT_SETTING = Setting.boolSetting(
+        ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT,
+        true,
+        Setting.Property.NodeScope,
+        Setting.Property.Filtered
+    );
+
     public static final Setting<Boolean> DLS_WRITE_BLOCKED = Setting.boolSetting(
         ConfigConstants.SECURITY_DLS_WRITE_BLOCKED,
         false,

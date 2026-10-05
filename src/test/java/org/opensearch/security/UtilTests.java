@@ -26,6 +26,7 @@
 
 package org.opensearch.security;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -34,6 +35,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -118,7 +120,7 @@ public class UtilTests {
 
     @Test
     public void testEnvReplace() {
-        Settings settings = Settings.EMPTY;
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false).build();
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
         assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings), is("abv${envbc.MYENV}xyz"));
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings), is("abvtTtxyz"));
@@ -156,7 +158,10 @@ public class UtilTests {
 
     @Test
     public void testEnvReplacePBKDF2() {
-        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.PBKDF2).build();
+        Settings settings = Settings.builder()
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.PBKDF2)
+            .put(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)
+            .build();
         final PasswordHasher passwordHasherPBKDF2 = PasswordHasherFactory.createPasswordHasher(settings);
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
         assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings), is("abv${envbc.MYENV}xyz"));
@@ -223,6 +228,19 @@ public class UtilTests {
                 SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings),
                 is("abv${env." + k + ":-k182765ggh}xyz")
             );
+        }
+    }
+
+    @Test
+    public void testEnvReplaceDisabledByDefault() {
+        assertTrue(SecuritySettings.DISABLE_ENVVAR_REPLACEMENT_SETTING.getDefault(Settings.EMPTY));
+        for (Settings settings : List.of(Settings.EMPTY, Settings.builder().put("unrelated.setting", "value").build())) {
+            assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings), is("abv${env.MYENV:-tTt}xyz"));
+            assertThat(SecurityUtils.replaceEnvVars("abv${envbase64.MYENV:-dFR0}xyz", settings), is("abv${envbase64.MYENV:-dFR0}xyz"));
+            assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV:-tTt}xyz", settings), is("abv${envbc.MYENV:-tTt}xyz"));
+            for (String k : System.getenv().keySet()) {
+                assertThat(SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings), is("abv${env." + k + "}xyz"));
+            }
         }
     }
 }
