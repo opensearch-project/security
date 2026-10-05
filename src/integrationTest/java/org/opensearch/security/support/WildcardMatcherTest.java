@@ -226,6 +226,21 @@ public class WildcardMatcherTest {
         assertFalse(subject2.test(base2 + "_more"));
     }
 
+    /**
+     * Regression test for https://github.com/opensearch-project/security/issues/6245: concatenating matchers that
+     * are all equal must not throw, since that is what happens when a dynamic nodes_dn duplicates the static one.
+     */
+    @Test
+    public void concatWithEqualMatchers() {
+        String dn = "CN=node-0.example.com,OU=node,O=node,L=test,C=de";
+        WildcardMatcher subject = applyCase(WildcardMatcher.from(dn));
+
+        WildcardMatcher combined = subject.concat(Arrays.asList(applyCase(WildcardMatcher.from(dn)), applyCase(WildcardMatcher.from(dn))));
+
+        assertSame(subject, combined);
+        assertTrue(combined.test(dn));
+    }
+
     public WildcardMatcherTest(boolean ignoreCase) {
         this.ignoreCase = ignoreCase;
     }

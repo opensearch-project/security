@@ -218,7 +218,13 @@ public abstract class WildcardMatcher implements Predicate<String> {
         if (matchers.isEmpty()) {
             return this;
         }
-        return new MatcherCombiner(Stream.concat(matchers.stream(), Stream.of(this)).collect(ImmutableSet.toImmutableSet()));
+        final ImmutableSet<WildcardMatcher> combined = Stream.concat(matchers.stream(), Stream.of(this))
+            .collect(ImmutableSet.toImmutableSet());
+        if (combined.size() == 1) {
+            // Every matcher is equal to this one, and MatcherCombiner requires at least two distinct matchers
+            return this;
+        }
+        return new MatcherCombiner(combined);
     }
 
     public boolean matchAny(Stream<String> candidates) {
