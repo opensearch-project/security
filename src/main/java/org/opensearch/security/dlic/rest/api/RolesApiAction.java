@@ -52,6 +52,7 @@ public class RolesApiAction extends AbstractApiAction {
             new Route(Method.GET, "/roles"),
             new Route(Method.GET, "/roles/{name}"),
             new Route(Method.DELETE, "/roles/{name}"),
+            new Route(Method.PUT, "/roles"),
             new Route(Method.PUT, "/roles/{name}"),
             new Route(Method.PATCH, "/roles"),
             new Route(Method.PATCH, "/roles/{name}")
@@ -63,6 +64,7 @@ public class RolesApiAction extends AbstractApiAction {
             new DeprecatedRoute(Method.GET, "/roles", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.GET, "/roles/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.DELETE, "/roles/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/roles", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PUT, "/roles/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PATCH, "/roles", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PATCH, "/roles/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE)
