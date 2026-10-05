@@ -138,10 +138,6 @@ public class SecurityAdmin {
     private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
     private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
     private static final String OPENDISTRO_SECURITY_KEYPASS = "OPENDISTRO_SECURITY_KEYPASS";
-    // -rev is an explicit opt-in to environment variable substitution in the uploaded files.
-    private static final Settings ENVVAR_REPLACEMENT_ENABLED = Settings.builder()
-        .put(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)
-        .build();
     // not used in multithreaded fashion, so it's okay to define it as a constant here
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH); // NOSONAR
     private static final Map<String, JsonData> ENABLE_ALL_ALLOCATIONS_SETTINGS = Map.of(
@@ -1006,7 +1002,7 @@ public class SecurityAdmin {
         try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), 2, filepath, populateEmptyIfMissing)) {
             final String content = CharStreams.toString(reader);
             final BytesReference bytes = readXContent(
-                resolveEnvVars ? replaceEnvVars(content, ENVVAR_REPLACEMENT_ENABLED) : content,
+                resolveEnvVars ? replaceEnvVars(content, Settings.EMPTY) : content,
                 XContentType.YAML
             );
             final String res = client.index(

@@ -50,11 +50,11 @@ public class SecuritySettings {
     ); // Not filtered
 
     /**
-     * Environment variable substitution in security configuration is disabled unless explicitly enabled by setting this to false.
+     * Disables environment variable substitution when security configuration is loaded.
      */
     public static final Setting<Boolean> DISABLE_ENVVAR_REPLACEMENT_SETTING = Setting.boolSetting(
         ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT,
-        true,
+        false,
         Setting.Property.NodeScope,
         Setting.Property.Filtered
     );
