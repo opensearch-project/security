@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
 import com.google.common.collect.ImmutableList;
@@ -29,6 +30,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
+import org.opensearch.security.dlic.rest.validation.FieldMaskingMappingValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
@@ -70,6 +72,7 @@ public class RolesApiAction extends AbstractApiAction {
     );
 
     public static class RoleRequestContentValidator extends RequestContentValidator {
+        private Consumer<JsonNode> mappingDiagnostics = content -> {};
 
         private static final Salt SALT = new Salt(new byte[] { 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 });
 
@@ -101,6 +104,7 @@ public class RolesApiAction extends AbstractApiAction {
             if (validationError != ValidationError.NONE) {
                 return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
+            mappingDiagnostics.accept(content);
             return ValidationResult.success(content);
         }
 
@@ -175,7 +179,7 @@ public class RolesApiAction extends AbstractApiAction {
 
             @Override
             public RequestContentValidator createRequestContentValidator(Object... params) {
-                return new RoleRequestContentValidator(new RequestContentValidator.ValidationContext() {
+                RoleRequestContentValidator validator = new RoleRequestContentValidator(new RequestContentValidator.ValidationContext() {
                     @Override
                     public Object[] params() {
                         return params;
@@ -200,6 +204,8 @@ public class RolesApiAction extends AbstractApiAction {
                             .build();
                     }
                 });
+                validator.mappingDiagnostics = content -> FieldMaskingMappingValidator.inspect(content, clusterService.state().metadata());
+                return validator;
             }
         };
     }
