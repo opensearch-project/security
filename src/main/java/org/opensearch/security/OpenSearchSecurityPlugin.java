@@ -79,6 +79,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.SuppressLoggerChecks;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.lifecycle.Lifecycle;
 import org.opensearch.common.lifecycle.LifecycleComponent;
@@ -346,6 +347,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         actionTrace.trace(message);
     }
 
+    @SuppressLoggerChecks(reason = "Forwards the caller's format string and argument to the action trace logger")
     public static void traceAction(String message, Object p0) {
         actionTrace.trace(message, p0);
     }

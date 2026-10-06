@@ -156,11 +156,11 @@ compileTestJava {
 
 
 licenseHeaders.enabled = true
+loggerUsageCheck.enabled = true
 
 // The following check that have never be enabled in security
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
-loggerUsageCheck.enabled = false
 forbiddenApisMain.enabled = false
 forbiddenApisTest.enabled = false
 filepermissions.enabled = false

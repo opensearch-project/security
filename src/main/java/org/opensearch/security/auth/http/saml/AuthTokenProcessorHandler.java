@@ -215,7 +215,7 @@ class AuthTokenProcessorHandler {
 
             return Optional.of(new SecurityResponse(HttpStatus.SC_OK, null, responseBodyString, XContentType.JSON.mediaType()));
         } catch (JacksonException e) {
-            log.warn("Error while parsing JSON for {}", restRequest.path(), e);
+            log.warn(() -> "Error while parsing JSON for " + restRequest.path(), e);
             return Optional.of(new SecurityResponse(HttpStatus.SC_BAD_REQUEST, "JSON could not be parsed"));
         }
     }

@@ -367,7 +367,7 @@ public class RequestContentValidator implements ToXContent {
                 }
             }
         } catch (final JacksonException ioe) {
-            LOGGER.error("Couldn't create JSON for payload {}", jsonContent, ioe);
+            LOGGER.error(() -> "Couldn't create JSON for payload " + jsonContent, ioe);
             this.validationError = ValidationError.BODY_NOT_PARSEABLE;
             return ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }

@@ -566,7 +566,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 }
             }
         } catch (LdapException e) {
-            log.error("Unable to handle role {} because of ", ldapName, e);
+            log.error(() -> "Unable to handle role " + ldapName, e);
         }
 
         return null;
