@@ -1149,7 +1149,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
             }
         } catch (LdapException e) {
-            log.error(() -> "Unable to handle role " + ldapName, e);
+            log.error("Unable to handle role {} because of ", ldapName, e);
         }
 
         return null;
