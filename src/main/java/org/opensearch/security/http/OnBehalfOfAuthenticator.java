@@ -11,7 +11,6 @@
 
 package org.opensearch.security.http;
 
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -35,6 +34,7 @@ import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
@@ -50,7 +50,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private static final int MINIMUM_SIGNING_KEY_BIT_LENGTH = 512;
     private static final String SIGNING_KEY = "signing_key";
-    private static final String ENCRYPTION_KEY = "encryption_key";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -60,29 +59,31 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     private final Settings settings;
     private final Boolean enabled;
     private final String clusterName;
-    private final Path configPath;
+    private final OnBehalfOfKeys keystoreKeys;
     private final BooleanSupplier legacyFormatWindow;
     private volatile boolean initialized = false;
     private volatile JwtParser jwtParser;
     private volatile EncryptionDecryptionUtil encryptionUtil;
 
     /**
-     * Assumes nothing about the cluster's composition, so the pre-upgrade encryption format stays readable.
-     * For callers that have no cluster state to consult, such as tests.
+     * Assumes nothing about the cluster's composition, so the pre-upgrade encryption format stays readable,
+     * and no keys from the node keystore. For callers that have no cluster state to consult, such as tests.
      */
-    OnBehalfOfAuthenticator(Settings settings, String clusterName, Path configPath) {
-        this(settings, clusterName, configPath, () -> true);
+    OnBehalfOfAuthenticator(Settings settings, String clusterName) {
+        this(settings, clusterName, OnBehalfOfKeys.NONE, () -> true);
     }
 
     /**
+     * @param keystoreKeys       the keys from the node keystore; each takes precedence over its Base64 counterpart
+     *                           in {@code settings}
      * @param legacyFormatWindow whether this node still reads the pre-upgrade roles-claim format; in production
      *                           {@code LegacyRolesClaimFormat.PreUpgradeNodeTracker#legacyFormatReadable}
      */
-    public OnBehalfOfAuthenticator(Settings settings, String clusterName, Path configPath, BooleanSupplier legacyFormatWindow) {
+    public OnBehalfOfAuthenticator(Settings settings, String clusterName, OnBehalfOfKeys keystoreKeys, BooleanSupplier legacyFormatWindow) {
         this.enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
         this.settings = settings;
         this.clusterName = clusterName;
-        this.configPath = configPath;
+        this.keystoreKeys = keystoreKeys;
         this.legacyFormatWindow = legacyFormatWindow;
     }
 
@@ -91,27 +92,34 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
      *
      * @return {@code true} if OBO authentication is usable, {@code false} if it is misconfigured
      */
-    private synchronized boolean ensureInitialized() {
+    private boolean ensureInitialized() {
         if (!initialized) {
-            initialized = true;
-            try {
-                jwtParser = AccessController.doPrivileged(this::buildJwtParser);
-                encryptionUtil = EncryptionDecryptionUtil.fromSettings(settings, ENCRYPTION_KEY, configPath, legacyFormatWindow);
-            } catch (final RuntimeException e) {
-                log.error("On-behalf-of authentication is misconfigured; OBO tokens will be rejected: {}", e.toString(), e);
+            synchronized (this) {
+                if (!initialized) {
+                    try {
+                        jwtParser = AccessController.doPrivileged(this::buildJwtParser);
+                        encryptionUtil = EncryptionDecryptionUtil.fromSettings(settings, keystoreKeys.encryptionKey(), legacyFormatWindow);
+                    } catch (final RuntimeException e) {
+                        log.error("On-behalf-of authentication is misconfigured; OBO tokens will be rejected: {}", e.toString(), e);
+                    } finally {
+                        // Must be set last: other threads read this flag without the lock and then
+                        // use jwtParser/encryptionUtil directly, so both must already be assigned.
+                        initialized = true;
+                    }
+                }
             }
         }
         return jwtParser != null;
     }
 
     /**
-     * Builds the HMAC verification parser. The signing key may be supplied either via a keystore (e.g. BCFKS,
-     * keeping the key out of cluster state) or as a Base64-encoded {@code signing_key} setting. The keystore
-     * path mirrors how {@link org.opensearch.security.authtoken.jwt.JwtVendor} signs OBO tokens, so issuance
-     * and verification share the same key material.
+     * Builds the HMAC verification parser. The signing key comes from the node keystore if one is configured
+     * there (see {@link OnBehalfOfKeys}), otherwise from the Base64-encoded {@code signing_key} setting. This
+     * mirrors how {@link org.opensearch.security.authtoken.jwt.JwtVendor} signs OBO tokens, so issuance and
+     * verification share the same key material.
      */
     private JwtParser buildJwtParser() {
-        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, SIGNING_KEY, configPath);
+        final SecretKey keystoreKey = keystoreKeys.signingKey();
         if (keystoreKey != null) {
             final byte[] keyBytes = keystoreKey.getEncoded();
             validateSigningKeyBitLength(keyBytes.length * Byte.SIZE);

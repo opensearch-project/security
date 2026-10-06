@@ -34,6 +34,7 @@ import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.authtoken.jwt.claims.JwtClaimsBuilder;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
@@ -81,7 +82,9 @@ public class SecurityTokenManagerTest {
 
     @Before
     public void setup() {
-        tokenManager = spy(new SecurityTokenManager(cs, threadPool, userService, (user, caller) -> user.getSecurityRoles(), null));
+        tokenManager = spy(
+            new SecurityTokenManager(cs, threadPool, userService, (user, caller) -> user.getSecurityRoles(), OnBehalfOfKeys.NONE)
+        );
         clusterOf(false);
     }
 

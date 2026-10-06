@@ -137,24 +137,6 @@ public class ConfigV7Test {
     }
 
     @Test
-    public void testOnBehalfOfSettingsCarriesKeystoreSubSettings() throws Exception {
-        final String json = "{\"enabled\":true,"
-            + "\"signing_key_keystore_path\":\"/etc/obo/ks.bcfks\","
-            + "\"signing_key_keystore_alias\":\"obo-signing\","
-            + "\"signing_key_keystore_type\":\"BCFKS\","
-            + "\"encryption_key_keystore_alias\":\"obo-enc\"}";
-
-        final ConfigV7.OnBehalfOfSettings obo = DefaultObjectMapper.readValue(json, ConfigV7.OnBehalfOfSettings.class);
-        final String rendered = obo.configAsJson();
-
-        assertThat(rendered, containsString("signing_key_keystore_path"));
-        assertThat(rendered, containsString("/etc/obo/ks.bcfks"));
-        assertThat(rendered, containsString("signing_key_keystore_alias"));
-        assertThat(rendered, containsString("obo-signing"));
-        assertThat(rendered, containsString("encryption_key_keystore_alias"));
-    }
-
-    @Test
     public void testOnBehalfOfSettingsToStringRedactsKeys() {
         ConfigV7.OnBehalfOfSettings oboSettings = new ConfigV7.OnBehalfOfSettings();
         oboSettings.setSigningKey("c3VwZXItc2VjcmV0LXNpZ25pbmcta2V5");

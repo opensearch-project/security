@@ -57,6 +57,9 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.http.ApiTokenAuthenticator;
 import org.opensearch.security.http.OnBehalfOfAuthenticator;
@@ -67,7 +70,6 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authz;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthzDomain;
 import org.opensearch.security.support.ReflectionHelper;
-import org.opensearch.security.util.KeyUtils;
 
 public class DynamicConfigModelV7 extends DynamicConfigModel {
 
@@ -85,6 +87,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
     private final ClusterInfoHolder cih;
     private final ApiTokenRepository apiTokenRepository;
+    private final OnBehalfOfKeys oboKeystoreKeys;
 
     public DynamicConfigModelV7(
         ConfigV7 config,
@@ -92,7 +95,8 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         Path configPath,
         InternalAuthenticationBackend iab,
         ClusterInfoHolder cih,
-        ApiTokenRepository apiTokenRepository
+        ApiTokenRepository apiTokenRepository,
+        OnBehalfOfKeys oboKeystoreKeys
     ) {
         super();
         this.config = config;
@@ -101,6 +105,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         this.iab = iab;
         this.cih = cih;
         this.apiTokenRepository = apiTokenRepository;
+        this.oboKeystoreKeys = oboKeystoreKeys;
         buildAAA();
     }
 
@@ -394,15 +399,25 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
          * order: -1 - prioritize the OBO authentication when it gets enabled
          */
         Settings oboSettings = getDynamicOnBehalfOfSettings();
-        final boolean signingKeyConfigured = oboSettings.get("signing_key") != null
-            || oboSettings.get("signing_key" + KeyUtils.KEYSTORE_ALIAS) != null;
-        if (signingKeyConfigured) {
+        final boolean inlineSigningKey = oboSettings.get(JwtVendor.SIGNING_KEY_PROPERTY_KEY) != null;
+        final boolean inlineEncryptionKey = oboSettings.get(EncryptionDecryptionUtil.ENCRYPTION_KEY_PROPERTY_KEY) != null;
+        final boolean keystoreSigningKey = oboKeystoreKeys.signingKey() != null;
+        final boolean keystoreEncryptionKey = oboKeystoreKeys.encryptionKey() != null;
+        // Both sources set: the keystore key wins, so the inline one would otherwise be ignored silently.
+        if (inlineSigningKey && keystoreSigningKey) {
+            warnInlineKeyIgnored(JwtVendor.SIGNING_KEY_PROPERTY_KEY);
+        }
+        if (inlineEncryptionKey && keystoreEncryptionKey) {
+            warnInlineKeyIgnored(EncryptionDecryptionUtil.ENCRYPTION_KEY_PROPERTY_KEY);
+        }
+        // Either source is enough to verify OBO tokens.
+        if (inlineSigningKey || keystoreSigningKey) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
                 new OnBehalfOfAuthenticator(
                     getDynamicOnBehalfOfSettings(),
                     this.cih.getClusterName(),
-                    this.configPath,
+                    oboKeystoreKeys,
                     this.cih.preUpgradeNodeTracker()::legacyFormatReadable
                 ),
                 false,
@@ -447,6 +462,13 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                 log.error("Error while destroying " + destroyable, e);
             }
         }
+    }
+
+    private void warnInlineKeyIgnored(final String setting) {
+        log.warn(
+            "on_behalf_of.{} in the security configuration is ignored, the key from the keystore configured in opensearch.yml is used",
+            setting
+        );
     }
 
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {

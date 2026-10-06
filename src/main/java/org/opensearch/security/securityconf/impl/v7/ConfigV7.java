@@ -460,18 +460,6 @@ public class ConfigV7 {
         @JsonProperty("encryption_key")
         private String encryptionKey;
 
-        private final Map<String, Object> additionalSettings = new HashMap<>();
-
-        @JsonAnySetter
-        public void setAdditionalSetting(final String name, final Object value) {
-            additionalSettings.put(name, value);
-        }
-
-        @JsonAnyGetter
-        public Map<String, Object> getAdditionalSettings() {
-            return additionalSettings;
-        }
-
         @JsonIgnore
         public String configAsJson() {
             return DefaultObjectMapper.writeValueAsString(this, false);

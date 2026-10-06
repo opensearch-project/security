@@ -12,7 +12,6 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
@@ -29,9 +28,10 @@ import org.bouncycastle.crypto.fips.FipsKDF;
 import org.opensearch.common.Randomness;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.FipsMode;
-import org.opensearch.security.util.KeyUtils;
 
 public class EncryptionDecryptionUtil {
+
+    public static final String ENCRYPTION_KEY_PROPERTY_KEY = "encryption_key";
 
     private static final byte[] HKDF_INFO = "opensearch-obo-jwt-encryption".getBytes(StandardCharsets.UTF_8);
     private static final int GCM_NONCE_LENGTH = 12;  // 96 bits, recommended for AES-GCM
@@ -52,29 +52,25 @@ public class EncryptionDecryptionUtil {
     private final SecureRandom secureRandom = Randomness.createSecure();
 
     /**
-     * Resolves the encryption key from {@code <prefix>} in the given settings, supporting either a keystore
-     * (e.g. BCFKS, keeping the key out of cluster state) or a Base64-encoded plaintext value. Both issuance
-     * and verification call this so they derive the same AES key from the same key material.
+     * Resolves the encryption key: the key from the node keystore (see {@link OnBehalfOfKeys}) if one is
+     * configured, otherwise the Base64-encoded {@code encryption_key} from the dynamic on-behalf-of settings.
+     * Both issuance and verification call this so they derive the same AES key from the same key material.
      *
-     * @param settings          the dynamic on-behalf-of settings holding the key or the keystore coordinates
-     * @param prefix            the setting name the key is configured under, e.g. {@code encryption_key}; the
-     *                          keystore variants are read from {@code <prefix>_keystore_*}
-     * @param configPath        the node's config directory, which relative keystore paths resolve against
+     * @param settings          the dynamic on-behalf-of settings
+     * @param keystoreKey       the encryption key from the node keystore, or {@code null} if none is configured
      * @param legacyFormatInUse whether the pre-upgrade AES/ECB format is still in play, see
      *                          {@link LegacyRolesClaimFormat}
      * @return a util instance, or {@code null} if no key is configured
      */
     public static EncryptionDecryptionUtil fromSettings(
         final Settings settings,
-        final String prefix,
-        final Path configPath,
+        final SecretKey keystoreKey,
         final BooleanSupplier legacyFormatInUse
     ) {
-        final SecretKey keystoreKey = KeyUtils.loadKeyFromKeystore(settings, prefix, configPath);
         if (keystoreKey != null) {
             return new EncryptionDecryptionUtil(keystoreKey.getEncoded(), legacyFormatInUse);
         }
-        final String configured = settings.get(prefix);
+        final String configured = settings.get(ENCRYPTION_KEY_PROPERTY_KEY);
         return configured != null ? new EncryptionDecryptionUtil(configured, legacyFormatInUse) : null;
     }
 

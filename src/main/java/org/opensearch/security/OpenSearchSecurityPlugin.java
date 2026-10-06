@@ -164,6 +164,7 @@ import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormat;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import org.opensearch.security.compliance.ComplianceReadIndexSearcherWrapper;
@@ -1628,7 +1629,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             threadPool.getThreadContext()
         );
         this.roleMapper = roleMapper;
-        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper, this.configPath);
+        // Secure settings are only readable during node construction, so the keystore keys are loaded here.
+        final OnBehalfOfKeys oboKeystoreKeys = OnBehalfOfKeys.load(settings, configPath);
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper, oboKeystoreKeys);
         apiTokenRepository = new ApiTokenRepository(localClient, clusterService);
 
         PrivilegesConfiguration privilegesConfiguration = new PrivilegesConfiguration(
@@ -1724,7 +1727,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher, apiTokenRepository);
+        dcf = new DynamicConfigFactory(
+            cr,
+            settings,
+            configPath,
+            localClient,
+            threadPool,
+            cih,
+            passwordHasher,
+            apiTokenRepository,
+            oboKeystoreKeys
+        );
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(xffResolver);
@@ -2778,6 +2791,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // this can only be changed with access to the config file.
             ));
         }
+
+        settings.addAll(OnBehalfOfKeys.getSettings());
 
         return settings;
     }

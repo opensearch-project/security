@@ -11,10 +11,8 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -28,16 +26,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.util.KeyUtils;
 
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;
@@ -48,6 +43,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.opensearch.security.authtoken.jwt.JwtVendor.SIGNING_KEY_PROPERTY_KEY;
@@ -59,9 +55,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class JwtVendorTest {
-    @Rule
-    public TemporaryFolder tempDir = new TemporaryFolder();
-
     private Appender mockAppender;
     private ArgumentCaptor<LogEvent> logEventCaptor;
 
@@ -79,7 +72,7 @@ public class JwtVendorTest {
     public void testCreateJwkFromSettings() {
         final Settings settings = Settings.builder().put(SIGNING_KEY_PROPERTY_KEY, signingKeyB64Encoded).build();
 
-        final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath());
+        final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings, null);
         assertThat(jwk.v1().getAlgorithm().getName(), is("HS512"));
         assertThat(jwk.v1().getKeyUse().toString(), is("sig"));
         assertTrue(jwk.v1().toOctetSequenceKey().getKeyValue().decodeToString().startsWith(signingKey));
@@ -88,20 +81,14 @@ public class JwtVendorTest {
     @Test
     public void testCreateJwkFromSettingsWithWeakKey() {
         Settings settings = Settings.builder().put(SIGNING_KEY_PROPERTY_KEY, "abcd1234").build();
-        Throwable exception = assertThrows(
-            OpenSearchException.class,
-            () -> JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath())
-        );
+        Throwable exception = assertThrows(OpenSearchException.class, () -> JwtVendor.createJwkFromSettings(settings, null));
         assertThat(exception.getMessage(), containsString("The secret length must be at least 256 bits"));
     }
 
     @Test
     public void testCreateJwkFromSettingsWithoutSigningKey() {
         Settings settings = Settings.builder().put("jwt", "").build();
-        Throwable exception = assertThrows(
-            RuntimeException.class,
-            () -> JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath())
-        );
+        Throwable exception = assertThrows(RuntimeException.class, () -> JwtVendor.createJwkFromSettings(settings, null));
         assertThat(
             exception.getMessage(),
             equalTo("Settings for signing key is missing. Please specify at least the option signing_key with a shared secret.")
@@ -121,7 +108,7 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put(SIGNING_KEY_PROPERTY_KEY, signingKeyB64Encoded).build();
         Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
 
-        JwtVendor OBOJwtVendor = new JwtVendor(settings, tempDir.getRoot().toPath());
+        JwtVendor OBOJwtVendor = new JwtVendor(settings, null);
         final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
             new OBOJwtClaimsBuilder(null).addRoles(roles)
                 .issuer(issuer)
@@ -157,7 +144,7 @@ public class JwtVendorTest {
 
         Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
 
-        JwtVendor OBOJwtVendor = new JwtVendor(settings, tempDir.getRoot().toPath());
+        JwtVendor OBOJwtVendor = new JwtVendor(settings, null);
         final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
             new OBOJwtClaimsBuilder(new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded)).addRoles(roles)
                 .addBackendRoles(false, backendRoles)
@@ -205,7 +192,7 @@ public class JwtVendorTest {
             .put("encryption_key", claimsEncryptionKeyB64Encoded)
             .put(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, true)
             .build();
-        final JwtVendor OBOJwtVendor = new JwtVendor(settings, tempDir.getRoot().toPath());
+        final JwtVendor OBOJwtVendor = new JwtVendor(settings, null);
         Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
 
         final ExpiringBearerAuthToken authToken = OBOJwtVendor.createJwt(
@@ -262,7 +249,7 @@ public class JwtVendorTest {
         final List<String> backendRoles = List.of("Sales", "Support");
         int expirySeconds = 300;
 
-        final JwtVendor OBOJwtVendor = new JwtVendor(settings, tempDir.getRoot().toPath());
+        final JwtVendor OBOJwtVendor = new JwtVendor(settings, null);
         Date expiryTime = new Date(currentTime.getAsLong() + expirySeconds * 1000);
         OBOJwtVendor.createJwt(
             new OBOJwtClaimsBuilder(new EncryptionDecryptionUtil(claimsEncryptionKeyB64Encoded)).addRoles(roles)
@@ -288,51 +275,27 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwkFromKeystoreSettings() throws Exception {
+    public void testCreateJwkFromKeystoreKey() {
         final byte[] keyBytes = Base64.getDecoder().decode(signingKeyB64Encoded);
         final SecretKey hmacKey = new SecretKeySpec(keyBytes, "HmacSHA512");
 
-        final KeyStore ks = KeyStore.getInstance("BCFKS");
-        ks.load(null, null);
-        ks.setKeyEntry("jwt-signing", hmacKey, "keypass".toCharArray(), null);
-
-        final File tempKs = tempDir.newFile("test-jwt-ks.bcfks");
-        try (var out = new FileOutputStream(tempKs)) {
-            ks.store(out, "kspass".toCharArray());
-        }
-
-        final Settings settings = Settings.builder()
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_PATH, tempKs.getAbsolutePath())
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_TYPE, "BCFKS")
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_PASSWORD, "kspass")
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_ALIAS, "jwt-signing")
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_KEY_PASSWORD, "keypass")
-            .build();
-
-        final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath());
+        final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(Settings.EMPTY, hmacKey);
         assertThat(jwk.v1().getAlgorithm().getName(), is("HS512"));
         assertThat(jwk.v1().getKeyUse().toString(), is("sig"));
         assertThat(jwk.v1().toOctetSequenceKey().getKeyValue().decode(), equalTo(keyBytes));
     }
 
     @Test
-    public void testCreateJwkFromKeystoreSettingsNonexistentAlias() throws Exception {
-        final KeyStore ks = KeyStore.getInstance("BCFKS");
-        ks.load(null, null);
+    public void testKeystoreKeyTakesPrecedenceOverSigningKeySetting() {
+        final byte[] keyBytes = new byte[64];
+        Arrays.fill(keyBytes, (byte) 7);
+        final byte[] settingKeyBytes = Base64.getDecoder().decode(signingKeyB64Encoded);
+        // The two keys must differ, otherwise the assertion below holds whichever one is picked.
+        assertThat(keyBytes, not(equalTo(settingKeyBytes)));
+        final Settings settings = Settings.builder().put(SIGNING_KEY_PROPERTY_KEY, signingKeyB64Encoded).build();
 
-        final File tempKs = tempDir.newFile("test-jwt-ks-empty.bcfks");
-        try (var out = new FileOutputStream(tempKs)) {
-            ks.store(out, "kspass".toCharArray());
-        }
-
-        final Settings settings = Settings.builder()
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_PATH, tempKs.getAbsolutePath())
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_TYPE, "BCFKS")
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_PASSWORD, "kspass")
-            .put(SIGNING_KEY_PROPERTY_KEY + KeyUtils.KEYSTORE_ALIAS, "nonexistent")
-            .build();
-
-        assertThrows(IllegalArgumentException.class, () -> JwtVendor.createJwkFromSettings(settings, tempDir.getRoot().toPath()));
+        final Tuple<JWK, JWSSigner> jwk = JwtVendor.createJwkFromSettings(settings, new SecretKeySpec(keyBytes, "HmacSHA512"));
+        assertThat(jwk.v1().toOctetSequenceKey().getKeyValue().decode(), equalTo(keyBytes));
     }
 
 }
