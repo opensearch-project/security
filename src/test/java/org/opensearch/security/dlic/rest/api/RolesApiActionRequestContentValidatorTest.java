@@ -26,6 +26,18 @@ import static org.junit.Assert.assertTrue;
 public class RolesApiActionRequestContentValidatorTest extends AbstractApiActionValidationTest {
 
     @Test
+    public void acceptsMaskedFieldsWithoutClusterState() throws IOException {
+        final var validator = new RolesApiAction(clusterService, threadPool, securityApiDependencies).createEndpointValidator()
+            .createRequestContentValidator();
+        final var content = objectMapper.readTree(
+            "{\"index_permissions\":[{\"index_patterns\":[\"future-*\"],\"allowed_actions\":[\"read\"],\"masked_fields\":[\"value\"]}]}"
+        );
+        var request = FakeRestRequest.builder().withContent(new BytesArray(content.toString())).build();
+        assertTrue(validator.validate(request).isValid());
+        assertTrue(validator.validate(request, content).isValid());
+    }
+
+    @Test
     public void doesNotValidateMaskedFields() throws IOException {
 
         final var requestContentValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)

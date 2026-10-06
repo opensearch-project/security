@@ -23,7 +23,7 @@ import tools.jackson.databind.JsonNode;
  * Best-effort diagnostics against existing mappings, never a condition for saving a role.
  * Inspects at most 100 index/expression pairs and 10,000 properties per role validation.
  * Missing indices, user-dependent patterns, multi-fields, and unknown plugin field types are not diagnosed.
- * Mapping types cannot prove that source values are strings; source filtering checks actual tokens separately.
+ * Mapping types cannot prove that source values are strings; runtime values are not inspected here.
  */
 public final class FieldMaskingMappingValidator {
     private static final Set<String> NON_STRING_TYPES = Set.of(

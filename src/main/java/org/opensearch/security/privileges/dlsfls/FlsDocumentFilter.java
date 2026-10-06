@@ -45,18 +45,8 @@ class FlsDocumentFilter {
         FieldMasking.FieldMaskingRule fieldMaskingRule,
         Set<String> metaFields
     ) throws IOException {
-        return filter(bytes, flsRule, fieldMaskingRule, metaFields, "unknown");
-    }
-
-    static byte[] filter(
-        byte[] bytes,
-        FieldPrivileges.FlsRule flsRule,
-        FieldMasking.FieldMaskingRule fieldMaskingRule,
-        Set<String> metaFields,
-        String index
-    ) throws IOException {
         try (InputStream in = new ByteArrayInputStream(bytes); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            filter(in, out, flsRule, fieldMaskingRule, metaFields, index);
+            filter(in, out, flsRule, fieldMaskingRule, metaFields);
             return out.toByteArray();
         }
     }
@@ -68,28 +58,16 @@ class FlsDocumentFilter {
         FieldMasking.FieldMaskingRule fieldMaskingRule,
         Set<String> metaFields
     ) throws IOException {
-        filter(in, out, flsRule, fieldMaskingRule, metaFields, "unknown");
-    }
-
-    private static void filter(
-        InputStream in,
-        OutputStream out,
-        FieldPrivileges.FlsRule flsRule,
-        FieldMasking.FieldMaskingRule fieldMaskingRule,
-        Set<String> metaFields,
-        String index
-    ) throws IOException {
         try (
             JsonParser parser = JSON_FACTORY.createParser(XObjectReadContext.create(), in);
             JsonGenerator generator = JSON_FACTORY.createGenerator(XObjectWriteContext.create(false), out)
         ) {
-            new FlsDocumentFilter(parser, generator, flsRule, fieldMaskingRule, metaFields, index).copy();
+            new FlsDocumentFilter(parser, generator, flsRule, fieldMaskingRule, metaFields).copy();
         }
     }
 
     private final JsonParser parser;
     private final JsonGenerator generator;
-    private final String index;
     private final FieldPrivileges.FlsRule flsRule;
     private final FieldMasking.FieldMaskingRule fieldMaskingRule;
 
@@ -110,10 +88,8 @@ class FlsDocumentFilter {
         JsonGenerator generator,
         FieldPrivileges.FlsRule flsRule,
         FieldMasking.FieldMaskingRule fieldMaskingRule,
-        Set<String> metaFields,
-        String index
+        Set<String> metaFields
     ) {
-        this.index = index;
         this.parser = parser;
         this.generator = generator;
         this.flsRule = flsRule;
@@ -157,17 +133,6 @@ class FlsDocumentFilter {
                     }
                     continue;
                 }
-            }
-
-            // Check actual source tokens: mappings may coerce numeric input into a keyword field.
-            if (fullCurrentName != null
-                && (token == JsonToken.VALUE_TRUE
-                    || token == JsonToken.VALUE_FALSE
-                    || token == JsonToken.VALUE_NUMBER_INT
-                    || token == JsonToken.VALUE_NUMBER_FLOAT
-                    || token == JsonToken.START_OBJECT)
-                && fieldMaskingRule.isMasked(fullCurrentName)) {
-                FieldMaskingDiagnostics.warn(index, fullCurrentName, token.name(), "_source");
             }
 
             switch (token) {

@@ -386,7 +386,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             visitor = new ComplianceAwareStoredFieldVisitor(visitor);
         }
         if (!flsRule.isAllowAll() || !fmRule.isAllowAll()) {
-            visitor = new FlsStoredFieldVisitor(visitor, flsRule, fmRule, metaFields, shardId.getIndexName());
+            visitor = new FlsStoredFieldVisitor(visitor, flsRule, fmRule, metaFields);
         }
         return visitor;
     }

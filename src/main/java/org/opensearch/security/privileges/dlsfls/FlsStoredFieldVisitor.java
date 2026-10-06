@@ -34,7 +34,6 @@ public class FlsStoredFieldVisitor extends StoredFieldVisitor {
     private final FieldPrivileges.FlsRule flsRule;
     private final FieldMasking.FieldMaskingRule fieldMaskingRule;
     private final Set<String> metaFields;
-    private final String index;
 
     public FlsStoredFieldVisitor(
         StoredFieldVisitor delegate,
@@ -42,18 +41,7 @@ public class FlsStoredFieldVisitor extends StoredFieldVisitor {
         FieldMasking.FieldMaskingRule fieldMaskingRule,
         Set<String> metaFields
     ) {
-        this(delegate, flsRule, fieldMaskingRule, metaFields, "unknown");
-    }
-
-    public FlsStoredFieldVisitor(
-        StoredFieldVisitor delegate,
-        FieldPrivileges.FlsRule flsRule,
-        FieldMasking.FieldMaskingRule fieldMaskingRule,
-        Set<String> metaFields,
-        String index
-    ) {
         super();
-        this.index = index;
         this.delegate = delegate;
         this.flsRule = flsRule;
         this.fieldMaskingRule = fieldMaskingRule;
@@ -68,7 +56,7 @@ public class FlsStoredFieldVisitor extends StoredFieldVisitor {
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         if (fieldInfo.name.equals("_source")) {
             try {
-                delegate.binaryField(fieldInfo, FlsDocumentFilter.filter(value, flsRule, fieldMaskingRule, metaFields, index));
+                delegate.binaryField(fieldInfo, FlsDocumentFilter.filter(value, flsRule, fieldMaskingRule, metaFields));
             } catch (IOException e) {
                 throw new OpenSearchException("Cannot filter source of document", e);
             }
@@ -109,37 +97,27 @@ public class FlsStoredFieldVisitor extends StoredFieldVisitor {
 
     @Override
     public void intField(final FieldInfo fieldInfo, final int value) throws IOException {
-        warnNumericField(fieldInfo, "integer");
         delegate.intField(fieldInfo, value);
     }
 
     @Override
     public void longField(final FieldInfo fieldInfo, final long value) throws IOException {
-        warnNumericField(fieldInfo, "long");
         delegate.longField(fieldInfo, value);
     }
 
     @Override
     public void floatField(final FieldInfo fieldInfo, final float value) throws IOException {
-        warnNumericField(fieldInfo, "float");
         delegate.floatField(fieldInfo, value);
     }
 
     @Override
     public void doubleField(final FieldInfo fieldInfo, final double value) throws IOException {
-        warnNumericField(fieldInfo, "double");
         delegate.doubleField(fieldInfo, value);
     }
 
     @Override
     public boolean equals(final Object obj) {
         return delegate.equals(obj);
-    }
-
-    private void warnNumericField(FieldInfo field, String type) {
-        if (fieldMaskingRule.isMasked(field.name)) {
-            FieldMaskingDiagnostics.warn(index, field.name, type, "stored field");
-        }
     }
 
     @Override
