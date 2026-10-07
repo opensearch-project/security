@@ -32,6 +32,7 @@ import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
+import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.impl.CType;
@@ -46,6 +47,8 @@ import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPre
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesApiAction extends AbstractApiAction {
+
+    private final RolePermissionValidator permissionValidator;
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
@@ -119,9 +122,11 @@ public class RolesApiAction extends AbstractApiAction {
     public RolesApiAction(
         final ClusterService clusterService,
         final ThreadPool threadPool,
-        final SecurityApiDependencies securityApiDependencies
+        final SecurityApiDependencies securityApiDependencies,
+        final RolePermissionValidator permissionValidator
     ) {
         super(Endpoint.ROLES, clusterService, threadPool, securityApiDependencies);
+        this.permissionValidator = permissionValidator;
         this.requestHandlersBuilder.configureRequestHandlers(this::rolesApiRequestHandlers);
     }
 
@@ -199,7 +204,27 @@ public class RolesApiAction extends AbstractApiAction {
                             .put("description", FieldConfiguration.of(DataType.STRING))
                             .build();
                     }
-                });
+                }) {
+                    @Override
+                    public ValidationResult<JsonNode> validate(RestRequest request, JsonNode content) throws IOException {
+                        return super.validate(request, content).map(this::validatePermissions);
+                    }
+
+                    private ValidationResult<JsonNode> validatePermissions(JsonNode content) {
+                        var groups = securityApiDependencies.configurationRepository()
+                            .getConfiguration(CType.ACTIONGROUPS)
+                            .withStaticConfig()
+                            .getCEntries()
+                            .keySet();
+                        return permissionValidator.validate(content, groups);
+                    }
+
+                    @Override
+                    public ValidationResult<JsonNode> validate(RestRequest request, JsonNode content, JsonNode original)
+                        throws IOException {
+                        return super.validate(request, content, original).map(this::validatePermissions);
+                    }
+                };
             }
         };
     }

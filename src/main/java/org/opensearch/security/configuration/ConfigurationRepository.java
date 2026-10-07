@@ -564,7 +564,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                 LOGGER.debug("Notify {} listener about change configuration with type {}", listener, typeToConfig);
                 listener.onChange(typeToConfig);
             } catch (Exception e) {
-                LOGGER.error("{} listener errored: " + e, listener, e);
+                LOGGER.error("{} listener errored: {}", listener, e.toString(), e);
                 throw ExceptionsHelper.convertToOpenSearchException(e);
             }
         }

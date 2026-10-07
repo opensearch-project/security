@@ -79,6 +79,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.SuppressLoggerChecks;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.lifecycle.Lifecycle;
 import org.opensearch.common.lifecycle.LifecycleComponent;
@@ -179,6 +180,7 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesActionType;
 import org.opensearch.security.dlic.rest.api.ssl.TransportCertificatesInfoNodesAction;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
+import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
 import org.opensearch.security.filter.AuditActionFilter;
 import org.opensearch.security.filter.AuditTransportInterceptor;
 import org.opensearch.security.filter.SecurityFilter;
@@ -312,6 +314,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
     private volatile ApiTokenRepository apiTokenRepository;
+    private final RolePermissionValidator rolePermissionValidator = new RolePermissionValidator();
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
@@ -346,6 +349,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         actionTrace.trace(message);
     }
 
+    @SuppressLoggerChecks(reason = "Forwards the caller's format string and argument to the action trace logger")
     public static void traceAction(String message, Object p0) {
         actionTrace.trace(message, p0);
     }
@@ -986,7 +990,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         passwordHasher,
                         rsIndexHandler,
                         resourcePluginInfo,
-                        apiTokenRepository
+                        apiTokenRepository,
+                        rolePermissionValidator
                     )
                 );
 
@@ -1779,6 +1784,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(userService);
         components.add(passwordHasher);
         components.add(apiTokenRepository);
+        components.add(rolePermissionValidator);
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
@@ -2469,9 +2475,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                                                                                                                                     // here
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.DISABLE_ENVVAR_REPLACEMENT_SETTING);
 
             settings.add(
                 Setting.simpleString(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, Property.NodeScope, Property.Filtered)

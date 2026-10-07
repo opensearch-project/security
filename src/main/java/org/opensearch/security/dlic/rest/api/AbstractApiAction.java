@@ -55,6 +55,7 @@ import org.opensearch.security.action.configupdate.SecurityConfigWriteRequest;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.SecurityApiRequestValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -711,6 +712,12 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             return channel -> forbidden(channel, "No permission to access REST API: " + authError);
         } else {
             securityApiDependencies.auditLog().logGrantedPrivileges(userName, SecurityRequestFactory.from(auditLogRequest));
+        }
+
+        // Shared by all endpoint handlers, including overrides and asynchronous config writes.
+        final var requestValidation = SecurityApiRequestValidator.validate(request);
+        if (!requestValidation.isValid()) {
+            return channel -> Responses.response(channel, requestValidation.status(), requestValidation.errorMessage());
         }
 
         final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());

@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -75,7 +74,6 @@ public class RateLimitersApiAction extends AbstractApiAction {
 
     private static final FieldValidator POSITIVE_INTEGER_VALIDATOR = integerRangeValidator(1, Integer.MAX_VALUE);
     private static final FieldValidator NON_NEGATIVE_INTEGER_VALIDATOR = integerRangeValidator(0, Integer.MAX_VALUE);
-    private static final Pattern REJECTED_PATTERNS = Pattern.compile("\\$\\{env");
 
     private static final List<Route> ROUTES = addRoutesPrefix(
         ImmutableList.of(
@@ -152,7 +150,7 @@ public class RateLimitersApiAction extends AbstractApiAction {
                         return allowedKeys.put(TYPE_JSON_PROPERTY, FieldConfiguration.of(DataType.STRING))
                             .put(
                                 IGNORE_HOSTS_JSON_PROPERTY,
-                                FieldConfiguration.of(DataType.ARRAY, RateLimitersApiAction::validateIgnoreHosts)
+                                FieldConfiguration.of(DataType.ARRAY, RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR)
                             )
                             .put(AUTHENTICATION_BACKEND_JSON_PROPERTY, FieldConfiguration.of(DataType.STRING))
                             .put(ALLOWED_TRIES_JSON_PROPERTY, FieldConfiguration.of(DataType.INTEGER, POSITIVE_INTEGER_VALIDATOR))
@@ -281,17 +279,6 @@ public class RateLimitersApiAction extends AbstractApiAction {
         }
 
         return ValidationResult.success(authFailureListener);
-    }
-
-    private static void validateIgnoreHosts(String fieldName, Object value) {
-        RequestContentValidator.ARRAY_OF_STRINGS_VALIDATOR.validate(fieldName, value);
-        if (value instanceof JsonNode arrayNode) {
-            for (JsonNode element : arrayNode) {
-                if (element.isTextual() && REJECTED_PATTERNS.matcher(element.asText()).find()) {
-                    throw new IllegalArgumentException(fieldName + " must not contain environment variable expressions");
-                }
-            }
-        }
     }
 
     private static FieldValidator integerRangeValidator(int minimum, int maximum) {

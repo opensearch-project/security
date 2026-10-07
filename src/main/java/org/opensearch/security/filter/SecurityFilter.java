@@ -44,7 +44,6 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
-import org.opensearch.action.DocRequest;
 import org.opensearch.action.DocWriteRequest.OpType;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -424,19 +423,42 @@ public class SecurityFilter implements ActionFilter {
             // NOTE: Since resource-access evaluation requires fetching documents from index, we make the call async otherwise it would
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
-            if (resourceAccessEvaluator.shouldEvaluate(request)) {
-                final DocRequest docRequest = (DocRequest) request;
-                resourceAccessEvaluator.evaluateAsync(docRequest, action, ActionListener.wrap(response -> {
+            // The request names its resources through one of two interfaces, normalized by the evaluator, which returns
+            // null when it is not the one to authorize this request. The verdict covers the request as a whole, and is
+            // recorded against each id it names.
+            final ResourceAccessEvaluator.ResourceRequest resourceRequest = resourceAccessEvaluator.evaluableResourceRequest(request);
+            if (resourceRequest != null) {
+                resourceAccessEvaluator.evaluateAsync(resourceRequest, action, ActionListener.wrap(response -> {
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }
                     if (response.isAllowed()) {
-                        auditLog.logResourceAccessGranted(action, docRequest.id(), docRequest.type(), docRequest.index(), request, task);
+                        resourceRequest.ids()
+                            .forEach(
+                                id -> auditLog.logResourceAccessGranted(
+                                    action,
+                                    id,
+                                    resourceRequest.type(),
+                                    resourceRequest.index(),
+                                    request,
+                                    task
+                                )
+                            );
                         auditLog.logIndexEvent(action, request, task);
                         auditLog.logSettingsChange(action, request, task);
                         chain.proceed(task, action, request, listener);
                     } else {
-                        auditLog.logResourceAccessDenied(action, docRequest.id(), docRequest.type(), docRequest.index(), request, task);
+                        resourceRequest.ids()
+                            .forEach(
+                                id -> auditLog.logResourceAccessDenied(
+                                    action,
+                                    id,
+                                    resourceRequest.type(),
+                                    resourceRequest.index(),
+                                    request,
+                                    task
+                                )
+                            );
                         handleUnauthorized.accept(response);
                     }
                 }, listener::onFailure));

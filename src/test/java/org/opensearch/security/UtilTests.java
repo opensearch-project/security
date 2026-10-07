@@ -34,6 +34,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -224,5 +225,12 @@ public class UtilTests {
                 is("abv${env." + k + ":-k182765ggh}xyz")
             );
         }
+    }
+
+    @Test
+    public void testEnvReplaceFollowsSettingDefault() {
+        final String expression = "abv${env.MYENV:-tTt}xyz";
+        final boolean disabledByDefault = SecuritySettings.DISABLE_ENVVAR_REPLACEMENT_SETTING.getDefault(Settings.EMPTY);
+        assertThat(SecurityUtils.replaceEnvVars(expression, Settings.EMPTY), is(disabledByDefault ? expression : "abvtTtxyz"));
     }
 }
