@@ -136,6 +136,68 @@ public class OnBehalfOfKeysTest {
     }
 
     @Test
+    public void testKeyPasswordFallsBackToKeystorePassword() throws Exception {
+        final byte[] keyBytes = filled(64, (byte) 8);
+        final FileHelper.TypedStore typedStore = FileHelper.storeSecretKey(
+            tempDir,
+            "obo-signing",
+            new SecretKeySpec(keyBytes, "HmacSHA512"),
+            STORE_PASSWORD,
+            STORE_PASSWORD
+        );
+
+        final MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString(SIGNING_PREFIX + "keystore_password", STORE_PASSWORD);
+        final Settings settings = Settings.builder()
+            .put(SIGNING_PREFIX + "keystore_filepath", typedStore.path())
+            .put(SIGNING_PREFIX + "keystore_type", typedStore.type())
+            .put(SIGNING_PREFIX + "keystore_alias", "obo-signing")
+            .setSecureSettings(secureSettings)
+            .build();
+
+        assertThat(OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath()).signingKey().getEncoded(), equalTo(keyBytes));
+    }
+
+    @Test
+    public void testWrongKeyPasswordFailsNamingTheSettings() throws Exception {
+        final FileHelper.TypedStore typedStore = store("obo-signing", new SecretKeySpec(filled(64, (byte) 9), "HmacSHA512"));
+
+        final MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString(SIGNING_PREFIX + "keystore_password", STORE_PASSWORD);
+        secureSettings.setString(SIGNING_PREFIX + "keystore_keypassword", "wrong-key-password");
+        final Settings settings = Settings.builder()
+            .put(SIGNING_PREFIX + "keystore_filepath", typedStore.path())
+            .put(SIGNING_PREFIX + "keystore_type", typedStore.type())
+            .put(SIGNING_PREFIX + "keystore_alias", "obo-signing")
+            .setSecureSettings(secureSettings)
+            .build();
+
+        final IllegalArgumentException e = assertThrows(
+            IllegalArgumentException.class,
+            () -> OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath())
+        );
+        assertThat(e.getMessage(), containsString(SIGNING_PREFIX));
+        assertThat(e.getMessage(), not(containsString("wrong-key-password")));
+    }
+
+    @Test
+    public void testStoreTypeIsDetectedWhenNotConfigured() throws Exception {
+        final byte[] keyBytes = filled(64, (byte) 10);
+        final FileHelper.TypedStore typedStore = store("obo-signing", new SecretKeySpec(keyBytes, "HmacSHA512"));
+
+        final MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString(SIGNING_PREFIX + "keystore_password", STORE_PASSWORD);
+        secureSettings.setString(SIGNING_PREFIX + "keystore_keypassword", KEY_PASSWORD);
+        final Settings settings = Settings.builder()
+            .put(SIGNING_PREFIX + "keystore_filepath", typedStore.path())
+            .put(SIGNING_PREFIX + "keystore_alias", "obo-signing")
+            .setSecureSettings(secureSettings)
+            .build();
+
+        assertThat(OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath()).signingKey().getEncoded(), equalTo(keyBytes));
+    }
+
+    @Test
     public void testKeystoreWithoutAliasIsRejected() {
         final Settings settings = Settings.builder().put(SIGNING_PREFIX + "keystore_filepath", "obo.bcfks").build();
 

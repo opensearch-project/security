@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.Key;
 import java.security.KeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -30,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.auth.x500.X500Principal;
@@ -47,7 +49,7 @@ import io.netty.handler.ssl.SslContext;
 
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
-final class KeyStoreUtils {
+public final class KeyStoreUtils {
 
     private final static Logger log = LogManager.getLogger(KeyStoreUtils.class);
 
@@ -336,6 +338,26 @@ final class KeyStoreUtils {
         } catch (Exception e) {
             throw new OpenSearchException("Failed to load keystore from the PKCS#11 token", e);
         }
+    }
+
+    /**
+     * Reads the symmetric key (e.g. an HMAC or AES key) stored under {@code alias}, failing if the entry is
+     * missing or holds another kind of key.
+     */
+    public static SecretKey loadSecretKey(final KeyStore keyStore, final String alias, final char[] keyPassword) {
+        final Key key;
+        try {
+            key = keyStore.getKey(alias, keyPassword);
+        } catch (GeneralSecurityException e) {
+            throw new OpenSearchException("Failed to read the key at alias '" + alias + "' from keystore", e);
+        }
+        if (key == null) {
+            throw new OpenSearchException("No key found at alias '" + alias + "' in keystore");
+        }
+        if (!(key instanceof SecretKey secretKey)) {
+            throw new OpenSearchException("Entry at alias '" + alias + "' is not a SecretKey (found " + key.getClass().getName() + ")");
+        }
+        return secretKey;
     }
 
     public static KeyStore newKeyStore(
