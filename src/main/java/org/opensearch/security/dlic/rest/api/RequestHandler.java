@@ -26,7 +26,9 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.dlic.rest.api.pagination.PaginationHelper;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.transport.client.Client;
 
@@ -179,6 +181,36 @@ public interface RequestHandler {
             add(
                 RestRequest.Method.GET,
                 (channel, request, client) -> mapper.apply(request)
+                    .valid(toXContent -> Responses.ok(channel, toXContent))
+                    .error((status, toXContent) -> response(channel, status, toXContent))
+            );
+            return this;
+        }
+
+        /**
+         * Registers a GET handler that supports opt-in cursor-based pagination via
+         * {@link org.opensearch.security.dlic.rest.api.pagination.PaginationHelper}.
+         *
+         * <p>Callers pass the same {@code CheckedFunction<RestRequest, ValidationResult<SecurityConfiguration>, IOException>}
+         * mapper used with {@link #onGetRequest(CheckedFunction)}. The wrapper then invokes
+         * {@link org.opensearch.security.dlic.rest.api.pagination.PaginationHelper#apply(RestRequest, CType, SecurityConfiguration)}
+         * before rendering. When no pagination parameters were provided, the response retains its
+         * exact pre-existing shape. When any of {@code size}, {@code next_token}, or {@code sort} is
+         * provided, the response is wrapped as {@code {"next_token": ..., "<ctype>": {entries}}}.
+         *
+         * <p>The provided {@code ctype} binds cursors issued by this endpoint: a {@code next_token}
+         * from a different endpoint or a different sort direction is rejected with HTTP 400.
+         */
+        public RequestHandlersBuilder onCollectionGetRequest(
+            final CType<?> ctype,
+            final CheckedFunction<RestRequest, ValidationResult<SecurityConfiguration>, IOException> mapper
+        ) {
+            Objects.requireNonNull(ctype, "ctype can't be null");
+            Objects.requireNonNull(mapper, "onCollectionGetRequest request handler can't be null");
+            add(
+                RestRequest.Method.GET,
+                (channel, request, client) -> mapper.apply(request)
+                    .map(sc -> PaginationHelper.apply(request, ctype, sc))
                     .valid(toXContent -> Responses.ok(channel, toXContent))
                     .error((status, toXContent) -> response(channel, status, toXContent))
             );

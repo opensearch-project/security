@@ -123,13 +123,15 @@ public class NodesDnApiAction extends AbstractApiAction {
     }
 
     private void nodesDnApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.verifyAccessForAllMethods().onGetRequest(request -> processGetRequest(request).map(securityConfiguration -> {
-            if (request.paramAsBoolean("show_all", false)) {
-                final var configuration = securityConfiguration.configuration();
-                addStaticNodesDn(configuration);
-            }
-            return ValidationResult.success(securityConfiguration);
-        })).onChangeRequest(Method.PATCH, this::processPatchRequest);
+        requestHandlersBuilder.verifyAccessForAllMethods()
+            .onCollectionGetRequest(getConfigType(), request -> processGetRequest(request).map(securityConfiguration -> {
+                if (request.paramAsBoolean("show_all", false)) {
+                    final var configuration = securityConfiguration.configuration();
+                    addStaticNodesDn(configuration);
+                }
+                return ValidationResult.success(securityConfiguration);
+            }))
+            .onChangeRequest(Method.PATCH, this::processPatchRequest);
     }
 
     @SuppressWarnings("unchecked")
