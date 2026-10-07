@@ -27,7 +27,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
 /**
- * The on-behalf-of signing and encryption keys loaded from a keystore (e.g. BCFKS) configured in
+ * The on-behalf-of signing and encryption keys loaded from a keystore file (PKCS12 or BCFKS) configured in
  * {@code opensearch.yml}, with the keystore and key passwords held in the node's secure settings
  * ({@code opensearch-keystore}). Keeps both the key material and its passwords out of the security index.
  * <p>
@@ -104,8 +104,13 @@ public record OnBehalfOfKeys(SecretKey signingKey, SecretKey encryptionKey) {
                 return null; // not configured here: the inline key from the dynamic config applies
             }
             final String configuredType = type.exists(settings) ? type.get(settings) : null;
-            final boolean pkcs11 = PemKeyReader.PKCS11.equalsIgnoreCase(configuredType);
-            requireMandatorySettings(settings, pkcs11);
+            // HKDF and the HMAC/JWS libraries need the key bytes, which a non-extractable token key never exposes.
+            if (PemKeyReader.PKCS11.equalsIgnoreCase(configuredType)) {
+                throw new IllegalArgumentException(type.getKey() + ": PKCS#11 is not supported for on-behalf-of keys, use a keystore file");
+            }
+            // An empty alias is a valid keystore alias, so a missing one must not silently fall back to "".
+            requireSetting(settings, alias);
+            requireSetting(settings, filepath);
             // The passwords stay char[] and are wiped when their secure settings are closed.
             try (
                 SecureString storePassword = password.get(settings); //
@@ -115,35 +120,16 @@ public record OnBehalfOfKeys(SecretKey signingKey, SecretKey encryptionKey) {
                 // As with keytool, the key password defaults to the keystore password.
                 final char[] entryChars = entryPassword.isEmpty() ? storeChars : entryPassword.getChars();
 
-                final KeyStore store = openKeyStore(settings, configPath, configuredType, pkcs11, storeChars);
+                final Path path = configPath.resolve(filepath.get(settings)).toAbsolutePath();
+                final KeyStore store = KeyStoreUtils.loadKeyStore(
+                    path,
+                    PemKeyReader.extractStoreType(path.toString(), configuredType),
+                    storeChars
+                );
                 return KeyStoreUtils.loadSecretKey(store, alias.get(settings), entryChars);
             } catch (final RuntimeException e) {
                 throw new IllegalArgumentException("Cannot load the key configured under " + prefix + "*: " + e.getMessage(), e);
             }
-        }
-
-        /** The alias is always required, the file path unless the keystore is a PKCS#11 token. */
-        private void requireMandatorySettings(final Settings settings, final boolean pkcs11) {
-            // An empty alias is a valid keystore alias, so a missing one must not silently fall back to "".
-            requireSetting(settings, alias);
-            if (!pkcs11) {
-                requireSetting(settings, filepath);
-            }
-        }
-
-        /** Opens the PKCS#11 token, or the keystore file, detecting its type when none is configured. */
-        private KeyStore openKeyStore(
-            final Settings settings,
-            final Path configPath,
-            final String configuredType,
-            final boolean isPkcs11,
-            final char[] storePassword
-        ) {
-            if (isPkcs11) {
-                return KeyStoreUtils.loadPkcs11Store(storePassword);
-            }
-            final Path path = configPath.resolve(filepath.get(settings)).toAbsolutePath();
-            return KeyStoreUtils.loadKeyStore(path, PemKeyReader.extractStoreType(path.toString(), configuredType), storePassword);
         }
 
         private void requireSetting(final Settings settings, final Setting<?> setting) {

@@ -232,7 +232,7 @@ public class OnBehalfOfKeysTest {
     }
 
     @Test
-    public void testFileBasedKeystoreWithoutPathIsRejected() {
+    public void testKeystoreWithoutPathIsRejected() {
         final Settings settings = Settings.builder()
             .put(ENCRYPTION_PREFIX + "keystore_type", "BCFKS")
             .put(ENCRYPTION_PREFIX + "keystore_alias", "obo-enc")
@@ -243,6 +243,23 @@ public class OnBehalfOfKeysTest {
             () -> OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath())
         );
         assertThat(e.getMessage(), containsString(ENCRYPTION_PREFIX + "keystore_filepath is required"));
+    }
+
+    @Test
+    public void testPkcs11IsRejected() {
+        final MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setString(SIGNING_PREFIX + "keystore_password", "1234");
+        final Settings settings = Settings.builder()
+            .put(SIGNING_PREFIX + "keystore_type", "PKCS11")
+            .put(SIGNING_PREFIX + "keystore_alias", "obo-signing")
+            .setSecureSettings(secureSettings)
+            .build();
+
+        final IllegalArgumentException e = assertThrows(
+            IllegalArgumentException.class,
+            () -> OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath())
+        );
+        assertThat(e.getMessage(), containsString(SIGNING_PREFIX + "keystore_type: PKCS#11 is not supported"));
     }
 
     @Test
