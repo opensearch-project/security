@@ -156,12 +156,16 @@ compileTestJava {
 
 
 licenseHeaders.enabled = true
+loggerUsageCheck {
+    enabled = true
+    // Resolve dependency-defined Throwable subtypes when checking trailing exception arguments.
+    classpath += sourceSets.main.runtimeClasspath + sourceSets.test.runtimeClasspath
+}
 filepermissions.enabled = true
 
 // The following check that have never be enabled in security
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
-loggerUsageCheck.enabled = false
 forbiddenApisMain.enabled = false
 forbiddenApisTest.enabled = false
 forbiddenPatterns.enabled = false

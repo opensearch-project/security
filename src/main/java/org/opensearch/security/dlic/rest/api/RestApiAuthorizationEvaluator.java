@@ -352,11 +352,7 @@ public class RestApiAuthorizationEvaluator {
 
         if (hasDisabledEndpoints == false) {
             if (isDebugEnabled) {
-                logger.debug(
-                    "No disabled endpoints for user {} at all,  only globally disabledendpoints apply.",
-                    userPrincipal,
-                    remainingEndpoints
-                );
+                logger.debug("No disabled endpoints for user {} at all,  only globally disabledendpoints apply.", userPrincipal);
             }
             disabledEndpointsForUsers.put(userPrincipal, addGloballyDisabledEndpoints(finalEndpoints));
             return finalEndpoints;
