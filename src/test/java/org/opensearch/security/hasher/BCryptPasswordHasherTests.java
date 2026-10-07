@@ -14,7 +14,7 @@ package org.opensearch.security.hasher;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.common.settings.Settings;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -25,8 +25,8 @@ public class BCryptPasswordHasherTests extends AbstractPasswordHasherTests {
     @Before
     public void setup() {
         passwordHasher = new BCryptPasswordHasher(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+            PasswordHasherFactory.BCRYPT_MINOR.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.BCRYPT_ROUNDS.getDefault(Settings.EMPTY)
         );
     }
 

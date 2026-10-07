@@ -69,7 +69,7 @@ repositories {
 configurations.all {
     resolutionStrategy {
         force "org.hamcrest:hamcrest:2.2"
-        force "org.mockito:mockito-core:5.23.0"
+        force "org.mockito:mockito-core:5.24.0"
     }
 }
 

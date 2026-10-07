@@ -469,7 +469,7 @@ Since no entities are listed, the resource is accessible **only by its creator a
 
 ## **7. Best Practices For Plugin Developers**
 - **Declare resources properly** in the `ResourceSharingExtension`.
-- **Implement DocRequest** to utilize resource access control framework.
+- **Implement DocRequest** to utilize resource access control framework, or **MultiResourceRequest**, its counterpart for a request that operates on several resources at once, which is then allowed only if every id it names is accessible.
 - **Use the resource sharing client** to curb access.
 
 

@@ -2,10 +2,10 @@
   "cluster_permissions" : [ "cluster:monitor*" ],
   "index_permissions" : [ {
     "index_patterns" : [ "hulla" ],
-    "allowed_actions" : [ "blafasel" ]
+    "allowed_actions" : [ "indices:data/read/search" ]
   }, {
     "index_patterns" : [ "pub" ],
-    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+    "allowed_actions" : [ "crud" ]
   } ],
   "tenant_permissions" : [ {
     "tenant_patterns" : [ "tenant2" ],

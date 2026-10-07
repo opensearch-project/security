@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -65,11 +66,11 @@ public class BCryptCustomConfigHashingTests extends HashingTests {
                 Map.of(
                     ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED,
                     List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
-                    ConfigConstants.BCRYPT,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR,
+                    PasswordHasherFactory.ALGORITHM.getKey(),
+                    PasswordHasherFactory.BCRYPT,
+                    PasswordHasherFactory.BCRYPT_MINOR.getKey(),
                     minor,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS,
+                    PasswordHasherFactory.BCRYPT_ROUNDS.getKey(),
                     rounds
                 )
             )

@@ -10,6 +10,8 @@
 package org.opensearch.security;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.test.framework.AsyncActions;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
@@ -226,7 +229,11 @@ public class SecurityConfigurationTests {
 
     @Test
     public void shouldUseSecurityAdminTool() throws Exception {
-        SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
+        SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(
+            cluster.getHttpPort(),
+            cluster.getTestCertificates(),
+            cluster.getClusterName()
+        );
         File rolesMapping = configurationDirectory.newFile(CType.ROLESMAPPING.configFileName());
         ConfigurationFiles.copyResourceToFile(CType.ROLESMAPPING.configFileName(), rolesMapping.toPath());
 
@@ -237,6 +244,37 @@ public class SecurityConfigurationTests {
             Awaitility.await()
                 .alias("Waiting for rolemapping 'readall' availability.")
                 .until(() -> client.get("_plugins/_security/api/rolesmapping/readall").getStatusCode(), equalTo(200));
+        }
+    }
+
+    /**
+     * Regression test for https://github.com/opensearch-project/security/issues/6572: each backed up file must
+     * contain the decoded configuration rather than the base64 value stored in the security index.
+     */
+    @Test
+    public void shouldBackupSecurityConfiguration() throws Exception {
+        SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(
+            cluster.getHttpPort(),
+            cluster.getTestCertificates(),
+            cluster.getClusterName()
+        );
+        Path backupDirectory = configurationDirectory.newFolder("backup").toPath();
+
+        // The exit code is not asserted: this cluster has no audit document and securityadmin reports a missing
+        // audit configuration as a failure, which is unrelated to what is being tested here.
+        securityAdminLauncher.backup(backupDirectory);
+
+        for (CType<?> type : List.of(
+            CType.CONFIG,
+            CType.ROLES,
+            CType.ROLESMAPPING,
+            CType.INTERNALUSERS,
+            CType.ACTIONGROUPS,
+            CType.TENANTS
+        )) {
+            Path backupFile = backupDirectory.resolve(type.configFileName());
+            assertThat(type + " was not backed up", Files.size(backupFile) > 0, equalTo(true));
+            ConfigHelper.fromYamlFile(backupFile.toString(), type, 2, 0, 0);
         }
     }
 

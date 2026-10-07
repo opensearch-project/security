@@ -156,6 +156,7 @@ compileTestJava {
 
 
 licenseHeaders.enabled = true
+filepermissions.enabled = true
 
 // The following check that have never be enabled in security
 dependencyLicenses.enabled = false
@@ -163,7 +164,6 @@ thirdPartyAudit.enabled = false
 loggerUsageCheck.enabled = false
 forbiddenApisMain.enabled = false
 forbiddenApisTest.enabled = false
-filepermissions.enabled = false
 forbiddenPatterns.enabled = false
 testingConventions.enabled = false
 jarHell.enabled = true
@@ -533,7 +533,7 @@ configurations {
             force "commons-io:commons-io:2.22.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.2"
             force "org.hamcrest:hamcrest:2.2"
-            force "org.mockito:mockito-core:5.23.0"
+            force "org.mockito:mockito-core:5.24.0"
             force "net.bytebuddy:byte-buddy:1.18.14"
             force "org.ow2.asm:asm:${versions.asm}"
 
@@ -552,7 +552,7 @@ subprojects {
             testImplementation 'org.hamcrest:hamcrest:2.2'
             testImplementation 'junit:junit:4.13.2'
             testImplementation "org.opensearch:opensearch:${opensearch_version}"
-            testImplementation "org.mockito:mockito-core:5.23.0"
+            testImplementation "org.mockito:mockito-core:5.24.0"
         }
 
         afterEvaluate {
@@ -621,7 +621,7 @@ allprojects {
                 integrationTestImplementation "org.apache.httpcomponents:fluent-hc:4.5.14"
                 integrationTestImplementation "org.apache.httpcomponents:httpcore:4.4.16"
                 integrationTestImplementation "org.apache.httpcomponents:httpasyncclient:4.1.5"
-                integrationTestImplementation "org.mockito:mockito-core:5.23.0"
+                integrationTestImplementation "org.mockito:mockito-core:5.24.0"
                 integrationTestImplementation "org.opensearch:opensearch:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
@@ -776,7 +776,7 @@ dependencies {
     runtimeOnly libs.bundles.jaxb
 
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.3.0'
+    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.3.1'
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.2'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'

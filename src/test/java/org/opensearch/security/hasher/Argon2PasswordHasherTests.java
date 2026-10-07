@@ -14,7 +14,7 @@ package org.opensearch.security.hasher;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.common.settings.Settings;
 
 import com.password4j.types.Argon2;
 
@@ -26,12 +26,12 @@ public class Argon2PasswordHasherTests extends AbstractPasswordHasherTests {
     @Before
     public void setup() {
         passwordHasher = new Argon2PasswordHasher(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
+            PasswordHasherFactory.ARGON2_MEMORY.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_ITERATIONS.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_PARALLELISM.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_LENGTH.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_TYPE.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.ARGON2_VERSION.getDefault(Settings.EMPTY)
         );
     }
 
