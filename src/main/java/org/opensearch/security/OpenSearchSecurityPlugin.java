@@ -519,6 +519,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private void warnIfAuthCategoriesEnabled(Settings settings) {
         AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
         Set<AuditCategory> enabledAuthOnly = new HashSet<>(AuditCategory.AUTH_ONLY_CATEGORIES);
+        enabledAuthOnly.removeAll(filter.getDisabledCategories());
         enabledAuthOnly.removeAll(filter.getDisabledRestCategories());
         enabledAuthOnly.removeAll(filter.getDisabledTransportCategories());
         if (!enabledAuthOnly.isEmpty()) {

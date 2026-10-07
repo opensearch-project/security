@@ -19,6 +19,7 @@ import java.util.Set;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -56,12 +57,8 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *   "config" : {
  *     "audit" : {
  *       "enable_rest" : true,
- *       "disabled_rest_categories" : [
- *         "GRANTED_PRIVILEGES",
- *         "SSL_EXCEPTION"
- *       ],
  *       "enable_transport" : true,
- *       "disabled_transport_categories" : [
+ *       "disabled_categories" : [
  *         "GRANTED_PRIVILEGES",
  *         "AUTHENTICATED"
  *       ],
@@ -92,12 +89,8 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * {
  *   "audit":{
  *     "enable_rest":true,
- *     "disabled_rest_categories":[
- *       "GRANTED_PRIVILEGES",
- *       "SSL_EXCEPTION"
- *     ],
  *     "enable_transport":true,
- *     "disabled_transport_categories":[
+ *     "disabled_categories":[
  *       "GRANTED_PRIVILEGES",
  *       "AUTHENTICATED"
  *     ],
@@ -177,6 +170,9 @@ public class AuditApiAction extends AbstractApiAction {
             AuditCategory.RESOURCE_SHARING_CHANGED
         );
 
+        public static final Set<AuditCategory> DISABLED_CATEGORIES = Sets.union(DISABLED_REST_CATEGORIES, DISABLED_TRANSPORT_CATEGORIES)
+            .immutableCopy();
+
         protected AuditRequestContentValidator(ValidationContext validationContext) {
             super(validationContext);
         }
@@ -201,6 +197,9 @@ public class AuditApiAction extends AbstractApiAction {
                 }
                 if (!DISABLED_TRANSPORT_CATEGORIES.containsAll(filter.getDisabledTransportCategories())) {
                     throw new IllegalArgumentException("Invalid transport categories passed in the request");
+                }
+                if (!DISABLED_CATEGORIES.containsAll(filter.getDisabledCategories())) {
+                    throw new IllegalArgumentException("Invalid categories passed in the request");
                 }
                 return ValidationResult.success(jsonContent);
             } catch (final Exception e) {

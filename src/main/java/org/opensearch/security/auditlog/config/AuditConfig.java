@@ -51,12 +51,8 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CON
  *   "enabled": true,
  *   "audit" : {
  *     "enable_rest" : true,
- *     "disabled_rest_categories" : [
- *       "GRANTED_PRIVILEGES",
- *       "SSL_EXCEPTION"
- *     ],
  *     "enable_transport" : true,
- *     "disabled_transport_categories" : [
+ *     "disabled_categories" : [
  *       "GRANTED_PRIVILEGES",
  *       "AUTHENTICATED",
  *       "CLUSTER_SETTINGS_CHANGED",
