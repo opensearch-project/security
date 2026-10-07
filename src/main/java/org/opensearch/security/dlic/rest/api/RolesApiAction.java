@@ -102,7 +102,7 @@ public class RolesApiAction extends AbstractApiAction {
                     } else if (!dls.asText().isEmpty() && !UserAttributes.needsAttributeSubstitution(dls.asText())) {
                         // User-dependent templates are parsed after substitution during authorization.
                         try {
-                            DocumentPrivileges.getRenderedDlsQuery(request.getXContentRegistry(), dls.asText());
+                            DocumentPrivileges.validateDlsQuery(request.getXContentRegistry(), dls.asText());
                         } catch (Exception e) {
                             error = "DLS must contain exactly one valid query DSL object";
                         }

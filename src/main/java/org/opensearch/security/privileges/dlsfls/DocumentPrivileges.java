@@ -227,6 +227,17 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
     }
 
     static QueryBuilder parseQuery(NamedXContentRegistry xContentRegistry, String queryString) throws IOException {
+        // Existing stored queries historically ignored trailing input. Preserve their restrictions.
+        return parseQuery(xContentRegistry, queryString, false);
+    }
+
+    /** Validates newly submitted DLS without allowing trailing content after the query. */
+    public static void validateDlsQuery(NamedXContentRegistry xContentRegistry, String queryString) throws IOException {
+        parseQuery(xContentRegistry, queryString, true);
+    }
+
+    private static QueryBuilder parseQuery(NamedXContentRegistry xContentRegistry, String queryString, boolean rejectTrailingInput)
+        throws IOException {
         try (
             XContentParser parser = JsonXContent.jsonXContent.createParser(
                 xContentRegistry,
@@ -235,7 +246,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             )
         ) {
             QueryBuilder query = AbstractQueryBuilder.parseInnerQueryBuilder(parser);
-            if (query == null || parser.nextToken() != null) {
+            if (query == null || (rejectTrailingInput && parser.nextToken() != null)) {
                 throw new IllegalArgumentException("DLS must contain exactly one query DSL object");
             }
             return query;

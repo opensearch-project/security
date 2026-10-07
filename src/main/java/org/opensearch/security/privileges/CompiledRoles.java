@@ -232,6 +232,7 @@ public class CompiledRoles {
                 NamedXContentRegistry xContentRegistry
             ) {
                 try {
+                    // An absent or empty DLS string explicitly means no document restriction.
                     if (rawIndex.getDls() != null && !rawIndex.getDls().isEmpty()) {
                         return DocumentPrivileges.DlsQuery.create(rawIndex.getDls(), xContentRegistry);
                     } else {

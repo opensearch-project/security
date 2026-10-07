@@ -22,7 +22,13 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.data.TestIndex;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
+import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
+import static org.opensearch.test.framework.matcher.RestMatchers.isInternalServerError;
+import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -47,11 +53,18 @@ public class DlsRoleValidationIntTests {
     private static final TestSecurityConfig.User STORED_INVALID_USER = new TestSecurityConfig.User("stored_invalid_user").roles(
         new TestSecurityConfig.Role("stored_invalid").indexPermissions("read").dls("{").on("dls-probe")
     );
+    private static final TestSecurityConfig.User STORED_TRAILING_TEXT_USER = new TestSecurityConfig.User("stored_trailing_text").roles(
+        new TestSecurityConfig.Role("stored_trailing_text").indexPermissions("read").dls(VALID_DLS + " trailing").on("dls-probe")
+    );
+    private static final TestSecurityConfig.User STORED_TRAILING_QUERY_USER = new TestSecurityConfig.User("stored_trailing_query").roles(
+        new TestSecurityConfig.Role("stored_trailing_query").indexPermissions("read").dls(VALID_DLS + " {\"match_all\":{}}").on("dls-probe")
+    );
+
     @ClassRule
     public static final ClusterConfig.ClusterInstances CLUSTERS = new ClusterConfig.ClusterInstances(
         () -> new LocalCluster.Builder().singleNode()
             .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(USER, STORED_INVALID_USER)
+            .users(USER, STORED_INVALID_USER, STORED_TRAILING_TEXT_USER, STORED_TRAILING_QUERY_USER)
             .indices(TestIndex.name("dls-probe").documentCount(2).seed(1).build())
     );
 
@@ -84,9 +97,9 @@ public class DlsRoleValidationIntTests {
         try (TestRestClient admin = cluster.getAdminCertRestClient()) {
             for (String clause : INVALID_DLS) {
                 var response = admin.putJson(PATH, role(clause));
-                assertEquals(response.getBody(), 400, response.getStatusCode());
+                assertThat(response, isBadRequest());
                 assertTrue(response.getBody().contains("index_permissions[0].dls"));
-                assertEquals(404, admin.get(PATH).getStatusCode());
+                assertThat(admin.get(PATH), isNotFound());
             }
         }
     }
@@ -98,15 +111,15 @@ public class DlsRoleValidationIntTests {
                 {"index_permissions":[{"index_patterns":["dls-probe"],"dls":"{"term"": {",
                 "allowed_actions":["read"]}]}
                 """);
-            assertEquals(response.getBody(), 400, response.getStatusCode());
-            assertEquals(404, admin.get(PATH).getStatusCode());
+            assertThat(response, isBadRequest());
+            assertThat(admin.get(PATH), isNotFound());
         }
     }
 
     @Test
     public void invalidMultiRolePatchDoesNotSaveOtherChanges() throws Exception {
         try (TestRestClient admin = cluster.getAdminCertRestClient()) {
-            assertEquals(201, admin.putJson(PATH, role(VALID_DLS)).getStatusCode());
+            assertThat(admin.putJson(PATH, role(VALID_DLS)), isCreated());
             try {
                 String patch = DefaultObjectMapper.objectMapper()
                     .writeValueAsString(
@@ -123,8 +136,8 @@ public class DlsRoleValidationIntTests {
                         )
                     );
                 var response = admin.patch("_plugins/_security/api/roles", patch);
-                assertEquals(response.getBody(), 400, response.getStatusCode());
-                assertEquals(404, admin.get("_plugins/_security/api/roles/other_dls_probe").getStatusCode());
+                assertThat(response, isBadRequest());
+                assertThat(admin.get("_plugins/_security/api/roles/other_dls_probe"), isNotFound());
                 assertRestricted(admin);
             } finally {
                 admin.delete(PATH);
@@ -136,10 +149,10 @@ public class DlsRoleValidationIntTests {
     @Test
     public void invalidUpdatePreservesExistingRestriction() throws Exception {
         try (TestRestClient admin = cluster.getAdminCertRestClient()) {
-            assertEquals(201, admin.putJson(PATH, role(VALID_DLS)).getStatusCode());
+            assertThat(admin.putJson(PATH, role(VALID_DLS)), isCreated());
             try {
                 for (String clause : INVALID_DLS) {
-                    assertEquals(400, admin.putJson(PATH, role(clause)).getStatusCode());
+                    assertThat(admin.putJson(PATH, role(clause)), isBadRequest());
                     assertRestricted(admin);
                 }
             } finally {
@@ -151,7 +164,7 @@ public class DlsRoleValidationIntTests {
     @Test
     public void invalidPatchPreservesExistingRestriction() throws Exception {
         try (TestRestClient admin = cluster.getAdminCertRestClient()) {
-            assertEquals(201, admin.putJson(PATH, role(VALID_DLS)).getStatusCode());
+            assertThat(admin.putJson(PATH, role(VALID_DLS)), isCreated());
             try {
                 for (String endpoint : List.of(PATH, "_plugins/_security/api/roles")) {
                     String path = endpoint.equals(PATH) ? "/index_permissions/0/dls" : "/" + ROLE + "/index_permissions/0/dls";
@@ -159,7 +172,7 @@ public class DlsRoleValidationIntTests {
                         String patch = DefaultObjectMapper.objectMapper()
                             .writeValueAsString(List.of(Map.of("op", "replace", "path", path, "value", clause)));
                         var response = admin.patch(endpoint, patch);
-                        assertEquals(response.getBody(), 400, response.getStatusCode());
+                        assertThat(response, isBadRequest());
                         assertRestricted(admin);
                     }
                 }
@@ -169,11 +182,43 @@ public class DlsRoleValidationIntTests {
         }
     }
 
+    @Test
+    public void trailingWhitespaceIsAcceptedOnPutAndPatch() throws Exception {
+        String dls = VALID_DLS + " \n\t";
+        try (TestRestClient admin = cluster.getAdminCertRestClient(); TestRestClient user = cluster.getRestClient(USER)) {
+            try {
+                assertThat(admin.putJson(PATH, role(dls)), isCreated());
+                for (String endpoint : List.of(PATH, "_plugins/_security/api/roles")) {
+                    String path = endpoint.equals(PATH) ? "/index_permissions/0/dls" : "/" + ROLE + "/index_permissions/0/dls";
+                    String patch = DefaultObjectMapper.objectMapper()
+                        .writeValueAsString(List.of(Map.of("op", "replace", "path", path, "value", dls)));
+                    assertThat(admin.patch(endpoint, patch), isOk());
+                    var response = user.get("dls-probe/_search");
+                    assertThat(response, isOk());
+                    assertEquals(0, response.getIntFromJsonBody("/hits/total/value"));
+                }
+            } finally {
+                admin.delete(PATH);
+            }
+        }
+    }
+
+    @Test
+    public void storedDlsWithTrailingInputStillRestrictsAccess() {
+        for (var account : List.of(STORED_TRAILING_TEXT_USER, STORED_TRAILING_QUERY_USER)) {
+            try (TestRestClient user = cluster.getRestClient(account)) {
+                var response = user.get("dls-probe/_search");
+                assertThat(response, isOk());
+                assertEquals(0, response.getIntFromJsonBody("/hits/total/value"));
+            }
+        }
+    }
+
     private void assertRestricted(TestRestClient admin) {
         assertEquals(VALID_DLS, admin.get(PATH).getTextFromJsonBody("/" + ROLE + "/index_permissions/0/dls"));
         try (TestRestClient user = cluster.getRestClient(USER)) {
             var response = user.get("dls-probe/_search");
-            assertEquals(response.getBody(), 200, response.getStatusCode());
+            assertThat(response, isOk());
             assertEquals(0, response.getIntFromJsonBody("/hits/total/value"));
         }
     }
@@ -182,8 +227,8 @@ public class DlsRoleValidationIntTests {
     public void nonStringDlsIsRejected() throws Exception {
         try (TestRestClient admin = cluster.getAdminCertRestClient()) {
             for (Object value : List.of(Map.of("match_none", Map.of()), List.of(), 42, true)) {
-                assertEquals(400, admin.putJson(PATH, role(value)).getStatusCode());
-                assertEquals(404, admin.get(PATH).getStatusCode());
+                assertThat(admin.putJson(PATH, role(value)), isBadRequest());
+                assertThat(admin.get(PATH), isNotFound());
             }
         }
     }
@@ -192,7 +237,7 @@ public class DlsRoleValidationIntTests {
     public void invalidStoredDlsFailsClosed() {
         try (TestRestClient user = cluster.getRestClient(STORED_INVALID_USER)) {
             var response = user.get("dls-probe/_search");
-            assertEquals(response.getBody(), 500, response.getStatusCode());
+            assertThat(response, isInternalServerError());
             assertEquals("security_exception", response.getTextFromJsonBody("/error/type"));
         }
     }
@@ -205,17 +250,17 @@ public class DlsRoleValidationIntTests {
                 "{\"terms\":{\"attr_keyword\":[${user.roles}]}}"
             )) {
                 try {
-                    assertEquals(201, admin.putJson(PATH, role(template)).getStatusCode());
+                    assertThat(admin.putJson(PATH, role(template)), isCreated());
                     var response = user.get("dls-probe/_search");
-                    assertEquals(response.getBody(), 200, response.getStatusCode());
+                    assertThat(response, isOk());
                     assertEquals(0, response.getIntFromJsonBody("/hits/total/value"));
                 } finally {
                     admin.delete(PATH);
                 }
             }
             try {
-                assertEquals(201, admin.putJson(PATH, role("{\"term\":{\"attr_keyword\":\"${user.name}\"}")).getStatusCode());
-                assertEquals(500, user.get("dls-probe/_search").getStatusCode());
+                assertThat(admin.putJson(PATH, role("{\"term\":{\"attr_keyword\":\"${user.name}\"}")), isCreated());
+                assertThat(user.get("dls-probe/_search"), isInternalServerError());
             } finally {
                 admin.delete(PATH);
             }
@@ -226,10 +271,10 @@ public class DlsRoleValidationIntTests {
     public void emptyStringStillExplicitlyRemovesDls() throws Exception {
         try (TestRestClient admin = cluster.getAdminCertRestClient(); TestRestClient user = cluster.getRestClient(USER)) {
             try {
-                assertEquals(201, admin.putJson(PATH, role(VALID_DLS)).getStatusCode());
-                assertEquals(200, admin.putJson(PATH, role("")).getStatusCode());
+                assertThat(admin.putJson(PATH, role(VALID_DLS)), isCreated());
+                assertThat(admin.putJson(PATH, role("")), isOk());
                 var response = user.get("dls-probe/_search");
-                assertEquals(response.getBody(), 200, response.getStatusCode());
+                assertThat(response, isOk());
                 assertEquals(2, response.getIntFromJsonBody("/hits/total/value"));
             } finally {
                 admin.delete(PATH);
