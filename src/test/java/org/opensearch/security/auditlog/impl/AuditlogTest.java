@@ -11,6 +11,10 @@
 
 package org.opensearch.security.auditlog.impl;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +25,7 @@ import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.helper.RetrySink;
@@ -222,6 +227,57 @@ public class AuditlogTest {
         // FAILED_LOGIN suppressed on transport (in split transport), but NOT on REST
         Assert.assertFalse(al.checkTransportFilter(AuditCategory.FAILED_LOGIN, "action", "user", mock(TransportRequest.class)));
         Assert.assertTrue(al.checkRestFilter(AuditCategory.FAILED_LOGIN, "user", mock(SecurityRequestChannel.class)));
+    }
+
+    @Test
+    public void testUnifiedDisabledCategoriesApplyToEverySavedCategory() throws IOException {
+        final Settings settings = Settings.builder().put("plugins.security.audit.type", TestAuditlogImpl.class.getName()).build();
+        try (
+            AuditLogImpl al = (AuditLogImpl) AuditTestUtils.createAuditLog(
+                settings,
+                null,
+                null,
+                AbstractSecurityUnitTest.MOCK_POOL,
+                null,
+                cs
+            )
+        ) {
+            for (AuditCategory category : AuditCategory.values()) {
+                al.getFilter().setDisabledCategories(List.of(category.name()));
+                // This sink stores synchronously, so zero messages is a deterministic assertion.
+                TestAuditlogImpl.doThenWaitForMessages(() -> al.save(new AuditMessage(category, cs, null, null)), 0);
+                al.getFilter().setDisabledCategories(List.of());
+                var message = TestAuditlogImpl.doThenWaitForMessage(() -> al.save(new AuditMessage(category, cs, null, null)));
+                assertThat(message.getCategory(), is(category));
+            }
+        }
+    }
+
+    @Test
+    public void testUnifiedDisabledCategoriesSuppressComplianceAndTokenEvents() throws IOException {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "documents,*")
+            .build();
+        try (AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs)) {
+            Runnable emitEvents = () -> {
+                al.logDocumentRead("documents", "1", new ShardId("documents", "uuid", 0), Map.of("field", "value"));
+                al.logApiTokenCreated("token", "user");
+                al.logApiTokenRevoked("token", "user");
+            };
+            for (boolean disabled : List.of(false, true, false)) {
+                al.getFilter().setDisabledCategories(disabled ? List.of("COMPLIANCE_DOC_READ", "API_TOKEN_WRITE") : List.of());
+                var messages = TestAuditlogImpl.doThenWaitForMessages(emitEvents, disabled ? 0 : 3);
+                assertThat(
+                    messages.stream().map(AuditMessage::getCategory).toList(),
+                    is(
+                        disabled
+                            ? List.of()
+                            : List.of(AuditCategory.COMPLIANCE_DOC_READ, AuditCategory.API_TOKEN_WRITE, AuditCategory.API_TOKEN_WRITE)
+                    )
+                );
+            }
+        }
     }
 
     @Test

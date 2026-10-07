@@ -136,6 +136,11 @@ public class AuditLogImpl extends AbstractAuditLog {
     @Override
     protected void save(final AuditMessage msg) {
         if (enabled) {
+            // Apply unified exclusions to every event, including compliance and direct API-token events.
+            final AuditConfig.Filter filter = getFilter();
+            if (filter != null && filter.getDisabledCategories().contains(msg.getCategory())) {
+                return;
+            }
             // Try transient first (coordinating node, already sanitized by SecurityRestFilter),
             // fall back to X-Request-Id header (propagated by core to remote nodes — needs sanitization)
             String requestId = getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID);

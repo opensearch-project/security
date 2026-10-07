@@ -730,7 +730,7 @@ public class AuditConfig {
         }
 
         /**
-         * Unified disabled categories for both REST and Transport API auditing
+         * Disabled categories for all audit events, including compliance and API-token events.
          * @return set of categories
          */
         public Set<AuditCategory> getDisabledCategories() {

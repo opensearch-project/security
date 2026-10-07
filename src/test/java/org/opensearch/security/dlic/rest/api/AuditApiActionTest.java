@@ -124,77 +124,31 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testInvalidDisabledCategories() throws Exception {
+    public void testDisabledCategories() throws Exception {
         setupWithRestRoles(null);
         rh.sendAdminCertificate = true;
 
-        // test bad request for REST disabled categories
-        AuditConfig auditConfig = new AuditConfig(
-            true,
-            AuditConfig.Filter.from(ImmutableMap.of("disabled_rest_categories", ImmutableList.of("INDEX_EVENT", "COMPLIANCE_DOC_READ"))),
-            ComplianceConfig.DEFAULT
-        );
-        ObjectNode json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
-        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
-        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+        for (String field : List.of("disabled_categories", "disabled_rest_categories", "disabled_transport_categories")) {
+            String valid = "{\"audit\":{\"" + field + "\":[\"FAILED_LOGIN\",\"API_TOKEN_WRITE\",\"COMPLIANCE_DOC_READ\"]}}";
+            RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, valid);
+            assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
 
-        // test success for REST disabled categories
-        auditConfig = new AuditConfig(
-            true,
-            AuditConfig.Filter.from(
-                ImmutableMap.of(
-                    "disabled_rest_categories",
-                    ImmutableList.of(
-                        "BAD_HEADERS",
-                        "SSL_EXCEPTION",
-                        "AUTHENTICATED",
-                        "FAILED_LOGIN",
-                        "GRANTED_PRIVILEGES",
-                        "MISSING_PRIVILEGES"
-                    )
-                )
-            ),
-            ComplianceConfig.DEFAULT
-        );
-        json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
-        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+            String invalid = "{\"audit\":{\"" + field + "\":[\"UNKNOWN_CATEGORY\"]}}";
+            response = rh.executePutRequest(CONFIG_ENDPOINT, invalid);
+            assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
-        // test bad request for transport disabled categories
-        auditConfig = new AuditConfig(
-            true,
-            AuditConfig.Filter.from(
-                ImmutableMap.of("disabled_transport_categories", ImmutableList.of("COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE"))
-            ),
-            ComplianceConfig.DEFAULT
-        );
-        json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
-        assertThat(response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+            response = rh.executePatchRequest(
+                ENDPOINT,
+                "[{\"op\":\"replace\",\"path\":\"/config/audit/" + field + "\",\"value\":[\"UNKNOWN_CATEGORY\"]}]"
+            );
+            assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
 
-        // test success for transport disabled categories
-        auditConfig = new AuditConfig(
-            true,
-            AuditConfig.Filter.from(
-                ImmutableMap.of(
-                    "disabled_transport_categories",
-                    ImmutableList.of(
-                        "BAD_HEADERS",
-                        "SSL_EXCEPTION",
-                        "AUTHENTICATED",
-                        "FAILED_LOGIN",
-                        "GRANTED_PRIVILEGES",
-                        "MISSING_PRIVILEGES",
-                        "INDEX_EVENT",
-                        "OPENDISTRO_SECURITY_INDEX_ATTEMPT"
-                    )
-                )
-            ),
-            ComplianceConfig.DEFAULT
-        );
-        json = DefaultObjectMapper.objectMapper().valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
-        assertThat(response.getStatusCode(), is(HttpStatus.SC_OK));
+            response = rh.executePatchRequest(
+                ENDPOINT,
+                "[{\"op\":\"replace\",\"path\":\"/config/audit/" + field + "\",\"value\":[\"TRANSPORT_AUDIT\",\"REQUEST_AUDIT\"]}]"
+            );
+            assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
+        }
     }
 
     @Test

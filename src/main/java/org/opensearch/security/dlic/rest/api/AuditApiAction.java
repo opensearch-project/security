@@ -14,12 +14,10 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -27,7 +25,6 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
@@ -142,37 +139,6 @@ public class AuditApiAction extends AbstractApiAction {
     private final List<String> readonlyFields;
 
     public static class AuditRequestContentValidator extends RequestContentValidator {
-        public static final Set<AuditCategory> DISABLED_REST_CATEGORIES = Set.of(
-            AuditCategory.BAD_HEADERS,
-            AuditCategory.SSL_EXCEPTION,
-            AuditCategory.AUTHENTICATED,
-            AuditCategory.FAILED_LOGIN,
-            AuditCategory.GRANTED_PRIVILEGES,
-            AuditCategory.MISSING_PRIVILEGES,
-            AuditCategory.RESOURCE_ACCESS_GRANTED,
-            AuditCategory.RESOURCE_ACCESS_DENIED,
-            AuditCategory.RESOURCE_SHARING_CHANGED
-        );
-
-        public static final Set<AuditCategory> DISABLED_TRANSPORT_CATEGORIES = Set.of(
-            AuditCategory.BAD_HEADERS,
-            AuditCategory.SSL_EXCEPTION,
-            AuditCategory.AUTHENTICATED,
-            AuditCategory.FAILED_LOGIN,
-            AuditCategory.GRANTED_PRIVILEGES,
-            AuditCategory.MISSING_PRIVILEGES,
-            AuditCategory.INDEX_EVENT,
-            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT,
-            AuditCategory.CLUSTER_SETTINGS_CHANGED,
-            AuditCategory.INDEX_SETTINGS_CHANGED,
-            AuditCategory.RESOURCE_ACCESS_GRANTED,
-            AuditCategory.RESOURCE_ACCESS_DENIED,
-            AuditCategory.RESOURCE_SHARING_CHANGED
-        );
-
-        public static final Set<AuditCategory> DISABLED_CATEGORIES = Sets.union(DISABLED_REST_CATEGORIES, DISABLED_TRANSPORT_CATEGORIES)
-            .immutableCopy();
-
         protected AuditRequestContentValidator(ValidationContext validationContext) {
             super(validationContext);
         }
@@ -189,18 +155,8 @@ public class AuditApiAction extends AbstractApiAction {
 
         private ValidationResult<JsonNode> validateAuditPayload(final JsonNode jsonContent) {
             try {
-                // try parsing to target type
-                final AuditConfig auditConfig = DefaultObjectMapper.readTree(jsonContent, AuditConfig.class);
-                final AuditConfig.Filter filter = auditConfig.getFilter();
-                if (!DISABLED_REST_CATEGORIES.containsAll(filter.getDisabledRestCategories())) {
-                    throw new IllegalArgumentException("Invalid REST categories passed in the request");
-                }
-                if (!DISABLED_TRANSPORT_CATEGORIES.containsAll(filter.getDisabledTransportCategories())) {
-                    throw new IllegalArgumentException("Invalid transport categories passed in the request");
-                }
-                if (!DISABLED_CATEGORIES.containsAll(filter.getDisabledCategories())) {
-                    throw new IllegalArgumentException("Invalid categories passed in the request");
-                }
+                // AuditConfig parses category names against AuditCategory, rejecting unknown values.
+                DefaultObjectMapper.readTree(jsonContent, AuditConfig.class);
                 return ValidationResult.success(jsonContent);
             } catch (final Exception e) {
                 // this.content is not valid json
