@@ -2469,9 +2469,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                                                                                                                                     // here
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.DISABLE_ENVVAR_REPLACEMENT_SETTING);
 
             settings.add(
                 Setting.simpleString(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, Property.NodeScope, Property.Filtered)
