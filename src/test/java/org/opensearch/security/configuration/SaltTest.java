@@ -12,7 +12,15 @@
 package org.opensearch.security.configuration;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
+import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,9 +31,11 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.configuration.Salt.SALT_SIZE;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
 
 public class SaltTest extends LuceneTestCase {
 
@@ -40,6 +50,36 @@ public class SaltTest extends LuceneTestCase {
         // assert
         assertThat(salt.getSalt16().length, is(SALT_SIZE));
         assertArrayEquals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
+    }
+
+    @Test
+    public void testSaltFromDoesNotLogDefaultSaltWarning() {
+        final List<String> warnings = captureWarnLogs(() -> {
+            Salt.from(Settings.EMPTY);
+            Salt.from(Settings.EMPTY);
+            Salt.from(Settings.EMPTY);
+        });
+
+        assertThat(warnings, empty());
+    }
+
+    @Test
+    public void testWarnIfDefaultComplianceSaltLogsOnce() {
+        final List<String> warnings = captureWarnLogs(() -> Salt.warnIfDefaultComplianceSalt(Settings.EMPTY));
+
+        assertThat(warnings.size(), is(1));
+        assertTrue(warnings.get(0).contains("Default compliance salt is in use"));
+        assertTrue(warnings.get(0).contains(ConfigConstants.SECURITY_COMPLIANCE_SALT));
+        assertTrue(warnings.get(0).contains(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES));
+    }
+
+    @Test
+    public void testWarnIfDefaultComplianceSaltSkipsCustomSalt() {
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_COMPLIANCE_SALT, "abcdefghijklmnop").build();
+
+        final List<String> warnings = captureWarnLogs(() -> Salt.warnIfDefaultComplianceSalt(settings));
+
+        assertThat(warnings, empty());
     }
 
     @Test
@@ -122,5 +162,41 @@ public class SaltTest extends LuceneTestCase {
     public void testSaltThrowsNoExceptionWhenCorrectBytesArrayProvided() {
         // act
         new Salt(new byte[] { 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1 });
+    }
+
+    private static List<String> captureWarnLogs(Runnable action) {
+        final Logger logger = (Logger) LogManager.getLogger(Salt.class);
+        final var appender = new AbstractAppender(
+            "SaltWarningCapture",
+            null,
+            PatternLayout.createDefaultLayout(),
+            false,
+            Property.EMPTY_ARRAY
+        ) {
+            private final java.util.List<LogEvent> events = new java.util.ArrayList<>();
+
+            @Override
+            public void append(LogEvent event) {
+                events.add(event.toImmutable());
+            }
+
+            java.util.List<LogEvent> getEvents() {
+                return events;
+            }
+        };
+        appender.start();
+        logger.addAppender(appender);
+        logger.setLevel(Level.WARN);
+        try {
+            action.run();
+            return appender.getEvents()
+                .stream()
+                .filter(e -> e.getLevel() == Level.WARN)
+                .map(e -> e.getMessage().getFormattedMessage())
+                .toList();
+        } finally {
+            logger.removeAppender(appender);
+            appender.stop();
+        }
     }
 }
