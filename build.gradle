@@ -161,13 +161,13 @@ loggerUsageCheck {
     // Resolve dependency-defined Throwable subtypes when checking trailing exception arguments.
     classpath += sourceSets.main.runtimeClasspath + sourceSets.test.runtimeClasspath
 }
+filepermissions.enabled = true
 
 // The following check that have never be enabled in security
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
 forbiddenApisMain.enabled = false
 forbiddenApisTest.enabled = false
-filepermissions.enabled = false
 forbiddenPatterns.enabled = false
 testingConventions.enabled = false
 jarHell.enabled = true

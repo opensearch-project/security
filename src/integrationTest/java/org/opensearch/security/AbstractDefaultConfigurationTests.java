@@ -81,7 +81,7 @@ public abstract class AbstractDefaultConfigurationTests {
                   {
                     "op": "replace",
                     "path": "/cluster_permissions",
-                    "value": ["a", "b", "c"]
+                    "value": ["cluster:monitor/health", "cluster:monitor/state", "indices:data/read/search"]
                   },
                   {
                     "op": "add",
