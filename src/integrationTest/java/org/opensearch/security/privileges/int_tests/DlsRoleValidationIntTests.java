@@ -204,12 +204,12 @@ public class DlsRoleValidationIntTests {
     }
 
     @Test
-    public void storedDlsWithTrailingInputStillRestrictsAccess() {
+    public void storedDlsWithTrailingInputFailsClosed() {
         for (var account : List.of(STORED_TRAILING_TEXT_USER, STORED_TRAILING_QUERY_USER)) {
             try (TestRestClient user = cluster.getRestClient(account)) {
                 var response = user.get("dls-probe/_search");
-                assertThat(response, isOk());
-                assertEquals(0, response.getIntFromJsonBody("/hits/total/value"));
+                assertThat(response, isInternalServerError());
+                assertEquals("security_exception", response.getTextFromJsonBody("/error/type"));
             }
         }
     }
