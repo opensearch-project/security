@@ -36,12 +36,15 @@ import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.sample.client.PluginClientAccessor;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceAction;
 import org.opensearch.sample.resource.actions.rest.create.CreateResourceRestAction;
 import org.opensearch.sample.resource.actions.rest.create.UpdateResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceAction;
 import org.opensearch.sample.resource.actions.rest.delete.DeleteResourceRestAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceAction;
+import org.opensearch.sample.resource.actions.rest.get.GetResourceByNameAction;
+import org.opensearch.sample.resource.actions.rest.get.GetResourceByNameRestAction;
 import org.opensearch.sample.resource.actions.rest.get.GetResourceRestAction;
 import org.opensearch.sample.resource.actions.rest.get.MultiGetResourceAction;
 import org.opensearch.sample.resource.actions.rest.get.MultiGetResourceRestAction;
@@ -49,6 +52,7 @@ import org.opensearch.sample.resource.actions.rest.search.SearchResourceAction;
 import org.opensearch.sample.resource.actions.rest.search.SearchResourceRestAction;
 import org.opensearch.sample.resource.actions.transport.CreateResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.DeleteResourceTransportAction;
+import org.opensearch.sample.resource.actions.transport.GetResourceByNameTransportAction;
 import org.opensearch.sample.resource.actions.transport.GetResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.MultiGetResourceTransportAction;
 import org.opensearch.sample.resource.actions.transport.SearchResourceTransportAction;
@@ -103,6 +107,8 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.pluginClient = new PluginClient(client);
+        // The gating resource resolver is loaded by the SPI, so it reaches the plugin client through the accessor.
+        PluginClientAccessor.setPluginClient(this.pluginClient);
 
         return List.of(pluginClient);
     }
@@ -120,6 +126,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         List<RestHandler> handlers = new ArrayList<>();
         handlers.add(new CreateResourceRestAction());
         handlers.add(new GetResourceRestAction());
+        handlers.add(new GetResourceByNameRestAction());
         handlers.add(new MultiGetResourceRestAction());
         handlers.add(new DeleteResourceRestAction());
         handlers.add(new SearchResourceRestAction());
@@ -137,6 +144,7 @@ public class SampleResourcePlugin extends Plugin implements ActionPlugin, System
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>();
         actions.add(new ActionHandler<>(CreateResourceAction.INSTANCE, CreateResourceTransportAction.class));
         actions.add(new ActionHandler<>(GetResourceAction.INSTANCE, GetResourceTransportAction.class));
+        actions.add(new ActionHandler<>(GetResourceByNameAction.INSTANCE, GetResourceByNameTransportAction.class));
         actions.add(new ActionHandler<>(MultiGetResourceAction.INSTANCE, MultiGetResourceTransportAction.class));
         actions.add(new ActionHandler<>(UpdateResourceAction.INSTANCE, UpdateResourceTransportAction.class));
         actions.add(new ActionHandler<>(DeleteResourceAction.INSTANCE, DeleteResourceTransportAction.class));

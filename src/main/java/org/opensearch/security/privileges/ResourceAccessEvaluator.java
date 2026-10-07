@@ -25,6 +25,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.GatingResourceResolver;
 import org.opensearch.security.spi.resources.MultiResourceRequest;
 
 /**
@@ -73,25 +74,112 @@ public class ResourceAccessEvaluator {
      *
      * A request that carries several ids ({@link MultiResourceRequest}) is allowed only if the user holds the action on
      * every one of them.
+     * <p>
+     * When the plugin has registered a {@link GatingResourceResolver} for the request's type, access is evaluated against
+     * the resources that resolver names rather than the ones the request names, and again every one of them must grant the
+     * action.
      *
      * @param request                         the index, type and ids the request names, from {@link #resourceRequest}
      * @param action                          the action being requested to be performed on the resource
      * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
      */
-    public void evaluateAsync(
-        final ResourceRequest request,
-        final String action,
-        final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
-    ) {
+    public void evaluateAsync(final ResourceRequest request, final String action, final ActionListener<Evaluation> pResponseListener) {
         log.debug("Evaluating resource access");
 
-        resourceAccessHandler.hasPermission(request.ids(), request.type(), action, ActionListener.wrap(hasAccess -> {
-            if (hasAccess) {
-                pResponseListener.onResponse(PrivilegesEvaluatorResponse.ok());
-            } else {
-                pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action));
+        final GatingResourceResolver gatingResolver = resourcePluginInfo.gatingResolver(request.type());
+        if (gatingResolver != null) {
+            resolveThenCheck(request, action, gatingResolver, pResponseListener);
+            return;
+        }
+
+        checkPermission(request.ids(), request.type(), request.index(), action, pResponseListener);
+    }
+
+    /**
+     * Authorizes a request against the resources that govern it rather than the ones it names, by asking the plugin's
+     * resolver for them first. Every resolved id must grant the action, and a resolution that yields nothing, or that
+     * fails, denies the request.
+     * <p>
+     * What the resolver names is also what the audit trail records, since those are the resources whose sharing records
+     * decided the request. When nothing resolves there are none, so the request's own reference is recorded instead and the
+     * denial still leaves a trail.
+     *
+     * @param request           the request being authorized
+     * @param action            the action being requested
+     * @param gatingResolver    the resolver claiming this request type
+     * @param pResponseListener notified with the evaluation result
+     */
+    private void resolveThenCheck(
+        final ResourceRequest request,
+        final String action,
+        final GatingResourceResolver gatingResolver,
+        final ActionListener<Evaluation> pResponseListener
+    ) {
+        gatingResolver.resolveGatingResourceIds(request.request(), ActionListener.wrap(gatingResourceIds -> {
+            final List<String> ids = gatingResourceIds == null
+                ? List.of()
+                : gatingResourceIds.stream().filter(id -> !Strings.isNullOrEmpty(id)).distinct().toList();
+            if (ids.isEmpty()) {
+                log.debug(
+                    "No gating resource of type {} resolved for request of type {}; action {} is not allowed",
+                    gatingResolver.gatingResourceType(),
+                    request.type(),
+                    action
+                );
+                pResponseListener.onResponse(deniedForRequestItself(request, action));
+                return;
             }
-        }, e -> { pResponseListener.onResponse(PrivilegesEvaluatorResponse.insufficient(action)); }));
+            final String gatingType = gatingResolver.gatingResourceType();
+            checkPermission(ids, gatingType, resourcePluginInfo.indexByType(gatingType), action, pResponseListener);
+        }, e -> {
+            log.debug("Failed to resolve the gating resource for request of type {}: {}", request.type(), e.getMessage());
+            pResponseListener.onResponse(deniedForRequestItself(request, action));
+        }));
+    }
+
+    private static Evaluation deniedForRequestItself(final ResourceRequest request, final String action) {
+        return new Evaluation(
+            PrivilegesEvaluatorResponse.insufficient(action),
+            new AuthorizedResource(request.type(), request.ids(), request.index())
+        );
+    }
+
+    private void checkPermission(
+        final List<String> resourceIds,
+        final String resourceType,
+        final String resourceIndex,
+        final String action,
+        final ActionListener<Evaluation> pResponseListener
+    ) {
+        final AuthorizedResource resource = new AuthorizedResource(resourceType, resourceIds, resourceIndex);
+        resourceAccessHandler.hasPermission(resourceIds, resourceType, action, ActionListener.wrap(hasAccess -> {
+            if (hasAccess) {
+                pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.ok(), resource));
+            } else {
+                pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.insufficient(action), resource));
+            }
+        }, e -> pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.insufficient(action), resource))));
+    }
+
+    /**
+     * The outcome of an evaluation together with the resources it was decided on, which are not always the ones the request
+     * names: a gated request is decided on the resources its resolver named. The caller audits those rather than guessing
+     * from the request, which for a create names none at all.
+     *
+     * @param response the evaluation outcome
+     * @param resource the resources whose sharing records decided it
+     */
+    public record Evaluation(PrivilegesEvaluatorResponse response, AuthorizedResource resource) {
+    }
+
+    /**
+     * Resources as the audit trail refers to them: one type and index, and the ids decided on.
+     *
+     * @param type  the shareable resource type
+     * @param ids   the resource ids, empty when a request names none and nothing was resolved for it
+     * @param index the index holding the resources
+     */
+    public record AuthorizedResource(String type, List<String> ids, String index) {
     }
 
     /**
@@ -137,6 +225,15 @@ public class ResourceAccessEvaluator {
         final ResourceRequest resourceRequest = resourceRequest(request);
         if (resourceRequest == null) return null;
 
+        // A request whose access is governed by another resource is evaluated while that resource's type is protected, and
+        // the resolver decides from there. This is checked before the ids below because such a request need not name a
+        // resource of its own: a create has nothing to name yet. Its own index is not a resource index either, so neither
+        // check that follows applies to it.
+        final GatingResourceResolver gatingResolver = resourcePluginInfo.gatingResolver(resourceRequest.type());
+        if (gatingResolver != null) {
+            return protectedTypes.contains(gatingResolver.gatingResourceType()) ? resourceRequest : null;
+        }
+
         if (resourceRequest.ids().isEmpty()) {
             log.debug("Request carries no resource id, request is of type {}", request.getClass().getName());
             return null;
@@ -156,11 +253,13 @@ public class ResourceAccessEvaluator {
      * {@link DocRequest}, which names one id, or {@link MultiResourceRequest}, which names several. Everything past this
      * point treats the two the same way, so neither interface has to pretend to be the other.
      *
-     * @param index the index holding the resources
-     * @param type  the shareable resource type of every id
-     * @param ids   the ids the request names, each authorized in its own right
+     * @param request the originating request, handed to a {@link GatingResourceResolver} so it can read whichever field
+     *                links to the resource that governs it; a gated request may name no resource of its own
+     * @param index   the index holding the resources
+     * @param type    the shareable resource type of every id
+     * @param ids     the ids the request names, each authorized in its own right
      */
-    public record ResourceRequest(String index, String type, List<String> ids) {
+    public record ResourceRequest(ActionRequest request, String index, String type, List<String> ids) {
     }
 
     /**
@@ -176,6 +275,7 @@ public class ResourceAccessEvaluator {
         if (request instanceof MultiResourceRequest multiResourceRequest) {
             Collection<String> ids = multiResourceRequest.ids();
             return new ResourceRequest(
+                request,
                 multiResourceRequest.index(),
                 multiResourceRequest.type(),
                 ids == null ? List.of() : ids.stream().filter(id -> !Strings.isNullOrEmpty(id)).distinct().toList()
@@ -183,7 +283,7 @@ public class ResourceAccessEvaluator {
         }
         if (request instanceof DocRequest docRequest) {
             List<String> ids = Strings.isNullOrEmpty(docRequest.id()) ? List.of() : List.of(docRequest.id());
-            return new ResourceRequest(docRequest.index(), docRequest.type(), ids);
+            return new ResourceRequest(request, docRequest.index(), docRequest.type(), ids);
         }
         return null;
     }

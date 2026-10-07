@@ -91,6 +91,7 @@ public final class TestUtils {
     public static final String SAMPLE_RESOURCE_CREATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/create";
     public static final String SAMPLE_RESOURCE_GET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get";
     public static final String SAMPLE_RESOURCE_MGET_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/mget";
+    public static final String SAMPLE_RESOURCE_GET_BY_NAME_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/get_by_name";
     public static final String SAMPLE_RESOURCE_UPDATE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/update";
     public static final String SAMPLE_RESOURCE_DELETE_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/delete";
     public static final String SAMPLE_RESOURCE_SEARCH_ENDPOINT = SAMPLE_RESOURCE_PLUGIN_PREFIX + "/search";
@@ -396,6 +397,16 @@ public final class TestUtils {
             }
         }
 
+        // Creates a sample resource under a given name, so it can be addressed by name rather than by id
+        public String createNamedSampleResourceAs(TestSecurityConfig.User user, String name, Header... headers) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                String sample = "{\"name\":\"" + name + "\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
+                TestRestClient.HttpResponse resp = client.putJson(SAMPLE_RESOURCE_CREATE_ENDPOINT, sample, headers);
+                resp.assertStatusCode(HttpStatus.SC_OK);
+                return resp.getTextFromJsonBody("/message").split(":")[1].trim();
+            }
+        }
+
         public String createSampleResourceWithGroupAs(TestSecurityConfig.User user, String groupId, Header... headers) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 String sample = "{\"group_id\":\"" + groupId + "\", \"name\":\"sample\",\"resource_type\":\"" + RESOURCE_TYPE + "\"}";
@@ -444,6 +455,16 @@ public final class TestUtils {
         public TestRestClient.HttpResponse multiGetResources(List<String> resourceIds, TestSecurityConfig.User user) {
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_MGET_ENDPOINT + "/" + String.join(",", resourceIds));
+            }
+        }
+
+        /**
+         * Requests a resource by name. The request carries no resource id, so the plugin's gating resource resolver names
+         * the resource that governs it and the security plugin authorizes that resource.
+         */
+        public TestRestClient.HttpResponse getResourceByName(String resourceName, TestSecurityConfig.User user) {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                return client.get(SAMPLE_RESOURCE_GET_BY_NAME_ENDPOINT + "/" + resourceName);
             }
         }
 
