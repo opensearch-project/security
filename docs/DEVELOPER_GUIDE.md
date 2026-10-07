@@ -335,7 +335,7 @@ See [REST_AUTHZ_FOR_PLUGINS](REST_AUTHZ_FOR_PLUGINS.md).
 
 ## Submitting Changes
 
-See [CONTRIBUTING](CONTRIBUTING.md).
+See [CONTRIBUTING](../CONTRIBUTING.md).
 
 ## Backports
 
