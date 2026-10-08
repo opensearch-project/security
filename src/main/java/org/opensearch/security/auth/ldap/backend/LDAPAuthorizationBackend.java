@@ -13,6 +13,8 @@ package org.opensearch.security.auth.ldap.backend;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.KeyStore;
@@ -36,6 +38,8 @@ import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -48,6 +52,8 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
+import org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory;
+import org.opensearch.security.auth.ldap2.SocketFactoryClassLoader;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.WildcardMatcher;
@@ -68,6 +74,7 @@ import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
 import org.ldaptive.control.RequestControl;
+import org.ldaptive.provider.ProviderConfig;
 import org.ldaptive.provider.ProviderConnection;
 import org.ldaptive.sasl.Mechanism;
 import org.ldaptive.sasl.SaslConfig;
@@ -76,7 +83,6 @@ import org.ldaptive.ssl.AllowAnyTrustManager;
 import org.ldaptive.ssl.CredentialConfig;
 import org.ldaptive.ssl.CredentialConfigFactory;
 import org.ldaptive.ssl.SslConfig;
-import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
@@ -86,7 +92,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
     private static final String COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION =
         "com.sun.jndi.ldap.object.disableEndpointIdentification";
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = Arrays.asList("TLSv1.2", "TLSv1.1");
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.copyOf(SSLConfigConstants.ALLOWED_SSL_PROTOCOLS);
     static final int ONE_PLACEHOLDER = 1;
     static final int TWO_PLACEHOLDER = 2;
     static final String DEFAULT_ROLEBASE = "";
@@ -129,7 +135,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             ClassLoader originalClassloader = null;
             if (isJava9OrHigher) {
                 originalClassloader = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(new Java9CL());
+                Thread.currentThread().setContextClassLoader(new SocketFactoryClassLoader());
             }
 
             checkConnection0(connectionConfig, bindDn, password, originalClassloader, isJava9OrHigher);
@@ -144,7 +150,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             ClassLoader originalClassloader = null;
             if (isJava9OrHigher) {
                 originalClassloader = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(new Java9CL());
+                Thread.currentThread().setContextClassLoader(new SocketFactoryClassLoader());
             }
 
             return getConnection0(settings, configPath, originalClassloader, isJava9OrHigher);
@@ -183,7 +189,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         byte[] password,
         final ClassLoader cl,
         final boolean needRestore
-    ) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, LdapException {
+    ) throws LdapException {
 
         Connection connection = null;
 
@@ -201,9 +207,29 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             config.setConnectionInitializer(new BindConnectionInitializer(bindDn, new Credential(password)));
 
             DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
-            connection = connFactory.getConnection();
 
-            connection.open();
+            String sniHostname = null;
+            if (config.getLdapUrl() != null && config.getLdapUrl().startsWith("ldaps:")) {
+                configureSNISocketFactory(connFactory);
+                String ldapUrl = config.getLdapUrl();
+                try {
+                    sniHostname = new URI(ldapUrl).getHost();
+                    if (StringUtils.isBlank(sniHostname)) {
+                        log.warn("Could not extract hostname from LDAP URL '{}'; proceeding without SNI configuration", ldapUrl);
+                    }
+                } catch (URISyntaxException e) {
+                    log.warn("Malformed LDAP URL '{}'; proceeding without SNI configuration: {}", ldapUrl, e.getMessage());
+                }
+            }
+
+            try (
+                SNISettingTLSSocketFactory.SniContext ignored = StringUtils.isBlank(sniHostname)
+                    ? null
+                    : SNISettingTLSSocketFactory.configure(sniHostname)
+            ) {
+                connection = connFactory.getConnection();
+                connection.open();
+            }
         } finally {
             Utils.unbindAndCloseSilently(connection);
             connection = null;
@@ -302,9 +328,20 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
 
                 DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
-                connection = connFactory.getConnection();
 
-                connection.open();
+                // Register custom socket factory for SNI hostname verification with BouncyCastle FIPS
+                // This addresses a known issue where JNDI LDAP doesn't pass hostname to SSLSocketFactory
+                // See: https://github.com/bcgit/bc-java/issues/460
+                if (enableSSL) {
+                    configureSNISocketFactory(connFactory);
+                    try (var ignored = SNISettingTLSSocketFactory.configure(split[0])) {
+                        connection = connFactory.getConnection();
+                        connection.open();
+                    }
+                } else {
+                    connection = connFactory.getConnection();
+                    connection.open();
+                }
 
                 if (connection != null && connection.isOpen()) {
                     break;
@@ -462,6 +499,19 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static boolean shouldVerifyHostname(SslConfig sslConf) {
+        return sslConf != null && !(sslConf.getHostnameVerifier() instanceof AllowAnyHostnameVerifier);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static void configureSNISocketFactory(DefaultConnectionFactory connFactory) {
+        Map<String, Object> props = new HashMap<>();
+        props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");
+        final ProviderConfig providerConfig = connFactory.getProvider().getProviderConfig();
+        providerConfig.setProperties(props);
+    }
+
     private static void configureSSL(final ConnectionConfig config, final Settings settings, final Path configPath) throws Exception {
 
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -528,7 +578,21 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     );
                 }
 
-                cc = CredentialConfigFactory.createX509CredentialConfig(trustCertificates, authenticationCertificate, authenticationKey);
+                final KeyStore pemTruststore = PemKeyReader.toTruststore("al", trustCertificates);
+                final char[] pemInMemoryPassword = SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray();
+                final KeyStore pemKeystore = PemKeyReader.toKeystore(
+                    "al",
+                    pemInMemoryPassword,
+                    authenticationCertificate != null ? new X509Certificate[] { authenticationCertificate } : null,
+                    authenticationKey
+                );
+                cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
+                    pemTruststore,
+                    null,
+                    pemKeystore,
+                    pemKeystore != null ? new String(pemInMemoryPassword) : null,
+                    null
+                );
 
                 if (isDebugEnabled) {
                     log.debug("Use PEM to secure communication with LDAP server (client auth is {})", authenticationKey != null);
@@ -604,9 +668,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     // https://www.oracle.com/technetwork/java/javase/10-0-2-relnotes-4477557.html
                     // https://www.oracle.com/technetwork/java/javase/11-0-1-relnotes-5032023.html
                 }
-
-                System.setProperty(COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION, "true");
-
             }
 
             final List<String> enabledCipherSuites = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_CIPHERS, Collections.emptyList());
@@ -1153,32 +1214,5 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
 
         return null;
-    }
-
-    @SuppressWarnings("rawtypes")
-    private final static Class clazz = ThreadLocalTLSSocketFactory.class;
-
-    private final static class Java9CL extends ClassLoader {
-
-        public Java9CL() {
-            super();
-        }
-
-        @SuppressWarnings("unused")
-        public Java9CL(ClassLoader parent) {
-            super(parent);
-        }
-
-        @SuppressWarnings({ "rawtypes", "unchecked" })
-        @Override
-        public Class loadClass(String name) throws ClassNotFoundException {
-
-            if (!name.equalsIgnoreCase("org.ldaptive.ssl.ThreadLocalTLSSocketFactory")) {
-                return super.loadClass(name);
-            }
-
-            return clazz;
-        }
-
     }
 }
