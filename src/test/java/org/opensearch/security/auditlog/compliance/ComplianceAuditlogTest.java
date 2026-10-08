@@ -22,12 +22,12 @@ import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.Refresh;
+import org.opensearch.client.transport.OpenSearchTransport;
+import org.opensearch.client.transport.endpoints.BooleanResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.auditlog.AuditTestUtils;
@@ -278,11 +278,17 @@ public class ComplianceAuditlogTest extends AbstractAuditlogUnitTest {
             "audit"
         );
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
-            try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "kirk-keystore", "truststore")) {
+            try (OpenSearchTransport transport = getClientTransport(clusterInfo, "kirk-keystore", "truststore")) {
+                OpenSearchClient client = new OpenSearchClient(transport);
+
                 for (IndexRequest ir : new DynamicSecurityConfig().setSecurityRoles("roles_2.yml").getDynamicConfig(getResourceFolder())) {
-                    restHighLevelClient.index(ir, RequestOptions.DEFAULT);
-                    GetResponse getDocumentResponse = restHighLevelClient.get(new GetRequest(ir.index(), ir.id()), RequestOptions.DEFAULT);
-                    assertThat(getDocumentResponse.isExists(), equalTo(true));
+                    org.opensearch.client.opensearch.core.IndexRequest<?> request = org.opensearch.client.opensearch.core.IndexRequest.of(
+                        b -> b.document(ir.source()).id(ir.id()).index(ir.index()).refresh(Refresh.True)
+                    );
+                    client.index(request);
+
+                    BooleanResponse getDocumentResponse = client.exists(b -> b.index(ir.index()).id(ir.id()));
+                    assertThat(getDocumentResponse.value(), equalTo(true));
                 }
             } catch (IOException ioe) {
                 throw new RuntimeException("Unexpected exception", ioe);

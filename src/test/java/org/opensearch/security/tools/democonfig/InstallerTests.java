@@ -26,14 +26,15 @@ import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.opensearch.security.tools.democonfig.Installer.RPM_DEB_OPENSEARCH_HOME;
 import static org.opensearch.security.tools.democonfig.Installer.printScriptHeaders;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
@@ -46,6 +47,13 @@ public class InstallerTests {
     private final InputStream originalIn = System.in;
 
     private static Installer installer;
+
+    /**
+     * Roots the directories created by {@link #setUpSecurityDirectories()} in a per-test location, so they
+     * cannot collide with the other test classes in this package running in parallel forks.
+     */
+    @Rule
+    public TemporaryFolder tempDir = new TemporaryFolder();
 
     // Custom exception to simulate an exit call.
     public static class TestExitException extends RuntimeException {
@@ -208,14 +216,8 @@ public class InstallerTests {
 
     @Test
     public void testInitializeVariables_setBaseDir_invalidPath() {
-        String[] invalidScriptDirPath = { "/scriptDir", "-y" };
+        String[] invalidScriptDirPath = { "/nonexistent/opensearch-home", "-y" };
         installer.readOptions(invalidScriptDirPath);
-
-        // If BASE_DIR cannot be determined, a NullPointerException is expected.
-        assertThrows("Expected NullPointerException to be thrown", NullPointerException.class, installer::initializeVariables);
-
-        String[] invalidScriptDirPath2 = { "/opensearch/plugins/opensearch-security/tools", "-y" };
-        installer.readOptions(invalidScriptDirPath2);
 
         installer.setExitHandler(status -> { throw new TestExitException(status); });
         TestExitException ex = assertThrows("Expected exit with status -1", TestExitException.class, installer::initializeVariables);
@@ -233,8 +235,7 @@ public class InstallerTests {
 
         installer.setBaseDir();
 
-        String expectedBaseDirValue = new File(currentDir).getParentFile().getParentFile().getParentFile().getAbsolutePath()
-            + File.separator;
+        String expectedBaseDirValue = new File(currentDir).getAbsolutePath() + File.separator;
         assertThat(installer.BASE_DIR, equalTo(expectedBaseDirValue));
     }
 
@@ -257,8 +258,7 @@ public class InstallerTests {
         verifyStdOutContainsString("Unable to determine OpenSearch plugins directory. Quit.");
         verifyStdOutContainsString("Unable to determine OpenSearch lib directory. Quit.");
 
-        String expectedBaseDirValue = new File(currentDir).getParentFile().getParentFile().getParentFile().getAbsolutePath()
-            + File.separator;
+        String expectedBaseDirValue = new File(currentDir).getAbsolutePath() + File.separator;
         String expectedOpensearchConfFilePath = expectedBaseDirValue + "config" + File.separator + "opensearch.yml";
         String expectedOpensearchBinDirPath = expectedBaseDirValue + "bin" + File.separator;
         String expectedOpensearchPluginDirPath = expectedBaseDirValue + "plugins" + File.separator;
@@ -286,7 +286,7 @@ public class InstallerTests {
         installer.OS = "Linux";
         String dir = System.getProperty("user.dir");
         installer.BASE_DIR = dir;
-        RPM_DEB_OPENSEARCH_HOME = new File(dir);
+        installer.RPM_DEB_OPENSEARCH_HOME = new File(dir);
 
         String installType = installer.determineInstallType();
 
@@ -467,9 +467,13 @@ public class InstallerTests {
         String[] validBaseDir = { currentDir, "-y" };
         installer.readOptions(validBaseDir);
         installer.setBaseDir();
-        installer.OPENSEARCH_PLUGINS_DIR = installer.BASE_DIR + "plugins" + File.separator;
-        installer.OPENSEARCH_LIB_PATH = installer.BASE_DIR + "lib" + File.separator;
-        installer.OPENSEARCH_CONF_DIR = installer.BASE_DIR + "test-conf" + File.separator;
+        // Rooted in a per-test temporary directory rather than under BASE_DIR (which is user.dir). The test
+        // classes in this package run in separate parallel forks that share user.dir, so fixed directory
+        // names would let one class's teardown delete the tree another class is still writing into.
+        String testRoot = tempDir.getRoot().getAbsolutePath() + File.separator;
+        installer.OPENSEARCH_PLUGINS_DIR = testRoot + "plugins" + File.separator;
+        installer.OPENSEARCH_LIB_PATH = testRoot + "lib" + File.separator;
+        installer.OPENSEARCH_CONF_DIR = testRoot + "test-conf" + File.separator;
 
         createDirectory(installer.OPENSEARCH_PLUGINS_DIR);
         createDirectory(installer.OPENSEARCH_LIB_PATH);

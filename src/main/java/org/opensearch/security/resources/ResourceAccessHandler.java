@@ -11,7 +11,11 @@
 
 package org.opensearch.security.resources;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,12 +24,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.action.support.GroupedActionListener;
 import org.opensearch.common.Nullable;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
@@ -41,8 +45,6 @@ import reactor.util.annotation.NonNull;
  * This class handles resource access permissions for users, roles and backend-roles.
  * It provides methods to check if a user has permission to access a resource
  * based on the resource sharing configuration.
- *
- * @opensearch.experimental
  */
 public class ResourceAccessHandler {
     private static final Logger LOGGER = LogManager.getLogger(ResourceAccessHandler.class);
@@ -72,8 +74,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of accessible resource IDs.
      */
     public void getOwnAndSharedResourceIdsForCurrentUser(@NonNull String resourceType, ActionListener<Set<String>> listener) {
-        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        User user = userSub == null ? null : userSub.getUser();
+        User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user; returning empty set of ids");
@@ -100,8 +101,7 @@ public class ResourceAccessHandler {
      * @param listener      The listener to be notified with the set of resource sharing records.
      */
     public void getResourceSharingInfoForCurrentUser(@NonNull String resourceType, ActionListener<Set<SharingRecord>> listener) {
-        UserSubjectImpl userSub = (UserSubjectImpl) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
-        User user = userSub == null ? null : userSub.getUser();
+        User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user; returning empty set of resource-sharing records");
@@ -123,6 +123,100 @@ public class ResourceAccessHandler {
     }
 
     /**
+     * Checks whether current user has permission to access every one of the given resources. A request that names
+     * several resources is authorized as a whole: the action is allowed only if it is allowed on all of them.
+     * <p>
+     * The sharing records are read in one {@link ResourceSharingIndexHandler#fetchSharingInfoForIds mget} rather than a
+     * GET per id, which is what the privilege path can afford. Each record is then evaluated exactly as a single-id
+     * check would evaluate it: the record itself first, and its containers (parent and workspaces) only for the ids whose
+     * own record does not grant the action. An id with no record at all is denied, as it is on the single-id path.
+     * <p>
+     * There is no short circuit on the first denial, so a denial is known once every id has answered.
+     * <p>
+     * An empty collection is denied. The evaluator does not send one, since a request naming no resource is left to the
+     * regular privileges evaluator, so this is the safe answer to a caller that asks about nothing.
+     *
+     * @param resourceIds   The resource IDs to check access for.
+     * @param resourceType  The resource type shared by all of the ids.
+     * @param action        The action to check permission for
+     * @param listener      Notified with true only if every id grants the action.
+     */
+    public void hasPermission(
+        @NonNull Collection<String> resourceIds,
+        @NonNull String resourceType,
+        @NonNull String action,
+        ActionListener<Boolean> listener
+    ) {
+        // Deduplicated here rather than trusting the caller: this is the authorization boundary, and a duplicate would
+        // otherwise cost an extra record lookup
+        final Set<String> distinctIds = new HashSet<>(resourceIds);
+
+        if (distinctIds.isEmpty()) {
+            LOGGER.debug("No resource id to authorize for action {}; denying", action);
+            listener.onResponse(false);
+            return;
+        }
+
+        // One id is the common case and the single-id path already owns the whole evaluation, containers included
+        if (distinctIds.size() == 1) {
+            hasPermission(distinctIds.iterator().next(), resourceType, action, listener);
+            return;
+        }
+
+        final User user = getAuthenticatedUser();
+        if (user == null) {
+            LOGGER.warn("No authenticated user found. Access to resources {} is not authorized.", distinctIds);
+            listener.onResponse(false);
+            return;
+        }
+
+        if (adminDNs.isAdmin(user)) {
+            LOGGER.debug("User '{}' is admin, automatically granted permission on {}", user.getName(), distinctIds);
+            listener.onResponse(true);
+            return;
+        }
+
+        final String resourceIndex = resourcePluginInfo.indexByType(resourceType);
+        if (resourceIndex == null) {
+            LOGGER.debug("No resourceIndex mapping found for type '{}'; denying action {}", resourceType, action);
+            listener.onResponse(false);
+            return;
+        }
+
+        resourceSharingIndexHandler.fetchSharingInfoForIds(resourceIndex, distinctIds, ActionListener.wrap(sharingInfoById -> {
+            final List<ResourceSharing> needContainerCheck = new ArrayList<>();
+            for (String resourceId : distinctIds) {
+                ResourceSharing sharingInfo = sharingInfoById.get(resourceId);
+                if (sharingInfo == null) {
+                    // No record means nothing grants this id, which is a denial for the request as a whole
+                    LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, action);
+                    listener.onResponse(false);
+                    return;
+                }
+                if (!recordGrantsAction(sharingInfo, resourceType, user, action)) {
+                    needContainerCheck.add(sharingInfo);
+                }
+            }
+
+            if (needContainerCheck.isEmpty()) {
+                listener.onResponse(true);
+                return;
+            }
+
+            final GroupedActionListener<Boolean> groupedListener = new GroupedActionListener<>(
+                ActionListener.wrap(results -> listener.onResponse(results.stream().allMatch(Boolean::booleanValue)), listener::onFailure),
+                needContainerCheck.size()
+            );
+            for (ResourceSharing sharingInfo : needContainerCheck) {
+                checkContainers(sharingInfo, action, groupedListener);
+            }
+        }, e -> {
+            LOGGER.error("Error while checking permission for user {} on resources {}: {}", user.getName(), distinctIds, e.getMessage());
+            listener.onFailure(e);
+        }));
+    }
+
+    /**
      * Checks whether current user has permission to access given resource.
      *
      * @param resourceId    The resource ID to check access for.
@@ -136,10 +230,7 @@ public class ResourceAccessHandler {
         @NonNull String action,
         ActionListener<Boolean> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Access to resource {} is not authorized.", resourceId);
@@ -172,43 +263,100 @@ public class ResourceAccessHandler {
                 return;
             }
 
-            if (sharingInfo.isCreatedBy(user.getName())) {
+            if (recordGrantsAction(sharingInfo, resourceType, user, action)) {
                 listener.onResponse(true);
                 return;
             }
 
-            Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
-
-            // no matching access level, either recurse up or fail fast
-            if (accessLevels.isEmpty()) {
-                if (sharingInfo.getParentId() != null) {
-                    hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-                } else {
-                    listener.onResponse(false);
-                }
-                return;
-            }
-
-            // Fetch the static action-groups registered by plugins on bootstrap and check whether any match
-            final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
-            final Set<String> allowedActions = agForType.resolve(accessLevels);
-            final WildcardMatcher matcher = WildcardMatcher.from(allowedActions);
-
-            if (matcher.test(action)) {
-                listener.onResponse(true);
-                return;
-            }
-
-            if (sharingInfo.getParentId() != null) {
-                hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-            } else {
-                listener.onResponse(false);
-            }
+            // resource itself does not grant the action: fall back to its containers (parent and/or workspaces)
+            checkContainers(sharingInfo, action, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
         }));
     }
+
+    /**
+     * Returns whether a single sharing record grants the given user the requested action directly — i.e. the user is
+     * the creator, or is shared with at an access level whose resolved action-group matches {@code action}. This is a
+     * pure, in-memory computation (no I/O), factored out so it can be reused both for the resource itself and for each
+     * container record fetched in a batch.
+     */
+    private boolean recordGrantsAction(ResourceSharing sharingInfo, String resourceType, User user, String action) {
+        if (sharingInfo.isCreatedBy(user.getName())) {
+            return true;
+        }
+        Set<String> accessLevels = sharingInfo.getAccessLevelsForUser(user);
+        if (accessLevels.isEmpty()) {
+            return false;
+        }
+        final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
+        final Set<String> allowedActions = agForType.resolve(accessLevels);
+        return WildcardMatcher.from(allowedActions).test(action);
+    }
+
+    /**
+     * Grants access if any of the resource's containers grant it: its single parent (recursed via
+     * {@link #hasPermission}) or any of its workspaces. Workspace records are fetched in one
+     * {@link ResourceSharingIndexHandler#fetchSharingInfoForIds mget} and evaluated as leaves (their own
+     * {@code share_with}), so no per-workspace round trip and no recursion.
+     * <p>
+     * {@link #WORKSPACE_RESOURCE_TYPE} is a placeholder until the workspace provider is registered via the SPI; if it
+     * isn't, {@code indexByType} returns null and the workspace branch denies cleanly.
+     *
+     * @param sharingInfo the sharing record of the resource whose containers should be consulted
+     * @param action      the action being authorized
+     * @param listener    notified with {@code true} if any container grants access, {@code false} otherwise
+     */
+    private void checkContainers(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
+        final User user = getAuthenticatedUser();
+        if (user == null) {
+            listener.onResponse(false);
+            return;
+        }
+
+        final List<String> workspaceIds = new ArrayList<>(sharingInfo.getWorkspaces());
+        final String workspaceIndex = workspaceIds.isEmpty() ? null : resourcePluginInfo.indexByType(WORKSPACE_RESOURCE_TYPE);
+
+        // Evaluate workspaces (batched) first; fall back to the single parent (recursive) only if no workspace grants.
+        if (workspaceIndex != null) {
+            resourceSharingIndexHandler.fetchSharingInfoForIds(workspaceIndex, workspaceIds, ActionListener.wrap(records -> {
+                for (ResourceSharing wsRecord : records.values()) {
+                    // Resolve against the workspace type's action groups: only they map workspace-level access
+                    // (workspace_read/write) to the child action being authorized.
+                    if (recordGrantsAction(wsRecord, WORKSPACE_RESOURCE_TYPE, user, action)) {
+                        listener.onResponse(true);
+                        return;
+                    }
+                }
+                checkParent(sharingInfo, action, listener);
+            }, listener::onFailure));
+        } else {
+            checkParent(sharingInfo, action, listener);
+        }
+    }
+
+    /**
+     * Resolves access inherited from the single hierarchical parent (if any), recursing via {@link #hasPermission} so
+     * grandparent chains continue to work. Denies when there is no parent.
+     */
+    private void checkParent(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
+        if (sharingInfo.getParentId() != null) {
+            hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
+        } else {
+            listener.onResponse(false);
+        }
+    }
+
+    /**
+     * Returns the currently authenticated user from the thread context, or {@code null} if none.
+     */
+    private User getAuthenticatedUser() {
+        return (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
+    }
+
+    /** Resource type of a workspace; the workspace provider registers it via the resource-sharing SPI. */
+    private static final String WORKSPACE_RESOURCE_TYPE = "workspace";
 
     /**
      * Patches the sharing info. It could be either or all 3 of the following possibilities:
@@ -231,10 +379,7 @@ public class ResourceAccessHandler {
         @Nullable String generalAccess,
         ActionListener<ResourceSharing> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to patch resource sharing info {}", resourceId);
@@ -296,10 +441,7 @@ public class ResourceAccessHandler {
      * @param listener      listener to be notified of final resource sharing record
      */
     public void getSharingInfo(@NonNull String resourceId, @NonNull String resourceType, ActionListener<ResourceSharing> listener) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to fetch resource sharing info {}", resourceId);
@@ -346,10 +488,7 @@ public class ResourceAccessHandler {
         @NonNull ShareWith target,
         ActionListener<ResourceSharing> listener
     ) {
-        final UserSubjectImpl userSubject = (UserSubjectImpl) threadContext.getPersistent(
-            ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER
-        );
-        final User user = (userSubject == null) ? null : userSubject.getUser();
+        final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
             LOGGER.warn("No authenticated user found. Failed to share resource {}", resourceId);

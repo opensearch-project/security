@@ -16,7 +16,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityIndexIdentity;
 
 public class SecurityApiDependencies {
     private AdminDNs adminDNs;
@@ -24,6 +24,7 @@ public class SecurityApiDependencies {
     private final RestApiAuthorizationEvaluator restApiAuthorizationEvaluator;
     private final AuditLog auditLog;
     private final Settings settings;
+    private final SecurityIndexIdentity securityIndex;
 
     private final PrivilegesConfiguration privilegesConfiguration;
 
@@ -41,6 +42,7 @@ public class SecurityApiDependencies {
         this.restApiAuthorizationEvaluator = restApiAuthorizationEvaluator;
         this.auditLog = auditLog;
         this.settings = settings;
+        this.securityIndex = new SecurityIndexIdentity(settings);
     }
 
     public AdminDNs adminDNs() {
@@ -68,6 +70,6 @@ public class SecurityApiDependencies {
     }
 
     public String securityIndexName() {
-        return settings().get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        return securityIndex.getName();
     }
 }

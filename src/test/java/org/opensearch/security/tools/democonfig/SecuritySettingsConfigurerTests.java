@@ -32,7 +32,9 @@ import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 
 import org.opensearch.security.support.ConfigConstants;
@@ -50,7 +52,6 @@ import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigure
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isKeyPresentInYMLFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
-import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
@@ -69,6 +70,14 @@ public class SecuritySettingsConfigurerTests {
 
     private static SecuritySettingsConfigurer securitySettingsConfigurer;
     private static Installer installer;
+
+    /**
+     * Gives every test its own config directory. The test classes in this package run in separate parallel
+     * forks that share {@code user.dir}, so a fixed directory name would let one class's teardown delete
+     * the tree another class is still writing into.
+     */
+    @Rule
+    public TemporaryFolder confDir = new TemporaryFolder();
 
     // Custom exception thrown by the test exit handler
     public static class TestExitException extends RuntimeException {
@@ -101,7 +110,6 @@ public class SecuritySettingsConfigurerTests {
         System.setOut(originalOut);
         System.setErr(originalErr);
         System.setIn(originalIn);
-        deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
         unsetEnvVariables();
         Installer.resetInstance();
     }
@@ -394,7 +402,7 @@ public class SecuritySettingsConfigurerTests {
     }
 
     void setUpConf() {
-        installer.OPENSEARCH_CONF_DIR = System.getProperty("user.dir") + File.separator + "test-conf" + File.separator;
+        installer.OPENSEARCH_CONF_DIR = confDir.getRoot().getAbsolutePath() + File.separator;
         installer.OPENSEARCH_CONF_FILE = installer.OPENSEARCH_CONF_DIR + "opensearch.yml";
         String securityConfDir = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator;
         createDirectory(securityConfDir);

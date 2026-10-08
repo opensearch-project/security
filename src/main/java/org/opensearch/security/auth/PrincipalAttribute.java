@@ -123,6 +123,7 @@ public enum PrincipalAttribute implements Attribute {
         builder.endObject();
     }
 
+    @Override
     public List<MatchLabel<String>> findAttributeMatches(
         AttributeExtractor<String> attributeExtractor,
         AttributeValueStore<String, String> attributeValueStore
@@ -130,7 +131,7 @@ public enum PrincipalAttribute implements Attribute {
         Map<String, Float> scoreMap = new HashMap<>();
 
         for (String value : attributeExtractor.extract()) {
-            List<MatchLabel<String>> matches = attributeValueStore.getExactMatch(value);
+            List<MatchLabel<String>> matches = attributeValueStore.getMatches(value);
             String subField = parsePrincipalValue(value)[0];
             assert WEIGHTED_SUBFIELDS.containsKey(subField);
             for (MatchLabel<String> entry : matches) {

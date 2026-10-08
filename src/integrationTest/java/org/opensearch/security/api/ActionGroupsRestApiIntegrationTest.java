@@ -164,6 +164,25 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
     }
 
     @Override
+    void verifySuperAdminCanCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
+        assertThat(client.putJson(apiPath("new_rest_admin_action_group"), actionGroup(randomRestAdminPermission())), isCreated());
+        assertThat(
+            client.patch(apiPath(), patch(addOp("new_rest_admin_action_group_2", actionGroup(randomRestAdminPermission())))),
+            isOk()
+        );
+    }
+
+    @Override
+    void verifySuperAdminCanUpdateAndDeleteEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
+        final var tempGroup = "temp_rest_admin_action_group";
+        assertThat(client.putJson(apiPath(tempGroup), actionGroup(randomRestAdminPermission())), isCreated());
+        assertThat(client.putJson(apiPath(tempGroup), actionGroup("a", "b")), isOk());
+        assertThat(client.patch(apiPath(), patch(replaceOp(tempGroup, actionGroup("a", "b")))), isOk());
+        assertThat(client.patch(apiPath(tempGroup), patch(replaceOp("allowed_actions", configJsonArray("c", "d")))), isOk());
+        assertThat(client.delete(apiPath(tempGroup)), isOk());
+    }
+
+    @Override
     void verifyCrudOperations(final Boolean hidden, final Boolean reserved, final TestRestClient client) throws Exception {
         // create
         assertThat(client.putJson(apiPath("new_action_group"), actionGroup(hidden, reserved, "a", "b")), isCreated());

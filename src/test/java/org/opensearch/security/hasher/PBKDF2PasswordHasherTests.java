@@ -14,7 +14,7 @@ package org.opensearch.security.hasher;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.common.settings.Settings;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -24,9 +24,9 @@ public class PBKDF2PasswordHasherTests extends AbstractPasswordHasherTests {
     @Before
     public void setup() {
         passwordHasher = new PBKDF2PasswordHasher(
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+            PasswordHasherFactory.PBKDF2_FUNCTION.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.PBKDF2_ITERATIONS.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.PBKDF2_LENGTH.getDefault(Settings.EMPTY)
         );
     }
 

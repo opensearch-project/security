@@ -67,6 +67,7 @@ public class CreateResourceRestAction extends BaseRestHandler {
         resource.setDescription(description);
         resource.setGroupId(groupId);
         resource.setAttributes(attributes);
+        resource.setWorkspaces(getWorkspaces(source));
         final UpdateResourceRequest updateResourceRequest = new UpdateResourceRequest(resourceId, resource);
         return channel -> client.executeLocally(
             UpdateResourceAction.INSTANCE,
@@ -86,12 +87,28 @@ public class CreateResourceRestAction extends BaseRestHandler {
         resource.setName(name);
         resource.setDescription(description);
         resource.setAttributes(attributes);
+        resource.setWorkspaces(getWorkspaces(source));
         final CreateResourceRequest createSampleResourceRequest = new CreateResourceRequest(resource, shouldStoreUser);
         return channel -> client.executeLocally(
             CreateResourceAction.INSTANCE,
             createSampleResourceRequest,
             new RestToXContentListener<>(channel)
         );
+    }
+
+    @SuppressWarnings("unchecked")
+    private java.util.Set<String> getWorkspaces(Map<String, Object> source) {
+        Object v = source.get("workspaces");
+        if (v == null) return null;
+        java.util.Set<String> out = new java.util.HashSet<>();
+        if (v instanceof java.util.List) {
+            for (Object item : (java.util.List<Object>) v) {
+                if (item != null) out.add(item.toString());
+            }
+        } else {
+            out.add(v.toString());
+        }
+        return out;
     }
 
     @SuppressWarnings("unchecked")

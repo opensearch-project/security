@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
+import org.opensearch.common.SuppressLoggerChecks;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
@@ -154,6 +155,7 @@ public class ComplianceConfigTest {
     }
 
     @Test
+    @SuppressLoggerChecks(reason = "Mockito matchers verify logger calls rather than emit messages")
     public void testLogState() {
         // arrange
         final var logger = Mockito.mock(Logger.class);

@@ -38,6 +38,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.tasks.Task;
 
@@ -61,10 +62,7 @@ public class SnapshotRestoreEvaluator {
         );
         this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
 
-        this.securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+        this.securityIndex = new SecurityIndexIdentity(settings).getName();
         this.auditLog = auditLog;
         this.isLocalNodeElectedClusterManagerSupplier = isLocalNodeElectedClusterManagerSupplier;
     }

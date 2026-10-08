@@ -39,7 +39,6 @@ import org.apache.commons.cli.ParseException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
-import org.opensearch.security.support.ConfigConstants;
 
 public class Hasher {
 
@@ -91,13 +90,13 @@ public class Hasher {
                 String algorithm = line.getOptionValue(ALGORITHM_OPTION);
                 Settings settings;
                 switch (algorithm.toLowerCase()) {
-                    case ConfigConstants.BCRYPT:
+                    case PasswordHasherFactory.BCRYPT:
                         settings = getBCryptSettings(line);
                         break;
-                    case ConfigConstants.PBKDF2:
+                    case PasswordHasherFactory.PBKDF2:
                         settings = getPBKDF2Settings(line);
                         break;
-                    case ConfigConstants.ARGON2:
+                    case PasswordHasherFactory.ARGON2:
                         settings = getArgon2Settings(line);
                         break;
                     default:
@@ -126,34 +125,28 @@ public class Hasher {
 
     private static Settings getBCryptSettings(CommandLine line) throws ParseException {
         Settings.Builder settings = Settings.builder();
-        settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT);
+        settings.put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT);
         if (line.hasOption(ROUNDS_OPTION)) {
-            settings.put(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS,
-                ((Number) line.getParsedOptionValue(ROUNDS_OPTION)).intValue()
-            );
+            settings.put(PasswordHasherFactory.BCRYPT_ROUNDS.getKey(), ((Number) line.getParsedOptionValue(ROUNDS_OPTION)).intValue());
         }
         if (line.hasOption(MINOR_OPTION)) {
-            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR, line.getOptionValue(MINOR_OPTION).toUpperCase());
+            settings.put(PasswordHasherFactory.BCRYPT_MINOR.getKey(), line.getOptionValue(MINOR_OPTION).toUpperCase());
         }
         return settings.build();
     }
 
     private static Settings getPBKDF2Settings(CommandLine line) throws ParseException {
         Settings.Builder settings = Settings.builder();
-        settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2);
+        settings.put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.PBKDF2);
         if (line.hasOption(FUNCTION_OPTION)) {
-            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION, line.getOptionValue(FUNCTION_OPTION));
+            settings.put(PasswordHasherFactory.PBKDF2_FUNCTION.getKey(), line.getOptionValue(FUNCTION_OPTION));
         }
         if (line.hasOption(LENGTH_OPTION)) {
-            settings.put(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH,
-                ((Number) line.getParsedOptionValue(LENGTH_OPTION)).intValue()
-            );
+            settings.put(PasswordHasherFactory.PBKDF2_LENGTH.getKey(), ((Number) line.getParsedOptionValue(LENGTH_OPTION)).intValue());
         }
         if (line.hasOption(ITERATIONS_OPTION)) {
             settings.put(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS,
+                PasswordHasherFactory.PBKDF2_ITERATIONS.getKey(),
                 ((Number) line.getParsedOptionValue(ITERATIONS_OPTION)).intValue()
             );
         }
@@ -162,36 +155,30 @@ public class Hasher {
 
     private static Settings getArgon2Settings(CommandLine line) throws ParseException {
         Settings.Builder settings = Settings.builder();
-        settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.ARGON2);
+        settings.put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.ARGON2);
         if (line.hasOption(MEMORY_OPTION)) {
-            settings.put(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY,
-                ((Number) line.getParsedOptionValue(MEMORY_OPTION)).intValue()
-            );
+            settings.put(PasswordHasherFactory.ARGON2_MEMORY.getKey(), ((Number) line.getParsedOptionValue(MEMORY_OPTION)).intValue());
         }
         if (line.hasOption(ITERATIONS_OPTION)) {
             settings.put(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS,
+                PasswordHasherFactory.ARGON2_ITERATIONS.getKey(),
                 ((Number) line.getParsedOptionValue(ITERATIONS_OPTION)).intValue()
             );
         }
         if (line.hasOption(PARALLELISM_OPTION)) {
             settings.put(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM,
+                PasswordHasherFactory.ARGON2_PARALLELISM.getKey(),
                 ((Number) line.getParsedOptionValue(PARALLELISM_OPTION)).intValue()
             );
         }
         if (line.hasOption(LENGTH_OPTION)) {
-            settings.put(
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH,
-                ((Number) line.getParsedOptionValue(LENGTH_OPTION)).intValue()
-            );
+            settings.put(PasswordHasherFactory.ARGON2_LENGTH.getKey(), ((Number) line.getParsedOptionValue(LENGTH_OPTION)).intValue());
         }
         if (line.hasOption(TYPE_OPTION)) {
-            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE, line.getOptionValue(TYPE_OPTION).toLowerCase());
+            settings.put(PasswordHasherFactory.ARGON2_TYPE.getKey(), line.getOptionValue(TYPE_OPTION).toLowerCase());
         }
         if (line.hasOption(VERSION_OPTION)) {
-            settings.put(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION, Integer.parseInt(line.getOptionValue(VERSION_OPTION)));
+            settings.put(PasswordHasherFactory.ARGON2_VERSION.getKey(), Integer.parseInt(line.getOptionValue(VERSION_OPTION)));
         }
         return settings.build();
     }

@@ -1,4 +1,5 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright 2015-2017 floragunn GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,19 +34,19 @@ public final class SecuritySSLTransportInterceptor implements TransportIntercept
     protected final ThreadPool threadPool;
     protected final PrincipalExtractor principalExtractor;
     protected final SslExceptionHandler errorHandler;
-    protected final SSLConfig SSLConfig;
+    protected final SSLConfig sslConfig;
 
     public SecuritySSLTransportInterceptor(
         final Settings settings,
         final ThreadPool threadPool,
         PrincipalExtractor principalExtractor,
-        final SSLConfig SSLConfig,
+        final SSLConfig sslConfig,
         final SslExceptionHandler errorHandler
     ) {
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
         this.errorHandler = errorHandler;
-        this.SSLConfig = SSLConfig;
+        this.sslConfig = sslConfig;
     }
 
     @Override
@@ -55,7 +56,7 @@ public final class SecuritySSLTransportInterceptor implements TransportIntercept
         boolean forceExecution,
         TransportRequestHandler<T> actualHandler
     ) {
-        return new SecuritySSLRequestHandler<T>(action, actualHandler, threadPool, principalExtractor, SSLConfig, errorHandler);
+        return new SecuritySSLRequestHandler<T>(action, actualHandler, threadPool, principalExtractor, sslConfig, errorHandler);
     }
 
 }

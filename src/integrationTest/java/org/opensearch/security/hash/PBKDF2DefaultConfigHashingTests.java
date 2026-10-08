@@ -18,6 +18,8 @@ import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -32,9 +34,9 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
         .hash(
             generatePBKDF2Hash(
                 "secret",
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-                ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+                PasswordHasherFactory.PBKDF2_FUNCTION.getDefault(Settings.EMPTY),
+                PasswordHasherFactory.PBKDF2_ITERATIONS.getDefault(Settings.EMPTY),
+                PasswordHasherFactory.PBKDF2_LENGTH.getDefault(Settings.EMPTY)
             )
         );
 
@@ -47,8 +49,8 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
             Map.of(
                 ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
-                ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
-                ConfigConstants.PBKDF2
+                PasswordHasherFactory.ALGORITHM.getKey(),
+                PasswordHasherFactory.PBKDF2
             )
         )
         .build();
@@ -57,9 +59,9 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
     public void shouldAuthenticateWithCorrectPassword() {
         String hash = generatePBKDF2Hash(
             PASSWORD,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+            PasswordHasherFactory.PBKDF2_FUNCTION.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.PBKDF2_ITERATIONS.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.PBKDF2_LENGTH.getDefault(Settings.EMPTY)
         );
         createUserWithHashedPassword(cluster, "user_1", hash);
         testPasswordAuth(cluster, "user_1", PASSWORD, HttpStatus.SC_OK);
@@ -72,9 +74,9 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
     public void shouldNotAuthenticateWithIncorrectPassword() {
         String hash = generatePBKDF2Hash(
             PASSWORD,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT
+            PasswordHasherFactory.PBKDF2_FUNCTION.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.PBKDF2_ITERATIONS.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.PBKDF2_LENGTH.getDefault(Settings.EMPTY)
         );
         createUserWithHashedPassword(cluster, "user_3", hash);
         testPasswordAuth(cluster, "user_3", "wrong_password", HttpStatus.SC_UNAUTHORIZED);

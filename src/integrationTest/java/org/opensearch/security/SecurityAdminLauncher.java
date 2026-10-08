@@ -20,11 +20,13 @@ import static java.util.Objects.requireNonNull;
 class SecurityAdminLauncher {
 
     private final TestCertificates certificates;
+    private final String clusterName;
     private int port;
 
-    public SecurityAdminLauncher(int port, TestCertificates certificates) {
+    public SecurityAdminLauncher(int port, TestCertificates certificates, String clusterName) {
         this.port = port;
         this.certificates = requireNonNull(certificates, "Certificates are required to communicate with cluster.");
+        this.clusterName = requireNonNull(clusterName, "Cluster name is required.");
     }
 
     public int updateRoleMappings(File roleMappingsConfigurationFile) throws Exception {
@@ -38,6 +40,8 @@ class SecurityAdminLauncher {
             "-nhnv",
             "-p",
             String.valueOf(port),
+            "-cn",
+            clusterName,
             "-f",
             roleMappingsConfigurationFile.getAbsolutePath(),
             "-t",
@@ -57,8 +61,29 @@ class SecurityAdminLauncher {
             "-nhnv",
             "-p",
             String.valueOf(port),
+            "-cn",
+            clusterName,
             "-cd",
             configurationFolder.toString() };
+
+        return SecurityAdmin.execute(commandLineArguments);
+    }
+
+    public int backup(Path backupFolder) throws Exception {
+        String[] commandLineArguments = {
+            "-cacert",
+            certificates.getRootCertificate().getAbsolutePath(),
+            "-cert",
+            certificates.getAdminCertificate().getAbsolutePath(),
+            "-key",
+            certificates.getAdminKey(null).getAbsolutePath(),
+            "-nhnv",
+            "-p",
+            String.valueOf(port),
+            "-cn",
+            clusterName,
+            "-backup",
+            backupFolder.toString() };
 
         return SecurityAdmin.execute(commandLineArguments);
     }

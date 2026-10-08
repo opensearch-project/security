@@ -14,8 +14,6 @@ import org.opensearch.core.action.ActionListener;
 
 /**
  * Interface for resource sharing client operations.
- *
- * @opensearch.experimental
  */
 public interface ResourceSharingClient {
 

@@ -13,7 +13,6 @@ package org.opensearch.security.grpc;
 
 import java.security.KeyPair;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -21,14 +20,10 @@ import java.util.Map;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.opensearch.Version;
-import org.opensearch.plugins.PluginInfo;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.JwtConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.transport.grpc.GrpcPlugin;
 
 import io.grpc.Channel;
 import io.grpc.ClientInterceptor;
@@ -42,6 +37,7 @@ import io.jsonwebtoken.security.Keys;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_ROLE;
 import static org.opensearch.security.grpc.GrpcHelpers.GRPC_INDEX_USER;
+import static org.opensearch.security.grpc.GrpcHelpers.SECURITY_WITH_GRPC_PLUGIN;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
 import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
@@ -90,32 +86,7 @@ public class JWTGrpcDisabledAuthDomainTest {
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .certificates(TEST_CERTIFICATES)
         .nodeSettings(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS)
-        .plugin(
-            new PluginInfo(
-                GrpcPlugin.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "21",
-                GrpcPlugin.class.getName(),
-                null,
-                Collections.emptyList(),
-                false
-            )
-        )
-        .plugin(
-            new PluginInfo(
-                OpenSearchSecurityPlugin.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "21",
-                OpenSearchSecurityPlugin.class.getName(),
-                null,
-                List.of("org.opensearch.transport.grpc.GrpcPlugin"),
-                false
-            )
-        )
+        .plugin(SECURITY_WITH_GRPC_PLUGIN)
         .users(GRPC_INDEX_USER)
         .roles(GRPC_INDEX_ROLE)
         .rolesMapping(new TestSecurityConfig.RoleMapping(GRPC_INDEX_ROLE.getName()).backendRoles("grpc_index_role"))

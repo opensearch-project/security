@@ -29,7 +29,6 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.util.FakeRestRequest;
 
@@ -194,7 +193,7 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
             userService,
             securityApiDependencies,
             PasswordHasherFactory.createPasswordHasher(
-                Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+                Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
             )
         );
     }

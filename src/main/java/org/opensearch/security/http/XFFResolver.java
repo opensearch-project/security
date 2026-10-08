@@ -77,7 +77,7 @@ public class XFFResolver {
             return new TransportAddress(isa);
         } else if (request.getRemoteAddress().isPresent()) {
             if (isTraceEnabled) {
-                log.trace("no xff done (enabled or no netty request) {},{},{},{}", enabled, request.getClass());
+                log.trace("no xff done (enabled or no netty request) {},{}", enabled, request.getClass());
             }
             return new TransportAddress(request.getRemoteAddress().get());
         } else {

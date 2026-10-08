@@ -23,6 +23,7 @@ import org.opensearch.security.auditlog.AbstractAuditlogUnitTest;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
@@ -255,7 +256,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
             .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
-            .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2)
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.PBKDF2)
             .build();
         final DynamicSecurityConfig securityConfig = new DynamicSecurityConfig().setSecurityInternalUsers("internal_users_pbkdf2.yml");
         setupAndReturnAuditMessages(settings, securityConfig);
@@ -386,7 +387,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
             .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
             .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
-            .put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.ARGON2)
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.ARGON2)
             .build();
         final DynamicSecurityConfig securityConfig = new DynamicSecurityConfig().setSecurityInternalUsers("internal_users_argon2.yml");
         setupAndReturnAuditMessages(settings, securityConfig);

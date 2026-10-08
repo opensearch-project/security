@@ -98,6 +98,11 @@ public class TenantsApiAction extends AbstractApiAction {
     }
 
     @Override
+    protected boolean supportsAsync() {
+        return true;
+    }
+
+    @Override
     protected EndpointValidator createEndpointValidator() {
         return new EndpointValidator() {
             @Override

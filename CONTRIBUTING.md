@@ -7,7 +7,7 @@ OpenSearch is a community project that is built and maintained by people just li
 
 Visit the following link(s) for more information on specific practices:
 
-- [Triaging](./TRIAGING.md)
+- [Triaging](docs/TRIAGING.md)
 
 
 ## How we work

@@ -24,7 +24,6 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -39,7 +38,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.CrossClusterSearchTests.PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.api.InternalUsersRestApiIntegrationTest.REST_API_ADMIN_INTERNAL_USERS_ONLY;
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.CERTS_INFO_ACTION;
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.ENDPOINTS_WITH_PERMISSIONS;
 import static org.opensearch.security.dlic.rest.api.RestApiAuthorizationEvaluator.RELOAD_CERTS_ACTION;
@@ -92,7 +90,7 @@ public abstract class AbstractApiIntegrationTest {
     public static final ToXContentObject EMPTY_BODY = (builder, params) -> builder.startObject().endObject();
 
     public static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
     );
 
     protected static LocalCluster.Builder clusterBuilder() {
@@ -107,12 +105,7 @@ public abstract class AbstractApiIntegrationTest {
         Map<String, Object> clusterSettings = new HashMap<>();
         clusterSettings.put(
             PLUGINS_SECURITY_RESTAPI_ROLES_ENABLED,
-            List.of(
-                "user_admin__all_access",
-                REST_ADMIN_REST_API_ACCESS_ROLE.getName(),
-                "user_rest-api-admin__role",
-                REST_API_ADMIN_INTERNAL_USERS_ONLY
-            )
+            List.of("user_admin__all_access", REST_ADMIN_REST_API_ACCESS_ROLE.getName())
         );
         return clusterSettings;
     }

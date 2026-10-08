@@ -29,7 +29,6 @@ import tools.jackson.databind.JsonNode;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.awaitility.Awaitility.await;
 
@@ -42,8 +41,14 @@ import static org.awaitility.Awaitility.await;
  * Tests share a single cluster and use a before/after delta pattern so that
  * execution order does not matter.</p>
  *
+ * <p>Shared tests ({@code testPersistsAuditEventsToTarget} and
+ * {@code testAuditDocumentContainsMandatoryFields}) are inherited from
+ * {@link AbstractInternalOpenSearchSinkIntegrationTest}.</p>
+ *
+ * @see InternalOpenSearchSinkIntegrationTestConcreteIndex for the concrete date-based index variant
+ * @see InternalOpenSearchSinkTest for unit tests covering exception and race-condition branches
  */
-public class InternalOpenSearchSinkIntegrationTestAuditAlias {
+public class InternalOpenSearchSinkIntegrationTestAuditAlias extends AbstractInternalOpenSearchSinkIntegrationTest {
 
     private static final String AUDIT_ALIAS = "security-audit-write-alias";
     private static final String BACKING_INDEX = "security-audit-backend-000001";
@@ -52,27 +57,21 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
     static final TestAlias auditAlias = new TestAlias(AUDIT_ALIAS).on(backingIndex).writeIndex(backingIndex);
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+    public static final LocalCluster CLUSTER = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .nodeSettings(Map.of("plugins.security.audit.config.index", AUDIT_ALIAS))
         .internalAudit(new AuditConfiguration(true).filters(new AuditFilters().enabledRest(true).enabledTransport(false)))
         .indices(backingIndex)
         .aliases(auditAlias)
         .build();
 
-    /** Counts all audit documents reachable through the write alias. */
-    private long countAuditDocs(TestRestClient client) {
-        HttpResponse response = client.postJson(AUDIT_ALIAS + "/_search", """
-            {"query": {"match_all": {}}, "size": 0}
-            """);
-        response.assertStatusCode(200);
-        return response.getLongFromJsonBody("/hits/total/value");
+    @Override
+    LocalCluster cluster() {
+        return CLUSTER;
     }
 
-    /** Issues an authenticated REST GET that triggers an {@code AUTHENTICATED} audit event. */
-    private void generateAuditEvent(String path) {
-        try (TestRestClient restClient = cluster.getRestClient(cluster.getAdminCertificate())) {
-            restClient.get(path);
-        }
+    @Override
+    String auditTarget() {
+        return AUDIT_ALIAS;
     }
 
     /**
@@ -81,13 +80,23 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
      *
      * <p>Generates one event, then checks that the alias still resolves to the
      * backing index and no spurious concrete index was created.</p>
+     *
+     * <p><b>Tested Code Path:</b> {@code metadata.hasAlias(indexName)} returns
+     * {@code true}, so the method logs a debug message and returns {@code true}
+     * immediately without attempting index creation.</p>
      */
     @Test
     public void testRecognizesAuditTargetAsWriteAlias() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+        try (TestRestClient client = CLUSTER.getRestClient(CLUSTER.getAdminCertificate())) {
             generateAuditEvent("_cluster/health");
 
-            await().until(() -> countAuditDocs(client) > 0);
+            await().until(() -> {
+                HttpResponse countResponse = client.postJson(AUDIT_ALIAS + "/_search", """
+                    {"query": {"match_all": {}}, "size": 0}
+                    """);
+                countResponse.assertStatusCode(200);
+                return countResponse.getLongFromJsonBody("/hits/total/value") > 0;
+            });
 
             HttpResponse aliasResponse = client.get("_alias/" + AUDIT_ALIAS);
             aliasResponse.assertStatusCode(200);
@@ -104,57 +113,6 @@ public class InternalOpenSearchSinkIntegrationTestAuditAlias {
 
             HttpResponse indexExistsResponse = client.head(concreteIndex);
             assertThat("Backing index must exist physically", indexExistsResponse.getStatusCode(), is(200));
-        }
-    }
-
-    /**
-     * The alias branch is invoked on every {@code doStore} call.
-     * Generates three distinct events and asserts all are persisted, confirming
-     * that repeated writes through the alias succeed.
-     */
-    @Test
-    public void testWritesEventsToAliasSuccessfully() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            long before = countAuditDocs(client);
-
-            generateAuditEvent("_cluster/health");
-            generateAuditEvent("_cluster/stats");
-            generateAuditEvent("_nodes/info");
-
-            await().untilAsserted(
-                () -> assertThat("At least 3 events must be written through alias", countAuditDocs(client) - before, greaterThan(2L))
-            );
-        }
-    }
-
-    /**
-     * Documents written via the alias must contain the same mandatory audit fields
-     * as those written to a concrete index (category, timestamp, REST method/path,
-     * layer and origin). Transport-specific fields must be absent since transport
-     * audit is disabled.
-     */
-    @Test
-    public void testAuditDocumentsViaAliasContainMandatoryFields() {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            long before = countAuditDocs(client);
-            generateAuditEvent("_cluster/health");
-
-            await().until(() -> countAuditDocs(client) > before);
-
-            HttpResponse response = client.postJson(AUDIT_ALIAS + "/_search", """
-                {"query": {"match_all": {}}, "size": 1, "sort": [{"@timestamp": "desc"}]}
-                """);
-            response.assertStatusCode(200);
-
-            JsonNode source = response.bodyAsJsonNode().get("hits").get("hits").get(0).get("_source");
-
-            assertThat(source.has("audit_category"), is(true));
-            assertThat(source.has("@timestamp"), is(true));
-            assertThat(source.has("audit_rest_request_method"), is(true));
-            assertThat(source.has("audit_rest_request_path"), is(true));
-            assertThat(source.get("audit_request_layer").asText(), is("REST"));
-            assertThat(source.get("audit_request_origin").asText(), is("REST"));
-            assertThat(source.has("audit_transport_request_type"), is(false));
         }
     }
 }

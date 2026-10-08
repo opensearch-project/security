@@ -47,12 +47,21 @@ public class AuditConfigFilterTest {
     public void testDefault() {
         // arrange
         final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
-        final EnumSet<AuditCategory> defaultDisabledRestCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
+        final EnumSet<AuditCategory> defaultDisabledRestCategories = EnumSet.of(
+            AUTHENTICATED,
+            GRANTED_PRIVILEGES,
+            AuditCategory.RESOURCE_ACCESS_GRANTED,
+            AuditCategory.RESOURCE_ACCESS_DENIED,
+            AuditCategory.RESOURCE_SHARING_CHANGED
+        );
         final EnumSet<AuditCategory> defaultDisabledTransportCategories = EnumSet.of(
             AUTHENTICATED,
             GRANTED_PRIVILEGES,
             AuditCategory.CLUSTER_SETTINGS_CHANGED,
-            AuditCategory.INDEX_SETTINGS_CHANGED
+            AuditCategory.INDEX_SETTINGS_CHANGED,
+            AuditCategory.RESOURCE_ACCESS_GRANTED,
+            AuditCategory.RESOURCE_ACCESS_DENIED,
+            AuditCategory.RESOURCE_SHARING_CHANGED
         );
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(Settings.EMPTY);
@@ -219,7 +228,18 @@ public class AuditConfigFilterTest {
         );
 
         final Settings noValues = Settings.builder().build();
-        assertThat(parse.apply(noValues), equalTo(ImmutableSet.of(AUTHENTICATED, GRANTED_PRIVILEGES)));
+        assertThat(
+            parse.apply(noValues),
+            equalTo(
+                ImmutableSet.of(
+                    AUTHENTICATED,
+                    GRANTED_PRIVILEGES,
+                    AuditCategory.RESOURCE_ACCESS_GRANTED,
+                    AuditCategory.RESOURCE_ACCESS_DENIED,
+                    AuditCategory.RESOURCE_SHARING_CHANGED
+                )
+            )
+        );
 
         final Settings legacySettingNone = Settings.builder().put(entry.getLegacyKeyWithNamespace(), "NONE").build();
         assertThat(parse.apply(legacySettingNone), equalTo(ImmutableSet.of()));
