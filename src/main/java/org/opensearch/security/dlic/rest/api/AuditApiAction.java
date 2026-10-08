@@ -24,6 +24,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.configuration.StaticResourceException;
 import org.opensearch.security.dlic.rest.support.Utils;
@@ -156,7 +157,16 @@ public class AuditApiAction extends AbstractApiAction {
         private ValidationResult<JsonNode> validateAuditPayload(final JsonNode jsonContent) {
             try {
                 // AuditConfig parses category names against AuditCategory, rejecting unknown values.
-                DefaultObjectMapper.readTree(jsonContent, AuditConfig.class);
+                final AuditConfig auditConfig = DefaultObjectMapper.readTree(jsonContent, AuditConfig.class);
+                final AuditConfig.Filter filter = auditConfig.getFilter();
+                if (filter.getDisabledRestCategories().stream().anyMatch(category -> !category.supportsLayerFilter(Origin.REST))) {
+                    throw new IllegalArgumentException("Category does not support disabled_rest_categories; use disabled_categories");
+                }
+                if (filter.getDisabledTransportCategories()
+                    .stream()
+                    .anyMatch(category -> !category.supportsLayerFilter(Origin.TRANSPORT))) {
+                    throw new IllegalArgumentException("Category does not support disabled_transport_categories; use disabled_categories");
+                }
                 return ValidationResult.success(jsonContent);
             } catch (final Exception e) {
                 // this.content is not valid json

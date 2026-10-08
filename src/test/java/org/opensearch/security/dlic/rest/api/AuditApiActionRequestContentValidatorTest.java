@@ -21,6 +21,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.util.FakeRestRequest;
@@ -45,35 +46,52 @@ public class AuditApiActionRequestContentValidatorTest extends AbstractApiAction
     }
 
     @Test
-    public void acceptsEveryDefinedCategory() throws IOException {
+    public void acceptsEveryDefinedCategoryInUnifiedFilterAndChecksLayerSpecificFilters() throws IOException {
         for (var category : AuditCategory.values()) {
-            assertCategoryValidation(category.name(), true);
+            assertCategoryValidation("disabled_categories", category.name(), true);
+            assertCategoryValidation("disabled_rest_categories", category.name(), category.supportsLayerFilter(Origin.REST));
+            assertCategoryValidation("disabled_transport_categories", category.name(), category.supportsLayerFilter(Origin.TRANSPORT));
         }
     }
 
     @Test
     public void rejectsUnknownCategories() throws IOException {
-        assertCategoryValidation("UNKNOWN_CATEGORY", false);
+        for (String field : List.of("disabled_categories", "disabled_rest_categories", "disabled_transport_categories")) {
+            assertCategoryValidation(field, "UNKNOWN_CATEGORY", false);
+        }
     }
 
     @Test
     public void acceptsNoneAndCaseInsensitiveNames() throws IOException {
-        assertCategoryValidation("NONE", true);
-        assertCategoryValidation("failed_login", true);
+        for (String field : List.of("disabled_categories", "disabled_rest_categories", "disabled_transport_categories")) {
+            assertCategoryValidation(field, "NONE", true);
+            assertCategoryValidation(field, "failed_login", true);
+        }
     }
 
-    private void assertCategoryValidation(String category, boolean valid) throws IOException {
-        for (String field : List.of("disabled_categories", "disabled_rest_categories", "disabled_transport_categories")) {
-            String content = "{\"audit\":{\"" + field + "\":[\"" + category + "\"]}}";
-            var request = FakeRestRequest.builder().withContent(new BytesArray(content)).build();
-            // Cover both raw PUT bodies and parsed PATCH payloads.
-            for (var result : List.of(validator.validate(request), validator.validate(request, objectMapper.readTree(content)))) {
-                if (valid) {
-                    assertTrue(field + ": " + category, result.isValid());
-                } else {
-                    assertFalse(result.isValid());
-                    assertThat(result.status(), is(RestStatus.BAD_REQUEST));
-                }
+    @Test
+    public void rejectsCategoriesOutsideTheirLayer() throws IOException {
+        assertCategoryValidation("disabled_rest_categories", "TRANSPORT_AUDIT", false);
+        assertCategoryValidation("disabled_rest_categories", "INDEX_EVENT", false);
+        assertCategoryValidation("disabled_rest_categories", "COMPLIANCE_DOC_READ", false);
+        assertCategoryValidation("disabled_transport_categories", "COMPLIANCE_DOC_READ", false);
+        assertCategoryValidation("disabled_rest_categories", "API_TOKEN_WRITE", false);
+        assertCategoryValidation("disabled_transport_categories", "API_TOKEN_WRITE", false);
+        assertCategoryValidation("disabled_rest_categories", "REQUEST_AUDIT", true);
+        assertCategoryValidation("disabled_transport_categories", "REQUEST_AUDIT", true);
+        assertCategoryValidation("disabled_transport_categories", "TRANSPORT_AUDIT", true);
+    }
+
+    private void assertCategoryValidation(String field, String category, boolean valid) throws IOException {
+        String content = "{\"audit\":{\"" + field + "\":[\"" + category + "\"]}}";
+        var request = FakeRestRequest.builder().withContent(new BytesArray(content)).build();
+        // Cover both raw PUT bodies and parsed PATCH payloads.
+        for (var result : List.of(validator.validate(request), validator.validate(request, objectMapper.readTree(content)))) {
+            if (valid) {
+                assertTrue(field + ": " + category, result.isValid());
+            } else {
+                assertFalse(result.isValid());
+                assertThat(result.status(), is(RestStatus.BAD_REQUEST));
             }
         }
     }

@@ -129,7 +129,12 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         for (String field : List.of("disabled_categories", "disabled_rest_categories", "disabled_transport_categories")) {
-            String valid = "{\"audit\":{\"" + field + "\":[\"FAILED_LOGIN\",\"API_TOKEN_WRITE\",\"COMPLIANCE_DOC_READ\"]}}";
+            String categories = switch (field) {
+                case "disabled_categories" -> "[\"FAILED_LOGIN\",\"API_TOKEN_WRITE\",\"COMPLIANCE_DOC_READ\"]";
+                case "disabled_rest_categories" -> "[\"FAILED_LOGIN\",\"REQUEST_AUDIT\"]";
+                default -> "[\"INDEX_EVENT\",\"TRANSPORT_AUDIT\"]";
+            };
+            String valid = "{\"audit\":{\"" + field + "\":" + categories + "}}";
             RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, valid);
             assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
 
@@ -145,9 +150,16 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
             response = rh.executePatchRequest(
                 ENDPOINT,
-                "[{\"op\":\"replace\",\"path\":\"/config/audit/" + field + "\",\"value\":[\"TRANSPORT_AUDIT\",\"REQUEST_AUDIT\"]}]"
+                "[{\"op\":\"replace\",\"path\":\"/config/audit/" + field + "\",\"value\":[\"BAD_HEADERS\"]}]"
             );
             assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
+            if (!field.equals("disabled_categories")) {
+                response = rh.executePatchRequest(
+                    ENDPOINT,
+                    "[{\"op\":\"replace\",\"path\":\"/config/audit/" + field + "\",\"value\":[\"COMPLIANCE_DOC_READ\"]}]"
+                );
+                assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_BAD_REQUEST));
+            }
         }
     }
 
