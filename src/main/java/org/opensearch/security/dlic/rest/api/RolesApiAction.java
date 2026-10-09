@@ -34,6 +34,8 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator.Data
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
 import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
+import org.opensearch.security.privileges.UserAttributes;
+import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
@@ -81,13 +83,43 @@ public class RolesApiAction extends AbstractApiAction {
         }
 
         @Override
-        public ValidationResult<JsonNode> validate(RestRequest request) throws IOException {
-            return super.validate(request).map(this::validateMaskedFields);
+        public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonContent) throws IOException {
+            return super.validate(request, jsonContent).map(this::validateMaskedFields).map(content -> validateDls(request, content));
         }
 
         @Override
-        public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonContent) throws IOException {
-            return super.validate(request, jsonContent).map(this::validateMaskedFields);
+        public ValidationResult<JsonNode> validate(RestRequest request, JsonNode patchedContent, JsonNode originalContent)
+            throws IOException {
+            return super.validate(request, patchedContent, originalContent).map(this::validateMaskedFields)
+                .map(content -> validateDls(request, content));
+        }
+
+        private ValidationResult<JsonNode> validateDls(RestRequest request, JsonNode content) {
+            int index = 0;
+            for (JsonNode permission : content.path("index_permissions")) {
+                JsonNode dls = permission.path("dls");
+                if (!dls.isMissingNode() && !dls.isNull()) {
+                    String error = null;
+                    if (!dls.isTextual()) {
+                        error = "DLS must be a query DSL object encoded as a string";
+                    } else if (!dls.asText().isEmpty() && !UserAttributes.needsAttributeSubstitution(dls.asText())) {
+                        // User-dependent templates are parsed after substitution during authorization.
+                        try {
+                            DocumentPrivileges.getRenderedDlsQuery(request.getXContentRegistry(), dls.asText());
+                        } catch (Exception e) {
+                            error = "DLS must contain exactly one valid query DSL object";
+                        }
+                    }
+                    if (error != null) {
+                        validationError = ValidationError.WRONG_DATATYPE;
+                        wrongDataTypes.put("index_permissions[" + index + "].dls", error);
+                    }
+                }
+                index++;
+            }
+            return validationError == ValidationError.NONE
+                ? ValidationResult.success(content)
+                : ValidationResult.error(RestStatus.BAD_REQUEST, this);
         }
 
         private ValidationResult<JsonNode> validateMaskedFields(final JsonNode content) {
