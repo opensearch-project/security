@@ -29,8 +29,11 @@ import org.opensearch.identity.noop.NoopSubject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.OnBehalfOfClaims;
 import org.opensearch.identity.tokens.TokenManager;
+import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.authtoken.jwt.ExpiringBearerAuthToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
+import org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormat;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.authtoken.jwt.claims.OBOJwtClaimsBuilder;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -52,6 +55,7 @@ public class SecurityTokenManager implements TokenManager {
     private final ThreadPool threadPool;
     private final UserService userService;
     private final RoleMapper roleMapper;
+    private final OnBehalfOfKeys keystoreKeys;
 
     private Settings oboSettings = null;
     private final LongSupplier timeProvider = System::currentTimeMillis;
@@ -61,12 +65,14 @@ public class SecurityTokenManager implements TokenManager {
         final ClusterService cs,
         final ThreadPool threadPool,
         final UserService userService,
-        RoleMapper roleMapper
+        final RoleMapper roleMapper,
+        final OnBehalfOfKeys keystoreKeys
     ) {
         this.cs = cs;
         this.threadPool = threadPool;
         this.userService = userService;
         this.roleMapper = roleMapper;
+        this.keystoreKeys = keystoreKeys;
     }
 
     @Subscribe
@@ -81,7 +87,7 @@ public class SecurityTokenManager implements TokenManager {
     /** For testing */
     JwtVendor createJwtVendor(final Settings settings) {
         try {
-            return new JwtVendor(settings);
+            return new JwtVendor(settings, keystoreKeys.signingKey());
         } catch (final Exception ex) {
             logger.error("Unable to create the JwtVendor instance", ex);
             return null;
@@ -129,7 +135,13 @@ public class SecurityTokenManager implements TokenManager {
             throw new IllegalArgumentException("Roles cannot be null");
         }
 
-        final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(oboSettings.get("encryption_key"));
+        final OBOJwtClaimsBuilder claimsBuilder = new OBOJwtClaimsBuilder(
+            EncryptionDecryptionUtil.fromSettings(
+                oboSettings,
+                keystoreKeys.encryptionKey(),
+                LegacyRolesClaimFormat.issuanceGate(() -> cs.state().nodes())
+            )
+        );
 
         // Add obo claims
         claimsBuilder.issuer(cs.getClusterName().value());

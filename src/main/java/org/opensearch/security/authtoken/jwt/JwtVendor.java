@@ -14,6 +14,7 @@ package org.opensearch.security.authtoken.jwt;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
+import javax.crypto.SecretKey;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,13 +37,18 @@ import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jwt.SignedJWT;
 
 public class JwtVendor {
+    public static final String SIGNING_KEY_PROPERTY_KEY = "signing_key";
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
 
     private final JWK signingKey;
     private final JWSSigner signer;
 
-    public JwtVendor(Settings settings) {
-        final Tuple<JWK, JWSSigner> tuple = createJwkFromSettings(settings);
+    /**
+     * @param keystoreKey the signing key from the node keystore (see {@link OnBehalfOfKeys}); takes precedence over
+     *                    {@code signing_key} in {@code settings}, may be {@code null}
+     */
+    public JwtVendor(Settings settings, SecretKey keystoreKey) {
+        final Tuple<JWK, JWSSigner> tuple = createJwkFromSettings(settings, keystoreKey);
         signingKey = tuple.v1();
         signer = tuple.v2();
     }
@@ -53,10 +59,13 @@ public class JwtVendor {
      *   PublicKeyUse: SIGN
      *   Encryption Algorithm: HS512
      * */
-    static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings) {
+    static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings, final SecretKey keystoreKey) {
         final OctetSequenceKey key;
-        if (settings.get("signing_key") != null) {
-            final String signingKey = settings.get("signing_key");
+
+        if (keystoreKey != null) {
+            key = new OctetSequenceKey.Builder(keystoreKey.getEncoded()).algorithm(JWSAlgorithm.HS512).keyUse(KeyUse.SIGNATURE).build();
+        } else if (settings.get(SIGNING_KEY_PROPERTY_KEY) != null) {
+            final String signingKey = settings.get(SIGNING_KEY_PROPERTY_KEY);
             key = new OctetSequenceKey.Builder(Base64.getDecoder().decode(signingKey)).algorithm(JWSAlgorithm.HS512)
                 .keyUse(KeyUse.SIGNATURE)
                 .build();

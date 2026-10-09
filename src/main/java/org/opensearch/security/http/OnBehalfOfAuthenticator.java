@@ -12,13 +12,16 @@
 package org.opensearch.security.http;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.crypto.SecretKey;
 
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +34,7 @@ import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
@@ -38,42 +42,114 @@ import org.opensearch.security.util.KeyUtils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.WeakKeyException;
 
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private static final int MINIMUM_SIGNING_KEY_BIT_LENGTH = 512;
+    private static final String SIGNING_KEY = "signing_key";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";
 
-    private final JwtParser jwtParser;
-    private final String encryptionKey;
+    private final Settings settings;
     private final Boolean enabled;
     private final String clusterName;
+    private final OnBehalfOfKeys keystoreKeys;
+    private final BooleanSupplier legacyFormatWindow;
+    private volatile boolean initialized = false;
+    private volatile JwtParser jwtParser;
+    private volatile EncryptionDecryptionUtil encryptionUtil;
 
-    private final EncryptionDecryptionUtil encryptionUtil;
-
-    public OnBehalfOfAuthenticator(Settings settings, String clusterName) {
-        enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
-        encryptionKey = settings.get("encryption_key");
-        jwtParser = AccessController.doPrivileged(() -> {
-            JwtParserBuilder builder = initParserBuilder(settings.get("signing_key"));
-            return builder.build();
-        });
-        this.clusterName = clusterName;
-        this.encryptionUtil = encryptionKey != null ? new EncryptionDecryptionUtil(encryptionKey) : null;
+    /**
+     * Assumes nothing about the cluster's composition, so the pre-upgrade encryption format stays readable,
+     * and no keys from the node keystore. For callers that have no cluster state to consult, such as tests.
+     */
+    OnBehalfOfAuthenticator(Settings settings, String clusterName) {
+        this(settings, clusterName, OnBehalfOfKeys.NONE, () -> true);
     }
 
-    private JwtParserBuilder initParserBuilder(final String signingKey) {
+    /**
+     * @param keystoreKeys       the keys from the node keystore; each takes precedence over its Base64 counterpart
+     *                           in {@code settings}
+     * @param legacyFormatWindow whether this node still reads the pre-upgrade roles-claim format; in production
+     *                           {@code LegacyRolesClaimFormat.PreUpgradeNodeTracker#legacyFormatReadable}
+     */
+    public OnBehalfOfAuthenticator(Settings settings, String clusterName, OnBehalfOfKeys keystoreKeys, BooleanSupplier legacyFormatWindow) {
+        this.enabled = settings.getAsBoolean("enabled", Boolean.TRUE);
+        this.settings = settings;
+        this.clusterName = clusterName;
+        this.keystoreKeys = keystoreKeys;
+        this.legacyFormatWindow = legacyFormatWindow;
+    }
+
+    /**
+     * Builds the JWT parser and encryption helper on first use. Initialization is attempted exactly once.
+     *
+     * @return {@code true} if OBO authentication is usable, {@code false} if it is misconfigured
+     */
+    private boolean ensureInitialized() {
+        if (!initialized) {
+            synchronized (this) {
+                if (!initialized) {
+                    try {
+                        jwtParser = AccessController.doPrivileged(this::buildJwtParser);
+                        encryptionUtil = EncryptionDecryptionUtil.fromSettings(settings, keystoreKeys.encryptionKey(), legacyFormatWindow);
+                    } catch (final RuntimeException e) {
+                        log.error("On-behalf-of authentication is misconfigured; OBO tokens will be rejected: {}", e.toString(), e);
+                    } finally {
+                        // Must be set last: other threads read this flag without the lock and then
+                        // use jwtParser/encryptionUtil directly, so both must already be assigned.
+                        initialized = true;
+                    }
+                }
+            }
+        }
+        return jwtParser != null;
+    }
+
+    /**
+     * Builds the HMAC verification parser. The signing key comes from the node keystore if one is configured
+     * there (see {@link OnBehalfOfKeys}), otherwise from the Base64-encoded {@code signing_key} setting. This
+     * mirrors how {@link org.opensearch.security.authtoken.jwt.JwtVendor} signs OBO tokens, so issuance and
+     * verification share the same key material.
+     */
+    private JwtParser buildJwtParser() {
+        final SecretKey keystoreKey = keystoreKeys.signingKey();
+        if (keystoreKey != null) {
+            final byte[] keyBytes = keystoreKey.getEncoded();
+            validateSigningKeyBitLength(keyBytes.length * Byte.SIZE);
+            return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(keyBytes)).build();
+        }
+        final String signingKey = settings.get(SIGNING_KEY);
+        validateSigningKey(signingKey);
+        return KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log).build();
+    }
+
+    /**
+     * Validates a Base64-encoded {@code signing_key}, throwing {@link OpenSearchSecurityException} with a
+     * descriptive message when it is missing, not valid Base64, or below the
+     * {@value #MINIMUM_SIGNING_KEY_BIT_LENGTH}-bit minimum. Package-private static so it can be unit-tested
+     * directly without standing up an authenticator.
+     */
+    static void validateSigningKey(final String signingKey) {
         if (signingKey == null) {
             throw new OpenSearchSecurityException("Unable to find on behalf of authenticator signing_key");
         }
+        final int signingKeyLengthBits;
+        try {
+            signingKeyLengthBits = Base64.getDecoder().decode(signingKey).length * Byte.SIZE;
+        } catch (final IllegalArgumentException e) {
+            throw new OpenSearchSecurityException("Signing key is not a valid Base64-encoded value: " + e.getMessage());
+        }
+        validateSigningKeyBitLength(signingKeyLengthBits);
+    }
 
-        final int signingKeyLengthBits = signingKey.length() * 8;
+    static void validateSigningKeyBitLength(final int signingKeyLengthBits) {
         if (signingKeyLengthBits < MINIMUM_SIGNING_KEY_BIT_LENGTH) {
             throw new OpenSearchSecurityException(
                 "Signing key size was "
@@ -83,9 +159,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                     + " bits."
             );
         }
-        JwtParserBuilder jwtParserBuilder = KeyUtils.createJwtParserBuilderFromSigningKey(signingKey, log);
-
-        return jwtParserBuilder;
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {
@@ -148,7 +221,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
 
         String jwtToken = extractJwtFromHeader(request);
-        if (jwtToken == null) {
+        if (jwtToken == null || !ensureInitialized()) {
             return null;
         }
 

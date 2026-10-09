@@ -491,7 +491,12 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "OnBehalfOfSettings [ enabled=" + enabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+            return String.format(
+                "OnBehalfOfSettings [ enabled=%s, signing_key=%s, encryption_key=%s]",
+                enabled,
+                signingKey != null ? "****" : "<not set>",
+                encryptionKey != null ? "****" : "<not set>"
+            );
         }
     }
 
