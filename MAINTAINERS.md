@@ -25,6 +25,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Andriy Redko     | [reta](https://github.com/reta)                       | Independent |
 | Andrey Pleskach  | [willyborankin](https://github.com/willyborankin)     | Aiven       |
 | Nils Bandener    | [nibix](https://github.com/nibix)                     | Eliatra     |
+| Hardik Shah      | [hardik-k-shah](https://github.com/hardik-k-shah)     | Amazon      |
 
 ## Emeritus
 
@@ -38,7 +39,6 @@ We thank our emeritus maintainers for their contributions and stewardship of Ope
 | Stephen Crawford | [stephen-crawford](https://github.com/stephen-crawford) | Contributor            |
 | afazel           | [afazel](https://github.com/afazel)                     | Amazon (during tenure) |
 | Andy             | [andy840314](https://github.com/andy840314)             | Amazon (during tenure) |
-| hardik-k-shah    | [hardik-k-shah](https://github.com/hardik-k-shah)       | Amazon (during tenure) |
 | hsiang9431-amzn  | [hsiang9431-amzn](https://github.com/hsiang9431-amzn)   | Amazon (during tenure) |
 | lukkoor          | [lukkoor](https://github.com/lukkoor)                   | Amazon (during tenure) |
 | Palash Hedau     | [palashhedau](https://github.com/palashhedau)           | Amazon (during tenure) |
