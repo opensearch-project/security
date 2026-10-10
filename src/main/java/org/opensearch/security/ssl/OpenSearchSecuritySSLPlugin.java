@@ -561,8 +561,10 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_NAME, Property.NodeScope, Property.Filtered));
         settings.add(
-            Setting.simpleString(
+            Setting.listSetting(
                 SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE,
+                Collections.emptyList(),
+                Function.identity(),
                 Property.NodeScope,
                 Property.Filtered
             )

@@ -76,7 +76,7 @@ public class CertificateAuthenticationTest {
             SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT,
             "true",
             SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE,
-            "DC=de,L=test,O=users,OU=bridge,CN=spock"
+            List.of("DC=de,L=test,O=users,OU=bridge,CN=spock")
         )
     )
         .clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
