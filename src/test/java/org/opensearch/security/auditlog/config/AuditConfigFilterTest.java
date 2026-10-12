@@ -47,14 +47,7 @@ public class AuditConfigFilterTest {
     public void testDefault() {
         // arrange
         final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
-        final EnumSet<AuditCategory> defaultDisabledRestCategories = EnumSet.of(
-            AUTHENTICATED,
-            GRANTED_PRIVILEGES,
-            AuditCategory.RESOURCE_ACCESS_GRANTED,
-            AuditCategory.RESOURCE_ACCESS_DENIED,
-            AuditCategory.RESOURCE_SHARING_CHANGED
-        );
-        final EnumSet<AuditCategory> defaultDisabledTransportCategories = EnumSet.of(
+        final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(
             AUTHENTICATED,
             GRANTED_PRIVILEGES,
             AuditCategory.CLUSTER_SETTINGS_CHANGED,
@@ -75,8 +68,9 @@ public class AuditConfigFilterTest {
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditRequestsMatcher());
         assertThat(auditConfigFilter.getIgnoredAuditUsersMatcher(), is(defaultIgnoredUserMatcher));
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredCustomHeadersMatcher());
-        assertThat(defaultDisabledRestCategories, is(auditConfigFilter.getDisabledRestCategories()));
-        assertThat(defaultDisabledTransportCategories, is(auditConfigFilter.getDisabledTransportCategories()));
+        assertThat(auditConfigFilter.getDisabledCategories(), is(defaultDisabledCategories));
+        assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
+        assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
     }
 
     @Test
@@ -220,26 +214,11 @@ public class AuditConfigFilterTest {
     public void fromSettingParseAuditCategory() {
         final FilterEntries entry = FilterEntries.DISABLE_REST_CATEGORIES;
         final Function<Settings, Set<AuditCategory>> parse = (settings) -> AuditCategory.parse(
-            AuditConfig.Filter.fromSettingStringSet(
-                settings,
-                entry,
-                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
-            )
+            AuditConfig.Filter.fromSettingStringSet(settings, entry, ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT)
         );
 
         final Settings noValues = Settings.builder().build();
-        assertThat(
-            parse.apply(noValues),
-            equalTo(
-                ImmutableSet.of(
-                    AUTHENTICATED,
-                    GRANTED_PRIVILEGES,
-                    AuditCategory.RESOURCE_ACCESS_GRANTED,
-                    AuditCategory.RESOURCE_ACCESS_DENIED,
-                    AuditCategory.RESOURCE_SHARING_CHANGED
-                )
-            )
-        );
+        assertThat(parse.apply(noValues), equalTo(AuditCategory.parse(ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT)));
 
         final Settings legacySettingNone = Settings.builder().put(entry.getLegacyKeyWithNamespace(), "NONE").build();
         assertThat(parse.apply(legacySettingNone), equalTo(ImmutableSet.of()));
@@ -321,10 +300,15 @@ public class AuditConfigFilterTest {
 
     @Test
     public void testDefaultDisabledCategoriesWhenNothingConfigured() {
-        // When nothing is configured, disabled_categories defaults to empty
+        // When nothing is configured, disabled_categories holds the defaults and the split settings are empty
         final AuditConfig.Filter filter = AuditConfig.Filter.from(Settings.EMPTY);
 
-        assertTrue(filter.getDisabledCategories().isEmpty());
+        assertThat(
+            filter.getDisabledCategories(),
+            equalTo(AuditCategory.parse(ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT))
+        );
+        assertTrue(filter.getDisabledRestCategories().isEmpty());
+        assertTrue(filter.getDisabledTransportCategories().isEmpty());
     }
 
     @Test
@@ -355,9 +339,9 @@ public class AuditConfigFilterTest {
     }
 
     @Test
-    public void testLegacySplitDefaultsNotAppliedWhenUnifiedSet() {
-        // Only disabled_categories is configured: the legacy split defaults must not be unioned in,
-        // otherwise categories like RESOURCE_* could never be enabled with the unified setting
+    public void testDefaultsReplacedWhenOnlyUnifiedSet() {
+        // Only disabled_categories is configured: it replaces the defaults, so categories like RESOURCE_*
+        // can be enabled with the unified setting alone
         final Settings settings = Settings.builder()
             .putList("plugins.security.audit.config.disabled_categories", "AUTHENTICATED", "GRANTED_PRIVILEGES")
             .build();
@@ -369,7 +353,7 @@ public class AuditConfigFilterTest {
     }
 
     @Test
-    public void testLegacySplitDefaultsNotAppliedWhenUnifiedSetViaMap() {
+    public void testDefaultsReplacedWhenOnlyUnifiedSetViaMap() {
         final AuditConfig.Filter filter = AuditConfig.Filter.from(
             Map.of(FilterEntries.DISABLE_CATEGORIES.getKey(), List.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
         );
@@ -380,7 +364,7 @@ public class AuditConfigFilterTest {
     }
 
     @Test
-    public void testMissingSplitKeyDoesNotFallBackToLegacyDefaultWhenUnifiedSetViaMap() {
+    public void testMissingSplitKeyIsEmptyViaMap() {
         final AuditConfig.Filter filter = AuditConfig.Filter.from(
             Map.of(
                 FilterEntries.DISABLE_CATEGORIES.getKey(),
@@ -396,17 +380,31 @@ public class AuditConfigFilterTest {
     }
 
     @Test
-    public void testLegacySplitDefaultsAppliedWhenUnifiedNotSetViaMap() {
+    public void testDefaultsAppliedWhenNothingConfiguredViaMap() {
         final AuditConfig.Filter filter = AuditConfig.Filter.from(Map.of());
 
+        assertThat(
+            filter.getDisabledCategories(),
+            equalTo(AuditCategory.parse(ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT))
+        );
+        assertTrue(filter.getDisabledRestCategories().isEmpty());
+        assertTrue(filter.getDisabledTransportCategories().isEmpty());
+    }
+
+    @Test
+    public void testDefaultsReplacedWhenOnlySplitSetViaMap() {
+        // Deprecated split settings alone also replace the defaults, e.g. to audit everything with []
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(
+            Map.of(
+                FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
+                List.of(),
+                FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
+                List.of()
+            )
+        );
+
         assertTrue(filter.getDisabledCategories().isEmpty());
-        assertThat(
-            filter.getDisabledRestCategories(),
-            equalTo(AuditCategory.parse(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT))
-        );
-        assertThat(
-            filter.getDisabledTransportCategories(),
-            equalTo(AuditCategory.parse(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT))
-        );
+        assertTrue(filter.getDisabledRestCategories().isEmpty());
+        assertTrue(filter.getDisabledTransportCategories().isEmpty());
     }
 }

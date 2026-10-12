@@ -131,6 +131,15 @@ public class AuditConfig {
     public static class Filter {
         private static final Logger log = LogManager.getLogger(Filter.class);
         private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
+
+        // CLUSTER_SETTINGS_CHANGED and INDEX_SETTINGS_CHANGED are only emitted on the transport layer
+        private static final List<String> LEGACY_DISABLED_REST_CATEGORIES_DEFAULT =
+            ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT.stream()
+                .filter(
+                    category -> !AuditCategory.CLUSTER_SETTINGS_CHANGED.name().equals(category)
+                        && !AuditCategory.INDEX_SETTINGS_CHANGED.name().equals(category)
+                )
+                .collect(Collectors.toUnmodifiableList());
         /** Settings key for body logging exclusions — defined here to avoid circular init with SecuritySettings.
          *  Must match {@code SecuritySettings.AUDIT_BODY_LOGGING_EXCLUSIONS}. */
         static final String BODY_LOGGING_EXCLUSIONS_KEY = "plugins.security.audit.config.body_logging_exclusions";
@@ -266,21 +275,23 @@ public class AuditConfig {
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
             final boolean unifiedPresent = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
+            final boolean splitPresent = properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
+                || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey());
             final Set<AuditCategory> disabledCategories = AuditCategory.parse(
-                getOrDefault(properties, FilterEntries.DISABLE_CATEGORIES.getKey(), Collections.emptyList())
+                getOrDefault(properties, FilterEntries.DISABLE_CATEGORIES.getKey(), defaultDisabledCategories(splitPresent))
             );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
-                    legacySplitDefault(unifiedPresent, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT)
+                    legacySplitDefault(unifiedPresent, splitPresent, LEGACY_DISABLED_REST_CATEGORIES_DEFAULT)
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
-                    legacySplitDefault(unifiedPresent, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT)
+                    legacySplitDefault(unifiedPresent, splitPresent, ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT)
                 )
             );
             final List<String> rawIgnoredUsers = getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS);
@@ -294,8 +305,6 @@ public class AuditConfig {
                 getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
-            final boolean splitPresent = properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
-                || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey());
             warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
 
             final List<String> bodyExclusions = getOrDefault(properties, "body_logging_exclusions", Collections.emptyList());
@@ -351,31 +360,31 @@ public class AuditConfig {
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
             final boolean unifiedPresent = settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace())
                 || settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getLegacyKeyWithNamespace());
+            final boolean splitPresent = settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace());
             final Set<AuditCategory> disabledCategories = AuditCategory.parse(
-                fromSettingStringSet(settings, FilterEntries.DISABLE_CATEGORIES, Collections.emptyList())
+                fromSettingStringSet(settings, FilterEntries.DISABLE_CATEGORIES, defaultDisabledCategories(splitPresent))
             );
             final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_REST_CATEGORIES,
-                    legacySplitDefault(unifiedPresent, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT)
+                    legacySplitDefault(unifiedPresent, splitPresent, LEGACY_DISABLED_REST_CATEGORIES_DEFAULT)
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES,
-                    legacySplitDefault(unifiedPresent, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT)
+                    legacySplitDefault(unifiedPresent, splitPresent, ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT)
                 )
             );
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
             final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
 
-            final boolean splitPresent = settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
-                || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
-                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
-                || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getLegacyKeyWithNamespace());
             warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
 
             Filter filter = new Filter(
@@ -434,12 +443,21 @@ public class AuditConfig {
         }
 
         /**
-         * The legacy defaults of the split REST/transport categories only apply when the unified
-         * 'disabled_categories' is not configured. Otherwise they would be unioned with it and
-         * 'disabled_categories' alone could never enable any category contained in those defaults.
+         * The default disabled categories only apply when no category list is configured at all. Configuring
+         * any of 'disabled_categories', 'disabled_rest_categories' or 'disabled_transport_categories'
+         * replaces them, so that every category can be enabled.
          */
-        private static List<String> legacySplitDefault(boolean unifiedPresent, List<String> legacyDefault) {
-            return unifiedPresent ? Collections.emptyList() : legacyDefault;
+        private static List<String> defaultDisabledCategories(boolean splitPresent) {
+            return splitPresent ? Collections.emptyList() : ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT;
+        }
+
+        /**
+         * Legacy behaviour for configs that only use the deprecated split settings: a split setting that is not
+         * configured falls back to the default disabled categories, as long as the other split setting is configured
+         * and 'disabled_categories' is not.
+         */
+        private static List<String> legacySplitDefault(boolean unifiedPresent, boolean splitPresent, List<String> defaultValue) {
+            return !unifiedPresent && splitPresent ? defaultValue : Collections.emptyList();
         }
 
         private static void warnIfBothUnifiedAndSplitConfigured(boolean unifiedPresent, boolean splitPresent) {
@@ -804,6 +822,7 @@ public class AuditConfig {
             logger.info("{} are excluded from REST API auditing.", disabledRestCategories);
             logger.info("Auditing on Transport API is {}.", isTransportApiAuditEnabled ? "enabled" : "disabled");
             logger.info("{} are excluded from Transport API auditing.", disabledTransportCategories);
+            logger.info("{} are excluded from both REST and Transport API auditing.", disabledCategories);
             logger.info("Auditing of request body is {}.", logRequestBody ? "enabled" : "disabled");
             logger.info("Bulk requests resolution is {} during request auditing.", resolveBulkRequests ? "enabled" : "disabled");
             logger.info("Index resolution is {} during request auditing.", resolveIndices ? "enabled" : "disabled");
