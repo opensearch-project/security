@@ -11,7 +11,6 @@ package org.opensearch.security.resources;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -20,9 +19,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.mapper.ParsedDocument;
+import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
@@ -184,14 +183,14 @@ public class ResourcePluginInfoTests {
     public void testProtectedIndicesWhenTheSettingIsWiredAfterRegistration() {
         // The plugin registers extensions before it wires the setting, so the snapshot has to be built on both paths
         registerProvidersOnOwnIndices(List.of("monitor", "detector"));
-        resourcePluginInfo.setProtectedTypesSetting(protectedTypesSetting(List.of("monitor")));
+        resourcePluginInfo.setProtectedTypesSetting(new MutableProtectedTypes(List.of("monitor")));
 
         assertEquals(Set.of("index-monitor"), resourcePluginInfo.getResourceIndicesForProtectedTypes());
     }
 
     @Test
     public void testProtectedIndicesWhenTheSettingIsWiredBeforeRegistration() {
-        resourcePluginInfo.setProtectedTypesSetting(protectedTypesSetting(List.of("monitor")));
+        resourcePluginInfo.setProtectedTypesSetting(new MutableProtectedTypes(List.of("monitor")));
         registerProvidersOnOwnIndices(List.of("monitor", "detector"));
 
         assertEquals(Set.of("index-monitor"), resourcePluginInfo.getResourceIndicesForProtectedTypes());
@@ -225,7 +224,7 @@ public class ResourcePluginInfoTests {
         registerProvidersOnOwnIndices(List.of("monitor"));
         assertTrue(resourcePluginInfo.getResourceIndicesForProtectedTypes().isEmpty());
 
-        resourcePluginInfo.setProtectedTypesSetting(protectedTypesSetting(List.of()));
+        resourcePluginInfo.setProtectedTypesSetting(new MutableProtectedTypes(List.of()));
         assertTrue(resourcePluginInfo.getResourceIndicesForProtectedTypes().isEmpty());
     }
 
@@ -247,23 +246,10 @@ public class ResourcePluginInfoTests {
         resourcePluginInfo.setResourceSharingExtensions(Set.of(extension));
     }
 
-    private static OpensearchDynamicSetting<List<String>> protectedTypesSetting(List<String> types) {
-        return new MutableProtectedTypes(types);
-    }
-
     /** Stands in for the protected-types cluster setting, so a test can change its value the way the listener does. */
     private static class MutableProtectedTypes extends OpensearchDynamicSetting<List<String>> {
         MutableProtectedTypes(List<String> types) {
-            super(
-                Setting.listSetting(
-                    "plugins.security.resource_sharing.protected_types",
-                    List.of(),
-                    Function.identity(),
-                    Setting.Property.NodeScope,
-                    Setting.Property.Dynamic
-                ),
-                types
-            );
+            super(ResourceSharingProtectedResourcesSetting.PROTECTED_TYPES, types);
         }
 
         void set(List<String> types) {

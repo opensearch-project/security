@@ -208,9 +208,9 @@ public class ResourceAccessHandler {
                 needContainerCheck.size()
             );
             for (ResourceSharing sharingInfo : needContainerCheck) {
-                // Each id walks its own parent chain, so each gets its own visited set: these run concurrently and a
-                // shared set would be mutated from several threads at once. The record in hand has been consulted
-                // already, which the single-id path records on entry and this path has to record for itself.
+                // Each id walks its own chain, so none may share a visited set: these run concurrently, and a parent
+                // shared by two ids would look already visited for the second. The single-id path seeds the chain with
+                // the record it was asked about on entry; this path enters the walk lower down and seeds it here.
                 final Set<String> visitedChain = new HashSet<>();
                 visitedChain.add(chainKey(resourceType, sharingInfo.getResourceId()));
                 checkContainers(sharingInfo, action, visitedChain, groupedListener);
@@ -239,8 +239,8 @@ public class ResourceAccessHandler {
     }
 
     /**
-     * The single-id check, carrying the set of records the parent chain has already consulted so that a cyclic chain
-     * terminates. See {@link #checkParent} for why the chain can be cyclic at all.
+     * The single-id check, carrying the records the chain has already consulted so a cyclic chain terminates (see
+     * {@link #checkParent}).
      */
     private void hasPermission(
         @NonNull String resourceId,
@@ -249,7 +249,7 @@ public class ResourceAccessHandler {
         Set<String> visitedChain,
         ActionListener<Boolean> listener
     ) {
-        // This is the one place a record is consulted, so it is where the chain records having consulted it
+        // Recorded here, from the id this was asked about, rather than from the record that has not been read yet
         visitedChain.add(chainKey(resourceType, resourceId));
 
         final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
@@ -328,7 +328,7 @@ public class ResourceAccessHandler {
      *
      * @param sharingInfo  the sharing record of the resource whose containers should be consulted
      * @param action       the action being authorized
-     * @param visitedChain the records the parent chain has already consulted, carried so a cycle terminates
+     * @param visitedChain the records the chain has already consulted, carried so a cycle terminates
      * @param listener     notified with {@code true} if any container grants access, {@code false} otherwise
      */
     private void checkContainers(ResourceSharing sharingInfo, String action, Set<String> visitedChain, ActionListener<Boolean> listener) {
@@ -363,12 +363,10 @@ public class ResourceAccessHandler {
      * Resolves access inherited from the single hierarchical parent (if any), recursing via {@link #hasPermission} so
      * grandparent chains continue to work. Denies when there is no parent.
      * <p>
-     * A record's parent id comes from a field the owning plugin writes on the resource document, and its parent type
-     * from what that plugin's provider declares. A provider is free to declare a type as its own parent type (nested
-     * groups) or two types as each other's, and nothing rejects that at registration, so the chain a document describes
-     * can be cyclic. Each hop is a sharing-record read, so a cycle would not exhaust the stack; it would issue reads
-     * forever and never answer the caller. {@code visitedChain} ends the walk at the first record it reaches twice, and
-     * the answer there is a denial: a cycle has no terminating ancestor, so nothing in it grants the action.
+     * Nothing rejects a provider declaring a type as its own parent type, or two types as each other's, so the chain a
+     * document describes can be cyclic. Each hop is a sharing-record read, so a cycle would read forever rather than
+     * exhaust the stack. The walk therefore ends at the first record it reaches twice, and denies, since a cycle has no
+     * terminating ancestor to grant the action.
      */
     private void checkParent(ResourceSharing sharingInfo, String action, Set<String> visitedChain, ActionListener<Boolean> listener) {
         final String parentId = sharingInfo.getParentId();
@@ -377,7 +375,7 @@ public class ResourceAccessHandler {
             return;
         }
         final String parentType = sharingInfo.getParentType();
-        if (visitedChain.contains(chainKey(parentType, parentId))) {
+        if (!visitedChain.add(chainKey(parentType, parentId))) {
             LOGGER.warn(
                 "Parent chain of resource '{}' revisits {} '{}'; the hierarchy is cyclic. Action {} is not allowed.",
                 sharingInfo.getResourceId(),
@@ -391,7 +389,7 @@ public class ResourceAccessHandler {
         hasPermission(parentId, parentType, action, visitedChain, listener);
     }
 
-    /** Identifies a sharing record within one parent chain. A parent is named by type and id, so both are needed. */
+    /** Identifies a sharing record within one chain. */
     private static String chainKey(String resourceType, String resourceId) {
         return resourceType + "/" + resourceId;
     }

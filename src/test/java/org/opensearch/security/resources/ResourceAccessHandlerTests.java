@@ -324,8 +324,7 @@ public class ResourceAccessHandlerTests {
 
     @Test
     public void testHasPermission_parentCycleTerminates() {
-        // Two resources of the same type naming each other as parent. checkParent recurses through hasPermission, so a
-        // cycle in the parent chain never reaches a terminating case.
+        // Two resources naming each other as parent: the walk must stop rather than read forever
         User user = new User("ivy", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
@@ -344,8 +343,7 @@ public class ResourceAccessHandlerTests {
 
     @Test
     public void testHasPermission_selfParentTerminates() {
-        // A record naming itself as its own parent, which a provider declaring its own type as its parent type makes
-        // reachable from document data alone.
+        // A record naming itself as its own parent, reachable from document data alone
         User user = new User("jude", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
@@ -362,18 +360,14 @@ public class ResourceAccessHandlerTests {
 
     @Test
     public void testHasPermission_grandparentStillGrantsAccess() {
-        // Ending the walk at a repeated record must not shorten a chain that does terminate: the grandparent is the
-        // record that grants the action, two hops up.
+        // Stopping at a repeated record must not shorten a chain that does terminate
         User user = new User("kira", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
 
-        ResourceSharing grandparent = mock(ResourceSharing.class);
-        when(grandparent.isCreatedBy("kira")).thenReturn(true);
-
         stubRecord("child", parentOf("parent", user));
         stubRecord("parent", parentOf("grandparent", user));
-        stubRecord("grandparent", grandparent);
+        stubRecord("grandparent", ownedBy(user));
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission("child", TYPE, ACTION, listener);
@@ -500,7 +494,7 @@ public class ResourceAccessHandlerTests {
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
 
-        stubOwnedBy(user, RESOURCE_ID);
+        stubRecord(RESOURCE_ID, ownedBy(user));
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(List.of(RESOURCE_ID, RESOURCE_ID), TYPE, ACTION, listener);
@@ -532,19 +526,6 @@ public class ResourceAccessHandlerTests {
             l.onResponse(recordsById);
             return null;
         }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(INDEX), any(), any());
-    }
-
-    /**
-     * Makes the sharing record of {@code resourceId} report {@code user} as its creator, which grants every action.
-     */
-    private void stubOwnedBy(User user, String resourceId) {
-        ResourceSharing doc = mock(ResourceSharing.class);
-        when(doc.isCreatedBy(user.getName())).thenReturn(true);
-        doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(2);
-            l.onResponse(doc);
-            return null;
-        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(resourceId), any());
     }
 
     @Test
