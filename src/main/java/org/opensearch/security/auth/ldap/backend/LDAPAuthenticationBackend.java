@@ -40,12 +40,11 @@ import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
-import org.ldaptive.Connection;
-import org.ldaptive.ConnectionConfig;
+import org.ldaptive.ConnectionFactory;
+import org.ldaptive.FilterTemplate;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
-import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
 
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
@@ -87,19 +86,18 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
     @Override
     public User authenticate(AuthenticationContext context) throws OpenSearchSecurityException {
 
-        Connection ldapConnection = null;
+        ConnectionFactory connectionFactory = null;
         final String user = context.getCredentials().getUsername();
         byte[] password = context.getCredentials().getPassword();
 
         try {
             LdapEntry entry;
             String dn;
-            ConnectionConfig connectionConfig;
 
             try {
-                ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
+                connectionFactory = LDAPAuthorizationBackend.getConnectionFactory(settings, configPath);
 
-                entry = exists(user, ldapConnection, settings, userBaseSettings, this.returnAttributes, this.shouldFollowReferrals);
+                entry = exists(user, connectionFactory, settings, userBaseSettings, this.returnAttributes, this.shouldFollowReferrals);
 
                 // fake a user that no exists
                 // makes guessing if a user exists or not harder when looking on the
@@ -109,7 +107,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
                         ConfigConstants.LDAP_FAKE_LOGIN_DN,
                         "CN=faketomakebindfail,DC=" + UUID.randomUUID().toString()
                     );
-                    entry = new LdapEntry(fakeLognDn);
+                    entry = LdapEntry.builder().dn(fakeLognDn).build();
                     password = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_PASSWORD, "fakeLoginPwd123").getBytes(StandardCharsets.UTF_8);
                 } else if (entry == null) {
                     throw new OpenSearchSecurityException("No user " + user + " found");
@@ -121,12 +119,11 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
                     log.trace("Try to authenticate dn {}", dn);
                 }
 
-                connectionConfig = ldapConnection.getConnectionConfig();
             } finally {
-                Utils.unbindAndCloseSilently(ldapConnection);
+                closeConnectionFactory(connectionFactory);
             }
 
-            LDAPAuthorizationBackend.checkConnection(connectionConfig, dn, password);
+            LDAPAuthorizationBackend.checkConnection(settings, configPath, dn, password);
 
             final String usernameAttribute = settings.get(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, null);
             String username = dn;
@@ -161,7 +158,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
         } finally {
             Arrays.fill(password, (byte) '\0');
             password = null;
-            Utils.unbindAndCloseSilently(ldapConnection);
+            closeConnectionFactory(connectionFactory);
         }
 
     }
@@ -173,14 +170,14 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
 
     @Override
     public Optional<User> impersonate(User user) {
-        Connection ldapConnection = null;
+        ConnectionFactory connectionFactory = null;
         String userName = user.getName();
 
         try {
-            ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
+            connectionFactory = LDAPAuthorizationBackend.getConnectionFactory(settings, configPath);
             LdapEntry userEntry = exists(
                 userName,
-                ldapConnection,
+                connectionFactory,
                 settings,
                 userBaseSettings,
                 this.returnAttributes,
@@ -198,7 +195,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
             log.warn("User {} does not exist due to exception", userName, e);
             return Optional.empty();
         } finally {
-            Utils.unbindAndCloseSilently(ldapConnection);
+            closeConnectionFactory(connectionFactory);
         }
     }
 
@@ -227,7 +224,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
 
     static LdapEntry exists(
         final String user,
-        Connection ldapConnection,
+        ConnectionFactory connectionFactory,
         Settings settings,
         List<Map.Entry<String, Settings>> userBaseSettings,
         String[] returnAttributes,
@@ -236,16 +233,16 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
         if (settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)
             || settings.getAsBoolean(ConfigConstants.LDAP_SEARCH_ALL_BASES, false)
             || settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
-            return existsSearchingAllBases(user, ldapConnection, userBaseSettings, returnAttributes, shouldFollowReferrals);
+            return existsSearchingAllBases(user, connectionFactory, userBaseSettings, returnAttributes, shouldFollowReferrals);
         } else {
-            return existsSearchingUntilFirstHit(user, ldapConnection, userBaseSettings, returnAttributes, shouldFollowReferrals);
+            return existsSearchingUntilFirstHit(user, connectionFactory, userBaseSettings, returnAttributes, shouldFollowReferrals);
         }
 
     }
 
     private static LdapEntry existsSearchingUntilFirstHit(
         final String user,
-        Connection ldapConnection,
+        ConnectionFactory connectionFactory,
         List<Map.Entry<String, Settings>> userBaseSettings,
         final String[] returnAttributes,
         final boolean shouldFollowReferrals
@@ -256,14 +253,15 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
             Settings baseSettings = entry.getValue();
 
-            SearchFilter f = new SearchFilter();
-            f.setFilter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN));
-            f.setParameter(ZERO_PLACEHOLDER, username);
+            FilterTemplate filter = FilterTemplate.builder()
+                .filter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN))
+                .parameters(username)
+                .build();
 
             List<LdapEntry> result = LdapHelper.search(
-                ldapConnection,
+                connectionFactory,
                 baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
-                f,
+                filter,
                 SearchScope.SUBTREE,
                 returnAttributes,
                 shouldFollowReferrals
@@ -283,7 +281,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
 
     private static LdapEntry existsSearchingAllBases(
         final String user,
-        Connection ldapConnection,
+        ConnectionFactory connectionFactory,
         List<Map.Entry<String, Settings>> userBaseSettings,
         final String[] returnAttributes,
         final boolean shouldFollowReferrals
@@ -295,14 +293,15 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
             Settings baseSettings = entry.getValue();
 
-            SearchFilter f = new SearchFilter();
-            f.setFilter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN));
-            f.setParameter(ZERO_PLACEHOLDER, username);
+            FilterTemplate filter = FilterTemplate.builder()
+                .filter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN))
+                .parameters(username)
+                .build();
 
             List<LdapEntry> foundEntries = LdapHelper.search(
-                ldapConnection,
+                connectionFactory,
                 baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
-                f,
+                filter,
                 SearchScope.SUBTREE,
                 returnAttributes,
                 shouldFollowReferrals
@@ -366,5 +365,15 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend, Imperso
             }
         }
         return attributes.build();
+    }
+
+    private static void closeConnectionFactory(ConnectionFactory connectionFactory) {
+        if (connectionFactory instanceof AutoCloseable) {
+            try {
+                ((AutoCloseable) connectionFactory).close();
+            } catch (Exception e) {
+                // ignore
+            }
+        }
     }
 }
