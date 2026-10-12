@@ -1181,6 +1181,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 }
 
                 @Override
+                public void onPreDfsPhase(SearchContext context) {
+                    dlsFlsValve.handleDfsSearchContext(context, threadPool);
+                }
+
+                @Override
                 public void onNewReaderContext(ReaderContext readerContext) {
                     final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadPool.getThreadContext());
                     if (Origin.LOCAL.toString()
@@ -2685,6 +2690,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(SecuritySettings.USER_ATTRIBUTE_SERIALIZATION_ENABLED_SETTING);
             settings.add(SecuritySettings.DLS_WRITE_BLOCKED);
+            settings.add(SecuritySettings.DLS_VISIBLE_SUBSET_STATISTICS);
 
             settings.add(Setting.groupSetting(ConfigConstants.OPENSEARCH_SECURITY_DLS_REQUEST_HEADERS_CONFIG + ".", Property.NodeScope
             // do not make this Property.Dynamic - as a security measure,

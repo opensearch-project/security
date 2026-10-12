@@ -66,6 +66,21 @@ public class SecuritySettings {
         Setting.Property.Dynamic
     );
 
+    /**
+     * Whether DLS scores documents against statistics over the documents a user may read, rather than over the
+     * whole shard.
+     * <p>
+     * Off by default because it changes the scores existing DLS users see. Where DLS is applied at filter level, results
+     * come back without relevance ordering instead. Set it cluster-wide: under dfs, a node that disagrees contributes
+     * whole-shard statistics.
+     */
+    public static final Setting<Boolean> DLS_VISIBLE_SUBSET_STATISTICS = Setting.boolSetting(
+        ConfigConstants.SECURITY_DLS_VISIBLE_SUBSET_STATISTICS,
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    );
+
     public static final Setting<Boolean> DFM_EMPTY_OVERRIDES_ALL_SETTING = Setting.boolSetting(
         ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL,
         false,

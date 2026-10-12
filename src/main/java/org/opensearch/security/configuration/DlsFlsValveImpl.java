@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 
 import org.opensearch.OpenSearchException;
@@ -42,6 +43,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.lucene.search.Queries;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -112,6 +114,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
     private final ResourcePluginInfo resourcePluginInfo;
     private volatile boolean dlsWriteBlockedEnabled;
+    private volatile boolean visibleSubsetStatisticsEnabled;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -144,7 +147,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         });
         this.dlsWriteBlockedEnabled = settings.getAsBoolean(SECURITY_DLS_WRITE_BLOCKED, SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT);
+        this.visibleSubsetStatisticsEnabled = SecuritySettings.DLS_VISIBLE_SUBSET_STATISTICS.get(settings);
         if (clusterService.getClusterSettings() != null) {
+            clusterService.getClusterSettings()
+                .addSettingsUpdateConsumer(
+                    SecuritySettings.DLS_VISIBLE_SUBSET_STATISTICS,
+                    enabled -> visibleSubsetStatisticsEnabled = enabled
+                );
             clusterService.getClusterSettings().addSettingsUpdateConsumer(SecuritySettings.DLS_WRITE_BLOCKED, newDlsWriteBlockedEnabled -> {
                 dlsWriteBlockedEnabled = newDlsWriteBlockedEnabled;
             });
@@ -479,6 +488,28 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return DlsFilterLevelActionHandler.isHybridQuery(query) && !ParentChildrenQueryDetector.hasParentOrChildQuery(query);
     }
 
+    /** The DLS restriction as a disjunction of its constant-scored rules, the shape DLS has always applied. */
+    private static BooleanQuery.Builder restrictionQuery(SearchContext searchContext, DlsRestriction dlsRestriction) {
+        return dlsRestriction.toBooleanQueryBuilder(searchContext.getQueryShardContext(), ConstantScoreQuery::new);
+    }
+
+    /**
+     * Scores without relevance when DLS was applied to the request rather than here, so its restriction cannot be
+     * handed to core: losing the ordering is preferable to scoring against documents the user cannot read.
+     */
+    private static void dropRelevance(SearchContext searchContext) {
+        searchContext.parsedQuery(new ParsedQuery(new ConstantScoreQuery(searchContext.parsedQuery().query())));
+        searchContext.preProcess(true);
+    }
+
+    @Override
+    public void handleDfsSearchContext(SearchContext searchContext, ThreadPool threadPool) {
+        // Without the setting the dfs phase has never seen DLS, and leaving it untouched keeps that path unchanged.
+        if (visibleSubsetStatisticsEnabled) {
+            handleSearchContext(searchContext, threadPool);
+        }
+    }
+
     @Override
     public void handleSearchContext(SearchContext searchContext, ThreadPool threadPool) {
         try {
@@ -495,7 +526,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if (dlsFlsBaseContext.isDlsDoneOnFilterLevel() || mode == Mode.FILTER_LEVEL) {
                 // For filter level DLS, the query was already modified to include the DLS restrictions.
                 // Thus, we can exist here early.
-                log.trace("handleSearchContext(): DLS is done on the filter level; no further handling necessary");
+                log.trace("handleSearchContext(): DLS is done on the filter level; no query rewriting necessary");
+                if (visibleSubsetStatisticsEnabled && dlsFlsBaseContext.isDlsDoneOnFilterLevel()) {
+                    dropRelevance(searchContext);
+                }
                 return;
             }
 
@@ -548,6 +582,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     // The dedicated marker keeps reader-level DLS active for aggregations, suggestions, and other paths.
                     // This check intentionally follows the star-tree safeguard above.
                     log.trace("handleSearchContext(): DLS is applied to the hybrid query; preserving reader-level DLS");
+                    if (visibleSubsetStatisticsEnabled && dlsRestriction.containsTermLookupQuery() == false) {
+                        // The hybrid query must stay as it is, so declare the restriction without rewriting it.
+                        searchContext.visibleSubsetFilter(restrictionQuery(searchContext, dlsRestriction).build());
+                    }
                     return;
                 }
 
@@ -558,57 +596,26 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     // on which dlsFlsBaseContext.isDlsDoneOnFilterLevel() is based on. Thus, we need to check here again the deeper
                     // conditions.
                     log.trace("DlsRestriction: contains TLQ.");
+                    if (visibleSubsetStatisticsEnabled) {
+                        dropRelevance(searchContext);
+                    }
                     return;
                 }
 
                 assert searchContext.parsedQuery() != null;
 
-                BooleanQuery.Builder restrictionBuilder = dlsRestriction.toBooleanQueryBuilder(
-                    searchContext.getQueryShardContext(),
-                    (q) -> new ConstantScoreQuery(q)
-                );
+                BooleanQuery.Builder restrictionBuilder = restrictionQuery(searchContext, dlsRestriction);
 
-                // The restriction is a FILTER clause, not a SHOULD clause.
-                //
-                // It used to be added as Occur.SHOULD with setMinimumNumberShouldMatch(1), which selects the same
-                // documents but makes the restriction part of the score: a ConstantScoreQuery-wrapped clause
-                // contributes 1.0 to every document it matches. Two consequences, one of them a correctness problem.
-                //
-                // The score contribution is not constant in general. A user holding two roles whose predicates both
-                // match a document gets 2.0 added there against 1.0 on a document matching only one, so the relative
-                // order of two documents changes according to how many of the user's roles happen to match them. A
-                // security restriction should not influence relevance at all.
-                //
-                // It is also the dominant cost. A scoring clause has to be evaluated and combined for every matching
-                // document, while a FILTER clause skips score computation entirely, iterates faster, and can act as a
-                // two-phase confirmation. Profiling attributed roughly half of DLS search CPU to score combination
-                // under the old composition and about one percent under this one.
-                //
-                // This moves absolute scores for every existing DLS user, which is why it is a decision rather than a
-                // fix: anything asserting exact score values needs revisiting first.
-                BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder().add(
-                    searchContext.parsedQuery().query(),
-                    Occur.MUST
-                ).add(restrictionBuilder.build(), Occur.FILTER);
-
-                searchContext.parsedQuery(new ParsedQuery(queryBuilder.build()));
-
-                // The clauses above restrict which documents match, but the BM25 statistics behind their scores still
-                // describe the whole shard, so a term confined to documents this user cannot read still lowers the IDF
-                // of the documents they can. Hand core the restriction on its own so statistics can be computed over
-                // that subset. Core ignores this unless the filtered_stats behaviour is enabled, so the default path is
-                // unchanged.
-                //
-                // The restriction is rebuilt rather than shared with the query above because a Lucene
-                // BooleanQuery.Builder cannot be built twice, and the combined query's structure is left exactly as it
-                // was to avoid perturbing existing scores. That costs a second parse of the DLS queries, which is
-                // acceptable while this is being evaluated and is the obvious thing to tidy if it ships.
-                BooleanQuery.Builder restrictionOnly = dlsRestriction.toBooleanQueryBuilder(
-                    searchContext.getQueryShardContext(),
-                    (q) -> new ConstantScoreQuery(q)
-                );
-                if (restrictionOnly != null) {
-                    searchContext.visibleSubsetFilter(restrictionOnly.build());
+                if (visibleSubsetStatisticsEnabled) {
+                    // As a FILTER clause the restriction no longer adds to the score, which otherwise grows with the
+                    // number of a user's roles that match a document and so reorders results.
+                    Query restriction = restrictionBuilder.build();
+                    searchContext.parsedQuery(new ParsedQuery(Queries.filtered(searchContext.parsedQuery().query(), restriction)));
+                    // Statistics over the readable documents only, so hidden documents cannot shift relevance.
+                    searchContext.visibleSubsetFilter(restriction);
+                } else {
+                    restrictionBuilder.add(searchContext.parsedQuery().query(), Occur.MUST);
+                    searchContext.parsedQuery(new ParsedQuery(restrictionBuilder.build()));
                 }
 
                 searchContext.preProcess(true);
