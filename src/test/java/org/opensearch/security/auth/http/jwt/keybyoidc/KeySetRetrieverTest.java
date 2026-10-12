@@ -14,6 +14,7 @@ package org.opensearch.security.auth.http.jwt.keybyoidc;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.security.KeyStore;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
@@ -37,7 +38,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator;
 
 import com.nimbusds.jose.jwk.JWKSet;
@@ -46,6 +46,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -74,6 +76,25 @@ public class KeySetRetrieverTest {
     }
 
     @Test
+    public void testMockServersUseDistinctBoundPorts() throws IOException {
+        try (
+            MockIpdServer idp = new MockIpdServer(TestJwk.Jwks.ALL, 0, false);
+            MockJwksServer jwks = new MockJwksServer(TestJwk.Jwks.ALL, 0, false)
+        ) {
+            assertTrue(idp.getPort() > 0);
+            assertTrue(jwks.getPort() > 0);
+            assertNotEquals(idp.getPort(), jwks.getPort());
+            assertEquals(idp.getPort(), URI.create(idp.getDiscoverUri()).getPort());
+            assertEquals(jwks.getPort(), URI.create(jwks.getJwksUri()).getPort());
+            assertThat(new KeySetRetriever(idp.getDiscoverUri(), null, true).get().getKeys().size(), is(greaterThan(0)));
+            assertThat(
+                KeySetRetriever.createForJwksUri(null, false, jwks.getJwksUri(), 1024 * 1024, 10).get().getKeys().size(),
+                is(greaterThan(0))
+            );
+        }
+    }
+
+    @Test
     public void cacheTest() {
         KeySetRetriever keySetRetriever = new KeySetRetriever(mockIdpServer.getDiscoverUri(), null, true);
 
@@ -90,7 +111,7 @@ public class KeySetRetrieverTest {
     @Test
     public void clientCertTest() throws Exception {
 
-        try (MockIpdServer sslMockIdpServer = new MockIpdServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), true) {
+        try (MockIpdServer sslMockIdpServer = new MockIpdServer(TestJwk.Jwks.ALL, 0, true) {
             @Override
             protected void handleDiscoverRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws IOException,
                 HttpException {
@@ -222,7 +243,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testSecurityValidation_ResponseSizeExceeded() throws IOException {
         // Create a mock server that returns a large response
-        try (MockJwksServer largeMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer largeMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
@@ -262,7 +283,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testSecurityValidation_KeyCountExceeded() throws IOException {
         // Create a mock server that returns many keys
-        try (MockJwksServer manyKeysMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer manyKeysMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
@@ -347,7 +368,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testErrorHandling_HttpErrorResponse() throws IOException {
         // Create a mock JWKS server that returns HTTP error
-        try (MockJwksServer errorMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer errorMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
@@ -370,7 +391,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testErrorHandling_EmptyResponse() throws IOException {
         // Create a mock JWKS server that returns empty response
-        try (MockJwksServer emptyMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer emptyMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
@@ -391,7 +412,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testErrorHandling_MalformedJwks() throws IOException {
         // Create a mock JWKS server that returns malformed JWKS
-        try (MockJwksServer malformedMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer malformedMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
