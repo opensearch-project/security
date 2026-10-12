@@ -44,11 +44,12 @@ public class JwtVendor {
     private final JWSSigner signer;
 
     /**
-     * @param keystoreKey the signing key from the node keystore (see {@link OnBehalfOfKeys}); takes precedence over
-     *                    {@code signing_key} in {@code settings}, may be {@code null}
+     * @param keystoreSigningKey the signing key configured on the node, from a keystore file or directly from the
+     *                           OpenSearch keystore (see {@link OnBehalfOfKeys}); takes precedence over
+     *                           {@code signing_key} in {@code settings}, may be {@code null}
      */
-    public JwtVendor(Settings settings, SecretKey keystoreKey) {
-        final Tuple<JWK, JWSSigner> tuple = createJwkFromSettings(settings, keystoreKey);
+    public JwtVendor(Settings settings, SecretKey keystoreSigningKey) {
+        final Tuple<JWK, JWSSigner> tuple = createJwkFromSettings(settings, keystoreSigningKey);
         signingKey = tuple.v1();
         signer = tuple.v2();
     }
@@ -59,11 +60,13 @@ public class JwtVendor {
      *   PublicKeyUse: SIGN
      *   Encryption Algorithm: HS512
      * */
-    static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings, final SecretKey keystoreKey) {
+    static Tuple<JWK, JWSSigner> createJwkFromSettings(final Settings settings, final SecretKey keystoreSigningKey) {
         final OctetSequenceKey key;
 
-        if (keystoreKey != null) {
-            key = new OctetSequenceKey.Builder(keystoreKey.getEncoded()).algorithm(JWSAlgorithm.HS512).keyUse(KeyUse.SIGNATURE).build();
+        if (keystoreSigningKey != null) {
+            key = new OctetSequenceKey.Builder(keystoreSigningKey.getEncoded()).algorithm(JWSAlgorithm.HS512)
+                .keyUse(KeyUse.SIGNATURE)
+                .build();
         } else if (settings.get(SIGNING_KEY_PROPERTY_KEY) != null) {
             final String signingKey = settings.get(SIGNING_KEY_PROPERTY_KEY);
             key = new OctetSequenceKey.Builder(Base64.getDecoder().decode(signingKey)).algorithm(JWSAlgorithm.HS512)

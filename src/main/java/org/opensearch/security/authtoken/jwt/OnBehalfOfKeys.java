@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.List;
@@ -22,17 +23,24 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Setting.Property;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
+import org.opensearch.security.setting.SecureSettingsUtils;
 import org.opensearch.security.ssl.config.KeyStoreUtils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
 /**
- * The on-behalf-of signing and encryption keys loaded from a keystore file (PKCS12 or BCFKS) configured in
- * {@code opensearch.yml}, with the keystore and key passwords held in the node's secure settings
- * ({@code opensearch-keystore}). Keeps both the key material and its passwords out of the security index.
+ * The on-behalf-of signing and encryption keys held on the node, outside the security index. Each key comes from
+ * one of two sources:
+ * <ul>
+ *   <li>a keystore file (PKCS12 or BCFKS) configured in {@code opensearch.yml}, with the keystore and key passwords
+ *   held in the node's secure settings ({@code opensearch-keystore}), or</li>
+ *   <li>the raw key bytes stored directly as a secure file setting ({@code opensearch-keystore add-file
+ *   plugins.security.on_behalf_of.<key>.secure_file <file>}).</li>
+ * </ul>
+ * Configuring both sources for the same key fails the node start.
  * <p>
  * Secure settings are only readable during node construction, so the keys are loaded once at startup; a
- * misconfigured keystore fails the node start. A key that is not configured here is {@code null}, and the
+ * misconfigured key fails the node start. A key that is not configured here is {@code null}, and the
  * Base64 {@code signing_key} / {@code encryption_key} from the dynamic on-behalf-of config is used instead.
  */
 public record OnBehalfOfKeys(SecretKey signingKey, SecretKey encryptionKey) {
@@ -41,8 +49,8 @@ public record OnBehalfOfKeys(SecretKey signingKey, SecretKey encryptionKey) {
 
     static final String SETTINGS_PREFIX = ConfigConstants.SECURITY_SETTINGS_PREFIX + "on_behalf_of.";
 
-    static final KeystoreKeySettings SIGNING_KEY = new KeystoreKeySettings("signing_key");
-    static final KeystoreKeySettings ENCRYPTION_KEY = new KeystoreKeySettings("encryption_key");
+    static final KeystoreKeySettings SIGNING_KEY = new KeystoreKeySettings("signing_key", "HmacSHA512");
+    static final KeystoreKeySettings ENCRYPTION_KEY = new KeystoreKeySettings("encryption_key", "AES");
 
     public static List<Setting<?>> getSettings() {
         return List.of(
@@ -51,11 +59,13 @@ public record OnBehalfOfKeys(SecretKey signingKey, SecretKey encryptionKey) {
             SIGNING_KEY.alias,
             SIGNING_KEY.password,
             SIGNING_KEY.keyPassword,
+            SIGNING_KEY.secureFile,
             ENCRYPTION_KEY.filepath,
             ENCRYPTION_KEY.type,
             ENCRYPTION_KEY.alias,
             ENCRYPTION_KEY.password,
-            ENCRYPTION_KEY.keyPassword
+            ENCRYPTION_KEY.keyPassword,
+            ENCRYPTION_KEY.secureFile
         );
     }
 
@@ -85,14 +95,18 @@ public record OnBehalfOfKeys(SecretKey signingKey, SecretKey encryptionKey) {
         final Setting<String> alias;
         final Setting<SecureString> password;
         final Setting<SecureString> keyPassword;
+        final Setting<InputStream> secureFile;
+        private final String algorithm;
 
-        private KeystoreKeySettings(final String key) {
+        private KeystoreKeySettings(final String key, final String algorithm) {
             this.prefix = SETTINGS_PREFIX + key + ".";
             this.filepath = Setting.simpleString(prefix + "keystore_filepath", Property.NodeScope, Property.Filtered);
             this.type = Setting.simpleString(prefix + "keystore_type", Property.NodeScope, Property.Filtered);
             this.alias = Setting.simpleString(prefix + "keystore_alias", Property.NodeScope, Property.Filtered);
             this.password = SecureSetting.secureString(prefix + "keystore_password", null);
             this.keyPassword = SecureSetting.secureString(prefix + "keystore_keypassword", null);
+            this.secureFile = SecureSetting.secureFile(prefix + "secure_file", null);
+            this.algorithm = algorithm;
         }
 
         /**
@@ -100,8 +114,19 @@ public record OnBehalfOfKeys(SecretKey signingKey, SecretKey encryptionKey) {
          * failure is rethrown naming this key's settings, so it is clear which of the two keys is broken.
          */
         SecretKey load(final Settings settings, final Path configPath) {
-            if (Stream.of(filepath, type, alias, password, keyPassword).noneMatch(s -> s.exists(settings))) {
+            final boolean keystoreFileConfigured = Stream.of(filepath, type, alias, password, keyPassword)
+                .anyMatch(s -> s.exists(settings));
+            final boolean secureFileConfigured = secureFile.exists(settings);
+            if (keystoreFileConfigured && secureFileConfigured) {
+                throw new IllegalArgumentException(
+                    secureFile.getKey() + " cannot be combined with the keystore_* settings under " + prefix + "*, configure only one"
+                );
+            }
+            if (!keystoreFileConfigured && !secureFileConfigured) {
                 return null; // not configured here: the inline key from the dynamic config applies
+            }
+            if (secureFileConfigured) {
+                return SecureSettingsUtils.secretKey(secureFile, settings, algorithm);
             }
             final String configuredType = type.exists(settings) ? type.get(settings) : null;
             // HKDF and the HMAC/JWS libraries need the key bytes, which a non-extractable token key never exposes.

@@ -278,9 +278,76 @@ public class OnBehalfOfKeysTest {
     }
 
     @Test
-    public void testPasswordsAreSecureSettingsAndTheRestIsFiltered() {
+    public void testLoadsBothKeysFromSecureFiles() {
+        final byte[] signingKeyBytes = filled(64, (byte) 11);
+        final byte[] encryptionKeyBytes = filled(32, (byte) 12);
+
+        final MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setFile(SIGNING_PREFIX + "secure_file", signingKeyBytes);
+        secureSettings.setFile(ENCRYPTION_PREFIX + "secure_file", encryptionKeyBytes);
+        final Settings settings = Settings.builder().setSecureSettings(secureSettings).build();
+
+        final OnBehalfOfKeys keys = OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath());
+
+        assertThat(keys.signingKey().getEncoded(), equalTo(signingKeyBytes));
+        assertThat(keys.encryptionKey().getEncoded(), equalTo(encryptionKeyBytes));
+    }
+
+    @Test
+    public void testSecureFileAndKeystoreFileCanBeMixedAcrossKeys() throws Exception {
+        final byte[] signingKeyBytes = filled(64, (byte) 13);
+        final byte[] encryptionKeyBytes = filled(32, (byte) 14);
+        final FileHelper.TypedStore encryptionStore = store("obo-enc", new SecretKeySpec(encryptionKeyBytes, "AES"));
+
+        final MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setFile(SIGNING_PREFIX + "secure_file", signingKeyBytes);
+        secureSettings.setString(ENCRYPTION_PREFIX + "keystore_password", STORE_PASSWORD);
+        secureSettings.setString(ENCRYPTION_PREFIX + "keystore_keypassword", KEY_PASSWORD);
+        final Settings settings = Settings.builder()
+            .put(ENCRYPTION_PREFIX + "keystore_filepath", encryptionStore.path())
+            .put(ENCRYPTION_PREFIX + "keystore_alias", "obo-enc")
+            .setSecureSettings(secureSettings)
+            .build();
+
+        final OnBehalfOfKeys keys = OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath());
+
+        assertThat(keys.signingKey().getEncoded(), equalTo(signingKeyBytes));
+        assertThat(keys.encryptionKey().getEncoded(), equalTo(encryptionKeyBytes));
+    }
+
+    @Test
+    public void testSecureFileCombinedWithKeystoreSettingsIsRejected() {
+        final MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setFile(SIGNING_PREFIX + "secure_file", filled(64, (byte) 15));
+        final Settings settings = Settings.builder()
+            .put(SIGNING_PREFIX + "keystore_filepath", "obo.bcfks")
+            .setSecureSettings(secureSettings)
+            .build();
+
+        final IllegalArgumentException e = assertThrows(
+            IllegalArgumentException.class,
+            () -> OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath())
+        );
+        assertThat(e.getMessage(), containsString(SIGNING_PREFIX + "secure_file cannot be combined"));
+    }
+
+    @Test
+    public void testEmptySecureFileIsRejected() {
+        final MockSecureSettings secureSettings = new MockSecureSettings();
+        secureSettings.setFile(ENCRYPTION_PREFIX + "secure_file", new byte[0]);
+        final Settings settings = Settings.builder().setSecureSettings(secureSettings).build();
+
+        final IllegalArgumentException e = assertThrows(
+            IllegalArgumentException.class,
+            () -> OnBehalfOfKeys.load(settings, tempDir.getRoot().toPath())
+        );
+        assertThat(e.getMessage(), containsString(ENCRYPTION_PREFIX + "secure_file is empty"));
+    }
+
+    @Test
+    public void testPasswordsAndKeyFilesAreSecureSettingsAndTheRestIsFiltered() {
         for (final Setting<?> setting : OnBehalfOfKeys.getSettings()) {
-            if (setting.getKey().endsWith("password")) {
+            if (setting.getKey().endsWith("password") || setting.getKey().endsWith("secure_file")) {
                 assertThat(setting.getKey(), setting, instanceOf(SecureSetting.class));
             } else {
                 assertTrue(setting.getKey(), setting.isFiltered());

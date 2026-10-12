@@ -403,7 +403,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         final boolean inlineEncryptionKey = oboSettings.get(EncryptionDecryptionUtil.ENCRYPTION_KEY_PROPERTY_KEY) != null;
         final boolean keystoreSigningKey = oboKeystoreKeys.signingKey() != null;
         final boolean keystoreEncryptionKey = oboKeystoreKeys.encryptionKey() != null;
-        // Both sources set: the keystore key wins, so the inline one would otherwise be ignored silently.
+        // Both sources set: the node key wins, so the inline one would otherwise be ignored silently.
         if (inlineSigningKey && keystoreSigningKey) {
             warnInlineKeyIgnored(JwtVendor.SIGNING_KEY_PROPERTY_KEY);
         }
@@ -466,7 +466,9 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
     private void warnInlineKeyIgnored(final String setting) {
         log.warn(
-            "on_behalf_of.{} in the security configuration is ignored, the key from the keystore configured in opensearch.yml is used",
+            "on_behalf_of.{} in the security configuration is ignored, "
+                + "the key configured on the node (plugins.security.on_behalf_of.{}.*) is used",
+            setting,
             setting
         );
     }
