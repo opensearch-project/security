@@ -265,6 +265,7 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
+            final boolean unifiedPresent = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
             final Set<AuditCategory> disabledCategories = AuditCategory.parse(
                 getOrDefault(properties, FilterEntries.DISABLE_CATEGORIES.getKey(), Collections.emptyList())
             );
@@ -272,14 +273,14 @@ public class AuditConfig {
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
+                    legacySplitDefault(unifiedPresent, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT)
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 getOrDefault(
                     properties,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
+                    legacySplitDefault(unifiedPresent, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT)
                 )
             );
             final List<String> rawIgnoredUsers = getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS);
@@ -293,7 +294,6 @@ public class AuditConfig {
                 getOrDefault(properties, FilterEntries.IGNORE_HEADERS.getKey(), Collections.emptyList())
             );
 
-            final boolean unifiedPresent = properties.containsKey(FilterEntries.DISABLE_CATEGORIES.getKey());
             final boolean splitPresent = properties.containsKey(FilterEntries.DISABLE_REST_CATEGORIES.getKey())
                 || properties.containsKey(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey());
             warnIfBothUnifiedAndSplitConfigured(unifiedPresent, splitPresent);
@@ -349,6 +349,8 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
+            final boolean unifiedPresent = settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace())
+                || settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getLegacyKeyWithNamespace());
             final Set<AuditCategory> disabledCategories = AuditCategory.parse(
                 fromSettingStringSet(settings, FilterEntries.DISABLE_CATEGORIES, Collections.emptyList())
             );
@@ -356,21 +358,20 @@ public class AuditConfig {
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_REST_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT
+                    legacySplitDefault(unifiedPresent, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT)
                 )
             );
             final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
                 fromSettingStringSet(
                     settings,
                     FilterEntries.DISABLE_TRANSPORT_CATEGORIES,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT
+                    legacySplitDefault(unifiedPresent, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT)
                 )
             );
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
             final Set<String> ignoreHeaders = fromSettingStringSet(settings, FilterEntries.IGNORE_HEADERS, Collections.emptyList());
 
-            final boolean unifiedPresent = settings.hasValue(FilterEntries.DISABLE_CATEGORIES.getKeyWithNamespace());
             final boolean splitPresent = settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace())
                 || settings.hasValue(FilterEntries.DISABLE_REST_CATEGORIES.getLegacyKeyWithNamespace())
                 || settings.hasValue(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace())
@@ -430,6 +431,15 @@ public class AuditConfig {
 
             // Fallback to the legacy keyname
             return ConfigConstants.getSettingAsSet(settings, filterEntry.getLegacyKeyWithNamespace(), defaultValue, true);
+        }
+
+        /**
+         * The legacy defaults of the split REST/transport categories only apply when the unified
+         * 'disabled_categories' is not configured. Otherwise they would be unioned with it and
+         * 'disabled_categories' alone could never enable any category contained in those defaults.
+         */
+        private static List<String> legacySplitDefault(boolean unifiedPresent, List<String> legacyDefault) {
+            return unifiedPresent ? Collections.emptyList() : legacyDefault;
         }
 
         private static void warnIfBothUnifiedAndSplitConfigured(boolean unifiedPresent, boolean splitPresent) {

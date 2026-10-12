@@ -465,28 +465,13 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
+        // disabled_categories is set, so the legacy split defaults must not be applied
         assertThat(
-            EnumSet.of(
-                AUTHENTICATED,
-                GRANTED_PRIVILEGES,
-                AuditCategory.RESOURCE_ACCESS_GRANTED,
-                AuditCategory.RESOURCE_ACCESS_DENIED,
-                AuditCategory.RESOURCE_SHARING_CHANGED
-            ),
-            is(audit.getDisabledRestCategories())
+            audit.getDisabledCategories(),
+            is(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES, AuditCategory.CLUSTER_SETTINGS_CHANGED, AuditCategory.INDEX_SETTINGS_CHANGED))
         );
-        assertThat(
-            EnumSet.of(
-                AUTHENTICATED,
-                GRANTED_PRIVILEGES,
-                AuditCategory.CLUSTER_SETTINGS_CHANGED,
-                AuditCategory.INDEX_SETTINGS_CHANGED,
-                AuditCategory.RESOURCE_ACCESS_GRANTED,
-                AuditCategory.RESOURCE_ACCESS_DENIED,
-                AuditCategory.RESOURCE_SHARING_CHANGED
-            ),
-            is(audit.getDisabledTransportCategories())
-        );
+        assertTrue(audit.getDisabledRestCategories().isEmpty());
+        assertTrue(audit.getDisabledTransportCategories().isEmpty());
         assertThat(audit.getIgnoredAuditUsersMatcher(), is(DEFAULT_IGNORED_USER));
         assertThat(audit.getIgnoredAuditRequestsMatcher(), is(WildcardMatcher.NONE));
         assertThat(configCompliance.getIgnoredComplianceUsersForReadMatcher(), is(DEFAULT_IGNORED_USER));

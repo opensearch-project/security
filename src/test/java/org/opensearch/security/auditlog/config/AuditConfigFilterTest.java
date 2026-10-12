@@ -353,4 +353,60 @@ public class AuditConfigFilterTest {
         assertThat(filter.getDisabledRestCategories(), equalTo(EnumSet.of(AUTHENTICATED)));
         assertThat(filter.getDisabledTransportCategories(), equalTo(EnumSet.of(FAILED_LOGIN)));
     }
+
+    @Test
+    public void testLegacySplitDefaultsNotAppliedWhenUnifiedSet() {
+        // Only disabled_categories is configured: the legacy split defaults must not be unioned in,
+        // otherwise categories like RESOURCE_* could never be enabled with the unified setting
+        final Settings settings = Settings.builder()
+            .putList("plugins.security.audit.config.disabled_categories", "AUTHENTICATED", "GRANTED_PRIVILEGES")
+            .build();
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
+
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES)));
+        assertTrue(filter.getDisabledRestCategories().isEmpty());
+        assertTrue(filter.getDisabledTransportCategories().isEmpty());
+    }
+
+    @Test
+    public void testLegacySplitDefaultsNotAppliedWhenUnifiedSetViaMap() {
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(
+            Map.of(FilterEntries.DISABLE_CATEGORIES.getKey(), List.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
+        );
+
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES)));
+        assertTrue(filter.getDisabledRestCategories().isEmpty());
+        assertTrue(filter.getDisabledTransportCategories().isEmpty());
+    }
+
+    @Test
+    public void testMissingSplitKeyDoesNotFallBackToLegacyDefaultWhenUnifiedSetViaMap() {
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(
+            Map.of(
+                FilterEntries.DISABLE_CATEGORIES.getKey(),
+                List.of("GRANTED_PRIVILEGES"),
+                FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
+                List.of("AUTHENTICATED")
+            )
+        );
+
+        assertThat(filter.getDisabledCategories(), equalTo(EnumSet.of(GRANTED_PRIVILEGES)));
+        assertThat(filter.getDisabledRestCategories(), equalTo(EnumSet.of(AUTHENTICATED)));
+        assertTrue(filter.getDisabledTransportCategories().isEmpty());
+    }
+
+    @Test
+    public void testLegacySplitDefaultsAppliedWhenUnifiedNotSetViaMap() {
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(Map.of());
+
+        assertTrue(filter.getDisabledCategories().isEmpty());
+        assertThat(
+            filter.getDisabledRestCategories(),
+            equalTo(AuditCategory.parse(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT))
+        );
+        assertThat(
+            filter.getDisabledTransportCategories(),
+            equalTo(AuditCategory.parse(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT))
+        );
+    }
 }
