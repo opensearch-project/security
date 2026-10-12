@@ -19,7 +19,7 @@ When in doubt, update the file.
 
 OpenSearch Security is a plugin that adds authentication, authorization, TLS encryption, audit logging, and multi-tenancy to OpenSearch. The plugin intercepts all requests at the REST and transport layers before they reach OpenSearch action handlers.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flow diagrams.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed flow diagrams.
 
 ## Repository Structure
 
@@ -59,6 +59,7 @@ libs/
   opensaml/         # Vendored/shaded OpenSAML library
 sample-resource-plugin/  # Example plugin using the resource-sharing SPI
 config/             # Default demo configuration (certs, roles, users, mappings)
+docs/               # Contributor guides (developer guide, architecture, triaging, resource sharing)
 tools/              # Shell scripts: securityadmin.sh, install_demo_configuration.sh
 scripts/            # CI/CD helper scripts
 bwc-test/           # Backwards-compatibility tests
@@ -220,4 +221,4 @@ git push origin backport/my-fix-2.19
 
 Resolve any conflicts, then open a PR against the target branch referencing the original PR for reviewer context.
 
-For further guidance see [CONTRIBUTING.md](CONTRIBUTING.md) and [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
+For further guidance see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md).

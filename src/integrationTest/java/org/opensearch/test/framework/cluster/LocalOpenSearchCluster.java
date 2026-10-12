@@ -482,7 +482,7 @@ public class LocalOpenSearchCluster {
                     new PluginInfo(
                         defaultPlugins.getName(),
                         "classpath plugin",
-                        null,
+                        "1.0",
                         Version.CURRENT,
                         "1.8",
                         defaultPlugins.getName(),
@@ -500,7 +500,7 @@ public class LocalOpenSearchCluster {
                     new PluginInfo(
                         plugin.getName(),
                         "classpath plugin",
-                        null,
+                        "1.0",
                         Version.CURRENT,
                         "1.8",
                         plugin.getName(),
