@@ -64,31 +64,35 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
         String resourceIndex = shardId.getIndexName();
 
+        // An index that hosts no protected type needs no further look
         if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
-            // type is marked as not protected
             return;
         }
 
         log.debug("postIndex called on {}", resourceIndex);
 
-        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
-
         String resourceId = index.id();
-        ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
-        if (provider == null) {
-            log.warn(
-                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.resource_sharing.protected_types.",
+        // Records are written from the primary only, so a replica need not classify the document
+        if (!index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
+            log.debug("Skipping resource sharing entry creation for {} as this operation was on a replica shard", resourceId);
+            return;
+        }
+
+        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
+        if (resourceType == null) {
+            log.debug("Document {} in index {} is not of any registered resource type; skipping", resourceId, resourceIndex);
+            return;
+        }
+        // An index can host several types, and only some may be protected
+        if (!resourcePluginInfo.isProtectedType(resourceType)) {
+            log.debug(
+                "Resource {} is of type {}, which is not listed in plugins.security.resource_sharing.protected_types; skipping",
                 resourceId,
                 resourceType
             );
             return;
         }
-
-        // Only proceed if this was a create operation and for primary shard
-        if (!index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
-            log.debug("Skipping resource sharing entry creation for {} as this operation was on a replica shard", resourceId);
-            return;
-        }
+        ResourceProvider provider = resourcePluginInfo.getRegisteredProvider(resourceType);
 
         if (!result.isCreated()) {
             // Restore all_shared_principals on the resource doc (guards against a direct write tampering with it).
@@ -230,8 +234,8 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
         String resourceIndex = shardId.getIndexName();
 
+        // Gated per index: a delete has no document to classify, and a deleted resource's record goes regardless of protection
         if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
-            // type is marked as not protected
             return;
         }
 

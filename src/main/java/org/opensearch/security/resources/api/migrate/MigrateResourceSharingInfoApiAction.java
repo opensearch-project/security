@@ -189,10 +189,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             String type = entry.getKey();
             String defaultAccessLevelForType = entry.getValue();
 
-            // Validate resource type exists
-            ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
+            // Validate resource type exists and is protected; a registered but unprotected type gets no records
+            ResourceProvider provider = resourcePluginInfo.isProtectedType(type) ? resourcePluginInfo.getRegisteredProvider(type) : null;
             if (provider == null) {
-                // We do not expect this to be null, as validation check will already have been performed in request content validator
                 String message = String.format("resource_type be one of: %s", resourcePluginInfo.currentProtectedTypes());
                 return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(message));
             }
@@ -287,7 +286,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     // Workspace IDs, if the provider declares a workspaces field (see extractWorkspaces).
                     Set<String> workspaces = Collections.emptySet();
                     if (type != null) {
-                        ResourceProvider hitProvider = resourcePluginInfo.getResourceProvider(type);
+                        ResourceProvider hitProvider = resourcePluginInfo.getRegisteredProvider(type);
                         if (hitProvider != null && hitProvider.parentIdField() != null) {
                             parentId = rec.at("/" + hitProvider.parentIdField().replace(".", "/")).asText(null);
                             if (parentId != null && parentId.isEmpty()) {
@@ -373,7 +372,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 continue;
             }
 
-            ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
+            ResourceProvider provider = resourcePluginInfo.getRegisteredProvider(type);
 
             try {
                 // 3) build CreatedBy

@@ -21,6 +21,8 @@ import org.junit.Test;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.mapper.ParsedDocument;
+import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -176,6 +178,41 @@ public class ResourcePluginInfoTests {
             "b-untyped",
             resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("other", "x", Field.Store.NO)))
         );
+    }
+
+    @Test
+    public void testTypeMatchesSplitByProtection() {
+        // alerting: fields unique to each type, matched by presence
+        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+        resourcePluginInfo.setProtectedTypesSetting(protectedTypes(List.of("alerting-workflow")));
+
+        ResourcePluginInfo.TypeMatches matches = resourcePluginInfo.typeMatches(".alerting-config");
+        assertEquals(List.of(new ResourcePluginInfo.TypeMatch("workflow.type", null)), matches.protectedTypes());
+        assertEquals(List.of(new ResourcePluginInfo.TypeMatch("monitor.type", null)), matches.unprotectedTypes());
+    }
+
+    @Test
+    public void testTypeMatchesOnASharedFieldAreByValue() {
+        registerProviders(List.of("sample-resource", "sample-resource-group"), ".sample-index", "resource_type");
+        resourcePluginInfo.setProtectedTypesSetting(protectedTypes(List.of("sample-resource")));
+
+        ResourcePluginInfo.TypeMatches matches = resourcePluginInfo.typeMatches(".sample-index");
+        assertEquals(List.of(new ResourcePluginInfo.TypeMatch("resource_type", "sample-resource")), matches.protectedTypes());
+        assertEquals(List.of(new ResourcePluginInfo.TypeMatch("resource_type", "sample-resource-group")), matches.unprotectedTypes());
+    }
+
+    @Test
+    public void testNoUnprotectedTypeMeansNoExemption() {
+        // The common case: every type on the index is protected, so the DLS clause gains nothing
+        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+        resourcePluginInfo.setProtectedTypesSetting(protectedTypes(List.of("monitor", "alerting-workflow")));
+
+        assertTrue(resourcePluginInfo.typeMatches(".alerting-config").unprotectedTypes().isEmpty());
+    }
+
+    private static OpensearchDynamicSetting<List<String>> protectedTypes(List<String> types) {
+        return new OpensearchDynamicSetting<>(ResourceSharingProtectedResourcesSetting.PROTECTED_TYPES, types) {
+        };
     }
 
     /** A document holding {@code value} in {@code resource_type}. */

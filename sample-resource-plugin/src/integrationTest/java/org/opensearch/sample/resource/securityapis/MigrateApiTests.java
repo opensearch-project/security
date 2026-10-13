@@ -735,6 +735,25 @@ public class MigrateApiTests {
                     "Invalid access level blah for resource type [sample-resource]. Allowed: sample_read_write, sample_read_only, sample_full_access"
                 )
             );
+
+            // ------------------------------
+            // 9) Registered type on the protected index, but not itself protected
+            // ------------------------------
+            String unprotectedTypePayload = """
+                {
+                  "source_index": "%s",
+                  "username_path": "created_by.user",
+                  "backend_roles_path": "created_by.backend_roles",
+                  "default_owner": "some_user",
+                  "default_access_level": {
+                    "%s": "sample_group_read_only"
+                  }
+                }
+                """.formatted(RESOURCE_INDEX_NAME, RESOURCE_GROUP_TYPE);
+
+            response = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, unprotectedTypePayload);
+
+            assertThat(response, RestMatchers.isBadRequest("/message", "resource_type be one of: [" + RESOURCE_TYPE + "]"));
         }
     }
 

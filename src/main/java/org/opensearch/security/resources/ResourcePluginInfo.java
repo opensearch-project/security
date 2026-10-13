@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -257,10 +258,64 @@ public class ResourcePluginInfo {
         }
     }
 
+    /**
+     * How a search recognises documents of one resource type: a field to test, and the value it must hold, or
+     * {@code null} when the field's presence is enough.
+     */
+    public record TypeMatch(String field, String value) {
+    }
+
+    /**
+     * The type matches of the registered providers on an index, split by protection.
+     *
+     * @param protectedTypes   matches for the protected types
+     * @param unprotectedTypes matches for the registered types that are not protected
+     */
+    public record TypeMatches(List<TypeMatch> protectedTypes, List<TypeMatch> unprotectedTypes) {
+        /** No typed provider on the index. */
+        public static final TypeMatches NONE = new TypeMatches(List.of(), List.of());
+    }
+
+    /**
+     * The type matches of the registered providers on {@code resourceIndex}. A provider with no type field has no
+     * match, since a search cannot tell its documents apart.
+     */
+    public TypeMatches typeMatches(String resourceIndex) {
+        lock.readLock().lock();
+        try {
+            List<TypeMatch> protectedTypes = new ArrayList<>();
+            List<TypeMatch> unprotectedTypes = new ArrayList<>();
+            for (ResourceProvider provider : registeredProviders.values()) {
+                if (!provider.resourceIndexName().equals(resourceIndex) || provider.typeField() == null) {
+                    continue;
+                }
+                String value = typesWithSharedTypeField.contains(provider.resourceType()) ? provider.resourceType() : null;
+                (isProtectedType(provider.resourceType()) ? protectedTypes : unprotectedTypes).add(
+                    new TypeMatch(provider.typeField(), value)
+                );
+            }
+            return unprotectedTypes.isEmpty() && protectedTypes.isEmpty()
+                ? TypeMatches.NONE
+                : new TypeMatches(protectedTypes, unprotectedTypes);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     /** Whether {@code resourceType} is listed in the protected-types setting. */
     public boolean isProtectedType(String resourceType) {
         List<String> protectedTypes = protectedTypesSetting == null ? null : protectedTypesSetting.getDynamicSettingValue();
         return resourceType != null && protectedTypes != null && protectedTypes.contains(resourceType);
+    }
+
+    /** The provider registered for {@code resourceType}, whether or not the type is protected, or {@code null}. */
+    public ResourceProvider getRegisteredProvider(String resourceType) {
+        lock.readLock().lock();
+        try {
+            return registeredProviders.get(resourceType);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {
