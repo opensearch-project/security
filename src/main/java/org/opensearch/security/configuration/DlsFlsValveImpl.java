@@ -157,6 +157,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         config.getFieldMasking().setDfmEmptyOverridesAll(newDfmEmptyOverridesAll);
                     }
                 });
+            // Seed and keep the "allow now in DLS" flag current. Reading it from the base context (updated here)
+            // keeps the per-query DLS path off the cluster settings lookup.
+            dlsFlsBaseContext.setAllowNowInDlsQuery(SecuritySettings.ALLOW_NOW_IN_DLS.get(settings));
+            clusterService.getClusterSettings()
+                .addSettingsUpdateConsumer(SecuritySettings.ALLOW_NOW_IN_DLS, dlsFlsBaseContext::setAllowNowInDlsQuery);
         }
         this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
     }
