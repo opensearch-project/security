@@ -69,8 +69,8 @@ public class TransportWhoAmIAction extends HandledTransportAction<WhoAmIRequest,
             : user.getName();
         final boolean isAdmin = adminDNs.isAdminDN(dn);
         final boolean isAuthenticated = isAdmin ? true : user != null;
-        final boolean isNodeCertificateRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext())
-            || HeaderHelper.isTrustedClusterRequest(threadPool.getThreadContext());
+        final boolean isNodeCertificateRequest = HeaderHelper.isLocalClusterNodeRequest(threadPool.getThreadContext())
+            || HeaderHelper.isRemoteClusterNodeRequest(threadPool.getThreadContext());
 
         listener.onResponse(new WhoAmIResponse(dn, isAdmin, isAuthenticated, isNodeCertificateRequest));
 

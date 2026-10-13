@@ -30,6 +30,8 @@ import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.security.filter.SecurityRequest;
+import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.UserFactory;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
@@ -89,6 +91,13 @@ public class AuditLogImpl extends AbstractAuditLog {
         onComplianceConfigChanged(auditConfig.getCompliance());
     }
 
+    /**
+     * Dynamically toggle audit logging on/off via cluster setting.
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     @Override
     protected void enableRoutes() {
         if (messageRouterEnabled) {
@@ -127,6 +136,16 @@ public class AuditLogImpl extends AbstractAuditLog {
     @Override
     protected void save(final AuditMessage msg) {
         if (enabled) {
+            // Try transient first (coordinating node, already sanitized by SecurityRestFilter),
+            // fall back to X-Request-Id header (propagated by core to remote nodes — needs sanitization)
+            String requestId = getThreadContext().getTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID);
+            if (requestId == null) {
+                String rawHeader = getThreadContext().getHeader(Task.X_REQUEST_ID);
+                if (rawHeader != null && !rawHeader.isEmpty()) {
+                    requestId = SecurityRestFilter.sanitizeRequestId(rawHeader);
+                }
+            }
+            msg.addRequestId(requestId);
             messageRouter.route(msg);
         }
     }
@@ -254,6 +273,61 @@ public class AuditLogImpl extends AbstractAuditLog {
     public void logApiTokenRevoked(String tokenId, String revokedBy) {
         if (enabled) {
             super.logApiTokenRevoked(tokenId, revokedBy);
+        }
+    }
+
+    @Override
+    public void logResourceAccessGranted(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        if (enabled) {
+            super.logResourceAccessGranted(action, resourceId, resourceType, resourceIndex, request, task);
+        }
+    }
+
+    @Override
+    public void logResourceAccessDenied(
+        String action,
+        String resourceId,
+        String resourceType,
+        String resourceIndex,
+        TransportRequest request,
+        Task task
+    ) {
+        if (enabled) {
+            super.logResourceAccessDenied(action, resourceId, resourceType, resourceIndex, request, task);
+        }
+    }
+
+    @Override
+    public void logResourceSharingChanged(
+        String resourceId,
+        String resourceType,
+        String sharingAction,
+        String sharingResult,
+        String recipientsAdded,
+        String recipientsRevoked,
+        String shareWith,
+        TransportRequest request,
+        Task task
+    ) {
+        if (enabled) {
+            super.logResourceSharingChanged(
+                resourceId,
+                resourceType,
+                sharingAction,
+                sharingResult,
+                recipientsAdded,
+                recipientsRevoked,
+                shareWith,
+                request,
+                task
+            );
         }
     }
 

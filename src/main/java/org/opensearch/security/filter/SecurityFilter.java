@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -84,7 +85,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.RolesInjector;
 import org.opensearch.security.auth.UserInjector;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
@@ -95,9 +95,11 @@ import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.ResourceAccessEvaluator;
+import org.opensearch.security.privileges.SystemIndexRestoreEligibilityHelper;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.SourceFieldsContext;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.ThreadContextUserInfo;
@@ -125,6 +127,7 @@ public class SecurityFilter implements ActionFilter {
     private final ResourceAccessEvaluator resourceAccessEvaluator;
     private final ThreadContextUserInfo threadContextUserInfo;
     private final Set<String> restApiAllowedRoles;
+    private final boolean restoreIndicesDynamicEnabled;
 
     public SecurityFilter(
         final Settings settings,
@@ -152,6 +155,7 @@ public class SecurityFilter implements ActionFilter {
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         this.resourceAccessEvaluator = resourceAccessEvaluator;
         this.restApiAllowedRoles = Set.copyOf(settings.getAsList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED));
+        this.restoreIndicesDynamicEnabled = SecuritySettings.SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_SETTING.get(settings);
         this.threadContextUserInfo = new ThreadContextUserInfo(
             threadPool.getThreadContext(),
             privilegesConfiguration,
@@ -219,17 +223,17 @@ public class SecurityFilter implements ActionFilter {
                 }
             }
             if (user != null && threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new UserSubjectImpl(threadPool, user));
+                threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
             }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
-            final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
-            final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
+            final boolean localClusterNodeRequest = HeaderHelper.isLocalClusterNodeRequest(threadContext);
+            final boolean remoteClusterNodeRequest = HeaderHelper.isRemoteClusterNodeRequest(threadContext);
             final boolean confRequest = "true".equals(
                 HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
             );
             final boolean passThroughRequest = action.startsWith("indices:admin/seq_no") || action.equals(WhoAmIAction.NAME);
 
-            final boolean internalRequest = (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+            final boolean internalRequest = (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadContext))
                 && action.startsWith("internal:")
                 && !action.startsWith("internal:transport/proxy");
 
@@ -337,7 +341,7 @@ public class SecurityFilter implements ActionFilter {
             }
 
             if (Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+                && (localClusterNodeRequest || HeaderHelper.isDirectRequest(threadContext))
                 && (injectedRoles == null)
                 && (user == null)) {
 
@@ -355,20 +359,19 @@ public class SecurityFilter implements ActionFilter {
                 boolean skipSecurityIfDualMode = threadContext.getTransient(
                     ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY
                 ) == Boolean.TRUE;
-                if ((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null)
+                if ((localClusterNodeRequest || remoteClusterNodeRequest || request.remoteAddress() == null)
                     && !compatConfig.transportInterClusterAuthEnabled()) {
                     chain.proceed(task, action, request, listener);
                     return;
-                } else if ((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null || skipSecurityIfDualMode)
-                    && compatConfig.transportInterClusterPassiveAuthEnabled()) {
+                } else if ((localClusterNodeRequest
+                    || remoteClusterNodeRequest
+                    || request.remoteAddress() == null
+                    || skipSecurityIfDualMode) && compatConfig.transportInterClusterPassiveAuthEnabled()) {
                         log.info("Transport auth in passive mode and no user found. Injecting default user");
                         user = User.DEFAULT_TRANSPORT_USER;
                         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                         if (threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER) == null) {
-                            threadContext.putPersistent(
-                                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
-                                new UserSubjectImpl(threadPool, user)
-                            );
+                            threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
                         }
                     } else {
                         log.error(
@@ -401,7 +404,6 @@ public class SecurityFilter implements ActionFilter {
 
             User finalUser = user;
             Consumer<PrivilegesEvaluatorResponse> handleUnauthorized = response -> {
-                auditLog.logMissingPrivileges(action, request, task);
                 String err = (injectedRoles != null)
                     ? String.format(
                         "no permissions for %s and associated roles %s",
@@ -409,6 +411,10 @@ public class SecurityFilter implements ActionFilter {
                         context.getMappedRoles()
                     )
                     : String.format("no permissions for %s and %s", response.getMissingPrivileges(), finalUser);
+                if (SystemIndexRestoreEligibilityHelper.isDenialReason(response.getReason())) {
+                    // Tell the caller which system indices may be restored and how
+                    err = err + ". " + response.getReason();
+                }
 
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
@@ -417,17 +423,42 @@ public class SecurityFilter implements ActionFilter {
             // NOTE: Since resource-access evaluation requires fetching documents from index, we make the call async otherwise it would
             // require blocking transport threads leading to thread exhaustion and request timeouts
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
-            if (resourceAccessEvaluator.shouldEvaluate(request)) {
-                resourceAccessEvaluator.evaluateAsync(request, action, ActionListener.wrap(response -> {
+            // The request names its resources through one of two interfaces, normalized by the evaluator, which returns
+            // null when it is not the one to authorize this request. The verdict covers the request as a whole, and is
+            // recorded against each id it names.
+            final ResourceAccessEvaluator.ResourceRequest resourceRequest = resourceAccessEvaluator.evaluableResourceRequest(request);
+            if (resourceRequest != null) {
+                resourceAccessEvaluator.evaluateAsync(resourceRequest, action, ActionListener.wrap(response -> {
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }
                     if (response.isAllowed()) {
-                        auditLog.logGrantedPrivileges(action, request, task);
+                        resourceRequest.ids()
+                            .forEach(
+                                id -> auditLog.logResourceAccessGranted(
+                                    action,
+                                    id,
+                                    resourceRequest.type(),
+                                    resourceRequest.index(),
+                                    request,
+                                    task
+                                )
+                            );
                         auditLog.logIndexEvent(action, request, task);
                         auditLog.logSettingsChange(action, request, task);
                         chain.proceed(task, action, request, listener);
                     } else {
+                        resourceRequest.ids()
+                            .forEach(
+                                id -> auditLog.logResourceAccessDenied(
+                                    action,
+                                    id,
+                                    resourceRequest.type(),
+                                    resourceRequest.index(),
+                                    request,
+                                    task
+                                )
+                            );
                         handleUnauthorized.accept(response);
                     }
                 }, listener::onFailure));
@@ -438,6 +469,11 @@ public class SecurityFilter implements ActionFilter {
 
             // Block cluster-settings updates that touch Sensitive settings unless the user holds a restapi-allowed role
             if (handleBlockedSensitiveSettingsUpdate(action, request, context, listener)) {
+                return;
+            }
+
+            // Block runtime updates of the restorable system indices unless they are enabled
+            if (handleBlockedRestoreIndicesUpdate(action, request, listener)) {
                 return;
             }
 
@@ -512,6 +548,7 @@ public class SecurityFilter implements ActionFilter {
                     }));
                 }
             } else {
+                auditLog.logMissingPrivileges(action, request, task);
                 handleUnauthorized.accept(pres);
             }
         } catch (OpenSearchException e) {
@@ -533,16 +570,7 @@ public class SecurityFilter implements ActionFilter {
         PrivilegesEvaluationContext context,
         ActionListener<Response> listener
     ) {
-        if (!ClusterUpdateSettingsAction.NAME.equals(action)) {
-            return false;
-        }
-        ClusterUpdateSettingsRequest settingsRequest = (ClusterUpdateSettingsRequest) request;
-        boolean touchesSensitiveSetting = Stream.concat(
-            settingsRequest.transientSettings().keySet().stream(),
-            settingsRequest.persistentSettings().keySet().stream()
-        ).anyMatch(key -> cs.getClusterSettings().isSensitiveSetting(key));
-
-        if (!touchesSensitiveSetting) {
+        if (!isSettingsUpdateTouching(action, request, key -> cs.getClusterSettings().isSensitiveSetting(key))) {
             return false;
         }
         if (Collections.disjoint(restApiAllowedRoles, context.getMappedRoles())) {
@@ -556,6 +584,43 @@ public class SecurityFilter implements ActionFilter {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Unless {@code plugins.security.system_indices.restore.dynamic.enabled} is true, the restorable system indices are
+     * set only in {@code opensearch.yml}, so a cluster-settings update that touches them is rejected.
+     *
+     * @return true if the request was rejected
+     */
+    private <Request extends ActionRequest, Response extends ActionResponse> boolean handleBlockedRestoreIndicesUpdate(
+        String action,
+        Request request,
+        ActionListener<Response> listener
+    ) {
+        if (restoreIndicesDynamicEnabled
+            || !isSettingsUpdateTouching(action, request, SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING::match)) {
+            return false;
+        }
+        String message = ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY
+            + " can only be set in opensearch.yml unless "
+            + ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY
+            + " is true";
+        log.debug(message);
+        listener.onFailure(new OpenSearchSecurityException(message, RestStatus.FORBIDDEN));
+        return true;
+    }
+
+    /**
+     * @return true if the request is a cluster-settings update that sets or resets a transient or persistent key
+     *         matching {@code keyMatcher}
+     */
+    private static boolean isSettingsUpdateTouching(String action, ActionRequest request, Predicate<String> keyMatcher) {
+        if (!ClusterUpdateSettingsAction.NAME.equals(action)) {
+            return false;
+        }
+        ClusterUpdateSettingsRequest settingsRequest = (ClusterUpdateSettingsRequest) request;
+        return Stream.concat(settingsRequest.transientSettings().keySet().stream(), settingsRequest.persistentSettings().keySet().stream())
+            .anyMatch(keyMatcher);
     }
 
     private static boolean isUserAdmin(User user, final AdminDNs adminDns) {

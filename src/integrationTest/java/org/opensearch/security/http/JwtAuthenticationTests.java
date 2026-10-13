@@ -22,14 +22,19 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.opensearch.core.SearchRequest;
+import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.test.framework.AuditConfiguration;
+import org.opensearch.test.framework.AuditFilters;
 import org.opensearch.test.framework.JwtConfigBuilder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.audit.AuditLogsRule;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.OpenSearchClientProvider.CloseableOpenSearchClient;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.log.LogsRule;
@@ -45,8 +50,8 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
+import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.security.Song.FIELD_TITLE;
 import static org.opensearch.security.Song.QUERY_TITLE_MAGNUM_OPUS;
 import static org.opensearch.security.Song.SONGS;
@@ -54,13 +59,13 @@ import static org.opensearch.security.Song.TITLE_MAGNUM_OPUS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.BASIC_AUTH_DOMAIN_ORDER;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.queryStringQueryRequest;
+import static org.opensearch.test.framework.client.SearchRequestFactory.queryStringQueryRequest;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
-import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.isSuccessfulSearchResponse;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitContainsFieldWithValue;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.client.TransportExceptionMatchers.statusException;
 
 public class JwtAuthenticationTests {
 
@@ -77,6 +82,9 @@ public class JwtAuthenticationTests {
     public static final String ROLE_VP = "role_vp";
     public static final String POINTER_BACKEND_ROLES = "/backend_roles";
     public static final String POINTER_USERNAME = "/user_name";
+
+    public static final String FORBIDDEN_SUBJECT_1 = "forbidden_subject_1";
+    public static final String FORBIDDEN_SUBJECT_2 = "forbidden_subject_2";
 
     public static final String QA_DEPARTMENT = "qa-department";
 
@@ -118,6 +126,7 @@ public class JwtAuthenticationTests {
             .signingKey(List.of(PUBLIC_KEY1, PUBLIC_KEY2))
             .subjectKey(CLAIM_USERNAME)
             .rolesKey(CLAIM_ROLES)
+            .forbiddenSubjects(List.of(ADMIN_USER.getName(), FORBIDDEN_SUBJECT_1, FORBIDDEN_SUBJECT_2))
     ).backend("noop");
     public static final String SONG_ID_1 = "song-id-01";
 
@@ -131,6 +140,7 @@ public class JwtAuthenticationTests {
         .nodeSettings(
             Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
         )
+        .audit(new AuditConfiguration(true).filters(new AuditFilters().enabledRest(true).enabledTransport(true)))
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(ADMIN_USER)
         .roles(DEPARTMENT_SONG_LISTENER_ROLE)
@@ -140,6 +150,9 @@ public class JwtAuthenticationTests {
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.auth.http.jwt.HTTPJwtAuthenticator");
 
+    @Rule
+    public AuditLogsRule auditLogsRule = new AuditLogsRule();
+
     @BeforeClass
     public static void createTestData() {
         try (Client client = cluster.getInternalNodeClient()) {
@@ -147,6 +160,22 @@ public class JwtAuthenticationTests {
         }
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             client.createRoleMapping(ROLE_VP, DEPARTMENT_SONG_LISTENER_ROLE.getName());
+        }
+    }
+
+    @Test
+    public void shouldNotAuthenticateForbiddenSubjectsUserWithJwtToken() {
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateValidToken(ADMIN_USER.getName()))) {
+            TestRestClient.HttpResponse response = client.getAuthInfo();
+            response.assertStatusCode(401);
+        }
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateValidToken(FORBIDDEN_SUBJECT_1))) {
+            TestRestClient.HttpResponse response = client.getAuthInfo();
+            response.assertStatusCode(401);
+        }
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateValidToken(FORBIDDEN_SUBJECT_2))) {
+            TestRestClient.HttpResponse response = client.getAuthInfo();
+            response.assertStatusCode(401);
         }
     }
 
@@ -222,6 +251,29 @@ public class JwtAuthenticationTests {
     }
 
     @Test
+    public void shouldRejectReservedJwtSubjectAndAuditFailedLogin() {
+        Header header = tokenFactory1.generateValidToken("plugin:reserved-subject");
+        try (TestRestClient client = cluster.getRestClient(header)) {
+            client.getAuthInfo().assertStatusCode(401);
+        }
+
+        logsRule.assertThatContainExactly("JWT subject uses a reserved security prefix");
+        auditLogsRule.assertExactlyOne((AuditMessage message) -> {
+            Map<String, Object> fields = message.getAsMap();
+            return message.getCategory() == AuditCategory.FAILED_LOGIN
+                && "<NONE>".equals(String.valueOf(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER)))
+                && "REST".equals(String.valueOf(fields.get(AuditMessage.ORIGIN)))
+                && "REST".equals(String.valueOf(fields.get(AuditMessage.REQUEST_LAYER)))
+                && GET.name().equals(String.valueOf(fields.get(AuditMessage.REST_REQUEST_METHOD)))
+                && "/_opendistro/_security/authinfo".equals(String.valueOf(fields.get(AuditMessage.REST_REQUEST_PATH)))
+                && Boolean.FALSE.equals(fields.get(AuditMessage.IS_ADMIN_DN))
+                && !fields.containsKey(AuditMessage.REQUEST_INITIATING_USER)
+                && !fields.containsKey(AuditMessage.USER_ROLES)
+                && !fields.containsKey(AuditMessage.AUTH_METHOD);
+        });
+    }
+
+    @Test
     public void shouldReadRolesFromToken_positiveFirstRoleSet() {
         Header header = tokenFactory1.generateValidToken(USER_SUPERHERO, ROLE_ADMIN, ROLE_DEVELOPER, ROLE_QA);
         try (TestRestClient client = cluster.getRestClient(header)) {
@@ -254,10 +306,10 @@ public class JwtAuthenticationTests {
         String[] roles = { ROLE_VP };
         Map<String, Object> additionalClaims = Map.of(CLAIM_DEPARTMENT, QA_DEPARTMENT);
         Header header = tokenFactory1.generateValidTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
-        try (RestHighLevelClient client = cluster.getRestHighLevelClient(List.of(header))) {
+        try (CloseableOpenSearchClient client = cluster.getClient(List.of(header))) {
             SearchRequest searchRequest = queryStringQueryRequest(QA_SONG_INDEX_NAME, QUERY_TITLE_MAGNUM_OPUS);
 
-            SearchResponse response = client.search(searchRequest, DEFAULT);
+            SearchResponse<?> response = client.search(searchRequest, Map.class);
 
             assertThat(response, isSuccessfulSearchResponse());
             assertThat(response, numberOfTotalHitsIsEqualTo(1));
@@ -271,10 +323,10 @@ public class JwtAuthenticationTests {
         String[] roles = { ROLE_VP };
         Map<String, Object> additionalClaims = Map.of(CLAIM_DEPARTMENT, "department-without-access-to-qa-song-index");
         Header header = tokenFactory1.generateValidTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
-        try (RestHighLevelClient client = cluster.getRestHighLevelClient(List.of(header))) {
+        try (CloseableOpenSearchClient client = cluster.getClient(List.of(header))) {
             SearchRequest searchRequest = queryStringQueryRequest(QA_SONG_INDEX_NAME, QUERY_TITLE_MAGNUM_OPUS);
 
-            assertThatThrownBy(() -> client.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 

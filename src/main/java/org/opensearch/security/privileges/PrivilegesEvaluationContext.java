@@ -11,9 +11,11 @@
 package org.opensearch.security.privileges;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -23,6 +25,7 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
+import org.opensearch.security.privileges.dlsfls.DlsRequestHeadersUtil;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
@@ -72,6 +75,11 @@ public class PrivilegesEvaluationContext {
 
     private final ActionRequestMetadata<?, ?> actionRequestMetadata;
 
+    /**
+     * allowlisted headers can be accessed in DLS queries.
+     */
+    private final List<DlsRequestHeadersUtil.DlsRequestHeader> headersForDls;
+
     public PrivilegesEvaluationContext(
         User user,
         ImmutableSet<String> mappedRoles,
@@ -82,7 +90,8 @@ public class PrivilegesEvaluationContext {
         IndexNameExpressionResolver indexNameExpressionResolver,
         IndicesRequestResolver indicesRequestResolver,
         Supplier<ClusterState> clusterStateSupplier,
-        ActionPrivileges actionPrivileges
+        ActionPrivileges actionPrivileges,
+        List<DlsRequestHeadersUtil.DlsRequestHeader> headersForDls
     ) {
         this.user = user;
         this.mappedRoles = mappedRoles;
@@ -94,6 +103,7 @@ public class PrivilegesEvaluationContext {
         this.task = task;
         this.actionRequestMetadata = actionRequestMetadata;
         this.actionPrivileges = actionPrivileges;
+        this.headersForDls = (headersForDls == null) ? List.of() : headersForDls;
     }
 
     public User getUser() {
@@ -179,6 +189,10 @@ public class PrivilegesEvaluationContext {
 
     @Override
     public String toString() {
+        final var headersForDlsOutput = headersForDls.isEmpty()
+            ? ""
+            : ", headersForDls[keys]="
+                + headersForDls.stream().map(DlsRequestHeadersUtil.DlsRequestHeader::name).collect(Collectors.joining(", "));
         return "PrivilegesEvaluationContext{"
             + "user="
             + user
@@ -191,10 +205,15 @@ public class PrivilegesEvaluationContext {
             + resolvedIndices
             + ", mappedRoles="
             + mappedRoles
+            + headersForDlsOutput
             + '}';
     }
 
     public ConcurrentHashMap<String, Boolean> hasFlsOrFieldMaskingCache() {
         return hasFlsOrFieldMaskingCache;
+    }
+
+    public List<DlsRequestHeadersUtil.DlsRequestHeader> getHeadersForDls() {
+        return headersForDls;
     }
 }

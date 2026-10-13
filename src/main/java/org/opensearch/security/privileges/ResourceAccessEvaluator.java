@@ -10,6 +10,7 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -24,6 +25,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.MultiResourceRequest;
 
 /**
  * Evaluates access to resources. The resource plugins must register the indices which hold resource information.
@@ -69,21 +71,21 @@ public class ResourceAccessEvaluator {
      * 2. Even if a user has access to all indices, they will not be able to access a resource that they are not the owner of and is not shared with them.
      * 3. A user with no index permissions may not be able to create a resource, however, they can modify and delete a resource shared with them at full-access level.
      *
-     * @param request                         may contain information about the index and the resource being requested
+     * A request that carries several ids ({@link MultiResourceRequest}) is allowed only if the user holds the action on
+     * every one of them.
+     *
+     * @param request                         the index, type and ids the request names, from {@link #resourceRequest}
      * @param action                          the action being requested to be performed on the resource
      * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
      */
     public void evaluateAsync(
-        final ActionRequest request,
+        final ResourceRequest request,
         final String action,
         final ActionListener<PrivilegesEvaluatorResponse> pResponseListener
     ) {
         log.debug("Evaluating resource access");
 
-        // if it reached this evaluator, it is safe to assume that the request if of DocRequest type
-        DocRequest req = (DocRequest) request;
-
-        resourceAccessHandler.hasPermission(req.id(), req.type(), action, ActionListener.wrap(hasAccess -> {
+        resourceAccessHandler.hasPermission(request.ids(), request.type(), action, ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
                 pResponseListener.onResponse(PrivilegesEvaluatorResponse.ok());
             } else {
@@ -98,11 +100,22 @@ public class ResourceAccessEvaluator {
      * @return true if request should be evaluated, false otherwise
      */
     public boolean shouldEvaluate(ActionRequest request) {
+        return evaluableResourceRequest(request) != null;
+    }
+
+    /**
+     * The resources a request names, if this evaluator is the one to authorize it. Normalizing and gating in a single
+     * call means the caller does not rebuild the view afterwards: a request whose {@code ids()} is not a stable snapshot
+     * would otherwise be free to pass the checks here and present something else to {@link #evaluateAsync}.
+     *
+     * @param request the action request to be evaluated
+     * @return the index, type and ids to authorize, or null if this evaluator should not handle the request
+     */
+    public ResourceRequest evaluableResourceRequest(ActionRequest request) {
         boolean isResourceSharingFeatureEnabled = resourceSharingEnabledSetting.getDynamicSettingValue();
         List<String> protectedTypes = protectedResourceTypesSetting.getDynamicSettingValue();
 
-        if (!isResourceSharingFeatureEnabled) return false;
-        if (!(request instanceof DocRequest docRequest)) return false;
+        if (!isResourceSharingFeatureEnabled) return null;
         /**
          * Authorization notes:
          *
@@ -118,20 +131,61 @@ public class ResourceAccessEvaluator {
          *   ({@link IndexRequest}, {@link UpdateRequest}, {@link DeleteRequest}) and may appear as items
          *   in a {@code _bulk} request.
          */
-        if (request instanceof GetRequest) return false;
-        if (request instanceof DocWriteRequest<?>) return false;
-        if (Strings.isNullOrEmpty(docRequest.id())) {
-            log.debug("Request id is blank or null, request is of type {}", docRequest.getClass().getName());
-            return false;
+        if (request instanceof GetRequest) return null;
+        if (request instanceof DocWriteRequest<?>) return null;
+
+        final ResourceRequest resourceRequest = resourceRequest(request);
+        if (resourceRequest == null) return null;
+
+        if (resourceRequest.ids().isEmpty()) {
+            log.debug("Request carries no resource id, request is of type {}", request.getClass().getName());
+            return null;
         }
         // if requested index is not a resource sharing index, move on to the regular evaluator
-        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(docRequest.index())) {
-            log.debug("Request index {} is not a protected resource index", docRequest.index());
-            return false;
+        if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceRequest.index())) {
+            log.debug("Request index {} is not a protected resource index", resourceRequest.index());
+            return null;
         }
 
         // if a resource is not included in protected resource list, we do not perform resource-level authorization
-        return protectedTypes.contains(docRequest.type());
+        return protectedTypes.contains(resourceRequest.type()) ? resourceRequest : null;
+    }
+
+    /**
+     * The index, type and resource ids a request names, normalized from either interface a plugin may implement:
+     * {@link DocRequest}, which names one id, or {@link MultiResourceRequest}, which names several. Everything past this
+     * point treats the two the same way, so neither interface has to pretend to be the other.
+     *
+     * @param index the index holding the resources
+     * @param type  the shareable resource type of every id
+     * @param ids   the ids the request names, each authorized in its own right
+     */
+    public record ResourceRequest(String index, String type, List<String> ids) {
+    }
+
+    /**
+     * Normalizes a request into the resources it names, dropping blank ids. A blank id names no resource, so dropping it
+     * leaves the rest to be authorized: disqualifying the whole request instead would send a real id to the regular
+     * evaluator alongside the blank one, which is a way past resource evaluation for the id that does exist. A request
+     * left with no id at all still falls through, which is what a request meaning "all resources" relies on.
+     *
+     * @param request the request being evaluated
+     * @return the index, type and ids the request names, or null if it names no resource at all
+     */
+    public static ResourceRequest resourceRequest(final ActionRequest request) {
+        if (request instanceof MultiResourceRequest multiResourceRequest) {
+            Collection<String> ids = multiResourceRequest.ids();
+            return new ResourceRequest(
+                multiResourceRequest.index(),
+                multiResourceRequest.type(),
+                ids == null ? List.of() : ids.stream().filter(id -> !Strings.isNullOrEmpty(id)).distinct().toList()
+            );
+        }
+        if (request instanceof DocRequest docRequest) {
+            List<String> ids = Strings.isNullOrEmpty(docRequest.id()) ? List.of() : List.of(docRequest.id());
+            return new ResourceRequest(docRequest.index(), docRequest.type(), ids);
+        }
+        return null;
     }
 
 }

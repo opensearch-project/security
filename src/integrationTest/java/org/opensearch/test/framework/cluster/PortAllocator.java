@@ -28,12 +28,19 @@
 
 package org.opensearch.test.framework.cluster;
 
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.opensearch.test.framework.cluster.SocketUtils.SocketType;
 
@@ -50,6 +57,9 @@ public class PortAllocator {
     public static final PortAllocator TCP = new PortAllocator(SocketType.TCP, Duration.ofSeconds(100));
     public static final PortAllocator UDP = new PortAllocator(SocketType.UDP, Duration.ofSeconds(100));
 
+    private static final String PORT_ALLOCATION_LOCK_FILE = "opensearch-security-test-ports.lock";
+    private static final ReentrantLock localPortAllocationLock = new ReentrantLock();
+
     private final SocketType socketType;
     private final Duration timeoutDuration;
     private final Map<Integer, AllocatedPort> allocatedPorts = new HashMap<>();
@@ -59,7 +69,7 @@ public class PortAllocator {
         this.timeoutDuration = timeoutDuration;
     }
 
-    public SortedSet<Integer> allocate(String clientName, int numRequested, int minPort) {
+    public synchronized SortedSet<Integer> allocate(String clientName, int numRequested, int minPort) {
 
         int startPort = minPort;
 
@@ -86,7 +96,7 @@ public class PortAllocator {
         return foundPorts;
     }
 
-    public int allocateSingle(String clientName, int minPort) {
+    public synchronized int allocateSingle(String clientName, int minPort) {
 
         int startPort = minPort;
 
@@ -100,11 +110,47 @@ public class PortAllocator {
 
     }
 
-    public void reserve(int... ports) {
+    public synchronized void reserve(int... ports) {
 
         for (int port : ports) {
-            allocate("reserved", port);
+            allocatedPorts.put(port, new AllocatedPort("reserved"));
         }
+    }
+
+    /**
+    * Serializes the allocation-to-bind window across Gradle test workers and separate local Gradle invocations.
+    *
+    * A port cannot remain reserved after it is handed to an OpenSearch node, so a socket probe alone has an
+    * unavoidable time-of-check/time-of-use race. Hold this lock from allocation until every node has bound its
+    * transport and HTTP ports. The operating system releases the file lock when a test JVM exits unexpectedly.
+    */
+    public static PortAllocationLock acquireExclusivePortAllocationLock() throws IOException, InterruptedException {
+        localPortAllocationLock.lockInterruptibly();
+        FileChannel channel = null;
+
+        try {
+            Path lockFile = Paths.get(System.getProperty("java.io.tmpdir"), PORT_ALLOCATION_LOCK_FILE);
+            channel = FileChannel.open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+            return new PortAllocationLock(channel, channel.lock());
+        } catch (IOException | RuntimeException e) {
+            if (channel != null) {
+                try {
+                    channel.close();
+                } catch (IOException closeException) {
+                    e.addSuppressed(closeException);
+                }
+            }
+            localPortAllocationLock.unlock();
+            throw e;
+        }
+    }
+
+    /**
+    * Releases all ports allocated for a stopped cluster. Collision reservations are deliberately retained until
+    * their timeout so an immediate retry does not choose the same port again.
+    */
+    public synchronized void release(String clientName) {
+        allocatedPorts.entrySet().removeIf(entry -> clientName.equals(entry.getValue().client));
     }
 
     private boolean isInUse(int port) {
@@ -171,6 +217,35 @@ public class PortAllocator {
         @Override
         public String toString() {
             return "AllocatedPort [client=" + client + ", allocatedAt=" + allocatedAt + "]";
+        }
+    }
+
+    public static final class PortAllocationLock implements AutoCloseable {
+        private final FileChannel channel;
+        private final FileLock lock;
+        private boolean closed;
+
+        private PortAllocationLock(FileChannel channel, FileLock lock) {
+            this.channel = channel;
+            this.lock = lock;
+        }
+
+        @Override
+        public synchronized void close() throws IOException {
+            if (closed) {
+                return;
+            }
+            closed = true;
+
+            try {
+                lock.release();
+            } finally {
+                try {
+                    channel.close();
+                } finally {
+                    localPortAllocationLock.unlock();
+                }
+            }
         }
     }
 }

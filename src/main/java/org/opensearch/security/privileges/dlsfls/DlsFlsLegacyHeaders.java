@@ -73,7 +73,7 @@ public class DlsFlsLegacyHeaders {
     ) throws PrivilegesEvaluationException {
         DlsFlsLegacyHeaders preparedHeaders = new DlsFlsLegacyHeaders(context, config, metadata, doFilterLevelDls);
 
-        if (context.getRequest() instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
+        if (context.getRequest() instanceof ClusterSearchShardsRequest && HeaderHelper.isRemoteClusterNodeRequest(threadContext)) {
             // Special case: Another cluster tries to initiate a cross cluster search and will talk directly to
             // the shards on our cluster. In this case, we do send the information as response headers.
             // The other cluster has code to correctly evaluate these response headers

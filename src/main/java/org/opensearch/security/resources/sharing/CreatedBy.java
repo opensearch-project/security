@@ -21,8 +21,6 @@ import static org.opensearch.core.xcontent.XContentParser.Token.VALUE_STRING;
 
 /**
  * This class is used to store information about the creator of a resource.
- *
- * @opensearch.experimental
  */
 public class CreatedBy implements ToXContentFragment, NamedWriteable {
 

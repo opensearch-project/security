@@ -8,8 +8,6 @@
 
 /**
  * This package defines a resource sharing client that will be utilized by resource plugins to implement resource access control.
- *
- * @opensearch.experimental
  */
 
 package org.opensearch.security.spi.resources.client;

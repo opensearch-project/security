@@ -48,7 +48,8 @@ public class UserAttributesUnitTest {
             null,
             null,
             null,
-            null
+            null,
+            List.of()
         );
 
         String stringWithPlaceholders = """

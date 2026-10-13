@@ -12,7 +12,6 @@ package org.opensearch.security.privileges;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Joiner;
@@ -21,7 +20,7 @@ import com.google.common.collect.Sets;
 import org.apache.commons.text.StringSubstitutor;
 
 /**
- * Support for interpolating user attributes used in index patterns and DLS queries.
+ * Support for interpolating user attributes and headers used in index patterns and DLS queries.
  *
  * This code was moved over from ConfigModelV7.
  */
@@ -52,6 +51,9 @@ public class UserAttributes {
         );
         replacementsWithDots.putAll(user.getCustomAttributesMap());
 
+        context.getHeadersForDls()
+            .forEach(header -> replacementsWithDots.put("attr.header." + header.name().toLowerCase(), header.serialize()));
+
         // we also support referencing variables with underscores instead of dots => we need both in our lookup table.
         final var replacements = new HashMap<>(replacementsWithDots);
         replacementsWithDots.forEach((k, v) -> replacements.put(k.replace(".", "_"), v));
@@ -61,7 +63,7 @@ public class UserAttributes {
         return orig;
     }
 
-    private static String toQuotedCommaSeparatedString(final Set<String> roles) {
+    private static String toQuotedCommaSeparatedString(final Iterable<String> roles) {
         return Joiner.on(',').join(Iterables.transform(roles, s -> {
             return new StringBuilder(s.length() + 2).append('"').append(s).append('"').toString();
         }));

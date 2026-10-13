@@ -10,6 +10,8 @@
 package org.opensearch.security;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
@@ -19,20 +21,20 @@ import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.search.CreatePitRequest;
-import org.opensearch.action.search.CreatePitResponse;
-import org.opensearch.action.search.DeletePitRequest;
-import org.opensearch.action.search.DeletePitResponse;
-import org.opensearch.action.search.GetAllPitNodesResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.RestHighLevelClient;
-import org.opensearch.common.unit.TimeValue;
-import org.opensearch.search.builder.PointInTimeBuilder;
-import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.client.opensearch._types.Time;
+import org.opensearch.client.opensearch.core.CreatePitRequest;
+import org.opensearch.client.opensearch.core.CreatePitResponse;
+import org.opensearch.client.opensearch.core.DeleteAllPitsResponse;
+import org.opensearch.client.opensearch.core.DeletePitRequest;
+import org.opensearch.client.opensearch.core.DeletePitResponse;
+import org.opensearch.client.opensearch.core.GetAllPitsResponse;
+import org.opensearch.client.opensearch.core.SearchRequest;
+import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.search.Pit;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.OpenSearchClientProvider.CloseableOpenSearchClient;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.transport.client.Client;
@@ -40,20 +42,21 @@ import org.opensearch.transport.client.Client;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.core.rest.RestStatus.OK;
 import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
-import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
-import static org.opensearch.test.framework.matcher.PitResponseMatchers.deleteResponseContainsExactlyPitWithIds;
-import static org.opensearch.test.framework.matcher.PitResponseMatchers.getAllResponseContainsExactlyPitWithIds;
-import static org.opensearch.test.framework.matcher.PitResponseMatchers.isSuccessfulCreatePitResponse;
-import static org.opensearch.test.framework.matcher.PitResponseMatchers.isSuccessfulDeletePitResponse;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
+import static org.opensearch.test.framework.matcher.client.PitResponseMatchers.deletePitsResponseContainsExactlyPitWithIds;
+import static org.opensearch.test.framework.matcher.client.PitResponseMatchers.deleteResponseContainsExactlyPitWithIds;
+import static org.opensearch.test.framework.matcher.client.PitResponseMatchers.getAllResponseContainsExactlyPitWithIds;
+import static org.opensearch.test.framework.matcher.client.PitResponseMatchers.isSuccessfulCreatePitResponse;
+import static org.opensearch.test.framework.matcher.client.PitResponseMatchers.isSuccessfulDeletePitResponse;
+import static org.opensearch.test.framework.matcher.client.PitResponseMatchers.isSuccessfulDeletePitsResponse;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.isSuccessfulSearchResponse;
+import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
+import static org.opensearch.test.framework.matcher.client.TransportExceptionMatchers.statusException;
 
 public class PointInTimeOperationTest {
 
@@ -128,8 +131,8 @@ public class PointInTimeOperationTest {
 
     @Before
     public void cleanUpPits() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
-            restHighLevelClient.deleteAllPits(DEFAULT);
+        try (CloseableOpenSearchClient client = cluster.getClient(ADMIN_USER)) {
+            client.deleteAllPits();
         }
     }
 
@@ -142,10 +145,12 @@ public class PointInTimeOperationTest {
 
     @Test
     public void createPit_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
-            CreatePitRequest createPitRequest = new CreatePitRequest(TimeValue.timeValueMinutes(30), false, FIRST_SONG_INDEX);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
+            CreatePitRequest createPitRequest = CreatePitRequest.of(
+                r -> r.keepAlive(Time.of(t -> t.time("30m"))).allowPartialPitCreation(false).index(FIRST_SONG_INDEX)
+            );
 
-            CreatePitResponse createPitResponse = restHighLevelClient.createPit(createPitRequest, DEFAULT);
+            CreatePitResponse createPitResponse = client.createPit(createPitRequest);
 
             assertThat(createPitResponse, isSuccessfulCreatePitResponse());
         }
@@ -153,10 +158,12 @@ public class PointInTimeOperationTest {
 
     @Test
     public void createPitWithIndexAlias_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
-            CreatePitRequest createPitRequest = new CreatePitRequest(TimeValue.timeValueMinutes(30), false, FIRST_INDEX_ALIAS);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
+            CreatePitRequest createPitRequest = CreatePitRequest.of(
+                r -> r.keepAlive(Time.of(t -> t.time("30m"))).allowPartialPitCreation(false).index(FIRST_INDEX_ALIAS)
+            );
 
-            CreatePitResponse createPitResponse = restHighLevelClient.createPit(createPitRequest, DEFAULT);
+            CreatePitResponse createPitResponse = client.createPit(createPitRequest);
 
             assertThat(createPitResponse, isSuccessfulCreatePitResponse());
         }
@@ -164,29 +171,33 @@ public class PointInTimeOperationTest {
 
     @Test
     public void createPit_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
-            CreatePitRequest createPitRequest = new CreatePitRequest(TimeValue.timeValueMinutes(30), false, SECOND_SONG_INDEX);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
+            CreatePitRequest createPitRequest = CreatePitRequest.of(
+                r -> r.keepAlive(Time.of(t -> t.time("30m"))).allowPartialPitCreation(false).index(SECOND_SONG_INDEX)
+            );
 
-            assertThatThrownBy(() -> restHighLevelClient.createPit(createPitRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.createPit(createPitRequest), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void createPitWithIndexAlias_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
-            CreatePitRequest createPitRequest = new CreatePitRequest(TimeValue.timeValueMinutes(30), false, SECOND_INDEX_ALIAS);
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
+            CreatePitRequest createPitRequest = CreatePitRequest.of(
+                r -> r.keepAlive(Time.of(t -> t.time("30m"))).allowPartialPitCreation(false).index(SECOND_INDEX_ALIAS)
+            );
 
-            assertThatThrownBy(() -> restHighLevelClient.createPit(createPitRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.createPit(createPitRequest), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void listAllPits_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(POINT_IN_TIME_USER)) {
             String firstIndexPit = createPitForIndices(FIRST_SONG_INDEX);
             String secondIndexPit = createPitForIndices(SECOND_SONG_INDEX);
 
-            GetAllPitNodesResponse getAllPitsResponse = restHighLevelClient.getAllPits(DEFAULT);
+            GetAllPitsResponse getAllPitsResponse = client.getAllPits();
 
             assertThat(getAllPitsResponse, getAllResponseContainsExactlyPitWithIds(firstIndexPit, secondIndexPit));
         }
@@ -194,17 +205,17 @@ public class PointInTimeOperationTest {
 
     @Test
     public void listAllPits_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
-            assertThatThrownBy(() -> restHighLevelClient.getAllPits(DEFAULT), statusException(FORBIDDEN));
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
+            assertThatThrownBy(() -> client.getAllPits(), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void deletePit_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
             String existingPitId = createPitForIndices(FIRST_SONG_INDEX);
 
-            DeletePitResponse deletePitResponse = restHighLevelClient.deletePit(new DeletePitRequest(existingPitId), DEFAULT);
+            DeletePitResponse deletePitResponse = client.deletePit(DeletePitRequest.of(r -> r.pitId(existingPitId)));
             assertThat(deletePitResponse, isSuccessfulDeletePitResponse());
             assertThat(deletePitResponse, deleteResponseContainsExactlyPitWithIds(existingPitId));
         }
@@ -212,10 +223,10 @@ public class PointInTimeOperationTest {
 
     @Test
     public void deletePitCreatedWithIndexAlias_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
             String existingPitId = createPitForIndices(FIRST_INDEX_ALIAS);
 
-            DeletePitResponse deletePitResponse = restHighLevelClient.deletePit(new DeletePitRequest(existingPitId), DEFAULT);
+            DeletePitResponse deletePitResponse = client.deletePit(DeletePitRequest.of(r -> r.pitId(existingPitId)));
             assertThat(deletePitResponse, isSuccessfulDeletePitResponse());
             assertThat(deletePitResponse, deleteResponseContainsExactlyPitWithIds(existingPitId));
         }
@@ -223,56 +234,49 @@ public class PointInTimeOperationTest {
 
     @Test
     public void deletePit_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
             String existingPitId = createPitForIndices(SECOND_SONG_INDEX);
 
-            assertThatThrownBy(
-                () -> restHighLevelClient.deletePit(new DeletePitRequest(existingPitId), DEFAULT),
-                statusException(FORBIDDEN)
-            );
+            assertThatThrownBy(() -> client.deletePit(DeletePitRequest.of(r -> r.pitId(existingPitId))), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void deletePitCreatedWithIndexAlias_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
             String existingPitId = createPitForIndices(SECOND_INDEX_ALIAS);
 
-            assertThatThrownBy(
-                () -> restHighLevelClient.deletePit(new DeletePitRequest(existingPitId), DEFAULT),
-                statusException(FORBIDDEN)
-            );
+            assertThatThrownBy(() -> client.deletePit(DeletePitRequest.of(r -> r.pitId(existingPitId))), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void deleteAllPits_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(POINT_IN_TIME_USER)) {
             String firstIndexPit = createPitForIndices(FIRST_SONG_INDEX);
             String secondIndexPit = createPitForIndices(SECOND_SONG_INDEX);
 
-            DeletePitResponse deletePitResponse = restHighLevelClient.deleteAllPits(DEFAULT);
-            assertThat(deletePitResponse, isSuccessfulDeletePitResponse());
-            assertThat(deletePitResponse, deleteResponseContainsExactlyPitWithIds(firstIndexPit, secondIndexPit));
+            DeleteAllPitsResponse deletePitResponse = client.deleteAllPits();
+            assertThat(deletePitResponse, isSuccessfulDeletePitsResponse());
+            assertThat(deletePitResponse, deletePitsResponseContainsExactlyPitWithIds(firstIndexPit, secondIndexPit));
         }
     }
 
     @Test
     public void deleteAllPits_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
-            assertThatThrownBy(() -> restHighLevelClient.deleteAllPits(DEFAULT), statusException(FORBIDDEN));
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
+            assertThatThrownBy(() -> client.deleteAllPits(), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void searchWithPit_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
             String existingPitId = createPitForIndices(FIRST_SONG_INDEX);
 
-            SearchRequest searchRequest = new SearchRequest();
-            searchRequest.source(new SearchSourceBuilder().pointInTimeBuilder(new PointInTimeBuilder(existingPitId)));
+            SearchRequest searchRequest = SearchRequest.of(r -> r.pit(Pit.of(p -> p.id(existingPitId))));
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(
                 searchResponse,
@@ -287,13 +291,12 @@ public class PointInTimeOperationTest {
 
     @Test
     public void searchWithPitCreatedWithIndexAlias_positive() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
             String existingPitId = createPitForIndices(FIRST_INDEX_ALIAS);
 
-            SearchRequest searchRequest = new SearchRequest();
-            searchRequest.source(new SearchSourceBuilder().pointInTimeBuilder(new PointInTimeBuilder(existingPitId)));
+            SearchRequest searchRequest = SearchRequest.of(r -> r.pit(Pit.of(p -> p.id(existingPitId))));
 
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(
                 searchResponse,
@@ -308,25 +311,23 @@ public class PointInTimeOperationTest {
 
     @Test
     public void searchWithPit_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
             String existingPitId = createPitForIndices(SECOND_SONG_INDEX);
 
-            SearchRequest searchRequest = new SearchRequest();
-            searchRequest.source(new SearchSourceBuilder().pointInTimeBuilder(new PointInTimeBuilder(existingPitId)));
+            SearchRequest searchRequest = SearchRequest.of(r -> r.pit(Pit.of(p -> p.id(existingPitId))));
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
     @Test
     public void searchWithPitCreatedWithIndexAlias_negative() throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_POINT_IN_TIME_USER)) {
+        try (CloseableOpenSearchClient client = cluster.getClient(LIMITED_POINT_IN_TIME_USER)) {
             String existingPitId = createPitForIndices(SECOND_INDEX_ALIAS);
 
-            SearchRequest searchRequest = new SearchRequest();
-            searchRequest.source(new SearchSourceBuilder().pointInTimeBuilder(new PointInTimeBuilder(existingPitId)));
+            SearchRequest searchRequest = SearchRequest.of(r -> r.pit(Pit.of(p -> p.id(existingPitId))));
 
-            assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+            assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
     }
 
@@ -396,13 +397,15 @@ public class PointInTimeOperationTest {
     * Creates PIT for given indices. Returns PIT id.
     */
     private String createPitForIndices(String... indices) throws IOException {
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ADMIN_USER)) {
-            CreatePitRequest createPitRequest = new CreatePitRequest(TimeValue.timeValueMinutes(30), false, indices);
+        try (CloseableOpenSearchClient client = cluster.getClient(ADMIN_USER)) {
+            CreatePitRequest createPitRequest = CreatePitRequest.of(
+                r -> r.keepAlive(Time.of(t -> t.time("30m"))).allowPartialPitCreation(false).index(Arrays.asList(indices))
+            );
 
-            CreatePitResponse createPitResponse = restHighLevelClient.createPit(createPitRequest, DEFAULT);
+            CreatePitResponse createPitResponse = client.createPit(createPitRequest);
 
             assertThat(createPitResponse, isSuccessfulCreatePitResponse());
-            return createPitResponse.getId();
+            return createPitResponse.pitId();
         }
     }
 

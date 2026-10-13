@@ -48,6 +48,7 @@ import org.opensearch.transport.client.Client;
 
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.ReferenceCountUtil;
 import reactor.netty.http.HttpProtocol;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -171,9 +172,13 @@ public class ResourceFocusedTests {
             }
 
             final Collection<FullHttpResponse> responses = client.post(requestUris, parallelism);
-            responses.stream()
-                .map(FullHttpResponse::status)
-                .forEach(responseCode -> assertThat(responseCode, equalTo(HttpResponseStatus.UNAUTHORIZED)));
+            try {
+                responses.stream()
+                    .map(FullHttpResponse::status)
+                    .forEach(responseCode -> assertThat(responseCode, equalTo(HttpResponseStatus.UNAUTHORIZED)));
+            } finally {
+                responses.forEach(ReferenceCountUtil::release);
+            }
         }
     }
 

@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -42,6 +41,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
+import org.opensearch.security.privileges.RestAdminRoles;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
@@ -111,7 +111,7 @@ public class RestApiAuthorizationEvaluator {
     private final PrivilegesConfiguration privilegesConfiguration;
     private final boolean restapiAdminEnabled;
 
-    private final Set<String> allowedRoles = new HashSet<>();
+    private final RestAdminRoles restAdminRoles;
 
     private final Map<String, Map<Endpoint, List<Method>>> disabledEndpointsForRoles = new HashMap<>();
 
@@ -150,8 +150,8 @@ public class RestApiAuthorizationEvaluator {
         }
         this.allEndpoints = Collections.unmodifiableMap(allEndpoints);
 
-        allowedRoles.addAll(settings.getAsList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED));
-        this.roleBasedAccessEnabled = allowedRoles.isEmpty() == false;
+        this.restAdminRoles = new RestAdminRoles(settings);
+        this.roleBasedAccessEnabled = restAdminRoles.isEmpty() == false;
 
         final Settings globalSettings = settings.getAsSettings(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".global");
         if (globalSettings.isEmpty() == false) {
@@ -163,7 +163,7 @@ public class RestApiAuthorizationEvaluator {
             logger.debug("Globally disabled endpoints: {}", globallyDisabledEndpoints);
         }
 
-        for (String role : allowedRoles) {
+        for (String role : restAdminRoles.roles()) {
             final Settings settingsForRole = settings.getAsSettings(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + "." + role);
             if (settingsForRole.isEmpty()) {
                 if (isDebugEnabled) {
@@ -187,8 +187,10 @@ public class RestApiAuthorizationEvaluator {
 
     /**
      * Check if the current request is allowed to use the REST API and the
-     * requested end point. Using an admin certificate grants all permissions. A
-     * user/role can have restricted end points.
+     * requested end point. Access can be granted by a role in
+     * {@code plugins.security.restapi.roles_enabled}, by an explicit protected
+     * REST API permission when granular access is enabled, or by an admin
+     * certificate.
      *
      * @return an error message if user does not have access, null otherwise
      */
@@ -212,12 +214,50 @@ public class RestApiAuthorizationEvaluator {
             return null;
         }
 
+        if (hasGranularRestApiAccess(request, endpoint)) {
+            return null;
+        }
+
         final String certBasedAccessFailureReason = checkAdminCertBasedAccessPermissions(request);
         if (certBasedAccessFailureReason == null) {
             return null;
         }
 
         return constructAccessErrorMessage(roleBasedAccessFailureReason, certBasedAccessFailureReason);
+    }
+
+    private boolean hasGranularRestApiAccess(final RestRequest request, final Endpoint endpoint) {
+        if (restapiAdminEnabled == false || isGloballyDisabled(request, endpoint)) {
+            return false;
+        }
+
+        switch (endpoint) {
+            case SSL:
+                if (request.method() == Method.GET) {
+                    return isCurrentUserAdminFor(endpoint, CERTS_INFO_ACTION);
+                }
+                if (request.method() == Method.PUT) {
+                    return isCurrentUserAdminFor(endpoint, RELOAD_CERTS_ACTION);
+                }
+                return false;
+            case CONFIG:
+                if (request.method() == Method.GET || request.method() == Method.PUT || request.method() == Method.PATCH) {
+                    return isCurrentUserAdminFor(endpoint, SECURITY_CONFIG_UPDATE);
+                }
+                return false;
+            case RESOURCE_SHARING:
+                if (request.method() == Method.POST) {
+                    return isCurrentUserAdminFor(endpoint, RESOURCE_MIGRATE_ACTION);
+                }
+                return false;
+            default:
+                return isCurrentUserAdminFor(endpoint);
+        }
+    }
+
+    private boolean isGloballyDisabled(final RestRequest request, final Endpoint endpoint) {
+        final List<Method> disabledMethods = globallyDisabledEndpoints.get(endpoint);
+        return disabledMethods != null && disabledMethods.contains(request.method());
     }
 
     public boolean isCurrentUserAdminFor(final Endpoint endpoint, final String action) {
@@ -255,6 +295,11 @@ public class RestApiAuthorizationEvaluator {
         return hasAccess && restapiAdminEnabled;
     }
 
+    public boolean isCurrentUserSuperAdmin() {
+        final Pair<User, TransportAddress> userAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadContext);
+        return userAndRemoteAddress.getLeft() != null && adminDNs.isAdmin(userAndRemoteAddress.getLeft());
+    }
+
     public boolean isCurrentUserAdminFor(final Endpoint endpoint) {
         return isCurrentUserAdminFor(endpoint, null);
     }
@@ -273,7 +318,7 @@ public class RestApiAuthorizationEvaluator {
     }
 
     public boolean currentUserHasRestApiAccess(Set<String> userRoles) {
-        return Collections.disjoint(allowedRoles, userRoles) == false;
+        return restAdminRoles.matches(userRoles);
     }
 
     public Map<Endpoint, List<Method>> getDisabledEndpointsForCurrentUser(String userPrincipal, Set<String> userRoles) {
@@ -307,11 +352,7 @@ public class RestApiAuthorizationEvaluator {
 
         if (hasDisabledEndpoints == false) {
             if (isDebugEnabled) {
-                logger.debug(
-                    "No disabled endpoints for user {} at all,  only globally disabledendpoints apply.",
-                    userPrincipal,
-                    remainingEndpoints
-                );
+                logger.debug("No disabled endpoints for user {} at all,  only globally disabledendpoints apply.", userPrincipal);
             }
             disabledEndpointsForUsers.put(userPrincipal, addGloballyDisabledEndpoints(finalEndpoints));
             return finalEndpoints;

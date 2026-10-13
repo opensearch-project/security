@@ -12,8 +12,14 @@
 package org.opensearch.security.auth.http.jwt.keybyoidc;
 
 import java.util.HashMap;
+import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -22,8 +28,13 @@ import org.opensearch.security.auth.http.jwt.keybyjwks.HTTPJwtKeyByJWKSAuthentic
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
+import org.mockito.ArgumentCaptor;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
@@ -241,6 +252,42 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
         Assert.assertNotNull(jwtAuth);
         assertThat(jwtAuth.getType(), is("jwt"));
+    }
+
+    @Test
+    public void testStaticFallbackIsLoggedAtInfoNotWarn() {
+        Appender mockAppender = mock(Appender.class);
+        ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
+
+        Logger logger = (Logger) LogManager.getLogger(HTTPJwtKeyByJWKSAuthenticator.class);
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.INFO);
+
+        try {
+            Settings settings = Settings.builder()
+                .put("signing_key", "dGVzdC1zaWduaW5nLWtleS10aGF0LWlzLWxvbmctZW5vdWdoLWZvci1obWFjLXNoYTI1Ng==")
+                .build();
+
+            new HTTPJwtKeyByJWKSAuthenticator(settings, null);
+
+            org.mockito.Mockito.verify(mockAppender, atLeastOnce()).append(logEventCaptor.capture());
+
+            List<LogEvent> events = logEventCaptor.getAllValues();
+            boolean sawStaticInfoMessage = false;
+            for (LogEvent event : events) {
+                String message = event.getMessage().getFormattedMessage();
+                if (message.contains("jwks_uri is not configured")) {
+                    // The static-key path is a supported configuration, so it must not warn.
+                    assertThat(event.getLevel(), is(Level.INFO));
+                    sawStaticInfoMessage = true;
+                }
+            }
+            Assert.assertTrue("Expected an INFO log about static JWT authentication", sawStaticInfoMessage);
+        } finally {
+            logger.removeAppender(mockAppender);
+        }
     }
 
     @Test

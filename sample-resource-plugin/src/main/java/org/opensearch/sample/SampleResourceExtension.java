@@ -11,6 +11,8 @@
 
 package org.opensearch.sample;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.opensearch.sample.client.ResourceSharingClientAccessor;
@@ -54,11 +56,28 @@ public class SampleResourceExtension implements ResourceSharingExtension {
             public String parentIdField() {
                 return "group_id";
             }
+            // workspacesField() defaults to "workspaces" — no override needed.
         });
     }
 
     @Override
     public void assignResourceSharingClient(ResourceSharingClient resourceSharingClient) {
         ResourceSharingClientAccessor.getInstance().setResourceSharingClient(resourceSharingClient);
+    }
+
+    /**
+     * Sample resolver: maps each of the user's security roles to a workspace id ({@code ws-<role>}). Security roles
+     * are server-resolved (not user-assertable), satisfying the SPI's trusted-source contract.
+     */
+    @Override
+    public Set<String> resolveWorkspacesForUser(String username, Set<String> securityRoles, Set<String> backendRoles) {
+        if (securityRoles == null || securityRoles.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> workspaces = new HashSet<>();
+        for (String role : securityRoles) {
+            workspaces.add("ws-" + role);
+        }
+        return workspaces;
     }
 }

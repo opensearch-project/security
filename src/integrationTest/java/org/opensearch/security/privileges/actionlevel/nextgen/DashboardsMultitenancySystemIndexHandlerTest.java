@@ -10,6 +10,8 @@
  */
 package org.opensearch.security.privileges.actionlevel.nextgen;
 
+import java.util.List;
+
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
@@ -78,7 +80,8 @@ public class DashboardsMultitenancySystemIndexHandlerTest {
             resolver,
             new IndicesRequestResolver(resolver),
             () -> clusterState,
-            ActionPrivileges.EMPTY
+            ActionPrivileges.EMPTY,
+            List.of()
         );
 
         assertNull(subject.handle(searchRequest, "indices:data/read/search", user, ctx));
@@ -118,7 +121,8 @@ public class DashboardsMultitenancySystemIndexHandlerTest {
             resolver,
             new IndicesRequestResolver(resolver),
             () -> clusterState,
-            ActionPrivileges.EMPTY
+            ActionPrivileges.EMPTY,
+            List.of()
         );
 
         PrivilegesEvaluatorResponse result = subject.handle(searchRequest, "indices:data/read/search", user, ctx);
@@ -158,7 +162,8 @@ public class DashboardsMultitenancySystemIndexHandlerTest {
             resolver,
             new IndicesRequestResolver(resolver),
             () -> clusterState,
-            ActionPrivileges.EMPTY
+            ActionPrivileges.EMPTY,
+            List.of()
         );
 
         PrivilegesEvaluatorResponse result = subject.handle(searchRequest, "indices:data/read/search", user, ctx);
@@ -222,7 +227,8 @@ public class DashboardsMultitenancySystemIndexHandlerTest {
             resolver,
             new IndicesRequestResolver(resolver),
             () -> clusterState,
-            ActionPrivileges.EMPTY
+            ActionPrivileges.EMPTY,
+            List.of()
         );
 
         PrivilegesEvaluatorResponse result = subject.handle(unsupportedRequest, "indices:data/read/search", user, ctx);

@@ -18,6 +18,8 @@ import org.apache.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -44,8 +46,8 @@ public class BCryptDefaultConfigHashingTests extends HashingTests {
     public void shouldAuthenticateWithCorrectPassword() {
         String hash = generateBCryptHash(
             PASSWORD,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+            PasswordHasherFactory.BCRYPT_MINOR.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.BCRYPT_ROUNDS.getDefault(Settings.EMPTY)
         );
         createUserWithHashedPassword(cluster, "user_2", hash);
         testPasswordAuth(cluster, "user_2", PASSWORD, HttpStatus.SC_OK);
@@ -58,8 +60,8 @@ public class BCryptDefaultConfigHashingTests extends HashingTests {
     public void shouldNotAuthenticateWithIncorrectPassword() {
         String hash = generateBCryptHash(
             PASSWORD,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT,
-            ConfigConstants.SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT
+            PasswordHasherFactory.BCRYPT_MINOR.getDefault(Settings.EMPTY),
+            PasswordHasherFactory.BCRYPT_ROUNDS.getDefault(Settings.EMPTY)
         );
         createUserWithHashedPassword(cluster, "user_4", hash);
         testPasswordAuth(cluster, "user_4", "wrong_password", HttpStatus.SC_UNAUTHORIZED);

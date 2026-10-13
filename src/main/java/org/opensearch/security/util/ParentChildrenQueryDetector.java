@@ -13,10 +13,11 @@ import org.apache.lucene.search.BooleanClause;
 
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilderVisitor;
-import org.opensearch.join.query.HasChildQueryBuilder;
-import org.opensearch.join.query.HasParentQueryBuilder;
 
 public final class ParentChildrenQueryDetector implements QueryBuilderVisitor {
+
+    private static final String HAS_PARENT_QUERY_NAME = "has_parent";
+    private static final String HAS_CHILD_QUERY_NAME = "has_child";
 
     private boolean queryPresent = false;
 
@@ -36,7 +37,8 @@ public final class ParentChildrenQueryDetector implements QueryBuilderVisitor {
      */
     @Override
     public void accept(QueryBuilder queryBuilder) {
-        if (queryBuilder instanceof HasParentQueryBuilder || queryBuilder instanceof HasChildQueryBuilder) {
+        String queryName = queryBuilder.getWriteableName();
+        if (HAS_PARENT_QUERY_NAME.equals(queryName) || HAS_CHILD_QUERY_NAME.equals(queryName)) {
             queryPresent = true;
         }
     }

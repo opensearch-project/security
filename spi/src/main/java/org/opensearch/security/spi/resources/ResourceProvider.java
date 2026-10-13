@@ -11,8 +11,6 @@ package org.opensearch.security.spi.resources;
 /**
  * This record class represents a resource provider.
  * It holds information about the resource type, resource index name, and a resource parser.
- *
- * @opensearch.experimental
  */
 public interface ResourceProvider {
 
@@ -45,6 +43,58 @@ public interface ResourceProvider {
      */
     default String parentIdField() {
         return null;
+    }
+
+    /**
+     * JSON pointer path (dot-notation is also accepted for backward compatibility) to the field
+     * containing the resource owner's username on documents of this type. Used by the
+     * {@code POST /_plugins/_security/api/resources/migrate} endpoint to attribute legacy docs
+     * without requiring a single global {@code username_path} in the request payload.
+     *
+     * <p>When multiple providers register on the same resource index, each provider may declare a
+     * type-specific path (for example, {@code monitor.user.name} and {@code workflow.user.name});
+     * the migrate endpoint resolves the type first via {@link #typeField()} and then reads the
+     * owner from the matching provider's path.
+     *
+     * <p>Returning {@code null} (the default) preserves the legacy behavior of falling back to the
+     * request-level {@code username_path}.
+     *
+     * @return the JSON pointer path (with or without a leading {@code /}) or {@code null} if this
+     *         provider does not declare a per-type owner path
+     */
+    default String ownerNamePath() {
+        return null;
+    }
+
+    /**
+     * JSON pointer path to the field containing the resource owner's backend roles on documents of
+     * this type. See {@link #ownerNamePath()} for the resolution rules and fallback semantics.
+     *
+     * @return the JSON pointer path (with or without a leading {@code /}) or {@code null} if this
+     *         provider does not declare a per-type backend-roles path
+     */
+    default String ownerBackendRolesPath() {
+        return null;
+    }
+
+    /**
+     * Field on documents of this type holding the set of workspace IDs the resource belongs to (a resource may belong
+     * to multiple workspaces). Must be mapped as multi-valued {@code keyword}: the read path filters it in DLS with a
+     * {@code terms} query, and the write path stores it on the sharing record for access-level resolution. Defaults to
+     * {@code "workspaces"}; return {@code null} to opt out. A document without the field belongs to no workspace.
+     *
+     * <p><b>Trusted-write contract:</b> this field drives authorization, so a provider MUST NOT let a caller change it
+     * on an ordinary update — membership changes on an existing resource go through a server-authorized
+     * associate/dissociate path (else a user could add the resource to a workspace where they hold stronger access and
+     * escalate). At create time it is owner-governed, but the backend must still validate the creator may add the
+     * resource to each requested workspace. See {@link ResourceSharingExtension#resolveWorkspacesForUser} for the
+     * matching contract on user membership.
+     *
+     * @return the field name containing the resource's workspace IDs (default {@code "workspaces"}), or
+     *         {@code null} to opt out
+     */
+    default String workspacesField() {
+        return "workspaces";
     }
 
 }

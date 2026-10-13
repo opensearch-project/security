@@ -8,12 +8,14 @@
 
 package org.opensearch.sample.resource.feature.enabled;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -28,8 +30,11 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
+import tools.jackson.databind.JsonNode;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.resource.TestUtils.ApiHelper.assertSearchResponse;
 import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchAllPayload;
 import static org.opensearch.sample.resource.TestUtils.ApiHelper.searchByNamePayload;
@@ -47,6 +52,7 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_EN
 import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
+import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
@@ -254,6 +260,76 @@ public class ApiAccessTests {
             ok(() -> api.deleteResource(userResId, FULL_ACCESS_USER));
             // cannot delete admin's resource
             forbidden(() -> api.deleteResource(adminResId, FULL_ACCESS_USER));
+        }
+
+        @Test
+        public void testWorkspaceMembership_denyAllowDeny() throws Exception {
+            // A non-owner, non-shared user sees a resource ONLY while it belongs to a workspace they are a member of.
+            // FULL_ACCESS_USER's single security role is scoped as user_<username>__<role>; SampleResourceExtension
+            // resolves each security role R to workspace "ws-R", so this is the user's one accessible workspace.
+            final String userWorkspace = "ws-user_" + FULL_ACCESS_USER.getName() + "__shared_role";
+
+            // Resource owned by admin, initially in no workspace. FULL_ACCESS_USER is neither owner nor shared-with.
+            String resId = api.createSampleResourceAs(USER_ADMIN);
+            api.awaitSharingEntry(resId);
+
+            // DENY: not shared and not in the user's workspace -> the user's search returns no hits.
+            assertSearchResponse(ok(() -> api.searchResources(FULL_ACCESS_USER)), 0, null);
+
+            // ALLOW: associate the resource with the user's workspace (write the resource doc's workspaces field). The
+            // index listener reconciles the sharing record to the same set; DLS filters the doc's live field for reads.
+            setResourceWorkspaces(resId, userWorkspace);
+            awaitSharingRecordWorkspace(resId, true, userWorkspace);
+            assertSearchResponse(ok(() -> api.searchResources(FULL_ACCESS_USER)), 1, "sample");
+
+            // DENY (dissociate): clear the workspace. The listener reconciles the record to empty (removal), so neither
+            // the read path (DLS) nor the write path (the sharing record's workspace set) retains a stale grant.
+            setResourceWorkspaces(resId);
+            awaitSharingRecordWorkspace(resId, false, userWorkspace);
+            assertSearchResponse(ok(() -> api.searchResources(FULL_ACCESS_USER)), 0, null);
+        }
+
+        // Sets the resource doc's `workspaces` field to exactly the given ids (empty clears it), as the super admin.
+        private void setResourceWorkspaces(String resourceId, String... workspaceIds) {
+            StringBuilder arr = new StringBuilder("[");
+            for (int i = 0; i < workspaceIds.length; i++) {
+                if (i > 0) {
+                    arr.append(",");
+                }
+                arr.append("\"").append(workspaceIds[i]).append("\"");
+            }
+            arr.append("]");
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                HttpResponse resp = client.postJson(
+                    RESOURCE_INDEX_NAME + "/_update/" + resourceId + "?refresh=true",
+                    "{\"doc\":{\"workspaces\":" + arr + "}}"
+                );
+                resp.assertStatusCode(HttpStatus.SC_OK);
+            }
+        }
+
+        // Waits until the sharing record's `workspaces` set does (or does not) contain the given id, confirming the
+        // listener reconciled the record to match the resource doc.
+        private void awaitSharingRecordWorkspace(String resourceId, boolean shouldContain, String workspaceId) {
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                Awaitility.await("sharing record for " + resourceId + (shouldContain ? " contains " : " excludes ") + workspaceId)
+                    .pollInterval(Duration.ofMillis(500))
+                    .atMost(Duration.ofSeconds(10))
+                    .untilAsserted(() -> {
+                        HttpResponse resp = client.get(RESOURCE_SHARING_INDEX + "/_doc/" + resourceId);
+                        resp.assertStatusCode(HttpStatus.SC_OK);
+                        JsonNode ws = resp.bodyAsJsonNode().get("_source").get("workspaces");
+                        boolean found = false;
+                        if (ws != null && ws.isArray()) {
+                            for (JsonNode n : ws) {
+                                if (workspaceId.equals(n.asString())) {
+                                    found = true;
+                                }
+                            }
+                        }
+                        assertThat(found, equalTo(shouldContain));
+                    });
+            }
         }
 
         @Test

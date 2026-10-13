@@ -253,7 +253,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
             response = rh.executeGetRequest(ENDPOINT + "/actiongroups", restApiNodesDnHeader);
-            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
         // rest api user
         {

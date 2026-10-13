@@ -12,30 +12,23 @@
 package org.opensearch.security.grpc;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.opensearch.Version;
-import org.opensearch.plugins.PluginInfo;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.transport.grpc.GrpcPlugin;
 
-import io.grpc.Channel;
-import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
+import static org.opensearch.security.grpc.GrpcHelpers.SECURITY_WITH_GRPC_PLUGIN;
 import static org.opensearch.security.grpc.GrpcHelpers.SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS;
 import static org.opensearch.security.grpc.GrpcHelpers.TEST_CERTIFICATES;
-import static org.opensearch.security.grpc.GrpcHelpers.createHeaderInterceptor;
+import static org.opensearch.security.grpc.GrpcHelpers.createChannelWithAuthorization;
 import static org.opensearch.security.grpc.GrpcHelpers.doBulk;
 import static org.opensearch.security.grpc.GrpcHelpers.getSecureGrpcEndpoint;
 import static org.opensearch.security.grpc.GrpcHelpers.secureChannel;
@@ -54,32 +47,7 @@ public class GrpcAnonymousAuthTest {
         .certificates(TEST_CERTIFICATES)
         .nodeSettings(SINGLE_NODE_SECURE_AUTH_GRPC_TRANSPORT_SETTINGS)
         .nodeSettings(Map.of("plugins.security.authcz.admin_dn", Arrays.asList(TEST_CERTIFICATES.getAdminDNs())))
-        .plugin(
-            new PluginInfo(
-                GrpcPlugin.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "21",
-                GrpcPlugin.class.getName(),
-                null,
-                Collections.emptyList(),
-                false
-            )
-        )
-        .plugin(
-            new PluginInfo(
-                OpenSearchSecurityPlugin.class.getName(),
-                "classpath plugin",
-                "NA",
-                Version.CURRENT,
-                "21",
-                OpenSearchSecurityPlugin.class.getName(),
-                null,
-                List.of("org.opensearch.transport.grpc.GrpcPlugin"),
-                false
-            )
-        )
+        .plugin(SECURITY_WITH_GRPC_PLUGIN)
         .anonymousAuth(true)
         .roles(ANONYMOUS_BULK_ROLE)
         .rolesMapping(new TestSecurityConfig.RoleMapping(ANONYMOUS_BULK_ROLE.getName()).users("*"))
@@ -103,10 +71,9 @@ public class GrpcAnonymousAuthTest {
 
     @Test
     public void testInvalidAuthHeaderRejected() throws Exception {
-        ManagedChannel channel = secureChannel(getSecureGrpcEndpoint(cluster));
+        final var channel = secureChannel(getSecureGrpcEndpoint(cluster));
         try {
-            ClientInterceptor mockAuthInterceptor = createHeaderInterceptor(Map.of("Authorization", "mock-auth-header"));
-            Channel channelWithAuth = io.grpc.ClientInterceptors.intercept(channel, mockAuthInterceptor);
+            final var channelWithAuth = createChannelWithAuthorization(channel, "mock-auth-header");
 
             try {
                 doBulk(channelWithAuth, "test-invalid-auth", 2);
