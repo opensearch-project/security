@@ -356,8 +356,8 @@ notifications_read_access:
 notifications_send_access:
   reserved: true
   cluster_permissions:
+    - 'cluster:admin/opensearch/notifications/channel/send'
     - 'cluster:admin/opensearch/notifications/channels/get'
-    - 'cluster:admin/opensearch/notifications/feature/send'
     - 'cluster:admin/opensearch/notifications/features'
 
 # Allows users to use all snapshot management functionality
