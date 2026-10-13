@@ -437,7 +437,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         );
                     }
                 }, e -> {
-                    LOGGER.debug(e.getMessage());
+                    LOGGER.warn("Failed to migrate resource sharing info for [{}]: {}", resourceId, e.getMessage());
                     failureCount.getAndIncrement();
                     migrationStatsLatch.countDown();
                 });

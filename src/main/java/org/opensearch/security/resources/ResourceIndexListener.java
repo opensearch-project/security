@@ -102,7 +102,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     resourceId,
                     resourceIndex
                 );
-            }, e -> { log.debug(e.getMessage()); });
+            }, e -> log.warn("postIndex: Failed to restore the resource visibility for resource {}: {}", resourceId, e.getMessage()));
             this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
 
             // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
