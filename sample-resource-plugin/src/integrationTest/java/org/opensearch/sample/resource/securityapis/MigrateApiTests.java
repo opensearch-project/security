@@ -788,16 +788,17 @@ public class MigrateApiTests {
                 migrationPayload_valid_withParent(groupId)
             );
             migrateResponse.assertStatusCode(HttpStatus.SC_OK);
+            // Only the resource type is protected on this cluster, so the group it belongs to gets no record of its own
             assertThat(
                 migrateResponse.bodyAsMap().get("summary"),
-                equalTo("Migration complete. migrated 2; backfilledExisting 0; skippedNoType 0; skippedExisting 0; failed 0")
+                equalTo("Migration complete. migrated 1; backfilledExisting 0; skippedNoType 1; skippedExisting 0; failed 0")
             );
 
             // Verify the sharing record for the resource has parent_type and parent_id set
             TestRestClient.HttpResponse sharingResponse = client.get(RESOURCE_SHARING_INDEX + "/_search");
             sharingResponse.assertStatusCode(HttpStatus.SC_OK);
             ArrayNode hitsNode = (ArrayNode) sharingResponse.bodyAsJsonNode().get("hits").get("hits");
-            assertThat(hitsNode.size(), equalTo(2));
+            assertThat(hitsNode.size(), equalTo(1));
 
             // Find the resource hit (not the group) and verify parent fields
             tools.jackson.databind.JsonNode resourceSource = null;

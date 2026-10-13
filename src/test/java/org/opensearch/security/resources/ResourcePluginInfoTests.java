@@ -96,6 +96,94 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
+    public void testFieldUniqueToOneProviderResolvesToItsRegisteredType() {
+        // alerting: workflows register as "alerting-workflow" but hold "workflow"; the field is unique to them
+        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+
+        assertEquals("alerting-workflow", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockWorkflowDoc()));
+        assertEquals("monitor", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockMonitorDoc()));
+    }
+
+    @Test
+    public void testSharedFieldResolvesByValue() {
+        // The sample plugin's shape: three types on one index, one shared discriminator field
+        registerProviders(List.of("sample-resource", "sample-resource-group", "workspace"), ".sample-index", "resource_type");
+
+        assertEquals(
+            "sample-resource-group",
+            resourcePluginInfo.getResourceTypeForIndexOp(".sample-index", typedDoc("sample-resource-group"))
+        );
+        assertEquals("workspace", resourcePluginInfo.getResourceTypeForIndexOp(".sample-index", typedDoc("workspace")));
+        // A value no provider declares is not a resource, even though the field is present
+        assertNull(resourcePluginInfo.getResourceTypeForIndexOp(".sample-index", typedDoc("something-else")));
+    }
+
+    @Test
+    public void testSharedFieldIsNotMistakenForPresenceWhenOnlyOneTypeIsProtected() {
+        // Protecting one type must not make the shared field look unique to it: a group document stays a group
+        registerProviders(List.of("sample-resource", "sample-resource-group"), ".sample-index", "resource_type");
+        resourcePluginInfo.updateProtectedTypes(List.of("sample-resource"));
+
+        assertEquals(
+            "sample-resource-group",
+            resourcePluginInfo.getResourceTypeForIndexOp(".sample-index", typedDoc("sample-resource-group"))
+        );
+    }
+
+    @Test
+    public void testDocumentWithoutTheFieldIsNotAResource() {
+        // ml-commons' shape: model chunks share the model index but carry no resource_type
+        registerProviders(List.of("ml-model"), ".plugins-ml-model", "resource_type");
+
+        assertNull(
+            resourcePluginInfo.getResourceTypeForIndexOp(
+                ".plugins-ml-model",
+                mockIndexOp(new StringField("chunk_number", "3", Field.Store.NO))
+            )
+        );
+        assertEquals("ml-model", resourcePluginInfo.getResourceTypeForIndexOp(".plugins-ml-model", typedDoc("ml-model")));
+    }
+
+    @Test
+    public void testPresenceOfTwoUniqueFieldsIsAmbiguous() {
+        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+
+        // Both fields present and neither holds its provider's type: no way to choose, so not a resource
+        Engine.Index both = mockIndexOp(
+            new StringField("monitor.type", "x", Field.Store.NO),
+            new StringField("workflow.type", "y", Field.Store.NO)
+        );
+        assertNull(resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", both));
+
+        // An exact value outranks a match by presence
+        Engine.Index exact = mockIndexOp(
+            new StringField("monitor.type", "monitor", Field.Store.NO),
+            new StringField("workflow.type", "y", Field.Store.NO)
+        );
+        assertEquals("monitor", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", exact));
+    }
+
+    @Test
+    public void testUntypedProviderClaimsOnlyUnclaimedDocuments() {
+        // The names put the untyped provider first in the registry's HashMap order, so a first-match rule would misclassify
+        registerProviders("b-untyped", null, "a-typed", "a.type", ".mixed-index");
+
+        assertEquals(
+            "a-typed",
+            resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("a.type", "anything", Field.Store.NO)))
+        );
+        assertEquals(
+            "b-untyped",
+            resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("other", "x", Field.Store.NO)))
+        );
+    }
+
+    /** A document holding {@code value} in {@code resource_type}. */
+    private Engine.Index typedDoc(String value) {
+        return mockIndexOp(new StringField("resource_type", value, Field.Store.NO));
+    }
+
+    @Test
     public void testUnknownIndexReturnsNull() {
         registerProviders(List.of("monitor"), ".alerting-config", "monitor.type");
         resourcePluginInfo.updateProtectedTypes(List.of("monitor"));
