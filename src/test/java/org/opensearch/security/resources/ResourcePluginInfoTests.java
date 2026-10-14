@@ -96,6 +96,120 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
+    public void testProviderDeclaresTheValueItsDocumentsHold() {
+        registerAlertingProviders();
+
+        assertEquals("alerting-workflow", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockWorkflowDoc()));
+        assertEquals("monitor", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockMonitorDoc()));
+    }
+
+    @Test
+    public void testValueOtherThanTheDeclaredOneIsNotThatType() {
+        // Without the declared value, the default is the type name, which workflow documents do not hold
+        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+
+        assertNull(resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockWorkflowDoc()));
+    }
+
+    @Test
+    public void testSharedFieldResolvesByValue() {
+        // The sample plugin's shape: three types on one index, one shared discriminator field
+        registerProviders(List.of("sample-resource", "sample-resource-group", "workspace"), ".sample-index", "resource_type");
+
+        assertEquals(
+            "sample-resource-group",
+            resourcePluginInfo.getResourceTypeForIndexOp(".sample-index", typedDoc("sample-resource-group"))
+        );
+        assertEquals("workspace", resourcePluginInfo.getResourceTypeForIndexOp(".sample-index", typedDoc("workspace")));
+        // A value no provider declares is not a resource, even though the field is present
+        assertNull(resourcePluginInfo.getResourceTypeForIndexOp(".sample-index", typedDoc("something-else")));
+    }
+
+    @Test
+    public void testClassificationDoesNotDependOnProtection() {
+        // Classification does not depend on protection: a group document stays a group when only resources are protected
+        registerProviders(List.of("sample-resource", "sample-resource-group"), ".sample-index", "resource_type");
+        resourcePluginInfo.updateProtectedTypes(List.of("sample-resource"));
+
+        assertEquals(
+            "sample-resource-group",
+            resourcePluginInfo.getResourceTypeForIndexOp(".sample-index", typedDoc("sample-resource-group"))
+        );
+    }
+
+    @Test
+    public void testDocumentWithoutTheFieldIsNotAResource() {
+        // ml-commons' shape: model chunks share the model index but carry no resource_type
+        registerProviders(List.of("ml-model"), ".plugins-ml-model", "resource_type");
+
+        assertNull(
+            resourcePluginInfo.getResourceTypeForIndexOp(
+                ".plugins-ml-model",
+                mockIndexOp(new StringField("chunk_number", "3", Field.Store.NO))
+            )
+        );
+        assertEquals("ml-model", resourcePluginInfo.getResourceTypeForIndexOp(".plugins-ml-model", typedDoc("ml-model")));
+    }
+
+    @Test
+    public void testDocumentMatchingTwoProvidersIsNotAResource() {
+        registerAlertingProviders();
+
+        Engine.Index both = mockIndexOp(
+            new StringField("monitor.type", "monitor", Field.Store.NO),
+            new StringField("workflow.type", "workflow", Field.Store.NO)
+        );
+        assertNull(resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", both));
+    }
+
+    @Test
+    public void testRejectsTwoUntypedTypesOnOneIndex() {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> registerExtension(makeProvider("a", ".shared-index", null), makeProvider("b", ".shared-index", null))
+        );
+        assertTrue(ex.getMessage().contains("both declare no typeField"));
+    }
+
+    @Test
+    public void testRejectsATypeFieldWithoutAValue() {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> registerExtension(makeProvider("a", ".some-index", "kind", null))
+        );
+        assertTrue(ex.getMessage().contains("declares typeField [kind] but no typeFieldValue"));
+    }
+
+    @Test
+    public void testRejectsTwoTypesIdentifiedTheSameWay() {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> registerExtension(makeProvider("a", ".shared-index", "kind", "same"), makeProvider("b", ".shared-index", "kind", "same"))
+        );
+        assertTrue(ex.getMessage().contains("are both identified by [kind] holding [same]"));
+    }
+
+    @Test
+    public void testUntypedProviderClaimsOnlyUnclaimedDocuments() {
+        // The names put the untyped provider first in the registry's HashMap order, so a first-match rule would misclassify
+        registerProviders("b-untyped", null, "a-typed", "a.type", ".mixed-index");
+
+        assertEquals(
+            "a-typed",
+            resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("a.type", "a-typed", Field.Store.NO)))
+        );
+        assertEquals(
+            "b-untyped",
+            resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("other", "x", Field.Store.NO)))
+        );
+    }
+
+    /** A document holding {@code value} in {@code resource_type}. */
+    private Engine.Index typedDoc(String value) {
+        return mockIndexOp(new StringField("resource_type", value, Field.Store.NO));
+    }
+
+    @Test
     public void testUnknownIndexReturnsNull() {
         registerProviders(List.of("monitor"), ".alerting-config", "monitor.type");
         resourcePluginInfo.updateProtectedTypes(List.of("monitor"));
@@ -209,6 +323,26 @@ public class ResourcePluginInfoTests {
         resourcePluginInfo.setResourceSharingExtensions(Set.of(extension));
     }
 
+    /** alerting's two providers as alerting declares them: workflow documents hold "workflow", not the type name. */
+    private void registerAlertingProviders() {
+        registerExtension(
+            makeProvider("monitor", ".alerting-config", "monitor.type"),
+            makeProvider("alerting-workflow", ".alerting-config", "workflow.type", "workflow")
+        );
+    }
+
+    private void registerExtension(ResourceProvider... providers) {
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                return new java.util.LinkedHashSet<>(List.of(providers));
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        }));
+    }
+
     private void registerProviders(String type1, String tf1, String type2, String tf2, String indexName) {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
             @Override
@@ -226,7 +360,16 @@ public class ResourcePluginInfoTests {
     }
 
     private ResourceProvider makeProvider(String type, String index, String typeField) {
+        return makeProvider(type, index, typeField, type);
+    }
+
+    private ResourceProvider makeProvider(String type, String index, String typeField, String typeFieldValue) {
         return new ResourceProvider() {
+            @Override
+            public String typeFieldValue() {
+                return typeFieldValue;
+            }
+
             @Override
             public String resourceType() {
                 return type;

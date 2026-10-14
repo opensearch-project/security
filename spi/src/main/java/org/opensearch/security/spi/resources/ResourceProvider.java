@@ -19,12 +19,24 @@ public interface ResourceProvider {
     String resourceIndexName();
 
     /**
-     * Returns the name of the field representing the resource type in the resource document.
+     * Returns the name of the field representing the resource type in the resource document. The field must be mapped
+     * as {@code keyword}, since search matches it by exact value.
      *
      * @return the field name containing the resource type
      */
     default String typeField() {
         return null;
+    }
+
+    /**
+     * The value {@link #typeField()} holds in this provider's documents. A document is of this type when its type field
+     * holds this value. Defaults to {@link #resourceType()}; override it when the documents store a different name.
+     * Ignored when {@link #typeField()} is {@code null}.
+     *
+     * @return the value that identifies this provider's documents
+     */
+    default String typeFieldValue() {
+        return resourceType();
     }
 
     /**
