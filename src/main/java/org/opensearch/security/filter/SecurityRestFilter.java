@@ -58,6 +58,7 @@ import org.opensearch.rest.RestRequestFilter;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.hasher.FipsErrors;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
@@ -373,15 +374,27 @@ public class SecurityRestFilter {
         }
 
         if (!SecurityRestUtils.shouldSkipAuthentication(requestChannel)) {
-            if (!registry.authenticate(requestChannel)) {
-                // another roundtrip
-                org.apache.logging.log4j.ThreadContext.remove("user");
-            } else {
-                // make it possible to filter logs by username
-                org.apache.logging.log4j.ThreadContext.put(
-                    "user",
-                    ((User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName()
-                );
+            try {
+                if (!registry.authenticate(requestChannel)) {
+                    // another roundtrip
+                    org.apache.logging.log4j.ThreadContext.remove("user");
+                } else {
+                    // make it possible to filter logs by username
+                    org.apache.logging.log4j.ThreadContext.put(
+                        "user",
+                        ((User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName()
+                    );
+                }
+            } catch (Error e) {
+                if (FipsErrors.isFipsUnapprovedOperationError(e)) {
+                    log.warn("Authentication failed due to FIPS policy", e);
+                    org.apache.logging.log4j.ThreadContext.remove("user");
+                    requestChannel.queueForSending(
+                        new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, "Authentication finally failed")
+                    );
+                    return;
+                }
+                throw e;
             }
         }
     }
