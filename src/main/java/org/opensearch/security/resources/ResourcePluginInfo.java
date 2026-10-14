@@ -79,6 +79,8 @@ public class ResourcePluginInfo {
 
             // (index, typeField, value) to the type it identifies; two types may not be identified the same way
             Map<List<String>, String> typeMatchOwners = new HashMap<>();
+            // index to its provider with no typeField; a second one could not be told apart from the first
+            Map<String, String> untypedOwners = new HashMap<>();
             // Providers may share a resource index, but must then agree on the workspaces field: DLS filters a single
             // field per index while ingestion uses each provider's declared field, so a disagreement would silently
             // mis-scope read visibility. Reject conflicting non-null declarations at registration.
@@ -98,7 +100,20 @@ public class ResourcePluginInfo {
                         );
                     }
 
-                    if (rp.typeField() != null) {
+                    if (rp.typeField() == null) {
+                        String owner = untypedOwners.putIfAbsent(rp.resourceIndexName(), rp.resourceType());
+                        if (owner != null) {
+                            throw new OpenSearchSecurityException(
+                                String.format(
+                                    "Resource types [%s] and [%s] on index [%s] both declare no typeField."
+                                        + " At most one type per index may omit it.",
+                                    owner,
+                                    rp.resourceType(),
+                                    rp.resourceIndexName()
+                                )
+                            );
+                        }
+                    } else {
                         if (rp.typeFieldValue() == null) {
                             throw new OpenSearchSecurityException(
                                 String.format(
