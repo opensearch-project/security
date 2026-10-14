@@ -54,9 +54,6 @@ public class ResourcePluginInfo {
     // Every registered provider, protected or not; classifying a document must not depend on protection
     private final Map<String, ResourceProvider> registeredProviders = new HashMap<>();
 
-    // Types whose type field another provider on the same index also declares, so the field must hold the type's name
-    private final Set<String> typesWithSharedTypeField = new HashSet<>();
-
     // UI: access-level *names* per type
     private final Map<String, LinkedHashSet<String>> typeToAccessLevels = new HashMap<>();
 
@@ -79,10 +76,9 @@ public class ResourcePluginInfo {
             resourceSharingExtensions.clear();
             typeToProvider.clear();
             registeredProviders.clear();
-            typesWithSharedTypeField.clear();
 
-            // "<index>/<typeField>" to the first type declaring it, to find fields that several types share
-            Map<String, String> typeFieldOwners = new HashMap<>();
+            // (index, typeField, value) to the type it identifies; two types may not be identified the same way
+            Map<List<String>, String> typeMatchOwners = new HashMap<>();
             // Providers may share a resource index, but must then agree on the workspaces field: DLS filters a single
             // field per index while ingestion uses each provider's declared field, so a disagreement would silently
             // mis-scope read visibility. Reject conflicting non-null declarations at registration.
@@ -103,10 +99,29 @@ public class ResourcePluginInfo {
                     }
 
                     if (rp.typeField() != null) {
-                        String owner = typeFieldOwners.putIfAbsent(rp.resourceIndexName() + "/" + rp.typeField(), rp.resourceType());
+                        if (rp.typeFieldValue() == null) {
+                            throw new OpenSearchSecurityException(
+                                String.format(
+                                    "Resource type [%s] declares typeField [%s] but no typeFieldValue.",
+                                    rp.resourceType(),
+                                    rp.typeField()
+                                )
+                            );
+                        }
+                        List<String> key = List.of(rp.resourceIndexName(), rp.typeField(), rp.typeFieldValue());
+                        String owner = typeMatchOwners.putIfAbsent(key, rp.resourceType());
                         if (owner != null) {
-                            typesWithSharedTypeField.add(owner);
-                            typesWithSharedTypeField.add(rp.resourceType());
+                            throw new OpenSearchSecurityException(
+                                String.format(
+                                    "Resource types [%s] and [%s] on index [%s] are both identified by [%s] holding [%s]."
+                                        + " Each type needs its own typeField or typeFieldValue.",
+                                    owner,
+                                    rp.resourceType(),
+                                    rp.resourceIndexName(),
+                                    rp.typeField(),
+                                    rp.typeFieldValue()
+                                )
+                            );
                         }
                     }
 
@@ -215,19 +230,18 @@ public class ResourcePluginInfo {
 
     /**
      * Resolves the registered resource type of a document in {@code resourceIndex}, ignoring protection, or {@code null}.
-     * <p>
-     * A type field unique to one provider on the index matches by presence; a shared one must hold the provider's
-     * {@code resourceType()}. A provider with no type field claims documents no other provider does.
+     * A document is of a provider's type when its {@link ResourceProvider#typeField()} holds that provider's
+     * {@link ResourceProvider#typeFieldValue()}. A provider with no type field claims the documents no other provider does.
      *
      * @param resourceIndex the index holding the document
      * @param fieldValue    reads a document field by name, or {@code null} when absent
-     * @return the resource type, or {@code null} if none or several match by presence
+     * @return the resource type, or {@code null} if no provider matches, or more than one does
      */
     public String resolveResourceType(String resourceIndex, Function<String, String> fieldValue) {
         lock.readLock().lock();
         try {
-            String presenceMatch = null;
-            int presenceMatches = 0;
+            String match = null;
+            int matches = 0;
             String untypedProvider = null;
             for (ResourceProvider provider : registeredProviders.values()) {
                 if (!provider.resourceIndexName().equals(resourceIndex)) {
@@ -235,33 +249,21 @@ public class ResourcePluginInfo {
                 }
                 if (provider.typeField() == null) {
                     untypedProvider = provider.resourceType();
-                    continue;
-                }
-                String value = fieldValue.apply(provider.typeField());
-                if (value == null) {
-                    continue;
-                }
-                if (value.equals(provider.resourceType())) {
-                    return provider.resourceType();
-                }
-                if (!typesWithSharedTypeField.contains(provider.resourceType())) {
-                    presenceMatch = provider.resourceType();
-                    presenceMatches++;
+                } else if (provider.typeFieldValue().equals(fieldValue.apply(provider.typeField()))) {
+                    match = provider.resourceType();
+                    matches++;
                 }
             }
-            if (presenceMatches == 1) {
-                return presenceMatch;
+            if (matches == 1) {
+                return match;
             }
-            return presenceMatches == 0 ? untypedProvider : null;
+            return matches == 0 ? untypedProvider : null;
         } finally {
             lock.readLock().unlock();
         }
     }
 
-    /**
-     * How a search recognises documents of one resource type: a field to test, and the value it must hold, or
-     * {@code null} when the field's presence is enough.
-     */
+    /** How a search recognises documents of one resource type: the field to test and the value it must hold. */
     public record TypeMatch(String field, String value) {
     }
 
@@ -289,9 +291,8 @@ public class ResourcePluginInfo {
                 if (!provider.resourceIndexName().equals(resourceIndex) || provider.typeField() == null) {
                     continue;
                 }
-                String value = typesWithSharedTypeField.contains(provider.resourceType()) ? provider.resourceType() : null;
                 (isProtectedType(provider.resourceType()) ? protectedTypes : unprotectedTypes).add(
-                    new TypeMatch(provider.typeField(), value)
+                    new TypeMatch(provider.typeField(), provider.typeFieldValue())
                 );
             }
             return unprotectedTypes.isEmpty() && protectedTypes.isEmpty()

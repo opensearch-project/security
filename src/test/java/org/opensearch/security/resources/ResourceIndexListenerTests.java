@@ -143,7 +143,7 @@ public class ResourceIndexListenerTests {
         return new ResourceSharingExtension() {
             @Override
             public Set<ResourceProvider> getResourceProviders() {
-                return Set.of(provider("monitor", "monitor.type"), provider("alerting-workflow", "workflow.type"));
+                return Set.of(provider("monitor", "monitor.type"), provider("alerting-workflow", "workflow.type", "workflow"));
             }
 
             @Override
@@ -152,7 +152,16 @@ public class ResourceIndexListenerTests {
     }
 
     private static ResourceProvider provider(String type, String typeField) {
+        return provider(type, typeField, type);
+    }
+
+    private static ResourceProvider provider(String type, String typeField, String typeFieldValue) {
         return new ResourceProvider() {
+            @Override
+            public String typeFieldValue() {
+                return typeFieldValue;
+            }
+
             @Override
             public String resourceType() {
                 return type;

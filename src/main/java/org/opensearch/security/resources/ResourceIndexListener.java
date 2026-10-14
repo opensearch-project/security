@@ -93,6 +93,10 @@ public class ResourceIndexListener implements IndexingOperationListener {
             return;
         }
         ResourceProvider provider = resourcePluginInfo.getRegisteredProvider(resourceType);
+        if (provider == null) {
+            log.warn("Resource {} resolved to type {}, which has no registered provider; skipping", resourceId, resourceType);
+            return;
+        }
 
         if (!result.isCreated()) {
             // Restore all_shared_principals on the resource doc (guards against a direct write tampering with it).

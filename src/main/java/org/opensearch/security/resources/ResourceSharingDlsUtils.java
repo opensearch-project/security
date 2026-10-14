@@ -72,11 +72,7 @@ public class ResourceSharingDlsUtils {
 
     /** Writes the query clause that recognises documents of one type. */
     private static void writeTypeMatch(XContentBuilder builder, ResourcePluginInfo.TypeMatch match) throws IOException {
-        if (match.value() == null) {
-            builder.startObject().startObject("exists").field("field", match.field()).endObject().endObject();
-        } else {
-            builder.startObject().startObject("term").field(match.field(), match.value()).endObject().endObject();
-        }
+        builder.startObject().startObject("term").field(match.field(), match.value()).endObject().endObject();
     }
 
     /**

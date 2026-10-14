@@ -98,12 +98,19 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
-    public void testFieldUniqueToOneProviderResolvesToItsRegisteredType() {
-        // alerting: workflows register as "alerting-workflow" but hold "workflow"; the field is unique to them
-        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+    public void testProviderDeclaresTheValueItsDocumentsHold() {
+        registerAlertingProviders();
 
         assertEquals("alerting-workflow", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockWorkflowDoc()));
         assertEquals("monitor", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockMonitorDoc()));
+    }
+
+    @Test
+    public void testValueOtherThanTheDeclaredOneIsNotThatType() {
+        // Without the declared value, the default is the type name, which workflow documents do not hold
+        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+
+        assertNull(resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockWorkflowDoc()));
     }
 
     @Test
@@ -121,8 +128,8 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
-    public void testSharedFieldIsNotMistakenForPresenceWhenOnlyOneTypeIsProtected() {
-        // Protecting one type must not make the shared field look unique to it: a group document stays a group
+    public void testClassificationDoesNotDependOnProtection() {
+        // Classification does not depend on protection: a group document stays a group when only resources are protected
         registerProviders(List.of("sample-resource", "sample-resource-group"), ".sample-index", "resource_type");
         resourcePluginInfo.updateProtectedTypes(List.of("sample-resource"));
 
@@ -147,22 +154,32 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
-    public void testPresenceOfTwoUniqueFieldsIsAmbiguous() {
-        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+    public void testDocumentMatchingTwoProvidersIsNotAResource() {
+        registerAlertingProviders();
 
-        // Both fields present and neither holds its provider's type: no way to choose, so not a resource
         Engine.Index both = mockIndexOp(
-            new StringField("monitor.type", "x", Field.Store.NO),
-            new StringField("workflow.type", "y", Field.Store.NO)
+            new StringField("monitor.type", "monitor", Field.Store.NO),
+            new StringField("workflow.type", "workflow", Field.Store.NO)
         );
         assertNull(resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", both));
+    }
 
-        // An exact value outranks a match by presence
-        Engine.Index exact = mockIndexOp(
-            new StringField("monitor.type", "monitor", Field.Store.NO),
-            new StringField("workflow.type", "y", Field.Store.NO)
+    @Test
+    public void testRejectsATypeFieldWithoutAValue() {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> registerExtension(makeProvider("a", ".some-index", "kind", null))
         );
-        assertEquals("monitor", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", exact));
+        assertTrue(ex.getMessage().contains("declares typeField [kind] but no typeFieldValue"));
+    }
+
+    @Test
+    public void testRejectsTwoTypesIdentifiedTheSameWay() {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> registerExtension(makeProvider("a", ".shared-index", "kind", "same"), makeProvider("b", ".shared-index", "kind", "same"))
+        );
+        assertTrue(ex.getMessage().contains("are both identified by [kind] holding [same]"));
     }
 
     @Test
@@ -172,7 +189,7 @@ public class ResourcePluginInfoTests {
 
         assertEquals(
             "a-typed",
-            resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("a.type", "anything", Field.Store.NO)))
+            resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("a.type", "a-typed", Field.Store.NO)))
         );
         assertEquals(
             "b-untyped",
@@ -182,13 +199,12 @@ public class ResourcePluginInfoTests {
 
     @Test
     public void testTypeMatchesSplitByProtection() {
-        // alerting: fields unique to each type, matched by presence
-        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+        registerAlertingProviders();
         resourcePluginInfo.setProtectedTypesSetting(protectedTypes(List.of("alerting-workflow")));
 
         ResourcePluginInfo.TypeMatches matches = resourcePluginInfo.typeMatches(".alerting-config");
-        assertEquals(List.of(new ResourcePluginInfo.TypeMatch("workflow.type", null)), matches.protectedTypes());
-        assertEquals(List.of(new ResourcePluginInfo.TypeMatch("monitor.type", null)), matches.unprotectedTypes());
+        assertEquals(List.of(new ResourcePluginInfo.TypeMatch("workflow.type", "workflow")), matches.protectedTypes());
+        assertEquals(List.of(new ResourcePluginInfo.TypeMatch("monitor.type", "monitor")), matches.unprotectedTypes());
     }
 
     @Test
@@ -204,7 +220,7 @@ public class ResourcePluginInfoTests {
     @Test
     public void testNoUnprotectedTypeMeansNoExemption() {
         // The common case: every type on the index is protected, so the DLS clause gains nothing
-        registerProviders("monitor", "monitor.type", "alerting-workflow", "workflow.type", ".alerting-config");
+        registerAlertingProviders();
         resourcePluginInfo.setProtectedTypesSetting(protectedTypes(List.of("monitor", "alerting-workflow")));
 
         assertTrue(resourcePluginInfo.typeMatches(".alerting-config").unprotectedTypes().isEmpty());
@@ -334,6 +350,26 @@ public class ResourcePluginInfoTests {
         resourcePluginInfo.setResourceSharingExtensions(Set.of(extension));
     }
 
+    /** alerting's two providers as alerting declares them: workflow documents hold "workflow", not the type name. */
+    private void registerAlertingProviders() {
+        registerExtension(
+            makeProvider("monitor", ".alerting-config", "monitor.type"),
+            makeProvider("alerting-workflow", ".alerting-config", "workflow.type", "workflow")
+        );
+    }
+
+    private void registerExtension(ResourceProvider... providers) {
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                return new java.util.LinkedHashSet<>(List.of(providers));
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        }));
+    }
+
     private void registerProviders(String type1, String tf1, String type2, String tf2, String indexName) {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
             @Override
@@ -351,7 +387,16 @@ public class ResourcePluginInfoTests {
     }
 
     private ResourceProvider makeProvider(String type, String index, String typeField) {
+        return makeProvider(type, index, typeField, type);
+    }
+
+    private ResourceProvider makeProvider(String type, String index, String typeField, String typeFieldValue) {
         return new ResourceProvider() {
+            @Override
+            public String typeFieldValue() {
+                return typeFieldValue;
+            }
+
             @Override
             public String resourceType() {
                 return type;
