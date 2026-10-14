@@ -246,6 +246,45 @@ public class BackendRegistryTest {
         assertTrue("Rejected credentials must still block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
     }
 
+    @Test
+    public void testNoChallengingDomainWithoutCredentialsDoesNotBlockClientAddress() throws Exception {
+        // With no challenging domain the request skips every in-loop challenge and reaches the final failure path.
+        AuthDomain basicAuthDomain = basicAuthDomain(rejectingBackend(), false, 1);
+        configureAuthDomains(basicAuthDomain);
+
+        TestSecurityRequestChannel request = new TestSecurityRequestChannel(Collections.emptyMap());
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("Authentication should fail when no credentials are presented", authenticated);
+        assertEquals("Final failure should return unauthorized response", 401, request.getQueuedResponse().get().getStatus());
+        assertFalse("A request that presented no credentials must not block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
+    }
+
+    @Test
+    public void testRejectedCredentialsWithoutChallengingDomainBlocksClientAddress() throws Exception {
+        AuthDomain basicAuthDomain = basicAuthDomain(rejectingBackend(), false, 1);
+        configureAuthDomains(basicAuthDomain);
+
+        TestSecurityRequestChannel request = requestWithBasicAuth("testuser", "wrong-password");
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("Authentication should fail when Basic Auth backend rejects credentials", authenticated);
+        assertTrue("Rejected credentials must still block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
+    }
+
+    @Test
+    public void testTokenRejectedDuringExtractionBlocksClientAddress() throws Exception {
+        // Token authenticators (JWT, on-behalf-of, API key) return no credentials for an invalid token.
+        AuthDomain tokenAuthDomain = tokenAuthDomain(1);
+        configureAuthDomains(tokenAuthDomain);
+
+        TestSecurityRequestChannel request = new TestSecurityRequestChannel(Map.of("Authorization", "Bearer invalid-token"));
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("Authentication should fail for an invalid token", authenticated);
+        assertTrue("A rejected token must still block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
+    }
+
     private void configureAuthDomains(AuthDomain... authDomains) {
         DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.isAnonymousAuthenticationEnabled()).thenReturn(false);
@@ -271,6 +310,12 @@ public class BackendRegistryTest {
             Optional.of(new SecurityResponse(302, Map.of("Location", "/saml"), "Redirect"))
         );
         return new AuthDomain(rejectingBackend(), samlAuthenticator, true, order);
+    }
+
+    private AuthDomain tokenAuthDomain(int order) {
+        HTTPAuthenticator tokenAuthenticator = mock(HTTPAuthenticator.class);
+        when(tokenAuthenticator.getType()).thenReturn("jwt");
+        return new AuthDomain(rejectingBackend(), tokenAuthenticator, false, order);
     }
 
     private AuthenticationBackend acceptingBackend(String username) throws Exception {
