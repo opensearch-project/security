@@ -12,6 +12,7 @@ import org.opensearch.security.filter.NettyAttribute;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.HttpContentDecompressor;
+import io.netty.handler.codec.http.HttpHeaderValues;
 
 public class Netty4ConditionalDecompressor extends HttpContentDecompressor {
 
@@ -24,6 +25,12 @@ public class Netty4ConditionalDecompressor extends HttpContentDecompressor {
             // If there is no explicit decompress flag,... don't decompress
             // If there is a decompress flag and it is false,... don't decompress
             return super.newContentDecoder("identity");
+        }
+
+        if (HttpHeaderValues.ZSTD.contentEqualsIgnoreCase(contentEncoding)) {
+            // zstd is not supported with the bundled zstd-jni: pass the content through unmodified,
+            // as for any other unsupported content encoding
+            return null;
         }
 
         // Decompresses the content based on its encoding
