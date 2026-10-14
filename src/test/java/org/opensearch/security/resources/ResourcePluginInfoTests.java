@@ -163,6 +163,15 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
+    public void testRejectsTwoUntypedTypesOnOneIndex() {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> registerExtension(makeProvider("a", ".shared-index", null), makeProvider("b", ".shared-index", null))
+        );
+        assertTrue(ex.getMessage().contains("both declare no typeField"));
+    }
+
+    @Test
     public void testRejectsATypeFieldWithoutAValue() {
         OpenSearchSecurityException ex = assertThrows(
             OpenSearchSecurityException.class,
