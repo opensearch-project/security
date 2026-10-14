@@ -134,7 +134,10 @@ public class MigrateResourceSharingInfoApiActionTests {
         resourcePluginInfo.setResourceSharingExtensions(Set.of(new ResourceSharingExtension() {
             @Override
             public Set<ResourceProvider> getResourceProviders() {
-                return Set.of(provider("monitor", "monitor.type"), provider("alerting-workflow", "workflow.type"));
+                return Set.of(
+                    provider("monitor", "monitor.type"),
+                    provider("alerting-workflow", ".alerting-config", "workflow.type", "workflow")
+                );
             }
 
             @Override
@@ -143,11 +146,20 @@ public class MigrateResourceSharingInfoApiActionTests {
     }
 
     private static ResourceProvider provider(String type, String typeField) {
-        return provider(type, ".alerting-config", typeField);
+        return provider(type, ".alerting-config", typeField, type);
     }
 
     private static ResourceProvider provider(String type, String index, String typeField) {
+        return provider(type, index, typeField, type);
+    }
+
+    private static ResourceProvider provider(String type, String index, String typeField, String typeFieldValue) {
         return new ResourceProvider() {
+            @Override
+            public String typeFieldValue() {
+                return typeFieldValue;
+            }
+
             @Override
             public String resourceType() {
                 return type;
