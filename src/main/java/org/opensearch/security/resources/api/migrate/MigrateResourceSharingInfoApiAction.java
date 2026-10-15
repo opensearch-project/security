@@ -190,7 +190,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             String defaultAccessLevelForType = entry.getValue();
 
             // Validate resource type exists and is protected; a registered but unprotected type gets no records
-            ResourceProvider provider = resourcePluginInfo.isProtectedType(type) ? resourcePluginInfo.getRegisteredProvider(type) : null;
+            ResourceProvider provider = resourcePluginInfo.isProtectedType(type) ? resourcePluginInfo.getResourceProvider(type) : null;
             if (provider == null) {
                 String message = String.format("resource_type be one of: %s", resourcePluginInfo.currentProtectedTypes());
                 return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(message));
@@ -259,7 +259,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     // type-scoped via provider.ownerNamePath()/ownerBackendRolesPath(). A null
                     // type is not an error here: createNewSharingRecords records the id under
                     // MigrationStats#skippedNoType so the caller sees which docs were skipped.
-                    String type = classifyDocType(rec, resourcePluginInfo, sourceIndex);
+                    ResourceProvider hitProvider = classifyDocType(rec, resourcePluginInfo, sourceIndex);
+                    String type = hitProvider == null ? null : hitProvider.resourceType();
 
                     // 2) Resolve owner paths: prefer per-provider (per-type) paths, fall back to
                     // the request-level paths. When type is null we can't pick a per-type path,
@@ -285,15 +286,14 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     String parentId = null;
                     // Workspace IDs, if the provider declares a workspaces field (see extractWorkspaces).
                     Set<String> workspaces = Collections.emptySet();
-                    if (type != null) {
-                        ResourceProvider hitProvider = resourcePluginInfo.getRegisteredProvider(type);
-                        if (hitProvider != null && hitProvider.parentIdField() != null) {
+                    if (hitProvider != null) {
+                        if (hitProvider.parentIdField() != null) {
                             parentId = rec.at("/" + hitProvider.parentIdField().replace(".", "/")).asText(null);
                             if (parentId != null && parentId.isEmpty()) {
                                 parentId = null;
                             }
                         }
-                        if (hitProvider != null && hitProvider.workspacesField() != null) {
+                        if (hitProvider.workspacesField() != null) {
                             workspaces = extractWorkspaces(rec, hitProvider.workspacesField());
                         }
                     }
@@ -372,7 +372,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 continue;
             }
 
-            ResourceProvider provider = resourcePluginInfo.getRegisteredProvider(type);
+            ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
 
             try {
                 // 3) build CreatedBy
@@ -621,12 +621,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     /**
-     * The resource type to migrate a document as, or {@code null} to skip it. Every type on a protected index is
+     * The provider of the type to migrate a document as, or {@code null} to skip it. Every type on a protected index is
      * protected, so every type the resolver recognises is migrated; {@code default_access_level} only overrides the
      * access level a type is migrated with. Package-private for testability.
      */
-    static String classifyDocType(JsonNode rec, ResourcePluginInfo resourcePluginInfo, String sourceIndex) {
-        return resourcePluginInfo.resolveResourceType(sourceIndex, field -> rec.at(jsonPointer(field)).asText(null));
+    static ResourceProvider classifyDocType(JsonNode rec, ResourcePluginInfo resourcePluginInfo, String sourceIndex) {
+        return resourcePluginInfo.resolveResourceProvider(sourceIndex, field -> rec.at(jsonPointer(field)).asText(null));
     }
 
     record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId, Set<String> workspaces,

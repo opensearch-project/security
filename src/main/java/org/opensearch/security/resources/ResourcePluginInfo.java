@@ -53,9 +53,6 @@ public class ResourcePluginInfo {
     // type <-> resource provider
     private final Map<String, ResourceProvider> typeToProvider = new HashMap<>();
 
-    // Every registered provider, protected or not; classifying a document must not depend on protection
-    private final Map<String, ResourceProvider> registeredProviders = new HashMap<>();
-
     // UI: access-level *names* per type
     private final Map<String, LinkedHashSet<String>> typeToAccessLevels = new HashMap<>();
 
@@ -80,7 +77,6 @@ public class ResourcePluginInfo {
             }
             resourceSharingExtensions.clear();
             typeToProvider.clear();
-            registeredProviders.clear();
 
             // (index, typeField, value) to the type it identifies; two types may not be identified the same way
             Map<List<String>, String> typeMatchOwners = new HashMap<>();
@@ -93,9 +89,7 @@ public class ResourcePluginInfo {
             for (ResourceSharingExtension extension : extensions) {
                 for (var rp : extension.getResourceProviders()) {
                     // Enforce resource-type unique-ness
-                    if (registeredProviders.putIfAbsent(rp.resourceType(), rp) == null) {
-                        typeToProvider.put(rp.resourceType(), rp);
-                    } else {
+                    if (typeToProvider.putIfAbsent(rp.resourceType(), rp) != null) {
                         throw new OpenSearchSecurityException(
                             String.format(
                                 "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
@@ -285,43 +279,41 @@ public class ResourcePluginInfo {
     }
 
     /**
-     * Resolves the registered resource type of the document an index operation writes, or {@code null} if it is not a
-     * resource. See {@link #resolveResourceType} for the rule.
+     * Resolves the provider of the document an index operation writes, or {@code null} if it is not a resource.
+     * See {@link #resolveResourceProvider} for the rule.
      */
-    public String getResourceTypeForIndexOp(String resourceIndex, Engine.Index indexOp) {
-        return resolveResourceType(resourceIndex, field -> extractFieldFromIndexOp(field, indexOp));
+    public ResourceProvider getResourceProviderForIndexOp(String resourceIndex, Engine.Index indexOp) {
+        return resolveResourceProvider(resourceIndex, field -> extractFieldFromIndexOp(field, indexOp));
     }
 
     /**
-     * Resolves the registered resource type of a document in {@code resourceIndex}, ignoring protection, or {@code null}.
-     * A document is of a provider's type when its {@link ResourceProvider#typeField()} holds that provider's
-     * {@link ResourceProvider#typeFieldValue()}. A provider with no type field claims the documents no other provider does.
+     * Resolves the provider of a document in {@code resourceIndex}. A document is of a provider's type when its
+     * {@link ResourceProvider#typeField()} holds that provider's {@link ResourceProvider#typeFieldValue()}. A provider
+     * with no type field claims the documents no other provider does.
      *
      * @param resourceIndex the index holding the document
      * @param fieldValue    reads a document field by name, or {@code null} when absent
-     * @return the resource type, or {@code null} if no provider matches, or more than one does
+     * @return the provider, or {@code null} if no provider matches, or more than one does
      */
-    public String resolveResourceType(String resourceIndex, Function<String, String> fieldValue) {
+    public ResourceProvider resolveResourceProvider(String resourceIndex, Function<String, String> fieldValue) {
         lock.readLock().lock();
         try {
-            String match = null;
-            int matches = 0;
-            String untypedProvider = null;
-            for (ResourceProvider provider : registeredProviders.values()) {
+            ResourceProvider match = null;
+            ResourceProvider untyped = null;
+            for (ResourceProvider provider : typeToProvider.values()) {
                 if (!provider.resourceIndexName().equals(resourceIndex)) {
                     continue;
                 }
                 if (provider.typeField() == null) {
-                    untypedProvider = provider.resourceType();
+                    untyped = provider;
                 } else if (provider.typeFieldValue().equals(fieldValue.apply(provider.typeField()))) {
-                    match = provider.resourceType();
-                    matches++;
+                    if (match != null) {
+                        return null;
+                    }
+                    match = provider;
                 }
             }
-            if (matches == 1) {
-                return match;
-            }
-            return matches == 0 ? untypedProvider : null;
+            return match != null ? match : untyped;
         } finally {
             lock.readLock().unlock();
         }
@@ -331,16 +323,6 @@ public class ResourcePluginInfo {
     public boolean isProtectedType(String resourceType) {
         List<String> protectedTypes = protectedTypesSetting == null ? null : protectedTypesSetting.getDynamicSettingValue();
         return resourceType != null && protectedTypes != null && protectedTypes.contains(resourceType);
-    }
-
-    /** The provider registered for {@code resourceType}, whether or not the type is protected, or {@code null}. */
-    public ResourceProvider getRegisteredProvider(String resourceType) {
-        lock.readLock().lock();
-        try {
-            return registeredProviders.get(resourceType);
-        } finally {
-            lock.readLock().unlock();
-        }
     }
 
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {

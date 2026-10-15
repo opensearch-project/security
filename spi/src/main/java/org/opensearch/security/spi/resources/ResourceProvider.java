@@ -29,9 +29,8 @@ public interface ResourceProvider {
     }
 
     /**
-     * The value {@link #typeField()} holds in this provider's documents. A document is of this type when its type field
-     * holds this value. Defaults to {@link #resourceType()}; override it when the documents store a different name.
-     * Ignored when {@link #typeField()} is {@code null}.
+     * The value {@link #typeField()} holds in this provider's documents. Defaults to {@link #resourceType()}; ignored
+     * when {@link #typeField()} is {@code null}.
      *
      * @return the value that identifies this provider's documents
      */

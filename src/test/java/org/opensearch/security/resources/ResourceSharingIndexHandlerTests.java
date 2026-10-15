@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -50,6 +51,7 @@ import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
@@ -124,10 +126,10 @@ public class ResourceSharingIndexHandlerTests {
         stubUpdate(l -> l.onResponse(mock(UpdateResponse.class)));
     }
 
-    private void stubUpdate(java.util.function.Consumer<ActionListener<UpdateResponse>> outcome) {
+    private void stubUpdate(Consumer<ActionListener<UpdateResponse>> outcome) {
         // The update paths use the fluent client.prepareUpdate(idx,id).setRefreshPolicy(..).setDoc(..).request()
         // builder; RETURNS_SELF makes every builder call return the same mock, and request() yields a mock request.
-        UpdateRequestBuilder builder = mock(UpdateRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        UpdateRequestBuilder builder = mock(UpdateRequestBuilder.class, Answers.RETURNS_SELF);
         when(builder.request()).thenReturn(mock(UpdateRequest.class));
         when(client.prepareUpdate(anyString(), anyString())).thenReturn(builder);
         doAnswer(inv -> {
@@ -137,7 +139,7 @@ public class ResourceSharingIndexHandlerTests {
     }
 
     private void stubIndexSucceeds() {
-        IndexRequestBuilder builder = mock(IndexRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        IndexRequestBuilder builder = mock(IndexRequestBuilder.class, Answers.RETURNS_SELF);
         when(builder.request()).thenReturn(mock(IndexRequest.class));
         when(client.prepareIndex(anyString())).thenReturn(builder);
         doAnswer(inv -> {
@@ -358,7 +360,7 @@ public class ResourceSharingIndexHandlerTests {
             return null;
         }).when(client).get(any(GetRequest.class), any());
 
-        IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, Answers.RETURNS_SELF);
         when(indexBuilder.request()).thenReturn(mock(IndexRequest.class));
         when(client.prepareIndex(anyString())).thenReturn(indexBuilder);
         AtomicInteger indexCount = new AtomicInteger();

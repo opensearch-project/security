@@ -17,12 +17,14 @@ import org.junit.Test;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.spi.resources.ResourceProvider;
-import org.opensearch.security.spi.resources.ResourceSharingExtension;
-import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import static org.opensearch.security.resources.ResourceProviderFixtures.ALERTING_INDEX;
+import static org.opensearch.security.resources.ResourceProviderFixtures.alertingExtension;
+import static org.opensearch.security.resources.ResourceProviderFixtures.extension;
+import static org.opensearch.security.resources.ResourceProviderFixtures.provider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -44,75 +46,30 @@ public class MigrateResourceSharingInfoApiActionTests {
 
     @Test
     public void classifyResolvesFromFirstTypePath() throws Exception {
-        registerAlertingProviders();
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(alertingExtension()));
         JsonNode monitorDoc = mapper.readTree("{ \"monitor\": { \"type\": \"monitor\", \"name\": \"m1\" } }");
-        String result = MigrateResourceSharingInfoApiAction.classifyDocType(monitorDoc, resourcePluginInfo, ".alerting-config");
-        assertEquals("monitor", result);
+        assertEquals("monitor", classify(monitorDoc, ALERTING_INDEX));
     }
 
     @Test
     public void classifyResolvesToTheRegisteredTypeNotTheFieldValue() throws Exception {
         // The workflow provider is registered as "alerting-workflow" while its documents hold "workflow"
-        registerAlertingProviders();
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(alertingExtension()));
         JsonNode workflowDoc = mapper.readTree("{ \"workflow\": { \"type\": \"workflow\", \"name\": \"w1\" } }");
-        String result = MigrateResourceSharingInfoApiAction.classifyDocType(workflowDoc, resourcePluginInfo, ".alerting-config");
-        assertEquals("alerting-workflow", result);
+        assertEquals("alerting-workflow", classify(workflowDoc, ALERTING_INDEX));
     }
 
     @Test
     public void classifyReturnsNullWhenNoTypePathMatches() throws Exception {
-        registerAlertingProviders();
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(alertingExtension()));
         JsonNode metadataDoc = mapper.readTree("{ \"metadata\": { \"monitor_id\": \"abc123\" } }");
-        String result = MigrateResourceSharingInfoApiAction.classifyDocType(metadataDoc, resourcePluginInfo, ".alerting-config");
-        assertNull(result);
+        assertNull(classify(metadataDoc, ALERTING_INDEX));
     }
 
-    /** Registers alerting's two providers as alerting declares them. */
-    private void registerAlertingProviders() {
-        resourcePluginInfo.setResourceSharingExtensions(Set.of(new ResourceSharingExtension() {
-            @Override
-            public Set<ResourceProvider> getResourceProviders() {
-                return Set.of(
-                    provider("monitor", "monitor.type"),
-                    provider("alerting-workflow", ".alerting-config", "workflow.type", "workflow")
-                );
-            }
-
-            @Override
-            public void assignResourceSharingClient(ResourceSharingClient client) {}
-        }));
-    }
-
-    private static ResourceProvider provider(String type, String typeField) {
-        return provider(type, ".alerting-config", typeField, type);
-    }
-
-    private static ResourceProvider provider(String type, String index, String typeField) {
-        return provider(type, index, typeField, type);
-    }
-
-    private static ResourceProvider provider(String type, String index, String typeField, String typeFieldValue) {
-        return new ResourceProvider() {
-            @Override
-            public String typeFieldValue() {
-                return typeFieldValue;
-            }
-
-            @Override
-            public String resourceType() {
-                return type;
-            }
-
-            @Override
-            public String resourceIndexName() {
-                return index;
-            }
-
-            @Override
-            public String typeField() {
-                return typeField;
-            }
-        };
+    /** The type {@code classifyDocType} migrates {@code doc} as, or {@code null}. */
+    private String classify(JsonNode doc, String sourceIndex) {
+        ResourceProvider provider = MigrateResourceSharingInfoApiAction.classifyDocType(doc, resourcePluginInfo, sourceIndex);
+        return provider == null ? null : provider.resourceType();
     }
 
     @Test
@@ -167,21 +124,10 @@ public class MigrateResourceSharingInfoApiActionTests {
                 + " \"access\": [\"role_a\", \"role_b\"] },"
                 + " \"config\": { \"name\": \"channel-1\", \"config_type\": \"slack\", \"is_enabled\": true } }"
         );
-        resourcePluginInfo.setResourceSharingExtensions(Set.of(new ResourceSharingExtension() {
-            @Override
-            public Set<ResourceProvider> getResourceProviders() {
-                return Set.of(provider("notification_config", ".opensearch-notifications-config", null));
-            }
-
-            @Override
-            public void assignResourceSharingClient(ResourceSharingClient client) {}
-        }));
-        String result = MigrateResourceSharingInfoApiAction.classifyDocType(
-            notifDoc,
-            resourcePluginInfo,
-            ".opensearch-notifications-config"
+        resourcePluginInfo.setResourceSharingExtensions(
+            Set.of(extension(provider("notification_config", ".opensearch-notifications-config", null)))
         );
-        assertEquals("notification_config", result);
+        assertEquals("notification_config", classify(notifDoc, ".opensearch-notifications-config"));
     }
 
     @Test

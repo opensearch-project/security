@@ -29,9 +29,6 @@ import org.opensearch.index.mapper.ParsedDocument;
 import org.opensearch.security.resources.settings.ResourceSharingFeatureFlagSetting;
 import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
-import org.opensearch.security.spi.resources.ResourceProvider;
-import org.opensearch.security.spi.resources.ResourceSharingExtension;
-import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -50,7 +47,7 @@ import static org.mockito.Mockito.when;
  */
 public class ResourceIndexListenerTests {
 
-    private static final String INDEX = ".alerting-config";
+    private static final String INDEX = ResourceProviderFixtures.ALERTING_INDEX;
     private static final String SHARING_INDEX = ResourceSharingIndexHandler.getSharingIndex(INDEX);
 
     private Client client;
@@ -76,7 +73,7 @@ public class ResourceIndexListenerTests {
 
         resourcePluginInfo = new ResourcePluginInfo();
         resourcePluginInfo.setProtectedTypesSetting(setting(List.of("monitor", "alerting-workflow")));
-        resourcePluginInfo.setResourceSharingExtensions(Set.of(alertingExtension()));
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(ResourceProviderFixtures.alertingExtension()));
 
         listener = new ResourceIndexListener(threadPool, client, resourcePluginInfo, booleanSetting(true));
     }
@@ -111,47 +108,6 @@ public class ResourceIndexListenerTests {
         when(result.isCreated()).thenReturn(true);
 
         listener.postIndex(new ShardId(INDEX, "uuid", 0), index, result);
-    }
-
-    /** alerting's two providers as alerting declares them. */
-    private static ResourceSharingExtension alertingExtension() {
-        return new ResourceSharingExtension() {
-            @Override
-            public Set<ResourceProvider> getResourceProviders() {
-                return Set.of(provider("monitor", "monitor.type"), provider("alerting-workflow", "workflow.type", "workflow"));
-            }
-
-            @Override
-            public void assignResourceSharingClient(ResourceSharingClient client) {}
-        };
-    }
-
-    private static ResourceProvider provider(String type, String typeField) {
-        return provider(type, typeField, type);
-    }
-
-    private static ResourceProvider provider(String type, String typeField, String typeFieldValue) {
-        return new ResourceProvider() {
-            @Override
-            public String typeFieldValue() {
-                return typeFieldValue;
-            }
-
-            @Override
-            public String resourceType() {
-                return type;
-            }
-
-            @Override
-            public String resourceIndexName() {
-                return INDEX;
-            }
-
-            @Override
-            public String typeField() {
-                return typeField;
-            }
-        };
     }
 
     private static OpensearchDynamicSetting<List<String>> setting(List<String> protectedTypes) {
