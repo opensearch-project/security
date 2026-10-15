@@ -183,6 +183,7 @@ SpotBugs runs on main sources (not tests). Include-filter: `spotbugs-include.xml
 - **New REST endpoints** under `/_plugins/_security/` must be registered in the appropriate handler class and protected with an authorization check.
 - **SPI changes** (`spi/`) are public API consumed by external plugins. Apply `@PublicApi`, `@InternalApi`, or `@ExperimentalApi` annotations and maintain backwards compatibility accordingly.
 - **Resource sharing** changes should be validated against the sample plugin in `sample-resource-plugin/`.
+- Types registered on the same resource index must be added to or removed from `protected_types` together; partial protection is rejected.
 - **FIPS compliance** — the build supports FIPS-140-3 mode (`gradle.properties`). Avoid cryptographic primitives that are not FIPS-approved.
 
 ## Commits

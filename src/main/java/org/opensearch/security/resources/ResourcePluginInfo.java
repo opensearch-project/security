@@ -16,6 +16,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
@@ -33,6 +35,7 @@ import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
+import org.opensearch.security.support.ConfigConstants;
 
 /**
  * This class provides information about resource plugins and their associated resource providers and indices.
@@ -68,6 +71,9 @@ public class ResourcePluginInfo {
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
         lock.writeLock().lock();
         try {
+            if (protectedTypesSetting != null) {
+                validateProtectedTypes(protectedTypesSetting.getDynamicSettingValue(), extensions);
+            }
             resourceSharingExtensions.clear();
             typeToProvider.clear();
 
@@ -120,6 +126,7 @@ public class ResourcePluginInfo {
     public void updateProtectedTypes(List<String> protectedTypes) {
         lock.writeLock().lock();
         try {
+            validateProtectedTypes(protectedTypes, resourceSharingExtensions);
             // Rebuild mappings based on the current allowlist
             typeToProvider.clear();
 
@@ -136,6 +143,49 @@ public class ResourcePluginInfo {
             }
         } finally {
             lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Requires all or none of the registered resource types sharing an index to be protected.
+     * Uses every extension, not the protection-filtered provider map, to detect omitted sibling types.
+     */
+    public void validateProtectedTypes(List<String> protectedTypes) {
+        lock.readLock().lock();
+        try {
+            validateProtectedTypes(protectedTypes, resourceSharingExtensions);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    private static void validateProtectedTypes(List<String> protectedTypes, Set<ResourceSharingExtension> extensions) {
+        if (protectedTypes == null || protectedTypes.isEmpty()) {
+            return;
+        }
+        Set<String> selected = new HashSet<>(protectedTypes);
+        Map<String, Set<String>> typesByIndex = new TreeMap<>();
+        for (ResourceSharingExtension extension : extensions) {
+            for (ResourceProvider provider : extension.getResourceProviders()) {
+                typesByIndex.computeIfAbsent(provider.resourceIndexName(), index -> new TreeSet<>()).add(provider.resourceType());
+            }
+        }
+        for (var entry : typesByIndex.entrySet()) {
+            Set<String> types = entry.getValue();
+            if (!Collections.disjoint(types, selected) && !selected.containsAll(types)) {
+                Set<String> missing = new TreeSet<>(types);
+                missing.removeAll(selected);
+                throw new IllegalArgumentException(
+                    "Setting ["
+                        + ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES
+                        + "] must include all or none of the resource types "
+                        + types
+                        + " registered for index ["
+                        + entry.getKey()
+                        + "]; missing types: "
+                        + missing
+                );
+            }
         }
     }
 
