@@ -62,7 +62,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-disabled: true
 
@@ -70,7 +70,7 @@ jobs:
         run: ./gradlew ${{ matrix.gradle_task }} -Dbuild.snapshot=false
         shell: bash
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
@@ -110,7 +110,7 @@ jobs:
       - name: Build and Test
         run: ./gradlew ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-${{ matrix.gradle_task }}-reports
@@ -125,7 +125,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: downloaded-artifacts
 
@@ -160,7 +160,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-disabled: true
 
@@ -168,7 +168,7 @@ jobs:
         run: ./gradlew :integrationTest -Dbuild.snapshot=false
         shell: bash
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -208,7 +208,7 @@ jobs:
       - name: Build and Test
         run: ./gradlew :integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -248,7 +248,7 @@ jobs:
       - name: Run SampleResourcePlugin Integration Tests
         run: ./gradlew :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -275,13 +275,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Run SampleResourcePlugin Integration Tests
         run: ./gradlew :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
         shell: bash
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
@@ -309,7 +309,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-disabled: true
 
@@ -328,7 +328,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-disabled: true
 
@@ -373,11 +373,11 @@ jobs:
         with:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
-      - uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
+      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           languages: java
       - run: ./gradlew clean assemble
-      - uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
+      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
 
   build-health:
     runs-on: ubuntu-latest
@@ -389,7 +389,7 @@ jobs:
           java-version: 21
       - run: ./gradlew clean buildHealth -Dorg.gradle.jvmargs="-Xms1g -Xmx4g -XX:+UseG1GC -XX:MaxMetaspaceSize=512m"
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: dependency-analysis

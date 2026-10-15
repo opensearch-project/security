@@ -219,7 +219,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
             FileHelper.loadFile("restapi/roles_captains_different_content.json"),
             encodeBasicHeader("worf", "worf")
         );
-        assertThat(response.getStatusCode(), is(HttpStatus.SC_CREATED));
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_CREATED));
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 
         // starfleet role present again
@@ -229,7 +229,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
             new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted(
                 "opendistro_security_role_starfleet_captains.index_permissions"
             ).get(0).get("allowed_actions").get(0).asString(),
-            is("blafasel")
+            is("indices:data/read/search")
         );
 
         // Try the same, but now with admin certificate
