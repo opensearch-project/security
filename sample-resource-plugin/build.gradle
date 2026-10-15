@@ -67,6 +67,10 @@ configurations {
 
     all {
         resolutionStrategy {
+            // Align the REST and Java clients with OpenSearch core.
+            force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+            force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
+            force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
             force 'org.apache.httpcomponents:httpclient:4.5.14'
             force 'org.apache.httpcomponents:httpcore:4.4.16'
             force 'commons-codec:commons-codec:1.22.1'
