@@ -57,6 +57,7 @@ import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid_wi
 import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
+import static org.opensearch.sample.utils.Constants.WORKSPACE_TYPE;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES;
@@ -104,7 +105,7 @@ public class MigrateApiTests {
                 OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 true,
                 OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
-                List.of(RESOURCE_TYPE),
+                List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE, WORKSPACE_TYPE),
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + MIGRATION_USER_REST_ADMIN.getName() + "__migration_admin"),
                 SECURITY_RESTAPI_ADMIN_ENABLED,
@@ -138,7 +139,7 @@ public class MigrateApiTests {
                 OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 true,
                 OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
-                List.of(RESOURCE_TYPE)
+                List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE, WORKSPACE_TYPE)
             )
         )
         .build();
