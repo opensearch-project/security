@@ -62,33 +62,21 @@ public class ResourceSharingDlsUtils {
         ImmutableMap.Builder<String, DlsRestriction> mapBuilder = ImmutableMap.builder();
         for (String index : resolvedIndices) {
             String workspacesField = resourcePluginInfo == null ? null : resourcePluginInfo.workspacesFieldForIndex(index);
-            ResourcePluginInfo.TypeMatches typeMatches = resourcePluginInfo == null
-                ? ResourcePluginInfo.TypeMatches.NONE
-                : resourcePluginInfo.typeMatches(index);
-            mapBuilder.put(index, buildRestriction(xContentRegistry, principals, workspacesField, userWorkspaces, typeMatches));
+            mapBuilder.put(index, buildRestriction(xContentRegistry, principals, workspacesField, userWorkspaces));
         }
         return new IndexToRuleMap<>(mapBuilder.build());
-    }
-
-    /** Writes the query clause that recognises documents of one type. */
-    private static void writeTypeMatch(XContentBuilder builder, ResourcePluginInfo.TypeMatch match) throws IOException {
-        builder.startObject().startObject("term").field(match.field(), match.value()).endObject().endObject();
     }
 
     /**
      * Builds the per-index DLS restriction: a doc is visible if it is shared with one of the user's principals OR (when
      * the index declares a workspaces field and the user has workspace access) it belongs to one of the user's
      * workspaces — {@code bool.should[ terms(all_shared_principals), terms(<workspacesField>) ]}, min_should_match=1.
-     * <p>
-     * A document recognised as a registered but unprotected type, and as no protected type, is exempt; resource sharing
-     * does not govern it. A document that matches no type stays filtered.
      */
     private static DlsRestriction buildRestriction(
         NamedXContentRegistry xContentRegistry,
         List<String> principals,
         String workspacesField,
-        Set<String> userWorkspaces,
-        ResourcePluginInfo.TypeMatches typeMatches
+        Set<String> userWorkspaces
     ) {
         try {
             XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -96,19 +84,6 @@ public class ResourceSharingDlsUtils {
             builder.startObject().startObject("terms").array("all_shared_principals", principals.toArray()).endObject().endObject();
             if (workspacesField != null && !userWorkspaces.isEmpty()) {
                 builder.startObject().startObject("terms").array(workspacesField, userWorkspaces.toArray()).endObject().endObject();
-            }
-            if (!typeMatches.unprotectedTypes().isEmpty()) {
-                builder.startObject().startObject("bool");
-                builder.startArray("should");
-                for (ResourcePluginInfo.TypeMatch unprotected : typeMatches.unprotectedTypes()) {
-                    writeTypeMatch(builder, unprotected);
-                }
-                builder.endArray().field("minimum_should_match", 1);
-                builder.startArray("must_not");
-                for (ResourcePluginInfo.TypeMatch protectedType : typeMatches.protectedTypes()) {
-                    writeTypeMatch(builder, protectedType);
-                }
-                builder.endArray().endObject().endObject();
             }
             builder.endArray().field("minimum_should_match", 1).endObject().endObject();
 

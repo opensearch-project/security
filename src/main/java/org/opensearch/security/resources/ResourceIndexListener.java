@@ -64,7 +64,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
         String resourceIndex = shardId.getIndexName();
 
-        // An index that hosts no protected type needs no further look
+        // Every type on an index is protected or none is, so this check covers the document's own type
         if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
             return;
         }
@@ -81,15 +81,6 @@ public class ResourceIndexListener implements IndexingOperationListener {
         String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
         if (resourceType == null) {
             log.debug("Document {} in index {} is not of any registered resource type; skipping", resourceId, resourceIndex);
-            return;
-        }
-        // An index can host several types, and only some may be protected
-        if (!resourcePluginInfo.isProtectedType(resourceType)) {
-            log.debug(
-                "Resource {} is of type {}, which is not listed in plugins.security.resource_sharing.protected_types; skipping",
-                resourceId,
-                resourceType
-            );
             return;
         }
         ResourceProvider provider = resourcePluginInfo.getRegisteredProvider(resourceType);

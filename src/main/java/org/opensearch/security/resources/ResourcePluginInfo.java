@@ -9,7 +9,6 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -323,46 +322,6 @@ public class ResourcePluginInfo {
                 return match;
             }
             return matches == 0 ? untypedProvider : null;
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    /** How a search recognises documents of one resource type: the field to test and the value it must hold. */
-    public record TypeMatch(String field, String value) {
-    }
-
-    /**
-     * The type matches of the registered providers on an index, split by protection.
-     *
-     * @param protectedTypes   matches for the protected types
-     * @param unprotectedTypes matches for the registered types that are not protected
-     */
-    public record TypeMatches(List<TypeMatch> protectedTypes, List<TypeMatch> unprotectedTypes) {
-        /** No typed provider on the index. */
-        public static final TypeMatches NONE = new TypeMatches(List.of(), List.of());
-    }
-
-    /**
-     * The type matches of the registered providers on {@code resourceIndex}. A provider with no type field has no
-     * match, since a search cannot tell its documents apart.
-     */
-    public TypeMatches typeMatches(String resourceIndex) {
-        lock.readLock().lock();
-        try {
-            List<TypeMatch> protectedTypes = new ArrayList<>();
-            List<TypeMatch> unprotectedTypes = new ArrayList<>();
-            for (ResourceProvider provider : registeredProviders.values()) {
-                if (!provider.resourceIndexName().equals(resourceIndex) || provider.typeField() == null) {
-                    continue;
-                }
-                (isProtectedType(provider.resourceType()) ? protectedTypes : unprotectedTypes).add(
-                    new TypeMatch(provider.typeField(), provider.typeFieldValue())
-                );
-            }
-            return unprotectedTypes.isEmpty() && protectedTypes.isEmpty()
-                ? TypeMatches.NONE
-                : new TypeMatches(protectedTypes, unprotectedTypes);
         } finally {
             lock.readLock().unlock();
         }

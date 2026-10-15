@@ -259,7 +259,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     // type-scoped via provider.ownerNamePath()/ownerBackendRolesPath(). A null
                     // type is not an error here: createNewSharingRecords records the id under
                     // MigrationStats#skippedNoType so the caller sees which docs were skipped.
-                    String type = classifyDocType(rec, typeToDefaultAccessLevel, resourcePluginInfo, sourceIndex);
+                    String type = classifyDocType(rec, resourcePluginInfo, sourceIndex);
 
                     // 2) Resolve owner paths: prefer per-provider (per-type) paths, fall back to
                     // the request-level paths. When type is null we can't pick a per-type path,
@@ -621,24 +621,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     /**
-     * The resource type to migrate a document as, or {@code null} to skip it. The type is resolved by
-     * {@link ResourcePluginInfo#resolveResourceType}, then kept only if the request names it, or names no type and the
-     * type is protected. Package-private for testability.
+     * The resource type to migrate a document as, or {@code null} to skip it. Every type on a protected index is
+     * protected, so every type the resolver recognises is migrated; {@code default_access_level} only overrides the
+     * access level a type is migrated with. Package-private for testability.
      */
-    static String classifyDocType(
-        JsonNode rec,
-        Map<String, String> typeToDefaultAccessLevel,
-        ResourcePluginInfo resourcePluginInfo,
-        String sourceIndex
-    ) {
-        String type = resourcePluginInfo.resolveResourceType(sourceIndex, field -> rec.at(jsonPointer(field)).asText(null));
-        if (type == null) {
-            return null;
-        }
-        boolean wanted = typeToDefaultAccessLevel.isEmpty()
-            ? resourcePluginInfo.isProtectedType(type)
-            : typeToDefaultAccessLevel.containsKey(type);
-        return wanted ? type : null;
+    static String classifyDocType(JsonNode rec, ResourcePluginInfo resourcePluginInfo, String sourceIndex) {
+        return resourcePluginInfo.resolveResourceType(sourceIndex, field -> rec.at(jsonPointer(field)).asText(null));
     }
 
     record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId, Set<String> workspaces,

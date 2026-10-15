@@ -46,7 +46,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Tests that {@link ResourceIndexListener} creates a sharing record only for a document of a protected type.
+ * Tests that {@link ResourceIndexListener} creates a sharing record only for a document of a registered, protected type.
  */
 public class ResourceIndexListenerTests {
 
@@ -75,7 +75,7 @@ public class ResourceIndexListenerTests {
         when(client.prepareIndex(any())).thenReturn(records);
 
         resourcePluginInfo = new ResourcePluginInfo();
-        resourcePluginInfo.setProtectedTypesSetting(setting(List.of("alerting-workflow")));
+        resourcePluginInfo.setProtectedTypesSetting(setting(List.of("monitor", "alerting-workflow")));
         resourcePluginInfo.setResourceSharingExtensions(Set.of(alertingExtension()));
 
         listener = new ResourceIndexListener(threadPool, client, resourcePluginInfo, booleanSetting(true));
@@ -90,35 +90,10 @@ public class ResourceIndexListenerTests {
     }
 
     @Test
-    public void createsNoRecordForAnUnprotectedTypeOnTheSameIndex() {
-        // monitor is registered and shares the index with a protected type, but is not protected itself
-        create("monitor-1", new StringField("monitor.type", "monitor", Field.Store.NO));
-
-        verify(client, never()).prepareIndex(any());
-    }
-
-    @Test
     public void createsNoRecordForADocumentOfNoRegisteredType() {
         create("metadata-1", new StringField("metadata.monitor_id", "monitor-1", Field.Store.NO));
 
         verify(client, never()).prepareIndex(any());
-    }
-
-    @Test
-    public void removingATypeFromProtectedTypesStopsOnlyThatTypesRecords() {
-        MutableProtectedTypes protectedTypes = new MutableProtectedTypes(List.of("monitor", "alerting-workflow"));
-        resourcePluginInfo.setProtectedTypesSetting(protectedTypes);
-        create("monitor-1", new StringField("monitor.type", "monitor", Field.Store.NO));
-
-        // As the settings listener does: record the new value, then rebuild the registry
-        protectedTypes.set(List.of("alerting-workflow"));
-        resourcePluginInfo.updateProtectedTypes(List.of("alerting-workflow"));
-        create("monitor-2", new StringField("monitor.type", "monitor", Field.Store.NO));
-        create("workflow-1", new StringField("workflow.type", "workflow", Field.Store.NO));
-
-        verify(records).setId("monitor-1");
-        verify(records).setId("workflow-1");
-        verify(records, never()).setId("monitor-2");
     }
 
     private void create(String id, StringField... fields) {
@@ -187,16 +162,5 @@ public class ResourceIndexListenerTests {
     private static OpensearchDynamicSetting<Boolean> booleanSetting(boolean value) {
         return new OpensearchDynamicSetting<>(ResourceSharingFeatureFlagSetting.RESOURCE_SHARING_ENABLED, value) {
         };
-    }
-
-    /** Stands in for the protected-types cluster setting, so a test can change its value. */
-    private static class MutableProtectedTypes extends OpensearchDynamicSetting<List<String>> {
-        MutableProtectedTypes(List<String> types) {
-            super(ResourceSharingProtectedResourcesSetting.PROTECTED_TYPES, types);
-        }
-
-        void set(List<String> types) {
-            setDynamicSettingValue(types);
-        }
     }
 }
