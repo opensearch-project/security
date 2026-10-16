@@ -46,7 +46,6 @@ import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
-import org.opensearch.security.support.ConfigConstants;
 
 public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapper {
 
@@ -96,12 +95,16 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         this.clusterService = clusterService;
         this.indexService = indexService;
         this.auditlog = auditlog;
-        final boolean allowNowinDlsQueries = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false);
-        if (allowNowinDlsQueries) {
-            nowInMillis = () -> System.currentTimeMillis();
-        } else {
-            nowInMillis = () -> { throw new IllegalArgumentException("'now' is not allowed in DLS queries"); };
-        }
+        // Read the flag from the node-global base context, which is kept current by a cluster settings
+        // consumer in DlsFlsValveImpl. The supplier is evaluated per query (when the DLS QueryShardContext
+        // is built), so a dynamic update to plugins.security.allow_now_in_dls takes effect on already-open
+        // indices without a restart.
+        nowInMillis = () -> {
+            if (dlsFlsBaseContext.isAllowNowInDlsQuery()) {
+                return System.currentTimeMillis();
+            }
+            throw new IllegalArgumentException("'now' is not allowed in DLS queries");
+        };
         log.debug("FLS/DLS {} enabled for index {}", this, indexService.index().getName());
         this.dlsFlsProcessedConfigSupplier = dlsFlsProcessedConfigSupplier;
         this.dlsFlsBaseContext = dlsFlsBaseContext;

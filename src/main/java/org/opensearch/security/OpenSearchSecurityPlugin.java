@@ -2608,9 +2608,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.LEGACY_UNSUPPORTED_ALLOW_NOW_IN_DLS);
+            settings.add(SecuritySettings.ALLOW_NOW_IN_DLS);
             settings.add(
                 Setting.boolSetting(
                     SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION,
