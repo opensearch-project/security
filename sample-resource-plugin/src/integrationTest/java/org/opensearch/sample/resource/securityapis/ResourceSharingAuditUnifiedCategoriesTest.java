@@ -41,7 +41,9 @@ import static org.opensearch.sample.resource.TestUtils.NO_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_FULL_ACCESS;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
+import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
+import static org.opensearch.sample.utils.Constants.WORKSPACE_TYPE;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY;
@@ -83,7 +85,7 @@ public class ResourceSharingAuditUnifiedCategoriesTest {
                 SECURITY_SYSTEM_INDICES_ENABLED_KEY,
                 true,
                 OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
-                List.of(RESOURCE_TYPE)
+                List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE, WORKSPACE_TYPE)
             )
         )
         .audit(
