@@ -190,14 +190,9 @@ public class ConfigConstants {
         "opendistro_security.audit.config.disabled_transport_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES =
         "opendistro_security.audit.config.disabled_rest_categories";
-    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT = ImmutableList.of(
-        AuditCategory.AUTHENTICATED.toString(),
-        AuditCategory.GRANTED_PRIVILEGES.toString(),
-        AuditCategory.RESOURCE_ACCESS_GRANTED.toString(),
-        AuditCategory.RESOURCE_ACCESS_DENIED.toString(),
-        AuditCategory.RESOURCE_SHARING_CHANGED.toString()
-    );
-    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT = ImmutableList.of(
+    // Applied to disabled_categories only when none of disabled_categories, disabled_rest_categories
+    // and disabled_transport_categories is configured
+    public static final List<String> SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
         AuditCategory.GRANTED_PRIVILEGES.toString(),
         AuditCategory.CLUSTER_SETTINGS_CHANGED.toString(),
@@ -353,6 +348,8 @@ public class ConfigConstants {
     public static final String SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = SECURITY_SETTINGS_PREFIX + "unsupported.inject_user.enabled";
     public static final String SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = SECURITY_SETTINGS_PREFIX
         + "unsupported.inject_user.admin.enabled";
+    public static final String SECURITY_ALLOW_NOW_IN_DLS = SECURITY_SETTINGS_PREFIX + "allow_now_in_dls";
+    // Deprecated: use SECURITY_ALLOW_NOW_IN_DLS. Retained as a fallback so existing configuration keeps working.
     public static final String SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = SECURITY_SETTINGS_PREFIX + "unsupported.allow_now_in_dls";
 
     public static final String SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION = SECURITY_SETTINGS_PREFIX
