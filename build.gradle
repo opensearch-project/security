@@ -490,9 +490,12 @@ configurations {
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
+            force "io.netty:netty-transport-native-epoll:${versions.netty}"
+            force "io.netty:netty-transport-classes-epoll:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.7"
             force "com.google.guava:guava:${guava_version}"
+            force "at.yawk.lz4:lz4-java:1.11.1"
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
@@ -511,16 +514,19 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "org.apache.httpcomponents:httpcore-nio:4.4.16"
             force "org.apache.httpcomponents:httpasyncclient:4.1.5"
+            force 'org.apache.httpcomponents.client5:httpclient5:5.6.3'
+            force 'org.apache.httpcomponents.core5:httpcore5:5.4.3'
+            force 'org.apache.httpcomponents.core5:httpcore5-h2:5.4.3'
             force "com.google.errorprone:error_prone_annotations:2.35.1"
             force "org.checkerframework:checker-qual:3.48.3"
             force "ch.qos.logback:logback-classic:1.5.16"
             force "commons-io:commons-io:2.18.0"
             force "org.apache.commons:commons-text:1.15.0"
-            force "org.apache.logging.log4j:log4j-core:2.25.4"
-            force "org.apache.logging.log4j:log4j-api:2.25.4"
-            force "org.bouncycastle:bcprov-jdk18on:1.84"
-            force "org.bouncycastle:bcpkix-jdk18on:1.84"
-            force "org.bouncycastle:bcutil-jdk18on:1.84"
+            force "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+            force "org.apache.logging.log4j:log4j-api:${versions.log4j}"
+            force "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+            force "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+            force "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
 
             exclude group: "org.lz4", module: "lz4-java"
         }
@@ -669,7 +675,7 @@ dependencies {
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
-    runtimeOnly 'at.yawk.lz4:lz4-java:1.10.1'
+    runtimeOnly 'at.yawk.lz4:lz4-java:1.11.1'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.7'
