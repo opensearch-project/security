@@ -14,10 +14,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
@@ -41,6 +43,7 @@ import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.get.GetResult;
+import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.security.resources.sharing.ResourceSharing;
@@ -48,6 +51,7 @@ import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
@@ -69,6 +73,7 @@ import static org.mockito.Mockito.when;
  * {@link ResourceSharingIndexHandler#fetchSharingInfoForIds} and
  * {@link ResourceSharingIndexHandler#reconcileWorkspaces}.
  */
+@SuppressWarnings("unchecked") // action listener mocks
 public class ResourceSharingIndexHandlerTests {
 
     private static final String RESOURCE_INDEX = "test-index";
@@ -118,16 +123,93 @@ public class ResourceSharingIndexHandlerTests {
     }
 
     private void stubUpdateSucceeds() {
+        stubUpdate(l -> l.onResponse(mock(UpdateResponse.class)));
+    }
+
+    private void stubUpdate(Consumer<ActionListener<UpdateResponse>> outcome) {
         // The update paths use the fluent client.prepareUpdate(idx,id).setRefreshPolicy(..).setDoc(..).request()
         // builder; RETURNS_SELF makes every builder call return the same mock, and request() yields a mock request.
-        UpdateRequestBuilder builder = mock(UpdateRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        UpdateRequestBuilder builder = mock(UpdateRequestBuilder.class, Answers.RETURNS_SELF);
         when(builder.request()).thenReturn(mock(UpdateRequest.class));
         when(client.prepareUpdate(anyString(), anyString())).thenReturn(builder);
         doAnswer(inv -> {
-            ActionListener<UpdateResponse> l = inv.getArgument(1);
-            l.onResponse(mock(UpdateResponse.class));
+            outcome.accept(inv.getArgument(1));
             return null;
         }).when(client).update(any(UpdateRequest.class), any());
+    }
+
+    private void stubIndexSucceeds() {
+        IndexRequestBuilder builder = mock(IndexRequestBuilder.class, Answers.RETURNS_SELF);
+        when(builder.request()).thenReturn(mock(IndexRequest.class));
+        when(client.prepareIndex(anyString())).thenReturn(builder);
+        doAnswer(inv -> {
+            ActionListener<IndexResponse> l = inv.getArgument(1);
+            l.onResponse(mock(IndexResponse.class));
+            return null;
+        }).when(client).index(any(IndexRequest.class), any());
+    }
+
+    private void stubUpdateFails() {
+        stubUpdate(l -> l.onFailure(new IllegalStateException("visibility write rejected")));
+    }
+
+    // ---------- visibility update failures --------------------------------------------------------
+
+    /** Asserts the listener failed because of the visibility write, not because an earlier step failed. */
+    private static void assertVisibilityWriteFailure(ActionListener<?> listener) {
+        ArgumentCaptor<Exception> failure = ArgumentCaptor.forClass(Exception.class);
+        verify(listener).onFailure(failure.capture());
+        assertTrue(failure.getValue() instanceof OpenSearchStatusException);
+        assertEquals("visibility write rejected", failure.getValue().getCause().getMessage());
+    }
+
+    @Test
+    public void shareReportsAFailedVisibilityUpdate() {
+        stubRecordGet(true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
+        stubIndexSucceeds();
+        stubUpdateFails();
+
+        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
+        handler.share(
+            "res-1",
+            RESOURCE_INDEX,
+            new ShareWith(Map.of("read_only", new Recipients(Map.of(Recipient.USERS, Set.of("bob"))))),
+            listener
+        );
+
+        // The record was written but the field it projects to was not, so the caller must not see success
+        verify(listener, never()).onResponse(any());
+        verify(client).index(any(IndexRequest.class), any());
+        assertVisibilityWriteFailure(listener);
+    }
+
+    @Test
+    public void createReportsAFailedVisibilityUpdate() throws Exception {
+        stubIndexSucceeds();
+        stubUpdateFails();
+
+        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
+        handler.indexResourceSharing(
+            RESOURCE_INDEX,
+            ResourceSharing.builder().resourceId("res-1").resourceType("test").createdBy(new CreatedBy("alice")).build(),
+            listener
+        );
+
+        verify(listener, never()).onResponse(any());
+        verify(client).index(any(IndexRequest.class), any());
+        assertVisibilityWriteFailure(listener);
+    }
+
+    @Test
+    public void restoreReportsAFailedVisibilityUpdate() {
+        stubRecordGet(true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
+        stubUpdateFails();
+
+        ActionListener<Void> listener = mock(ActionListener.class);
+        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, listener);
+
+        verify(listener, never()).onResponse(any());
+        assertVisibilityWriteFailure(listener);
     }
 
     // ---------- fetchSharingInfoForIds -------------------------------------------------------------
@@ -278,7 +360,7 @@ public class ResourceSharingIndexHandlerTests {
             return null;
         }).when(client).get(any(GetRequest.class), any());
 
-        IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, Answers.RETURNS_SELF);
         when(indexBuilder.request()).thenReturn(mock(IndexRequest.class));
         when(client.prepareIndex(anyString())).thenReturn(indexBuilder);
         AtomicInteger indexCount = new AtomicInteger();

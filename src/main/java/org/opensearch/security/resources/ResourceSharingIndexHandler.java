@@ -110,6 +110,12 @@ public class ResourceSharingIndexHandler {
         this.resourcePluginInfo = resourcePluginInfo;
     }
 
+    // A share or patch rewrites the record and re-projects it, so the caller repairs this by repeating the request
+    private static final String RETRY_REPAIRS = "its sharing record was updated, and repeating the request re-applies it";
+    // Create and restore are not retried by a caller; the next write to the resource restores the field
+    private static final String NEXT_WRITE_REPAIRS =
+        "its sharing record was written, and the field is restored on the next update to the resource";
+
     public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.hidden", "true");
 
     /**
@@ -300,11 +306,24 @@ public class ResourceSharingIndexHandler {
                 );
                 listener.onResponse(response);
             }, (e) -> {
+                ctx.restore();
                 LOGGER.error("Failed to update visibility in [{}] for resource [{}]", resourceIndex, resourceId, e);
                 listener.onFailure(e);
             });
             client.update(ur, urListener);
         }
+    }
+
+    /**
+     * The failure reported when a sharing record was written but the resource's {@code all_shared_principals} was not.
+     * The two live in separate indices and cannot be written atomically, so the record stands and the caller is told.
+     */
+    private static OpenSearchStatusException visibilityUpdateFailed(String resourceId, String outcome, Exception cause) {
+        return new OpenSearchStatusException(
+            "Failed to update which principals resource " + resourceId + " is visible to; " + outcome,
+            RestStatus.INTERNAL_SERVER_ERROR,
+            cause
+        );
     }
 
     /**
@@ -334,7 +353,7 @@ public class ResourceSharingIndexHandler {
                 listener.onResponse(null);
             }, (e) -> {
                 LOGGER.error("Failed to update principals field in {} for resource {}", resourceIndex, resourceId, e);
-                listener.onResponse(null);
+                listener.onFailure(visibilityUpdateFailed(resourceId, NEXT_WRITE_REPAIRS, e));
             }));
         }, (failResponse) -> {
             LOGGER.error(failResponse.getMessage());
@@ -390,7 +409,7 @@ public class ResourceSharingIndexHandler {
                     listener.onResponse(sharingInfo);
                 }, (e) -> {
                     LOGGER.error("Failed to create principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                    listener.onResponse(sharingInfo);
+                    listener.onFailure(visibilityUpdateFailed(resourceId, NEXT_WRITE_REPAIRS, e));
                 }));
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
@@ -885,7 +904,7 @@ public class ResourceSharingIndexHandler {
                         listener.onResponse(sharingInfo);
                     }, (e) -> {
                         LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-                        listener.onResponse(sharingInfo);
+                        listener.onFailure(visibilityUpdateFailed(resourceId, RETRY_REPAIRS, e));
                     })
                 );
             }, e -> {
