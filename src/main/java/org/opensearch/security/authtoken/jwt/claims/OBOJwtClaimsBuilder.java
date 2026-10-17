@@ -18,9 +18,9 @@ import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 public class OBOJwtClaimsBuilder extends JwtClaimsBuilder {
     private final EncryptionDecryptionUtil encryptionDecryptionUtil;
 
-    public OBOJwtClaimsBuilder(String encryptionKey) {
+    public OBOJwtClaimsBuilder(EncryptionDecryptionUtil encryptionDecryptionUtil) {
         super();
-        this.encryptionDecryptionUtil = encryptionKey != null ? new EncryptionDecryptionUtil(encryptionKey) : null;
+        this.encryptionDecryptionUtil = encryptionDecryptionUtil;
     }
 
     public OBOJwtClaimsBuilder addRoles(List<String> roles) {
