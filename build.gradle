@@ -814,7 +814,7 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-server-common:${kafka_version}:test"
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
-    testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
+    testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test-fixtures"
     testImplementation "org.apache.kafka:test-common:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-coordinator-common:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-group-coordinator-api:${kafka_version}"
