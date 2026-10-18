@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
@@ -43,6 +44,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_R
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
+import static org.awaitility.Awaitility.await;
 
 public class ApiTokenTest {
 
@@ -121,6 +123,8 @@ public class ApiTokenTest {
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
                 "plugins.security.unsupported.restapi.allow_securityconfig_modification",
+                true,
+                "plugins.security.background_init_if_securityindex_not_exist",
                 true
             )
         )
@@ -159,6 +163,49 @@ public class ApiTokenTest {
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.get("_cluster/health");
             response.assertStatusCode(HttpStatus.SC_OK);
+        }
+    }
+
+    @Test
+    public void testTokenPermissionsSurviveNodeRestart() throws Exception {
+        String token = generateApiToken(TEST_TOKEN_PAYLOAD);
+        Header authHeader = new BasicHeader("Authorization", "ApiKey " + token);
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            client.get("_cluster/health").assertStatusCode(HttpStatus.SC_OK);
+        }
+
+        cluster.nodes().get(0).restart();
+
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
+            await().pollInterval(1, TimeUnit.SECONDS)
+                .atMost(30, TimeUnit.SECONDS)
+                .untilAsserted(() -> client.get("_cluster/health").assertStatusCode(HttpStatus.SC_OK));
+            client.delete("nonexistent-index").assertStatusCode(HttpStatus.SC_FORBIDDEN);
+        }
+    }
+
+    @Test
+    public void testTokenPermissionsFollowActionGroupUpdates() {
+        String actionGroupPath = "_plugins/_security/api/actiongroups/token_monitor";
+        try (TestRestClient admin = cluster.getRestClient(ADMIN_USER)) {
+            admin.putJson(actionGroupPath, """
+                {"allowed_actions": ["cluster:monitor/health"]}
+                """).assertStatusCode(HttpStatus.SC_CREATED);
+            try {
+                String token = generateApiToken("""
+                    {"name": "custom-monitor", "cluster_permissions": ["token_monitor"], "duration_seconds": 3600}
+                    """);
+                try (TestRestClient client = cluster.getRestClient(new BasicHeader("Authorization", "ApiKey " + token))) {
+                    client.get("_cluster/health").assertStatusCode(HttpStatus.SC_OK);
+                    admin.putJson(actionGroupPath, """
+                        {"allowed_actions": ["cluster:monitor/main"]}
+                        """).assertStatusCode(HttpStatus.SC_OK);
+                    client.get("_cluster/health").assertStatusCode(HttpStatus.SC_FORBIDDEN);
+                    client.get("/").assertStatusCode(HttpStatus.SC_OK);
+                }
+            } finally {
+                admin.delete(actionGroupPath).assertStatusCode(HttpStatus.SC_OK);
+            }
         }
     }
 
@@ -581,7 +628,14 @@ public class ApiTokenTest {
 
     @Test
     public void testFlushCacheReloadsFromIndex() {
-        String apiToken = generateApiToken(TEST_TOKEN_PAYLOAD);
+        String apiToken;
+        String tokenId;
+        try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+            TestRestClient.HttpResponse response = client.postJson(CREATE_API_TOKEN_PATH, TEST_TOKEN_PAYLOAD);
+            response.assertStatusCode(HttpStatus.SC_OK);
+            apiToken = response.getTextFromJsonBody("/token");
+            tokenId = response.getTextFromJsonBody("/id");
+        }
         Header authHeader = new BasicHeader("Authorization", "ApiKey " + apiToken);
 
         // Token should work
@@ -591,11 +645,6 @@ public class ApiTokenTest {
 
         // Delete the token directly from the index (bypassing the API, simulating index-level removal)
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            // Get the token ID from the list
-            TestRestClient.HttpResponse listResponse = client.get(CREATE_API_TOKEN_PATH);
-            listResponse.assertStatusCode(HttpStatus.SC_OK);
-            String tokenId = listResponse.bodyAsJsonNode().get(0).get("id").asText();
-
             // Delete directly from the system index
             client.delete(".opensearch_security_api_tokens/_doc/" + tokenId + "?refresh=true").assertStatusCode(HttpStatus.SC_OK);
         }
@@ -610,9 +659,10 @@ public class ApiTokenTest {
             client.delete("_plugins/_security/api/cache").assertStatusCode(HttpStatus.SC_OK);
         }
 
-        // Token should now be rejected
+        // Cache flush starts the token reload asynchronously.
         try (TestRestClient client = cluster.getRestClient(authHeader)) {
-            client.get("_cluster/health").assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
+            await().atMost(10, TimeUnit.SECONDS)
+                .untilAsserted(() -> client.get("_cluster/health").assertStatusCode(HttpStatus.SC_UNAUTHORIZED));
         }
     }
 
