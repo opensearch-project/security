@@ -36,8 +36,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.crypto.Cipher;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -65,7 +63,6 @@ import org.opensearch.security.ssl.util.KeystoreProps;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.transport.NettyAllocator;
 
-import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
 import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
@@ -898,11 +895,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final Iterable<String> ciphers,
         final ClientAuth authMode
     ) {
-        return builder.ciphers(
-            Stream.concat(Http2SecurityUtil.CIPHERS.stream(), StreamSupport.stream(ciphers.spliterator(), false))
-                .collect(Collectors.toSet()),
-            SupportedCipherSuiteFilter.INSTANCE
-        )
+        return builder.ciphers(ciphers, SupportedCipherSuiteFilter.INSTANCE)
             .clientAuth(Objects.requireNonNull(authMode))
             .sessionCacheSize(0)
             .sessionTimeout(0)
