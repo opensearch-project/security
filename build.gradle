@@ -490,10 +490,12 @@ configurations {
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
-            force 'io.netty:netty-transport-native-epoll:4.2.15.Final'
+            force "io.netty:netty-transport-native-epoll:${versions.netty}"
+            force "io.netty:netty-transport-classes-epoll:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.7"
             force "com.google.guava:guava:${guava_version}"
+            force "at.yawk.lz4:lz4-java:1.11.1"
 
             // for spotbugs dependency conflict
             force "org.apache.commons:commons-lang3:${versions.commonslang}"
@@ -520,11 +522,11 @@ configurations {
             force "ch.qos.logback:logback-classic:1.5.16"
             force "commons-io:commons-io:2.18.0"
             force "org.apache.commons:commons-text:1.15.0"
-            force "org.apache.logging.log4j:log4j-core:2.25.4"
-            force "org.apache.logging.log4j:log4j-api:2.25.5"
-            force "org.bouncycastle:bcprov-jdk18on:1.85"
-            force "org.bouncycastle:bcpkix-jdk18on:1.84"
-            force "org.bouncycastle:bcutil-jdk18on:1.84"
+            force "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+            force "org.apache.logging.log4j:log4j-api:${versions.log4j}"
+            force "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+            force "org.bouncycastle:bcpkix-jdk18on:${versions.bouncycastle}"
+            force "org.bouncycastle:bcutil-jdk18on:${versions.bouncycastle}"
 
             exclude group: "org.lz4", module: "lz4-java"
         }
