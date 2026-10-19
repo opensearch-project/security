@@ -39,10 +39,10 @@ public class HeaderClientCertResolver {
         X509Certificate[] localCerts
     ) {
         final String clientCertHeaderName = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_NAME, "x-client-cert");
-        // SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE configuration used to specify which principle can switch
+        // SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL configuration used to specify which principal can switch
         // user to header cert so its limited to external load balancer proxy , not all clients
-        final WildcardMatcher allowedPrinciplesToAssumeHeaderCert = WildcardMatcher.from(
-            settings.getAsList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE)
+        final WildcardMatcher allowedPrincipalsToAssumeHeaderCert = WildcardMatcher.from(
+            settings.getAsList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL)
         );
 
         final boolean allowRoleFromHeaderCert = Boolean.parseBoolean(
@@ -53,7 +53,7 @@ public class HeaderClientCertResolver {
         // we want to make x509Certs is not null and has already been validated through handshake ,
         // only then we allow header based cert role assumption
         if (clientCert != null && allowRoleFromHeaderCert && x509Certs != null) {
-            if (allowedPrinciplesToAssumeHeaderCert.test(principal)) {
+            if (allowedPrincipalsToAssumeHeaderCert.test(principal)) {
                 log.trace("Client Cert Encoded : {} ", clientCert);
                 clientCert = URLDecoder.decode(clientCert, StandardCharsets.UTF_8);
                 log.trace("Client Cert From Header : {} ", clientCert);

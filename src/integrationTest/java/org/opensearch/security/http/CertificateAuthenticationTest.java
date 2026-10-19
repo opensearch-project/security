@@ -50,7 +50,7 @@ public class CertificateAuthenticationTest {
     private static final String USER_KIRK = "kirk";
 
     private static final String USER_DASHBOARD = "dashboard";
-    private static final String USER_DASHBOARD_PRINCIPLE = "DC=de,L=test,O=users,OU=bridge,CN=dashboard";
+    private static final String USER_DASHBOARD_PRINCIPAL = "DC=de,L=test,O=users,OU=bridge,CN=dashboard";
 
     private static final String BACKEND_ROLE_BRIDGE = "bridge";
     private static final String BACKEND_ROLE_CAPTAIN = "captain";
@@ -65,7 +65,7 @@ public class CertificateAuthenticationTest {
         "roles_attribute",
         "ou",
         "skip_users",
-        Arrays.asList(USER_DASHBOARD_PRINCIPLE)
+        Arrays.asList(USER_DASHBOARD_PRINCIPAL)
     );
 
     @ClassRule
@@ -75,7 +75,7 @@ public class CertificateAuthenticationTest {
             "OPTIONAL",
             SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT,
             "true",
-            SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE,
+            SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL,
             List.of("DC=de,L=test,O=users,OU=bridge,CN=spock")
         )
     )

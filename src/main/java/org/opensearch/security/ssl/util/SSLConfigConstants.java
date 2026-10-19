@@ -104,19 +104,19 @@ public final class SSLConfigConstants {
     // header cert resolve
     public static final String USE_HEADER_CERT = "clientauth_use_header_cert";
     public static final String HEADER_CERT_NAME = "clientauth_header_cert_name";
-    public static final String ALLOWED_PROXY_PRINCIPLE_TO_USE_HEADER_CERT = "clientauth_header_cert_allowed_for_principle";
+    public static final String ALLOWED_PROXY_PRINCIPAL_TO_USE_HEADER_CERT = "clientauth_header_cert_allowed_for_principal";
     public static final String SECURITY_SSL_HTTP_USE_HEADER_CERT = SSL_HTTP_PREFIX + USE_HEADER_CERT;
     public static final String SECURITY_SSL_HTTP_HEADER_CERT_NAME = SSL_HTTP_PREFIX + HEADER_CERT_NAME;
     /**
      * List of proxy principals (DNs, wildcards allowed) permitted to supply the client cert via header.
      * DNs contain commas, so configure this as a YAML list; a plain string value is split on commas and will not match:
      * <pre>
-     * plugins.security.ssl.http.clientauth_header_cert_allowed_for_principle:
+     * plugins.security.ssl.http.clientauth_header_cert_allowed_for_principal:
      *   - "CN=proxy,OU=lb,O=example"
      * </pre>
      */
-    public static final String SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE = SSL_HTTP_PREFIX
-        + ALLOWED_PROXY_PRINCIPLE_TO_USE_HEADER_CERT;
+    public static final String SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL = SSL_HTTP_PREFIX
+        + ALLOWED_PROXY_PRINCIPAL_TO_USE_HEADER_CERT;
 
     // http cert revocation list settings
     public static final String SECURITY_SSL_HTTP_CRL_FILE = SSL_HTTP_CRL_PREFIX + "file_path";

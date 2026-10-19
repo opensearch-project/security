@@ -69,7 +69,7 @@ public class HeaderClientCertResolverTest {
     private static Settings enabledSettings() {
         return Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT, true)
-            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE, List.of(PROXY_PRINCIPAL))
+            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL, List.of(PROXY_PRINCIPAL))
             .build();
     }
 
@@ -141,7 +141,7 @@ public class HeaderClientCertResolverTest {
         X509Certificate[] proxyCerts = loadCert("ssl/spock.crt.pem");
         Settings settings = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT, true)
-            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE, List.of("CN=someone-else"))
+            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL, List.of("CN=someone-else"))
             .build();
         SecurityRequest request = requestWithHeader("x-client-cert", encodedPem("ssl/kirk.crt.pem"));
 
@@ -156,7 +156,7 @@ public class HeaderClientCertResolverTest {
         // The feature is opt-in; without the enable flag the header is ignored even for an allowed proxy
         X509Certificate[] proxyCerts = loadCert("ssl/spock.crt.pem");
         Settings settings = Settings.builder()
-            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPLE, List.of(PROXY_PRINCIPAL))
+            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL, List.of(PROXY_PRINCIPAL))
             .build();
         SecurityRequest request = requestWithHeader("x-client-cert", encodedPem("ssl/kirk.crt.pem"));
 
