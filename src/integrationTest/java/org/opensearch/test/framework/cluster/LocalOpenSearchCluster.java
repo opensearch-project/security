@@ -482,7 +482,7 @@ public class LocalOpenSearchCluster {
                     new PluginInfo(
                         defaultPlugins.getName(),
                         "classpath plugin",
-                        null,
+                        "1.0",
                         Version.CURRENT,
                         "1.8",
                         defaultPlugins.getName(),
@@ -500,7 +500,7 @@ public class LocalOpenSearchCluster {
                     new PluginInfo(
                         plugin.getName(),
                         "classpath plugin",
-                        null,
+                        "1.0",
                         Version.CURRENT,
                         "1.8",
                         plugin.getName(),
@@ -568,6 +568,17 @@ public class LocalOpenSearchCluster {
 
         public boolean isRunning() {
             return running;
+        }
+
+        public void restart() throws Exception {
+            if (!stop(30, TimeUnit.SECONDS).get(40, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Node did not stop: " + nodeName);
+            }
+            try (PortAllocator.PortAllocationLock ignored = PortAllocator.acquireExclusivePortAllocationLock()) {
+                if (start().get(60, TimeUnit.SECONDS) != StartStage.INITIALIZED) {
+                    throw new IllegalStateException("Node did not restart: " + nodeName);
+                }
+            }
         }
 
         public <X> X getInjectable(Class<X> clazz) {

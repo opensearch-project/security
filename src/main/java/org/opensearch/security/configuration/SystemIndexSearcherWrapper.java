@@ -49,6 +49,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
@@ -57,7 +58,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
     protected final Index index;
-    protected final String securityIndex;
+    protected final SecurityIndexIdentity securityIndex;
     private final AdminDNs adminDns;
     private final PrivilegesConfiguration privilegesConfiguration;
     private final RoleMapper roleMapper;
@@ -80,10 +81,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     ) {
         index = indexService.index();
         threadContext = indexService.getThreadPool().getThreadContext();
-        this.securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+        this.securityIndex = new SecurityIndexIdentity(settings);
         this.privilegesConfiguration = privilegesConfiguration;
         this.roleMapper = roleMapper;
         this.adminDns = adminDNs;
@@ -144,7 +142,7 @@ public class SystemIndexSearcherWrapper implements CheckedFunction<DirectoryRead
     }
 
     protected final boolean isSecurityIndexRequest() {
-        return index.getName().equals(securityIndex);
+        return securityIndex.isSecurityIndex(index.getName());
     }
 
     protected final boolean isBlockedProtectedIndexRequest() {

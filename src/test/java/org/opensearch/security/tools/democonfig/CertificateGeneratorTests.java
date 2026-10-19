@@ -30,14 +30,14 @@ import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
-import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.deleteDirectoryRecursive;
 import static org.junit.Assert.fail;
 
 /**
@@ -46,6 +46,14 @@ import static org.junit.Assert.fail;
 public class CertificateGeneratorTests {
 
     private static Installer installer;
+
+    /**
+     * Gives every test its own config directory. The test classes in this package run in separate parallel
+     * forks that share {@code user.dir}, so a fixed directory name would let one class's teardown delete
+     * the tree another class is still writing into.
+     */
+    @Rule
+    public TemporaryFolder confDir = new TemporaryFolder();
 
     // Custom exception to simulate an exit via the exit handler.
     public static class TestExitException extends RuntimeException {
@@ -65,13 +73,11 @@ public class CertificateGeneratorTests {
     public void setUp() {
         installer = Installer.getInstance();
         installer.buildOptions();
-        installer.OPENSEARCH_CONF_DIR = System.getProperty("user.dir") + File.separator + "test-conf";
-        createDirectory(installer.OPENSEARCH_CONF_DIR);
+        installer.OPENSEARCH_CONF_DIR = confDir.getRoot().getAbsolutePath();
     }
 
     @After
     public void tearDown() {
-        deleteDirectoryRecursive(installer.OPENSEARCH_CONF_DIR);
         Installer.resetInstance();
     }
 

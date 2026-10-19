@@ -41,6 +41,8 @@ public class AuditFilters implements ToXContentObject {
 
     private List<String> disabledTransportCategories;
 
+    private List<String> disabledCategories;
+
     public AuditFilters() {
         this.enabledRest = false;
         this.enabledTransport = false;
@@ -118,6 +120,11 @@ public class AuditFilters implements ToXContentObject {
         return this;
     }
 
+    public AuditFilters disabledCategories(List<String> disabledCategories) {
+        this.disabledCategories = disabledCategories;
+        return this;
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
         xContentBuilder.startObject();
@@ -131,8 +138,16 @@ public class AuditFilters implements ToXContentObject {
         xContentBuilder.field("ignore_requests", ignoreRequests);
         xContentBuilder.field("ignore_headers", ignoreHeaders);
         xContentBuilder.field("ignore_url_params", ignoreUrlParams);
-        xContentBuilder.field("disabled_rest_categories", disabledRestCategories);
-        xContentBuilder.field("disabled_transport_categories", disabledTransportCategories);
+        // Category lists set to null are omitted, so that the plugin's own defaults apply
+        if (disabledRestCategories != null) {
+            xContentBuilder.field("disabled_rest_categories", disabledRestCategories);
+        }
+        if (disabledTransportCategories != null) {
+            xContentBuilder.field("disabled_transport_categories", disabledTransportCategories);
+        }
+        if (disabledCategories != null) {
+            xContentBuilder.field("disabled_categories", disabledCategories);
+        }
         xContentBuilder.endObject();
         return xContentBuilder;
     }

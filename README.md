@@ -69,13 +69,13 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
 
 
 ### Resource Sharing and Access Control
-* Allows users to manage access to own and shared resources. For details about the feature read: [RESOURCE_SHARING_AND_ACCESS_CONTROL.md](./RESOURCE_SHARING_AND_ACCESS_CONTROL.md)
+* Allows users to manage access to own and shared resources. For details about the feature read: [RESOURCE_SHARING_AND_ACCESS_CONTROL.md](docs/RESOURCE_SHARING_AND_ACCESS_CONTROL.md)
 
 ## Installation
 
 OpenSearch Security Plugin comes bundled by default as part of the OpenSearch distribution. Please refer to the [installation guide](https://opensearch.org/docs/latest/opensearch/install/index/) and  [technical documentation](https://opensearch.org/docs/latest/security-plugin/index/) for detailed information on installing and configuring the OpenSearch Security Plugin.
 
-You can also see the [developer guide](https://github.com/opensearch-project/security/blob/main/DEVELOPER_GUIDE.md) which walks through the installation of the plugin for an OpenSearch server that doesn't initially have it.
+You can also see the [developer guide](docs/DEVELOPER_GUIDE.md) which walks through the installation of the plugin for an OpenSearch server that doesn't initially have it.
 
 ## Test and Build
 
@@ -125,25 +125,32 @@ It is common practice to create new transport actions to perform different tasks
 2. Register the action in the [OpenSearch Security plugin](https://github.com/opensearch-project/security). Each new action is registered in the plugin as a new permission. Usually, plugins will define different roles for their plugin (e.g., read-only access, write access). Each role will contain a set of permissions. An example of adding a new permission to the `anomaly_read_access` role for the [Anomaly Detection plugin](https://github.com/opensearch-project/anomaly-detection) can be found in [this PR](https://github.com/opensearch-project/security/pull/997/files).
 3. Register the action in the [OpenSearch Dashboards Security plugin](https://github.com/opensearch-project/security-dashboards-plugin). This plugin maintains the full list of possible permissions, so users can see all of them when creating new roles or searching permissions via Dashboards. An example of adding different permissions can be found in [this PR](https://github.com/opensearch-project/security-dashboards-plugin/pull/689/files).
 
-See the [plugin-authorization-flows](ARCHITECTURE.md#plugin-authorization-flows) in the ARCHITECTURE.md.
+See the [plugin-authorization-flows](docs/ARCHITECTURE.md#plugin-authorization-flows) in the ARCHITECTURE.md.
 
 ### System Index Protection
 
-The Security Plugin provides protection to system indices used by plugins. The system index names must be explicitly registered in `opensearch.yml` under the `plugins.security.system_indices.indices` setting. See below for an example setup of system index protection from the demo configuration:
+The Security plugin protects system indices registered by OpenSearch plugins. The deprecated
+`plugins.security.system_indices.indices` setting remains available for compatibility with plugins that do not register their system
+indices through `SystemIndexPlugin.getSystemIndexDescriptors`.
+
+Users whose mapped roles are listed in `plugins.security.restapi.roles_enabled` can restore only the system indices matched by
+`plugins.security.system_indices.restore.indices`. The default list is empty today. System indices will be added to it as their
+plugin owners confirm they restore safely. An operator sets the list in `opensearch.yml`. To also allow changing it at runtime
+with `PUT _cluster/settings`, set `plugins.security.system_indices.restore.dynamic.enabled: true` in `opensearch.yml`; the runtime
+value then takes precedence over the file. A configured value replaces the default list and is not merged
+with it. The Security configuration index can never be restored this way:
 
 ```
-plugins.security.system_indices.enabled: true
-plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]
+plugins.security.system_indices.restore.indices:
+  - ".opendistro-alerting-config"
 ```
 
-The demo configuration can be modified in the following files to add a new system index to the demo configuration:
-
-- https://github.com/opensearch-project/security/blob/main/src/main/java/org/opensearch/security/tools/democonfig/SecuritySettingsConfigurer.java
+The user must still have the snapshot restore cluster permission.
 
 
 ## Contributing
 
-See [developer guide](DEVELOPER_GUIDE.md) and [how to contribute to this project](CONTRIBUTING.md).
+See the [repository documentation](docs/README.md), [developer guide](docs/DEVELOPER_GUIDE.md), and [how to contribute to this project](CONTRIBUTING.md).
 
 ## Getting Help
 

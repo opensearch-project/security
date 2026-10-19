@@ -38,8 +38,6 @@ import com.google.common.collect.ImmutableSet;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 
-import com.password4j.types.Hmac;
-
 public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_CONFIG_PREFIX = "_opendistro_security_";
@@ -175,43 +173,6 @@ public class ConfigConstants {
 
     public static final String SECURITY_PERFORM_PERMISSION_CHECK_PARAM = "perform_permission_check";
 
-    public static final String BCRYPT = "bcrypt";
-    public static final String PBKDF2 = "pbkdf2";
-    public static final String ARGON2 = "argon2";
-
-    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS = SECURITY_SETTINGS_PREFIX + "password.hashing.bcrypt.rounds";
-    public static final int SECURITY_PASSWORD_HASHING_BCRYPT_ROUNDS_DEFAULT = 12;
-    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR = SECURITY_SETTINGS_PREFIX + "password.hashing.bcrypt.minor";
-    public static final String SECURITY_PASSWORD_HASHING_BCRYPT_MINOR_DEFAULT = "Y";
-
-    public static final String SECURITY_PASSWORD_HASHING_ALGORITHM = SECURITY_SETTINGS_PREFIX + "password.hashing.algorithm";
-    public static final String SECURITY_PASSWORD_HASHING_ALGORITHM_DEFAULT = BCRYPT;
-
-    // PBKDF2 password hashing parameters
-    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS = SECURITY_SETTINGS_PREFIX
-        + "password.hashing.pbkdf2.iterations";
-    public static final int SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS_DEFAULT = 600_000;
-    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH = SECURITY_SETTINGS_PREFIX + "password.hashing.pbkdf2.length";
-    public static final int SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH_DEFAULT = 256;
-    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION = SECURITY_SETTINGS_PREFIX + "password.hashing.pbkdf2.function";
-    public static final String SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION_DEFAULT = Hmac.SHA256.name();
-
-    // Argon2 password hashing parameters
-    public static final String SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS = SECURITY_SETTINGS_PREFIX
-        + "password.hashing.argon2.iterations";
-    public static final int SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT = 3;
-    public static final String SECURITY_PASSWORD_HASHING_ARGON2_MEMORY = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.memory";
-    public static final int SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT = 65536;
-    public static final String SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM = SECURITY_SETTINGS_PREFIX
-        + "password.hashing.argon2.parallelism";
-    public static final int SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT = 1;
-    public static final String SECURITY_PASSWORD_HASHING_ARGON2_LENGTH = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.length";
-    public static final int SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT = 32;
-    public static final String SECURITY_PASSWORD_HASHING_ARGON2_TYPE = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.type";
-    public static final String SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT = "argon2id";
-    public static final String SECURITY_PASSWORD_HASHING_ARGON2_VERSION = SECURITY_SETTINGS_PREFIX + "password.hashing.argon2.version";
-    public static final int SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT = 19;
-
     public static final String SECURITY_AUDIT_TYPE_DEFAULT = SECURITY_SETTINGS_PREFIX + "audit.type";
     public static final String SECURITY_AUDIT_ENABLE_STANDALONE = SECURITY_SETTINGS_PREFIX + "audit.enable_standalone";
     public static final String SECURITY_AUDIT_ENABLED = SECURITY_SETTINGS_PREFIX + "audit.enabled";
@@ -229,14 +190,9 @@ public class ConfigConstants {
         "opendistro_security.audit.config.disabled_transport_categories";
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES =
         "opendistro_security.audit.config.disabled_rest_categories";
-    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT = ImmutableList.of(
-        AuditCategory.AUTHENTICATED.toString(),
-        AuditCategory.GRANTED_PRIVILEGES.toString(),
-        AuditCategory.RESOURCE_ACCESS_GRANTED.toString(),
-        AuditCategory.RESOURCE_ACCESS_DENIED.toString(),
-        AuditCategory.RESOURCE_SHARING_CHANGED.toString()
-    );
-    public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT = ImmutableList.of(
+    // Applied to disabled_categories only when none of disabled_categories, disabled_rest_categories
+    // and disabled_transport_categories is configured
+    public static final List<String> SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT = ImmutableList.of(
         AuditCategory.AUTHENTICATED.toString(),
         AuditCategory.GRANTED_PRIVILEGES.toString(),
         AuditCategory.CLUSTER_SETTINGS_CHANGED.toString(),
@@ -392,6 +348,8 @@ public class ConfigConstants {
     public static final String SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = SECURITY_SETTINGS_PREFIX + "unsupported.inject_user.enabled";
     public static final String SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = SECURITY_SETTINGS_PREFIX
         + "unsupported.inject_user.admin.enabled";
+    public static final String SECURITY_ALLOW_NOW_IN_DLS = SECURITY_SETTINGS_PREFIX + "allow_now_in_dls";
+    // Deprecated: use SECURITY_ALLOW_NOW_IN_DLS. Retained as a fallback so existing configuration keeps working.
     public static final String SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS = SECURITY_SETTINGS_PREFIX + "unsupported.allow_now_in_dls";
 
     public static final String SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION = SECURITY_SETTINGS_PREFIX
@@ -428,6 +386,11 @@ public class ConfigConstants {
     public static final Boolean SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
+    public static final String SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "system_indices.restore.indices";
+    public static final List<String> SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT = Collections.emptyList();
+    public static final String SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY = SECURITY_SETTINGS_PREFIX
+        + "system_indices.restore.dynamic.enabled";
+    public static final boolean SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_DEFAULT = false;
     public static final String SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT = SECURITY_SETTINGS_PREFIX + "masked_fields.algorithm.default";
 
     public static final String TENANCY_PRIVATE_TENANT_NAME = "private";

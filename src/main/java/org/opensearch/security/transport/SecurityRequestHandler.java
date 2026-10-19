@@ -84,12 +84,12 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final PrincipalExtractor principalExtractor,
         final InterClusterRequestEvaluator requestEvalProvider,
         final ClusterService cs,
-        final SSLConfig SSLConfig,
+        final SSLConfig sslConfig,
         final SslExceptionHandler sslExceptionHandler,
         final UserFactory userFactory,
         final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
     ) {
-        super(action, actualHandler, threadPool, principalExtractor, SSLConfig, sslExceptionHandler);
+        super(action, actualHandler, threadPool, principalExtractor, sslConfig, sslExceptionHandler);
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;

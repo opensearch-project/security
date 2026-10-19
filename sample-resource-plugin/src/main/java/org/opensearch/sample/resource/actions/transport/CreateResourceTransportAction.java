@@ -10,7 +10,6 @@ package org.opensearch.sample.resource.actions.transport;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.logging.log4j.LogManager;
@@ -68,15 +67,12 @@ public class CreateResourceTransportAction extends HandledTransportAction<Create
 
         // 1. Read mapping JSON from the config file
         final String mappingJson;
-        try {
-            URL url = CreateResourceTransportAction.class.getClassLoader().getResource("mappings.json");
-            if (url == null) {
+        try (InputStream is = CreateResourceTransportAction.class.getClassLoader().getResourceAsStream("mappings.json")) {
+            if (is == null) {
                 listener.onFailure(new IllegalStateException("mappings.json not found on classpath"));
                 return;
             }
-            try (InputStream is = url.openStream()) {
-                mappingJson = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            }
+            mappingJson = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             listener.onFailure(new RuntimeException("Failed to read mappings.json from classpath", e));
             return;
