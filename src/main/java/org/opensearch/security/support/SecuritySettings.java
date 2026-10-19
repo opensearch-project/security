@@ -66,6 +66,24 @@ public class SecuritySettings {
         Setting.Property.Dynamic
     );
 
+    // Deprecated alias of ALLOW_NOW_IN_DLS. Kept so clusters still setting plugins.security.unsupported.allow_now_in_dls
+    // continue to work; slated for removal in the next major version.
+    public static final Setting<Boolean> LEGACY_UNSUPPORTED_ALLOW_NOW_IN_DLS = Setting.boolSetting(
+        ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS,
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic,
+        Setting.Property.Deprecated
+    );
+
+    public static final Setting<Boolean> ALLOW_NOW_IN_DLS = Setting.boolSetting(
+        ConfigConstants.SECURITY_ALLOW_NOW_IN_DLS,
+        LEGACY_UNSUPPORTED_ALLOW_NOW_IN_DLS,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic,
+        Setting.Property.Sensitive
+    );
+
     public static final Setting<Boolean> DFM_EMPTY_OVERRIDES_ALL_SETTING = Setting.boolSetting(
         ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL,
         false,
@@ -157,7 +175,7 @@ public class SecuritySettings {
 
     public static final Setting<List<String>> AUDIT_DISABLED_CATEGORIES = Setting.listSetting(
         AUDIT_CONFIG_PREFIX + "disabled_categories",
-        Collections.emptyList(),
+        ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT,
         Function.identity(),
         Setting.Property.NodeScope,
         Setting.Property.Dynamic,
@@ -166,7 +184,7 @@ public class SecuritySettings {
 
     public static final Setting<List<String>> AUDIT_DISABLED_REST_CATEGORIES = Setting.listSetting(
         AUDIT_CONFIG_PREFIX + "disabled_rest_categories",
-        List.of("AUTHENTICATED", "GRANTED_PRIVILEGES"),
+        Collections.emptyList(),
         Function.identity(),
         Setting.Property.NodeScope,
         Setting.Property.Dynamic,
@@ -175,7 +193,7 @@ public class SecuritySettings {
 
     public static final Setting<List<String>> AUDIT_DISABLED_TRANSPORT_CATEGORIES = Setting.listSetting(
         AUDIT_CONFIG_PREFIX + "disabled_transport_categories",
-        List.of("AUTHENTICATED", "GRANTED_PRIVILEGES"),
+        Collections.emptyList(),
         Function.identity(),
         Setting.Property.NodeScope,
         Setting.Property.Dynamic,

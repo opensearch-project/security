@@ -110,7 +110,10 @@ public class ApiTokenRepository {
     }
 
     public void reloadApiTokensOnNodeStart(ActionListener<Void> listener) {
-        reloadApiTokensFromIndex(ActionListener.wrap(listener::onResponse, e -> {
+        reloadApiTokensFromIndex(ActionListener.wrap(unused -> {
+            notifyAboutChanges();
+            listener.onResponse(null);
+        }, e -> {
             boolean retryable = ExceptionsHelper.unwrapCausesAndSuppressed(
                 e,
                 cause -> (cause instanceof ClusterBlockException clusterBlockException && clusterBlockException.retryable())
