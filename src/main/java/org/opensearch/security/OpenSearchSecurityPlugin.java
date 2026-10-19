@@ -164,6 +164,8 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.auth.RolesInjector;
+import org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormat;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import org.opensearch.security.compliance.ComplianceReadIndexSearcherWrapper;
@@ -1557,6 +1559,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final ClusterInfoHolder cih = new ClusterInfoHolder(this.cs.getClusterName().value());
         this.cs.addListener(cih);
+        // Transitional, see LegacyRolesClaimFormat: when this node last saw a node that cannot read AES-GCM OBO tokens
+        this.cs.addListener(cih.preUpgradeNodeTracker());
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
 
@@ -1633,7 +1637,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             threadPool.getThreadContext()
         );
         this.roleMapper = roleMapper;
-        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper);
+        // Secure settings are only readable during node construction, so the keystore keys are loaded here.
+        final OnBehalfOfKeys oboKeystoreKeys = OnBehalfOfKeys.load(settings, configPath);
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper, oboKeystoreKeys);
         apiTokenRepository = new ApiTokenRepository(localClient, clusterService);
 
         PrivilegesConfiguration privilegesConfiguration = new PrivilegesConfiguration(
@@ -1729,7 +1735,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher, apiTokenRepository);
+        dcf = new DynamicConfigFactory(
+            cr,
+            settings,
+            configPath,
+            localClient,
+            threadPool,
+            cih,
+            passwordHasher,
+            apiTokenRepository,
+            oboKeystoreKeys
+        );
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(xffResolver);
@@ -1836,6 +1852,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final Settings.Builder builder = Settings.builder();
 
         builder.put(super.additionalSettings());
+
+        builder.put(LegacyRolesClaimFormat.nodeAttributeSettings(settings));
 
         if (!sslConfig.isSslOnlyMode()) {
             builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
@@ -2696,6 +2714,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // this can only be changed with access to the config file.
             ));
         }
+
+        settings.addAll(OnBehalfOfKeys.getSettings());
 
         return settings;
     }

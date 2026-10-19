@@ -384,6 +384,26 @@ public class ApiTokenRepositoryTests extends LuceneTestCase {
     }
 
     @Test
+    public void testStartupPublishesLoadedTokenPermissions() {
+        ApiToken token = new ApiToken("alpha", HASH_ALPHA, List.of("cluster_monitor"), List.of(), Instant.now(), Long.MAX_VALUE);
+        doAnswer(invocation -> {
+            ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
+            listener.onResponse(Map.of(HASH_ALPHA, token));
+            return null;
+        }).when(apiTokenIndexHandler).getTokenMetadatas(any(ActionListener.class));
+
+        Map<String, RoleV7> publishedPermissions = new HashMap<>();
+        repository.subscribeOnChange(() -> repository.forEachToken(publishedPermissions::put));
+        TestActionListener<Void> listener = new TestActionListener<>();
+        repository.reloadApiTokensOnNodeStart(listener);
+
+        listener.assertSuccess();
+        assertTrue(repository.isValidToken(HASH_ALPHA));
+        assertTrue("Startup must publish permissions as well as load the token", publishedPermissions.containsKey("token:alpha"));
+        assertEquals(List.of("cluster_monitor"), publishedPermissions.get("token:alpha").getCluster_permissions());
+    }
+
+    @Test
     public void testReloadApiTokensOnNodeStartRetriesStateNotRecoveredBlock() {
         doAnswer(invocation -> {
             ActionListener<Map<String, ApiToken>> listener = invocation.getArgument(0);
