@@ -58,7 +58,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '8.10.3'
+    id 'com.diffplug.spotless' version '8.10.4'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.6"
@@ -538,7 +538,7 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.2"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.24.0"
-            force "net.bytebuddy:byte-buddy:1.18.14"
+            force "net.bytebuddy:byte-buddy:1.18.15"
             force "org.ow2.asm:asm:${versions.asm}"
 
             // For org.opensearch.plugin:transport-grpc
@@ -780,7 +780,7 @@ dependencies {
     runtimeOnly libs.bundles.jaxb
 
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.3.1'
+    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.3.2'
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.7.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.3.3'
     runtimeOnly 'org.apache.santuario:xmlsec:2.3.5'
