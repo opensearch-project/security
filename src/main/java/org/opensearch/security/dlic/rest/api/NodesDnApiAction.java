@@ -132,6 +132,13 @@ public class NodesDnApiAction extends AbstractApiAction {
         })).onChangeRequest(Method.PATCH, this::processPatchRequest).withPaginatedGetRequest(this::routeGetRequest);
     }
 
+    @Override
+    protected void postLoadForPagination(final RestRequest request, final SecurityDynamicConfiguration<?> configuration) {
+        if (request.paramAsBoolean("show_all", false)) {
+            addStaticNodesDn(configuration);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void addStaticNodesDn(SecurityDynamicConfiguration<?> configuration) {
         if (NodesDn.class.equals(configuration.getImplementingClass())) {

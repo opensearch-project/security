@@ -269,6 +269,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                 configuration -> ValidationResult.success(SecurityConfiguration.of(null, configuration))
             ).map(endpointValidator::onConfigLoad).map(securityConfiguration -> {
                 final SecurityDynamicConfiguration<?> configuration = securityConfiguration.configuration();
+                postLoadForPagination(request, configuration);
                 if (params.hasCursor()) {
                     return PaginationCursor.decode(params.nextToken, getConfigType(), params.sort)
                         .map(cursor -> buildPaginatedPage(configuration, params, cursor));
@@ -277,6 +278,16 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             });
         });
     }
+
+    /**
+     * Hook for subclasses to apply endpoint-specific post-load transformations
+     * (e.g. filtering or augmentation) to the configuration before it is paginated.
+     * The default implementation is a no-op.
+     *
+     * @param request       the incoming REST request (carries query params like {@code filterBy}, {@code show_all})
+     * @param configuration the fully loaded and redacted configuration to mutate in place
+     */
+    protected void postLoadForPagination(final RestRequest request, final SecurityDynamicConfiguration<?> configuration) {}
 
     /**
      * Builds a single page from the fully-loaded configuration.
