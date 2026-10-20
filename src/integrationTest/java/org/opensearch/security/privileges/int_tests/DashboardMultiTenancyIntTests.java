@@ -238,7 +238,7 @@ public class DashboardMultiTenancyIntTests {
         "r/w to global tenant"
     )
         .roles(
-            TestSecurityConfig.Role.KIBANA_USER,
+            TestSecurityConfig.Role.BASE_DASHBOARDS_USER,
             new TestSecurityConfig.Role("global_tenant_role").clusterPermissions("cluster_composite_ops")
                 .tenantPermissions("kibana_all_write")
                 .on("global_tenant")
@@ -266,7 +266,7 @@ public class DashboardMultiTenancyIntTests {
         "r/o to global tenant"
     )
         .roles(
-            TestSecurityConfig.Role.KIBANA_USER,
+            TestSecurityConfig.Role.BASE_DASHBOARDS_USER,
             new TestSecurityConfig.Role("global_tenant_role").clusterPermissions("cluster_composite_ops")
                 .tenantPermissions("kibana_all_read")
                 .on("global_tenant")
@@ -298,7 +298,7 @@ public class DashboardMultiTenancyIntTests {
      */
     static final TestSecurityConfig.User WILDCARD_TENANT_USER = new TestSecurityConfig.User("wildcard_tenant_user").description("r/w to *")
         .roles(
-            TestSecurityConfig.Role.KIBANA_USER,
+            TestSecurityConfig.Role.BASE_DASHBOARDS_USER,
             new TestSecurityConfig.Role("wildcard_tenant_role").clusterPermissions("cluster_composite_ops", "cluster_monitor")
                 .indexPermissions("indices:monitor/*")
                 .on("*")
