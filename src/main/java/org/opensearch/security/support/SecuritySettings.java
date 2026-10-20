@@ -66,6 +66,19 @@ public class SecuritySettings {
         Setting.Property.Dynamic
     );
 
+    /**
+     * Whether DLS applies its restriction as a non-scoring filter, so the restriction selects documents without adding
+     * to their scores.
+     * <p>
+     * Off by default because it changes the scores existing DLS users see.
+     */
+    public static final Setting<Boolean> DLS_VISIBLE_SUBSET_STATISTICS = Setting.boolSetting(
+        ConfigConstants.SECURITY_DLS_VISIBLE_SUBSET_STATISTICS,
+        false,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    );
+
     // Deprecated alias of ALLOW_NOW_IN_DLS. Kept so clusters still setting plugins.security.unsupported.allow_now_in_dls
     // continue to work; slated for removal in the next major version.
     public static final Setting<Boolean> LEGACY_UNSUPPORTED_ALLOW_NOW_IN_DLS = Setting.boolSetting(

@@ -320,6 +320,7 @@ public class ConfigConstants {
     public static final String SECURITY_DLS_MODE = SECURITY_SETTINGS_PREFIX + "dls.mode";
     public static final String SECURITY_DLS_WRITE_BLOCKED = SECURITY_SETTINGS_PREFIX + "dls.write_blocked";
     public static final boolean SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT = false;
+    public static final String SECURITY_DLS_VISIBLE_SUBSET_STATISTICS = SECURITY_SETTINGS_PREFIX + "dls.visible_subset_statistics";
     // REST API
     public static final String SECURITY_RESTAPI_ROLES_ENABLED = SECURITY_SETTINGS_PREFIX + "restapi.roles_enabled";
     public static final String SECURITY_RESTAPI_ADMIN_ENABLED = SECURITY_SETTINGS_PREFIX + "restapi.admin.enabled";

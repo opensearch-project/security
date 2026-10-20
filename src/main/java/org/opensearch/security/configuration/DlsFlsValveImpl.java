@@ -43,6 +43,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.lucene.search.Queries;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -115,6 +116,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
     private final ResourcePluginInfo resourcePluginInfo;
     private volatile boolean dlsWriteBlockedEnabled;
+    private volatile boolean visibleSubsetStatisticsEnabled;
 
     public DlsFlsValveImpl(
         Settings settings,
@@ -147,7 +149,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         });
         this.dlsWriteBlockedEnabled = settings.getAsBoolean(SECURITY_DLS_WRITE_BLOCKED, SECURITY_DLS_WRITE_BLOCKED_ENABLED_DEFAULT);
+        this.visibleSubsetStatisticsEnabled = SecuritySettings.DLS_VISIBLE_SUBSET_STATISTICS.get(settings);
         if (clusterService.getClusterSettings() != null) {
+            clusterService.getClusterSettings()
+                .addSettingsUpdateConsumer(
+                    SecuritySettings.DLS_VISIBLE_SUBSET_STATISTICS,
+                    enabled -> visibleSubsetStatisticsEnabled = enabled
+                );
             clusterService.getClusterSettings().addSettingsUpdateConsumer(SecuritySettings.DLS_WRITE_BLOCKED, newDlsWriteBlockedEnabled -> {
                 dlsWriteBlockedEnabled = newDlsWriteBlockedEnabled;
             });
@@ -573,9 +581,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     (q) -> new ConstantScoreQuery(q)
                 );
 
-                queryBuilder.add(searchContext.parsedQuery().query(), Occur.MUST);
-
-                searchContext.parsedQuery(new ParsedQuery(queryBuilder.build()));
+                if (visibleSubsetStatisticsEnabled) {
+                    // As a FILTER clause the restriction no longer adds to the score, which otherwise grows with the
+                    // number of a user's roles that match a document and so reorders results.
+                    searchContext.parsedQuery(new ParsedQuery(Queries.filtered(searchContext.parsedQuery().query(), queryBuilder.build())));
+                } else {
+                    queryBuilder.add(searchContext.parsedQuery().query(), Occur.MUST);
+                    searchContext.parsedQuery(new ParsedQuery(queryBuilder.build()));
+                }
                 searchContext.preProcess(true);
             }
         } catch (Exception e) {
