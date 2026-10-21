@@ -289,9 +289,21 @@ public class SecurityRestFilter {
     }
 
     /**
-     * Requires REST admin roles for administrative routes, then applies NamedRoute permissions where present.
-     * Allows extension and plugin developers to apply authorization directly to an API route, in contrast to
-     * typical OpenSearch authorization which is handled at the node-to-node layer.
+     * Authorizes REST routes without replacing authorization of the transport actions they execute.
+     *
+     * <p>An {@code ADMINISTRATIVE} route requires at least one mapped security role listed in
+     * {@code plugins.security.restapi.roles_enabled}. This is an additional gate, not a grant of action permissions:
+     * any {@link NamedRoute} permissions are checked below, and the handler's transport actions still pass through
+     * {@link SecurityFilter}. For example, Job Scheduler's list-jobs API also requires the cluster permission
+     * {@code cluster:admin/opensearch/jobscheduler/jobs/all}. The enabled role and action permission may come from
+     * different roles. Raw backend-role names do not satisfy this gate unless mapped to an enabled security role.
+     *
+     * <p>Unlike the Security management APIs, marking a plugin route administrative does not make membership in
+     * an enabled role sufficient to execute its operations. This check neither elevates the caller nor changes
+     * their thread context. Security-specific endpoint restrictions and granular {@code restapi:admin/...}
+     * permissions do not apply here. Admin-certificate requests bypass this method in the calling handler.
+     * Unmarked routes retain their existing authorization behavior.
+     *
      * @param original REST handler originating request
      * @param request security representation of request metadata
      * @param user authenticated user
