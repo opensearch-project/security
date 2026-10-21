@@ -62,6 +62,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.RestAdminRoles;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsRequestHeadersUtil;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
@@ -96,6 +97,7 @@ public class SecurityRestFilter {
     private final Settings settings;
     private final Path configPath;
     private final CompatConfig compatConfig;
+    private final RestAdminRoles restAdminRoles;
 
     private AllowlistingSettings allowlistingSettings;
 
@@ -124,6 +126,7 @@ public class SecurityRestFilter {
         this.settings = settings;
         this.configPath = configPath;
         this.compatConfig = compatConfig;
+        this.restAdminRoles = new RestAdminRoles(settings);
         this.allowlistingSettings = new AllowlistingSettings();
     }
 
@@ -286,7 +289,7 @@ public class SecurityRestFilter {
     }
 
     /**
-     * Specialized authorization for NamedRoute APIs only.
+     * Requires REST admin roles for administrative routes, then applies NamedRoute permissions where present.
      * Allows extension and plugin developers to apply authorization directly to an API route, in contrast to
      * typical OpenSearch authorization which is handled at the node-to-node layer.
      * @param original REST handler originating request
@@ -299,6 +302,19 @@ public class SecurityRestFilter {
             .filter(rh -> rh.getMethod().equals(request.method()))
             .filter(rh -> restPathMatches(request.path(), rh.getPath()))
             .findFirst();
+        // Administrative metadata adds a role gate; it does not replace route or transport action permissions.
+        if (handler.isPresent()
+            && handler.get().hasProperty(RestHandler.Route.Property.ADMINISTRATIVE)
+            && !evaluator.isRestAdmin(user, restAdminRoles)) {
+            auditLog.logMissingPrivileges(request.path(), user == null ? null : user.getName(), request);
+            request.queueForSending(
+                new SecurityResponse(
+                    HttpStatus.SC_FORBIDDEN,
+                    "Administrative routes require a role listed in " + ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED
+                )
+            );
+            return;
+        }
         final boolean routeSupportsRestAuthorization = handler.isPresent() && handler.get() instanceof NamedRoute;
         if (routeSupportsRestAuthorization) {
             PrivilegesEvaluatorResponse pres;
