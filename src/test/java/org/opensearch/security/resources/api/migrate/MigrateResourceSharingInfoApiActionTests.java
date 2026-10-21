@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -156,8 +157,8 @@ public class MigrateResourceSharingInfoApiActionTests {
     private static ResourceProvider provider(String type, String index, String typeField, String typeFieldValue) {
         return new ResourceProvider() {
             @Override
-            public String typeFieldValue() {
-                return typeFieldValue;
+            public boolean matchesResource(Function<String, String> fieldValue) {
+                return typeField == null || typeFieldValue.equals(fieldValue.apply(typeField));
             }
 
             @Override

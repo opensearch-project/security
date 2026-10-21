@@ -11,6 +11,7 @@ package org.opensearch.security.resources;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -163,45 +164,33 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
-    public void testRejectsTwoUntypedTypesOnOneIndex() {
+    public void testTwoTypesMatchingTheSameDocumentsResolveToNone() {
+        registerExtension(makeProvider("a", ".shared-index", "kind", "same"), makeProvider("b", ".shared-index", "kind", "same"));
+
+        assertNull(
+            resourcePluginInfo.getResourceTypeForIndexOp(".shared-index", mockIndexOp(new StringField("kind", "same", Field.Store.NO)))
+        );
+    }
+
+    @Test
+    public void testRejectsAnUntypedTypeOnASharedIndex() {
         OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> registerProviders("b-untyped", null, "a-typed", "a.type", ".mixed-index")
+        );
+        assertTrue(ex.getMessage().contains("Resource type [b-untyped] declares no typeField, but index [.mixed-index]"));
+        assertTrue(resourcePluginInfo.getResourceSharingExtensions().isEmpty());
+    }
+
+    @Test
+    public void testRejectedRegistrationKeepsThePreviousProviders() {
+        registerAlertingProviders();
+
+        assertThrows(
             OpenSearchSecurityException.class,
             () -> registerExtension(makeProvider("a", ".shared-index", null), makeProvider("b", ".shared-index", null))
         );
-        assertTrue(ex.getMessage().contains("both declare no typeField"));
-    }
-
-    @Test
-    public void testRejectsATypeFieldWithoutAValue() {
-        OpenSearchSecurityException ex = assertThrows(
-            OpenSearchSecurityException.class,
-            () -> registerExtension(makeProvider("a", ".some-index", "kind", null))
-        );
-        assertTrue(ex.getMessage().contains("declares typeField [kind] but no typeFieldValue"));
-    }
-
-    @Test
-    public void testRejectsTwoTypesIdentifiedTheSameWay() {
-        OpenSearchSecurityException ex = assertThrows(
-            OpenSearchSecurityException.class,
-            () -> registerExtension(makeProvider("a", ".shared-index", "kind", "same"), makeProvider("b", ".shared-index", "kind", "same"))
-        );
-        assertTrue(ex.getMessage().contains("are both identified by [kind] holding [same]"));
-    }
-
-    @Test
-    public void testUntypedProviderClaimsOnlyUnclaimedDocuments() {
-        // The names put the untyped provider first in the registry's HashMap order, so a first-match rule would misclassify
-        registerProviders("b-untyped", null, "a-typed", "a.type", ".mixed-index");
-
-        assertEquals(
-            "a-typed",
-            resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("a.type", "a-typed", Field.Store.NO)))
-        );
-        assertEquals(
-            "b-untyped",
-            resourcePluginInfo.getResourceTypeForIndexOp(".mixed-index", mockIndexOp(new StringField("other", "x", Field.Store.NO)))
-        );
+        assertEquals("monitor", resourcePluginInfo.getResourceTypeForIndexOp(".alerting-config", mockMonitorDoc()));
     }
 
     /** A document holding {@code value} in {@code resource_type}. */
@@ -366,8 +355,8 @@ public class ResourcePluginInfoTests {
     private ResourceProvider makeProvider(String type, String index, String typeField, String typeFieldValue) {
         return new ResourceProvider() {
             @Override
-            public String typeFieldValue() {
-                return typeFieldValue;
+            public boolean matchesResource(Function<String, String> fieldValue) {
+                return typeField == null || typeFieldValue.equals(fieldValue.apply(typeField));
             }
 
             @Override

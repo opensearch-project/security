@@ -16,11 +16,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexableField;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -40,6 +44,8 @@ import org.opensearch.security.spi.resources.client.ResourceSharingClient;
  * It follows the Singleton pattern to ensure that only one instance of the class exists.
  */
 public class ResourcePluginInfo {
+
+    private static final Logger log = LogManager.getLogger(ResourcePluginInfo.class);
 
     private ResourceSharingClient resourceAccessControlClient;
 
@@ -72,14 +78,11 @@ public class ResourcePluginInfo {
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
         lock.writeLock().lock();
         try {
+            validateTypeFields(extensions);
             resourceSharingExtensions.clear();
             typeToProvider.clear();
             registeredProviders.clear();
 
-            // (index, typeField, value) to the type it identifies; two types may not be identified the same way
-            Map<List<String>, String> typeMatchOwners = new HashMap<>();
-            // index to its provider with no typeField; a second one could not be told apart from the first
-            Map<String, String> untypedOwners = new HashMap<>();
             // Providers may share a resource index, but must then agree on the workspaces field: DLS filters a single
             // field per index while ingestion uses each provider's declared field, so a disagreement would silently
             // mis-scope read visibility. Reject conflicting non-null declarations at registration.
@@ -97,46 +100,6 @@ public class ResourcePluginInfo {
                                 extension.getClass().getName()
                             )
                         );
-                    }
-
-                    if (rp.typeField() == null) {
-                        String owner = untypedOwners.putIfAbsent(rp.resourceIndexName(), rp.resourceType());
-                        if (owner != null) {
-                            throw new OpenSearchSecurityException(
-                                String.format(
-                                    "Resource types [%s] and [%s] on index [%s] both declare no typeField."
-                                        + " At most one type per index may omit it.",
-                                    owner,
-                                    rp.resourceType(),
-                                    rp.resourceIndexName()
-                                )
-                            );
-                        }
-                    } else {
-                        if (rp.typeFieldValue() == null) {
-                            throw new OpenSearchSecurityException(
-                                String.format(
-                                    "Resource type [%s] declares typeField [%s] but no typeFieldValue.",
-                                    rp.resourceType(),
-                                    rp.typeField()
-                                )
-                            );
-                        }
-                        List<String> key = List.of(rp.resourceIndexName(), rp.typeField(), rp.typeFieldValue());
-                        String owner = typeMatchOwners.putIfAbsent(key, rp.resourceType());
-                        if (owner != null) {
-                            throw new OpenSearchSecurityException(
-                                String.format(
-                                    "Resource types [%s] and [%s] on index [%s] are both identified by [%s] holding [%s]."
-                                        + " Each type needs its own typeField or typeFieldValue.",
-                                    owner,
-                                    rp.resourceType(),
-                                    rp.resourceIndexName(),
-                                    rp.typeField(),
-                                    rp.typeFieldValue()
-                                )
-                            );
-                        }
                     }
 
                     String workspacesField = rp.workspacesField();
@@ -234,6 +197,34 @@ public class ResourcePluginInfo {
         return values;
     }
 
+    /** Rejects a provider with no type field on an index that other providers share, since its documents cannot be told apart. */
+    private static void validateTypeFields(Set<ResourceSharingExtension> extensions) {
+        Map<String, Set<String>> typesByIndex = new TreeMap<>();
+        Map<String, String> untypedByIndex = new HashMap<>();
+        for (ResourceSharingExtension extension : extensions) {
+            for (ResourceProvider provider : extension.getResourceProviders()) {
+                typesByIndex.computeIfAbsent(provider.resourceIndexName(), index -> new TreeSet<>()).add(provider.resourceType());
+                if (provider.typeField() == null) {
+                    untypedByIndex.put(provider.resourceIndexName(), provider.resourceType());
+                }
+            }
+        }
+        for (var entry : untypedByIndex.entrySet()) {
+            Set<String> types = typesByIndex.get(entry.getKey());
+            if (types.size() > 1) {
+                throw new OpenSearchSecurityException(
+                    String.format(
+                        "Resource type [%s] declares no typeField, but index [%s] holds resource types %s."
+                            + " Types that share an index must each declare a typeField.",
+                        entry.getValue(),
+                        entry.getKey(),
+                        types
+                    )
+                );
+            }
+        }
+    }
+
     /**
      * Resolves the registered resource type of the document an index operation writes, or {@code null} if it is not a
      * resource. See {@link #resolveResourceType} for the rule.
@@ -243,9 +234,8 @@ public class ResourcePluginInfo {
     }
 
     /**
-     * Resolves the registered resource type of a document in {@code resourceIndex}, ignoring protection, or {@code null}.
-     * A document is of a provider's type when its {@link ResourceProvider#typeField()} holds that provider's
-     * {@link ResourceProvider#typeFieldValue()}. A provider with no type field claims the documents no other provider does.
+     * Resolves the registered resource type of a document in {@code resourceIndex}, ignoring protection: the type of the
+     * one provider on the index whose {@link ResourceProvider#matchesResource} accepts the document.
      *
      * @param resourceIndex the index holding the document
      * @param fieldValue    reads a document field by name, or {@code null} when absent
@@ -255,23 +245,22 @@ public class ResourcePluginInfo {
         lock.readLock().lock();
         try {
             String match = null;
-            int matches = 0;
-            String untypedProvider = null;
             for (ResourceProvider provider : registeredProviders.values()) {
-                if (!provider.resourceIndexName().equals(resourceIndex)) {
+                if (!provider.resourceIndexName().equals(resourceIndex) || !provider.matchesResource(fieldValue)) {
                     continue;
                 }
-                if (provider.typeField() == null) {
-                    untypedProvider = provider.resourceType();
-                } else if (provider.typeFieldValue().equals(fieldValue.apply(provider.typeField()))) {
-                    match = provider.resourceType();
-                    matches++;
+                if (match != null) {
+                    log.warn(
+                        "A document in index [{}] matches resource types [{}] and [{}]; it is not treated as a resource",
+                        resourceIndex,
+                        match,
+                        provider.resourceType()
+                    );
+                    return null;
                 }
+                match = provider.resourceType();
             }
-            if (matches == 1) {
-                return match;
-            }
-            return matches == 0 ? untypedProvider : null;
+            return match;
         } finally {
             lock.readLock().unlock();
         }
