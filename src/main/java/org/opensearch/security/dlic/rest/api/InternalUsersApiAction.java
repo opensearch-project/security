@@ -142,7 +142,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     private void internalUsersApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onGetRequest(
+        requestHandlersBuilder.onCollectionGetRequest(
+            getConfigType(),
             request -> ValidationResult.success(request).map(this::processGetRequest).map(securityConfiguration -> {
                 final var configuration = securityConfiguration.configuration();
                 filterUsers(configuration, filterParam(request));

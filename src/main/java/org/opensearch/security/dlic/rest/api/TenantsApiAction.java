@@ -79,7 +79,10 @@ public class TenantsApiAction extends AbstractApiAction {
         final SecurityApiDependencies securityApiDependencies
     ) {
         super(Endpoint.TENANTS, clusterService, threadPool, securityApiDependencies);
-        this.requestHandlersBuilder.configureRequestHandlers(builder -> builder.onChangeRequest(Method.PATCH, this::processPatchRequest));
+        this.requestHandlersBuilder.configureRequestHandlers(
+            builder -> builder.onCollectionGetRequest(getConfigType(), this::processGetRequest)
+                .onChangeRequest(Method.PATCH, this::processPatchRequest)
+        );
     }
 
     @Override
