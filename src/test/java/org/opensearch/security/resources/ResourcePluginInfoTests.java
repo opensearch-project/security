@@ -146,39 +146,31 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
-    public void testRejectsTwoUntypedTypesOnOneIndex() {
+    public void testTwoTypesMatchingTheSameDocumentsResolveToNone() {
+        registerExtension(provider("a", ".shared-index", "kind", "same"), provider("b", ".shared-index", "kind", "same"));
+
+        assertNull(typeOf(".shared-index", mockIndexOp(new StringField("kind", "same", Field.Store.NO))));
+    }
+
+    @Test
+    public void testRejectsAnUntypedTypeOnASharedIndex() {
         OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> registerProviders("b-untyped", null, "a-typed", "a.type", ".mixed-index")
+        );
+        assertTrue(ex.getMessage().contains("Resource type [b-untyped] declares no typeField, but index [.mixed-index]"));
+        assertTrue(resourcePluginInfo.getResourceSharingExtensions().isEmpty());
+    }
+
+    @Test
+    public void testRejectedRegistrationKeepsThePreviousProviders() {
+        registerAlertingProviders();
+
+        assertThrows(
             OpenSearchSecurityException.class,
             () -> registerExtension(provider("a", ".shared-index", null), provider("b", ".shared-index", null))
         );
-        assertTrue(ex.getMessage().contains("both declare no typeField"));
-    }
-
-    @Test
-    public void testRejectsATypeFieldWithoutAValue() {
-        OpenSearchSecurityException ex = assertThrows(
-            OpenSearchSecurityException.class,
-            () -> registerExtension(provider("a", ".some-index", "kind", null))
-        );
-        assertTrue(ex.getMessage().contains("declares typeField [kind] but no typeFieldValue"));
-    }
-
-    @Test
-    public void testRejectsTwoTypesIdentifiedTheSameWay() {
-        OpenSearchSecurityException ex = assertThrows(
-            OpenSearchSecurityException.class,
-            () -> registerExtension(provider("a", ".shared-index", "kind", "same"), provider("b", ".shared-index", "kind", "same"))
-        );
-        assertTrue(ex.getMessage().contains("are both identified by [kind] holding [same]"));
-    }
-
-    @Test
-    public void testUntypedProviderClaimsOnlyUnclaimedDocuments() {
-        // The names put the untyped provider first in the registry's HashMap order, so a first-match rule would misclassify
-        registerProviders("b-untyped", null, "a-typed", "a.type", ".mixed-index");
-
-        assertEquals("a-typed", typeOf(".mixed-index", mockIndexOp(new StringField("a.type", "a-typed", Field.Store.NO))));
-        assertEquals("b-untyped", typeOf(".mixed-index", mockIndexOp(new StringField("other", "x", Field.Store.NO))));
+        assertEquals("monitor", typeOf(".alerting-config", mockMonitorDoc()));
     }
 
     /** A document holding {@code value} in {@code resource_type}. */

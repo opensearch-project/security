@@ -8,6 +8,8 @@
 
 package org.opensearch.security.spi.resources;
 
+import java.util.function.Function;
+
 /**
  * This record class represents a resource provider.
  * It holds information about the resource type, resource index name, and a resource parser.
@@ -19,8 +21,8 @@ public interface ResourceProvider {
     String resourceIndexName();
 
     /**
-     * Returns the name of the field representing the resource type in the resource document. The field must be mapped
-     * as {@code keyword}, since search matches it by exact value.
+     * Returns the name of the field representing the resource type in the resource document. A provider without one
+     * must be the only provider on its resource index.
      *
      * @return the field name containing the resource type
      */
@@ -29,13 +31,15 @@ public interface ResourceProvider {
     }
 
     /**
-     * The value {@link #typeField()} holds in this provider's documents. Defaults to {@link #resourceType()}; ignored
-     * when {@link #typeField()} is {@code null}.
+     * Whether a document in {@link #resourceIndexName()} is of this provider's type. By default the document's
+     * {@link #typeField()} must hold {@link #resourceType()}, and every document matches when there is no type field.
      *
-     * @return the value that identifies this provider's documents
+     * @param fieldValue reads a document field by name, or {@code null} when the field is absent
+     * @return whether the document is a resource of this type
      */
-    default String typeFieldValue() {
-        return resourceType();
+    default boolean matchesResource(Function<String, String> fieldValue) {
+        String field = typeField();
+        return field == null || resourceType().equals(fieldValue.apply(field));
     }
 
     /**

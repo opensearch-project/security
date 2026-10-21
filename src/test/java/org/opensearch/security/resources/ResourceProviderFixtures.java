@@ -11,6 +11,7 @@ package org.opensearch.security.resources;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
@@ -31,38 +32,27 @@ public final class ResourceProviderFixtures {
      * @return the provider
      */
     public static ResourceProvider provider(String type, String index, String typeField) {
-        return provider(type, index, typeField, type);
+        return new Provider(type, index, typeField, null);
     }
 
     /**
-     * A provider whose documents hold {@code typeFieldValue} in {@code typeField}.
+     * A provider whose documents hold {@code storedValue} in {@code typeField}, as alerting's workflows hold "workflow".
      *
-     * @param typeField      the type field, or {@code null} for an untyped provider
-     * @param typeFieldValue the value that identifies the provider's documents
      * @return the provider
      */
-    public static ResourceProvider provider(String type, String index, String typeField, String typeFieldValue) {
-        return new ResourceProvider() {
-            @Override
-            public String typeFieldValue() {
-                return typeFieldValue;
-            }
+    public static ResourceProvider provider(String type, String index, String typeField, String storedValue) {
+        return new Provider(type, index, typeField, storedValue);
+    }
 
-            @Override
-            public String resourceType() {
-                return type;
-            }
-
-            @Override
-            public String resourceIndexName() {
-                return index;
-            }
-
-            @Override
-            public String typeField() {
-                return typeField;
-            }
-        };
+    private record Provider(String resourceType, String resourceIndexName, String typeField, String storedValue)
+        implements
+            ResourceProvider {
+        @Override
+        public boolean matchesResource(Function<String, String> fieldValue) {
+            return storedValue == null
+                ? ResourceProvider.super.matchesResource(fieldValue)
+                : storedValue.equals(fieldValue.apply(typeField));
+        }
     }
 
     /**
