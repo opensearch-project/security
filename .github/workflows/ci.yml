@@ -16,6 +16,39 @@ env:
   CI_ENVIRONMENT: normal
 
 jobs:
+  Get-CI-Image-Tag:
+    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
+    with:
+      product: opensearch
+
+  # Builds the plugin the way the distribution build does: scripts/build.sh in the CI image, with the image's JDK.
+  # The test jobs run on the runner image, so this is the only job that pulls the CI image.
+  build-ci-image:
+    name: build (ci image)
+    needs: ["Get-CI-Image-Tag"]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      # need to switch to root so that github actions can install runner binary on container without permission issues.
+      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
+    env:
+      # Same JDK as the ci image args in the opensearch-build manifest.
+      JAVA_HOME: /opt/java/openjdk-25
+
+    steps:
+      - name: Run start commands
+        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
+
+      - name: Checkout security
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+
+      - name: Build with scripts/build.sh
+        run: |
+          opensearch_version=$(grep -oP '"opensearch.version", "\K[0-9.]+' build.gradle)
+          "$JAVA_HOME/bin/java" -version
+          ./scripts/build.sh -v "$opensearch_version" -s true
+          test -s "artifacts/plugins/opensearch-security-${opensearch_version}.0-SNAPSHOT.zip"
+
   generate-test-list:
     runs-on: ubuntu-latest
     outputs:
