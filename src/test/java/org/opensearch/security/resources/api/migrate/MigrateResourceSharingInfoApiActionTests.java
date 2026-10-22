@@ -9,15 +9,21 @@
 package org.opensearch.security.resources.api.migrate;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.resources.ResourcePluginInfo;
+import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.ResourceProvider;
+import org.opensearch.security.spi.resources.ResourceSharingExtension;
+import org.opensearch.security.spi.resources.client.ResourceSharingClient;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -25,8 +31,6 @@ import tools.jackson.databind.ObjectMapper;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link MigrateResourceSharingInfoApiAction#classifyDocType} and
@@ -45,11 +49,11 @@ public class MigrateResourceSharingInfoApiActionTests {
 
     @Test
     public void classifyResolvesFromFirstTypePath() throws Exception {
+        registerAlertingProviders();
         JsonNode monitorDoc = mapper.readTree("{ \"monitor\": { \"type\": \"monitor\", \"name\": \"m1\" } }");
         String result = MigrateResourceSharingInfoApiAction.classifyDocType(
             monitorDoc,
-            List.of("monitor.type", "workflow.type"),
-            Collections.emptyMap(),
+            ALERTING_ACCESS_LEVELS,
             resourcePluginInfo,
             ".alerting-config"
         );
@@ -57,25 +61,39 @@ public class MigrateResourceSharingInfoApiActionTests {
     }
 
     @Test
-    public void classifyResolvesFromSecondTypePath() throws Exception {
+    public void classifyResolvesToTheRegisteredTypeNotTheFieldValue() throws Exception {
+        // The workflow provider is registered as "alerting-workflow" while its documents hold "workflow"
+        registerAlertingProviders();
         JsonNode workflowDoc = mapper.readTree("{ \"workflow\": { \"type\": \"workflow\", \"name\": \"w1\" } }");
         String result = MigrateResourceSharingInfoApiAction.classifyDocType(
             workflowDoc,
-            List.of("monitor.type", "workflow.type"),
-            Collections.emptyMap(),
+            ALERTING_ACCESS_LEVELS,
             resourcePluginInfo,
             ".alerting-config"
         );
-        assertEquals("workflow", result);
+        assertEquals("alerting-workflow", result);
+    }
+
+    @Test
+    public void classifySkipsATypeTheMigrationWasNotAskedFor() throws Exception {
+        registerAlertingProviders();
+        JsonNode workflowDoc = mapper.readTree("{ \"workflow\": { \"type\": \"workflow\", \"name\": \"w1\" } }");
+        String result = MigrateResourceSharingInfoApiAction.classifyDocType(
+            workflowDoc,
+            Map.of("monitor", "monitor_read_only"),
+            resourcePluginInfo,
+            ".alerting-config"
+        );
+        assertNull(result);
     }
 
     @Test
     public void classifyReturnsNullWhenNoTypePathMatches() throws Exception {
+        registerAlertingProviders();
         JsonNode metadataDoc = mapper.readTree("{ \"metadata\": { \"monitor_id\": \"abc123\" } }");
         String result = MigrateResourceSharingInfoApiAction.classifyDocType(
             metadataDoc,
-            List.of("monitor.type", "workflow.type"),
-            Collections.emptyMap(),
+            ALERTING_ACCESS_LEVELS,
             resourcePluginInfo,
             ".alerting-config"
         );
@@ -83,56 +101,81 @@ public class MigrateResourceSharingInfoApiActionTests {
     }
 
     @Test
-    public void classifyFallsBackToFirstAccessLevelKey() throws Exception {
-        // No typePaths declared; typeToDefaultAccessLevel has entries — first key wins.
-        JsonNode anyDoc = mapper.readTree("{ \"foo\": \"bar\" }");
-        Map<String, String> typeToAccess = new LinkedHashMap<>();
-        typeToAccess.put("model_group", "read_only");
-        typeToAccess.put("workflow", "read_write");
-        String result = MigrateResourceSharingInfoApiAction.classifyDocType(
-            anyDoc,
-            Collections.emptyList(),
-            typeToAccess,
-            resourcePluginInfo,
-            ".some-index"
-        );
-        assertEquals("model_group", result);
+    public void classifyWithoutRequestedTypesUsesTheResolverAndProtection() throws Exception {
+        // No default_access_level in the request: every protected type found is migrated, and nothing else is
+        registerAlertingProviders();
+        resourcePluginInfo.setProtectedTypesSetting(protectedTypes(List.of("alerting-workflow")));
+        JsonNode monitorDoc = mapper.readTree("{ \"monitor\": { \"type\": \"monitor\" } }");
+        JsonNode workflowDoc = mapper.readTree("{ \"workflow\": { \"type\": \"workflow\" } }");
+        JsonNode metadataDoc = mapper.readTree("{ \"metadata\": { \"monitor_id\": \"abc123\" } }");
+
+        assertEquals("alerting-workflow", classifyUnrequested(workflowDoc));
+        assertNull("monitor is registered but not protected", classifyUnrequested(monitorDoc));
+        assertNull("a metadata document is not a resource", classifyUnrequested(metadataDoc));
     }
 
-    @Test
-    public void classifyFallsBackToSingleRegisteredType() throws Exception {
-        // No typePaths, no access-level map — infer from the sole registered protected type for
-        // this index. Mock ResourcePluginInfo to bypass the OpensearchDynamicSetting wiring that a
-        // real instance requires.
-        ResourcePluginInfo mockInfo = mock(ResourcePluginInfo.class);
-        when(mockInfo.currentProtectedTypes()).thenReturn(List.of("model_group"));
-        when(mockInfo.indexByType("model_group")).thenReturn(".ml-model-groups");
-
-        JsonNode anyDoc = mapper.readTree("{ \"whatever\": {} }");
-        String result = MigrateResourceSharingInfoApiAction.classifyDocType(
-            anyDoc,
-            Collections.emptyList(),
-            Collections.emptyMap(),
-            mockInfo,
-            ".ml-model-groups"
-        );
-        assertEquals("model_group", result);
+    private String classifyUnrequested(JsonNode doc) {
+        return MigrateResourceSharingInfoApiAction.classifyDocType(doc, Collections.emptyMap(), resourcePluginInfo, ".alerting-config");
     }
 
-    @Test
-    public void classifyReturnsNullWhenNothingResolvableAndIndexUnknown() throws Exception {
-        ResourcePluginInfo mockInfo = mock(ResourcePluginInfo.class);
-        when(mockInfo.currentProtectedTypes()).thenReturn(Collections.emptyList());
+    private static OpensearchDynamicSetting<List<String>> protectedTypes(List<String> types) {
+        return new OpensearchDynamicSetting<>(ResourceSharingProtectedResourcesSetting.PROTECTED_TYPES, types) {
+        };
+    }
 
-        JsonNode anyDoc = mapper.readTree("{ \"whatever\": {} }");
-        String result = MigrateResourceSharingInfoApiAction.classifyDocType(
-            anyDoc,
-            Collections.emptyList(),
-            Collections.emptyMap(),
-            mockInfo,
-            ".not-registered"
-        );
-        assertNull(result);
+    private static final Map<String, String> ALERTING_ACCESS_LEVELS = Map.of(
+        "monitor",
+        "monitor_read_only",
+        "alerting-workflow",
+        "workflow_read_only"
+    );
+
+    /** Registers alerting's two providers as alerting declares them. */
+    private void registerAlertingProviders() {
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                return Set.of(
+                    provider("monitor", "monitor.type"),
+                    provider("alerting-workflow", ".alerting-config", "workflow.type", "workflow")
+                );
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        }));
+    }
+
+    private static ResourceProvider provider(String type, String typeField) {
+        return provider(type, ".alerting-config", typeField, type);
+    }
+
+    private static ResourceProvider provider(String type, String index, String typeField) {
+        return provider(type, index, typeField, type);
+    }
+
+    private static ResourceProvider provider(String type, String index, String typeField, String typeFieldValue) {
+        return new ResourceProvider() {
+            @Override
+            public boolean matchesResource(Function<String, String> fieldValue) {
+                return typeField == null || typeFieldValue.equals(fieldValue.apply(typeField));
+            }
+
+            @Override
+            public String resourceType() {
+                return type;
+            }
+
+            @Override
+            public String resourceIndexName() {
+                return index;
+            }
+
+            @Override
+            public String typeField() {
+                return typeField;
+            }
+        };
     }
 
     @Test
@@ -177,9 +220,9 @@ public class MigrateResourceSharingInfoApiActionTests {
     }
 
     @Test
-    public void classifyNotificationConfigFallsBackToSingleAccessLevelKey() throws Exception {
-        // A single-provider index with no typeField (e.g. notifications' notification_config) is
-        // classified by the sole default_access_level key, so the doc is migrated rather than skipped.
+    public void classifyNotificationConfigByItsUntypedProvider() throws Exception {
+        // A single-provider index with no typeField (notifications' notification_config) is classified by
+        // that provider, so the doc is migrated rather than skipped.
         // Uses a faithful `.opensearch-notifications-config` _source (NotificationConfigDoc.toXContent:
         // metadata + config, no envelope) with the real NotificationConstants tag names.
         JsonNode notifDoc = mapper.readTree(
@@ -187,9 +230,17 @@ public class MigrateResourceSharingInfoApiActionTests {
                 + " \"access\": [\"role_a\", \"role_b\"] },"
                 + " \"config\": { \"name\": \"channel-1\", \"config_type\": \"slack\", \"is_enabled\": true } }"
         );
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                return Set.of(provider("notification_config", ".opensearch-notifications-config", null));
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        }));
         String result = MigrateResourceSharingInfoApiAction.classifyDocType(
             notifDoc,
-            Collections.emptyList(),
             Collections.singletonMap("notification_config", "notifications_read_write"),
             resourcePluginInfo,
             ".opensearch-notifications-config"
