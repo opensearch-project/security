@@ -8,5 +8,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-      - name: Check License Headers
-        run: npx --yes @kt3k/license-checker@3.2.2
+      - name: Check License Header
+        uses: peterzhuamazon/license_checker_github_action@532fcc2838fde55e25266211b1cbb33a6c89e2c0 # v1.0.7
