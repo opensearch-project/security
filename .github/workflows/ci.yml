@@ -79,24 +79,17 @@ jobs:
 
   test-linux:
     name: test
-    needs: ["generate-test-list", "Get-CI-Image-Tag"]
+    needs: ["generate-test-list"]
     strategy:
       fail-fast: false
       matrix:
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
         platform: [ubuntu-latest]
         jdk: [21, 25]
+    # Runs on the runner image, not the CI container: each shard would pull the 2 GiB image again.
     runs-on: ubuntu-latest
-    container:
-      # using the same image which is used by opensearch-build to build the OpenSearch Distribution
-      # this image tag is subject to change as more dependencies and updates will arrive over time
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      # need to switch to root so that github actions can install runner binary on container without permission issues.
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
       - name: Set up JDK for build and test
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
@@ -106,7 +99,6 @@ jobs:
       - name: Checkout security
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
-      # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
       - name: Build and Test
         run: ./gradlew ${{ matrix.gradle_task }} -Dbuild.snapshot=false
 
