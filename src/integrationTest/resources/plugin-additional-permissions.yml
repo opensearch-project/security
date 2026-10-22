@@ -1,0 +1,11 @@
+# Permissions of the plugin subject of every integration test plugin, because all of them share this class path.
+# Only SystemIndexPlugin1 uses a plugin subject. Multi-get is evaluated as a cluster permission, so a plugin that reads
+# its own system indices with multi-get declares it, as real plugins do. The index permission lets a multi-get also
+# read a regular index.
+cluster_permissions:
+  - "indices:data/read/mget"
+index_permissions:
+  - index_patterns:
+      - "regular-index"
+    allowed_actions:
+      - "indices:data/read/*"

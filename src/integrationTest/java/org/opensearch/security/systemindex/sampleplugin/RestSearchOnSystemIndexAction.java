@@ -48,6 +48,7 @@ public class RestSearchOnSystemIndexAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         String indexName = request.param("index");
+        int size = request.paramAsInt("size", -1);
         return new RestChannelConsumer() {
 
             @Override
@@ -55,6 +56,9 @@ public class RestSearchOnSystemIndexAction extends BaseRestHandler {
                 SearchRequest searchRequest = new SearchRequest(indexName);
                 SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
                 sourceBuilder.query(QueryBuilders.matchAllQuery());
+                if (size >= 0) {
+                    sourceBuilder.size(size);
+                }
                 searchRequest.source(sourceBuilder);
                 pluginClient.search(searchRequest, ActionListener.wrap(r -> {
                     channel.sendResponse(new BytesRestResponse(RestStatus.OK, r.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS)));
