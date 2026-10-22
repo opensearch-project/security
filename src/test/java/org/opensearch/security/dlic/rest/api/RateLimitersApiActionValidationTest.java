@@ -69,20 +69,6 @@ public class RateLimitersApiActionValidationTest extends AbstractApiActionValida
     }
 
     @Test
-    public void rejectEnvironmentExpressionsInIgnoreHosts() throws IOException {
-        for (String expression : List.of(
-            "${env.IGNORED_HOST}",
-            "${envbc.IGNORED_HOST}",
-            "${envbase64.IGNORED_HOST}",
-            "${envbase64:IGNORED_HOST}"
-        )) {
-            final ObjectNode content = objectMapper.createObjectNode().put("type", "ip");
-            content.putArray("ignore_hosts").add(expression);
-            assertInvalidField(content, "ignore_hosts", "must not contain environment variable expressions");
-        }
-    }
-
-    @Test
     public void rejectInvalidNumericRanges() throws IOException {
         for (String field : List.of("time_window_seconds", "block_expiry_seconds", "max_blocked_clients", "max_tracked_clients")) {
             final ObjectNode content = objectMapper.createObjectNode().put("type", "ip").put(field, -1);

@@ -52,7 +52,9 @@ import static org.opensearch.sample.resource.TestUtils.SECURITY_SHARE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.resource.TestUtils.putSharingInfoPayload;
+import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
+import static org.opensearch.sample.utils.Constants.WORKSPACE_TYPE;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.badRequest;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.forbidden;
 import static org.opensearch.security.api.AbstractApiIntegrationTest.ok;
@@ -278,9 +280,11 @@ public class ProtectedTypesSettingTests {
     // --------- Helpers: cluster setting flips & awaits ---------
     private void addSampleResourceAsProtectedType() {
         String body = String.format(
-            "{\"transient\":{\"%s\":[\"%s\"]}}",
+            "{\"transient\":{\"%s\":[\"%s\",\"%s\",\"%s\"]}}",
             ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
-            RESOURCE_TYPE
+            RESOURCE_TYPE,
+            RESOURCE_GROUP_TYPE,
+            WORKSPACE_TYPE
         );
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             TestRestClient.HttpResponse resp = client.putJson("_cluster/settings", body);
@@ -308,11 +312,41 @@ public class ProtectedTypesSettingTests {
         try (var client = cluster.getRestClient(cluster.getAdminCertificate())) {
             var r = client.get("_cluster/settings?include_defaults=true&flat_settings=true");
             r.assertStatusCode(200);
-            String expectedValue = expected.isEmpty() ? "[]" : ("[\"" + expected + "\"]");
+            String expectedValue = expected.isEmpty()
+                ? "[]"
+                : ("[\"" + expected + "\",\"" + RESOURCE_GROUP_TYPE + "\",\"" + WORKSPACE_TYPE + "\"]");
             String key = "\"" + ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES + "\":" + expectedValue;
             return r.getBody().contains(key);
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    @Test
+    public void testPartialProtectionIsRejectedWithoutChangingSettings() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            for (String scope : List.of("persistent", "transient")) {
+                String body = "{\""
+                    + scope
+                    + "\":{\""
+                    + ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES
+                    + "\":[\""
+                    + RESOURCE_TYPE
+                    + "\"]}}";
+                TestRestClient.HttpResponse response = client.putJson("_cluster/settings", body);
+                response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+                assertThat(response.getBody(), containsString("missing types: [" + RESOURCE_GROUP_TYPE + ", " + WORKSPACE_TYPE + "]"));
+                awaitSetting("");
+            }
+            addSampleResourceAsProtectedType();
+            awaitSetting(RESOURCE_TYPE);
+            String body = "{\"transient\":{\""
+                + ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES
+                + "\":[\""
+                + RESOURCE_TYPE
+                + "\"]}}";
+            client.putJson("_cluster/settings", body).assertStatusCode(HttpStatus.SC_BAD_REQUEST);
+            awaitSetting(RESOURCE_TYPE);
         }
     }
 

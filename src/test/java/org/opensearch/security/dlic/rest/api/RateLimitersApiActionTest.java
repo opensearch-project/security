@@ -165,7 +165,7 @@ public class RateLimitersApiActionTest extends AbstractRestApiUnitTest {
         );
         assertThat(
             updateAuthFailuresResponseWithEnvExpression.getBody(),
-            containsString("ignore_hosts must not contain environment variable expressions")
+            containsString("Security API request bodies and parameters must not contain environment variable expressions")
         );
 
         RestHelper.HttpResponse updateAuthFailuresResponseWithMalformedHost = rh.executePutRequest(

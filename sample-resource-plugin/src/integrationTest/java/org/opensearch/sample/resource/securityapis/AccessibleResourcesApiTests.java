@@ -80,7 +80,7 @@ public class AccessibleResourcesApiTests {
             response.assertStatusCode(HttpStatus.SC_BAD_REQUEST);
             assertThat(
                 response.getBody(),
-                containsString("Invalid resource type: some-type. Must be one of: [sample-resource, sample-resource-group]")
+                containsString("Invalid resource type: some-type. Must be one of: [sample-resource, sample-resource-group, workspace]")
             );
         }
     }
