@@ -8,6 +8,8 @@
 
 package org.opensearch.security.resources;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -18,14 +20,22 @@ import org.apache.lucene.document.StringField;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
+import org.opensearch.index.get.GetResult;
 import org.opensearch.index.mapper.ParseContext;
 import org.opensearch.index.mapper.ParsedDocument;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.security.resources.settings.ResourceSharingFeatureFlagSetting;
 import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
@@ -36,14 +46,18 @@ import org.opensearch.transport.client.Client;
 
 import org.mockito.Answers;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Tests that {@link ResourceIndexListener} creates a sharing record only for a document of a registered, protected type.
+ * Tests that {@link ResourceIndexListener} creates a sharing record only for a document of a registered, protected type,
+ * and restores visibility after a write to an existing resource.
  */
 public class ResourceIndexListenerTests {
 
@@ -93,7 +107,84 @@ public class ResourceIndexListenerTests {
         verify(client, never()).prepareIndex(any());
     }
 
+    /**
+     * A write to an existing resource restores its visibility from the version that write produced, without reading it.
+     */
+    @Test
+    public void anUpdateRestoresVisibilityFromTheVersionItWrote() {
+        List<String> readIndices = stubRecordRead();
+        UpdateRequestBuilder visibility = mock(UpdateRequestBuilder.class, Answers.RETURNS_SELF);
+        when(visibility.request()).thenReturn(mock(UpdateRequest.class));
+        when(client.prepareUpdate(any(), any())).thenReturn(visibility);
+
+        update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L);
+
+        assertFalse("the resource document's version must not be read", readIndices.contains(INDEX));
+        verify(visibility).setIfSeqNo(9L);
+        verify(visibility).setIfPrimaryTerm(2L);
+    }
+
+    @Test
+    public void aFailedWriteReadsTheVersion() {
+        List<String> readIndices = stubRecordRead();
+
+        update("workflow-1", Engine.Result.Type.FAILURE, 9L, 2L);
+
+        assertEquals("the version is read before the record", INDEX, readIndices.get(0));
+    }
+
+    @Test
+    public void aWriteWithoutAnAssignedSeqNoReadsTheVersion() {
+        List<String> readIndices = stubRecordRead();
+
+        update("workflow-1", Engine.Result.Type.SUCCESS, SequenceNumbers.UNASSIGNED_SEQ_NO, 0L);
+
+        assertEquals("the version is read before the record", INDEX, readIndices.get(0));
+    }
+
+    /** Records the index of every GET and answers a sharing-index GET with a record. */
+    private List<String> stubRecordRead() {
+        List<String> readIndices = new ArrayList<>();
+        doAnswer(inv -> {
+            GetRequest request = inv.getArgument(0);
+            readIndices.add(request.index());
+            if (request.index().equals(SHARING_INDEX)) {
+                String json = "{\"resource_id\":\"workflow-1\",\"created_by\":{\"user\":\"alice\"}}";
+                GetResult record = mock(GetResult.class);
+                when(record.isExists()).thenReturn(true);
+                when(record.sourceAsString()).thenReturn(json);
+                byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+                when(record.sourceRef()).thenReturn(new BytesArray(bytes, 0, bytes.length));
+                ActionListener<GetResponse> l = inv.getArgument(1);
+                l.onResponse(new GetResponse(record));
+            }
+            return null;
+        }).when(client).get(any(GetRequest.class), any());
+        return readIndices;
+    }
+
+    private void update(String id, Engine.Result.Type resultType, long seqNo, long primaryTerm) {
+        Engine.IndexResult result = mock(Engine.IndexResult.class);
+        when(result.isCreated()).thenReturn(false);
+        when(result.getResultType()).thenReturn(resultType);
+        when(result.getSeqNo()).thenReturn(seqNo);
+        when(result.getTerm()).thenReturn(primaryTerm);
+
+        listener.postIndex(
+            new ShardId(INDEX, "uuid", 0),
+            indexOp(id, new StringField("workflow.type", "workflow", Field.Store.NO)),
+            result
+        );
+    }
+
     private void create(String id, StringField... fields) {
+        Engine.IndexResult result = mock(Engine.IndexResult.class);
+        when(result.isCreated()).thenReturn(true);
+
+        listener.postIndex(new ShardId(INDEX, "uuid", 0), indexOp(id, fields), result);
+    }
+
+    private static Engine.Index indexOp(String id, StringField... fields) {
         ParseContext.Document rootDoc = new ParseContext.Document();
         for (StringField field : fields) {
             rootDoc.add(field);
@@ -104,10 +195,7 @@ public class ResourceIndexListenerTests {
         when(index.id()).thenReturn(id);
         when(index.parsedDoc()).thenReturn(parsedDoc);
         when(index.origin()).thenReturn(Engine.Operation.Origin.PRIMARY);
-        Engine.IndexResult result = mock(Engine.IndexResult.class);
-        when(result.isCreated()).thenReturn(true);
-
-        listener.postIndex(new ShardId(INDEX, "uuid", 0), index, result);
+        return index;
     }
 
     private static OpensearchDynamicSetting<List<String>> setting(List<String> protectedTypes) {
