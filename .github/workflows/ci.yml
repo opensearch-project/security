@@ -16,11 +16,6 @@ env:
   CI_ENVIRONMENT: normal
 
 jobs:
-  Get-CI-Image-Tag:
-    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
-    with:
-      product: opensearch
-
   generate-test-list:
     runs-on: ubuntu-latest
     outputs:
@@ -78,7 +73,7 @@ jobs:
             ./build/reports/
 
   report-coverage:
-    needs: ["test", "integration-tests-windows", "integration-tests-linux", "sample-plugin-integration-tests-linux", "sample-plugin-integration-tests-windows"]
+    needs: ["test", "integration-tests", "sample-plugin-integration-tests"]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -100,13 +95,13 @@ jobs:
           fail_ci_if_error: true
           verbose: true
 
-  integration-tests-windows:
+  integration-tests:
     name: integration-tests
     strategy:
       fail-fast: false
       matrix:
         jdk: [21, 25]
-        platform: [windows-latest]
+        platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -135,93 +130,13 @@ jobs:
           path: |
             ./build/reports/
 
-  integration-tests-linux:
-    name: integration-tests
-    needs: ["Get-CI-Image-Tag"]
-    strategy:
-      fail-fast: false
-      matrix:
-        jdk: [21, 25]
-        platform: [ubuntu-latest]
-    runs-on: ubuntu-latest
-    container:
-      # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
-      # this image tag is subject to change as more dependencies and updates will arrive over time
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      # need to switch to root so that github actions can install runner binary on container without permission issues.
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
-
-    steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
-
-      - name: Checkout security
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-
-      # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
-      - name: Build and Test
-        run: ./gradlew :integrationTest -Dbuild.snapshot=false
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
-          path: |
-            ./build/reports/
-
-  sample-plugin-integration-tests-linux:
-    name: sample-plugin-integration-tests
-    needs: [ "Get-CI-Image-Tag" ]
-    strategy:
-      fail-fast: false
-      matrix:
-        jdk: [21, 25]
-        platform: [ubuntu-latest]
-    runs-on: ${{ matrix.platform }}
-    container:
-      # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
-      # this image tag is subject to change as more dependencies and updates will arrive over time
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      # need to switch to root so that github actions can install runner binary on container without permission issues.
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
-
-    steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
-      - name: Set up JDK for build and test
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: ${{ matrix.jdk }}
-
-      - name: Checkout security
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-
-      # The CI container runs JavaScript actions with Node 20, but setup-gradle v6 requires Node 24.
-      - name: Run SampleResourcePlugin Integration Tests
-        run: ./gradlew :opensearch-sample-resource-plugin:integrationTest -Dbuild.snapshot=false
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: sample-plugin-integration-${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
-          path: |
-            ./sample-resource-plugin/build/reports/
-
-  sample-plugin-integration-tests-windows:
+  sample-plugin-integration-tests:
     name: sample-plugin-integration-tests
     strategy:
       fail-fast: false
       matrix:
         jdk: [21, 25]
-        platform: [windows-latest]
+        platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
