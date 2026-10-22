@@ -331,20 +331,7 @@ public class ResourcePluginInfoTests {
 
     /** Registers one provider per type, each on its own {@code index-<type>}. */
     private void registerProvidersOnOwnIndices(List<String> types) {
-        ResourceSharingExtension extension = new ResourceSharingExtension() {
-            @Override
-            public Set<ResourceProvider> getResourceProviders() {
-                var providers = new java.util.LinkedHashSet<ResourceProvider>();
-                for (String type : types) {
-                    providers.add(makeProvider(type, "index-" + type, null));
-                }
-                return providers;
-            }
-
-            @Override
-            public void assignResourceSharingClient(ResourceSharingClient client) {}
-        };
-        resourcePluginInfo.setResourceSharingExtensions(Set.of(extension));
+        registerExtension(types.stream().map(type -> provider(type, "index-" + type, null)).toArray(ResourceProvider[]::new));
     }
 
     /** Stands in for the protected-types cluster setting, so a test can change its value the way the listener does. */
