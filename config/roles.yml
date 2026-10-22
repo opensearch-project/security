@@ -352,6 +352,14 @@ notifications_read_access:
     - 'cluster:admin/opensearch/notifications/configs/get'
     - 'cluster:admin/opensearch/notifications/features'
 
+# Allows users to send messages through existing Notifications channels
+notifications_send_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/notifications/channel/send'
+    - 'cluster:admin/opensearch/notifications/channels/get'
+    - 'cluster:admin/opensearch/notifications/features'
+
 # Allows users to use all snapshot management functionality
 snapshot_management_full_access:
   reserved: true
@@ -385,6 +393,7 @@ security_analytics_read_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/get'
+    - 'cluster:admin/opensearch/securityanalytics/alerts/get_page'
     - 'cluster:admin/opensearch/securityanalytics/correlationAlerts/get'
     - 'cluster:admin/opensearch/securityanalytics/correlations/findings'
     - 'cluster:admin/opensearch/securityanalytics/correlations/list'

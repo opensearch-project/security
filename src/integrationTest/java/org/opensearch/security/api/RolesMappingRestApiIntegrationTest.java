@@ -540,7 +540,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
             if (reserved != null) {
                 builder.field("reserved", reserved);
             }
-            builder.field("cluster_permissions", configJsonArray("a", "b"));
+            builder.field("cluster_permissions", configJsonArray("cluster:monitor/health", "cluster:monitor/state"));
             return builder.endObject();
         };
     }
