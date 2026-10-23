@@ -600,4 +600,60 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"D\""));
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"E\""));
     }
+
+    @Test
+    public void testDlsRejectsUnsafeAggregations() throws Exception {
+        setup();
+
+        String globalAggregation =
+            "{\"size\":0,\"aggs\":{\"all_docs\":{\"global\":{},\"aggs\":{\"total_amount\":{\"sum\":{\"field\":\"amount\"}}}}}}";
+        HttpResponse globalResponse = rh.executePostRequest(
+            "/deals/_search",
+            globalAggregation,
+            encodeBasicHeader("dept_manager", "password")
+        );
+        Assert.assertTrue(globalResponse.getStatusCode() != HttpStatus.SC_OK);
+        Assert.assertTrue(
+            globalResponse.getBody(),
+            globalResponse.getBody().contains("global aggregations are not supported when DLS is activated")
+        );
+
+        HttpResponse adminGlobalResponse = rh.executePostRequest("/deals/_search", globalAggregation, encodeBasicHeader("admin", "admin"));
+        assertThat(adminGlobalResponse.getStatusCode(), is(HttpStatus.SC_OK));
+
+        String nestedTermsAggregation =
+            "{\"size\":0,\"aggs\":{\"filtered\":{\"filter\":{\"match_all\":{}},\"aggs\":{\"terms\":{\"terms\":{\"field\":\"amount\",\"min_doc_count\":0}}}}}}";
+        HttpResponse nestedTermsResponse = rh.executePostRequest(
+            "/deals/_search",
+            nestedTermsAggregation,
+            encodeBasicHeader("dept_manager", "password")
+        );
+        Assert.assertTrue(nestedTermsResponse.getStatusCode() != HttpStatus.SC_OK);
+        Assert.assertTrue(
+            nestedTermsResponse.getBody(),
+            nestedTermsResponse.getBody().contains("min_doc_count 0 is not supported when DLS is activated")
+        );
+
+        try (Client client = getClient()) {
+            client.admin()
+                .indices()
+                .create(new CreateIndexRequest("logs").simpleMapping("termX", "type=keyword", "termY", "type=keyword"))
+                .actionGet();
+            client.index(new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("amount", 1, "termX", "A", "termY", "X"))
+                .actionGet();
+        }
+
+        String multiTermsAggregation =
+            "{\"size\":0,\"aggs\":{\"multi\":{\"multi_terms\":{\"terms\":[{\"field\":\"termX\"},{\"field\":\"termY\"}],\"min_doc_count\":0}}}}";
+        HttpResponse multiTermsResponse = rh.executePostRequest(
+            "/logs/_search",
+            multiTermsAggregation,
+            encodeBasicHeader("dept_manager", "password")
+        );
+        Assert.assertTrue(multiTermsResponse.getStatusCode() != HttpStatus.SC_OK);
+        Assert.assertTrue(
+            multiTermsResponse.getBody(),
+            multiTermsResponse.getBody().contains("min_doc_count 0 is not supported when DLS is activated")
+        );
+    }
 }

@@ -15,6 +15,7 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +64,10 @@ import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.InternalAggregation;
 import org.opensearch.search.aggregations.InternalAggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
+import org.opensearch.search.aggregations.bucket.global.GlobalAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.sampler.DiversifiedAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.InternalTerms;
+import org.opensearch.search.aggregations.bucket.terms.MultiTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.SignificantTermsAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.StringTerms;
 import org.opensearch.search.aggregations.bucket.terms.StringTerms.Bucket;
@@ -334,13 +337,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 final SearchSourceBuilder source = ((SearchRequest) request).source();
                 if (source != null) {
                     AggregatorFactories.Builder aggregations = source.aggregations();
-                    if (aggregations != null) {
-                        for (AggregationBuilder factory : aggregations.getAggregatorFactories()) {
-                            if (factory instanceof TermsAggregationBuilder && ((TermsAggregationBuilder) factory).minDocCount() == 0) {
-                                listener.onFailure(new OpenSearchException("min_doc_count 0 is not supported when DLS is activated"));
-                                return false;
-                            }
-                        }
+                    if (aggregations != null && containsUnsafeDlsAggregation(aggregations.getAggregatorFactories(), listener)) {
+                        return false;
                     }
 
                     if (source.profile()) {
@@ -367,6 +365,30 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Recursively checks the aggregation tree for aggregations that are unsafe under DLS.
+     */
+    private boolean containsUnsafeDlsAggregation(Collection<AggregationBuilder> aggregations, ActionListener<?> listener) {
+        for (AggregationBuilder aggregation : aggregations) {
+            if (aggregation instanceof GlobalAggregationBuilder) {
+                listener.onFailure(new OpenSearchException("global aggregations are not supported when DLS is activated"));
+                return true;
+            }
+            if (aggregation instanceof TermsAggregationBuilder && ((TermsAggregationBuilder) aggregation).minDocCount() == 0) {
+                listener.onFailure(new OpenSearchException("min_doc_count 0 is not supported when DLS is activated"));
+                return true;
+            }
+            if (aggregation instanceof MultiTermsAggregationBuilder && ((MultiTermsAggregationBuilder) aggregation).minDocCount() == 0) {
+                listener.onFailure(new OpenSearchException("min_doc_count 0 is not supported when DLS is activated"));
+                return true;
+            }
+            if (!aggregation.getSubAggregations().isEmpty() && containsUnsafeDlsAggregation(aggregation.getSubAggregations(), listener)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
