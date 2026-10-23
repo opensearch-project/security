@@ -17,6 +17,7 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.junit.Test;
 
@@ -79,8 +80,18 @@ public class HeaderClientCertResolverTest {
         SecurityRequest request,
         X509Certificate[] certs,
         PrincipalExtractor extractor
-    ) {
-        return HeaderClientCertResolver.maybeOverride(settings, request, certs, PROXY_PRINCIPAL, extractor, "TLSv1.3", "cipher", null);
+    ) throws SSLPeerUnverifiedException {
+        return resolve(settings, request, certs, PROXY_PRINCIPAL, extractor);
+    }
+
+    private static SSLRequestHelper.SSLInfo resolve(
+        Settings settings,
+        SecurityRequest request,
+        X509Certificate[] certs,
+        String principal,
+        PrincipalExtractor extractor
+    ) throws SSLPeerUnverifiedException {
+        return HeaderClientCertResolver.maybeOverride(settings, request, certs, principal, extractor, "TLSv1.3", "cipher", null);
     }
 
     @Test
@@ -124,14 +135,43 @@ public class HeaderClientCertResolverTest {
     }
 
     @Test
-    public void invalidHeaderCertKeepsHandshakeCert() throws Exception {
-        // An unparseable header value must not break the request; fall back to the handshake cert
+    public void invalidHeaderCertIsRejected() throws Exception {
         X509Certificate[] proxyCerts = loadCert("ssl/spock.crt.pem");
         SecurityRequest request = requestWithHeader("x-client-cert", "not-a-certificate");
 
-        SSLRequestHelper.SSLInfo info = resolve(enabledSettings(), request, proxyCerts, EXTRACTOR);
+        try {
+            resolve(enabledSettings(), request, proxyCerts, EXTRACTOR);
+            throw new AssertionError("Expected malformed forwarded certificate to be rejected");
+        } catch (SSLPeerUnverifiedException expected) {
+            assertThat(expected.getMessage(), is("Malformed forwarded client certificate header"));
+        }
+    }
 
-        assertThat(info.getPrincipal(), is(PROXY_PRINCIPAL));
+    @Test
+    public void malformedHeaderEncodingIsRejected() throws Exception {
+        X509Certificate[] proxyCerts = loadCert("ssl/spock.crt.pem");
+        SecurityRequest request = requestWithHeader("x-client-cert", "%ZZ");
+
+        try {
+            resolve(enabledSettings(), request, proxyCerts, EXTRACTOR);
+            throw new AssertionError("Expected malformed forwarded certificate encoding to be rejected");
+        } catch (SSLPeerUnverifiedException expected) {
+            assertThat(expected.getMessage(), is("Malformed forwarded client certificate header"));
+        }
+    }
+
+    @Test
+    public void nullPrincipalSkipsRegexProxyAllowlist() throws Exception {
+        X509Certificate[] proxyCerts = loadCert("ssl/spock.crt.pem");
+        Settings regexSettings = Settings.builder()
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT, true)
+            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL, List.of("/.*CN=spock.*/"))
+            .build();
+        SecurityRequest request = requestWithHeader("x-client-cert", encodedPem("ssl/kirk.crt.pem"));
+
+        SSLRequestHelper.SSLInfo info = resolve(regexSettings, request, proxyCerts, null, EXTRACTOR);
+
+        assertThat(info.getPrincipal(), nullValue());
         assertThat(info.getX509Certs(), is(proxyCerts));
     }
 

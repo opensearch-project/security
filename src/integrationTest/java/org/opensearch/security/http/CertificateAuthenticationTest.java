@@ -32,6 +32,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -76,7 +77,7 @@ public class CertificateAuthenticationTest {
             SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT,
             "true",
             SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL,
-            List.of("DC=de,L=test,O=users,OU=bridge,CN=spock")
+            List.of("/.*CN=spock.*/")
         )
     )
         .clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
@@ -198,6 +199,22 @@ public class CertificateAuthenticationTest {
             assertThat(backendRoles, containsInAnyOrder(BACKEND_ROLE_CAPTAIN));
             List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
             assertThat(roles, hasSize(0));
+        }
+    }
+
+    @Test
+    public void shouldRejectMalformedForwardedCertificate() {
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
+        try (TestRestClient client = cluster.getRestClient(userSpockCertificate, new BasicHeader("x-client-cert", "not-a-certificate"))) {
+            client.getAuthInfo().assertStatusCode(SC_FORBIDDEN);
+        }
+    }
+
+    @Test
+    public void shouldRejectMalformedForwardedCertificateEncoding() {
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
+        try (TestRestClient client = cluster.getRestClient(userSpockCertificate, new BasicHeader("x-client-cert", "%ZZ"))) {
+            client.getAuthInfo().assertStatusCode(SC_FORBIDDEN);
         }
     }
 

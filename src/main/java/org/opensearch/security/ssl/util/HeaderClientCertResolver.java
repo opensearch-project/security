@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,7 +38,7 @@ public class HeaderClientCertResolver {
         String protocol,
         String cipher,
         X509Certificate[] localCerts
-    ) {
+    ) throws SSLPeerUnverifiedException {
         final String clientCertHeaderName = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_NAME, "x-client-cert");
         // SSLConfigConstants.SECURITY_SSL_HTTP_HEADER_CERT_ALLOWED_PROXY_PRINCIPAL configuration used to specify which principal can switch
         // user to header cert so its limited to external load balancer proxy , not all clients
@@ -52,28 +53,20 @@ public class HeaderClientCertResolver {
         String clientCert = request.header(clientCertHeaderName);
         // we want to make x509Certs is not null and has already been validated through handshake ,
         // only then we allow header based cert role assumption
-        if (clientCert != null && allowRoleFromHeaderCert && x509Certs != null) {
+        if (clientCert != null && allowRoleFromHeaderCert && x509Certs != null && principal != null) {
             if (allowedPrincipalsToAssumeHeaderCert.test(principal)) {
-                log.trace("Client Cert Encoded : {} ", clientCert);
-                clientCert = URLDecoder.decode(clientCert, StandardCharsets.UTF_8);
-                log.trace("Client Cert From Header : {} ", clientCert);
-
-                byte[] decodedClientCert = clientCert.getBytes(StandardCharsets.UTF_8);
-
-                CertificateFactory factory = null;
                 try {
-                    factory = CertificateFactory.getInstance("X.509");
-                    X509Certificate[] x509HeaderCerts = new X509Certificate[1];
-                    x509HeaderCerts[0] = (X509Certificate) factory.generateCertificate(new ByteArrayInputStream(decodedClientCert));
+                    byte[] decodedClientCert = URLDecoder.decode(clientCert, StandardCharsets.UTF_8).getBytes(StandardCharsets.UTF_8);
+                    CertificateFactory factory = CertificateFactory.getInstance("X.509");
+                    X509Certificate[] x509HeaderCerts = new X509Certificate[] {
+                        (X509Certificate) factory.generateCertificate(new ByteArrayInputStream(decodedClientCert)) };
                     principal = principalExtractor == null
                         ? null
                         : principalExtractor.extractPrincipal(x509HeaderCerts[0], PrincipalExtractor.Type.HTTP);
-                    // At this point if no exception in parsing, then replace original certs that were used in handshake validation to
-                    // header
-                    // cert
                     x509Certs = x509HeaderCerts;
-                } catch (CertificateException e) {
-                    log.error("Failed to parse  certificate from header", e);
+                } catch (CertificateException | IllegalArgumentException e) {
+                    log.warn("Rejected malformed forwarded client certificate header");
+                    throw new SSLPeerUnverifiedException("Malformed forwarded client certificate header");
                 }
             }
         }
