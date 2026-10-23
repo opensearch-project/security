@@ -157,6 +157,9 @@ public class SSLRequestHelper {
         if (session.getLocalCertificates() != null) {
             localCerts = Arrays.stream(session.getLocalCertificates()).map(X509Certificate.class::cast).toArray(X509Certificate[]::new);
         }
+        if (!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_USE_HEADER_CERT, false)) {
+            return new SSLInfo(x509Certs, principal, protocol, cipher, localCerts);
+        }
         return HeaderClientCertResolver.maybeOverride(
             settings,
             request,
