@@ -74,6 +74,13 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             log.debug("RolesHeader {}, value {}", settings.get("roles_header"), requestRolesHeader.orElse(null));
         }
 
+        // A proxy user header is supplied by an external caller and must not be able to assert an
+        // internal plugin principal (the 'plugin:' runtime identity).
+        if (requestUserHeader.map(userHeader -> userHeader.startsWith("plugin:")).orElse(false)) {
+            log.warn("Rejecting proxy authentication: user header uses a reserved internal identity prefix");
+            return null;
+        }
+
         return requestUserHeader.map(userHeader -> {
             final String[] backendRoles = requestRolesHeader.map(
                 rolesHeader -> rolesSeparator.splitAsStream(rolesHeader)

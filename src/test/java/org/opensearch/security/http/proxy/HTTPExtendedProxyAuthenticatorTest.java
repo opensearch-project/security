@@ -132,6 +132,19 @@ public class HTTPExtendedProxyAuthenticatorTest {
         assertTrue(creds.isComplete());
     }
 
+    /**
+     * A reserved internal identity prefix supplied via the proxy user header must be rejected
+     * (inherited from the base HTTPProxyAuthenticator guard) before any attribute extraction.
+     * {@code plugin:org.opensearch.ml.plugin.MachineLearningPlugin} is the exact value used by the
+     * HackerOne RCE chain (H1-3951245) to impersonate the ML plugin.
+     */
+    @Test
+    public void testRejectsReservedPluginPrefix() {
+        headers.put("user", new ArrayList<>());
+        headers.get("user").add("plugin:org.opensearch.ml.plugin.MachineLearningPlugin");
+        assertNull(authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context));
+    }
+
     static class TestRestRequest extends RestRequest {
 
         public TestRestRequest() {
