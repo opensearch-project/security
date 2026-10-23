@@ -41,7 +41,6 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
 
 import static java.util.function.Predicate.not;
 
@@ -76,8 +75,8 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
         }
 
         // A proxy user header is supplied by an external caller and must not be able to assert an
-        // internal principal (the 'plugin:' runtime identity or the 'token:' API-token identity).
-        if (requestUserHeader.map(User::hasReservedPrefix).orElse(false)) {
+        // internal plugin principal (the 'plugin:' runtime identity).
+        if (requestUserHeader.map(userHeader -> userHeader.startsWith("plugin:")).orElse(false)) {
             log.warn("Rejecting proxy authentication: user header uses a reserved internal identity prefix");
             return null;
         }

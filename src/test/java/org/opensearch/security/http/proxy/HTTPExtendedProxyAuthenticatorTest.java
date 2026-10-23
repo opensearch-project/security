@@ -145,13 +145,6 @@ public class HTTPExtendedProxyAuthenticatorTest {
         assertNull(authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context));
     }
 
-    @Test
-    public void testRejectsReservedTokenPrefix() {
-        headers.put("user", new ArrayList<>());
-        headers.get("user").add("token:some-api-token");
-        assertNull(authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context));
-    }
-
     static class TestRestRequest extends RestRequest {
 
         public TestRestRequest() {

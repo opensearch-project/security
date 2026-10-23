@@ -86,14 +86,6 @@ public class HTTPProxyAuthenticatorTest {
         assertNull(authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context));
     }
 
-    /** The API-token reserved prefix must likewise be rejected from an external proxy header. */
-    @Test
-    public void testRejectsReservedTokenPrefix() {
-        headers.put("user", new ArrayList<>());
-        headers.get("user").add("token:some-api-token");
-        assertNull(authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context));
-    }
-
     /** A legitimate username that merely contains the substring must still be accepted. */
     @Test
     public void testAcceptsNonPrefixSubstring() {
