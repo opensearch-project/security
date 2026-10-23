@@ -19,9 +19,12 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexableField;
 
 import org.opensearch.OpenSearchSecurityException;
@@ -42,6 +45,8 @@ import org.opensearch.security.support.ConfigConstants;
  * It follows the Singleton pattern to ensure that only one instance of the class exists.
  */
 public class ResourcePluginInfo {
+
+    private static final Logger log = LogManager.getLogger(ResourcePluginInfo.class);
 
     private ResourceSharingClient resourceAccessControlClient;
 
@@ -74,23 +79,18 @@ public class ResourcePluginInfo {
             if (protectedTypesSetting != null) {
                 validateProtectedTypes(protectedTypesSetting.getDynamicSettingValue(), extensions);
             }
+            validateTypeFields(extensions);
             resourceSharingExtensions.clear();
             typeToProvider.clear();
 
-            // Enforce resource-type unique-ness
-            Set<String> resourceTypes = new HashSet<>();
             // Providers may share a resource index, but must then agree on the workspaces field: DLS filters a single
             // field per index while ingestion uses each provider's declared field, so a disagreement would silently
             // mis-scope read visibility. Reject conflicting non-null declarations at registration.
             Map<String, String> indexToWorkspacesField = new HashMap<>();
             for (ResourceSharingExtension extension : extensions) {
                 for (var rp : extension.getResourceProviders()) {
-                    if (!resourceTypes.contains(rp.resourceType())) {
-                        // add name seen so far to the resource-types set
-                        resourceTypes.add(rp.resourceType());
-                        // also cache type->index and index->type mapping
-                        typeToProvider.put(rp.resourceType(), rp);
-                    } else {
+                    // Enforce resource-type unique-ness
+                    if (typeToProvider.putIfAbsent(rp.resourceType(), rp) != null) {
                         throw new OpenSearchSecurityException(
                             String.format(
                                 "Resource type [%s] is already registered. Please provide a different unique-name for the resource declared by %s.",
@@ -156,6 +156,34 @@ public class ResourcePluginInfo {
             validateProtectedTypes(protectedTypes, resourceSharingExtensions);
         } finally {
             lock.readLock().unlock();
+        }
+    }
+
+    /** Rejects a provider with no type field on an index that other providers share, since its documents cannot be told apart. */
+    private static void validateTypeFields(Set<ResourceSharingExtension> extensions) {
+        Map<String, Set<String>> typesByIndex = new TreeMap<>();
+        Map<String, String> untypedByIndex = new HashMap<>();
+        for (ResourceSharingExtension extension : extensions) {
+            for (ResourceProvider provider : extension.getResourceProviders()) {
+                typesByIndex.computeIfAbsent(provider.resourceIndexName(), index -> new TreeSet<>()).add(provider.resourceType());
+                if (provider.typeField() == null) {
+                    untypedByIndex.put(provider.resourceIndexName(), provider.resourceType());
+                }
+            }
+        }
+        for (var entry : untypedByIndex.entrySet()) {
+            Set<String> types = typesByIndex.get(entry.getKey());
+            if (types.size() > 1) {
+                throw new OpenSearchSecurityException(
+                    String.format(
+                        "Resource type [%s] declares no typeField, but index [%s] holds resource types %s."
+                            + " Types that share an index must each declare a typeField.",
+                        entry.getValue(),
+                        entry.getKey(),
+                        types
+                    )
+                );
+            }
         }
     }
 
@@ -240,43 +268,50 @@ public class ResourcePluginInfo {
     }
 
     /**
-     * Resolves the resource type for the given index operation and resource index.
-     * <p>
-     * The method iterates over every registered {@link ResourceProvider} whose resource index name
-     * matches {@code resourceIndex}. For each candidate:
-     * <ul>
-     *   <li>If the provider does not declare a {@link ResourceProvider#typeField()}, its
-     *   configured resource type is returned. This preserves the single-type-per-index behavior
-     *   for plugins that don't need to discriminate.</li>
-     *   <li>Otherwise the provider's {@code typeField} is extracted from {@code indexOp}; the
-     *   first provider whose extraction yields a non-null value wins.</li>
-     * </ul>
-     * This allows multiple providers to share an index (for example, monitors and workflows both
-     * living in {@code .opendistro-alerting-config}) by declaring type-specific paths for their
-     * {@code typeField} — the first path that resolves on a given document identifies the type.
-     * <p>
-     * If no provider is registered for {@code resourceIndex}, {@code null} is returned.
+     * Resolves the provider of the document an index operation writes, or {@code null} if it is not a resource.
+     * See {@link #resolveResourceProvider} for the rule.
      */
-    public String getResourceTypeForIndexOp(String resourceIndex, Engine.Index indexOp) {
+    public ResourceProvider getResourceProviderForIndexOp(String resourceIndex, Engine.Index indexOp) {
+        return resolveResourceProvider(resourceIndex, field -> extractFieldFromIndexOp(field, indexOp));
+    }
+
+    /**
+     * Resolves the provider of a document in {@code resourceIndex}: the one provider on the index whose
+     * {@link ResourceProvider#matchesResource} accepts the document.
+     *
+     * @param resourceIndex the index holding the document
+     * @param fieldValue    reads a document field by name, or {@code null} when absent
+     * @return the provider, or {@code null} if no provider matches, or more than one does
+     */
+    public ResourceProvider resolveResourceProvider(String resourceIndex, Function<String, String> fieldValue) {
         lock.readLock().lock();
         try {
+            ResourceProvider match = null;
             for (ResourceProvider provider : typeToProvider.values()) {
-                if (!provider.resourceIndexName().equals(resourceIndex)) {
+                if (!provider.resourceIndexName().equals(resourceIndex) || !provider.matchesResource(fieldValue)) {
                     continue;
                 }
-                if (provider.typeField() == null) {
-                    // Single-type-per-index provider — its own resourceType() is the answer.
-                    return provider.resourceType();
+                if (match != null) {
+                    log.warn(
+                        "A document in index [{}] matches resource types [{}] and [{}]; it is not treated as a resource",
+                        resourceIndex,
+                        match.resourceType(),
+                        provider.resourceType()
+                    );
+                    return null;
                 }
-                String extracted = extractFieldFromIndexOp(provider.typeField(), indexOp);
-                if (extracted != null) {
-                    return extracted;
-                }
+                match = provider;
             }
-            return null;
+            return match;
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    /** Whether {@code resourceType} is listed in the protected-types setting. */
+    public boolean isProtectedType(String resourceType) {
+        List<String> protectedTypes = protectedTypesSetting == null ? null : protectedTypesSetting.getDynamicSettingValue();
+        return resourceType != null && protectedTypes != null && protectedTypes.contains(resourceType);
     }
 
     public Set<ResourceSharingExtension> getResourceSharingExtensions() {

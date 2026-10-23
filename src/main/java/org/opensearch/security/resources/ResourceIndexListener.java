@@ -64,31 +64,26 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
         String resourceIndex = shardId.getIndexName();
 
+        // Every type on an index is protected or none is, so this check covers the document's own type
         if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
-            // type is marked as not protected
             return;
         }
 
         log.debug("postIndex called on {}", resourceIndex);
 
-        String resourceType = resourcePluginInfo.getResourceTypeForIndexOp(resourceIndex, index);
-
         String resourceId = index.id();
-        ResourceProvider provider = resourcePluginInfo.getResourceProvider(resourceType);
-        if (provider == null) {
-            log.warn(
-                "Failed to create a resource sharing entry for resource: {} with type: {}. The type is not declared as a protected type in plugins.security.resource_sharing.protected_types.",
-                resourceId,
-                resourceType
-            );
-            return;
-        }
-
-        // Only proceed if this was a create operation and for primary shard
+        // Records are written from the primary only, so a replica need not classify the document
         if (!index.origin().equals(Engine.Operation.Origin.PRIMARY)) {
             log.debug("Skipping resource sharing entry creation for {} as this operation was on a replica shard", resourceId);
             return;
         }
+
+        ResourceProvider provider = resourcePluginInfo.getResourceProviderForIndexOp(resourceIndex, index);
+        if (provider == null) {
+            log.debug("Document {} in index {} is not of any registered resource type; skipping", resourceId, resourceIndex);
+            return;
+        }
+        String resourceType = provider.resourceType();
 
         if (!result.isCreated()) {
             // Restore all_shared_principals on the resource doc (guards against a direct write tampering with it).
@@ -98,7 +93,14 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     resourceId,
                     resourceIndex
                 );
-            }, e -> { log.debug(e.getMessage()); });
+            },
+                e -> log.warn(
+                    "postIndex: Failed to restore the resource visibility for resource {} within index {}",
+                    resourceId,
+                    resourceIndex,
+                    e
+                )
+            );
             this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
 
             // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
@@ -230,8 +232,8 @@ public class ResourceIndexListener implements IndexingOperationListener {
         }
         String resourceIndex = shardId.getIndexName();
 
+        // Gated per index because a delete has no document to classify
         if (!resourcePluginInfo.getResourceIndicesForProtectedTypes().contains(resourceIndex)) {
-            // type is marked as not protected
             return;
         }
 
