@@ -12,12 +12,19 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.util.FakeRestRequest;
 
+import org.mockito.Mockito;
 import tools.jackson.databind.node.ObjectNode;
 
 import static org.junit.Assert.assertFalse;
@@ -25,12 +32,23 @@ import static org.junit.Assert.assertTrue;
 
 public class RolesApiActionRequestContentValidatorTest extends AbstractApiActionValidationTest {
 
+    @Before
+    public void setupActionGroups() {
+        var groups = SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS);
+        groups.putCEntry("read", new ActionGroupsV7("read", List.of("indices:data/read/*")));
+        groups.putCEntry("write", new ActionGroupsV7("write", List.of("indices:data/write/*")));
+        Mockito.lenient().when(configurationRepository.getConfiguration(CType.ACTIONGROUPS)).thenReturn(groups);
+    }
+
     @Test
     public void doesNotValidateMaskedFields() throws IOException {
 
-        final var requestContentValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator()
-            .createRequestContentValidator();
+        final var requestContentValidator = new RolesApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator().createRequestContentValidator();
 
         // no masked fields
         final var noMaskedFields = objectMapper.createObjectNode()
@@ -74,9 +92,12 @@ public class RolesApiActionRequestContentValidatorTest extends AbstractApiAction
 
     @Test
     public void validateOnlySpecifiedMaskedFields() throws IOException {
-        final var requestContentValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator()
-            .createRequestContentValidator();
+        final var requestContentValidator = new RolesApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator().createRequestContentValidator();
         final var specifiedMaskedFields = objectMapper.createObjectNode()
             .set(
                 "index_permissions",
@@ -124,9 +145,12 @@ public class RolesApiActionRequestContentValidatorTest extends AbstractApiAction
 
     @Test
     public void validateAllMaskedFields() throws IOException {
-        final var requestContentValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator()
-            .createRequestContentValidator();
+        final var requestContentValidator = new RolesApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator().createRequestContentValidator();
         final var invalidMaskedFields = objectMapper.createObjectNode()
             .set(
                 "index_permissions",

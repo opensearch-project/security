@@ -37,6 +37,7 @@ import com.google.common.base.Strings;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.bulk.BulkShardRequest;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -46,6 +47,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.dlsfls.DlsRequestHeadersUtil;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -84,12 +86,12 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final PrincipalExtractor principalExtractor,
         final InterClusterRequestEvaluator requestEvalProvider,
         final ClusterService cs,
-        final SSLConfig SSLConfig,
+        final SSLConfig sslConfig,
         final SslExceptionHandler sslExceptionHandler,
         final UserFactory userFactory,
         final RemoteClusterIdentityPolicy remoteClusterIdentityPolicy
     ) {
-        super(action, actualHandler, threadPool, principalExtractor, SSLConfig, sslExceptionHandler);
+        super(action, actualHandler, threadPool, principalExtractor, sslConfig, sslExceptionHandler);
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
@@ -133,6 +135,13 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
+
+            // Scope field access to this exact lookup GET; never inherit it into a search request.
+            getThreadContext().putTransient(
+                ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT,
+                request instanceof GetRequest getRequest
+                    && DocumentAllowList.get(getThreadContext()).isAllowed(getRequest.index(), getRequest.id()) ? getRequest.index() : null
+            );
 
             populateShardSearchContext(request);
 

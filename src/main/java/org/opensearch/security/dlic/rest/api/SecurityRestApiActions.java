@@ -26,6 +26,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.SecurityConfigVersionsLoader;
+import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.privileges.PrivilegesConfiguration;
 import org.opensearch.security.privileges.RoleMapper;
@@ -59,7 +60,8 @@ public class SecurityRestApiActions {
         final PasswordHasher passwordHasher,
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         final ResourcePluginInfo resourcePluginInfo,
-        final ApiTokenRepository apiTokenRepository
+        final ApiTokenRepository apiTokenRepository,
+        final RolePermissionValidator permissionValidator
     ) {
         final var restApiAuthorizationEvaluator = new RestApiAuthorizationEvaluator(
             settings,
@@ -82,7 +84,7 @@ public class SecurityRestApiActions {
             List.of(
                 new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies, passwordHasher),
                 new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
-                new RolesApiAction(clusterService, threadPool, securityApiDependencies),
+                new RolesApiAction(clusterService, threadPool, securityApiDependencies, permissionValidator),
                 new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
                 new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies, apiTokenRepository),
                 new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies),

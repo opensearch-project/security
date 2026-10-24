@@ -40,6 +40,7 @@ import static org.opensearch.sample.resource.TestUtils.SAMPLE_READ_ONLY;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_UPDATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
+import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
 import static org.opensearch.sample.utils.Constants.WORKSPACE_TYPE;
@@ -57,7 +58,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 public class WorkspaceContainerAccessTests {
 
     @ClassRule
-    public static LocalCluster cluster = newCluster(true, true, List.of(RESOURCE_TYPE, WORKSPACE_TYPE));
+    public static LocalCluster cluster = newCluster(true, true, List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE, WORKSPACE_TYPE));
 
     private final TestUtils.ApiHelper api = new TestUtils.ApiHelper(cluster);
 

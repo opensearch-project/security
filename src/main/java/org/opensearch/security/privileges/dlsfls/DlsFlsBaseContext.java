@@ -26,6 +26,11 @@ public class DlsFlsBaseContext {
     private final ThreadContext threadContext;
     private final AdminDNs adminDNs;
 
+    // Whether date math (now, now-30d/d) is allowed in DLS queries. Backed by the dynamic
+    // plugins.security.allow_now_in_dls setting; kept here (node-global, request-independent)
+    // and updated by a cluster settings consumer in DlsFlsValveImpl.
+    private volatile boolean allowNowInDlsQuery = false;
+
     public DlsFlsBaseContext(PrivilegesConfiguration privilegesConfiguration, ThreadContext threadContext, AdminDNs adminDNs) {
         this.privilegesConfiguration = privilegesConfiguration;
         this.threadContext = threadContext;
@@ -81,5 +86,18 @@ public class DlsFlsBaseContext {
      */
     public boolean isPrivilegedConfigRequest() {
         return "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER));
+    }
+
+    /**
+     * Whether date math (e.g. now, now-30d/d) is currently allowed in DLS queries. Backed by the dynamic
+     * plugins.security.allow_now_in_dls setting (which falls back to the deprecated
+     * plugins.security.unsupported.allow_now_in_dls key).
+     */
+    public boolean isAllowNowInDlsQuery() {
+        return allowNowInDlsQuery;
+    }
+
+    public void setAllowNowInDlsQuery(boolean allowNowInDlsQuery) {
+        this.allowNowInDlsQuery = allowNowInDlsQuery;
     }
 }
