@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
@@ -33,7 +32,6 @@ import org.opensearch.security.ssl.config.KeyStoreConfiguration;
 import org.opensearch.security.ssl.config.SslParameters;
 import org.opensearch.security.ssl.config.TrustStoreConfiguration;
 
-import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.SslContext;
@@ -93,14 +91,7 @@ public class SslConfiguration {
                     .sslProvider(sslParameters.provider())
                     .clientAuth(sslParameters.clientAuth())
                     .protocols(sslParameters.allowedProtocols().toArray(new String[0]))
-                    // TODO we always add all HTTP 2 ciphers, while maybe it is better to set them differently
-                    .ciphers(
-                        Stream.concat(
-                            Http2SecurityUtil.CIPHERS.stream(),
-                            StreamSupport.stream(sslParameters.allowedCiphers().spliterator(), false)
-                        ).collect(Collectors.toSet()),
-                        SupportedCipherSuiteFilter.INSTANCE
-                    )
+                    .ciphers(sslParameters.allowedCiphers(), SupportedCipherSuiteFilter.INSTANCE)
                     .sessionCacheSize(0)
                     .sessionTimeout(0)
                     .applicationProtocolConfig(
