@@ -62,6 +62,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.RestAdminRoles;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.privileges.dlsfls.DlsRequestHeadersUtil;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
@@ -96,6 +97,7 @@ public class SecurityRestFilter {
     private final Settings settings;
     private final Path configPath;
     private final CompatConfig compatConfig;
+    private final RestAdminRoles restAdminRoles;
 
     private AllowlistingSettings allowlistingSettings;
 
@@ -124,6 +126,7 @@ public class SecurityRestFilter {
         this.settings = settings;
         this.configPath = configPath;
         this.compatConfig = compatConfig;
+        this.restAdminRoles = new RestAdminRoles(settings);
         this.allowlistingSettings = new AllowlistingSettings();
     }
 
@@ -286,9 +289,21 @@ public class SecurityRestFilter {
     }
 
     /**
-     * Specialized authorization for NamedRoute APIs only.
-     * Allows extension and plugin developers to apply authorization directly to an API route, in contrast to
-     * typical OpenSearch authorization which is handled at the node-to-node layer.
+     * Authorizes REST routes without replacing authorization of the transport actions they execute.
+     *
+     * <p>An {@code ADMINISTRATIVE} route requires at least one mapped security role listed in
+     * {@code plugins.security.restapi.roles_enabled}. This is an additional gate, not a grant of action permissions:
+     * any {@link NamedRoute} permissions are checked below, and the handler's transport actions still pass through
+     * {@link SecurityFilter}. For example, Job Scheduler's list-jobs API also requires the cluster permission
+     * {@code cluster:admin/opensearch/jobscheduler/jobs/all}. The enabled role and action permission may come from
+     * different roles. Raw backend-role names do not satisfy this gate unless mapped to an enabled security role.
+     *
+     * <p>Unlike the Security management APIs, marking a plugin route administrative does not make membership in
+     * an enabled role sufficient to execute its operations. This check neither elevates the caller nor changes
+     * their thread context. Security-specific endpoint restrictions and granular {@code restapi:admin/...}
+     * permissions do not apply here. Admin-certificate requests bypass this method in the calling handler.
+     * Unmarked routes retain their existing authorization behavior.
+     *
      * @param original REST handler originating request
      * @param request security representation of request metadata
      * @param user authenticated user
@@ -299,6 +314,19 @@ public class SecurityRestFilter {
             .filter(rh -> rh.getMethod().equals(request.method()))
             .filter(rh -> restPathMatches(request.path(), rh.getPath()))
             .findFirst();
+        // Administrative metadata adds a role gate; it does not replace route or transport action permissions.
+        if (handler.isPresent()
+            && handler.get().hasProperty(RestHandler.Route.Property.ADMINISTRATIVE)
+            && !evaluator.isRestAdmin(user, restAdminRoles)) {
+            auditLog.logMissingPrivileges(request.path(), user == null ? null : user.getName(), request);
+            request.queueForSending(
+                new SecurityResponse(
+                    HttpStatus.SC_FORBIDDEN,
+                    "Administrative routes require a role listed in " + ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED
+                )
+            );
+            return;
+        }
         final boolean routeSupportsRestAuthorization = handler.isPresent() && handler.get() instanceof NamedRoute;
         if (routeSupportsRestAuthorization) {
             PrivilegesEvaluatorResponse pres;
