@@ -21,6 +21,8 @@ import org.junit.Test;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.mapper.ParsedDocument;
+import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -276,6 +278,71 @@ public class ResourcePluginInfoTests {
                 return field;
             }
         };
+    }
+
+    @Test
+    public void testProtectedIndicesWhenTheSettingIsWiredAfterRegistration() {
+        // The plugin registers extensions before it wires the setting, so the snapshot has to be built on both paths
+        registerProvidersOnOwnIndices(List.of("monitor", "detector"));
+        resourcePluginInfo.setProtectedTypesSetting(new MutableProtectedTypes(List.of("monitor")));
+
+        assertEquals(Set.of("index-monitor"), resourcePluginInfo.getResourceIndicesForProtectedTypes());
+    }
+
+    @Test
+    public void testProtectedIndicesWhenTheSettingIsWiredBeforeRegistration() {
+        resourcePluginInfo.setProtectedTypesSetting(new MutableProtectedTypes(List.of("monitor")));
+        registerProvidersOnOwnIndices(List.of("monitor", "detector"));
+
+        assertEquals(Set.of("index-monitor"), resourcePluginInfo.getResourceIndicesForProtectedTypes());
+    }
+
+    @Test
+    public void testProtectedIndicesFollowAProtectedTypesUpdate() {
+        registerProvidersOnOwnIndices(List.of("monitor", "detector"));
+        MutableProtectedTypes setting = new MutableProtectedTypes(List.of("monitor"));
+        resourcePluginInfo.setProtectedTypesSetting(setting);
+        assertEquals(Set.of("index-monitor"), resourcePluginInfo.getResourceIndicesForProtectedTypes());
+
+        // The plugin's settings listener records the new value and then rebuilds the registry, so drive both
+        applyProtectedTypes(setting, List.of("monitor", "detector"));
+        assertEquals(Set.of("index-monitor", "index-detector"), resourcePluginInfo.getResourceIndicesForProtectedTypes());
+
+        applyProtectedTypes(setting, List.of("detector"));
+        assertEquals(Set.of("index-detector"), resourcePluginInfo.getResourceIndicesForProtectedTypes());
+
+        applyProtectedTypes(setting, List.of());
+        assertTrue(resourcePluginInfo.getResourceIndicesForProtectedTypes().isEmpty());
+    }
+
+    private void applyProtectedTypes(MutableProtectedTypes setting, List<String> types) {
+        setting.set(types);
+        resourcePluginInfo.updateProtectedTypes(types);
+    }
+
+    @Test
+    public void testProtectedIndicesEmptyWithNoProtectedTypes() {
+        registerProvidersOnOwnIndices(List.of("monitor"));
+        assertTrue(resourcePluginInfo.getResourceIndicesForProtectedTypes().isEmpty());
+
+        resourcePluginInfo.setProtectedTypesSetting(new MutableProtectedTypes(List.of()));
+        assertTrue(resourcePluginInfo.getResourceIndicesForProtectedTypes().isEmpty());
+    }
+
+    /** Registers one provider per type, each on its own {@code index-<type>}. */
+    private void registerProvidersOnOwnIndices(List<String> types) {
+        registerExtension(types.stream().map(type -> provider(type, "index-" + type, null)).toArray(ResourceProvider[]::new));
+    }
+
+    /** Stands in for the protected-types cluster setting, so a test can change its value the way the listener does. */
+    private static class MutableProtectedTypes extends OpensearchDynamicSetting<List<String>> {
+        MutableProtectedTypes(List<String> types) {
+            super(ResourceSharingProtectedResourcesSetting.PROTECTED_TYPES, types);
+        }
+
+        void set(List<String> types) {
+            setDynamicSettingValue(types);
+        }
     }
 
     private void registerProviders(List<String> types, String indexName, String sharedTypeField) {
