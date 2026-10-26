@@ -63,6 +63,43 @@ public class SNISettingTLSSocketFactoryTest {
     }
 
     @Test
+    public void configureSocket_skipsSniForIpv6Address() throws Exception {
+        for (String ipv6 : List.of("::1", "[::1]", "[2001:db8::10]")) {
+            SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
+            SNISettingTLSSocketFactory.configure(ipv6);
+
+            factory.configureSocket(socket);
+
+            assertNull(ipv6, socket.getSSLParameters().getServerNames());
+        }
+    }
+
+    @Test
+    public void configureSocket_stripsTrailingDot() throws Exception {
+        SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
+        SNISettingTLSSocketFactory.configure("ldap.example.com.");
+
+        factory.configureSocket(socket);
+
+        List<SNIServerName> serverNames = socket.getSSLParameters().getServerNames();
+        assertEquals(1, serverNames.size());
+        assertEquals("ldap.example.com", ((SNIHostName) serverNames.get(0)).getAsciiName());
+    }
+
+    @Test
+    public void configureSocket_setsSniForSingleLabelHost() throws Exception {
+        // Unlike SunJSSE's own SNI handling: BCJSSE needs the name for endpoint identification.
+        SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
+        SNISettingTLSSocketFactory.configure("localhost");
+
+        factory.configureSocket(socket);
+
+        List<SNIServerName> serverNames = socket.getSSLParameters().getServerNames();
+        assertEquals(1, serverNames.size());
+        assertEquals("localhost", ((SNIHostName) serverNames.get(0)).getAsciiName());
+    }
+
+    @Test
     public void configureSocket_skipsWhenNoHostname() throws Exception {
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
 

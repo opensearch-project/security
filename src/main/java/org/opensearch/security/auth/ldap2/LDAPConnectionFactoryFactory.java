@@ -356,11 +356,11 @@ public class LDAPConnectionFactoryFactory {
             ldaptiveSslConfig.setTrustManagers(new AllowAnyTrustManager());
         } else {
             try {
-                TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 tmf.init(this.sslConfig.getEffectiveTruststore());
                 ldaptiveSslConfig.setTrustManagers(tmf.getTrustManagers()[0]);
             } catch (GeneralSecurityException e) {
-                throw new IllegalStateException("Failed to initialize PKIX TrustManager for LDAPS", e);
+                throw new IllegalStateException("Failed to initialize TrustManager for LDAPS", e);
             }
         }
 

@@ -37,7 +37,7 @@ public final class SocketFactoryClassLoader extends ClassLoader {
         if (SNISettingTLSSocketFactory.class.getName().equals(name)) {
             return SNISettingTLSSocketFactory.class;
         }
-        if (ThreadLocalTLSSocketFactory.class.getName().equalsIgnoreCase(name)) {
+        if (ThreadLocalTLSSocketFactory.class.getName().equals(name)) {
             return ThreadLocalTLSSocketFactory.class;
         }
         return super.loadClass(name);

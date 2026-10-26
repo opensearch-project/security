@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
@@ -116,12 +117,12 @@ final class LdapServer {
 
         String serverKeyStorePath = FileHelper.resolveStore("ldap/node-0-keystore").path().toFile().getAbsolutePath();
 
-        KeyStore trustStore = FileHelper.getKeystoreFromClassPath("ldap/truststore", "changeit");
+        KeyStore trustStore = FileHelper.getKeystoreFromClassPath("ldap/truststore", SSLConfigConstants.DEFAULT_STORE_PASSWORD);
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
 
         final SSLUtil serverSSLUtil = new SSLUtil(
-            new KeyStoreKeyManager(serverKeyStorePath, "changeit".toCharArray()),
+            new KeyStoreKeyManager(serverKeyStorePath, SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray()),
             tmf.getTrustManagers()[0]
         );
 

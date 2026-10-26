@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
@@ -93,6 +94,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private static final String COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION =
         "com.sun.jndi.ldap.object.disableEndpointIdentification";
     private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.copyOf(SSLConfigConstants.ALLOWED_SSL_PROTOCOLS);
+    private static final String PEM_IN_MEMORY_STORE_ALIAS = "al";
     static final int ONE_PLACEHOLDER = 1;
     static final int TWO_PLACEHOLDER = 2;
     static final String DEFAULT_ROLEBASE = "";
@@ -208,25 +210,23 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
 
-            String sniHostname = null;
+            Supplier<SNISettingTLSSocketFactory.SniContext> sniContext = () -> null;
             if (config.getLdapUrl() != null && config.getLdapUrl().startsWith("ldaps:")) {
                 configureSNISocketFactory(connFactory);
                 String ldapUrl = config.getLdapUrl();
                 try {
-                    sniHostname = new URI(ldapUrl).getHost();
+                    final String sniHostname = new URI(ldapUrl).getHost();
                     if (StringUtils.isBlank(sniHostname)) {
                         log.warn("Could not extract hostname from LDAP URL '{}'; proceeding without SNI configuration", ldapUrl);
+                    } else {
+                        sniContext = () -> SNISettingTLSSocketFactory.configure(sniHostname);
                     }
                 } catch (URISyntaxException e) {
                     log.warn("Malformed LDAP URL '{}'; proceeding without SNI configuration: {}", ldapUrl, e.getMessage());
                 }
             }
 
-            try (
-                SNISettingTLSSocketFactory.SniContext ignored = StringUtils.isBlank(sniHostname)
-                    ? null
-                    : SNISettingTLSSocketFactory.configure(sniHostname)
-            ) {
+            try (SNISettingTLSSocketFactory.SniContext ignored = sniContext.get()) {
                 connection = connFactory.getConnection();
                 connection.open();
             }
@@ -499,11 +499,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static boolean shouldVerifyHostname(SslConfig sslConf) {
-        return sslConf != null && !(sslConf.getHostnameVerifier() instanceof AllowAnyHostnameVerifier);
-    }
-
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static void configureSNISocketFactory(DefaultConnectionFactory connFactory) {
         Map<String, Object> props = new HashMap<>();
@@ -578,10 +573,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     );
                 }
 
-                final KeyStore pemTruststore = PemKeyReader.toTruststore("al", trustCertificates);
+                final KeyStore pemTruststore = PemKeyReader.toTruststore(PEM_IN_MEMORY_STORE_ALIAS, trustCertificates);
                 final char[] pemInMemoryPassword = SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray();
                 final KeyStore pemKeystore = PemKeyReader.toKeystore(
-                    "al",
+                    PEM_IN_MEMORY_STORE_ALIAS,
                     pemInMemoryPassword,
                     authenticationCertificate != null ? new X509Certificate[] { authenticationCertificate } : null,
                     authenticationKey

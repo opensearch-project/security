@@ -165,15 +165,41 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
         }
 
         SSLParameters params = sslSocket.getSSLParameters();
-        if (!IPAddress.isValid(hostname)) {
-            log.debug("Configuring SNI for hostname: {} on socket: {}", hostname, socket.getClass().getName());
-            params.setServerNames(Collections.singletonList(new SNIHostName(hostname)));
+        String sniName = toSniName(hostname);
+        if (sniName != null) {
+            log.debug("Configuring SNI for hostname: {} on socket: {}", sniName, socket.getClass().getName());
+            params.setServerNames(Collections.singletonList(new SNIHostName(sniName)));
         }
 
         sslSocket.setSSLParameters(params);
         log.debug("Successfully configured socket for: {}", hostname);
 
         return socket;
+    }
+
+    /**
+     * Normalizes a configured LDAP host into an SNI {@code HostName}, following RFC 6066 section 3
+     * and the JDK's own handling: literal IPv4/IPv6 addresses (including bracketed IPv6 as returned
+     * by {@link java.net.URI#getHost()}) are not permitted and yield {@code null} (no SNI), and a
+     * trailing dot of a fully qualified name is dropped.
+     *
+     * <p>Unlike SunJSSE, single-label names (e.g. {@code localhost}) are kept and invalid names fail
+     * loudly in {@link SNIHostName}, because under BCJSSE the SNI value is also the hostname used for
+     * endpoint identification. The same rules apply under SunJSSE, so behaviour does not depend on the
+     * provider.
+     */
+    static String toSniName(String hostname) {
+        String name = hostname;
+        if (name.startsWith("[") && name.endsWith("]")) {
+            name = name.substring(1, name.length() - 1);
+        }
+        if (IPAddress.isValid(name)) {
+            return null;
+        }
+        if (name.endsWith(".")) {
+            name = name.substring(0, name.length() - 1);
+        }
+        return name;
     }
 
 }
