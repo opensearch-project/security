@@ -349,7 +349,7 @@ public class SecurityRestFilter {
                 String err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 log.debug(err);
 
-                request.queueForSending(new SecurityResponse(HttpStatus.SC_UNAUTHORIZED, err));
+                request.queueForSending(new SecurityResponse(HttpStatus.SC_FORBIDDEN, err));
             }
         }
     }
