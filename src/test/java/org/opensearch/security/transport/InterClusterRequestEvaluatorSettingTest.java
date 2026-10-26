@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -32,20 +33,9 @@ import static org.junit.Assert.assertThrows;
  */
 public class InterClusterRequestEvaluatorSettingTest {
 
-    /** Rebuilds the same Setting instance as OpenSearchSecurityPlugin registers, for isolated validation. */
+    /** The setting instance OpenSearchSecurityPlugin registers. */
     private static Setting<String> newSetting() {
-        return Setting.simpleString(
-            ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR,
-            ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT,
-            value -> {
-                if (!ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT.equals(value)
-                    && !ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_OID.equals(value)) {
-                    throw new IllegalArgumentException("Unknown value '" + value + "'");
-                }
-            },
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered
-        );
+        return SecuritySettings.INTERCLUSTER_REQUEST_EVALUATOR;
     }
 
     @Test
