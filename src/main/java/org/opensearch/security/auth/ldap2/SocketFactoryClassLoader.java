@@ -24,6 +24,10 @@ import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
  */
 public final class SocketFactoryClassLoader extends ClassLoader {
 
+    // Matched as string literals so a lookup for any other class never touches the factory class literals.
+    static final String SNI_SETTING_TLS_SOCKET_FACTORY = "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory";
+    static final String THREAD_LOCAL_TLS_SOCKET_FACTORY = "org.ldaptive.ssl.ThreadLocalTLSSocketFactory";
+
     public SocketFactoryClassLoader() {
         super();
     }
@@ -34,12 +38,10 @@ public final class SocketFactoryClassLoader extends ClassLoader {
 
     @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException {
-        if (SNISettingTLSSocketFactory.class.getName().equals(name)) {
-            return SNISettingTLSSocketFactory.class;
-        }
-        if (ThreadLocalTLSSocketFactory.class.getName().equals(name)) {
-            return ThreadLocalTLSSocketFactory.class;
-        }
-        return super.loadClass(name);
+        return switch (name) {
+            case SNI_SETTING_TLS_SOCKET_FACTORY -> SNISettingTLSSocketFactory.class;
+            case THREAD_LOCAL_TLS_SOCKET_FACTORY -> ThreadLocalTLSSocketFactory.class;
+            default -> super.loadClass(name);
+        };
     }
 }

@@ -74,4 +74,10 @@ public class LDAPConnectionFactoryFactoryClassLoaderTest {
         ClassLoader loader = new SocketFactoryClassLoader();
         assertThat(loader.loadClass(SNI_FACTORY), is(sameInstance(SNISettingTLSSocketFactory.class)));
     }
+
+    @Test
+    public void factoryNameConstants_matchClassNames() {
+        assertThat(SocketFactoryClassLoader.SNI_SETTING_TLS_SOCKET_FACTORY, is(SNISettingTLSSocketFactory.class.getName()));
+        assertThat(SocketFactoryClassLoader.THREAD_LOCAL_TLS_SOCKET_FACTORY, is(ThreadLocalTLSSocketFactory.class.getName()));
+    }
 }
