@@ -58,6 +58,7 @@ public final class AuthCredentials {
     private final byte[] internalPasswordHash;
     private final Map<String, String> attributes = new HashMap<>();
     private final boolean rejected;
+    private final String attemptedPrincipal;
     private final AuthenticationFailureReason failureReason;
 
     /**
@@ -148,6 +149,7 @@ public final class AuthCredentials {
         }
 
         this.rejected = false;
+        this.attemptedPrincipal = null;
         this.failureReason = null;
     }
 
@@ -167,7 +169,9 @@ public final class AuthCredentials {
             throw new IllegalArgumentException("failureReason must not be null");
         }
 
-        this.username = attemptedPrincipal;
+        // No username: a rejected subject must never be mistaken for an identity, e.g. as the effective user of an audit event
+        this.username = null;
+        this.attemptedPrincipal = attemptedPrincipal;
         this.password = null;
         this.nativeCredentials = null;
         this.internalPasswordHash = null;
@@ -317,7 +321,7 @@ public final class AuthCredentials {
      *         {@link #isRejected()} is {@code false}.
      */
     public String getAttemptedPrincipal() {
-        return rejected ? username : null;
+        return attemptedPrincipal;
     }
 
     /**

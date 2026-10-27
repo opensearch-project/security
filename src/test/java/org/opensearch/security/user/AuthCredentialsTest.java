@@ -40,9 +40,8 @@ public class AuthCredentialsTest {
         assertFalse(creds.isComplete());
         assertThat(creds.getAttemptedPrincipal(), is("plugin:reserved-subject"));
         assertThat(creds.getFailureReason(), is(AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX));
-        // getUsername() returns the attempted principal so downstream code that logs the
-        // username at MDC (e.g. BackendRegistry ThreadContext) does not observe null.
-        assertThat(creds.getUsername(), is("plugin:reserved-subject"));
+        // The rejected subject is only available as the attempted principal, never as an identity
+        assertThat(creds.getUsername(), is(nullValue()));
     }
 
     @Test

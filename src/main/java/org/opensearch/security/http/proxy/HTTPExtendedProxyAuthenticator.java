@@ -56,8 +56,8 @@ public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator {
     @Override
     public AuthCredentials extractCredentials(final SecurityRequest request, final ThreadContext context) {
         AuthCredentials credentials = super.extractCredentials(request, context);
-        if (credentials == null) {
-            return null;
+        if (credentials == null || credentials.isRejected()) {
+            return credentials;
         }
 
         String attrHeaderPrefix = settings.get("attr_header_prefix");
