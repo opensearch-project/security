@@ -281,7 +281,12 @@ public final class AuditMessage {
         if (value.length() <= maxLength) {
             return value;
         }
-        return value.substring(0, maxLength - TRUNCATION_MARKER.length()) + TRUNCATION_MARKER;
+        int end = maxLength - TRUNCATION_MARKER.length();
+        // Don't split a surrogate pair
+        if (Character.isHighSurrogate(value.charAt(end - 1))) {
+            end--;
+        }
+        return value.substring(0, end) + TRUNCATION_MARKER;
     }
 
     public void addTenant(String tenant) {

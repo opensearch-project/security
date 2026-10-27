@@ -356,9 +356,42 @@ public class BackendRegistryTest {
         verify(auditLog, never()).logFailedLogin(any(), anyBoolean(), any(), any(), any(), any());
     }
 
+    @Test
+    public void testRejectedCredentialWithoutAuthorizationHeaderDoesNotBlockClientAddress() throws Exception {
+        // A proxy user header is set by the trusted proxy, so counting it would block the proxy's address for every client
+        configureAuthDomains(rejectedSubjectAuthDomain(rejectingBackend(), false, 1));
+
+        TestSecurityRequestChannel request = new TestSecurityRequestChannel(Map.of("x-proxy-user", REJECTED_SUBJECT));
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("A rejected subject must not authenticate", authenticated);
+        verify(auditLog).logFailedLogin(isNull(), eq(false), isNull(), same(request), eq(REJECTED_SUBJECT), eq(REJECTED_REASON));
+        assertFalse(
+            "A rejected credential without an Authorization header must not block the address",
+            ipRateLimiter.isBlocked(CLIENT_ADDRESS)
+        );
+    }
+
+    @Test
+    public void testRejectedCredentialOnChallengingDomainStillAllowsAnonymousLogin() throws Exception {
+        // Matches the handling of a request without credentials when anonymous authentication is enabled
+        configureAuthDomains(true, rejectedSubjectAuthDomain(rejectingBackend(), true, 1));
+
+        TestSecurityRequestChannel request = new TestSecurityRequestChannel(Map.of("x-proxy-user", REJECTED_SUBJECT));
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertTrue("An anonymous login request should still be authenticated as anonymous", authenticated);
+        assertFalse("No challenge should be sent", request.getQueuedResponse().isPresent());
+        verify(auditLog, never()).logFailedLogin(any(), anyBoolean(), any(), any(), any(), any());
+    }
+
     private void configureAuthDomains(AuthDomain... authDomains) {
+        configureAuthDomains(false, authDomains);
+    }
+
+    private void configureAuthDomains(boolean anonymousAuthEnabled, AuthDomain... authDomains) {
         DynamicConfigModel dcm = mock(DynamicConfigModel.class);
-        when(dcm.isAnonymousAuthenticationEnabled()).thenReturn(false);
+        when(dcm.isAnonymousAuthenticationEnabled()).thenReturn(anonymousAuthEnabled);
         when(dcm.getRestAuthDomains()).thenReturn(new TreeSet<>(List.of(authDomains)));
         when(dcm.getRestAuthorizers()).thenReturn(Collections.emptySet());
         when(dcm.getIpAuthFailureListeners()).thenReturn(List.of(ipRateLimiter));

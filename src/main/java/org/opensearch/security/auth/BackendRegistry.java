@@ -358,6 +358,10 @@ public class BackendRegistry {
                 if (firstRejectedCredentials == null) {
                     firstRejectedCredentials = ac;
                 }
+                // Same as a request without credentials: an anonymous login request is not challenged here
+                if (!gRPC && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
+                    continue;
+                }
                 if (authDomain.isChallenge()) {
                     final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
                     if (restResponse.isPresent()) {
@@ -366,7 +370,7 @@ public class BackendRegistry {
                             request,
                             firstRejectedCredentials
                         );
-                        notifyIpAuthFailureListeners(request, authCredentials == null ? firstRejectedCredentials : authCredentials);
+                        notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());
                         return false;
                     }
@@ -426,7 +430,7 @@ public class BackendRegistry {
                         if (authenticatorType.equals(BASIC_TYPE)) {
                             log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
-                        notifyIpAuthFailureListeners(request, authCredentials == null ? firstRejectedCredentials : authCredentials);
+                        notifyIpAuthFailureListeners(request, authCredentials);
                         request.queueForSending(restResponse.get());
                         return false;
                     }
@@ -592,7 +596,7 @@ public class BackendRegistry {
             );
             logFailedLogin(authCredentials == null ? null : authCredentials.getUsername(), request, firstRejectedCredentials);
 
-            notifyIpAuthFailureListeners(request, authCredentials == null ? firstRejectedCredentials : authCredentials);
+            notifyIpAuthFailureListeners(request, authCredentials);
 
             request.queueForSending(
                 challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"))

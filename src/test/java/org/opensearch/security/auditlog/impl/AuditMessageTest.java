@@ -743,6 +743,18 @@ public class AuditMessageTest {
     }
 
     @Test
+    public void testAddAttemptedUserTruncationDoesNotSplitSurrogatePair() {
+        // Place a supplementary character so that its high surrogate would be the last kept char
+        final int keep = AuditMessage.MAX_ATTEMPTED_USER_LENGTH - "...".length();
+        final String value = "x".repeat(keep - 1) + "😀" + "x".repeat(50);
+
+        message.addAttemptedUser(value);
+
+        final String recorded = (String) message.getAsMap().get(AuditMessage.REQUEST_ATTEMPTED_USER);
+        assertThat(recorded, is("x".repeat(keep - 1) + "..."));
+    }
+
+    @Test
     public void testAddAttemptedUserAtMaxLengthIsNotTruncated() {
         final String exact = "x".repeat(AuditMessage.MAX_ATTEMPTED_USER_LENGTH);
 
