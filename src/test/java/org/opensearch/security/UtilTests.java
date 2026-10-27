@@ -34,6 +34,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
 
@@ -53,7 +54,7 @@ public class UtilTests {
     }
 
     static private final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
     );
 
     @Test
@@ -156,7 +157,7 @@ public class UtilTests {
 
     @Test
     public void testEnvReplacePBKDF2() {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.PBKDF2).build();
+        Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.PBKDF2).build();
         final PasswordHasher passwordHasherPBKDF2 = PasswordHasherFactory.createPasswordHasher(settings);
         assertThat(SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings), is("abv${env.MYENV}xyz"));
         assertThat(SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings), is("abv${envbc.MYENV}xyz"));
@@ -224,5 +225,12 @@ public class UtilTests {
                 is("abv${env." + k + ":-k182765ggh}xyz")
             );
         }
+    }
+
+    @Test
+    public void testEnvReplaceFollowsSettingDefault() {
+        final String expression = "abv${env.MYENV:-tTt}xyz";
+        final boolean disabledByDefault = SecuritySettings.DISABLE_ENVVAR_REPLACEMENT_SETTING.getDefault(Settings.EMPTY);
+        assertThat(SecurityUtils.replaceEnvVars(expression, Settings.EMPTY), is(disabledByDefault ? expression : "abvtTtxyz"));
     }
 }

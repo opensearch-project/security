@@ -92,6 +92,7 @@ public final class AuditMessage {
     public static final String CATEGORY = "audit_category";
     public static final String REQUEST_EFFECTIVE_USER = "audit_request_effective_user";
     public static final String REQUEST_INITIATING_USER = "audit_request_initiating_user";
+    public static final String REQUEST_TENANT = "audit_request_tenant";
     public static final String UTC_TIMESTAMP = "@timestamp";
 
     public static final String CLUSTER_NAME = "audit_cluster_name";
@@ -281,6 +282,12 @@ public final class AuditMessage {
             return value;
         }
         return value.substring(0, maxLength - TRUNCATION_MARKER.length()) + TRUNCATION_MARKER;
+    }
+
+    public void addTenant(String tenant) {
+        if (tenant != null && !tenant.isEmpty()) {
+            auditInfo.put(REQUEST_TENANT, tenant);
+        }
     }
 
     public void addPath(String path) {

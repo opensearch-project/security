@@ -370,8 +370,12 @@ public class BackendRegistry {
             Anonymous users are handled later outside of auth domain loop if no other user is authenticated.
             2. If auth domain is challenging and no credentials are found -> present challenge.
             SAML and basic auth for example redirect/re-request credentials from clients.
+
+            Retain credentials extracted by an earlier auth domain. In a SAML and Basic chain, Basic can reject the
+            credentials before HTTPSamlAuthenticator.extractCredentials() returns null because the request contains Basic
+            credentials. SAML still requires challenge: true in the current reRequestAuthentication flow so it can issue its
+            redirect; retaining the rejected credentials lets that challenge path audit the actual username.
              */
-            authCredentials = ac;
             if (ac != null && ac.isRejected()) {
                 /*
                 A candidate credential was presented but the authenticator refused it
@@ -407,8 +411,10 @@ public class BackendRegistry {
                 }
                 // Non-challenging authenticator (or no challenge produced): treat like
                 // an absent credential and continue with the next configured auth domain.
-                authCredentials = null;
                 continue;
+            }
+            if (ac != null) {
+                authCredentials = ac;
             }
             if (ac == null) {
                 // no credentials found in request
@@ -419,11 +425,17 @@ public class BackendRegistry {
                 if (authDomain.isChallenge()) {
                     final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
                     if (restResponse.isPresent()) {
+                        final String authenticatorType = authDomain.getHttpAuthenticator().getType();
                         // saml will always hit this to re-request authentication
-                        if (!authDomain.getHttpAuthenticator().getType().equals(SAML_TYPE)) {
-                            auditLog.logFailedLogin("<NONE>", false, null, request);
+                        if (!authenticatorType.equals(SAML_TYPE) || authCredentials != null) {
+                            auditLog.logFailedLogin(
+                                authCredentials == null ? "<NONE>" : authCredentials.getUsername(),
+                                false,
+                                null,
+                                request
+                            );
                         }
-                        if (authDomain.getHttpAuthenticator().getType().equals(BASIC_TYPE)) {
+                        if (authenticatorType.equals(BASIC_TYPE)) {
                             log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
                         notifyIpAuthFailureListeners(request, authCredentials);
@@ -701,6 +713,11 @@ public class BackendRegistry {
     }
 
     private void notifyIpAuthFailureListeners(SecurityRequestChannel request, AuthCredentials authCredentials) {
+        // A request without credentials cannot guess any, and counting it lets unauthenticated traffic block a shared address.
+        // The header check keeps counting a token that its authenticator rejects during extraction, such as an invalid JWT.
+        if (authCredentials == null && request.header(HttpHeaders.AUTHORIZATION) == null) {
+            return;
+        }
         notifyIpAuthFailureListeners(request.getRemoteAddress().map(InetSocketAddress::getAddress).orElse(null), authCredentials, request);
     }
 

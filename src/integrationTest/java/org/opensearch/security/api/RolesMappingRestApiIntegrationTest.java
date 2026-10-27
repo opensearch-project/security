@@ -25,6 +25,7 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
@@ -38,7 +39,6 @@ import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.removeOp;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.test.framework.TestSecurityConfig.Role;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
@@ -498,6 +498,31 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         assertThat(client.delete(apiPath(REST_ADMIN_ROLE_WITH_MAPPING)), isForbidden());
     }
 
+    @Override
+    void verifySuperAdminCanCreateEntityWithRestAdminPermissions(TestRestClient client) throws Exception {
+        final var users = arrayOptions(false).get(0);
+        assertThat(client.putJson(apiPath(REST_ADMIN_ROLE), roleMappingWithUsers(users)), isCreated());
+        assertThat(client.patch(apiPath(), patch(replaceOp(REST_ADMIN_ROLE, roleMappingWithUsers(users)))), isOk());
+    }
+
+    @Override
+    void verifySuperAdminCanUpdateAndDeleteEntityWithRestAdminPermissions(TestRestClient client) throws Exception {
+        final var users = arrayOptions(false).get(0);
+        assertThat(client.putJson(apiPath(REST_ADMIN_ROLE_WITH_MAPPING), roleMapping(users, users, users, users)), isOk());
+        assertThat(
+            client.patch(apiPath(), patch(replaceOp(REST_ADMIN_ROLE_WITH_MAPPING, roleMapping(users, users, users, users)))),
+            isOk()
+        );
+        assertThat(client.patch(apiPath(REST_ADMIN_ROLE_WITH_MAPPING), patch(replaceOp("users", users))), isOk());
+        assertThat(
+            client.putJson(
+                apiPath(REST_ADMIN_ROLE_WITH_MAPPING),
+                roleMapping(configJsonArray(), configJsonArray(), configJsonArray(), configJsonArray())
+            ),
+            isOk()
+        );
+    }
+
     List<String> jsonProperties() {
         return List.of("backend_roles", "hosts", "users", "and_backend_roles");
     }
@@ -515,7 +540,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
             if (reserved != null) {
                 builder.field("reserved", reserved);
             }
-            builder.field("cluster_permissions", configJsonArray("a", "b"));
+            builder.field("cluster_permissions", configJsonArray("cluster:monitor/health", "cluster:monitor/state"));
             return builder.endObject();
         };
     }

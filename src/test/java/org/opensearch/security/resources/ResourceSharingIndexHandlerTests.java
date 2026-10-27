@@ -9,15 +9,22 @@
 package org.opensearch.security.resources;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.OpenSearchStatusException;
+import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
@@ -31,16 +38,23 @@ import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.AbstractRunnable;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.core.index.Index;
 import org.opensearch.core.index.shard.ShardId;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.get.GetResult;
+import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.security.resources.sharing.ResourceSharing;
@@ -48,14 +62,19 @@ import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 
+import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -69,13 +88,17 @@ import static org.mockito.Mockito.when;
  * {@link ResourceSharingIndexHandler#fetchSharingInfoForIds} and
  * {@link ResourceSharingIndexHandler#reconcileWorkspaces}.
  */
+@SuppressWarnings("unchecked") // action listener mocks
 public class ResourceSharingIndexHandlerTests {
 
     private static final String RESOURCE_INDEX = "test-index";
+    private static final long RESOURCE_DOC_SEQ_NO = 7L;
 
     private Client client;
     private ThreadPool threadPool;
     private ResourceSharingIndexHandler handler;
+    // The resource document's current version, as the stubbed engine sees it
+    private final AtomicLong resourceSeqNo = new AtomicLong(RESOURCE_DOC_SEQ_NO);
 
     @Before
     public void setUp() {
@@ -90,19 +113,7 @@ public class ResourceSharingIndexHandlerTests {
     private void stubRecordGet(boolean exists, String recordJson) {
         doAnswer(inv -> {
             ActionListener<GetResponse> l = inv.getArgument(1);
-            GetResult getResult = mock(GetResult.class);
-            when(getResult.getId()).thenReturn("res-1");
-            when(getResult.isExists()).thenReturn(exists);
-            if (exists) {
-                byte[] bytes = recordJson.getBytes(StandardCharsets.UTF_8);
-                BytesArray source = new BytesArray(bytes, 0, bytes.length);
-                when(getResult.sourceRef()).thenReturn(source);
-                when(getResult.sourceAsString()).thenReturn(recordJson);
-                when(getResult.sourceAsMap()).thenReturn(XContentHelper.convertToMap(source, false, XContentType.JSON).v2());
-                when(getResult.getSeqNo()).thenReturn(1L);
-                when(getResult.getPrimaryTerm()).thenReturn(1L);
-            }
-            l.onResponse(new GetResponse(getResult));
+            l.onResponse(new GetResponse(exists ? getResult(recordJson, 1L) : missingResult()));
             return null;
         }).when(client).get(any(GetRequest.class), any());
     }
@@ -118,16 +129,92 @@ public class ResourceSharingIndexHandlerTests {
     }
 
     private void stubUpdateSucceeds() {
+        stubUpdate(l -> l.onResponse(mock(UpdateResponse.class)));
+    }
+
+    private void stubUpdate(Consumer<ActionListener<UpdateResponse>> outcome) {
         // The update paths use the fluent client.prepareUpdate(idx,id).setRefreshPolicy(..).setDoc(..).request()
         // builder; RETURNS_SELF makes every builder call return the same mock, and request() yields a mock request.
-        UpdateRequestBuilder builder = mock(UpdateRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
-        when(builder.request()).thenReturn(mock(UpdateRequest.class));
-        when(client.prepareUpdate(anyString(), anyString())).thenReturn(builder);
+        stubUpdateBuilder();
         doAnswer(inv -> {
-            ActionListener<UpdateResponse> l = inv.getArgument(1);
-            l.onResponse(mock(UpdateResponse.class));
+            outcome.accept(inv.getArgument(1));
             return null;
         }).when(client).update(any(UpdateRequest.class), any());
+    }
+
+    private void stubIndexSucceeds() {
+        IndexRequestBuilder builder = mock(IndexRequestBuilder.class, Answers.RETURNS_SELF);
+        when(builder.request()).thenReturn(mock(IndexRequest.class));
+        when(client.prepareIndex(anyString())).thenReturn(builder);
+        doAnswer(inv -> {
+            ActionListener<IndexResponse> l = inv.getArgument(1);
+            l.onResponse(mock(IndexResponse.class));
+            return null;
+        }).when(client).index(any(IndexRequest.class), any());
+    }
+
+    private void stubUpdateFails() {
+        stubUpdate(l -> l.onFailure(new IllegalStateException("visibility write rejected")));
+    }
+
+    // ---------- visibility update failures --------------------------------------------------------
+
+    /** Asserts the listener failed because of the visibility write, not because an earlier step failed. */
+    private static void assertVisibilityWriteFailure(ActionListener<?> listener) {
+        ArgumentCaptor<Exception> failure = ArgumentCaptor.forClass(Exception.class);
+        verify(listener).onFailure(failure.capture());
+        assertTrue(failure.getValue() instanceof OpenSearchStatusException);
+        assertEquals("visibility write rejected", failure.getValue().getCause().getMessage());
+    }
+
+    @Test
+    public void shareReportsAFailedVisibilityUpdate() {
+        stubRecordGet(true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
+        stubIndexSucceeds();
+        stubUpdateFails();
+
+        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
+        handler.share(
+            "res-1",
+            RESOURCE_INDEX,
+            new ShareWith(Map.of("read_only", new Recipients(Map.of(Recipient.USERS, Set.of("bob"))))),
+            listener
+        );
+
+        // The record was written but the field it projects to was not, so the caller must not see success
+        verify(listener, never()).onResponse(any());
+        verify(client).index(any(IndexRequest.class), any());
+        assertVisibilityWriteFailure(listener);
+    }
+
+    @Test
+    public void createReportsAFailedVisibilityUpdate() throws Exception {
+        stubRecordGet(true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
+        stubIndexSucceeds();
+        stubUpdateFails();
+
+        ActionListener<ResourceSharing> listener = mock(ActionListener.class);
+        handler.indexResourceSharing(
+            RESOURCE_INDEX,
+            ResourceSharing.builder().resourceId("res-1").resourceType("test").createdBy(new CreatedBy("alice")).build(),
+            listener
+        );
+
+        verify(listener, never()).onResponse(any());
+        verify(client).index(any(IndexRequest.class), any());
+        assertVisibilityWriteFailure(listener);
+    }
+
+    @Test
+    public void restoreReportsAFailedVisibilityUpdate() {
+        stubRecordGet(true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
+        stubUpdateFails();
+
+        ActionListener<Void> listener = mock(ActionListener.class);
+        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, listener);
+
+        verify(listener, never()).onResponse(any());
+        assertVisibilityWriteFailure(listener);
     }
 
     // ---------- fetchSharingInfoForIds -------------------------------------------------------------
@@ -278,7 +365,7 @@ public class ResourceSharingIndexHandlerTests {
             return null;
         }).when(client).get(any(GetRequest.class), any());
 
-        IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, Answers.RETURNS_SELF);
         when(indexBuilder.request()).thenReturn(mock(IndexRequest.class));
         when(client.prepareIndex(anyString())).thenReturn(indexBuilder);
         AtomicInteger indexCount = new AtomicInteger();
@@ -292,13 +379,14 @@ public class ResourceSharingIndexHandlerTests {
             }
             return null;
         }).when(client).index(any(IndexRequest.class), any());
-        stubUpdateSucceeds(); // updateResourceVisibility on success
+        stubUpdateSucceeds(); // the visibility sync after the record write
 
         ShareWith shareWith = new ShareWith(Map.of("read", new Recipients(Map.of(Recipient.USERS, Set.of("bob")))));
         AtomicReference<ResourceSharing> out = new AtomicReference<>();
         handler.share("res-1", RESOURCE_INDEX, shareWith, ActionListener.wrap(out::set, e -> {}));
 
-        verify(client, times(2)).get(any(GetRequest.class), any());   // re-fetched the latest on conflict
+        // Two record reads by the share (the second after the conflict) and one by the visibility sync that follows
+        verify(client, times(3)).get(argThat(r -> r != null && r.index().equals(getSharingIndex(RESOURCE_INDEX))), any());
         verify(client, times(2)).index(any(IndexRequest.class), any());
 
         // Each write's optimistic-concurrency guard came from the record fetched that attempt (stale 10, then 11).
@@ -315,5 +403,359 @@ public class ResourceSharingIndexHandlerTests {
 
         // The share completed successfully after the retry.
         assertNotNull(out.get());
+    }
+
+    // ---------- all_shared_principals stays in step with the record ---------------------------------
+
+    @Test
+    public void share_guardsTheVisibilityWriteWithTheResourceDocumentVersion() {
+        stubSharingAndResource(() -> recordJson(List.of()));
+        stubRecordIndexSucceeds();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        stubUpdates(builder, versioned -> {});
+
+        AtomicReference<ResourceSharing> shared = new AtomicReference<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(shared::set, e -> {}));
+
+        assertNotNull("the share must complete", shared.get());
+        verify(builder).setIfSeqNo(RESOURCE_DOC_SEQ_NO);
+        verify(builder).setIfPrimaryTerm(1L);
+    }
+
+    /**
+     * A competing field write that lands between this write's version read and record read must not let the older record's
+     * value land: the version has moved, so this write conflicts and retries against the newer record.
+     */
+    @Test
+    public void share_rejectsAVisibilityValueDerivedFromAnOlderRecord() throws Exception {
+        runScheduledTasksInline();
+        final String staleRecord = recordJson(List.of("alice"));
+        final String freshRecord = recordJson(List.of("alice", "bob", "carol"));
+
+        AtomicInteger recordReads = new AtomicInteger();
+        // Read 0 is the share's; read 1 is the sync's, during which a competing field write lands
+        stubSharingAndResource(() -> {
+            int n = recordReads.getAndIncrement();
+            if (n == 1) resourceSeqNo.incrementAndGet();
+            return n <= 1 ? staleRecord : freshRecord;
+        });
+        stubRecordIndexSucceeds();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, landed::add);
+
+        AtomicReference<ResourceSharing> shared = new AtomicReference<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("bob"), ActionListener.wrap(shared::set, e -> {}));
+
+        assertNotNull("the share must complete", shared.get());
+        assertEquals("exactly one write may land", 1, landed.size());
+        assertEquals(
+            "the value that landed must be derived from the newer record",
+            Set.copyOf(principalsOf(freshRecord)),
+            Set.copyOf(landed.get(0))
+        );
+    }
+
+    /**
+     * A revoke writes the record first and the field after it, and the field it writes drops the revoked principal.
+     */
+    @Test
+    public void revoke_writesTheRecordThenTheFieldWithoutTheRevokedPrincipal() {
+        AtomicInteger recordReads = new AtomicInteger();
+        stubSharingAndResource(
+            () -> recordReads.getAndIncrement() == 0 ? recordJson(List.of("alice", "bob")) : recordJson(List.of("alice"))
+        );
+        List<String> order = new ArrayList<>();
+        stubRecordIndexSucceeds(() -> order.add("record"));
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, value -> {
+            order.add("visibility");
+            landed.add(value);
+        });
+
+        AtomicReference<ResourceSharing> revoked = new AtomicReference<>();
+        handler.patchSharingInfo(
+            "res-1",
+            RESOURCE_INDEX,
+            null,
+            new ShareWith(Map.of("read_only", new Recipients(Map.of(Recipient.USERS, Set.of("bob"))))),
+            false,
+            null,
+            ActionListener.wrap(revoked::set, e -> {})
+        );
+
+        assertNotNull("the revoke must complete", revoked.get());
+        assertEquals(List.of("record", "visibility"), order);
+        assertFalse(landed.get(0).contains("user:bob"));
+        assertTrue(landed.get(0).contains("user:alice"));
+    }
+
+    @Test
+    public void share_failsOnceVisibilityRetriesAreExhausted() {
+        runScheduledTasksInline();
+        stubSharingAndResource(() -> recordJson(List.of()));
+        stubRecordIndexSucceeds();
+        stubUpdateBuilder();
+        AtomicInteger updates = new AtomicInteger();
+        stubUpdateFails(() -> {
+            updates.incrementAndGet();
+            return versionConflict();
+        });
+
+        List<Exception> failures = new ArrayList<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(r -> {}, failures::add));
+
+        assertEquals("the retry is bounded", 5, updates.get());
+        assertEquals(1, failures.size());
+        assertTrue(failures.get(0).getMessage().contains("repeating the request re-applies it"));
+    }
+
+    @Test
+    public void share_reportsAFailureToWriteVisibility() {
+        stubSharingAndResource(() -> recordJson(List.of()));
+        stubRecordIndexSucceeds();
+        stubUpdateBuilder();
+        stubUpdateFails(() -> new OpenSearchStatusException("mapping rejected the field", RestStatus.BAD_REQUEST));
+
+        AtomicReference<ResourceSharing> allowed = new AtomicReference<>();
+        List<Exception> failures = new ArrayList<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(allowed::set, failures::add));
+
+        assertNull("the share must not report success when the field was not written", allowed.get());
+        assertEquals(1, failures.size());
+        assertTrue(failures.get(0).getMessage().contains("repeating the request re-applies it"));
+    }
+
+    @Test
+    public void share_passesThroughAMissingResourceDocument() {
+        stubGets(ResourceSharingIndexHandlerTests::missingResult, () -> getResult(recordJson(List.of()), 1L));
+        stubRecordIndexSucceeds();
+
+        List<Exception> failures = new ArrayList<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(r -> {}, failures::add));
+
+        assertEquals(1, failures.size());
+        assertTrue(failures.get(0) instanceof ResourceNotFoundException);
+    }
+
+    @Test
+    public void share_failsWhenTheRecordDisappearsBeforeVisibilityIsWritten() {
+        AtomicInteger recordReads = new AtomicInteger();
+        // The share reads the record; by the time the sync reads it, it is gone
+        stubGets(this::resourceDoc, () -> recordReads.getAndIncrement() == 0 ? getResult(recordJson(List.of()), 1L) : missingResult());
+        stubRecordIndexSucceeds();
+
+        List<Exception> failures = new ArrayList<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(r -> {}, failures::add));
+
+        assertEquals(1, failures.size());
+        assertTrue(failures.get(0).getMessage().contains("Failed to update which principals"));
+    }
+
+    /**
+     * A create cannot be repeated, so its failure says how the field is restored instead of asking for a retry.
+     */
+    @Test
+    public void create_reportsAFailureToWriteVisibilityWithoutAskingForARetry() throws Exception {
+        stubSharingAndResource(() -> recordJson(List.of()));
+        stubRecordIndexSucceeds();
+        stubUpdateBuilder();
+        stubUpdateFails(() -> new OpenSearchStatusException("mapping rejected the field", RestStatus.BAD_REQUEST));
+
+        ResourceSharing created = ResourceSharing.builder().resourceId("res-1").createdBy(new CreatedBy("creator")).build();
+        List<Exception> failures = new ArrayList<>();
+        handler.indexResourceSharing(RESOURCE_INDEX, created, ActionListener.wrap(r -> {}, failures::add));
+
+        assertEquals(1, failures.size());
+        assertFalse(failures.get(0).getMessage().contains("repeating the request re-applies it"));
+        assertTrue(failures.get(0).getMessage().contains("restored on the next update"));
+    }
+
+    /**
+     * A retry the executor rejects, as it does during shutdown, fails the request rather than leaving it unanswered.
+     */
+    @Test
+    public void share_failsWhenAVisibilityRetryIsRejected() {
+        // As the executor does: an AbstractRunnable is told of the rejection, any other task is dropped without a word
+        doAnswer(inv -> {
+            if (inv.getArgument(0) instanceof AbstractRunnable task) {
+                task.onRejection(new OpenSearchRejectedExecutionException("shutting down", true));
+            }
+            return null;
+        }).when(threadPool).schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        stubSharingAndResource(() -> recordJson(List.of()));
+        stubRecordIndexSucceeds();
+        stubUpdateBuilder();
+        stubUpdateFails(ResourceSharingIndexHandlerTests::versionConflict);
+
+        List<Exception> failures = new ArrayList<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(r -> {}, failures::add));
+
+        assertEquals(1, failures.size());
+    }
+
+    /**
+     * A caller whose success handler throws is not then told the request failed.
+     */
+    @Test
+    public void share_completesTheCallerOnce() {
+        stubSharingAndResource(() -> recordJson(List.of()));
+        stubRecordIndexSucceeds();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        stubUpdates(builder, value -> {});
+
+        AtomicInteger responses = new AtomicInteger();
+        AtomicInteger failures = new AtomicInteger();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), new ActionListener<>() {
+            @Override
+            public void onResponse(ResourceSharing r) {
+                responses.incrementAndGet();
+                throw new IllegalStateException("caller failed after success");
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                failures.incrementAndGet();
+            }
+        });
+
+        assertEquals(1, responses.get());
+        assertEquals(0, failures.get());
+    }
+
+    // ---------- helpers for the visibility tests ------------------------------------------------------
+
+    /**
+     * Retries are scheduled on the generic pool. Running them inline lets a test drive the retry instead of waiting on it;
+     * left unstubbed, the mock swallows the schedule and the retry never fires.
+     */
+    private void runScheduledTasksInline() {
+        doAnswer(inv -> {
+            ((Runnable) inv.getArgument(0)).run();
+            return null;
+        }).when(threadPool).schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    private void stubRecordIndexSucceeds() {
+        stubRecordIndexSucceeds(() -> {});
+    }
+
+    private void stubRecordIndexSucceeds(Runnable onIndexed) {
+        IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        when(indexBuilder.request()).thenReturn(mock(IndexRequest.class));
+        when(client.prepareIndex(anyString())).thenReturn(indexBuilder);
+        doAnswer(inv -> {
+            onIndexed.run();
+            ActionListener<IndexResponse> l = inv.getArgument(1);
+            l.onResponse(mock(IndexResponse.class));
+            return null;
+        }).when(client).index(any(IndexRequest.class), any());
+    }
+
+    private void stubUpdateFails(Supplier<Exception> failure) {
+        doAnswer(inv -> {
+            ActionListener<UpdateResponse> l = inv.getArgument(1);
+            l.onFailure(failure.get());
+            return null;
+        }).when(client).update(any(UpdateRequest.class), any());
+    }
+
+    private static VersionConflictEngineException versionConflict() {
+        return new VersionConflictEngineException(new ShardId(RESOURCE_INDEX, "_na_", 0), "res-1", "moved on");
+    }
+
+    private static GetResult missingResult() {
+        GetResult missing = mock(GetResult.class);
+        when(missing.isExists()).thenReturn(false);
+        return missing;
+    }
+
+    private UpdateRequestBuilder stubUpdateBuilder() {
+        UpdateRequestBuilder builder = mock(UpdateRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
+        when(builder.request()).thenReturn(mock(UpdateRequest.class));
+        when(client.prepareUpdate(anyString(), anyString())).thenReturn(builder);
+        return builder;
+    }
+
+    /** Answers resource-index GETs with the document at {@link #resourceSeqNo} and sharing-index GETs with the supplied record. */
+    private void stubSharingAndResource(Supplier<String> recordSupplier) {
+        stubGets(this::resourceDoc, () -> getResult(recordSupplier.get(), 1L));
+    }
+
+    private void stubGets(Supplier<GetResult> resource, Supplier<GetResult> record) {
+        doAnswer(inv -> {
+            GetRequest request = inv.getArgument(0);
+            ActionListener<GetResponse> l = inv.getArgument(1);
+            l.onResponse(new GetResponse(request.index().equals(RESOURCE_INDEX) ? resource.get() : record.get()));
+            return null;
+        }).when(client).get(any(GetRequest.class), any());
+    }
+
+    private GetResult resourceDoc() {
+        return getResult("{\"name\":\"res\"}", resourceSeqNo.get());
+    }
+
+    /**
+     * Applies an update the way the engine does: it lands only if its {@code ifSeqNo} matches the resource document's
+     * current version, which it then advances, and is otherwise rejected with a version conflict.
+     */
+    @SuppressWarnings("unchecked")
+    private void stubUpdates(UpdateRequestBuilder builder, Consumer<List<String>> onLanded) {
+        AtomicLong ifSeqNo = new AtomicLong();
+        AtomicReference<List<String>> principals = new AtomicReference<>();
+        when(builder.setIfSeqNo(anyLong())).thenAnswer(inv -> {
+            ifSeqNo.set(inv.getArgument(0));
+            return builder;
+        });
+        when(builder.setDoc(any(Map.class))).thenAnswer(inv -> {
+            principals.set(List.copyOf((List<String>) ((Map<String, Object>) inv.getArgument(0)).get("all_shared_principals")));
+            return builder;
+        });
+        doAnswer(inv -> {
+            ActionListener<UpdateResponse> l = inv.getArgument(1);
+            if (ifSeqNo.get() != resourceSeqNo.get()) {
+                l.onFailure(versionConflict());
+                return null;
+            }
+            resourceSeqNo.incrementAndGet();
+            onLanded.accept(principals.get());
+            l.onResponse(mock(UpdateResponse.class));
+            return null;
+        }).when(client).update(any(UpdateRequest.class), any());
+    }
+
+    private ShareWith shareWith(String username) {
+        return new ShareWith(Map.of("read_only", new Recipients(Map.of(Recipient.USERS, Set.of(username)))));
+    }
+
+    private String recordJson(List<String> sharedUsers) {
+        String users = sharedUsers.stream().map(u -> "\"" + u + "\"").collect(Collectors.joining(","));
+        String shareWith = sharedUsers.isEmpty() ? "{}" : "{\"read_only\":{\"users\":[" + users + "]}}";
+        return "{\"created_by\":{\"user\":\"creator\"},\"resource_id\":\"res-1\",\"share_with\":" + shareWith + "}";
+    }
+
+    private List<String> principalsOf(String recordJson) throws Exception {
+        try (
+            XContentParser parser = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, recordJson)
+        ) {
+            parser.nextToken();
+            return ResourceSharing.fromXContent(parser).getAllPrincipals();
+        }
+    }
+
+    private GetResult getResult(String json, long seqNo) {
+        GetResult getResult = mock(GetResult.class);
+        when(getResult.getId()).thenReturn("res-1");
+        when(getResult.isExists()).thenReturn(true);
+        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        BytesArray source = new BytesArray(bytes, 0, bytes.length);
+        when(getResult.sourceRef()).thenReturn(source);
+        when(getResult.sourceAsString()).thenReturn(json);
+        when(getResult.sourceAsMap()).thenReturn(XContentHelper.convertToMap(source, false, XContentType.JSON).v2());
+        when(getResult.getSeqNo()).thenReturn(seqNo);
+        when(getResult.getPrimaryTerm()).thenReturn(1L);
+        return getResult;
     }
 }

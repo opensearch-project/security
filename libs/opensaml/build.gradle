@@ -28,6 +28,7 @@ configurations.all {
         force "org.bouncycastle:bcprov-jdk18on:1.86"
         force "org.apache.commons:commons-lang3:${versions.commonslang}"
         force "tools.jackson.core:jackson-core:${versions.jackson3}"
+        force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     }
 }
 

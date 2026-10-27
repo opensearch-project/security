@@ -93,6 +93,7 @@ import org.opensearch.security.state.SecurityMetadata;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityIndexHandler;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -492,10 +493,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
         ClusterService clusterService,
         AuditLog auditLog
     ) {
-        final var securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+        final var securityIndex = new SecurityIndexIdentity(settings).getName();
         return new ConfigurationRepository(
             securityIndex,
             settings,
@@ -566,7 +564,7 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                 LOGGER.debug("Notify {} listener about change configuration with type {}", listener, typeToConfig);
                 listener.onChange(typeToConfig);
             } catch (Exception e) {
-                LOGGER.error("{} listener errored: " + e, listener, e);
+                LOGGER.error("{} listener errored: {}", listener, e.toString(), e);
                 throw ExceptionsHelper.convertToOpenSearchException(e);
             }
         }

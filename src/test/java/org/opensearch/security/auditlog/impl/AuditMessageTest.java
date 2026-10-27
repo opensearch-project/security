@@ -434,17 +434,8 @@ public class AuditMessageTest {
     }
 
     @Test
-    public void testNewCategoriesInDefaultDisabledRestList() {
-        List<String> defaults = org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT;
-        assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_GRANTED.toString()), is(true));
-        assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_DENIED.toString()), is(true));
-        assertThat(defaults.contains(AuditCategory.RESOURCE_SHARING_CHANGED.toString()), is(true));
-    }
-
-    @Test
-    public void testNewCategoriesInDefaultDisabledTransportList() {
-        List<String> defaults =
-            org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT;
+    public void testNewCategoriesInDefaultDisabledList() {
+        List<String> defaults = org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT;
         assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_GRANTED.toString()), is(true));
         assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_DENIED.toString()), is(true));
         assertThat(defaults.contains(AuditCategory.RESOURCE_SHARING_CHANGED.toString()), is(true));

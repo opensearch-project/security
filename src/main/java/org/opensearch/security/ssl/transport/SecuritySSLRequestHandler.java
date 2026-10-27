@@ -49,14 +49,14 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrincipalExtractor principalExtractor;
     private final SslExceptionHandler errorHandler;
-    private final SSLConfig SSLConfig;
+    private final SSLConfig sslConfig;
 
     public SecuritySSLRequestHandler(
         String action,
         TransportRequestHandler<T> actualHandler,
         ThreadPool threadPool,
         final PrincipalExtractor principalExtractor,
-        final SSLConfig SSLConfig,
+        final SSLConfig sslConfig,
         final SslExceptionHandler errorHandler
     ) {
 
@@ -65,7 +65,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
         this.actualHandler = actualHandler;
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
-        this.SSLConfig = SSLConfig;
+        this.sslConfig = sslConfig;
         this.errorHandler = errorHandler;
     }
 
@@ -104,7 +104,7 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
         try {
             final SslHandler sslhandler = channel.get("ssl_server", SslHandler.class).orElse(null);
             if (sslhandler == null) {
-                if (SSLConfig.isDualModeEnabled()) {
+                if (sslConfig.isDualModeEnabled()) {
                     log.info("Communication in dual mode. Skipping SSL handler check");
                     threadContext.putTransient(ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY, Boolean.TRUE);
                     messageReceivedDecorate(request, actualHandler, channel, task);
