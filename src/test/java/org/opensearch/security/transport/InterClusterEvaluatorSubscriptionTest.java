@@ -57,13 +57,12 @@ public class InterClusterEvaluatorSubscriptionTest {
     }
 
     /**
-     * Regression test for the compound bug: a legacy class name that cannot be loaded falls back to
-     * {@link DefaultInterClusterRequestEvaluator}. {@code OpenSearchSecurityPlugin.createComponents} used to decide whether to
-     * subscribe by comparing the configured class name, so the fallback instance never received dynamic {@code nodes_dn}
-     * updates. The plugin now checks the runtime type, mirrored here.
+     * The evaluator that replaces an unloadable legacy class keeps the dynamic nodes_dn setting, so it registers when
+     * subscribed. That OpenSearchSecurityPlugin.createComponents actually subscribes it is checked against a running node in
+     * InterClusterRequestEvaluatorWiringTest.
      */
     @Test
-    public void fallbackFromUnloadableLegacyClass_stillSubscribes() {
+    public void fallbackFromUnloadableLegacyClass_subscribesWhenDynamicFlagEnabled() {
         Settings settings = Settings.builder()
             .put(ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "this.class.does.not.Exist")
             .put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
@@ -73,9 +72,7 @@ public class InterClusterEvaluatorSubscriptionTest {
         assertThat(evaluator, instanceOf(DefaultInterClusterRequestEvaluator.class));
 
         DynamicConfigFactory dcf = mock(DynamicConfigFactory.class);
-        if (evaluator instanceof DefaultInterClusterRequestEvaluator defaultEvaluator) {
-            defaultEvaluator.subscribeForChanges(dcf);
-        }
+        ((DefaultInterClusterRequestEvaluator) evaluator).subscribeForChanges(dcf);
         verify(dcf, times(1)).registerDCFListener(evaluator);
     }
 }

@@ -33,6 +33,10 @@ public final class InterClusterRequestEvaluatorFactory {
     private static final Logger log = LogManager.getLogger(InterClusterRequestEvaluatorFactory.class);
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(InterClusterRequestEvaluatorFactory.class);
 
+    // Property.Deprecated already logs under the setting key, and deprecation messages are deduplicated by key, so the migration
+    // hint needs its own key to be logged at all
+    static final String MIGRATION_DEPRECATION_KEY = "intercluster_request_evaluator_class_migration";
+
     private InterClusterRequestEvaluatorFactory() {}
 
     public static InterClusterRequestEvaluator create(final Settings settings) {
@@ -50,7 +54,7 @@ public final class InterClusterRequestEvaluatorFactory {
                 );
             } else {
                 deprecationLogger.deprecate(
-                    ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+                    MIGRATION_DEPRECATION_KEY,
                     "[{}] is deprecated and will be removed in a future major version. {}",
                     ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
                     migrationHint(legacyClassName)

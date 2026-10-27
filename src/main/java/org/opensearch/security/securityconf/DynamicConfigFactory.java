@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
@@ -354,6 +355,11 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
     public void registerDCFListener(Object listener) {
         eventBus.register(listener);
+    }
+
+    @VisibleForTesting
+    public boolean isDCFListenerRegistered(Object listener) {
+        return eventBus.isRegistered(listener);
     }
 
     public void unregisterDCFListener(Object listener) {
