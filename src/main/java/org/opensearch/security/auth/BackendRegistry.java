@@ -296,7 +296,6 @@ public class BackendRegistry {
         boolean authenticated = false;
         User authenticatedUser = null;
         AuthCredentials authCredentials = null;
-        AuthCredentials firstRejectedCredentials = null;
         HTTPAuthenticator firstChallengingHttpAuthenticator = null;
 
         /*
@@ -350,32 +349,26 @@ public class BackendRegistry {
 
             /*
             The authenticator found a credential but refused it before authentication, for example a JWT subject with a
-            reserved prefix. Record it for the audit event, but never keep it as authCredentials: it must not become the
-            effective user and must not replace credentials retained from an earlier auth domain. Challenging domains
-            respond now; otherwise try the next domain.
+            reserved prefix. An explicit rejection fails the request: later auth domains and anonymous login are not tried.
+            The rejected credential is never kept as authCredentials, so it cannot become the effective user.
              */
             if (ac != null && ac.isRejected()) {
-                if (firstRejectedCredentials == null) {
-                    firstRejectedCredentials = ac;
-                }
-                // Same as a request without credentials: an anonymous login request is not challenged here
-                if (!gRPC && anonymousAuthEnabled && isRequestForAnonymousLogin(request.params(), request.getHeaders())) {
-                    continue;
-                }
-                if (authDomain.isChallenge()) {
-                    final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
-                    if (restResponse.isPresent()) {
-                        logFailedLogin(
-                            authCredentials == null ? "<NONE>" : authCredentials.getUsername(),
-                            request,
-                            firstRejectedCredentials
-                        );
-                        notifyIpAuthFailureListeners(request, authCredentials);
-                        request.queueForSending(restResponse.get());
-                        return false;
-                    }
-                }
-                continue;
+                final Optional<SecurityResponse> challengeResponse = firstChallengingHttpAuthenticator == null
+                    ? Optional.empty()
+                    : firstChallengingHttpAuthenticator.reRequestAuthentication(request, null);
+                auditLog.logFailedLogin(
+                    authCredentials == null ? "<NONE>" : authCredentials.getUsername(),
+                    false,
+                    null,
+                    request,
+                    ac.getAttemptedPrincipal(),
+                    ac.getFailureReason().name()
+                );
+                notifyIpAuthFailureListeners(request, authCredentials);
+                request.queueForSending(
+                    challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"))
+                );
+                return false;
             }
 
             /*
@@ -420,11 +413,12 @@ public class BackendRegistry {
                     if (restResponse.isPresent()) {
                         final String authenticatorType = authDomain.getHttpAuthenticator().getType();
                         // saml will always hit this to re-request authentication
-                        if (!authenticatorType.equals(SAML_TYPE) || authCredentials != null || firstRejectedCredentials != null) {
-                            logFailedLogin(
+                        if (!authenticatorType.equals(SAML_TYPE) || authCredentials != null) {
+                            auditLog.logFailedLogin(
                                 authCredentials == null ? "<NONE>" : authCredentials.getUsername(),
-                                request,
-                                firstRejectedCredentials
+                                false,
+                                null,
+                                request
                             );
                         }
                         if (authenticatorType.equals(BASIC_TYPE)) {
@@ -594,7 +588,7 @@ public class BackendRegistry {
                 authCredentials == null ? null : authCredentials.getUsername(),
                 remoteAddress
             );
-            logFailedLogin(authCredentials == null ? null : authCredentials.getUsername(), request, firstRejectedCredentials);
+            auditLog.logFailedLogin(authCredentials == null ? null : authCredentials.getUsername(), false, null, request);
 
             notifyIpAuthFailureListeners(request, authCredentials);
 
@@ -685,25 +679,6 @@ public class BackendRegistry {
 
     private String resolveTenantFrom(final SecurityRequest request) {
         return Optional.ofNullable(request.header("securitytenant")).orElse(request.header("security_tenant"));
-    }
-
-    private void logFailedLogin(
-        final String effectiveUser,
-        final SecurityRequestChannel request,
-        final AuthCredentials rejectedCredentials
-    ) {
-        if (rejectedCredentials == null) {
-            auditLog.logFailedLogin(effectiveUser, false, null, request);
-        } else {
-            auditLog.logFailedLogin(
-                effectiveUser,
-                false,
-                null,
-                request,
-                rejectedCredentials.getAttemptedPrincipal(),
-                rejectedCredentials.getFailureReason().name()
-            );
-        }
     }
 
     private void notifyIpAuthFailureListeners(SecurityRequestChannel request, AuthCredentials authCredentials) {
