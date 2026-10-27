@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -510,6 +511,14 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                 badRequestMessage("Request body must be a non-empty object keyed by resource name.")
             );
         }
+        final int maxEntries = securityApiDependencies.settings()
+            .getAsInt(ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES, ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES_DEFAULT);
+        if (requestContent.size() > maxEntries) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Request contains " + requestContent.size() + " resources; the maximum is " + maxEntries + ".")
+            );
+        }
 
         return loadConfiguration(getConfigType(), false, false).map(
             configuration -> validateAndAddEntities(request, requestContent, configuration)
@@ -521,6 +530,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         final JsonNode requestContent,
         final SecurityDynamicConfiguration<?> configuration
     ) throws IOException {
+        final List<SecurityConfiguration> securityConfigurations = new ArrayList<>(requestContent.size());
         for (final var entity : requestContent.properties()) {
             final String entityName = entity.getKey();
             final JsonNode entityContent = entity.getValue();
@@ -539,11 +549,11 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             if (contentValidation.isValid() == false) {
                 return ValidationResult.error(contentValidation.status(), contentValidation.errorMessage());
             }
-            final var securityConfiguration = SecurityConfiguration.of(entityContent, entityName, configuration);
-            final var changeValidation = endpointValidator.onConfigChange(securityConfiguration);
-            if (changeValidation.isValid() == false) {
-                return ValidationResult.error(changeValidation.status(), changeValidation.errorMessage());
-            }
+            securityConfigurations.add(SecurityConfiguration.of(entityContent, entityName, configuration));
+        }
+        final var changeValidation = endpointValidator.onConfigChange(securityConfigurations);
+        if (changeValidation.isValid() == false) {
+            return ValidationResult.error(changeValidation.status(), changeValidation.errorMessage());
         }
 
         for (final var entity : requestContent.properties()) {

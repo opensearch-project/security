@@ -13,6 +13,7 @@ package org.opensearch.security.api;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 
@@ -24,6 +25,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -56,8 +58,12 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
 
     final static String REST_ADMIN_ROLE_WITH_MAPPING = "rest-admin-role-with-mapping";
 
+    /** Low cap so the over-limit case can be exercised with a four-entry body. Every other bulk request in this class stays within it. */
+    final static int BULK_MAX_ENTRIES = 3;
+
     @ClassRule
     public static LocalCluster localCluster = clusterBuilder().users(REST_API_ADMIN_ROLES_MAPPING_ONLY)
+        .nodeSettings(Map.of(ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES, BULK_MAX_ENTRIES))
         .roles(
             new Role(REST_ADMIN_ROLE).reserved(true).clusterPermissions(allRestAdminPermissions()),
             new Role(REST_ADMIN_ROLE_WITH_MAPPING).clusterPermissions(allRestAdminPermissions())
@@ -100,6 +106,12 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
     @Test
     public void forbiddenForRegularUsers() throws Exception {
         super.forbiddenForRegularUsers(localCluster);
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
+            assertThat(
+                client.putJson(apiPath(), roleMappings(Map.of("some_role", roleMappingWithUsers(configJsonArray("a"))))),
+                isForbidden()
+            );
+        }
     }
 
     @Test
@@ -115,6 +127,172 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
     @Test
     public void availableForRESTAdminUser() throws Exception {
         super.availableForRESTAdminUser(localCluster);
+    }
+
+    @Test
+    public void bulkPutCreatesAndUpdatesMappingsAtomically() throws Exception {
+        final String firstRole = "bulk_first_" + randomAlphanumericString();
+        final String secondRole = "bulk_second_" + randomAlphanumericString();
+        final String thirdRole = "bulk_third_" + randomAlphanumericString();
+        final String rejectedRole = "bulk_rejected_" + randomAlphanumericString();
+        final String hiddenRole = "bulk_hidden_" + randomAlphanumericString();
+        final String reservedMappingRole = "bulk_reserved_" + randomAlphanumericString();
+
+        try (TestRestClient superAdmin = localCluster.getAdminCertRestClient()) {
+            for (final var role : List.of(firstRole, secondRole, thirdRole, rejectedRole, reservedMappingRole)) {
+                assertThat(superAdmin.putJson(rolesApiPath(role), roleJson()), isCreated());
+            }
+            assertThat(superAdmin.putJson(rolesApiPath(hiddenRole), roleJson(true, null)), isCreated());
+            assertThat(
+                superAdmin.putJson(apiPath(reservedMappingRole), roleMapping(null, true, configJsonArray("r"), null, null, null)),
+                isCreated()
+            );
+        }
+
+        final var firstMapping = roleMappingWithUsers(configJsonArray("alice"));
+        final var secondMapping = roleMappingWithUsers(configJsonArray("bob"));
+        final var updatedFirstMapping = roleMappingWithUsers(configJsonArray("alice", "carol"));
+        final var thirdMapping = roleMappingWithUsers(configJsonArray("dave"));
+
+        try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
+            // mixed creates
+            assertThat(client.putJson(apiPath(), roleMappings(Map.of(firstRole, firstMapping, secondRole, secondMapping))), isOk());
+            assertRoleMapping(
+                ok(() -> client.get(apiPath(firstRole))).bodyAsJsonNode().get(firstRole),
+                null,
+                null,
+                Strings.toString(XContentType.JSON, firstMapping)
+            );
+            assertRoleMapping(
+                ok(() -> client.get(apiPath(secondRole))).bodyAsJsonNode().get(secondRole),
+                null,
+                null,
+                Strings.toString(XContentType.JSON, secondMapping)
+            );
+
+            // update one, create another; the omitted mapping is untouched
+            assertThat(client.putJson(apiPath(), roleMappings(Map.of(firstRole, updatedFirstMapping, thirdRole, thirdMapping))), isOk());
+            assertRoleMapping(
+                ok(() -> client.get(apiPath(firstRole))).bodyAsJsonNode().get(firstRole),
+                null,
+                null,
+                Strings.toString(XContentType.JSON, updatedFirstMapping)
+            );
+            assertRoleMapping(
+                ok(() -> client.get(apiPath(secondRole))).bodyAsJsonNode().get(secondRole),
+                null,
+                null,
+                Strings.toString(XContentType.JSON, secondMapping)
+            );
+            assertRoleMapping(
+                ok(() -> client.get(apiPath(thirdRole))).bodyAsJsonNode().get(thirdRole),
+                null,
+                null,
+                Strings.toString(XContentType.JSON, thirdMapping)
+            );
+
+            // one invalid entry rejects the whole request: the valid entry is not written
+            final ToXContentObject invalidMapping = (builder, params) -> builder.startObject()
+                .field("unknown_json_property", true)
+                .endObject();
+            assertThat(
+                client.putJson(
+                    apiPath(),
+                    roleMappings(
+                        Map.of(rejectedRole, roleMappingWithUsers(configJsonArray("erin")), "invalid_" + rejectedRole, invalidMapping)
+                    )
+                ),
+                isBadRequest()
+            );
+            assertThat(client.get(apiPath(rejectedRole)), isNotFound());
+
+            // one entry mapping to a role that does not exist rejects the whole request
+            assertThat(
+                client.putJson(
+                    apiPath(),
+                    roleMappings(
+                        Map.of(
+                            rejectedRole,
+                            roleMappingWithUsers(configJsonArray("erin")),
+                            "unknown_role",
+                            roleMappingWithUsers(configJsonArray("x"))
+                        )
+                    )
+                ),
+                isNotFound().withAttribute("/message", "role 'unknown_role' not found.")
+            );
+            assertThat(client.get(apiPath(rejectedRole)), isNotFound());
+        }
+
+        // hidden and reserved checks are waived for REST admins (same as single PUT), so exercise them as a non-REST-admin user
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            // one entry mapping to a hidden role is indistinguishable from an unknown role and rejects the whole request
+            assertThat(
+                client.putJson(
+                    apiPath(),
+                    roleMappings(
+                        Map.of(
+                            rejectedRole,
+                            roleMappingWithUsers(configJsonArray("erin")),
+                            hiddenRole,
+                            roleMappingWithUsers(configJsonArray("x"))
+                        )
+                    )
+                ),
+                isNotFound()
+            );
+            assertThat(client.get(apiPath(rejectedRole)), isNotFound());
+
+            // one entry replacing a reserved mapping rejects the whole request
+            assertThat(
+                client.putJson(
+                    apiPath(),
+                    roleMappings(
+                        Map.of(
+                            rejectedRole,
+                            roleMappingWithUsers(configJsonArray("erin")),
+                            reservedMappingRole,
+                            roleMappingWithUsers(configJsonArray("x"))
+                        )
+                    )
+                ),
+                isForbidden()
+            );
+            assertThat(client.get(apiPath(rejectedRole)), isNotFound());
+        }
+
+        try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
+            // more entries than the configured cap
+            final Map<String, ToXContentObject> tooMany = Map.of(
+                firstRole,
+                firstMapping,
+                secondRole,
+                secondMapping,
+                thirdRole,
+                thirdMapping,
+                rejectedRole,
+                roleMappingWithUsers(configJsonArray("erin"))
+            );
+            assertThat(
+                client.putJson(apiPath(), roleMappings(tooMany)),
+                isBadRequest().withAttribute(
+                    "/message",
+                    "Request contains " + tooMany.size() + " resources; the maximum is " + BULK_MAX_ENTRIES + "."
+                )
+            );
+            assertThat(client.get(apiPath(rejectedRole)), isNotFound());
+        }
+    }
+
+    static ToXContentObject roleMappings(final Map<String, ToXContentObject> roleMappings) {
+        return (builder, params) -> {
+            builder.startObject();
+            for (final var roleMapping : roleMappings.entrySet()) {
+                builder.field(roleMapping.getKey());
+                roleMapping.getValue().toXContent(builder, params);
+            }
+            return builder.endObject();
+        };
     }
 
     static ToXContentObject roleMappingWithUsers(ToXContentObject users) {
@@ -348,6 +526,10 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         );
 
         // put
+        assertThat(client.putJson(apiPath(), "{}"), isBadRequest());
+        assertThat(client.putJson(apiPath(), "[]"), isBadRequest());
+        assertThat(client.putJson(apiPath(), "{\"some_role\":\"not an object\"}"), isBadRequest());
+        assertThat(client.putJson(apiPath(), roleMappings(Map.of("", roleMappingWithUsers(configJsonArray("a"))))), isBadRequest());
         assertThat(
             client.putJson(apiPath(randomAlphanumericString()), EMPTY_BODY),
             isBadRequest().withAttribute("/reason", "Request body required for this action.")
@@ -461,6 +643,7 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
         for (ToXContentObject users : arrayOptions(false)) {
 
             assertThat(client.putJson(apiPath(REST_ADMIN_ROLE), roleMappingWithUsers(users)), isForbidden());
+            assertThat(client.putJson(apiPath(), roleMappings(Map.of(REST_ADMIN_ROLE, roleMappingWithUsers(users)))), isForbidden());
             assertThat(client.patch(apiPath(), patch(addOp(REST_ADMIN_ROLE, roleMappingWithUsers(users)))), isForbidden());
         }
     }
@@ -468,6 +651,10 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
     @Override
     void forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(TestRestClient client) throws Exception {
         // update
+        assertThat(
+            client.putJson(apiPath(), roleMappings(Map.of(REST_ADMIN_ROLE_WITH_MAPPING, roleMappingWithUsers(configJsonArray("a"))))),
+            isForbidden()
+        );
         for (ToXContentObject backendRoles : arrayOptions(false)) {
             for (ToXContentObject hosts : arrayOptions(false)) {
                 for (ToXContentObject users : arrayOptions(false)) {
