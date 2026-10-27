@@ -21,6 +21,7 @@ import org.opensearch.security.securityconf.impl.CType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
@@ -65,6 +66,21 @@ public class PaginationCursorTest {
         result.valid(c -> decoded[0] = c);
 
         assertThat(decoded[0].lastKey, is("user_m"));
+    }
+
+    @Test
+    public void encodeProducesUrlSafeToken() throws Exception {
+        // These names produce '+', '/' or '=' under the standard Base64 alphabet
+        for (final String lastKey : new String[] { "ab~", "ab>", "Zoë", "role_a" }) {
+            final var encoded = PaginationCursor.encode(CType.ROLES, PaginationParams.SORT_ASC, lastKey);
+            assertThat(encoded.token, matchesPattern("[A-Za-z0-9_-]+"));
+
+            final PaginationCursor[] decoded = new PaginationCursor[1];
+            final var result = PaginationCursor.decode(encoded.token, CType.ROLES, PaginationParams.SORT_ASC);
+            assertTrue(result.isValid());
+            result.valid(c -> decoded[0] = c);
+            assertThat(decoded[0].lastKey, is(lastKey));
+        }
     }
 
     @Test
