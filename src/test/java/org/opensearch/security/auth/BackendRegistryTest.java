@@ -66,6 +66,9 @@ import static org.mockito.Mockito.when;
 
 public class BackendRegistryTest {
 
+    private static final String REJECTED_SUBJECT = "plugin:attacker";
+    private static final String REJECTED_REASON = AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX.name();
+
     private static final InetAddress CLIENT_ADDRESS = new InetSocketAddress("127.0.0.1", 9200).getAddress();
 
     @Mock
@@ -285,6 +288,74 @@ public class BackendRegistryTest {
         assertTrue("A rejected token must still block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
     }
 
+    @Test
+    public void testRejectedCredentialOnChallengingDomainLogsAttemptedUser() throws Exception {
+        AuthenticationBackend backend = rejectingBackend();
+        configureAuthDomains(rejectedSubjectAuthDomain(backend, true, 1));
+
+        TestSecurityRequestChannel request = requestWithBearerToken();
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("A rejected subject must not authenticate", authenticated);
+        assertEquals("Challenge should return unauthorized response", 401, request.getQueuedResponse().get().getStatus());
+        verify(auditLog).logFailedLogin(eq("<NONE>"), eq(false), isNull(), same(request), eq(REJECTED_SUBJECT), eq(REJECTED_REASON));
+        verify(auditLog, never()).logFailedLogin(any(), anyBoolean(), any(), any());
+        verify(backend, never()).authenticate(any());
+        assertTrue("A rejected credential must still block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
+    }
+
+    @Test
+    public void testRejectedCredentialWithoutChallengingDomainLogsAttemptedUser() throws Exception {
+        configureAuthDomains(rejectedSubjectAuthDomain(rejectingBackend(), false, 1));
+
+        TestSecurityRequestChannel request = requestWithBearerToken();
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("A rejected subject must not authenticate", authenticated);
+        assertEquals("Final failure should return unauthorized response", 401, request.getQueuedResponse().get().getStatus());
+        verify(auditLog).logFailedLogin(isNull(), eq(false), isNull(), same(request), eq(REJECTED_SUBJECT), eq(REJECTED_REASON));
+        verify(auditLog, never()).logFailedLogin(any(), anyBoolean(), any(), any());
+        assertTrue("A rejected credential must still block the client address", ipRateLimiter.isBlocked(CLIENT_ADDRESS));
+    }
+
+    @Test
+    public void testRejectedCredentialBeforeSamlChallengeLogsAttemptedUser() throws Exception {
+        configureAuthDomains(rejectedSubjectAuthDomain(rejectingBackend(), false, 1), samlAuthDomain(2));
+
+        TestSecurityRequestChannel request = requestWithBearerToken();
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("A rejected subject must not authenticate", authenticated);
+        assertEquals("SAML challenge should return redirect response", 302, request.getQueuedResponse().get().getStatus());
+        verify(auditLog).logFailedLogin(eq("<NONE>"), eq(false), isNull(), same(request), eq(REJECTED_SUBJECT), eq(REJECTED_REASON));
+    }
+
+    @Test
+    public void testRejectedCredentialDoesNotReplaceCredentialsFromEarlierDomain() throws Exception {
+        configureAuthDomains(basicAuthDomain(rejectingBackend(), false, 1), rejectedSubjectAuthDomain(rejectingBackend(), false, 2));
+
+        TestSecurityRequestChannel request = requestWithBasicAuth("testuser", "wrong-password");
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertFalse("Authentication should fail when every domain rejects", authenticated);
+        verify(auditLog).logFailedLogin(eq("testuser"), eq(false), isNull(), same(request), eq(REJECTED_SUBJECT), eq(REJECTED_REASON));
+    }
+
+    @Test
+    public void testRejectedCredentialDoesNotPreventLaterDomainFromAuthenticating() throws Exception {
+        configureAuthDomains(
+            rejectedSubjectAuthDomain(rejectingBackend(), false, 1),
+            basicAuthDomain(acceptingBackend("testuser"), false, 2)
+        );
+
+        TestSecurityRequestChannel request = requestWithBasicAuth("testuser", "correct-password");
+        boolean authenticated = backendRegistry.authenticate(request);
+
+        assertTrue("A later auth domain should still authenticate valid credentials", authenticated);
+        verify(auditLog, never()).logFailedLogin(any(), anyBoolean(), any(), any());
+        verify(auditLog, never()).logFailedLogin(any(), anyBoolean(), any(), any(), any(), any());
+    }
+
     private void configureAuthDomains(AuthDomain... authDomains) {
         DynamicConfigModel dcm = mock(DynamicConfigModel.class);
         when(dcm.isAnonymousAuthenticationEnabled()).thenReturn(false);
@@ -316,6 +387,23 @@ public class BackendRegistryTest {
         HTTPAuthenticator tokenAuthenticator = mock(HTTPAuthenticator.class);
         when(tokenAuthenticator.getType()).thenReturn("jwt");
         return new AuthDomain(rejectingBackend(), tokenAuthenticator, false, order);
+    }
+
+    /** An authenticator that finds a credential but refuses its subject, as the JWT authenticators do for reserved prefixes. */
+    private AuthDomain rejectedSubjectAuthDomain(AuthenticationBackend backend, boolean challenge, int order) {
+        HTTPAuthenticator authenticator = mock(HTTPAuthenticator.class);
+        when(authenticator.getType()).thenReturn("jwt");
+        when(authenticator.extractCredentials(any(), any())).thenReturn(
+            AuthCredentials.rejected(REJECTED_SUBJECT, AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX)
+        );
+        when(authenticator.reRequestAuthentication(any(), nullable(AuthCredentials.class))).thenReturn(
+            Optional.of(new SecurityResponse(401, "Unauthorized"))
+        );
+        return new AuthDomain(backend, authenticator, challenge, order);
+    }
+
+    private TestSecurityRequestChannel requestWithBearerToken() {
+        return new TestSecurityRequestChannel(Map.of("Authorization", "Bearer signed-token"));
     }
 
     private AuthenticationBackend acceptingBackend(String username) throws Exception {

@@ -542,6 +542,22 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
+    public void testForbiddenSubjectIsRejected() throws Exception {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder()
+                .put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes))
+                .putList("forbidden_subjects", "admin"),
+            Jwts.builder().setSubject("admin")
+        );
+
+        Assert.assertNotNull(credentials);
+        Assert.assertTrue(credentials.isRejected());
+        Assert.assertFalse(credentials.isComplete());
+        assertThat(credentials.getAttemptedPrincipal(), is("admin"));
+        assertThat(credentials.getFailureReason(), is(AuthenticationFailureReason.FORBIDDEN_SUBJECT));
+    }
+
+    @Test
     public void testNonStringAlternativeSubject() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(

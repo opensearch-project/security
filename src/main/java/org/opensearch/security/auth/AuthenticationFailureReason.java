@@ -26,5 +26,10 @@ public enum AuthenticationFailureReason {
      * The credential presented a subject that used a prefix reserved for internal
      * security identities (for example the {@code plugin:} or {@code token:} prefixes).
      */
-    RESERVED_SUBJECT_PREFIX
+    RESERVED_SUBJECT_PREFIX,
+
+    /**
+     * The credential presented a subject listed in the authenticator's {@code forbidden_subjects} setting.
+     */
+    FORBIDDEN_SUBJECT
 }

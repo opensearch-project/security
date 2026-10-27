@@ -180,7 +180,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                 }
                 if (forbiddenSubjects.contains(subject)) {
                     log.warn("JWT subject is forbidden");
-                    return null;
+                    return AuthCredentials.rejected(subject, AuthenticationFailureReason.FORBIDDEN_SUBJECT);
                 }
 
                 final String[] roles = extractRoles(claims);

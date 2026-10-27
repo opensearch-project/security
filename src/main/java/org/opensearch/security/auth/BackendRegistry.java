@@ -349,6 +349,32 @@ public class BackendRegistry {
             }
 
             /*
+            The authenticator found a credential but refused it before authentication, for example a JWT subject with a
+            reserved prefix. Record it for the audit event, but never keep it as authCredentials: it must not become the
+            effective user and must not replace credentials retained from an earlier auth domain. Challenging domains
+            respond now; otherwise try the next domain.
+             */
+            if (ac != null && ac.isRejected()) {
+                if (firstRejectedCredentials == null) {
+                    firstRejectedCredentials = ac;
+                }
+                if (authDomain.isChallenge()) {
+                    final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
+                    if (restResponse.isPresent()) {
+                        logFailedLogin(
+                            authCredentials == null ? "<NONE>" : authCredentials.getUsername(),
+                            request,
+                            firstRejectedCredentials
+                        );
+                        notifyIpAuthFailureListeners(request, authCredentials == null ? firstRejectedCredentials : authCredentials);
+                        request.queueForSending(restResponse.get());
+                        return false;
+                    }
+                }
+                continue;
+            }
+
+            /*
             User may be blocked from authenticating with this auth backend based on rate limiting configurations.
             Skip this auth domain if the user is blocked.
              */
@@ -376,43 +402,6 @@ public class BackendRegistry {
             credentials. SAML still requires challenge: true in the current reRequestAuthentication flow so it can issue its
             redirect; retaining the rejected credentials lets that challenge path audit the actual username.
              */
-            if (ac != null && ac.isRejected()) {
-                /*
-                A candidate credential was presented but the authenticator refused it
-                (for example, a JWT subject that uses a reserved security prefix).
-                Emit a FAILED_LOGIN event that preserves the attempted principal and
-                rejection reason while keeping the effective user unset (<NONE>).
-
-                Behavior is otherwise modeled on the "no credentials + challenge" path
-                below: challenge authenticators (JWT) present their unauthorized response
-                and terminate; non-challenging authenticators just skip this domain and
-                let the outer loop try the next one, deferring emission of the failure
-                to the final-failure path where we surface {@code firstRejectedCredentials}.
-                 */
-                if (firstRejectedCredentials == null) {
-                    firstRejectedCredentials = ac;
-                }
-                if (authDomain.isChallenge()) {
-                    final Optional<SecurityResponse> restResponse = httpAuthenticator.reRequestAuthentication(request, null);
-                    if (restResponse.isPresent()) {
-                        final AuthenticationFailureReason reason = ac.getFailureReason();
-                        auditLog.logFailedLogin(
-                            "<NONE>",
-                            false,
-                            null,
-                            request,
-                            ac.getAttemptedPrincipal(),
-                            reason != null ? reason.name() : null
-                        );
-                        notifyIpAuthFailureListeners(request, ac);
-                        request.queueForSending(restResponse.get());
-                        return false;
-                    }
-                }
-                // Non-challenging authenticator (or no challenge produced): treat like
-                // an absent credential and continue with the next configured auth domain.
-                continue;
-            }
             if (ac != null) {
                 authCredentials = ac;
             }
@@ -427,18 +416,17 @@ public class BackendRegistry {
                     if (restResponse.isPresent()) {
                         final String authenticatorType = authDomain.getHttpAuthenticator().getType();
                         // saml will always hit this to re-request authentication
-                        if (!authenticatorType.equals(SAML_TYPE) || authCredentials != null) {
-                            auditLog.logFailedLogin(
+                        if (!authenticatorType.equals(SAML_TYPE) || authCredentials != null || firstRejectedCredentials != null) {
+                            logFailedLogin(
                                 authCredentials == null ? "<NONE>" : authCredentials.getUsername(),
-                                false,
-                                null,
-                                request
+                                request,
+                                firstRejectedCredentials
                             );
                         }
                         if (authenticatorType.equals(BASIC_TYPE)) {
                             log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                         }
-                        notifyIpAuthFailureListeners(request, authCredentials);
+                        notifyIpAuthFailureListeners(request, authCredentials == null ? firstRejectedCredentials : authCredentials);
                         request.queueForSending(restResponse.get());
                         return false;
                     }
@@ -602,26 +590,9 @@ public class BackendRegistry {
                 authCredentials == null ? null : authCredentials.getUsername(),
                 remoteAddress
             );
-            final String finalAttemptedUser;
-            final String finalFailureReason;
-            if (firstRejectedCredentials != null) {
-                finalAttemptedUser = firstRejectedCredentials.getAttemptedPrincipal();
-                final AuthenticationFailureReason reason = firstRejectedCredentials.getFailureReason();
-                finalFailureReason = reason != null ? reason.name() : null;
-            } else {
-                finalAttemptedUser = null;
-                finalFailureReason = null;
-            }
-            auditLog.logFailedLogin(
-                authCredentials == null ? null : authCredentials.getUsername(),
-                false,
-                null,
-                request,
-                finalAttemptedUser,
-                finalFailureReason
-            );
+            logFailedLogin(authCredentials == null ? null : authCredentials.getUsername(), request, firstRejectedCredentials);
 
-            notifyIpAuthFailureListeners(request, authCredentials);
+            notifyIpAuthFailureListeners(request, authCredentials == null ? firstRejectedCredentials : authCredentials);
 
             request.queueForSending(
                 challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"))
@@ -710,6 +681,25 @@ public class BackendRegistry {
 
     private String resolveTenantFrom(final SecurityRequest request) {
         return Optional.ofNullable(request.header("securitytenant")).orElse(request.header("security_tenant"));
+    }
+
+    private void logFailedLogin(
+        final String effectiveUser,
+        final SecurityRequestChannel request,
+        final AuthCredentials rejectedCredentials
+    ) {
+        if (rejectedCredentials == null) {
+            auditLog.logFailedLogin(effectiveUser, false, null, request);
+        } else {
+            auditLog.logFailedLogin(
+                effectiveUser,
+                false,
+                null,
+                request,
+                rejectedCredentials.getAttemptedPrincipal(),
+                rejectedCredentials.getFailureReason().name()
+            );
+        }
     }
 
     private void notifyIpAuthFailureListeners(SecurityRequestChannel request, AuthCredentials authCredentials) {
