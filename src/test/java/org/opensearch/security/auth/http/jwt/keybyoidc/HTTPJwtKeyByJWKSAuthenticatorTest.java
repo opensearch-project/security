@@ -13,6 +13,7 @@ package org.opensearch.security.auth.http.jwt.keybyoidc;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.Level;
@@ -672,6 +673,77 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
             try {
                 mockJwksServer.close();
             } catch (Exception ignored) {}
+        }
+    }
+
+    @Test
+    public void testWrongIssuerIsRejectedWithoutFetchingJwks() throws Exception {
+        AtomicInteger jwksRequests = new AtomicInteger();
+        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL) {
+            @Override
+            protected void handleJwksRequest(
+                org.apache.hc.core5.http.HttpRequest request,
+                org.apache.hc.core5.http.ClassicHttpResponse response,
+                org.apache.hc.core5.http.protocol.HttpContext context
+            ) throws org.apache.hc.core5.http.HttpException, java.io.IOException {
+                jwksRequests.incrementAndGet();
+                super.handleJwksRequest(request, response, context);
+            }
+        };
+
+        try {
+            Settings settings = Settings.builder()
+                .put("jwks_uri", mockJwksServer.getJwksUri())
+                .put("required_issuer", "OtherIssuer")
+                .build();
+
+            HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
+
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<>()).asSecurityRequest(),
+                null
+            );
+
+            Assert.assertNull(creds);
+            assertThat(jwksRequests.get(), is(0));
+        } finally {
+            mockJwksServer.close();
+        }
+    }
+
+    @Test
+    public void testRequiredIssuerStillFetchesJwksForMatchingIssuer() throws Exception {
+        AtomicInteger jwksRequests = new AtomicInteger();
+        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL) {
+            @Override
+            protected void handleJwksRequest(
+                org.apache.hc.core5.http.HttpRequest request,
+                org.apache.hc.core5.http.ClassicHttpResponse response,
+                org.apache.hc.core5.http.protocol.HttpContext context
+            ) throws org.apache.hc.core5.http.HttpException, java.io.IOException {
+                jwksRequests.incrementAndGet();
+                super.handleJwksRequest(request, response, context);
+            }
+        };
+
+        try {
+            Settings settings = Settings.builder()
+                .put("jwks_uri", mockJwksServer.getJwksUri())
+                .put("required_issuer", TestJwts.TEST_ISSUER)
+                .build();
+
+            HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
+
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<>()).asSecurityRequest(),
+                null
+            );
+
+            Assert.assertNotNull(creds);
+            assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+            assertThat(jwksRequests.get(), is(1));
+        } finally {
+            mockJwksServer.close();
         }
     }
 }
