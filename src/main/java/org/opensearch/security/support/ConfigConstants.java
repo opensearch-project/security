@@ -415,7 +415,18 @@ public class ConfigConstants {
     public static final String SECURITY_SYSTEM_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
     public static final String SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY = SECURITY_SETTINGS_PREFIX + "system_indices.restore.indices";
-    public static final List<String> SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT = Collections.emptyList();
+    /**
+     * System indices that restore correctly onto a new cluster, covered by restore tests in each plugin's repo
+     * (same OpenSearch version).
+     */
+    public static final List<String> SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT = List.of(
+        ".opendistro-alerting-config",
+        ".opendistro-alerting-alerts",
+        ".opendistro-alerting-alert-history-*",
+        ".opendistro-ism-config",
+        ".opensearch-knn-models",
+        ".ltrstore*"
+    );
     public static final String SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY = SECURITY_SETTINGS_PREFIX
         + "system_indices.restore.dynamic.enabled";
     public static final boolean SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_DEFAULT = false;

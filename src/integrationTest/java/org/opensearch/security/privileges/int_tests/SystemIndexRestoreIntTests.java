@@ -52,7 +52,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 public class SystemIndexRestoreIntTests {
 
     static final String ELIGIBLE = ".opendistro-alerting-config";
-    static final String NOT_ELIGIBLE = ".opendistro-alerting-alerts";
+    static final String NOT_ELIGIBLE = ".opensearch-alerting-queries";
     static final String HISTORY_PATTERN = ".opendistro-alerting-alert-history-*";
     static final String HISTORY_1 = ".opendistro-alerting-alert-history-2026.10.27-1";
     static final String HISTORY_2 = ".opendistro-alerting-alert-history-2026.10.28-000002";
@@ -92,7 +92,7 @@ public class SystemIndexRestoreIntTests {
     }
 
     /**
-     * Cluster with {@code plugins.security.system_indices.restore.indices} left at its empty default.
+     * Cluster with {@code plugins.security.system_indices.restore.indices} left at its default.
      */
     static LocalCluster.Builder defaultClusterBuilder() {
         return new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)

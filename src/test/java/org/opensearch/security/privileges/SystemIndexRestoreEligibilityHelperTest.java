@@ -112,9 +112,16 @@ public class SystemIndexRestoreEligibilityHelperTest {
     }
 
     @Test
-    public void isEligible_nothingByDefault() {
-        assertThat(helperWithDefaults.isEligible(ALERTING_CONFIG), is(false));
+    public void isEligible_defaultListCoversConfirmedPluginIndices() {
+        assertThat(helperWithDefaults.isEligible(ALERTING_CONFIG), is(true));
+        assertThat(helperWithDefaults.isEligible(".opendistro-alerting-alerts"), is(true));
+        assertThat(helperWithDefaults.isEligible(ALERT_HISTORY), is(true));
+        assertThat(helperWithDefaults.isEligible(".opendistro-ism-config"), is(true));
+        assertThat(helperWithDefaults.isEligible(".opensearch-knn-models"), is(true));
+        assertThat(helperWithDefaults.isEligible(".ltrstore"), is(true));
+        assertThat(helperWithDefaults.isEligible(".ltrstore_mystore"), is(true));
         assertThat(helperWithDefaults.isEligible(REPORTS_DEFINITIONS), is(false));
+        assertThat(helperWithDefaults.isEligible(SECURITY_INDEX), is(false));
     }
 
     @Test
@@ -140,7 +147,10 @@ public class SystemIndexRestoreEligibilityHelperTest {
 
     @Test
     public void denialReason_omitsRestorableIndicesWhenNoneConfigured() {
-        Optional<String> reason = helperWithDefaults.denialReason(restore(ALERTING_CONFIG), Set.of(ALERTING_CONFIG));
+        SystemIndexRestoreEligibilityHelper noneConfigured = helper(
+            Settings.builder().putList(ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of()).build()
+        );
+        Optional<String> reason = noneConfigured.denialReason(restore(ALERTING_CONFIG), Set.of(ALERTING_CONFIG));
         assertThat(
             reason.get(),
             equalTo("System index restore denied: System indices [" + ALERTING_CONFIG + "] are not eligible for restore.")
