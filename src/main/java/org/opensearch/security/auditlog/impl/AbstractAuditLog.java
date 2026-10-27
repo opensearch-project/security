@@ -77,6 +77,7 @@ import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserFactory;
@@ -142,16 +143,8 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
-        this.securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
-        this.securityIndicesMatcher = WildcardMatcher.from(
-            List.of(
-                settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
-                ConfigConstants.OPENSEARCH_API_TOKENS_INDEX
-            )
-        );
+        this.securityIndex = new SecurityIndexIdentity(settings).getName();
+        this.securityIndicesMatcher = WildcardMatcher.from(List.of(this.securityIndex, ConfigConstants.OPENSEARCH_API_TOKENS_INDEX));
         this.environment = environment;
         this.userFactory = userFactory;
     }
@@ -229,6 +222,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
+        msg.addTenant(getTenant(request));
         msg.addIsAdminDn(securityadmin);
         enrichWithUserContext(msg);
         save(msg);
@@ -247,6 +241,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addInitiatingUser(initiatingUser);
         msg.addEffectiveUser(effectiveUser);
+        msg.addTenant(getTenant(request));
         msg.addIsAdminDn(securityadmin);
         enrichWithUserContext(msg);
         save(msg);
@@ -263,6 +258,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRemoteAddress(remoteAddress);
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
+        msg.addTenant(getTenant(request));
         msg.addPrivilege(privilege);
         enrichWithUserContext(msg);
         save(msg);
@@ -279,6 +275,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(effectiveUser);
         enrichWithUserContext(msg);
+        msg.addTenant(getTenant(request));
         save(msg);
     }
 
@@ -299,6 +296,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             getUser(),
             null,
             null,
+            getTenant(),
             remoteAddress,
             request,
             getThreadContextHeaders(),
@@ -338,6 +336,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             getUser(),
             null,
             null,
+            getTenant(),
             remoteAddress,
             request,
             getThreadContextHeaders(),
@@ -378,6 +377,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             getUser(),
             null,
             null,
+            getTenant(),
             remoteAddress,
             request,
             getThreadContextHeaders(),
@@ -603,6 +603,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             getUser(),
             null,
             null,
+            getTenant(),
             remoteAddress,
             request,
             getThreadContextHeaders(),
@@ -635,6 +636,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRemoteAddress(remoteAddress);
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addEffectiveUser(getUser());
+        msg.addTenant(getTenant(request));
 
         save(msg);
     }
@@ -655,6 +657,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             getUser(),
             false,
             null,
+            getTenant(),
             remoteAddress,
             request,
             getThreadContextHeaders(),
@@ -694,6 +697,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             getUser(),
             false,
             null,
+            getTenant(),
             remoteAddress,
             request,
             getThreadContextHeaders(),
@@ -728,6 +732,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addRestRequestInfo(request, auditConfigFilter);
         msg.addException(t);
         msg.addEffectiveUser(getUser());
+        msg.addTenant(getTenant(request));
         save(msg);
     }
 
@@ -759,6 +764,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             TransportAddress remoteAddress = getRemoteAddress();
             msg.addRemoteAddress(remoteAddress);
             msg.addEffectiveUser(effectiveUser);
+            msg.addTenant(getTenant());
             msg.addIndices(new String[] { index });
             msg.addResolvedIndices(new String[] { index });
             msg.addShardId(shardId);
@@ -832,6 +838,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
         msg.addEffectiveUser(effectiveUser);
+        msg.addTenant(getTenant());
         msg.addIndices(new String[] { shardId.getIndexName() });
         msg.addResolvedIndices(new String[] { shardId.getIndexName() });
         msg.addId(id);
@@ -981,6 +988,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
         msg.addEffectiveUser(effectiveUser);
+        msg.addTenant(getTenant());
         msg.addIndices(new String[] { shardId.getIndexName() });
         msg.addResolvedIndices(new String[] { shardId.getIndexName() });
         msg.addId(id);
@@ -1076,6 +1084,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     public void logApiTokenCreated(String tokenName, String createdBy) {
         AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
         msg.addEffectiveUser(createdBy);
+        msg.addTenant(getTenant());
         msg.addSecurityConfigWriteDiffSource("{\"action\":\"created\",\"token_name\":\"" + tokenName + "\"}", tokenName);
         save(msg);
     }
@@ -1084,6 +1093,7 @@ public abstract class AbstractAuditLog implements AuditLog {
     public void logApiTokenRevoked(String tokenId, String revokedBy) {
         AuditMessage msg = new AuditMessage(AuditCategory.API_TOKEN_WRITE, clusterService, getOrigin(), null);
         msg.addEffectiveUser(revokedBy);
+        msg.addTenant(getTenant());
         msg.addSecurityConfigWriteDiffSource("{\"action\":\"revoked\",\"token_id\":\"" + tokenId + "\"}", tokenId);
         save(msg);
     }
@@ -1264,6 +1274,27 @@ public abstract class AbstractAuditLog implements AuditLog {
     private String getUser() {
         User user = resolveUser();
         return user == null ? null : user.getName();
+    }
+
+    private String getTenant() {
+        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
+            user = this.userFactory.fromSerializedBase64(
+                threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
+            );
+        }
+        return user == null ? null : user.getRequestedTenant();
+    }
+
+    private String getTenant(SecurityRequest request) {
+        final String fromUser = getTenant();
+        if (fromUser != null) {
+            return fromUser;
+        }
+        if (request == null) {
+            return null;
+        }
+        return request.header("securitytenant");
     }
 
     /**

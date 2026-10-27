@@ -33,6 +33,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.security.dlic.rest.api.pagination.PaginationRequestParser;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -492,6 +493,76 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     void assertFilterByUsers(final HttpResponse response, final boolean hasServiceUser, final boolean hasInternalUser) {
         assertThat(response.getBody(), response.bodyAsJsonNode().has(SERVICE_ACCOUNT_USER), is(hasServiceUser));
         assertThat(response.getBody(), response.bodyAsJsonNode().has(NEW_USER.getName()), is(hasInternalUser));
+    }
+
+    @Test
+    public void paginatedFilterByServiceReturnsOnlyServiceUsers() throws Exception {
+        final String SIZE = PaginationRequestParser.PARAM_SIZE;
+        final String FILTER_BY = "filterBy";
+        final String NEXT = PaginationRequestParser.RESPONSE_NEXT_TOKEN_KEY;
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            // Collect all names from a full paginated traversal with filterBy=service
+            final var allSeen = new ArrayList<String>();
+            String nextToken = null;
+            do {
+                final String path = (nextToken == null)
+                    ? apiPath() + "?" + SIZE + "=100&" + FILTER_BY + "=service"
+                    : apiPath()
+                        + "?"
+                        + SIZE
+                        + "=100&"
+                        + FILTER_BY
+                        + "=service&"
+                        + PaginationRequestParser.PARAM_NEXT_TOKEN
+                        + "="
+                        + nextToken;
+                final var body = ok(() -> client.get(path)).bodyAsJsonNode();
+                assertThat("paginated response must have internalusers key", body.has("internalusers"), is(true));
+                body.get("internalusers").propertyNames().forEach(allSeen::add);
+                nextToken = body.get(NEXT).isNull() ? null : body.get(NEXT).asText();
+            } while (nextToken != null);
+
+            assertThat("service user must appear in filterBy=service paginated result", allSeen.contains(SERVICE_ACCOUNT_USER), is(true));
+            assertThat(
+                "internal user must NOT appear in filterBy=service paginated result",
+                allSeen.contains(NEW_USER.getName()),
+                is(false)
+            );
+        }
+    }
+
+    @Test
+    public void paginatedFilterByInternalReturnsOnlyInternalUsers() throws Exception {
+        final String SIZE = PaginationRequestParser.PARAM_SIZE;
+        final String FILTER_BY = "filterBy";
+        final String NEXT = PaginationRequestParser.RESPONSE_NEXT_TOKEN_KEY;
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            final var allSeen = new ArrayList<String>();
+            String nextToken = null;
+            do {
+                final String path = (nextToken == null)
+                    ? apiPath() + "?" + SIZE + "=100&" + FILTER_BY + "=internal"
+                    : apiPath()
+                        + "?"
+                        + SIZE
+                        + "=100&"
+                        + FILTER_BY
+                        + "=internal&"
+                        + PaginationRequestParser.PARAM_NEXT_TOKEN
+                        + "="
+                        + nextToken;
+                final var body = ok(() -> client.get(path)).bodyAsJsonNode();
+                body.get("internalusers").propertyNames().forEach(allSeen::add);
+                nextToken = body.get(NEXT).isNull() ? null : body.get(NEXT).asText();
+            } while (nextToken != null);
+
+            assertThat("internal user must appear in filterBy=internal paginated result", allSeen.contains(NEW_USER.getName()), is(true));
+            assertThat(
+                "service user must NOT appear in filterBy=internal paginated result",
+                allSeen.contains(SERVICE_ACCOUNT_USER),
+                is(false)
+            );
+        }
     }
 
     @Test

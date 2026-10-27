@@ -82,7 +82,11 @@ public class SecurityConfigurationBootstrapTests {
                 assertThat(rolesMapsResponse.getBody(), containsString("OpenSearch Security not initialized"));
             }
 
-            final var securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
+            final var securityAdminLauncher = new SecurityAdminLauncher(
+                cluster.getHttpPort(),
+                cluster.getTestCertificates(),
+                cluster.getClusterName()
+            );
             final int exitCode = securityAdminLauncher.runSecurityAdmin(configurationFolder);
             assertThat(exitCode, equalTo(0));
 

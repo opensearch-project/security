@@ -23,6 +23,7 @@ public class JwtConfigBuilder {
     private List<String> signingKeys;
     private List<String> subjectKey;
     private List<String> rolesKey;
+    private List<String> forbiddenSubjects;
 
     public JwtConfigBuilder jwtHeader(String jwtHeader) {
         this.jwtHeader = jwtHeader;
@@ -59,6 +60,11 @@ public class JwtConfigBuilder {
         return this;
     }
 
+    public JwtConfigBuilder forbiddenSubjects(List<String> forbiddenSubjects) {
+        this.forbiddenSubjects = forbiddenSubjects;
+        return this;
+    }
+
     public Map<String, Object> build() {
         Builder<String, Object> builder = new Builder<>();
         if (Objects.isNull(signingKeys)) {
@@ -76,6 +82,9 @@ public class JwtConfigBuilder {
         }
         if (rolesKey != null && !rolesKey.isEmpty()) {
             builder.put("roles_key", rolesKey);
+        }
+        if (forbiddenSubjects != null && !forbiddenSubjects.isEmpty()) {
+            builder.put("forbidden_subjects", forbiddenSubjects);
         }
         return builder.build();
     }

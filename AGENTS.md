@@ -19,7 +19,7 @@ When in doubt, update the file.
 
 OpenSearch Security is a plugin that adds authentication, authorization, TLS encryption, audit logging, and multi-tenancy to OpenSearch. The plugin intercepts all requests at the REST and transport layers before they reach OpenSearch action handlers.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed flow diagrams.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed flow diagrams.
 
 ## Repository Structure
 
@@ -59,6 +59,7 @@ libs/
   opensaml/         # Vendored/shaded OpenSAML library
 sample-resource-plugin/  # Example plugin using the resource-sharing SPI
 config/             # Default demo configuration (certs, roles, users, mappings)
+docs/               # Contributor guides (developer guide, architecture, triaging, resource sharing)
 tools/              # Shell scripts: securityadmin.sh, install_demo_configuration.sh
 scripts/            # CI/CD helper scripts
 bwc-test/           # Backwards-compatibility tests
@@ -182,6 +183,7 @@ SpotBugs runs on main sources (not tests). Include-filter: `spotbugs-include.xml
 - **New REST endpoints** under `/_plugins/_security/` must be registered in the appropriate handler class and protected with an authorization check.
 - **SPI changes** (`spi/`) are public API consumed by external plugins. Apply `@PublicApi`, `@InternalApi`, or `@ExperimentalApi` annotations and maintain backwards compatibility accordingly.
 - **Resource sharing** changes should be validated against the sample plugin in `sample-resource-plugin/`.
+- Types registered on the same resource index must be added to or removed from `protected_types` together; partial protection is rejected.
 - **FIPS compliance** — the build supports FIPS-140-3 mode (`gradle.properties`). Avoid cryptographic primitives that are not FIPS-approved.
 
 ## Commits
@@ -220,4 +222,4 @@ git push origin backport/my-fix-2.19
 
 Resolve any conflicts, then open a PR against the target branch referencing the original PR for reviewer context.
 
-For further guidance see [CONTRIBUTING.md](CONTRIBUTING.md) and [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
+For further guidance see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md).

@@ -83,6 +83,9 @@ public class JwtAuthenticationTests {
     public static final String POINTER_BACKEND_ROLES = "/backend_roles";
     public static final String POINTER_USERNAME = "/user_name";
 
+    public static final String FORBIDDEN_SUBJECT_1 = "forbidden_subject_1";
+    public static final String FORBIDDEN_SUBJECT_2 = "forbidden_subject_2";
+
     public static final String QA_DEPARTMENT = "qa-department";
 
     public static final String CLAIM_DEPARTMENT = "department";
@@ -123,6 +126,7 @@ public class JwtAuthenticationTests {
             .signingKey(List.of(PUBLIC_KEY1, PUBLIC_KEY2))
             .subjectKey(CLAIM_USERNAME)
             .rolesKey(CLAIM_ROLES)
+            .forbiddenSubjects(List.of(ADMIN_USER.getName(), FORBIDDEN_SUBJECT_1, FORBIDDEN_SUBJECT_2))
     ).backend("noop");
     public static final String SONG_ID_1 = "song-id-01";
 
@@ -156,6 +160,22 @@ public class JwtAuthenticationTests {
         }
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             client.createRoleMapping(ROLE_VP, DEPARTMENT_SONG_LISTENER_ROLE.getName());
+        }
+    }
+
+    @Test
+    public void shouldNotAuthenticateForbiddenSubjectsUserWithJwtToken() {
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateValidToken(ADMIN_USER.getName()))) {
+            TestRestClient.HttpResponse response = client.getAuthInfo();
+            response.assertStatusCode(401);
+        }
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateValidToken(FORBIDDEN_SUBJECT_1))) {
+            TestRestClient.HttpResponse response = client.getAuthInfo();
+            response.assertStatusCode(401);
+        }
+        try (TestRestClient client = cluster.getRestClient(tokenFactory1.generateValidToken(FORBIDDEN_SUBJECT_2))) {
+            TestRestClient.HttpResponse response = client.getAuthInfo();
+            response.assertStatusCode(401);
         }
     }
 

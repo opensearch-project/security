@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthFailureListener;
@@ -76,6 +77,28 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
     public void block(ClientIdType clientId) {
         clientBlockRegistry.block(clientId);
         rateTracker.reset(clientId);
+    }
+
+    @Override
+    public void block(ClientIdType clientId, long expiresAtMs) {
+        clientBlockRegistry.block(clientId, expiresAtMs);
+        rateTracker.reset(clientId);
+    }
+
+    @Override
+    public void unblock(ClientIdType clientId) {
+        clientBlockRegistry.unblock(clientId);
+        rateTracker.reset(clientId);
+    }
+
+    @Override
+    public Long expiresAtMs(ClientIdType clientId) {
+        return clientBlockRegistry.expiresAtMs(clientId);
+    }
+
+    @Override
+    public Set<ClientIdType> currentlyBlocked() {
+        return clientBlockRegistry.currentlyBlocked();
     }
 
     @Override

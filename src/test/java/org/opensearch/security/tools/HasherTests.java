@@ -19,7 +19,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 
 import com.password4j.Argon2Function;
 import com.password4j.CompressedPBKDF2Function;
@@ -169,32 +170,32 @@ public class HasherTests {
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"memory\"",
             argon2Function.getMemory(),
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_MEMORY_DEFAULT
+            PasswordHasherFactory.ARGON2_MEMORY.getDefault(Settings.EMPTY).intValue()
         );
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"iterations\"",
             argon2Function.getIterations(),
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_ITERATIONS_DEFAULT
+            PasswordHasherFactory.ARGON2_ITERATIONS.getDefault(Settings.EMPTY).intValue()
         );
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"parallelism\"",
             argon2Function.getParallelism(),
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_PARALLELISM_DEFAULT
+            PasswordHasherFactory.ARGON2_PARALLELISM.getDefault(Settings.EMPTY).intValue()
         );
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"length\"",
             argon2Function.getOutputLength(),
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_LENGTH_DEFAULT
+            PasswordHasherFactory.ARGON2_LENGTH.getDefault(Settings.EMPTY).intValue()
         );
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"type\"",
             argon2Function.getVariant(),
-            parseType(ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_TYPE_DEFAULT)
+            parseType(PasswordHasherFactory.ARGON2_TYPE.getDefault(Settings.EMPTY))
         );
         assertEquals(
             "should return a valid Argon2 hash with the default value for \"version\"",
             argon2Function.getVersion(),
-            ConfigConstants.SECURITY_PASSWORD_HASHING_ARGON2_VERSION_DEFAULT
+            PasswordHasherFactory.ARGON2_VERSION.getDefault(Settings.EMPTY).intValue()
         );
     }
 

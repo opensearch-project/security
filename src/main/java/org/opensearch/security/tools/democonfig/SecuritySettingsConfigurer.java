@@ -61,7 +61,7 @@ public class SecuritySettingsConfigurer {
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(
-            Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+            Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
         );
     }
 
