@@ -209,7 +209,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         clusterService,
                         OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
                         threadContext,
-                        false
+                        DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
                     );
                 }
             }
@@ -253,7 +253,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             IndexToRuleMap<DlsRestriction> dlsRestrictionMap = null;
             boolean doFilterLevelDls;
-            boolean applyDlsFilterToHybridQuery = false;
+            boolean applyDlsFilterToHybridQuery = mode != Mode.LUCENE_LEVEL
+                && shouldApplyDlsFilterToHybridQuery(request, hasDlsRestrictions, isLocalOnlyRequest(resolved));
 
             if (mode == Mode.FILTER_LEVEL) {
                 doFilterLevelDls = true;
@@ -270,13 +271,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 } else {
                     boolean containsTermLookupQuery = dlsRestrictionMap.containsAny(DlsRestriction::containsTermLookupQuery);
                     doFilterLevelDls = shouldUseFilterLevelDlsInAdaptiveMode(hasDlsRestrictions, containsTermLookupQuery);
-                    applyDlsFilterToHybridQuery = shouldApplyDlsFilterToHybridQueryInAdaptiveMode(
-                        request,
-                        hasDlsRestrictions,
-                        containsTermLookupQuery,
-                        isLocalOnlyRequest(resolved)
-                    );
-
                     if (doFilterLevelDls) {
                         setDlsModeHeader(Mode.FILTER_LEVEL);
                         log.debug("Doing filter-level DLS because the query contains a TLQ");
@@ -436,6 +430,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
                     threadContext,
                     applyDlsFilterToHybridQuery
+                        ? (doFilterLevelDls
+                            ? DlsFilterLevelActionHandler.QueryHandling.HYBRID_FILTER_LEVEL
+                            : DlsFilterLevelActionHandler.QueryHandling.HYBRID_WITH_READER_DLS)
+                        : DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
                 );
             } else {
                 return true;
@@ -455,16 +453,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return hasDlsRestrictions && containsTermLookupQuery;
     }
 
-    static boolean shouldApplyDlsFilterToHybridQueryInAdaptiveMode(
-        ActionRequest request,
-        boolean hasDlsRestrictions,
-        boolean containsTermLookupQuery,
-        boolean localOnlyRequest
-    ) {
-        return hasDlsRestrictions
-            && !containsTermLookupQuery
-            && localOnlyRequest
-            && isTopLevelHybridQueryWithoutParentChildClauses(request);
+    static boolean shouldApplyDlsFilterToHybridQuery(ActionRequest request, boolean hasDlsRestrictions, boolean localOnlyRequest) {
+        return hasDlsRestrictions && localOnlyRequest && isTopLevelHybridQueryWithoutParentChildClauses(request);
     }
 
     static boolean isLocalOnlyRequest(OptionallyResolvedIndices resolved) {

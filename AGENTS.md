@@ -178,6 +178,7 @@ SpotBugs runs on main sources (not tests). Include-filter: `spotbugs-include.xml
 
 - **Never log sensitive data** — passwords, tokens, certificates, and PII must never appear in log output.
 - **TLS changes** must be tested against both the transport layer and the HTTP layer.
+- **Hybrid DLS** keeps eligible local hybrid queries top-level and verifies DLS filter injection into every subquery. Query injection and reader protection are separate: term lookup (including adaptive mode) and explicit filter-level mode use the filter-level completion marker; adaptive hybrid queries without term lookup retain reader DLS. Configure the node's mode with `plugins.security.dls.mode` (default `adaptive`, also `filter_level` and `lucene_level`; requires restart). Suggestions are rejected for hybrid filter-level execution. Cross-plugin coverage lives in Neural Search's `HybridQueryTermLookupDlsIT` suite and runs in both DLS modes.
 - **Privilege evaluation** (`privileges/`) is on the hot path — keep it free of I/O, side-effects, and unnecessary allocations.
 - **Security index schema changes** require migration logic for existing clusters; do not change field names or types without a migration path.
 - **New REST endpoints** under `/_plugins/_security/` must be registered in the appropriate handler class and protected with an authorization check.

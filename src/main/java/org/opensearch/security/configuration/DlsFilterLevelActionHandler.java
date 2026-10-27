@@ -39,6 +39,7 @@ import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollAction;
+import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
@@ -77,6 +78,21 @@ public class DlsFilterLevelActionHandler {
     private static final Logger log = LogManager.getLogger(DlsFilterLevelActionHandler.class);
     private static final String HYBRID_QUERY_NAME = "hybrid";
 
+    /** Query shape and reader protection are independent: term lookup requires filter-level completion. */
+    enum QueryHandling {
+        FILTER_LEVEL(false, ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE),
+        HYBRID_FILTER_LEVEL(true, ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE),
+        HYBRID_WITH_READER_DLS(true, ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED);
+
+        final boolean injectIntoHybrid;
+        final String completionHeader;
+
+        QueryHandling(boolean injectIntoHybrid, String completionHeader) {
+            this.injectIntoHybrid = injectIntoHybrid;
+            this.completionHeader = completionHeader;
+        }
+    }
+
     private static final Function<SearchRequest, String> LOCAL_CLUSTER_ALIAS_GETTER = ReflectiveAttributeAccessors.protectedObjectAttr(
         "localClusterAlias",
         String.class
@@ -90,7 +106,7 @@ public class DlsFilterLevelActionHandler {
         ClusterService clusterService,
         IndicesService indicesService,
         ThreadContext threadContext,
-        boolean applyDlsFilterToHybridQuery
+        QueryHandling queryHandling
     ) {
 
         if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE) != null
@@ -124,12 +140,12 @@ public class DlsFilterLevelActionHandler {
         return new DlsFilterLevelActionHandler(
             context,
             dlsRestrictionMap,
-            listener,
+            new ContextPreservingActionListener<>(threadContext.newRestorableContext(true), listener),
             nodeClient,
             clusterService,
             indicesService,
             threadContext,
-            applyDlsFilterToHybridQuery
+            queryHandling
         ).handle();
     }
 
@@ -143,7 +159,7 @@ public class DlsFilterLevelActionHandler {
     private final ClusterService clusterService;
     private final IndicesService indicesService;
     private final ThreadContext threadContext;
-    private final boolean applyDlsFilterToHybridQuery;
+    private final QueryHandling queryHandling;
     private BoolQueryBuilder filterLevelQueryBuilder;
     private DocumentAllowList documentAllowlist;
 
@@ -155,7 +171,7 @@ public class DlsFilterLevelActionHandler {
         ClusterService clusterService,
         IndicesService indicesService,
         ThreadContext threadContext,
-        boolean applyDlsFilterToHybridQuery
+        QueryHandling queryHandling
     ) {
         this.action = context.getAction();
         this.request = context.getRequest();
@@ -166,7 +182,7 @@ public class DlsFilterLevelActionHandler {
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.threadContext = threadContext;
-        this.applyDlsFilterToHybridQuery = applyDlsFilterToHybridQuery;
+        this.queryHandling = queryHandling;
 
         this.requiresIndexScoping = resolved instanceof ResolvedIndices resolvedIndices
             ? resolvedIndices.local().names().size() != 1
@@ -178,14 +194,9 @@ public class DlsFilterLevelActionHandler {
         // Snapshot the outer context without clearing the current one. The internal header added below remains active
         // while nodeClient dispatches the child request and is propagated to local search work; closing the stored
         // context restores the caller's headers.
-        try (StoredContext ctx = threadContext.newStoredContext(true)) {
+        try (StoredContext ignored = threadContext.newStoredContext(true)) {
 
-            threadContext.putHeader(
-                applyDlsFilterToHybridQuery
-                    ? ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED
-                    : ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE,
-                "true"
-            );
+            threadContext.putHeader(queryHandling.completionHeader, "true");
 
             try {
                 if (!modifyQuery()) {
@@ -212,13 +223,13 @@ public class DlsFilterLevelActionHandler {
             }
 
             if (request instanceof SearchRequest) {
-                return handle((SearchRequest) request, ctx);
+                return handle((SearchRequest) request);
             } else if (request instanceof GetRequest) {
-                return handle((GetRequest) request, ctx);
+                return handle((GetRequest) request);
             } else if (request instanceof MultiGetRequest) {
-                return handle((MultiGetRequest) request, ctx);
+                return handle((MultiGetRequest) request);
             } else if (request instanceof ClusterSearchShardsRequest) {
-                return handle((ClusterSearchShardsRequest) request, ctx);
+                return handle((ClusterSearchShardsRequest) request);
             } else {
                 log.error("Unsupported request type for filter level DLS: " + request);
                 listener.onFailure(
@@ -231,7 +242,14 @@ public class DlsFilterLevelActionHandler {
         }
     }
 
-    private boolean handle(SearchRequest searchRequest, StoredContext ctx) {
+    private boolean handle(SearchRequest searchRequest) {
+        if (queryHandling == QueryHandling.HYBRID_FILTER_LEVEL
+            && searchRequest.source() != null
+            && searchRequest.source().suggest() != null) {
+            listener.onFailure(new OpenSearchSecurityException("Suggestions are not supported for hybrid queries with filter-level DLS"));
+            return false;
+        }
+
         if (documentAllowlist != null) {
             documentAllowlist.applyTo(threadContext);
         }
@@ -257,7 +275,7 @@ public class DlsFilterLevelActionHandler {
             }
         }
 
-        if (!tryApplyFilterLevelDls(searchSource, filterLevelQueryBuilder, applyDlsFilterToHybridQuery, listener)) {
+        if (!tryApplyFilterLevelDls(searchSource, filterLevelQueryBuilder, queryHandling.injectIntoHybrid, listener)) {
             return false;
         }
 
@@ -265,8 +283,6 @@ public class DlsFilterLevelActionHandler {
             @Override
             public void onResponse(SearchResponse response) {
                 try {
-                    ctx.restore();
-
                     @SuppressWarnings("unchecked")
                     ActionListener<SearchResponse> searchListener = (ActionListener<SearchResponse>) listener;
 
@@ -298,8 +314,8 @@ public class DlsFilterLevelActionHandler {
 
     /**
      * Applies the filter level DLS query. When {@code applyDlsFilterToHybridQuery} is true, hybrid queries remain top-level
-     * and their filter method propagates the DLS restriction to every subquery. Reader-level DLS must remain active in
-     * that case to retain existing DLS behavior for search features which do not use the top-level query.
+     * and their filter method propagates the DLS restriction to every subquery. The execution strategy independently
+     * determines whether reader-level DLS remains active; term lookup uses filter-level completion.
      * @param searchSource
      * @param filterLevelQueryBuilder
      * @param applyDlsFilterToHybridQuery whether to push the DLS filter into a top-level hybrid query
@@ -371,8 +387,7 @@ public class DlsFilterLevelActionHandler {
      * {@link QueryBuilder#filter(QueryBuilder)} to preserve query semantics, pairs every filtered branch with one
      * original branch, and verifies that the exact supplied DLS query was stored. Builders which return filtered copies
      * are paired in the stable order required by the hybrid query contract. Other builders return or remain a
-     * conjunctive boolean query which contains the original branch and the DLS query. Reader-level DLS remains active
-     * whenever this special path is selected.
+     * conjunctive boolean query which contains the original branch and the DLS query.
      */
     static boolean isHybridQuery(QueryBuilder query) {
         return query != null && HYBRID_QUERY_NAME.equals(query.getName());
@@ -597,7 +612,7 @@ public class DlsFilterLevelActionHandler {
         }
     }
 
-    private boolean handle(GetRequest getRequest, StoredContext ctx) {
+    private boolean handle(GetRequest getRequest) {
         if (documentAllowlist != null) {
             documentAllowlist.applyTo(threadContext);
         }
@@ -612,8 +627,6 @@ public class DlsFilterLevelActionHandler {
             @Override
             public void onResponse(SearchResponse response) {
                 try {
-
-                    ctx.restore();
 
                     long hits = Objects.requireNonNull(response.getHits().getTotalHits()).value();
 
@@ -657,7 +670,7 @@ public class DlsFilterLevelActionHandler {
 
     }
 
-    private boolean handle(MultiGetRequest multiGetRequest, StoredContext ctx) {
+    private boolean handle(MultiGetRequest multiGetRequest) {
         if (documentAllowlist != null) {
             documentAllowlist.applyTo(threadContext);
         }
@@ -696,8 +709,6 @@ public class DlsFilterLevelActionHandler {
             public void onResponse(SearchResponse response) {
                 try {
 
-                    ctx.restore();
-
                     List<MultiGetItemResponse> itemResponses = new ArrayList<>(response.getHits().getHits().length);
 
                     for (SearchHit hit : response.getHits().getHits()) {
@@ -724,7 +735,7 @@ public class DlsFilterLevelActionHandler {
 
     }
 
-    private boolean handle(ClusterSearchShardsRequest request, StoredContext ctx) {
+    private boolean handle(ClusterSearchShardsRequest request) {
         listener.onFailure(
             new OpenSearchSecurityException(
                 "Filter-level DLS via cross cluster search is not available for scrolling and minimize_roundtrips=true"
