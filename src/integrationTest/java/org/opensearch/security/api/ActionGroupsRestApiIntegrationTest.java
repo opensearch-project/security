@@ -11,7 +11,9 @@
 
 package org.opensearch.security.api;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.ClassRule;
@@ -19,6 +21,7 @@ import org.junit.Test;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.dlic.rest.api.Endpoint;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
@@ -43,12 +46,16 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
 
     private final static String REST_ADMIN_PERMISSION_ACTION_GROUP = "rest-admin-permissions-action-group";
 
+    /** Low cap so the over-limit case can be exercised with a four-entry body. Every other bulk request in this class stays within it. */
+    private final static int BULK_MAX_ENTRIES = 3;
+
     @ClassRule
     public static LocalCluster localCluster = clusterBuilder().users(
         new TestSecurityConfig.User(REST_API_ADMIN_ACTION_GROUPS_ONLY).roles(
             new TestSecurityConfig.Role("rest_admin_role").clusterPermissions(restAdminPermission(Endpoint.ACTIONGROUPS))
         )
     )
+        .nodeSettings(Map.of(ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES, BULK_MAX_ENTRIES))
         .actionGroups(
             new TestSecurityConfig.ActionGroup(
                 REST_ADMIN_PERMISSION_ACTION_GROUP,
@@ -122,6 +129,9 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
     @Test
     public void forbiddenForRegularUsers() throws Exception {
         super.forbiddenForRegularUsers(localCluster);
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
+            assertThat(client.putJson(apiPath(), actionGroups(Map.of("some_group", actionGroup("a")))), isForbidden());
+        }
     }
 
     @Test
@@ -139,9 +149,114 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
         super.availableForRESTAdminUser(localCluster);
     }
 
+    @Test
+    public void bulkPutCreatesAndUpdatesActionGroupsAtomically() throws Exception {
+        final String first = "bulk_first_" + randomAlphanumericString();
+        final String second = "bulk_second_" + randomAlphanumericString();
+        final String third = "bulk_third_" + randomAlphanumericString();
+        final String rejected = "bulk_rejected_" + randomAlphanumericString();
+        final String referrer = "bulk_referrer_" + randomAlphanumericString();
+        final String referee = "bulk_referee_" + randomAlphanumericString();
+
+        try (TestRestClient client = localCluster.getRestClient(REST_ADMIN_USER)) {
+            // mixed creates
+            assertThat(client.putJson(apiPath(), actionGroups(Map.of(first, actionGroup("a", "b"), second, actionGroup("c")))), isOk());
+            assertActionGroup(ok(() -> client.get(apiPath(first))), first, List.of("a", "b"));
+            assertActionGroup(ok(() -> client.get(apiPath(second))), second, List.of("c"));
+
+            // update one, create another; the omitted group is untouched
+            assertThat(client.putJson(apiPath(), actionGroups(Map.of(first, actionGroup("a", "b", "x"), third, actionGroup("d")))), isOk());
+            assertActionGroup(ok(() -> client.get(apiPath(first))), first, List.of("a", "b", "x"));
+            assertActionGroup(ok(() -> client.get(apiPath(second))), second, List.of("c"));
+            assertActionGroup(ok(() -> client.get(apiPath(third))), third, List.of("d"));
+
+            // one entry named after an existing role rejects the whole request: the valid entry is not written
+            assertThat(
+                client.putJson(apiPath(), actionGroups(Map.of(rejected, actionGroup("e"), "kibana_user", actionGroup("f")))),
+                isBadRequest("/message", "kibana_user is an existing role. A action group cannot be named with an existing role name.")
+            );
+            assertThat(client.get(apiPath(rejected)), isNotFound());
+
+            // one self-referencing entry rejects the whole request
+            assertThat(
+                client.putJson(apiPath(), actionGroups(Map.of(rejected, actionGroup("e"), "self_ref", actionGroup("self_ref")))),
+                isBadRequest("/message", "self_ref cannot be an allowed_action of itself")
+            );
+            assertThat(client.get(apiPath(rejected)), isNotFound());
+
+            // one entry with an invalid type rejects the whole request
+            final ToXContentObject invalidType = (builder, params) -> {
+                builder.startObject().field("type", "asdasdsad").field("allowed_actions");
+                configJsonArray("g").toXContent(builder, params);
+                return builder.endObject();
+            };
+            assertThat(
+                client.putJson(apiPath(), actionGroups(Map.of(rejected, actionGroup("e"), "bad_type", invalidType))),
+                isBadRequest("/message", "Invalid action group type: asdasdsad. Supported types are: cluster, index.")
+            );
+            assertThat(client.get(apiPath(rejected)), isNotFound());
+
+            // groups may reference other groups in the same request, in either order. Single PUT does not verify that a
+            // referenced group exists, and FlattenedActionGroups tolerates unknown names and cycles at resolution time, so the
+            // bulk path keeps that contract and the result cannot depend on entry order.
+            final Map<String, ToXContentObject> referrerFirst = new LinkedHashMap<>();
+            referrerFirst.put(referrer, actionGroup(referee));
+            referrerFirst.put(referee, actionGroup("indices:data/read/search*"));
+            assertThat(client.putJson(apiPath(), actionGroups(referrerFirst)), isOk());
+            assertActionGroup(ok(() -> client.get(apiPath(referrer))), referrer, List.of(referee));
+            assertActionGroup(ok(() -> client.get(apiPath(referee))), referee, List.of("indices:data/read/search*"));
+            assertThat(client.delete(apiPath(referrer)), isOk());
+            assertThat(client.delete(apiPath(referee)), isOk());
+
+            final Map<String, ToXContentObject> refereeFirst = new LinkedHashMap<>();
+            refereeFirst.put(referee, actionGroup("indices:data/read/search*"));
+            refereeFirst.put(referrer, actionGroup(referee));
+            assertThat(client.putJson(apiPath(), actionGroups(refereeFirst)), isOk());
+            assertActionGroup(ok(() -> client.get(apiPath(referrer))), referrer, List.of(referee));
+            assertActionGroup(ok(() -> client.get(apiPath(referee))), referee, List.of("indices:data/read/search*"));
+
+            // a reference to a group that exists neither in the request nor in the configuration is accepted, as with single PUT
+            assertThat(client.putJson(apiPath(), actionGroups(Map.of(rejected, actionGroup("does_not_exist_group")))), isOk());
+            assertActionGroup(ok(() -> client.get(apiPath(rejected))), rejected, List.of("does_not_exist_group"));
+            assertThat(client.delete(apiPath(rejected)), isOk());
+
+            // more entries than the configured cap
+            final Map<String, ToXContentObject> tooMany = Map.of(
+                first,
+                actionGroup("a"),
+                second,
+                actionGroup("b"),
+                third,
+                actionGroup("c"),
+                rejected,
+                actionGroup("d")
+            );
+            assertThat(
+                client.putJson(apiPath(), actionGroups(tooMany)),
+                isBadRequest("/message", "Request contains " + tooMany.size() + " resources; the maximum is " + BULK_MAX_ENTRIES + ".")
+            );
+            assertThat(client.get(apiPath(rejected)), isNotFound());
+        }
+    }
+
+    static ToXContentObject actionGroups(final Map<String, ToXContentObject> actionGroups) {
+        return (builder, params) -> {
+            builder.startObject();
+            for (final var actionGroup : actionGroups.entrySet()) {
+                builder.field(actionGroup.getKey());
+                actionGroup.getValue().toXContent(builder, params);
+            }
+            return builder.endObject();
+        };
+    }
+
     @Override
     void forbiddenToCreateEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
         assertThat(client.putJson(apiPath("new_rest_admin_action_group"), actionGroup(randomRestAdminPermission())), isForbidden());
+        assertThat(
+            client.putJson(apiPath(), actionGroups(Map.of("new_bulk_rest_admin_action_group", actionGroup(randomRestAdminPermission())))),
+            isForbidden()
+        );
         assertThat(
             client.patch(apiPath(), patch(addOp("new_rest_admin_action_group", actionGroup(randomRestAdminPermission())))),
             isForbidden()
@@ -152,6 +267,10 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
     void forbiddenToUpdateAndDeleteExistingEntityWithRestAdminPermissions(final TestRestClient client) throws Exception {
         // update
         assertThat(client.putJson(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), actionGroup()), isForbidden());
+        assertThat(
+            client.putJson(apiPath(), actionGroups(Map.of(REST_ADMIN_PERMISSION_ACTION_GROUP, actionGroup("a", "b")))),
+            isForbidden()
+        );
         assertThat(client.patch(apiPath(), patch(replaceOp(REST_ADMIN_PERMISSION_ACTION_GROUP, actionGroup("a", "b")))), isForbidden());
         assertThat(
             client.patch(apiPath(REST_ADMIN_PERMISSION_ACTION_GROUP), patch(replaceOp("allowed_actions", configJsonArray("c", "d")))),
@@ -225,6 +344,10 @@ public class ActionGroupsRestApiIntegrationTest extends AbstractConfigEntityApiI
     @Override
     void verifyBadRequestOperations(final TestRestClient client) throws Exception {
         // put
+        assertThat(client.putJson(apiPath(), "{}"), isBadRequest());
+        assertThat(client.putJson(apiPath(), "[]"), isBadRequest());
+        assertThat(client.putJson(apiPath(), "{\"some_action_group\":\"not an object\"}"), isBadRequest());
+        assertThat(client.putJson(apiPath(), actionGroups(Map.of("", actionGroup("a")))), isBadRequest());
         assertThat(client.putJson(apiPath("some_action_group"), EMPTY_BODY), isBadRequest());
         assertThat(
             client.putJson(apiPath("kibana_user"), actionGroup("a", "b")),
