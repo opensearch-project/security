@@ -837,11 +837,12 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             throw new OpenSearchException("Unable to determine supported ciphers or protocols");
         }
 
-        enabledHttpCiphersJDKProvider = new ArrayList<String>(jdkSupportedCiphers);
-        enabledHttpCiphersJDKProvider.retainAll(allowedSecureHttpSSLCiphers);
+        // Keep the configured preference order rather than the provider's order.
+        enabledHttpCiphersJDKProvider = new ArrayList<String>(allowedSecureHttpSSLCiphers);
+        enabledHttpCiphersJDKProvider.retainAll(jdkSupportedCiphers);
 
-        enabledTransportCiphersJDKProvider = new ArrayList<String>(jdkSupportedCiphers);
-        enabledTransportCiphersJDKProvider.retainAll(allowedSecureTransportSSLCiphers);
+        enabledTransportCiphersJDKProvider = new ArrayList<String>(allowedSecureTransportSSLCiphers);
+        enabledTransportCiphersJDKProvider.retainAll(jdkSupportedCiphers);
 
         enabledHttpProtocolsJDKProvider = new ArrayList<String>(jdkSupportedProtocols);
         enabledHttpProtocolsJDKProvider.retainAll(allowedSecureHttpSSLProtocols);
