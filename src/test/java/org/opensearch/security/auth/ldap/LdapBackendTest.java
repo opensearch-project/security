@@ -41,6 +41,7 @@ import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -798,6 +799,48 @@ public class LdapBackendTest {
         assertThat(user.getRoles().size(), is(8));
         MatcherAssert.assertThat(user.getRoles(), hasItem("nested3"));
         MatcherAssert.assertThat(user.getRoles(), hasItem("rolemo4"));
+    }
+
+    @Test
+    public void testLdapAuthorizationNestedAttrWithMissingEntries() throws Exception {
+
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
+            .build();
+
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("danglingref"), ctx("danglingref", "danglingref"));
+
+        Assert.assertNotNull(user);
+        assertThat(user.getRoles(), containsInAnyOrder("danglingnest", "rolemo4", "nested3", "nested4"));
+    }
+
+    @Test
+    public void testLdapAuthorizationNestedAttrWithReferralToMissingEntry() throws Exception {
+
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
+            .build();
+
+        User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User("referralref"), ctx("referralref", "referralref"));
+
+        Assert.assertNotNull(user);
+        assertThat(user.getRoles(), containsInAnyOrder("rolemo4", "nested3", "nested4"));
     }
 
     @Test

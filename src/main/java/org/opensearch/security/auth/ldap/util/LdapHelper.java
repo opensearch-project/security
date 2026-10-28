@@ -24,6 +24,7 @@ import org.ldaptive.DerefAliases;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
 import org.ldaptive.Response;
+import org.ldaptive.ResultCode;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchOperation;
 import org.ldaptive.SearchRequest;
@@ -71,6 +72,16 @@ public class LdapHelper {
         }
     }
 
+    /**
+     * Reads the entry with the given DN.
+     *
+     * @param conn connection to search on
+     * @param unescapedDn DN of the entry
+     * @param returnAttributes attributes to return
+     * @param shouldFollowReferrals whether to follow referrals
+     * @return the entry, or null if the DN names no entry or the search does not return exactly one entry
+     * @throws LdapException if the search fails for any other reason
+     */
     public static LdapEntry lookup(
         final Connection conn,
         final String unescapedDn,
@@ -78,7 +89,15 @@ public class LdapHelper {
         boolean shouldFollowReferrals
     ) throws LdapException {
 
-        final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes, shouldFollowReferrals);
+        final List<LdapEntry> entries;
+        try {
+            entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes, shouldFollowReferrals);
+        } catch (final LdapException e) {
+            if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT || e.getResultCode() == ResultCode.INVALID_DN_SYNTAX) {
+                return null;
+            }
+            throw e;
+        }
 
         if (entries.size() == 1) {
             return entries.get(0);

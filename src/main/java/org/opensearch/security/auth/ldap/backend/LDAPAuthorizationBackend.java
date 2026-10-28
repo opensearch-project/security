@@ -921,7 +921,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : nestedReturn) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (excludeRolesMatcher.test(role)) {
+                    if (role == null || excludeRolesMatcher.test(role)) {
                         if (isDebugEnabled) {
                             log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
                         }
@@ -935,7 +935,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (excludeRolesMatcher.test(role)) {
+                    if (role == null || excludeRolesMatcher.test(role)) {
                         if (isDebugEnabled) {
                             log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
                         }
@@ -996,7 +996,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
         final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
 
-        if (e0.getAttribute(userRoleName) != null) {
+        if (e0 == null) {
+            log.warn("Cannot resolve nested roles from the attributes of {} because no entry was found for this DN", roleDn);
+        } else if (e0.getAttribute(userRoleName) != null) {
             final Collection<String> userRoles = e0.getAttribute(userRoleName).getStringValues();
 
             for (final String possibleRoleDN : userRoles) {
