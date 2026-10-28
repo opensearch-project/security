@@ -68,6 +68,7 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -511,8 +512,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                 badRequestMessage("Request body must be a non-empty object keyed by resource name.")
             );
         }
-        final int maxEntries = securityApiDependencies.settings()
-            .getAsInt(ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES, ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES_DEFAULT);
+        final int maxEntries = clusterService.getClusterSettings().get(SecuritySettings.RESTAPI_BULK_MAX_ENTRIES);
         if (requestContent.size() > maxEntries) {
             return ValidationResult.error(
                 RestStatus.BAD_REQUEST,

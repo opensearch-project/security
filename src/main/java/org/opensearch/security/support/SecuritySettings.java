@@ -92,6 +92,20 @@ public class SecuritySettings {
         Setting.Property.Sensitive
     );
 
+    // Maximum number of resources one bulk PUT to a Security REST API collection endpoint may carry. Dynamic so a security
+    // admin can raise it for a one-off import without a rolling restart; Sensitive so only callers holding a
+    // plugins.security.restapi.roles_enabled role may change it.
+    public static final Setting<Integer> RESTAPI_BULK_MAX_ENTRIES = Setting.intSetting(
+        ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES,
+        ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES_DEFAULT,
+        ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES_MIN,
+        ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES_MAX,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic,
+        Setting.Property.Filtered,
+        Setting.Property.Sensitive
+    );
+
     public static final Setting<List<String>> SYSTEM_INDICES_RESTORE_INDICES_SETTING = Setting.listSetting(
         ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY,
         ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT,

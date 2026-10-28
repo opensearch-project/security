@@ -61,8 +61,13 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
     /** Low cap so the over-limit case can be exercised with a four-entry body. Every other bulk request in this class stays within it. */
     final static int BULK_MAX_ENTRIES = 3;
 
+    /** May update cluster settings but holds no restapi.roles_enabled role, so may not touch sensitive settings. */
+    final static TestSecurityConfig.User CLUSTER_SETTINGS_USER = new TestSecurityConfig.User("cluster-settings-user").roles(
+        new TestSecurityConfig.Role("cluster_settings_role").clusterPermissions("cluster:admin/settings/update")
+    );
+
     @ClassRule
-    public static LocalCluster localCluster = clusterBuilder().users(REST_API_ADMIN_ROLES_MAPPING_ONLY)
+    public static LocalCluster localCluster = clusterBuilder().users(REST_API_ADMIN_ROLES_MAPPING_ONLY, CLUSTER_SETTINGS_USER)
         .nodeSettings(Map.of(ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES, BULK_MAX_ENTRIES))
         .roles(
             new Role(REST_ADMIN_ROLE).reserved(true).clusterPermissions(allRestAdminPermissions()),
@@ -281,7 +286,31 @@ public class RolesMappingRestApiIntegrationTest extends AbstractConfigEntityApiI
                 )
             );
             assertThat(client.get(apiPath(rejectedRole)), isNotFound());
+
+            // the cap is a sensitive dynamic setting: only restapi.roles_enabled roles may change it, and only persistently
+            final String raiseCap = bulkMaxEntriesSettings("persistent", String.valueOf(tooMany.size()));
+            try (TestRestClient clusterSettingsClient = localCluster.getRestClient(CLUSTER_SETTINGS_USER)) {
+                assertThat(clusterSettingsClient.putJson("_cluster/settings", raiseCap), isForbidden());
+            }
+            try (TestRestClient adminClient = localCluster.getRestClient(ADMIN_USER)) {
+                assertThat(
+                    adminClient.putJson("_cluster/settings", bulkMaxEntriesSettings("transient", String.valueOf(tooMany.size()))),
+                    isBadRequest()
+                );
+                assertThat(adminClient.putJson("_cluster/settings", raiseCap), isOk());
+                try {
+                    assertThat(client.putJson(apiPath(), roleMappings(tooMany)), isOk());
+                    assertThat(client.get(apiPath(rejectedRole)), isOk());
+                } finally {
+                    assertThat(adminClient.putJson("_cluster/settings", bulkMaxEntriesSettings("persistent", null)), isOk());
+                }
+            }
+            assertThat(client.putJson(apiPath(), roleMappings(tooMany)), isBadRequest());
         }
+    }
+
+    private static String bulkMaxEntriesSettings(final String scope, final String value) {
+        return "{\"" + scope + "\": {\"" + ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES + "\": " + value + "}}";
     }
 
     static ToXContentObject roleMappings(final Map<String, ToXContentObject> roleMappings) {
