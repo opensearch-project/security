@@ -425,7 +425,9 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (e0 == null) {
-            log.warn("Cannot resolve nested roles from the attributes of {} because no entry was found for this DN", roleDn);
+            if (isDebugEnabled) {
+                log.debug("Cannot resolve nested roles from the attributes of {} because no entry was found for this DN", roleDn);
+            }
         } else if (e0.getAttribute(userRoleName) != null) {
             final Collection<String> userRoles = e0.getAttribute(userRoleName).getStringValues();
             for (final String possibleRoleDN : userRoles) {
@@ -561,7 +563,9 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 this.shouldFollowReferrals
             );
 
-            if (roleEntry != null) {
+            if (roleEntry == null) {
+                log.warn("Skipping role {} because no entry was found for this DN", ldapName);
+            } else {
                 final LdapAttribute roleAttribute = roleEntry.getAttribute(role);
                 if (roleAttribute != null) {
                     return Utils.getSingleStringValue(roleAttribute);
