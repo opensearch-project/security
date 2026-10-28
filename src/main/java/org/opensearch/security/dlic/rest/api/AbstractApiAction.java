@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,6 +53,11 @@ import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.action.configupdate.SecurityConfigWriteAction;
 import org.opensearch.security.action.configupdate.SecurityConfigWriteRequest;
+import org.opensearch.security.dlic.rest.api.pagination.PaginationCursor;
+import org.opensearch.security.dlic.rest.api.pagination.PaginationParams;
+import org.opensearch.security.dlic.rest.api.pagination.PaginationRequestParser;
+import org.opensearch.security.dlic.rest.api.pagination.PaginationResult;
+import org.opensearch.security.dlic.rest.api.pagination.Paginator;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
@@ -62,6 +68,7 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -129,6 +136,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             .add(Method.POST, methodNotImplementedHandler)
             .add(Method.PATCH, methodNotImplementedHandler)
             .onGetRequest(this::processGetRequest)
+            .withPaginatedGetRequest(this::routeGetRequest)
             .onChangeRequest(Method.DELETE, this::processDeleteRequest)
             .onChangeRequest(Method.PUT, this::processPutRequest);
     }
@@ -214,6 +222,18 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         return true;
     }
 
+    /**
+     * Routes a GET to the paginated path when pagination parameters are present,
+     * or falls back to the legacy handler.
+     *
+     */
+    protected ValidationResult<ToXContent> routeGetRequest(final RestRequest request) throws IOException {
+        if (PaginationRequestParser.isPaginationRequested(request)) {
+            return processPaginatedGetRequest(request);
+        }
+        return null;
+    }
+
     protected final ValidationResult<SecurityConfiguration> processDeleteRequest(final RestRequest request) throws IOException {
         return endpointValidator.withRequiredEntityName(nameParam(request))
             .map(entityName -> loadConfiguration(entityName, false))
@@ -234,6 +254,59 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             securityConfiguration.configuration().removeOthers(entityName);
             return ValidationResult.success(securityConfiguration);
         }).orElse(ValidationResult.success(securityConfiguration)));
+    }
+
+    /**
+     * Handles a collection GET with pagination parameters.
+     */
+    protected ValidationResult<ToXContent> processPaginatedGetRequest(final RestRequest request) throws IOException {
+        return PaginationRequestParser.parse(request).map(params -> {
+            if (nameParam(request) != null) {
+                return ValidationResult.error(
+                    RestStatus.BAD_REQUEST,
+                    badRequestMessage("Pagination parameters are not supported for single-entity GET requests.")
+                );
+            }
+            return loadConfiguration(getConfigType(), true, true).map(
+                configuration -> ValidationResult.success(SecurityConfiguration.of(null, configuration))
+            ).map(endpointValidator::onConfigLoad).map(securityConfiguration -> {
+                final SecurityDynamicConfiguration<?> configuration = securityConfiguration.configuration();
+                postLoadForPagination(request, configuration);
+                if (params.hasCursor()) {
+                    return PaginationCursor.decode(params.nextToken, getConfigType(), params.sort)
+                        .map(cursor -> buildPaginatedPage(configuration, params, cursor));
+                }
+                return buildPaginatedPage(configuration, params, null);
+            });
+        });
+    }
+
+    /**
+     * Hook for subclasses to apply endpoint-specific post-load transformations
+     * (e.g. filtering or augmentation) to the configuration before it is paginated.
+     * The default implementation is a no-op.
+     *
+     * @param request       the incoming REST request (carries query params like {@code filterBy}, {@code show_all})
+     * @param configuration the fully loaded and redacted configuration to mutate in place
+     */
+    protected void postLoadForPagination(final RestRequest request, final SecurityDynamicConfiguration<?> configuration) {}
+
+    /**
+     * Builds a single page from the fully-loaded configuration.
+     *
+     * @param configuration fully loaded and redacted configuration
+     * @param params        validated pagination parameters
+     * @param cursor        pre-validated cursor from a prior page
+     * @return a {@link ValidationResult}
+     */
+    @SuppressWarnings("unchecked")
+    protected <T> ValidationResult<ToXContent> buildPaginatedPage(
+        final SecurityDynamicConfiguration<?> configuration,
+        final PaginationParams params,
+        final PaginationCursor cursor
+    ) {
+        final PaginationResult<T> page = Paginator.paginate((Map<String, T>) configuration.getCEntries(), params, cursor, getConfigType());
+        return ValidationResult.success(page);
     }
 
     /**
@@ -411,7 +484,11 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
-        return processPutRequest(nameParam(request), request);
+        final String entityName = nameParam(request);
+        if (entityName != null) {
+            return processPutRequest(entityName, request);
+        }
+        return processBulkPutRequest(request);
     }
 
     protected final ValidationResult<SecurityConfiguration> processPutRequest(final String entityName, final RestRequest request)
@@ -420,6 +497,69 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             .map(ignore -> loadConfigurationWithRequestContent(entityName, request))
             .map(endpointValidator::onConfigChange)
             .map(this::addEntityToConfig);
+    }
+
+    private ValidationResult<SecurityConfiguration> processBulkPutRequest(final RestRequest request) throws IOException {
+        final JsonNode requestContent;
+        try {
+            requestContent = Utils.toJsonNode(request.content().utf8ToString());
+        } catch (IOException e) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Request body must be valid JSON."));
+        }
+        if (requestContent.isObject() == false || requestContent.isEmpty()) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Request body must be a non-empty object keyed by resource name.")
+            );
+        }
+        final int maxEntries = clusterService.getClusterSettings().get(SecuritySettings.RESTAPI_BULK_MAX_ENTRIES);
+        if (requestContent.size() > maxEntries) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("Request contains " + requestContent.size() + " resources; the maximum is " + maxEntries + ".")
+            );
+        }
+
+        return loadConfiguration(getConfigType(), false, false).map(
+            configuration -> validateAndAddEntities(request, requestContent, configuration)
+        );
+    }
+
+    private ValidationResult<SecurityConfiguration> validateAndAddEntities(
+        final RestRequest request,
+        final JsonNode requestContent,
+        final SecurityDynamicConfiguration<?> configuration
+    ) throws IOException {
+        final List<SecurityConfiguration> securityConfigurations = new ArrayList<>(requestContent.size());
+        for (final var entity : requestContent.properties()) {
+            final String entityName = entity.getKey();
+            final JsonNode entityContent = entity.getValue();
+            final var entityNameValidation = endpointValidator.withRequiredEntityName(entityName.isEmpty() ? null : entityName);
+            if (entityNameValidation.isValid() == false) {
+                return ValidationResult.error(entityNameValidation.status(), entityNameValidation.errorMessage());
+            }
+            if (entityContent.isObject() == false) {
+                return ValidationResult.error(
+                    RestStatus.BAD_REQUEST,
+                    badRequestMessage("Resource '" + entityName + "' must be a JSON object.")
+                );
+            }
+
+            final var contentValidation = endpointValidator.createRequestContentValidator(entityName).validate(request, entityContent);
+            if (contentValidation.isValid() == false) {
+                return ValidationResult.error(contentValidation.status(), contentValidation.errorMessage());
+            }
+            securityConfigurations.add(SecurityConfiguration.of(entityContent, entityName, configuration));
+        }
+        final var changeValidation = endpointValidator.onConfigChange(securityConfigurations);
+        if (changeValidation.isValid() == false) {
+            return ValidationResult.error(changeValidation.status(), changeValidation.errorMessage());
+        }
+
+        for (final var entity : requestContent.properties()) {
+            configuration.putCObject(entity.getKey(), Utils.toConfigObject(entity.getValue(), configuration.getImplementingClass()));
+        }
+        return ValidationResult.success(SecurityConfiguration.of(null, configuration));
     }
 
     protected final ValidationResult<SecurityConfiguration> addEntityToConfig(final SecurityConfiguration securityConfiguration)
@@ -757,6 +897,9 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
      */
     protected void consumeParameters(final RestRequest request) {
         request.param("name");
+        request.param(PaginationRequestParser.PARAM_SIZE);
+        request.param(PaginationRequestParser.PARAM_SORT);
+        request.param(PaginationRequestParser.PARAM_NEXT_TOKEN);
     }
 
     @Override

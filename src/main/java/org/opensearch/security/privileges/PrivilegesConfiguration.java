@@ -224,6 +224,11 @@ public class PrivilegesConfiguration {
                     log.debug("Privileges for PrivilegesEvaluator and DLS/FLS did not change.");
                 }
 
+                if (apiTokenRepository != null && configMap.containsKey(CType.ACTIONGROUPS)) {
+                    // Tokens may load before configuration at startup; also refresh custom action group permissions on reload.
+                    apiTokenRepository.notifyAboutChanges();
+                }
+
                 try {
                     this.multiTenancyConfiguration.set(new DashboardsMultiTenancyConfiguration(generalConfiguration));
                 } catch (Exception e) {

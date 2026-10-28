@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -80,9 +79,8 @@ public abstract class AbstractInternalOpenSearchSink extends AuditLogSink {
                     return false;
                 }
 
-                final IndexRequestBuilder irb = clientProvider.prepareIndex(indexName)
-                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .setSource(msg.getAsMap());
+                // Audit writes use the index's normal refresh interval instead of refreshing for every event.
+                final IndexRequestBuilder irb = clientProvider.prepareIndex(indexName).setSource(msg.getAsMap());
                 threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
                 irb.setTimeout(TimeValue.timeValueMinutes(1));
                 if (this.storeOpType != null) {

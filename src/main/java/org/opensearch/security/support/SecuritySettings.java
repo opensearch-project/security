@@ -92,6 +92,20 @@ public class SecuritySettings {
         Setting.Property.Sensitive
     );
 
+    // Maximum number of resources one bulk PUT to a Security REST API collection endpoint may carry. Dynamic so a security
+    // admin can raise it for a one-off import without a rolling restart; Sensitive so only callers holding a
+    // plugins.security.restapi.roles_enabled role may change it.
+    public static final Setting<Integer> RESTAPI_BULK_MAX_ENTRIES = Setting.intSetting(
+        ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES,
+        ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES_DEFAULT,
+        ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES_MIN,
+        ConfigConstants.SECURITY_RESTAPI_BULK_MAX_ENTRIES_MAX,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic,
+        Setting.Property.Filtered,
+        Setting.Property.Sensitive
+    );
+
     public static final Setting<List<String>> SYSTEM_INDICES_RESTORE_INDICES_SETTING = Setting.listSetting(
         ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY,
         ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT,
@@ -335,5 +349,39 @@ public class SecuritySettings {
         false,
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
+    );
+
+    // Deprecated: selects the inter-cluster request evaluator by class name via reflection. Kept so clusters still setting
+    // plugins.security.cert.intercluster_request_evaluator_class continue to work; to be removed in a future major version (see #6479).
+    public static final Setting<String> LEGACY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = Setting.simpleString(
+        ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+        Setting.Property.NodeScope,
+        Setting.Property.Filtered,
+        Setting.Property.Deprecated
+    );
+
+    public static final List<String> INTERCLUSTER_REQUEST_EVALUATOR_VALUES = List.of(
+        ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT,
+        ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_OID
+    );
+
+    public static final Setting<String> INTERCLUSTER_REQUEST_EVALUATOR = Setting.simpleString(
+        ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR,
+        ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT,
+        value -> {
+            if (!INTERCLUSTER_REQUEST_EVALUATOR_VALUES.contains(value)) {
+                throw new IllegalArgumentException(
+                    "Setting ["
+                        + ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR
+                        + "] must be one of "
+                        + INTERCLUSTER_REQUEST_EVALUATOR_VALUES
+                        + " but was ["
+                        + value
+                        + "]"
+                );
+            }
+        },
+        Setting.Property.NodeScope,
+        Setting.Property.Filtered
     );
 }

@@ -570,6 +570,17 @@ public class LocalOpenSearchCluster {
             return running;
         }
 
+        public void restart() throws Exception {
+            if (!stop(30, TimeUnit.SECONDS).get(40, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Node did not stop: " + nodeName);
+            }
+            try (PortAllocator.PortAllocationLock ignored = PortAllocator.acquireExclusivePortAllocationLock()) {
+                if (start().get(60, TimeUnit.SECONDS) != StartStage.INITIALIZED) {
+                    throw new IllegalStateException("Node did not restart: " + nodeName);
+                }
+            }
+        }
+
         public <X> X getInjectable(Class<X> clazz) {
             return node.injector().getInstance(clazz);
         }

@@ -63,7 +63,7 @@ plugins {
     id 'com.netflix.nebula.ospackage' version "11.11.2"
     id "org.gradle.test-retry" version "1.6.6"
     id 'eclipse'
-    id "com.github.spotbugs" version "6.5.12"
+    id "com.github.spotbugs" version "6.5.13"
     id "com.google.osdetector" version "1.7.3"
 }
 
@@ -543,7 +543,7 @@ configurations {
 
             // For org.opensearch.plugin:transport-grpc
             force "com.google.guava:failureaccess:1.0.3"
-            force "org.scala-lang:scala3-library_3:3.9.0"
+            force "org.scala-lang:scala3-library_3:3.10.0"
 
             force "jakarta.json:jakarta.json-api:2.1.3"
         }
