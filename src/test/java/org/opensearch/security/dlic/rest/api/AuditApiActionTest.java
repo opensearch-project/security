@@ -124,6 +124,40 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     }
 
     @Test
+    public void testRemovingSplitCategoriesDoesNotRestoreDefaults() throws Exception {
+        setup();
+
+        rh.keystore = "restapi/kirk-keystore";
+        rh.sendAdminCertificate = true;
+
+        RestHelper.HttpResponse response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\", \"path\": \"/config/audit/disabled_categories\", \"value\": [\"GRANTED_PRIVILEGES\"]},"
+                + "{\"op\": \"add\", \"path\": \"/config/audit/disabled_rest_categories\", \"value\": [\"GRANTED_PRIVILEGES\"]},"
+                + "{\"op\": \"add\", \"path\": \"/config/audit/disabled_transport_categories\", "
+                + "\"value\": [\"GRANTED_PRIVILEGES\", \"AUTHENTICATED\"]}]"
+        );
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
+
+        // migrate to disabled_categories only
+        response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\", \"path\": \"/config/audit/disabled_categories\", \"value\": [\"AUTHENTICATED\", \"GRANTED_PRIVILEGES\"]},"
+                + "{\"op\": \"remove\", \"path\": \"/config/audit/disabled_rest_categories\"},"
+                + "{\"op\": \"remove\", \"path\": \"/config/audit/disabled_transport_categories\"}]"
+        );
+        assertThat(response.getBody(), response.getStatusCode(), is(HttpStatus.SC_OK));
+
+        final JsonNode audit = readTree(rh.executeGetRequest(ENDPOINT).getBody()).at("/config/audit");
+        assertThat(
+            Streams.stream(audit.get("disabled_categories").iterator()).map(JsonNode::textValue).collect(Collectors.toList()),
+            is(ImmutableList.of("AUTHENTICATED", "GRANTED_PRIVILEGES"))
+        );
+        assertThat(audit.get("disabled_rest_categories").size(), is(0));
+        assertThat(audit.get("disabled_transport_categories").size(), is(0));
+    }
+
+    @Test
     public void testInvalidDisabledCategories() throws Exception {
         setupWithRestRoles(null);
         rh.sendAdminCertificate = true;

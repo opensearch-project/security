@@ -112,12 +112,7 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
         protected QueryBuilder parseQuery(String queryString, NamedXContentRegistry xContentRegistry)
             throws PrivilegesConfigurationValidationException {
             try {
-                XContentParser parser = JsonXContent.jsonXContent.createParser(
-                    xContentRegistry,
-                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                    queryString
-                );
-                return AbstractQueryBuilder.parseInnerQueryBuilder(parser);
+                return DocumentPrivileges.parseQuery(xContentRegistry, queryString);
             } catch (Exception e) {
                 throw new PrivilegesConfigurationValidationException("Invalid DLS query: " + queryString, e);
             }
@@ -130,6 +125,16 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
             } else {
                 return new DlsQuery.Constant(queryString, xContentRegistry);
             }
+        }
+
+        /** Invalid stored queries must not be represented as an unrestricted (null) rule. */
+        public static DlsQuery invalid(String queryString) {
+            return new DlsQuery(queryString) {
+                @Override
+                RenderedDlsQuery evaluate(PrivilegesEvaluationContext context) throws PrivilegesEvaluationException {
+                    throw new PrivilegesEvaluationException("Invalid DLS configuration; access denied", null);
+                }
+            };
         }
 
         /**
@@ -222,12 +227,20 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
     }
 
     static QueryBuilder parseQuery(NamedXContentRegistry xContentRegistry, String queryString) throws IOException {
-        XContentParser parser = JsonXContent.jsonXContent.createParser(
-            xContentRegistry,
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            queryString
-        );
-        return AbstractQueryBuilder.parseInnerQueryBuilder(parser);
+        try (
+            XContentParser parser = JsonXContent.jsonXContent.createParser(
+                xContentRegistry,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                queryString
+            )
+        ) {
+            QueryBuilder query = AbstractQueryBuilder.parseInnerQueryBuilder(parser);
+            // Require one complete query for both API validation and stored DLS; trailing whitespace is allowed.
+            if (query == null || parser.nextToken() != null) {
+                throw new IllegalArgumentException("DLS must contain exactly one query DSL object");
+            }
+            return query;
+        }
     }
 
 }

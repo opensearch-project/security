@@ -54,8 +54,8 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
+import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -77,10 +77,7 @@ public class ConfigurationLoaderSecurity7 {
         super();
         this.client = client;
         this.settings = settings;
-        this.securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+        this.securityIndex = new SecurityIndexIdentity(settings).getName();
         this.cs = cs;
         log.debug("Index is: {}", securityIndex);
     }

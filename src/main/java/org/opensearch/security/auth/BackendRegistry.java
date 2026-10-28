@@ -672,6 +672,11 @@ public class BackendRegistry {
     }
 
     private void notifyIpAuthFailureListeners(SecurityRequestChannel request, AuthCredentials authCredentials) {
+        // A request without credentials cannot guess any, and counting it lets unauthenticated traffic block a shared address.
+        // The header check keeps counting a token that its authenticator rejects during extraction, such as an invalid JWT.
+        if (authCredentials == null && request.header(HttpHeaders.AUTHORIZATION) == null) {
+            return;
+        }
         notifyIpAuthFailureListeners(request.getRemoteAddress().map(InetSocketAddress::getAddress).orElse(null), authCredentials, request);
     }
 

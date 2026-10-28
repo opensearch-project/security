@@ -96,12 +96,16 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
         this.clusterService = clusterService;
         this.indexService = indexService;
         this.auditlog = auditlog;
-        final boolean allowNowinDlsQueries = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false);
-        if (allowNowinDlsQueries) {
-            nowInMillis = () -> System.currentTimeMillis();
-        } else {
-            nowInMillis = () -> { throw new IllegalArgumentException("'now' is not allowed in DLS queries"); };
-        }
+        // Read the flag from the node-global base context, which is kept current by a cluster settings
+        // consumer in DlsFlsValveImpl. The supplier is evaluated per query (when the DLS QueryShardContext
+        // is built), so a dynamic update to plugins.security.allow_now_in_dls takes effect on already-open
+        // indices without a restart.
+        nowInMillis = () -> {
+            if (dlsFlsBaseContext.isAllowNowInDlsQuery()) {
+                return System.currentTimeMillis();
+            }
+            throw new IllegalArgumentException("'now' is not allowed in DLS queries");
+        };
         log.debug("FLS/DLS {} enabled for index {}", this, indexService.index().getName());
         this.dlsFlsProcessedConfigSupplier = dlsFlsProcessedConfigSupplier;
         this.dlsFlsBaseContext = dlsFlsBaseContext;
@@ -170,7 +174,10 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
 
                 }
 
-                if (!flsRule.isAllowAll() || !fmRule.isAllowAll()) {
+                // A lookup document grants access only to its internal GET, not to searches of the same index.
+                if ((documentAllowList.isAllowed(index.getName(), DocumentAllowList.ANY_DOCUMENT_ID)
+                    || index.getName().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT)))
+                    && (!flsRule.isAllowAll() || !fmRule.isAllowAll())) {
                     log.debug("Lifting FLS/FM for {} due to present document allowlist", index.getName());
                     flsRule = FieldPrivileges.FlsRule.ALLOW_ALL;
                     fmRule = FieldMasking.FieldMaskingRule.ALLOW_ALL;

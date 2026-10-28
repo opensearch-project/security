@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -76,13 +77,13 @@ public class PBKDF2CustomConfigHashingTests extends HashingTests {
                 Map.of(
                     ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED,
                     List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()),
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM,
-                    ConfigConstants.PBKDF2,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_FUNCTION,
+                    PasswordHasherFactory.ALGORITHM.getKey(),
+                    PasswordHasherFactory.PBKDF2,
+                    PasswordHasherFactory.PBKDF2_FUNCTION.getKey(),
                     function,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_ITERATIONS,
+                    PasswordHasherFactory.PBKDF2_ITERATIONS.getKey(),
                     iterations,
-                    ConfigConstants.SECURITY_PASSWORD_HASHING_PBKDF2_LENGTH,
+                    PasswordHasherFactory.PBKDF2_LENGTH.getKey(),
                     length
                 )
             )

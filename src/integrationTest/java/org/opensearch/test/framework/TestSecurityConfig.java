@@ -69,7 +69,6 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 import org.opensearch.test.framework.data.TestIndex;
 import org.opensearch.transport.client.Client;
@@ -98,7 +97,7 @@ public class TestSecurityConfig {
     private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
 
     private static final PasswordHasher passwordHasher = PasswordHasherFactory.createPasswordHasher(
-        Settings.builder().put(ConfigConstants.SECURITY_PASSWORD_HASHING_ALGORITHM, ConfigConstants.BCRYPT).build()
+        Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
     );
 
     private Config config = new Config();
@@ -144,6 +143,11 @@ public class TestSecurityConfig {
 
     public TestSecurityConfig privilegesEvaluationType(String privilegesEvaluationType) {
         config.privilegesEvaluationType(privilegesEvaluationType);
+        return this;
+    }
+
+    public TestSecurityConfig multitenancyEnabled(boolean enabled) {
+        config.multitenancyEnabled = enabled;
         return this;
     }
 
@@ -273,6 +277,7 @@ public class TestSecurityConfig {
         private boolean anonymousAuth;
 
         private Boolean doNotFailOnForbidden;
+        private Boolean multitenancyEnabled;
         private String privilegesEvaluationType;
         private XffConfig xffConfig;
         private OnBehalfOfConfig onBehalfOfConfig;
@@ -353,6 +358,9 @@ public class TestSecurityConfig {
             }
             if (privilegesEvaluationType != null) {
                 xContentBuilder.field("privileges_evaluation_type", privilegesEvaluationType);
+            }
+            if (multitenancyEnabled != null) {
+                xContentBuilder.field("kibana", Map.of("multitenancy_enabled", multitenancyEnabled));
             }
             xContentBuilder.field("authc", authcDomainMap);
             if (authzDomainMap.isEmpty() == false) {
@@ -701,6 +709,11 @@ public class TestSecurityConfig {
          * Represents the kibana_user role which is predefined in static_roles.yml.
          */
         public static Role KIBANA_USER = new Role("kibana_user").isPredefined(true);
+
+        /** Represents the base Dashboards role without concrete tenant-index patterns. */
+        public static Role BASE_DASHBOARDS_USER = new Role("base_dashboards_user").isPredefined(true);
+
+        public static Role BASE_DASHBOARDS_USER_READ_ONLY = new Role("base_dashboards_user_read_only").isPredefined(true);
 
         private String name;
         private List<String> clusterPermissions = new ArrayList<>();
