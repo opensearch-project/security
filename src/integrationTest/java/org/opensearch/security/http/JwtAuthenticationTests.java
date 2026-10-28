@@ -262,6 +262,8 @@ public class JwtAuthenticationTests {
             Map<String, Object> fields = message.getAsMap();
             return message.getCategory() == AuditCategory.FAILED_LOGIN
                 && "<NONE>".equals(String.valueOf(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER)))
+                && "plugin:reserved-subject".equals(String.valueOf(fields.get(AuditMessage.REQUEST_ATTEMPTED_USER)))
+                && "RESERVED_SUBJECT_PREFIX".equals(String.valueOf(fields.get(AuditMessage.AUTHENTICATION_FAILURE_REASON)))
                 && "REST".equals(String.valueOf(fields.get(AuditMessage.ORIGIN)))
                 && "REST".equals(String.valueOf(fields.get(AuditMessage.REQUEST_LAYER)))
                 && GET.name().equals(String.valueOf(fields.get(AuditMessage.REST_REQUEST_METHOD)))
@@ -270,6 +272,22 @@ public class JwtAuthenticationTests {
                 && !fields.containsKey(AuditMessage.REQUEST_INITIATING_USER)
                 && !fields.containsKey(AuditMessage.USER_ROLES)
                 && !fields.containsKey(AuditMessage.AUTH_METHOD);
+        });
+    }
+
+    @Test
+    public void shouldRejectForbiddenJwtSubjectAndAuditFailedLogin() {
+        Header header = tokenFactory1.generateValidToken(FORBIDDEN_SUBJECT_1);
+        try (TestRestClient client = cluster.getRestClient(header)) {
+            client.getAuthInfo().assertStatusCode(401);
+        }
+
+        auditLogsRule.assertExactlyOne((AuditMessage message) -> {
+            Map<String, Object> fields = message.getAsMap();
+            return message.getCategory() == AuditCategory.FAILED_LOGIN
+                && "<NONE>".equals(String.valueOf(fields.get(AuditMessage.REQUEST_EFFECTIVE_USER)))
+                && FORBIDDEN_SUBJECT_1.equals(String.valueOf(fields.get(AuditMessage.REQUEST_ATTEMPTED_USER)))
+                && "FORBIDDEN_SUBJECT".equals(String.valueOf(fields.get(AuditMessage.AUTHENTICATION_FAILURE_REASON)));
         });
     }
 

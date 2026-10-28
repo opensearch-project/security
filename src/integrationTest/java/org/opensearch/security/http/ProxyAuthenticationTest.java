@@ -82,6 +82,12 @@ public class ProxyAuthenticationTest extends CommonProxyAuthenticationTests {
 
     @Test
     @Override
+    public void shouldAuthenticateWithProxy_negativeWhenUserNameHeaderHasReservedPrefix() throws IOException {
+        super.shouldAuthenticateWithProxy_negativeWhenUserNameHeaderHasReservedPrefix();
+    }
+
+    @Test
+    @Override
     public void shouldAuthenticateWithProxy_negativeWhenUserNameHeaderIsMissing() throws IOException {
         super.shouldAuthenticateWithProxy_negativeWhenUserNameHeaderIsMissing();
     }
