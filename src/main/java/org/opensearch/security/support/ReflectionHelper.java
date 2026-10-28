@@ -82,7 +82,13 @@ public class ReflectionHelper {
             addLoadedModule(clazz0);
             return ret;
         } catch (final Throwable e) {
-            log.warn("Unable to load inter cluster request evaluator '{}' due to {}", clazz, e.toString());
+            // Falling back changes which transport requests are trusted as inter-cluster, so make it visible
+            log.error(
+                "Unable to load inter cluster request evaluator '{}' due to {}; falling back to {}",
+                clazz,
+                e.toString(),
+                DefaultInterClusterRequestEvaluator.class.getName()
+            );
             if (log.isDebugEnabled()) {
                 log.debug("Stacktrace: ", e);
             }
