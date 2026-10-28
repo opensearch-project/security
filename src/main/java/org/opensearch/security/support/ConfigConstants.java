@@ -356,6 +356,12 @@ public class ConfigConstants {
     // while remaining configurable, since free-form fields such as DLS/FLS queries can legitimately exceed the default.
     public static final String SECURITY_RESTAPI_MAX_STRING_LENGTH = SECURITY_SETTINGS_PREFIX + "restapi.max_string_length";
     public static final int SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT = 4096;
+    // Maximum number of resources a single bulk PUT request to a Security REST API collection endpoint may carry. The whole
+    // request is validated synchronously before anything is written, so this bounds the work one request can demand.
+    public static final String SECURITY_RESTAPI_BULK_MAX_ENTRIES = SECURITY_SETTINGS_PREFIX + "restapi.bulk_max_entries";
+    public static final int SECURITY_RESTAPI_BULK_MAX_ENTRIES_DEFAULT = 1_000;
+    public static final int SECURITY_RESTAPI_BULK_MAX_ENTRIES_MIN = 1;
+    public static final int SECURITY_RESTAPI_BULK_MAX_ENTRIES_MAX = 100_000;
     // Illegal Opcodes from here on
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = SECURITY_SETTINGS_PREFIX
         + "unsupported.disable_rest_auth_initially";

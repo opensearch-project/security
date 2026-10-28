@@ -2539,6 +2539,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+            settings.add(SecuritySettings.RESTAPI_BULK_MAX_ENTRIES);
 
             // Compliance settings moved outside the gate — see below
 
