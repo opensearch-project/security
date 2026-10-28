@@ -219,14 +219,14 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void nonAdminUserWithoutOboPermissionIsRejectedOnDeprecatedRoute() {
         try (TestRestClient client = cluster.getRestClient(OBO_USER_NO_PERM)) {
             TestRestClient.HttpResponse response = client.postJson(DEPRECATED_OBO_TOKEN_PATH, OBO_TOKEN_REASON);
-            response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
     }
 
     @Test
     public void shouldNotAuthenticateForNonAdminUserWithoutOBOPermission() {
         try (TestRestClient client = cluster.getRestClient(OBO_USER_NO_PERM)) {
-            assertThat(client.post(OBO_ENDPOINT_PREFIX).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.post(OBO_ENDPOINT_PREFIX).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 
