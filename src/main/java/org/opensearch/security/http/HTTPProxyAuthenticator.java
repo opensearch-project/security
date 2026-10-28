@@ -36,11 +36,13 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.auth.AuthenticationFailureReason;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.user.User;
 
 import static java.util.function.Predicate.not;
 
@@ -72,6 +74,13 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             log.debug("Headers {}", request.getHeaders());
             log.debug("UserHeader {}, value {}", settings.get("user_header"), requestUserHeader.orElse(null));
             log.debug("RolesHeader {}, value {}", settings.get("roles_header"), requestRolesHeader.orElse(null));
+        }
+
+        // A proxy user header is supplied by an external caller and must not be able to assert an
+        // internal principal (the 'plugin:' runtime identity or the 'token:' API-token identity).
+        if (requestUserHeader.map(User::hasReservedPrefix).orElse(false)) {
+            log.warn("Rejecting proxy authentication: user header uses a reserved internal identity prefix");
+            return AuthCredentials.rejected(requestUserHeader.get(), AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX);
         }
 
         return requestUserHeader.map(userHeader -> {

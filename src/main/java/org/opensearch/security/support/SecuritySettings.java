@@ -336,4 +336,38 @@ public class SecuritySettings {
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
     );
+
+    // Deprecated: selects the inter-cluster request evaluator by class name via reflection. Kept so clusters still setting
+    // plugins.security.cert.intercluster_request_evaluator_class continue to work; to be removed in a future major version (see #6479).
+    public static final Setting<String> LEGACY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = Setting.simpleString(
+        ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
+        Setting.Property.NodeScope,
+        Setting.Property.Filtered,
+        Setting.Property.Deprecated
+    );
+
+    public static final List<String> INTERCLUSTER_REQUEST_EVALUATOR_VALUES = List.of(
+        ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT,
+        ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_OID
+    );
+
+    public static final Setting<String> INTERCLUSTER_REQUEST_EVALUATOR = Setting.simpleString(
+        ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR,
+        ConfigConstants.INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT,
+        value -> {
+            if (!INTERCLUSTER_REQUEST_EVALUATOR_VALUES.contains(value)) {
+                throw new IllegalArgumentException(
+                    "Setting ["
+                        + ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR
+                        + "] must be one of "
+                        + INTERCLUSTER_REQUEST_EVALUATOR_VALUES
+                        + " but was ["
+                        + value
+                        + "]"
+                );
+            }
+        },
+        Setting.Property.NodeScope,
+        Setting.Property.Filtered
+    );
 }
