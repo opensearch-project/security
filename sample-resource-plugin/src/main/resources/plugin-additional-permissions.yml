@@ -1,9 +1,11 @@
 cluster_permissions:
   - "cluster:monitor/health"
   - "cluster:monitor/state"
+  - "cluster_manage_pipelines"
 index_permissions:
   - index_patterns:
       - "test-index*"
     allowed_actions:
       - "indices:data/write/index*"
       - "indices:admin/create"
+      - "read"

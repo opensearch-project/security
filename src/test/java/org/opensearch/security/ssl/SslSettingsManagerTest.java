@@ -11,9 +11,16 @@
 
 package org.opensearch.security.ssl;
 
+import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.TreeSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSocket;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
@@ -27,10 +34,13 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.ssl.config.CertType;
+import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.test.BouncyCastleThreadFilter;
 
+import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.JdkSslContext;
 import io.netty.handler.ssl.SslContext;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -67,6 +77,8 @@ import static org.opensearch.security.ssl.util.SSLConfigConstants.SSL_TRANSPORT_
 import static org.opensearch.security.ssl.util.SSLConfigConstants.getStringAffixKeyForCertType;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_SSL_ONLY;
 import static org.opensearch.transport.AuxTransport.AUX_TRANSPORT_TYPES_SETTING;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 @ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
@@ -109,6 +121,164 @@ public class SslSettingsManagerTest extends RandomizedTest {
         return Settings.builder()
             .put(Environment.PATH_HOME_SETTING.getKey(), certificatesRule.configRootFolder().toString())
             .put("client.type", "node");
+    }
+
+    @Test
+    public void configuredCipherListsAreNotExpanded() throws Exception {
+        for (CertType certType : List.of(CertType.HTTP, CertType.TRANSPORT)) {
+            for (List<String> ciphers : List.of(
+                List.of("TLS_AES_128_GCM_SHA256"),
+                List.of("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"),
+                List.of("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+                List.of("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
+            )) {
+                final var settings = cipherSettings(certType).putList(certType.sslSettingPrefix() + "enabled_ciphers", ciphers).build();
+                final var environment = TestEnvironment.newEnvironment(settings);
+                final var configuration = new SslSettingsManager(environment).sslConfiguration(certType).orElseThrow();
+                final var engine = configuration.buildServerSslContext(true).newEngine(UnpooledByteBufAllocator.DEFAULT);
+                assertEquals(ciphers, List.of(engine.getEnabledCipherSuites()));
+                final var legacy = new DefaultSecurityKeyStore(settings, environment.configDir());
+                final var legacyEngine = certType == CertType.HTTP ? legacy.createHTTPSSLEngine() : legacy.createServerTransportSSLEngine();
+                assertEquals(ciphers, List.of(legacyEngine.getEnabledCipherSuites()));
+            }
+        }
+    }
+
+    @Test
+    public void defaultCipherListsIncludeHttp2Recommendations() {
+        assertThat(
+            "Defaults already include HTTP/2 ciphers",
+            List.of(org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_SSL_CIPHERS)
+                .containsAll(io.netty.handler.codec.http2.Http2SecurityUtil.CIPHERS)
+        );
+        for (CertType certType : List.of(CertType.HTTP, CertType.TRANSPORT)) {
+            final var configuration = new SslSettingsManager(TestEnvironment.newEnvironment(cipherSettings(certType).build()))
+                .sslConfiguration(certType)
+                .orElseThrow();
+            final var engine = configuration.buildServerSslContext(true).newEngine(UnpooledByteBufAllocator.DEFAULT);
+            assertEquals(
+                new TreeSet<>(configuration.sslParameters().allowedCiphers()),
+                new TreeSet<>(List.of(engine.getEnabledCipherSuites()))
+            );
+        }
+    }
+
+    private Settings.Builder cipherSettings(CertType certType) {
+        final var securitySettings = new MockSecureSettings();
+        securitySettings.setString(SSL_HTTP_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+        securitySettings.setString(SSL_TRANSPORT_PREFIX + "pemkey_password_secure", certificatesRule.privateKeyPassword());
+        return defaultSettingsBuilder().setSecureSettings(securitySettings)
+            .put(httpSslSettings().build())
+            .put(transportSslSettings().build())
+            .put(SECURITY_SSL_TRANSPORT_ENABLED, certType == CertType.TRANSPORT)
+            .put(SECURITY_SSL_ONLY, true);
+    }
+
+    @Test
+    public void tls13HandshakeHonorsConfiguredCiphers() throws Exception {
+        for (CertType certType : List.of(CertType.HTTP, CertType.TRANSPORT)) {
+            final var settings = defaultSettingsBuilder().put(SECURITY_SSL_ONLY, true)
+                .put(SECURITY_SSL_HTTP_ENABLED, certType == CertType.HTTP)
+                .put(SECURITY_SSL_TRANSPORT_ENABLED, certType == CertType.TRANSPORT)
+                .put(certType.sslSettingPrefix() + "keystore_filepath", FileHelper.resolveStore("ssl/node-0-keystore").path())
+                .put(certType.sslSettingPrefix() + "truststore_filepath", FileHelper.resolveStore("ssl/truststore").path())
+                .putList(certType.sslSettingPrefix() + "enabled_protocols", "TLSv1.3")
+                .putList(certType.sslSettingPrefix() + "enabled_ciphers", "TLS_AES_128_GCM_SHA256")
+                .build();
+            final var configuration = new SslSettingsManager(TestEnvironment.newEnvironment(settings)).sslConfiguration(certType)
+                .orElseThrow();
+            final var serverContext = (JdkSslContext) configuration.buildServerSslContext(true);
+            final var clientContext = (JdkSslContext) configuration.buildClientSslContext(true);
+            for (String cipher : List.of("TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256")) {
+                // ChaCha is unavailable with FIPS providers; still exercise the AES-only restriction there.
+                if (cipher.equals("TLS_CHACHA20_POLY1305_SHA256")
+                    && !List.of(clientContext.context().getSupportedSSLParameters().getCipherSuites()).contains(cipher)) {
+                    continue;
+                }
+                boolean allowed = cipher.equals("TLS_AES_128_GCM_SHA256");
+                try (
+                    var executor = Executors.newSingleThreadExecutor();
+                    var server = (SSLServerSocket) serverContext.context()
+                        .getServerSocketFactory()
+                        .createServerSocket(0, 1, InetAddress.getLoopbackAddress())
+                ) {
+                    server.setSoTimeout(10000);
+                    server.setEnabledProtocols(new String[] { "TLSv1.3" });
+                    server.setEnabledCipherSuites(serverContext.cipherSuites().toArray(String[]::new));
+                    server.setNeedClientAuth(certType == CertType.TRANSPORT);
+                    final var handshake = executor.submit(() -> {
+                        try (var socket = (SSLSocket) server.accept()) {
+                            socket.setSoTimeout(10000);
+                            socket.startHandshake();
+                            return socket.getSession().getCipherSuite();
+                        } catch (SSLHandshakeException e) {
+                            return null;
+                        }
+                    });
+                    try (
+                        var client = (SSLSocket) clientContext.context()
+                            .getSocketFactory()
+                            .createSocket(InetAddress.getLoopbackAddress(), server.getLocalPort())
+                    ) {
+                        client.setSoTimeout(10000);
+                        client.setEnabledProtocols(new String[] { "TLSv1.3" });
+                        client.setEnabledCipherSuites(new String[] { cipher });
+                        if (allowed) {
+                            client.startHandshake();
+                            assertEquals(cipher, handshake.get(15, TimeUnit.SECONDS));
+                        } else {
+                            assertThrows(SSLHandshakeException.class, client::startHandshake);
+                            assertNull(handshake.get(15, TimeUnit.SECONDS));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void defaultTls12HandshakePrefersEcdheGcm() throws Exception {
+        for (CertType certType : List.of(CertType.HTTP, CertType.TRANSPORT)) {
+            final var settings = defaultSettingsBuilder().put(SECURITY_SSL_ONLY, true)
+                .put(SECURITY_SSL_HTTP_ENABLED, certType == CertType.HTTP)
+                .put(SECURITY_SSL_TRANSPORT_ENABLED, certType == CertType.TRANSPORT)
+                .put(certType.sslSettingPrefix() + "keystore_filepath", FileHelper.resolveStore("ssl/node-0-keystore").path())
+                .put(certType.sslSettingPrefix() + "truststore_filepath", FileHelper.resolveStore("ssl/truststore").path())
+                .build();
+            final var configuration = new SslSettingsManager(TestEnvironment.newEnvironment(settings)).sslConfiguration(certType)
+                .orElseThrow();
+            final var serverContext = (JdkSslContext) configuration.buildServerSslContext(true);
+            final var clientContext = (JdkSslContext) configuration.buildClientSslContext(true);
+            try (
+                var executor = Executors.newSingleThreadExecutor();
+                var server = (SSLServerSocket) serverContext.context()
+                    .getServerSocketFactory()
+                    .createServerSocket(0, 1, InetAddress.getLoopbackAddress())
+            ) {
+                server.setSoTimeout(10000);
+                server.setEnabledCipherSuites(serverContext.cipherSuites().toArray(String[]::new));
+                server.setNeedClientAuth(certType == CertType.TRANSPORT);
+                final var handshake = executor.submit(() -> {
+                    try (var socket = (SSLSocket) server.accept()) {
+                        socket.setSoTimeout(10000);
+                        socket.startHandshake();
+                        return socket.getSession().getCipherSuite();
+                    }
+                });
+                try (
+                    var client = (SSLSocket) clientContext.context()
+                        .getSocketFactory()
+                        .createSocket(InetAddress.getLoopbackAddress(), server.getLocalPort())
+                ) {
+                    client.setSoTimeout(10000);
+                    client.setEnabledProtocols(new String[] { "TLSv1.2" });
+                    // Leave the client's default cipher list intact to exercise server preference.
+                    client.startHandshake();
+                    assertEquals("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", client.getSession().getCipherSuite());
+                    assertEquals(client.getSession().getCipherSuite(), handshake.get(15, TimeUnit.SECONDS));
+                }
+            }
+        }
     }
 
     private Settings.Builder transportSslSettings() {
