@@ -88,9 +88,10 @@ public class ReactorHttpClientTests {
         DisposableServer server = HttpServer.create().port(0).handle((request, response) -> {
             int active = activeRequests.incrementAndGet();
             maxActiveRequests.accumulateAndGet(active, Math::max);
+            // Decrement before the send: the client can start its next request before a callback after the send runs.
             return Mono.delay(Duration.ofMillis(20))
-                .then(response.status(HttpResponseStatus.UNAUTHORIZED).send())
-                .doFinally(signalType -> activeRequests.decrementAndGet());
+                .doOnNext(ignored -> activeRequests.decrementAndGet())
+                .then(response.status(HttpResponseStatus.UNAUTHORIZED).send());
         }).bindNow();
 
         try (
