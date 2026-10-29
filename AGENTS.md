@@ -107,7 +107,7 @@ opensearch_version = System.getProperty("opensearch.version", "3.8.0-SNAPSHOT")
 ### Integration Tests
 
 - Located in `src/integrationTest/`
-- Subdomain suites: `api`, `auditlog`, `dlsfls`, `grpc`, `hash`, `http`, `privileges`, `rest`, `ssl`, `support`, `systemindex`, `user`, `util`
+- Subdomain suites: `api`, `auditlog`, `dlsfls`, `flight`, `grpc`, `hash`, `http`, `privileges`, `rest`, `ssl`, `support`, `systemindex`, `user`, `util`
 - Run all integration tests: `./gradlew integrationTest`
 - Run a specific suite (as defined in `build.gradle`):
   ```bash
