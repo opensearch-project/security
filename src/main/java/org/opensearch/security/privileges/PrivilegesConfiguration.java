@@ -143,20 +143,20 @@ public class PrivilegesConfiguration {
 
                 // We are targeting an initialized PrivilegesEvaluator; this might seem a bit redundant, but gives us
                 // in the future the flexibility to introduce different implementations of PrivilegesEvaluator
-                PrivilegesEvaluator.PrivilegesEvaluatorType targetType = PrivilegesEvaluator.PrivilegesEvaluatorType.getFrom(
+                PrivilegesEvaluator.PrivilegeEvaluationMode targetMode = PrivilegesEvaluator.PrivilegeEvaluationMode.getFrom(
                     configurationRepository.getConfiguration(CType.CONFIG)
                 );
-                PrivilegesEvaluator.PrivilegesEvaluatorType currentType = currentPrivilegesEvaluator.type();
+                PrivilegesEvaluator.PrivilegeEvaluationMode currentMode = currentPrivilegesEvaluator.mode();
 
                 boolean privilegesChanged = oldRawConfiguration == null
                     || !oldRawConfiguration.equals(rawConfiguration)
-                    || currentType != targetType;
+                    || currentMode != targetMode;
                 if (privilegesChanged) {
                     log.debug("Privileges for PrivilegesEvaluator or DLS/FLS changed; updating.");
 
                     FlattenedActionGroups flattenedActionGroups = new FlattenedActionGroups(actionGroupsConfiguration.withStaticConfig());
 
-                    boolean memberIndexPrivilegesYieldAliasPrivileges = currentType != PrivilegesEvaluator.PrivilegesEvaluatorType.V4;
+                    boolean memberIndexPrivilegesYieldAliasPrivileges = currentMode != PrivilegesEvaluator.PrivilegeEvaluationMode.V4;
 
                     CompiledRoles newCompiledRoles = new CompiledRoles(
                         rolesConfiguration.withStaticConfig(),
@@ -178,9 +178,9 @@ public class PrivilegesConfiguration {
                         this.tokenIdToActionPrivileges
                     );
 
-                    if (currentType != targetType) {
+                    if (currentMode != targetMode) {
                         PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
-                            targetType.factory.create(coreDependencies, dynamicDependencies)
+                            targetMode.factory.create(coreDependencies, dynamicDependencies)
                         );
                         if (oldInstance != null) {
                             oldInstance.shutdown();
@@ -214,7 +214,7 @@ public class PrivilegesConfiguration {
                                 rolesConfiguration,
                                 tenantConfiguration,
                                 flattenedActionGroups,
-                                targetType == PrivilegesEvaluator.PrivilegesEvaluatorType.LEGACY
+                                targetMode == PrivilegesEvaluator.PrivilegeEvaluationMode.LEGACY
                             )
                         );
                     } catch (Exception e) {

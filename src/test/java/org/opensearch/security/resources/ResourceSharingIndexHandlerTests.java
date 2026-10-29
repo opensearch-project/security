@@ -52,6 +52,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.security.resources.sharing.CreatedBy;
@@ -71,6 +72,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -143,14 +145,7 @@ public class ResourceSharingIndexHandlerTests {
     }
 
     private void stubIndexSucceeds() {
-        IndexRequestBuilder builder = mock(IndexRequestBuilder.class, Answers.RETURNS_SELF);
-        when(builder.request()).thenReturn(mock(IndexRequest.class));
-        when(client.prepareIndex(anyString())).thenReturn(builder);
-        doAnswer(inv -> {
-            ActionListener<IndexResponse> l = inv.getArgument(1);
-            l.onResponse(mock(IndexResponse.class));
-            return null;
-        }).when(client).index(any(IndexRequest.class), any());
+        stubRecordIndexSucceeds();
     }
 
     private void stubUpdateFails() {
@@ -563,7 +558,7 @@ public class ResourceSharingIndexHandlerTests {
         stubUpdateBuilder();
         stubUpdateFails(() -> new OpenSearchStatusException("mapping rejected the field", RestStatus.BAD_REQUEST));
 
-        ResourceSharing created = ResourceSharing.builder().resourceId("res-1").createdBy(new CreatedBy("creator")).build();
+        ResourceSharing created = newRecord();
         List<Exception> failures = new ArrayList<>();
         handler.indexResourceSharing(RESOURCE_INDEX, created, ActionListener.wrap(r -> {}, failures::add));
 
@@ -624,6 +619,166 @@ public class ResourceSharingIndexHandlerTests {
         assertEquals(0, failures.get());
     }
 
+    /**
+     * A create that finds the record already there rewrites the field from that record, so a repeated migrate repairs it.
+     */
+    @Test
+    public void create_onAnExistingRecordRewritesVisibilityFromIt() throws Exception {
+        String existing = recordJson(List.of("alice", "bob"));
+        stubSharingAndResource(() -> existing);
+        stubRecordIndexConflicts();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, landed::add);
+
+        ResourceSharing created = newRecord();
+        List<Object> responses = new ArrayList<>();
+        handler.indexResourceSharing(RESOURCE_INDEX, created, ActionListener.wrap(responses::add, e -> fail(e.toString())));
+
+        assertEquals("an existing record is still reported as not created", 1, responses.size());
+        assertNull(responses.get(0));
+        assertEquals(1, landed.size());
+        assertEquals(Set.copyOf(principalsOf(existing)), Set.copyOf(landed.get(0)));
+    }
+
+    @Test
+    public void create_onAnExistingRecordReportsAFailureToWriteVisibility() throws Exception {
+        stubSharingAndResource(() -> recordJson(List.of("alice")));
+        stubRecordIndexConflicts();
+        stubUpdateBuilder();
+        stubUpdateFails(() -> new OpenSearchStatusException("mapping rejected the field", RestStatus.BAD_REQUEST));
+
+        ResourceSharing created = newRecord();
+        List<Exception> failures = new ArrayList<>();
+        handler.indexResourceSharing(RESOURCE_INDEX, created, ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(1, failures.size());
+        assertTrue(failures.get(0).getMessage().contains("its sharing record was unchanged"));
+        assertEquals("mapping rejected the field", failures.get(0).getCause().getMessage());
+    }
+
+    /**
+     * The restore that follows a resource write starts from that write's version, so it needs no version read.
+     */
+    @Test
+    public void restore_fromAKnownVersionSkipsTheVersionRead() {
+        AtomicInteger resourceReads = new AtomicInteger();
+        stubGets(() -> {
+            resourceReads.incrementAndGet();
+            return resourceDoc();
+        }, () -> getResult(recordJson(List.of("alice")), 1L));
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, landed::add);
+
+        List<Object> done = new ArrayList<>();
+        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, RESOURCE_DOC_SEQ_NO, 1L, ActionListener.wrap(done::add, e -> {
+            fail(e.toString());
+        }));
+
+        assertEquals(1, done.size());
+        assertEquals(0, resourceReads.get());
+        assertEquals(1, landed.size());
+        verify(builder).setIfSeqNo(RESOURCE_DOC_SEQ_NO);
+    }
+
+    /**
+     * When the document has moved on since the write that started the restore, the restore reads the version again and
+     * writes from the record as it then stands.
+     */
+    @Test
+    public void restore_fromAStaleVersionRereadsTheVersion() throws Exception {
+        runScheduledTasksInline();
+        String current = recordJson(List.of("alice", "carol"));
+        AtomicInteger resourceReads = new AtomicInteger();
+        AtomicInteger recordReads = new AtomicInteger();
+        stubGets(() -> {
+            resourceReads.incrementAndGet();
+            return resourceDoc();
+        }, () -> getResult(recordReads.getAndIncrement() == 0 ? recordJson(List.of("alice")) : current, 1L));
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, landed::add);
+
+        List<Object> done = new ArrayList<>();
+        handler.fetchAndUpdateResourceVisibility(
+            "res-1",
+            RESOURCE_INDEX,
+            RESOURCE_DOC_SEQ_NO - 1,
+            1L,
+            ActionListener.wrap(done::add, e -> fail(e.toString()))
+        );
+
+        assertEquals(1, done.size());
+        assertEquals(1, resourceReads.get());
+        assertEquals("the retry reads the record again", 2, recordReads.get());
+        assertEquals(1, landed.size());
+        assertEquals(Set.copyOf(principalsOf(current)), Set.copyOf(landed.get(0)));
+    }
+
+    @Test
+    public void create_onAnExistingRecordPassesThroughAMissingResourceDocument() throws Exception {
+        stubGets(ResourceSharingIndexHandlerTests::missingResult, () -> getResult(recordJson(List.of("alice")), 1L));
+        stubRecordIndexConflicts();
+        stubUpdateBuilder();
+
+        ResourceSharing created = newRecord();
+        List<Exception> failures = new ArrayList<>();
+        handler.indexResourceSharing(RESOURCE_INDEX, created, ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(1, failures.size());
+        assertTrue(failures.get(0) instanceof ResourceNotFoundException);
+        verify(client, never()).update(any(UpdateRequest.class), any());
+    }
+
+    /**
+     * The migrate API counts down a latch per completion, so the existing-record path must answer its caller once.
+     */
+    @Test
+    public void create_onAnExistingRecordCompletesTheCallerOnce() throws Exception {
+        stubSharingAndResource(() -> recordJson(List.of("alice")));
+        stubRecordIndexConflicts();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        stubUpdates(builder, value -> {});
+
+        AtomicInteger responses = new AtomicInteger();
+        AtomicInteger failures = new AtomicInteger();
+        ResourceSharing created = newRecord();
+        handler.indexResourceSharing(RESOURCE_INDEX, created, new ActionListener<>() {
+            @Override
+            public void onResponse(ResourceSharing r) {
+                responses.incrementAndGet();
+                throw new IllegalStateException("caller failed after success");
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                failures.incrementAndGet();
+            }
+        });
+
+        assertEquals(1, responses.get());
+        assertEquals(0, failures.get());
+    }
+
+    /**
+     * A resource deleted after the write that started the restore is reported as missing, not as a failed field write.
+     */
+    @Test
+    public void restore_fromAKnownVersionReportsADeletedResourceAsMissing() {
+        stubSharingAndResource(() -> recordJson(List.of("alice")));
+        stubUpdateBuilder();
+        stubUpdateFails(() -> new DocumentMissingException(new ShardId(RESOURCE_INDEX, "_na_", 0), "res-1"));
+
+        List<Exception> failures = new ArrayList<>();
+        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, RESOURCE_DOC_SEQ_NO, 1L, ActionListener.wrap(r -> {
+            fail("must not succeed");
+        }, failures::add));
+
+        assertEquals(1, failures.size());
+        assertTrue(failures.get(0) instanceof ResourceNotFoundException);
+    }
+
     // ---------- helpers for the visibility tests ------------------------------------------------------
 
     /**
@@ -642,13 +797,22 @@ public class ResourceSharingIndexHandlerTests {
     }
 
     private void stubRecordIndexSucceeds(Runnable onIndexed) {
+        stubRecordIndex(l -> {
+            onIndexed.run();
+            l.onResponse(mock(IndexResponse.class));
+        });
+    }
+
+    private void stubRecordIndexConflicts() {
+        stubRecordIndex(l -> l.onFailure(versionConflict()));
+    }
+
+    private void stubRecordIndex(Consumer<ActionListener<IndexResponse>> outcome) {
         IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
         when(indexBuilder.request()).thenReturn(mock(IndexRequest.class));
         when(client.prepareIndex(anyString())).thenReturn(indexBuilder);
         doAnswer(inv -> {
-            onIndexed.run();
-            ActionListener<IndexResponse> l = inv.getArgument(1);
-            l.onResponse(mock(IndexResponse.class));
+            outcome.accept(inv.getArgument(1));
             return null;
         }).when(client).index(any(IndexRequest.class), any());
     }
@@ -723,6 +887,10 @@ public class ResourceSharingIndexHandlerTests {
             l.onResponse(mock(UpdateResponse.class));
             return null;
         }).when(client).update(any(UpdateRequest.class), any());
+    }
+
+    private static ResourceSharing newRecord() {
+        return ResourceSharing.builder().resourceId("res-1").createdBy(new CreatedBy("creator")).build();
     }
 
     private ShareWith shareWith(String username) {

@@ -158,6 +158,20 @@ public class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
+    public void logFailedLogin(
+        String effectiveUser,
+        boolean securityAdmin,
+        String initiatingUser,
+        SecurityRequest request,
+        String attemptedUser,
+        String failureReason
+    ) {
+        if (enabled) {
+            super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request, attemptedUser, failureReason);
+        }
+    }
+
+    @Override
     public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, SecurityRequest request) {
         if (enabled) {
             super.logSucceededLogin(effectiveUser, securityAdmin, initiatingUser, request);

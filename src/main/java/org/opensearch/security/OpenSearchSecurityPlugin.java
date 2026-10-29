@@ -250,6 +250,7 @@ import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
+import org.opensearch.security.transport.InterClusterRequestEvaluatorFactory;
 import org.opensearch.security.transport.RemoteClusterIdentityPolicy;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
@@ -1559,17 +1560,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
 
-        final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
-        InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
-
-        final String className = settings.get(
-            ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
-            DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS
-        );
-        log.debug("Using {} as intercluster request evaluator class", className);
-        if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
-        }
+        final InterClusterRequestEvaluator interClusterRequestEvaluator = InterClusterRequestEvaluatorFactory.create(settings);
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
@@ -1784,9 +1775,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // communication with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence
         // the base values from opensearch.yml
         // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
-        if (DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
-            e.subscribeForChanges(dcf);
+        // Check the runtime type rather than the configured class name, so a legacy class name that failed to load and fell back to the
+        // default evaluator still receives dynamic nodes_dn updates.
+        if (interClusterRequestEvaluator instanceof DefaultInterClusterRequestEvaluator defaultEvaluator) {
+            defaultEvaluator.subscribeForChanges(dcf);
         }
 
         components.add(adminDns);
@@ -2435,13 +2427,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CERT_OID, Property.NodeScope, Property.Filtered));
 
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
+            settings.add(SecuritySettings.LEGACY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
+            settings.add(SecuritySettings.INTERCLUSTER_REQUEST_EVALUATOR);
             settings.add(
                 Setting.listSetting(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)
             );// not filtered here
@@ -2552,6 +2539,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+            settings.add(SecuritySettings.RESTAPI_BULK_MAX_ENTRIES);
 
             // Compliance settings moved outside the gate — see below
 

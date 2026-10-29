@@ -26,6 +26,12 @@ public class RestLayerPrivilegesEvaluator {
         this.privilegesConfiguration = privilegesConfiguration;
     }
 
+    /** Checks configured REST admin roles against mapped security roles, not raw backend roles. */
+    public boolean isRestAdmin(User user, RestAdminRoles restAdminRoles) {
+        return user != null
+            && restAdminRoles.matches(privilegesConfiguration.privilegesEvaluator().createContext(user, null).getMappedRoles());
+    }
+
     public PrivilegesEvaluatorResponse evaluate(final User user, final String routeName, final Set<String> actions) {
         PrivilegesEvaluationContext context = privilegesConfiguration.privilegesEvaluator().createContext(user, routeName);
 

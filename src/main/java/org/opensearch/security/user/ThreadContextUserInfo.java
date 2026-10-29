@@ -44,6 +44,7 @@ public class ThreadContextUserInfo {
     private static final String WRITE_ACCESS = "WRITE";
     private static final String NO_ACCESS = "NONE";
     private static final String GLOBAL_TENANT = "global_tenant";
+    private static final String USER_TENANT = "__user__";
 
     private volatile boolean userAttributeSerializationEnabled;
     private final ThreadContext threadContext;
@@ -97,6 +98,11 @@ public class ThreadContextUserInfo {
 
     private String getTenancyAccess(PrivilegesEvaluationContext context) {
         String requestedTenant = context.getUser().getRequestedTenant();
+        if (USER_TENANT.equals(requestedTenant)) {
+            // The private tenant belongs to the user and is not configured in tenants.yml, so tenant privileges
+            // never match it. The user always has write access to it, unless the private tenant is disabled.
+            return privilegesConfiguration.multiTenancyConfiguration().privateTenantEnabled() ? WRITE_ACCESS : NO_ACCESS;
+        }
         TenantPrivileges tenantPrivileges = privilegesConfiguration.tenantPrivileges();
         final String tenant = Strings.isNullOrEmpty(requestedTenant) ? GLOBAL_TENANT : requestedTenant;
         if (tenantPrivileges.hasTenantPrivilege(context, tenant, TenantPrivileges.ActionType.WRITE)) {
