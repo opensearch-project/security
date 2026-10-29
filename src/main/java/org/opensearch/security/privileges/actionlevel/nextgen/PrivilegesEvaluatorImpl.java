@@ -467,8 +467,8 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
     }
 
     @Override
-    public PrivilegesEvaluatorType type() {
-        return PrivilegesEvaluatorType.V4;
+    public PrivilegeEvaluationMode mode() {
+        return PrivilegeEvaluationMode.V4;
     }
 
     void logPrivilegeEvaluationResult(PrivilegesEvaluationContext context, PrivilegesEvaluatorResponse result, String privilegeType) {

@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
@@ -140,11 +141,13 @@ public class SslParameters {
             try {
                 final var supportedCiphers = SSLContext.getDefault().getDefaultSSLParameters().getCipherSuites();
                 LOGGER.debug("JVM supports the following {} ciphers {}", supportedCiphers.length, supportedCiphers);
-                allowedCiphers = Stream.of(supportedCiphers).filter(allowed::contains);
+                final var supported = Set.of(supportedCiphers);
+                // Preserve the configured preference order, including the default ECDHE-GCM preference.
+                allowedCiphers = allowed.stream().filter(supported::contains).distinct();
             } catch (final NoSuchAlgorithmException e) {
                 throw new OpenSearchException("Unable to determine ciphers protocols", e);
             }
-            return allowedCiphers.sorted(String::compareTo).collect(Collectors.toList());
+            return allowedCiphers.collect(Collectors.toList());
         }
 
         public SslParameters load() {

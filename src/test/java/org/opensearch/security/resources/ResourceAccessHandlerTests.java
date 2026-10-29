@@ -323,6 +323,78 @@ public class ResourceAccessHandlerTests {
     }
 
     @Test
+    public void testHasPermission_parentCycleTerminates() {
+        // Two resources naming each other as parent: the walk must stop rather than read forever
+        User user = new User("ivy", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        stubRecord("res-a", parentOf("res-b", user));
+        stubRecord("res-b", parentOf("res-a", user));
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission("res-a", TYPE, ACTION, listener);
+
+        verify(listener).onResponse(false);
+        // Each record in the cycle is read once: the walk stops at the first one it is asked to consult twice
+        verify(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq("res-a"), any());
+        verify(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq("res-b"), any());
+    }
+
+    @Test
+    public void testHasPermission_selfParentTerminates() {
+        // A record naming itself as its own parent, reachable from document data alone
+        User user = new User("jude", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        stubRecord(RESOURCE_ID, parentOf(RESOURCE_ID, user));
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission(RESOURCE_ID, TYPE, ACTION, listener);
+
+        verify(listener).onResponse(false);
+        // The record naming itself is read once, not again as its own parent
+        verify(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+    }
+
+    @Test
+    public void testHasPermission_grandparentStillGrantsAccess() {
+        // Stopping at a repeated record must not shorten a chain that does terminate
+        User user = new User("kira", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
+        injectUser(user);
+        when(adminDNs.isAdmin(user)).thenReturn(false);
+
+        stubRecord("child", parentOf("parent", user));
+        stubRecord("parent", parentOf("grandparent", user));
+        stubRecord("grandparent", ownedBy(user));
+
+        ActionListener<Boolean> listener = mock(ActionListener.class);
+        handler.hasPermission("child", TYPE, ACTION, listener);
+
+        verify(listener).onResponse(true);
+    }
+
+    /** A record that grants {@code user} nothing and names {@code parentId} as its parent, of the same type. */
+    private ResourceSharing parentOf(String parentId, User user) {
+        ResourceSharing doc = mock(ResourceSharing.class);
+        when(doc.isCreatedBy(user.getName())).thenReturn(false);
+        when(doc.getAccessLevelsForUser(user)).thenReturn(Collections.emptySet());
+        when(doc.getWorkspaces()).thenReturn(Collections.emptySet());
+        when(doc.getParentId()).thenReturn(parentId);
+        when(doc.getParentType()).thenReturn(TYPE);
+        return doc;
+    }
+
+    private void stubRecord(String resourceId, ResourceSharing record) {
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> l = inv.getArgument(2);
+            l.onResponse(record);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(resourceId), any());
+    }
+
+    @Test
     public void testHasPermission_nullDocumentDenied() {
         User user = new User("dave", ImmutableSet.of("x"), ImmutableSet.of("y"), null, ImmutableMap.of(), false);
         injectUser(user);
@@ -422,7 +494,7 @@ public class ResourceAccessHandlerTests {
         injectUser(user);
         when(adminDNs.isAdmin(user)).thenReturn(false);
 
-        stubOwnedBy(user, RESOURCE_ID);
+        stubRecord(RESOURCE_ID, ownedBy(user));
 
         ActionListener<Boolean> listener = mock(ActionListener.class);
         handler.hasPermission(List.of(RESOURCE_ID, RESOURCE_ID), TYPE, ACTION, listener);
@@ -454,19 +526,6 @@ public class ResourceAccessHandlerTests {
             l.onResponse(recordsById);
             return null;
         }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(INDEX), any(), any());
-    }
-
-    /**
-     * Makes the sharing record of {@code resourceId} report {@code user} as its creator, which grants every action.
-     */
-    private void stubOwnedBy(User user, String resourceId) {
-        ResourceSharing doc = mock(ResourceSharing.class);
-        when(doc.isCreatedBy(user.getName())).thenReturn(true);
-        doAnswer(inv -> {
-            ActionListener<ResourceSharing> l = inv.getArgument(2);
-            l.onResponse(doc);
-            return null;
-        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(resourceId), any());
     }
 
     @Test

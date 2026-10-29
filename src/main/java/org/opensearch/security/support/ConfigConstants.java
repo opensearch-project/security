@@ -161,8 +161,24 @@ public class ConfigConstants {
         ))
     );
 
+    /**
+     * @deprecated in favor of {@link #SECURITY_INTERCLUSTER_REQUEST_EVALUATOR}. Kept for
+     *     back-compat and now emits a deprecation warning when configured. See
+     *     <a href="https://github.com/opensearch-project/security/issues/6479">issue #6479</a>.
+     */
+    @Deprecated
     public static final String SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = SECURITY_SETTINGS_PREFIX
         + "cert.intercluster_request_evaluator_class";
+
+    /**
+     * Typed replacement for {@link #SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS}.
+     * Accepts one of {@link #INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT} or
+     * {@link #INTERCLUSTER_REQUEST_EVALUATOR_OID}.
+     */
+    public static final String SECURITY_INTERCLUSTER_REQUEST_EVALUATOR = SECURITY_SETTINGS_PREFIX + "cert.intercluster_request_evaluator";
+    public static final String INTERCLUSTER_REQUEST_EVALUATOR_DEFAULT = "default";
+    public static final String INTERCLUSTER_REQUEST_EVALUATOR_OID = "oid";
+
     public static final String OPENDISTRO_SECURITY_ACTION_NAME = OPENDISTRO_SECURITY_CONFIG_PREFIX + "action_name";
 
     public static final String SECURITY_AUTHCZ_ADMIN_DN = SECURITY_SETTINGS_PREFIX + "authcz.admin_dn";
@@ -262,6 +278,12 @@ public class ConfigConstants {
     public static final String SECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = SECURITY_SETTINGS_PREFIX + "kerberos.acceptor_keytab_filepath";
     public static final String SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL = SECURITY_SETTINGS_PREFIX + "kerberos.acceptor_principal";
     public static final String SECURITY_CERT_OID = SECURITY_SETTINGS_PREFIX + "cert.oid";
+    /**
+     * @deprecated Duplicate of {@link #SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS}.
+     *     Retained for source compatibility; both constants resolve to the same setting key.
+     *     Prefer the typed replacement {@link #SECURITY_INTERCLUSTER_REQUEST_EVALUATOR}.
+     */
+    @Deprecated
     public static final String SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = SECURITY_SETTINGS_PREFIX
         + "cert.intercluster_request_evaluator_class";
     public static final String SECURITY_ADVANCED_MODULES_ENABLED = SECURITY_SETTINGS_PREFIX + "advanced_modules_enabled";
@@ -334,6 +356,12 @@ public class ConfigConstants {
     // while remaining configurable, since free-form fields such as DLS/FLS queries can legitimately exceed the default.
     public static final String SECURITY_RESTAPI_MAX_STRING_LENGTH = SECURITY_SETTINGS_PREFIX + "restapi.max_string_length";
     public static final int SECURITY_RESTAPI_MAX_STRING_LENGTH_DEFAULT = 4096;
+    // Maximum number of resources a single bulk PUT request to a Security REST API collection endpoint may carry. The whole
+    // request is validated synchronously before anything is written, so this bounds the work one request can demand.
+    public static final String SECURITY_RESTAPI_BULK_MAX_ENTRIES = SECURITY_SETTINGS_PREFIX + "restapi.bulk_max_entries";
+    public static final int SECURITY_RESTAPI_BULK_MAX_ENTRIES_DEFAULT = 1_000;
+    public static final int SECURITY_RESTAPI_BULK_MAX_ENTRIES_MIN = 1;
+    public static final int SECURITY_RESTAPI_BULK_MAX_ENTRIES_MAX = 100_000;
     // Illegal Opcodes from here on
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = SECURITY_SETTINGS_PREFIX
         + "unsupported.disable_rest_auth_initially";

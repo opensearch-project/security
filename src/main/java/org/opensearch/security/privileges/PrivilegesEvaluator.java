@@ -89,16 +89,16 @@ public interface PrivilegesEvaluator {
 
     boolean notFailOnForbiddenEnabled();
 
-    PrivilegesEvaluatorType type();
+    PrivilegeEvaluationMode mode();
 
     @SuppressWarnings("deprecation")
-    enum PrivilegesEvaluatorType {
+    enum PrivilegeEvaluationMode {
         NOT_INITIALIZED((c, d) -> new NotInitialized(c)),
         LEGACY(PrivilegesEvaluatorImpl::new),
         V4(org.opensearch.security.privileges.actionlevel.nextgen.PrivilegesEvaluatorImpl::new);
 
-        static PrivilegesEvaluatorType getFrom(SecurityDynamicConfiguration<ConfigV7> configConfig) {
-            final PrivilegesEvaluatorType defaultValue = LEGACY;
+        static PrivilegeEvaluationMode getFrom(SecurityDynamicConfiguration<ConfigV7> configConfig) {
+            final PrivilegeEvaluationMode defaultValue = LEGACY;
 
             if (configConfig == null) {
                 return defaultValue;
@@ -117,7 +117,7 @@ public interface PrivilegesEvaluator {
 
         final Factory factory;
 
-        PrivilegesEvaluatorType(Factory factory) {
+        PrivilegeEvaluationMode(Factory factory) {
             this.factory = factory;
         }
     }
@@ -138,8 +138,8 @@ public interface PrivilegesEvaluator {
         }
 
         @Override
-        public PrivilegesEvaluatorType type() {
-            return PrivilegesEvaluatorType.NOT_INITIALIZED;
+        public PrivilegeEvaluationMode mode() {
+            return PrivilegeEvaluationMode.NOT_INITIALIZED;
         }
 
         @Override
