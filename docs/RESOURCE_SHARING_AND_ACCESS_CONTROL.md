@@ -73,9 +73,9 @@ opensearchplugin {
     extendedPlugins = ['opensearch-security;optional=true', <any-other-extensions>]
 }
 ```
-- **Implement** the `ResourceSharingExtension` interface. For guidance, refer [SPI README.md](./spi/README.md#4-implement-the-resourcesharingextension-interface).
-- **Implement** the `ResourceSharingClientAccessor` wrapper class to access ResourceSharingClient. Refer [SPI README.md](./spi/README.md#5-implement-the-resourcesharingclientaccessor-class).
-- If plugin implements search, add a **plugin client** if not already present. Can be copied from sample-plugin's [PluginClient.java](./sample-resource-plugin/src/main/java/org/opensearch/sample/utils/PluginClient.java).
+- **Implement** the `ResourceSharingExtension` interface. For guidance, refer [SPI README.md](../spi/README.md#4-implement-the-resourcesharingextension-interface).
+- **Implement** the `ResourceSharingClientAccessor` wrapper class to access ResourceSharingClient. Refer [SPI README.md](../spi/README.md#5-implement-the-resourcesharingclientaccessor-class).
+- If plugin implements search, add a **plugin client** if not already present. Can be copied from sample-plugin's [PluginClient.java](../sample-resource-plugin/src/main/java/org/opensearch/sample/utils/PluginClient.java).
 - **Ensure** that each resource index only contains 1 type of resource.
 - **Register itself** in `META-INF/services` by creating the following file:
   ```
@@ -303,10 +303,10 @@ in the `all_shared_principals` section. Note that `user:*` is the convention use
 
 ## **4b. Using the Client for Access Control**
 
-[`opensearch-security-spi` README.md](./spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
+[`opensearch-security-spi` README.md](../spi/README.md) is a great resource to learn more about the components of SPI and how to set up.
 
 ### **Calling Access Control Methods from the ResourceSharingClient Client**
-The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-security-spi` README.md](./spi/README.md#available-java-apis)
+The client provides **four access control methods** for plugins. For detailed usage and implementation, refer to the [`opensearch-security-spi` README.md](../spi/README.md#available-java-apis)
 
 ### **1. `verifyAccess`**
 
@@ -341,7 +341,7 @@ public static boolean shouldUseResourceAuthz(String resourceType) {
 }
 ```
 
-> For more details, refer [spi/README.md](./spi/README.md#available-java-apis)
+> For more details, refer [spi/README.md](../spi/README.md#available-java-apis)
 
 #### **Sample Request Flow:**
 
@@ -469,7 +469,7 @@ Since no entities are listed, the resource is accessible **only by its creator a
 
 ## **7. Best Practices For Plugin Developers**
 - **Declare resources properly** in the `ResourceSharingExtension`.
-- **Implement DocRequest** to utilize resource access control framework.
+- **Implement DocRequest** to utilize resource access control framework, or **MultiResourceRequest**, its counterpart for a request that operates on several resources at once, which is then allowed only if every id it names is accessible.
 - **Use the resource sharing client** to curb access.
 
 
@@ -512,9 +512,16 @@ The list of protected types are controlled through following opensearch setting
 - **Default value:** `[]`
 - **How to specify a type?** Add entries of existing types in the list:
   ```yaml
-  plugins.security.resource_sharing.protected_types: [sample-resource]
+  plugins.security.resource_sharing.protected_types: [sample-resource, sample-resource-group, workspace]
   ```
 NOTE: These types will be available on documentation website.
+
+All registered resource types sharing an index must be enabled or disabled together. For example, `sample-resource`,
+`sample-resource-group`, and `workspace` share `.sample_resource`, so include all three or none. Types on different indices can be
+configured independently. Partial lists are rejected at startup and by `_cluster/settings` before they are applied,
+with an error identifying the index and missing types. This applies even when resource sharing is disabled.
+Before upgrading, complete any partial lists. Adding a new provider type to an existing protected index also requires
+updating the list. This validation covers registered providers, not unregistered/internal document kinds or index aliases.
 
 ### **Dynamic Updates**
 
@@ -538,7 +545,7 @@ PUT _cluster/settings
 PUT _cluster/settings
 {
   "transient": {
-    "plugins.security.resource_sharing.protected_types": ["sample-resource", "ml-model"]
+    "plugins.security.resource_sharing.protected_types": ["sample-resource", "sample-resource-group", "workspace", "ml-model"]
   }
 }
 ```
@@ -903,7 +910,7 @@ The **Resource Sharing and Access Control** feature enhances OpenSearch security
 
 By implementing the **Service Provider Interface (SPI)** and following **best practices**, developers can seamlessly integrate this feature into their plugins to enforce controlled resource sharing and access management.
 
-For detailed implementation and examples, refer to the **[sample plugin](./sample-resource-plugin/README.md)** included in the security plugin repository.
+For detailed implementation and examples, refer to the **[sample plugin](../sample-resource-plugin/)** included in the security plugin repository.
 
 ---
 

@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.opensearch.Version;
+import org.opensearch.common.SuppressLoggerChecks;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.securityconf.impl.CType;
@@ -60,6 +61,7 @@ public class DeprecatedSettingsTest {
     }
 
     @Test
+    @SuppressLoggerChecks(reason = "Mockito matchers verify logger calls rather than emit messages")
     public void testCheckForDeprecatedSettingFoundLegacy() {
         final Settings settings = Settings.builder().put("legacyKey", "value").build();
 
@@ -105,17 +107,17 @@ public class DeprecatedSettingsTest {
         );
         verify(logger).deprecate(
             "transport_enabled",
-            "In OpenSearch "
-                + Version.CURRENT
-                + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: In AuthcDomain, using http_authenticator=HttpAuthenticator [challenge=true, type=null, config={}], authentication_backend=AuthcBackend [type=org.opensearch.security.auth.internal.InternalAuthenticationBackend, config={}]",
-            "transport_enabled"
+            "In OpenSearch {} the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: {}",
+            Version.CURRENT,
+            "transport_enabled",
+            "In AuthcDomain, using http_authenticator=HttpAuthenticator [challenge=true, type=null, config={}], authentication_backend=AuthcBackend [type=org.opensearch.security.auth.internal.InternalAuthenticationBackend, config={}]"
         );
         verify(logger).deprecate(
             "transport_enabled",
-            "In OpenSearch "
-                + Version.CURRENT
-                + " the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: In AuthzDomain, using authorization_backend=AuthzBackend [type=noop, config={}]",
-            "transport_enabled"
+            "In OpenSearch {} the setting '{}' is deprecated, it should be removed from the relevant config file using the following location information: {}",
+            Version.CURRENT,
+            "transport_enabled",
+            "In AuthzDomain, using authorization_backend=AuthzBackend [type=noop, config={}]"
         );
     }
 

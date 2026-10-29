@@ -71,7 +71,7 @@ public final class SecurityUtils {
             return in;
         }
 
-        if (settings == null || settings.getAsBoolean(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)) {
+        if (settings == null || SecuritySettings.DISABLE_ENVVAR_REPLACEMENT_SETTING.get(settings)) {
             return in;
         }
 

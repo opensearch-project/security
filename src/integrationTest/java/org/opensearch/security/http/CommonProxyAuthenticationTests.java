@@ -141,6 +141,21 @@ abstract class CommonProxyAuthenticationTests {
         }
     }
 
+    protected void shouldAuthenticateWithProxy_negativeWhenUserNameHeaderHasReservedPrefix() throws IOException {
+        TestRestClientConfiguration testRestClientConfiguration = new TestRestClientConfiguration().sourceInetAddress(
+            InetAddress.getByName(IP_PROXY)
+        )
+            .header(HEADER_FORWARDED_FOR, IP_CLIENT)
+            .header(HEADER_PROXY_USER, "plugin:org.opensearch.ml.plugin.MachineLearningPlugin")
+            .header(HEADER_PROXY_ROLES, BACKEND_ROLE_CAPTAIN);
+        try (TestRestClient client = getCluster().createGenericClientRestClient(testRestClientConfiguration)) {
+
+            TestRestClient.HttpResponse response = client.getAuthInfo();
+
+            response.assertStatusCode(401);
+        }
+    }
+
     protected void shouldAuthenticateWithProxy_negativeWhenUserNameHeaderIsMissing() throws IOException {
         TestRestClientConfiguration testRestClientConfiguration = new TestRestClientConfiguration().sourceInetAddress(
             InetAddress.getByName(IP_PROXY)

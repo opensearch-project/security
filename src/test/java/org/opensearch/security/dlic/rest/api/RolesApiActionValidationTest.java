@@ -14,6 +14,7 @@ package org.opensearch.security.dlic.rest.api;
 import org.junit.Test;
 
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 
@@ -33,8 +34,12 @@ public class RolesApiActionValidationTest extends AbstractApiActionValidationTes
         final var role = new RoleV7();
         role.setCluster_permissions(restApiAdminPermissions());
 
-        final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator();
+        final var rolesApiActionEndpointValidator = new RolesApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator();
         final var result = rolesApiActionEndpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("sss", configuration));
 
         assertTrue(result.isValid());
@@ -50,7 +55,7 @@ public class RolesApiActionValidationTest extends AbstractApiActionValidationTes
         clusterPermissions.add("restapi:admin/roles");
         clusterPermissions.add("restapi:admin/rolesmapping");
         role.set("cluster_permissions", clusterPermissions);
-        final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
+        final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies, new RolePermissionValidator())
             .createEndpointValidator();
         assertTrue(rolesApiActionEndpointValidator.isCurrentUserSuperAdmin());
 
@@ -74,7 +79,7 @@ public class RolesApiActionValidationTest extends AbstractApiActionValidationTes
         clusterPermissions.add("restapi:admin/roles");
         clusterPermissions.add("restapi:admin/rolesmapping");
         role.set("cluster_permissions", clusterPermissions);
-        final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
+        final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies, new RolePermissionValidator())
             .createEndpointValidator();
         assertFalse(rolesApiActionEndpointValidator.isCurrentUserSuperAdmin());
 
@@ -95,8 +100,12 @@ public class RolesApiActionValidationTest extends AbstractApiActionValidationTes
         Mockito.<Object>when(configuration.getCEntry("sss")).thenReturn(role);
 
         when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
-        final var rolesApiActionEndpointValidator = new RolesApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator();
+        final var rolesApiActionEndpointValidator = new RolesApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator();
         final var result = rolesApiActionEndpointValidator.isAllowedToChangeImmutableEntity(SecurityConfiguration.of("sss", configuration));
 
         assertFalse(result.isValid());

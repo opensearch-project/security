@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
@@ -44,6 +45,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationChangeListener;
 import org.opensearch.security.configuration.ConfigurationMap;
@@ -145,6 +147,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final ThreadPool threadPool;
     private final Client client;
     private final ApiTokenRepository apiTokenRepository;
+    private final OnBehalfOfKeys oboKeystoreKeys;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -156,7 +159,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         ThreadPool threadPool,
         ClusterInfoHolder cih,
         PasswordHasher passwordHasher,
-        ApiTokenRepository apiTokenRepository
+        ApiTokenRepository apiTokenRepository,
+        OnBehalfOfKeys oboKeystoreKeys
     ) {
         super();
         this.cr = cr;
@@ -167,6 +171,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.threadPool = threadPool;
         this.client = client;
         this.apiTokenRepository = apiTokenRepository;
+        this.oboKeystoreKeys = oboKeystoreKeys;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -274,7 +279,15 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         );
 
         // rebuild v7 Models
-        dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.cih, apiTokenRepository);
+        dcm = new DynamicConfigModelV7(
+            getConfigV7(config),
+            opensearchSettings,
+            configPath,
+            iab,
+            this.cih,
+            apiTokenRepository,
+            oboKeystoreKeys
+        );
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
 
         // notify subscribers
@@ -342,6 +355,11 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
     public void registerDCFListener(Object listener) {
         eventBus.register(listener);
+    }
+
+    @VisibleForTesting
+    public boolean isDCFListenerRegistered(Object listener) {
+        return eventBus.isRegistered(listener);
     }
 
     public void unregisterDCFListener(Object listener) {

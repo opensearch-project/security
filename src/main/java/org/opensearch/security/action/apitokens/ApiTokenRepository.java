@@ -110,7 +110,10 @@ public class ApiTokenRepository {
     }
 
     public void reloadApiTokensOnNodeStart(ActionListener<Void> listener) {
-        reloadApiTokensFromIndex(ActionListener.wrap(listener::onResponse, e -> {
+        reloadApiTokensFromIndex(ActionListener.wrap(unused -> {
+            notifyAboutChanges();
+            listener.onResponse(null);
+        }, e -> {
             boolean retryable = ExceptionsHelper.unwrapCausesAndSuppressed(
                 e,
                 cause -> (cause instanceof ClusterBlockException clusterBlockException && clusterBlockException.retryable())
@@ -153,7 +156,7 @@ public class ApiTokenRepository {
                 log.debug("Notify {} listener about change", listener);
                 listener.onChange();
             } catch (Exception e) {
-                log.error("{} listener errored: " + e, listener, e);
+                log.error("{} listener errored: {}", listener, e.toString(), e);
                 throw ExceptionsHelper.convertToOpenSearchException(e);
             }
         }

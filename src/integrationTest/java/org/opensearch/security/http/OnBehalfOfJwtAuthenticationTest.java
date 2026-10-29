@@ -28,6 +28,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.common.Randomness;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
@@ -72,7 +73,14 @@ public class OnBehalfOfJwtAuthenticationTest {
             "alternativeSigningKeyalternativeSigningKeyalternativeSigningKeyalternativeSigningKey".getBytes(StandardCharsets.UTF_8)
         );
 
-    private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
+    private static final String encryptionKey = fipsCompatibleEncryptionKey();
+
+    private static String fipsCompatibleEncryptionKey() {
+        final byte[] keyMaterial = new byte[32];
+        Randomness.createSecure().nextBytes(keyMaterial);
+        return Base64.getEncoder().encodeToString(keyMaterial);
+    }
+
     public static final String ADMIN_USER_NAME = "admin";
     public static final String OBO_USER_NAME_WITH_PERM = "obo_user";
     public static final String OBO_USER_NAME_NO_PERM = "obo_user_no_perm";
@@ -211,14 +219,14 @@ public class OnBehalfOfJwtAuthenticationTest {
     public void nonAdminUserWithoutOboPermissionIsRejectedOnDeprecatedRoute() {
         try (TestRestClient client = cluster.getRestClient(OBO_USER_NO_PERM)) {
             TestRestClient.HttpResponse response = client.postJson(DEPRECATED_OBO_TOKEN_PATH, OBO_TOKEN_REASON);
-            response.assertStatusCode(HttpStatus.SC_UNAUTHORIZED);
+            response.assertStatusCode(HttpStatus.SC_FORBIDDEN);
         }
     }
 
     @Test
     public void shouldNotAuthenticateForNonAdminUserWithoutOBOPermission() {
         try (TestRestClient client = cluster.getRestClient(OBO_USER_NO_PERM)) {
-            assertThat(client.post(OBO_ENDPOINT_PREFIX).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.post(OBO_ENDPOINT_PREFIX).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 

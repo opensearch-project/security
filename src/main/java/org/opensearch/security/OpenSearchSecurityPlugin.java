@@ -79,6 +79,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.SuppressLoggerChecks;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.lifecycle.Lifecycle;
 import org.opensearch.common.lifecycle.LifecycleComponent;
@@ -163,6 +164,8 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.auth.RolesInjector;
+import org.opensearch.security.authtoken.jwt.LegacyRolesClaimFormat;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import org.opensearch.security.compliance.ComplianceReadIndexSearcherWrapper;
@@ -179,6 +182,7 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.api.ssl.CertificatesActionType;
 import org.opensearch.security.dlic.rest.api.ssl.TransportCertificatesInfoNodesAction;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
+import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
 import org.opensearch.security.filter.AuditActionFilter;
 import org.opensearch.security.filter.AuditTransportInterceptor;
 import org.opensearch.security.filter.SecurityFilter;
@@ -246,6 +250,7 @@ import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
+import org.opensearch.security.transport.InterClusterRequestEvaluatorFactory;
 import org.opensearch.security.transport.RemoteClusterIdentityPolicy;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
@@ -312,6 +317,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ConfigurationRepository cr;
     private volatile ApiTokenRepository apiTokenRepository;
+    private final RolePermissionValidator rolePermissionValidator = new RolePermissionValidator();
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
@@ -346,6 +352,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         actionTrace.trace(message);
     }
 
+    @SuppressLoggerChecks(reason = "Forwards the caller's format string and argument to the action trace logger")
     public static void traceAction(String message, Object p0) {
         actionTrace.trace(message, p0);
     }
@@ -515,6 +522,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private void warnIfAuthCategoriesEnabled(Settings settings) {
         AuditConfig.Filter filter = AuditConfig.Filter.from(settings);
         Set<AuditCategory> enabledAuthOnly = new HashSet<>(AuditCategory.AUTH_ONLY_CATEGORIES);
+        enabledAuthOnly.removeAll(filter.getDisabledCategories());
         enabledAuthOnly.removeAll(filter.getDisabledRestCategories());
         enabledAuthOnly.removeAll(filter.getDisabledTransportCategories());
         if (!enabledAuthOnly.isEmpty()) {
@@ -986,7 +994,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                         passwordHasher,
                         rsIndexHandler,
                         resourcePluginInfo,
-                        apiTokenRepository
+                        apiTokenRepository,
+                        rolePermissionValidator
                     )
                 );
 
@@ -1546,20 +1555,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final ClusterInfoHolder cih = new ClusterInfoHolder(this.cs.getClusterName().value());
         this.cs.addListener(cih);
+        // Transitional, see LegacyRolesClaimFormat: when this node last saw a node that cannot read AES-GCM OBO tokens
+        this.cs.addListener(cih.preUpgradeNodeTracker());
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
 
-        final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
-        InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
-
-        final String className = settings.get(
-            ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
-            DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS
-        );
-        log.debug("Using {} as intercluster request evaluator class", className);
-        if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
-        }
+        final InterClusterRequestEvaluator interClusterRequestEvaluator = InterClusterRequestEvaluatorFactory.create(settings);
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
@@ -1622,7 +1623,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             threadPool.getThreadContext()
         );
         this.roleMapper = roleMapper;
-        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper);
+        // Secure settings are only readable during node construction, so the keystore keys are loaded here.
+        final OnBehalfOfKeys oboKeystoreKeys = OnBehalfOfKeys.load(settings, configPath);
+        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper, oboKeystoreKeys);
         apiTokenRepository = new ApiTokenRepository(localClient, clusterService);
 
         PrivilegesConfiguration privilegesConfiguration = new PrivilegesConfiguration(
@@ -1718,7 +1721,17 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, passwordHasher, apiTokenRepository);
+        dcf = new DynamicConfigFactory(
+            cr,
+            settings,
+            configPath,
+            localClient,
+            threadPool,
+            cih,
+            passwordHasher,
+            apiTokenRepository,
+            oboKeystoreKeys
+        );
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(xffResolver);
@@ -1762,9 +1775,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // communication with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence
         // the base values from opensearch.yml
         // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
-        if (DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
-            e.subscribeForChanges(dcf);
+        // Check the runtime type rather than the configured class name, so a legacy class name that failed to load and fell back to the
+        // default evaluator still receives dynamic nodes_dn updates.
+        if (interClusterRequestEvaluator instanceof DefaultInterClusterRequestEvaluator defaultEvaluator) {
+            defaultEvaluator.subscribeForChanges(dcf);
         }
 
         components.add(adminDns);
@@ -1779,6 +1793,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         components.add(userService);
         components.add(passwordHasher);
         components.add(apiTokenRepository);
+        components.add(rolePermissionValidator);
 
         components.add(sslSettingsManager);
         if (isSslCertReloadEnabled(settings) && sslCertificatesHotReloadEnabled(settings)) {
@@ -1824,6 +1839,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final Settings.Builder builder = Settings.builder();
 
         builder.put(super.additionalSettings());
+
+        builder.put(LegacyRolesClaimFormat.nodeAttributeSettings(settings));
 
         if (!sslConfig.isSslOnlyMode()) {
             builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
@@ -2410,13 +2427,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CERT_OID, Property.NodeScope, Property.Filtered));
 
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
+            settings.add(SecuritySettings.LEGACY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
+            settings.add(SecuritySettings.INTERCLUSTER_REQUEST_EVALUATOR);
             settings.add(
                 Setting.listSetting(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)
             );// not filtered here
@@ -2469,9 +2481,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                                                                                                                                     // here
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.DISABLE_ENVVAR_REPLACEMENT_SETTING);
 
             settings.add(
                 Setting.simpleString(ConfigConstants.SECURITY_MASKED_FIELDS_ALGORITHM_DEFAULT, Property.NodeScope, Property.Filtered)
@@ -2529,6 +2539,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+            settings.add(SecuritySettings.RESTAPI_BULK_MAX_ENTRIES);
 
             // Compliance settings moved outside the gate — see below
 
@@ -2598,9 +2609,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
-            settings.add(
-                Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false, Property.NodeScope, Property.Filtered)
-            );
+            settings.add(SecuritySettings.LEGACY_UNSUPPORTED_ALLOW_NOW_IN_DLS);
+            settings.add(SecuritySettings.ALLOW_NOW_IN_DLS);
             settings.add(
                 Setting.boolSetting(
                     SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION,
@@ -2686,6 +2696,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             // this can only be changed with access to the config file.
             ));
         }
+
+        settings.addAll(OnBehalfOfKeys.getSettings());
 
         return settings;
     }
