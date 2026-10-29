@@ -44,6 +44,7 @@ public class RolesMappingApiAction extends AbstractApiAction {
             new Route(Method.GET, "/rolesmapping"),
             new Route(Method.GET, "/rolesmapping/{name}"),
             new Route(Method.DELETE, "/rolesmapping/{name}"),
+            new Route(Method.PUT, "/rolesmapping"),
             new Route(Method.PUT, "/rolesmapping/{name}"),
             new Route(Method.PATCH, "/rolesmapping"),
             new Route(Method.PATCH, "/rolesmapping/{name}")
@@ -55,6 +56,7 @@ public class RolesMappingApiAction extends AbstractApiAction {
             new DeprecatedRoute(Method.GET, "/rolesmapping", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.GET, "/rolesmapping/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.DELETE, "/rolesmapping/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/rolesmapping", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PUT, "/rolesmapping/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PATCH, "/rolesmapping", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PATCH, "/rolesmapping/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE)
@@ -109,6 +111,27 @@ public class RolesMappingApiAction extends AbstractApiAction {
             @Override
             public ValidationResult<SecurityConfiguration> onConfigChange(SecurityConfiguration securityConfiguration) throws IOException {
                 return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateRole);
+            }
+
+            @Override
+            public ValidationResult<List<SecurityConfiguration>> onConfigChange(final List<SecurityConfiguration> securityConfigurations)
+                throws IOException {
+                // Bulk form: load the roles configuration once and run the same three checks the single-entity path performs
+                // (mapping immutability, REST-admin permissions of the target role, target role exists and is visible) for every
+                // mapping against that one copy, instead of reloading the roles configuration twice per mapping.
+                return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
+                    for (final var securityConfiguration : securityConfigurations) {
+                        final var result = EndpointValidator.super.isAllowedToChangeImmutableEntity(securityConfiguration).map(
+                            ignore -> isAllowedToChangeEntityWithRestAdminPermissions(
+                                SecurityConfiguration.of(securityConfiguration.entityName(), rolesConfiguration)
+                            )
+                        ).map(ignore -> validateRoles(List.of(securityConfiguration.entityName()), rolesConfiguration));
+                        if (result.isValid() == false) {
+                            return ValidationResult.error(result.status(), result.errorMessage());
+                        }
+                    }
+                    return ValidationResult.success(securityConfigurations);
+                });
             }
 
             private ValidationResult<SecurityConfiguration> validateRole(final SecurityConfiguration securityConfiguration)
