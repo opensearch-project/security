@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -670,27 +671,15 @@ public class LdapBackendTestNewStyleConfig2 {
 
     @Test
     public void testLdapAuthorizationNestedAttrWithMissingEntries() throws Exception {
-
-        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
-            .put("users.u1.search", "(uid={0})")
-            .put("users.u1.base", "ou=people,o=TEST")
-            .put("roles.g1.base", "ou=groups,o=TEST")
-            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
-            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
-            .put("roles.g1.search", "(uniqueMember={0})")
-            .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
-            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
-            .build();
-
-        User user = new LDAPAuthorizationBackend2(settings, null).addRoles(new User("danglingref"), ctx("danglingref", "danglingref"));
-
-        Assert.assertNotNull(user);
-        assertThat(user.getRoles(), containsInAnyOrder("danglingnest", "rolemo4", "nested3", "nested4"));
+        assertThat(nestedAttrRoles("danglingref"), containsInAnyOrder("danglingnest", "rolemo4", "nested3", "nested4"));
     }
 
     @Test
     public void testLdapAuthorizationNestedAttrWithReferralToMissingEntry() throws Exception {
+        assertThat(nestedAttrRoles("referralref"), containsInAnyOrder("rolemo4", "nested3", "nested4"));
+    }
 
+    private Set<String> nestedAttrRoles(final String username) throws Exception {
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
             .put("users.u1.search", "(uid={0})")
             .put("users.u1.base", "ou=people,o=TEST")
@@ -702,10 +691,9 @@ public class LdapBackendTestNewStyleConfig2 {
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
             .build();
 
-        User user = new LDAPAuthorizationBackend2(settings, null).addRoles(new User("referralref"), ctx("referralref", "referralref"));
-
+        final User user = new LDAPAuthorizationBackend2(settings, null).addRoles(new User(username), ctx(username, username));
         Assert.assertNotNull(user);
-        assertThat(user.getRoles(), containsInAnyOrder("rolemo4", "nested3", "nested4"));
+        return user.getRoles();
     }
 
     @Test
