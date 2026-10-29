@@ -145,7 +145,10 @@ plugins.security.system_indices.restore.indices:
   - ".opendistro-alerting-config"
 ```
 
-The user must still have the snapshot restore cluster permission.
+The user must still have the snapshot restore cluster permission. In the restore request, each system index must be named exactly or
+matched by a pattern that is no broader than an entry of the list. For example, with the entry
+`.opendistro-alerting-alert-history-*`, the request can name `.opendistro-alerting-alert-history-*` or
+`.opendistro-alerting-alert-history-2026.10*`, but not `.opendistro-alerting-alert-history*` or `*`.
 
 
 ## Contributing

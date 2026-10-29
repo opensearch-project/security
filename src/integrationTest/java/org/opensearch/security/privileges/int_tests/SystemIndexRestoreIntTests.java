@@ -53,6 +53,9 @@ public class SystemIndexRestoreIntTests {
 
     static final String ELIGIBLE = ".opendistro-alerting-config";
     static final String NOT_ELIGIBLE = ".opendistro-alerting-alerts";
+    static final String HISTORY_PATTERN = ".opendistro-alerting-alert-history-*";
+    static final String HISTORY_1 = ".opendistro-alerting-alert-history-2026.10.27-1";
+    static final String HISTORY_2 = ".opendistro-alerting-alert-history-2026.10.28-000002";
     static final String REGULAR = "restore_regular_index";
     static final String REPOSITORY = "restore_repository";
 
@@ -72,7 +75,12 @@ public class SystemIndexRestoreIntTests {
 
     static LocalCluster.Builder clusterBuilder() {
         return defaultClusterBuilder().nodeSettings(
-            Map.of(SECURITY_RESTAPI_ROLES_ENABLED, REST_ADMIN_ROLES, SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of(ELIGIBLE))
+            Map.of(
+                SECURITY_RESTAPI_ROLES_ENABLED,
+                REST_ADMIN_ROLES,
+                SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY,
+                List.of(ELIGIBLE, HISTORY_PATTERN)
+            )
         );
     }
 
@@ -153,6 +161,34 @@ public class SystemIndexRestoreIntTests {
             assertThat(response.getBody(), containsString("must be named explicitly"));
         } finally {
             cleanup("snap_wildcard", ELIGIBLE);
+        }
+    }
+
+    @Test
+    public void restAdmin_restoresSystemIndicesMatchedByRestorablePattern() {
+        createIndicesAndSnapshot("snap_pattern", HISTORY_1, HISTORY_2);
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
+            TestRestClient.HttpResponse response = client.post(restorePath("snap_pattern"), json("indices", List.of(HISTORY_PATTERN)));
+            assertThat(response, isOk());
+            assertThat(response.getBody(), containsString(HISTORY_1));
+            assertThat(response.getBody(), containsString(HISTORY_2));
+        } finally {
+            cleanup("snap_pattern", HISTORY_1, HISTORY_2);
+        }
+    }
+
+    @Test
+    public void restAdmin_cannotRestoreWithPatternBroaderThanRestorableEntry() {
+        createIndicesAndSnapshot("snap_broader", HISTORY_1);
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
+            TestRestClient.HttpResponse response = client.post(
+                restorePath("snap_broader"),
+                json("indices", List.of(".opendistro-alerting-alert-history*"))
+            );
+            assertThat(response, isForbidden());
+            assertThat(response.getBody(), containsString("[" + HISTORY_1 + "] must be named explicitly"));
+        } finally {
+            cleanup("snap_broader", HISTORY_1);
         }
     }
 
@@ -279,7 +315,8 @@ public class SystemIndexRestoreIntTests {
         public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
             return List.of(
                 new SystemIndexDescriptor(ELIGIBLE, "restore-eligible system index for testing"),
-                new SystemIndexDescriptor(NOT_ELIGIBLE, "non restore-eligible system index for testing")
+                new SystemIndexDescriptor(NOT_ELIGIBLE, "non restore-eligible system index for testing"),
+                new SystemIndexDescriptor(HISTORY_PATTERN, "restore-eligible dated system indices for testing")
             );
         }
     }
