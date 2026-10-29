@@ -434,17 +434,8 @@ public class AuditMessageTest {
     }
 
     @Test
-    public void testNewCategoriesInDefaultDisabledRestList() {
-        List<String> defaults = org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_REST_CATEGORIES_DEFAULT;
-        assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_GRANTED.toString()), is(true));
-        assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_DENIED.toString()), is(true));
-        assertThat(defaults.contains(AuditCategory.RESOURCE_SHARING_CHANGED.toString()), is(true));
-    }
-
-    @Test
-    public void testNewCategoriesInDefaultDisabledTransportList() {
-        List<String> defaults =
-            org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_TRANSPORT_CATEGORIES_DEFAULT;
+    public void testNewCategoriesInDefaultDisabledList() {
+        List<String> defaults = org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT;
         assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_GRANTED.toString()), is(true));
         assertThat(defaults.contains(AuditCategory.RESOURCE_ACCESS_DENIED.toString()), is(true));
         assertThat(defaults.contains(AuditCategory.RESOURCE_SHARING_CHANGED.toString()), is(true));
@@ -720,5 +711,67 @@ public class AuditMessageTest {
         message.addRestRequestInfo(request, auditFilterMock);
 
         assertThat(message.getAsMap().get(AuditMessage.USER_AGENT), is("opensearch-py/2.4.0"));
+    }
+
+    @Test
+    public void testAddAttemptedUserSetsField() {
+        message.addAttemptedUser("plugin:reserved-subject");
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_ATTEMPTED_USER), is("plugin:reserved-subject"));
+    }
+
+    @Test
+    public void testAddAttemptedUserNullIsNoop() {
+        message.addAttemptedUser(null);
+        assertNull(message.getAsMap().get(AuditMessage.REQUEST_ATTEMPTED_USER));
+    }
+
+    @Test
+    public void testAddAttemptedUserEmptyIsNoop() {
+        message.addAttemptedUser("");
+        assertNull(message.getAsMap().get(AuditMessage.REQUEST_ATTEMPTED_USER));
+    }
+
+    @Test
+    public void testAddAttemptedUserTruncatesOverMaxLength() {
+        final String longValue = "x".repeat(AuditMessage.MAX_ATTEMPTED_USER_LENGTH + 50);
+
+        message.addAttemptedUser(longValue);
+
+        final String recorded = (String) message.getAsMap().get(AuditMessage.REQUEST_ATTEMPTED_USER);
+        assertThat(recorded.length(), is(AuditMessage.MAX_ATTEMPTED_USER_LENGTH));
+        assertThat(recorded, containsString("..."));
+    }
+
+    @Test
+    public void testAddAttemptedUserTruncationDoesNotSplitSurrogatePair() {
+        // Place a supplementary character so that its high surrogate would be the last kept char
+        final int keep = AuditMessage.MAX_ATTEMPTED_USER_LENGTH - "...".length();
+        final String value = "x".repeat(keep - 1) + "😀" + "x".repeat(50);
+
+        message.addAttemptedUser(value);
+
+        final String recorded = (String) message.getAsMap().get(AuditMessage.REQUEST_ATTEMPTED_USER);
+        assertThat(recorded, is("x".repeat(keep - 1) + "..."));
+    }
+
+    @Test
+    public void testAddAttemptedUserAtMaxLengthIsNotTruncated() {
+        final String exact = "x".repeat(AuditMessage.MAX_ATTEMPTED_USER_LENGTH);
+
+        message.addAttemptedUser(exact);
+
+        assertThat(message.getAsMap().get(AuditMessage.REQUEST_ATTEMPTED_USER), is(exact));
+    }
+
+    @Test
+    public void testAddAuthenticationFailureReasonSetsField() {
+        message.addAuthenticationFailureReason("RESERVED_SUBJECT_PREFIX");
+        assertThat(message.getAsMap().get(AuditMessage.AUTHENTICATION_FAILURE_REASON), is("RESERVED_SUBJECT_PREFIX"));
+    }
+
+    @Test
+    public void testAddAuthenticationFailureReasonNullIsNoop() {
+        message.addAuthenticationFailureReason(null);
+        assertNull(message.getAsMap().get(AuditMessage.AUTHENTICATION_FAILURE_REASON));
     }
 }

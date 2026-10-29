@@ -85,7 +85,10 @@ public class StandaloneAuditSinksTest {
                 .alias("Audit index created with REQUEST_AUDIT events")
                 .atMost(10, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
-                .until(() -> client.get("security-auditlog-*/_search").getBody(), containsString("REQUEST_AUDIT"));
+                .until(() -> {
+                    client.post("security-auditlog-*/_refresh");
+                    return client.get("security-auditlog-*/_search").getBody();
+                }, containsString("REQUEST_AUDIT"));
         }
     }
 
@@ -100,10 +103,10 @@ public class StandaloneAuditSinksTest {
                 .alias("Audit event has expected fields")
                 .atMost(10, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
-                .until(
-                    () -> client.get("security-auditlog-*/_search?q=audit_transport_request_type:SearchRequest").getBody(),
-                    containsString("audit_request_privilege")
-                );
+                .until(() -> {
+                    client.post("security-auditlog-*/_refresh");
+                    return client.get("security-auditlog-*/_search?q=audit_transport_request_type:SearchRequest").getBody();
+                }, containsString("audit_request_privilege"));
         }
     }
 

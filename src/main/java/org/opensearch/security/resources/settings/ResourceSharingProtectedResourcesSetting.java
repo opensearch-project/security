@@ -69,9 +69,22 @@ public class ResourceSharingProtectedResourcesSetting extends OpensearchDynamicS
     private final ResourcePluginInfo resourcePluginInfo;
 
     public ResourceSharingProtectedResourcesSetting(final Settings settings, final ResourcePluginInfo resourcePluginInfo) {
-        super(PROTECTED_TYPES, PROTECTED_TYPES.get(settings));
+        super(validatedSetting(resourcePluginInfo), PROTECTED_TYPES.get(settings));
         this.resourcePluginInfo = resourcePluginInfo;
         warnIfLegacyKeyInUse(settings);
+    }
+
+    private static Setting<List<String>> validatedSetting(ResourcePluginInfo resourcePluginInfo) {
+        // A transient override can hide an invalid persistent value from update consumers.
+        return Setting.listSetting(
+            PROTECTED_TYPES.getKey(),
+            LEGACY_PROTECTED_TYPES,
+            Function.identity(),
+            LEGACY_PROTECTED_TYPES::get,
+            resourcePluginInfo::validateProtectedTypes,
+            Setting.Property.NodeScope,
+            Setting.Property.Dynamic
+        );
     }
 
     /**
@@ -90,10 +103,10 @@ public class ResourceSharingProtectedResourcesSetting extends OpensearchDynamicS
 
     @Override
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
-        clusterSettings.addSettingsUpdateConsumer(PROTECTED_TYPES, newValue -> {
+        clusterSettings.addSettingsUpdateConsumer(getDynamicSetting(), newValue -> {
             logger.info(getClusterChangeMessage(newValue));
-            setDynamicSettingValue(newValue);
             this.resourcePluginInfo.updateProtectedTypes(newValue);
+            setDynamicSettingValue(newValue);
         });
     }
 

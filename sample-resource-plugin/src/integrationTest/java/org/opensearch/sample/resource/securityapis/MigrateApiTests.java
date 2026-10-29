@@ -40,6 +40,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_MIGRATION_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
@@ -57,6 +58,7 @@ import static org.opensearch.sample.resource.TestUtils.migrationPayload_valid_wi
 import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 import static org.opensearch.sample.utils.Constants.RESOURCE_TYPE;
+import static org.opensearch.sample.utils.Constants.WORKSPACE_TYPE;
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES;
@@ -104,7 +106,7 @@ public class MigrateApiTests {
                 OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 true,
                 OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
-                List.of(RESOURCE_TYPE),
+                List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE, WORKSPACE_TYPE),
                 SECURITY_RESTAPI_ROLES_ENABLED,
                 List.of("user_" + MIGRATION_USER_REST_ADMIN.getName() + "__migration_admin"),
                 SECURITY_RESTAPI_ADMIN_ENABLED,
@@ -138,7 +140,7 @@ public class MigrateApiTests {
                 OPENSEARCH_RESOURCE_SHARING_ENABLED,
                 true,
                 OPENSEARCH_RESOURCE_SHARING_PROTECTED_TYPES,
-                List.of(RESOURCE_TYPE)
+                List.of(RESOURCE_TYPE, RESOURCE_GROUP_TYPE, WORKSPACE_TYPE)
             )
         )
         .build();
@@ -401,6 +403,45 @@ public class MigrateApiTests {
                 equalTo("Migration complete. migrated 0; backfilledExisting 0; skippedNoType 0; skippedExisting 1; failed 0")
             );
         }
+    }
+
+    @Test
+    public void testMigrateRepairsVisibilityFromAnExistingRecord() {
+        // A record changed without its resource document being rewritten leaves all_shared_principals out of step. A
+        // repeated migrate finds the record already there and must rewrite the field from it.
+        String resourceId = createSampleResource();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            Awaitility.await("all_shared_principals seeded on resource doc")
+                .untilAsserted(() -> assertThat(principalsOf(client, resourceId), containsInAnyOrder("user:" + MIGRATION_USER.getName())));
+
+            // No listener runs on the sharing index, so this changes the record alone
+            TestRestClient.HttpResponse drift = client.postJson(
+                RESOURCE_SHARING_INDEX + "/_update/" + resourceId + "?refresh=true",
+                "{ \"doc\": { \"share_with\": { \"sample_read_only\": { \"users\": [\"bob\"] } } } }"
+            );
+            drift.assertStatusCode(HttpStatus.SC_OK);
+            assertThat(principalsOf(client, resourceId), containsInAnyOrder("user:" + MIGRATION_USER.getName()));
+
+            TestRestClient.HttpResponse migrateResponse = client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid());
+            migrateResponse.assertStatusCode(HttpStatus.SC_OK);
+            String summary = (String) migrateResponse.bodyAsMap().get("summary");
+            assertThat(summary, containsString("migrated 0;"));
+            assertThat(summary, containsString("failed 0"));
+
+            assertThat(principalsOf(client, resourceId), containsInAnyOrder("user:" + MIGRATION_USER.getName(), "user:bob"));
+        }
+    }
+
+    private static List<String> principalsOf(TestRestClient client, String resourceId) {
+        TestRestClient.HttpResponse resourceDoc = client.get(RESOURCE_INDEX_NAME + "/_doc/" + resourceId);
+        resourceDoc.assertStatusCode(HttpStatus.SC_OK);
+        List<String> principals = new ArrayList<>();
+        ArrayNode field = (ArrayNode) resourceDoc.bodyAsJsonNode().get("_source").get("all_shared_principals");
+        if (field != null) {
+            field.forEach(n -> principals.add(n.asString()));
+        }
+        return principals;
     }
 
     @Test

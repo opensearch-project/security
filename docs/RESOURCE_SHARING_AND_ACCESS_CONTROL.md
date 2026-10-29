@@ -512,9 +512,16 @@ The list of protected types are controlled through following opensearch setting
 - **Default value:** `[]`
 - **How to specify a type?** Add entries of existing types in the list:
   ```yaml
-  plugins.security.resource_sharing.protected_types: [sample-resource]
+  plugins.security.resource_sharing.protected_types: [sample-resource, sample-resource-group, workspace]
   ```
 NOTE: These types will be available on documentation website.
+
+All registered resource types sharing an index must be enabled or disabled together. For example, `sample-resource`,
+`sample-resource-group`, and `workspace` share `.sample_resource`, so include all three or none. Types on different indices can be
+configured independently. Partial lists are rejected at startup and by `_cluster/settings` before they are applied,
+with an error identifying the index and missing types. This applies even when resource sharing is disabled.
+Before upgrading, complete any partial lists. Adding a new provider type to an existing protected index also requires
+updating the list. This validation covers registered providers, not unregistered/internal document kinds or index aliases.
 
 ### **Dynamic Updates**
 
@@ -538,7 +545,7 @@ PUT _cluster/settings
 PUT _cluster/settings
 {
   "transient": {
-    "plugins.security.resource_sharing.protected_types": ["sample-resource", "ml-model"]
+    "plugins.security.resource_sharing.protected_types": ["sample-resource", "sample-resource-group", "workspace", "ml-model"]
   }
 }
 ```
