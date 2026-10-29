@@ -20,6 +20,8 @@ import org.apache.lucene.document.StringField;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -42,7 +44,9 @@ import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.Answers;
 
@@ -84,6 +88,16 @@ public class ResourceIndexListenerTests {
         records = mock(IndexRequestBuilder.class, Answers.RETURNS_SELF);
         when(records.request()).thenReturn(mock(IndexRequest.class));
         when(client.prepareIndex(any())).thenReturn(records);
+        // The sharing index already exists, so the handler writes the record without creating it
+        AdminClient adminClient = mock(AdminClient.class);
+        IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
+        when(client.admin()).thenReturn(adminClient);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+        doAnswer(inv -> {
+            ActionListener<IndicesExistsResponse> l = inv.getArgument(1);
+            l.onResponse(new IndicesExistsResponse(true));
+            return null;
+        }).when(indicesAdminClient).exists(any(IndicesExistsRequest.class), any());
 
         resourcePluginInfo = new ResourcePluginInfo();
         resourcePluginInfo.setProtectedTypesSetting(setting(List.of("monitor", "alerting-workflow")));

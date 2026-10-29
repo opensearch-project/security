@@ -2759,20 +2759,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
         }
 
-        // resourceSharingIndexManagementRepository will be null when sec plugin is disabled or is in SSLOnly mode, hence it will not be
-        // instantiated
-        if (resourceSharingEnabledSetting.getDynamicSettingValue()) {
-            // create resource sharing index if absent
-            // TODO check if this should be wrapped in an atomic completable future
-            log.debug("Attempting to create Resource Sharing index");
-            Set<String> resourceIndices = new HashSet<>();
-            if (resourcePluginInfo != null) {
-                resourceIndices = resourcePluginInfo.getResourceIndices();
-            }
-            rsIndexHandler.createResourceSharingIndicesIfAbsent(resourceIndices);
-
-        }
-
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
