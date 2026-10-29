@@ -66,11 +66,37 @@ public class ResourcePluginInfo {
     // default access level per type (for migration)
     private final Map<String, String> typeToDefaultAccessLevel = new HashMap<>();
 
-    // cache current protected types and their indices
+    // Resource indices of the protected types, recomputed on change because every index and delete operation reads it
+    private volatile Set<String> protectedResourceIndices = Collections.emptySet();
+
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
 
     public void setProtectedTypesSetting(OpensearchDynamicSetting<List<String>> protectedTypesSetting) {
-        this.protectedTypesSetting = protectedTypesSetting;
+        lock.writeLock().lock();
+        try {
+            this.protectedTypesSetting = protectedTypesSetting;
+            refreshProtectedResourceIndices(currentProtectedTypes());
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Recomputes {@link #protectedResourceIndices}. Must be called with the write lock held, so a reader cannot observe
+     * a snapshot that disagrees with {@link #typeToProvider}.
+     *
+     * @param protectedTypes the types to treat as protected
+     */
+    private void refreshProtectedResourceIndices(List<String> protectedTypes) {
+        if (protectedTypes == null || protectedTypes.isEmpty()) {
+            protectedResourceIndices = Collections.emptySet();
+            return;
+        }
+        protectedResourceIndices = typeToProvider.entrySet()
+            .stream()
+            .filter(e -> protectedTypes.contains(e.getKey()))
+            .map(e -> e.getValue().resourceIndexName())
+            .collect(Collectors.toUnmodifiableSet());
     }
 
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
@@ -118,6 +144,7 @@ public class ResourcePluginInfo {
                 }
             }
             resourceSharingExtensions.addAll(extensions);
+            refreshProtectedResourceIndices(currentProtectedTypes());
         } finally {
             lock.writeLock().unlock();
         }
@@ -131,6 +158,7 @@ public class ResourcePluginInfo {
             typeToProvider.clear();
 
             if (protectedTypes == null || protectedTypes.isEmpty()) {
+                refreshProtectedResourceIndices(protectedTypes);
                 return;
             }
 
@@ -141,6 +169,7 @@ public class ResourcePluginInfo {
                     typeToProvider.put(rp.resourceType(), rp);
                 }
             }
+            refreshProtectedResourceIndices(protectedTypes);
         } finally {
             lock.writeLock().unlock();
         }
@@ -502,28 +531,19 @@ public class ResourcePluginInfo {
         }
     }
 
+    /**
+     * The resource indices of the currently protected types, as an immutable snapshot. Consulted on every index and
+     * delete operation in the cluster, so it is not recomputed per call.
+     */
     public Set<String> getResourceIndicesForProtectedTypes() {
-        List<String> resourceTypes = this.protectedTypesSetting.getDynamicSettingValue();
-        if (resourceTypes == null || resourceTypes.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        lock.readLock().lock();
-        try {
-            return typeToProvider.entrySet()
-                .stream()
-                .filter(e -> resourceTypes.contains(e.getKey()))
-                .map(e -> e.getValue().resourceIndexName())
-                .collect(Collectors.toSet());
-        } finally {
-            lock.readLock().unlock();
-        }
+        return protectedResourceIndices;
     }
 
+    /** The types currently listed as protected, or null before the setting is wired. */
     public List<String> currentProtectedTypes() {
         lock.readLock().lock();
         try {
-            return protectedTypesSetting.getDynamicSettingValue();
+            return protectedTypesSetting == null ? null : protectedTypesSetting.getDynamicSettingValue();
         } finally {
             lock.readLock().unlock();
         }

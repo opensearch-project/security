@@ -33,6 +33,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auth.AuthenticationFailureReason;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
 import org.opensearch.security.auth.http.jwt.keybyoidc.BadCredentialsException;
@@ -135,7 +136,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         }
         if (User.hasReservedPrefix(subject)) {
             log.warn("JWT subject uses a reserved security prefix");
-            return null;
+            return AuthCredentials.rejected(subject, AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX);
         }
 
         final String[] roles = extractRoles(claimsSet);
