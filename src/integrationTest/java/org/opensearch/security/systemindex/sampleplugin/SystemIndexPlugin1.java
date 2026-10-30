@@ -92,7 +92,8 @@ public class SystemIndexPlugin1 extends Plugin implements SystemIndexPlugin, Ide
             new RestSearchOnSystemIndexAction(pluginClient),
             new RestSearchOnMixOfSystemIndexAction(pluginClient),
             new RestGetOnSystemIndexAction(pluginClient),
-            new RestUpdateOnSystemIndexAction(pluginClient)
+            new RestUpdateOnSystemIndexAction(pluginClient),
+            new RestWriteThenReadOnSystemIndexAction(pluginClient)
         );
     }
 

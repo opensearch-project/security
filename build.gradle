@@ -470,6 +470,9 @@ sourceSets {
         resources {
             srcDir file('src/integrationTest/resources')
         }
+        // On the root integration test class path only, not in the source set output that the sample resource plugin's
+        // integration tests load, so it does not shadow that plugin's own plugin-additional-permissions.yml.
+        runtimeClasspath += files('src/integrationTest/plugin-permissions')
         processIntegrationTestResources {
             duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }
