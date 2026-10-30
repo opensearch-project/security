@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
 
       - name: Linelint
         uses: fernandrone/linelint@7907a5dca0c28ea7dd05c6d8d8cacded713aca11 # 0.0.6
@@ -21,6 +23,8 @@ jobs:
     name: Spotless scan
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
@@ -38,6 +42,8 @@ jobs:
     name: Checkstyle scan
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
@@ -55,6 +61,8 @@ jobs:
     name: Spotbugs scan
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
@@ -72,6 +80,8 @@ jobs:
     name: Check permissions orders
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      with:
+        persist-credentials: false
     - run: npm install yaml
 
     - name: Check permissions order
