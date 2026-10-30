@@ -113,13 +113,9 @@ public class SystemIndexRestoreEligibilityHelperTest {
 
     @Test
     public void isEligible_defaultListCoversConfirmedPluginIndices() {
-        assertThat(helperWithDefaults.isEligible(ALERTING_CONFIG), is(true));
-        assertThat(helperWithDefaults.isEligible(".opendistro-alerting-alerts"), is(true));
-        assertThat(helperWithDefaults.isEligible(ALERT_HISTORY), is(true));
-        assertThat(helperWithDefaults.isEligible(".opendistro-ism-config"), is(true));
-        assertThat(helperWithDefaults.isEligible(".ltrstore"), is(true));
-        assertThat(helperWithDefaults.isEligible(".ltrstore_mystore"), is(true));
-        assertThat(helperWithDefaults.isEligible(".opensearch-knn-models"), is(false));
+        for (final String index : ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_DEFAULT) {
+            assertThat(index, helperWithDefaults.isEligible(index), is(true));
+        }
         assertThat(helperWithDefaults.isEligible(REPORTS_DEFINITIONS), is(false));
         assertThat(helperWithDefaults.isEligible(SECURITY_INDEX), is(false));
     }
