@@ -8,13 +8,16 @@ on:
         - '1.*'
         - '2.*'
 
+permissions:
+  contents: read
+
 jobs:
   build-and-publish-snapshots:
     runs-on: ubuntu-latest
 
     permissions:
       id-token: write
-      contents: write
+      contents: read
 
     steps:
       - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
@@ -22,6 +25,8 @@ jobs:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 21
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - name: Load secret
         uses: 1password/load-secrets-action@70062d7a876d3eb6334754fa26efd2fbd90c32f2 # v5.0.1
         with:
