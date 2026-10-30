@@ -15,6 +15,9 @@ public class Constants {
     public static final String RESOURCE_INDEX_NAME = ".sample_resource";
     public static final String RESOURCE_TYPE = "sample-resource";
     public static final String RESOURCE_GROUP_TYPE = "sample-resource-group";
+    // Not a resource type: the value requests addressing a resource by name report as their type, which the plugin's
+    // GatingResourceResolver claims so access is evaluated against the resource the name resolves to.
+    public static final String RESOURCE_BY_NAME_REQUEST_TYPE = "sample-resource-by-name";
     // Must equal ResourceAccessHandler.WORKSPACE_RESOURCE_TYPE: the security plugin resolves workspace containers by
     // this exact type name. Registered so the write-path container fan-out can be exercised end-to-end.
     public static final String WORKSPACE_TYPE = "workspace";
