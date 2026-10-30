@@ -214,6 +214,14 @@ final class LdapServer {
         }
     }
 
+    /**
+    * Drops every open client connection without a notice of disconnection, as a directory does when it closes idle
+    * connections. The server keeps listening.
+    */
+    public void closeAllConnections() {
+        server.closeAllConnections(false);
+    }
+
     public void loadLdifData(LdifData ldifData) throws Exception {
         server.clear();
         try (LDIFReader r = new LDIFReader(new BufferedReader(new StringReader(ldifData.getContent())))) {
