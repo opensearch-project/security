@@ -84,8 +84,6 @@ import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_
 public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
     private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
-    private static final String COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION =
-        "com.sun.jndi.ldap.object.disableEndpointIdentification";
     private static final List<String> DEFAULT_TLS_PROTOCOLS = Arrays.asList("TLSv1.2", "TLSv1.1");
     static final int ONE_PLACEHOLDER = 1;
     static final int TWO_PLACEHOLDER = 2;
@@ -589,24 +587,11 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             if (!verifyHostnames) {
                 sslConfig.setHostnameVerifier(new AllowAnyHostnameVerifier());
-                final String deiProp = System.getProperty(COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION);
-
-                if (deiProp == null || !Boolean.parseBoolean(deiProp)) {
-                    log.warn(
-                        "In order to disable host name verification for LDAP connections (verify_hostnames: true), "
-                            + "you also need to set set the system property "
-                            + COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION
-                            + " to true when starting the JVM running OpenSearch. "
-                            + "This applies for all Java versions released since July 2018."
-                    );
-                    // See:
-                    // https://www.oracle.com/technetwork/java/javase/8u181-relnotes-4479407.html
-                    // https://www.oracle.com/technetwork/java/javase/10-0-2-relnotes-4477557.html
-                    // https://www.oracle.com/technetwork/java/javase/11-0-1-relnotes-5032023.html
+                // warn only: the JDK reads the property once, and setting it would turn off hostname checks for every
+                // LDAPS connection in the JVM, including auth domains with verify_hostnames: true
+                if (!Boolean.parseBoolean(System.getProperty(ConfigConstants.LDAPS_DISABLE_ENDPOINT_IDENTIFICATION_PROPERTY))) {
+                    log.warn(ConfigConstants.LDAPS_ENDPOINT_IDENTIFICATION_WARNING);
                 }
-
-                System.setProperty(COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION, "true");
-
             }
 
             final List<String> enabledCipherSuites = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_CIPHERS, Collections.emptyList());

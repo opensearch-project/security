@@ -309,16 +309,8 @@ public class LDAPConnectionFactoryFactory {
         if (!this.sslConfig.isHostnameVerificationEnabled()) {
             ldaptiveSslConfig.setHostnameVerifier(new AllowAnyHostnameVerifier());
 
-            if (!Boolean.parseBoolean(System.getProperty("com.sun.jndi.ldap.object.disableEndpointIdentification"))) {
-                log.warn(
-                    "In order to disable host name verification for LDAP connections (verify_hostnames: true), "
-                        + "you also need to set set the system property com.sun.jndi.ldap.object.disableEndpointIdentification to true when starting the JVM running OpenSearch. "
-                        + "This applies for all Java versions released since July 2018."
-                );
-                // See:
-                // https://www.oracle.com/technetwork/java/javase/8u181-relnotes-4479407.html
-                // https://www.oracle.com/technetwork/java/javase/10-0-2-relnotes-4477557.html
-                // https://www.oracle.com/technetwork/java/javase/11-0-1-relnotes-5032023.html
+            if (!Boolean.parseBoolean(System.getProperty(ConfigConstants.LDAPS_DISABLE_ENDPOINT_IDENTIFICATION_PROPERTY))) {
+                log.warn(ConfigConstants.LDAPS_ENDPOINT_IDENTIFICATION_WARNING);
             }
         }
 
