@@ -47,6 +47,7 @@ import org.ldaptive.ConnectionFactory;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
+import org.ldaptive.ResultCode;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
@@ -421,14 +422,27 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
         final boolean isDebugEnabled = log.isDebugEnabled();
+        final LdapEntry e0;
+        try {
+            e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
+        } catch (final LdapException e) {
+            if (e.getResultCode() != ResultCode.INVALID_DN_SYNTAX) {
+                throw e;
+            }
+            log.warn("Skipping nested roles of {} because the LDAP server rejected the DN as invalid", roleDn);
+            return result;
+        }
 
         if (e0 == null) {
+            // A role search with this DN can only match stale references to an entry that no longer exists.
             if (isDebugEnabled) {
-                log.debug("Cannot resolve nested roles from the attributes of {} because no entry was found for this DN", roleDn);
+                log.debug("Skipping nested roles of {} because no entry was found for this DN", roleDn);
             }
-        } else if (e0.getAttribute(userRoleName) != null) {
+            return result;
+        }
+
+        if (e0.getAttribute(userRoleName) != null) {
             final Collection<String> userRoles = e0.getAttribute(userRoleName).getStringValues();
             for (final String possibleRoleDN : userRoles) {
                 if (isValidDn(possibleRoleDN)) {

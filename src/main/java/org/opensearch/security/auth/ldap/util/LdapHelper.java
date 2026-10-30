@@ -13,9 +13,12 @@ package org.opensearch.security.auth.ldap.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+
+import com.google.common.annotations.VisibleForTesting;
 
 import org.opensearch.secure_sm.AccessController;
 
@@ -79,8 +82,8 @@ public class LdapHelper {
      * @param unescapedDn DN of the entry
      * @param returnAttributes attributes to return
      * @param shouldFollowReferrals whether to follow referrals
-     * @return the entry, or null if the DN names no entry or the search does not return exactly one entry
-     * @throws LdapException if the search fails for any other reason
+     * @return the entry, or null if no entry exists for the DN or the search does not return exactly one entry
+     * @throws LdapException if the search fails for any other reason, including a DN that the server rejects
      */
     public static LdapEntry lookup(
         final Connection conn,
@@ -93,7 +96,7 @@ public class LdapHelper {
         try {
             entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes, shouldFollowReferrals);
         } catch (final LdapException e) {
-            if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT || e.getResultCode() == ResultCode.INVALID_DN_SYNTAX) {
+            if (e.getResultCode() == ResultCode.NO_SUCH_OBJECT) {
                 return null;
             }
             throw e;
@@ -106,13 +109,28 @@ public class LdapHelper {
         }
     }
 
-    private static String escapeDn(String dn) throws InvalidNameException {
+    @VisibleForTesting
+    static String escapeDn(String dn) throws InvalidNameException {
         final LdapName dnName = new LdapName(dn);
         final List<Rdn> escaped = new ArrayList<>(dnName.size());
         for (Rdn rdn : dnName.getRdns()) {
             escaped.add(new Rdn(rdn.getType(), escapeForwardSlash(rdn.getValue())));
         }
-        return new LdapName(escaped).toString();
+        return escapeControlCharacters(new LdapName(escaped).toString());
+    }
+
+    // Rdn does not escape control characters, so a \0A in a value would reach the server as a raw newline.
+    private static String escapeControlCharacters(String dn) {
+        final StringBuilder sb = new StringBuilder(dn.length());
+        for (int i = 0; i < dn.length(); i++) {
+            final char c = dn.charAt(i);
+            if (c < 0x20 || c == 0x7f) {
+                sb.append(String.format(Locale.ROOT, "\\%02X", (int) c));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     private static Object escapeForwardSlash(Object input) {

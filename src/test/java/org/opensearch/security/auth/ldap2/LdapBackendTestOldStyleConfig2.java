@@ -17,6 +17,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.TreeSet;
+import javax.naming.ldap.LdapName;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
@@ -46,10 +47,15 @@ import org.opensearch.security.user.User;
 import org.ldaptive.Connection;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
+import org.ldaptive.LdapException;
+import org.ldaptive.ResultCode;
 import org.ldaptive.ReturnAttributes;
+import org.ldaptive.provider.ProviderConnection;
+import org.mockito.Mockito;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
@@ -710,6 +716,34 @@ public class LdapBackendTestOldStyleConfig2 {
     @Test
     public void testLdapAuthorizationNestedAttrWithReferralToMissingEntry() throws Exception {
         assertThat(nestedAttrRoles("referralref"), containsInAnyOrder("rolemo4", "nested3", "nested4"));
+    }
+
+    @Test
+    public void testResolveNestedRolesSkipsDnRejectedByServer() throws Exception {
+        final ProviderConnection providerConnection = Mockito.mock(ProviderConnection.class);
+        Mockito.when(providerConnection.search(Mockito.any())).thenThrow(new LdapException("invalid DN", ResultCode.INVALID_DN_SYNTAX));
+        final Connection connection = Mockito.mock(Connection.class);
+        Mockito.when(connection.getProviderConnection()).thenReturn(providerConnection);
+
+        final Set<LdapName> nestedRoles = new NestedRoleResolver().resolve(new LdapName("CN=SCA-LDAP\\0ACNF,ou=groups,o=TEST"), connection);
+
+        assertThat(nestedRoles, is(empty()));
+    }
+
+    private class NestedRoleResolver extends LDAPAuthorizationBackend2 {
+        NestedRoleResolver() throws Exception {
+            super(
+                Settings.builder()
+                    .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+                    .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+                    .build(),
+                null
+            );
+        }
+
+        Set<LdapName> resolve(final LdapName roleDn, final Connection connection) throws Exception {
+            return resolveNestedRoles(roleDn, connection, "description", 0, true, Set.of());
+        }
     }
 
     private Set<String> nestedAttrRoles(final String username) throws Exception {

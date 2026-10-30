@@ -282,6 +282,12 @@ uniqueMember: cn=Dangling Ref,ou=people,o=TEST
 # nested group DN that has no entry
 description: cn=alsomissing,ou=groups,o=TEST
 
+dn: cn=staleparent,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: staleparent
+# stale member reference to a group DN that has no entry
+uniqueMember: cn=doesnotexist,ou=groups,o=TEST
+
 dn: cn=Referral Ref,ou=people,o=TEST
 objectclass: inetOrgPerson
 cn: Referral Ref
