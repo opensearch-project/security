@@ -33,6 +33,7 @@ public class SystemIndexRestoreEligibilityHelperTest {
 
     private static final String ALERTING_CONFIG = ".opendistro-alerting-config";
     private static final String REPORTS_DEFINITIONS = ".opendistro-reports-definitions";
+    private static final String REPORTS_INSTANCES = ".opendistro-reports-instances";
     private static final String ALERT_HISTORY = ".opendistro-alerting-alert-history-2026.09.24-1";
     private static final String SECURITY_INDEX = ".opendistro_security";
 
@@ -158,6 +159,83 @@ public class SystemIndexRestoreEligibilityHelperTest {
         Optional<String> reason = helper.denialReason(restore(".opendistro-alerting-*"), Set.of(ALERTING_CONFIG));
         assertThat(reason.get(), containsString("must be named explicitly"));
         assertThat(helper.isRestorableByRestAdmin(restore("*"), ALERTING_CONFIG), is(false));
+    }
+
+    @Test
+    public void denialReason_patternSameAsRestorableEntryIsNamed() {
+        RestoreSnapshotRequest request = restore(".opendistro-reports-*");
+        assertThat(helper.denialReason(request, Set.of(REPORTS_DEFINITIONS, REPORTS_INSTANCES)), equalTo(Optional.empty()));
+        assertThat(helper.isRestorableByRestAdmin(request, REPORTS_DEFINITIONS), is(true));
+    }
+
+    @Test
+    public void denialReason_patternNarrowerThanRestorableEntryIsNamed() {
+        assertThat(helper.denialReason(restore(".opendistro-reports-def*"), Set.of(REPORTS_DEFINITIONS)), equalTo(Optional.empty()));
+    }
+
+    @Test
+    public void denialReason_patternBroaderThanRestorableEntryIsNotNamed() {
+        Optional<String> reason = helper.denialReason(restore(".opendistro-reports*"), Set.of(REPORTS_DEFINITIONS));
+        assertThat(
+            reason.get(),
+            equalTo(
+                "System index restore denied: System indices ["
+                    + REPORTS_DEFINITIONS
+                    + "] must be named explicitly in the restore request, or matched by a pattern that is no broader than an entry of "
+                    + ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY
+                    + "."
+            )
+        );
+    }
+
+    @Test
+    public void denialReason_patternNamesOnlyTheIndicesItMatches() {
+        RestoreSnapshotRequest request = restore(".opendistro-reports-inst*", "*");
+        Optional<String> reason = helper.denialReason(request, Set.of(REPORTS_DEFINITIONS, REPORTS_INSTANCES));
+        assertThat(reason.get(), containsString("[" + REPORTS_DEFINITIONS + "] must be named explicitly"));
+    }
+
+    @Test
+    public void denialReason_matchAllPatternIsNamedWhenSameAsRestorableEntry() {
+        SystemIndexRestoreEligibilityHelper restoreAll = helper(
+            Settings.builder()
+                .putList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, List.of("all_access"))
+                .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of("*"))
+                .build()
+        );
+        assertThat(restoreAll.denialReason(restore("*"), Set.of(ALERTING_CONFIG)), equalTo(Optional.empty()));
+        assertThat(restoreAll.denialReason(restore("**"), Set.of(ALERTING_CONFIG)).get(), containsString("must be named explicitly"));
+        assertThat(restoreAll.denialReason(restore(ALERTING_CONFIG), Set.of(ALERTING_CONFIG)), equalTo(Optional.empty()));
+    }
+
+    @Test
+    public void denialReason_restorableEntryOfOnlyStarAllowsNoPatterns() {
+        SystemIndexRestoreEligibilityHelper restoreAll = helper(
+            Settings.builder()
+                .putList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, List.of("all_access"))
+                .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of("*"))
+                .build()
+        );
+        assertThat(restoreAll.denialReason(restore(".*"), Set.of(ALERTING_CONFIG)).get(), containsString("must be named explicitly"));
+        assertThat(
+            restoreAll.denialReason(restore(".opendistro-alerting-*"), Set.of(ALERTING_CONFIG)).get(),
+            containsString("must be named explicitly")
+        );
+    }
+
+    @Test
+    public void denialReason_restorableEntryWithLeadingStarAllowsOnlyTheSameText() {
+        SystemIndexRestoreEligibilityHelper leadingStar = helper(
+            Settings.builder()
+                .putList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, List.of("all_access"))
+                .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_RESTORE_INDICES_KEY, List.of("*-config*"))
+                .build()
+        );
+        assertThat(leadingStar.denialReason(restore("*-config*"), Set.of(ALERTING_CONFIG)), equalTo(Optional.empty()));
+        assertThat(
+            leadingStar.denialReason(restore("*-config"), Set.of(ALERTING_CONFIG)).get(),
+            containsString("must be named explicitly")
+        );
     }
 
     @Test

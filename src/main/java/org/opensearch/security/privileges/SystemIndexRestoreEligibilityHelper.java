@@ -21,6 +21,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.opensearch.common.regex.Regex;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.SecuritySettings;
@@ -33,8 +34,8 @@ import org.opensearch.security.support.WildcardMatcher;
  * may restore a system index only when all of the following hold for the request:
  * <ol>
  *   <li>the index matches {@code plugins.security.system_indices.restore.indices} (empty by default),</li>
- *   <li>the index is named explicitly in the request, not matched by a wildcard, so restoring system indices is always
- *       an intentional act and never a side effect of "restore everything",</li>
+ *   <li>the index is named in the request, either exactly or by a pattern that is no broader than an entry of that
+ *       setting,</li>
  *   <li>the request does not rename indices, so a system index cannot be restored under a regular name (escaping system
  *       index protection) and a regular index cannot be restored under a system index name.</li>
  * </ol>
@@ -115,14 +116,43 @@ public final class SystemIndexRestoreEligibilityHelper {
             }
             return denial(message);
         }
-        final List<String> named = request.indices() == null ? List.of() : Arrays.asList(request.indices());
-        final Set<String> notNamed = systemIndices.stream().filter(index -> !named.contains(index)).collect(Collectors.toSet());
+        final List<String> requested = request.indices() == null ? List.of() : Arrays.asList(request.indices());
+        final Set<String> notNamed = systemIndices.stream()
+            .filter(index -> !isNamed(index, requested, restorableIndices.names()))
+            .collect(Collectors.toSet());
         if (!notNamed.isEmpty()) {
             return denial(
-                "System indices " + sorted(notNamed) + " must be named explicitly in the restore request, not matched by a wildcard."
+                "System indices "
+                    + sorted(notNamed)
+                    + " must be named explicitly in the restore request, or matched by a pattern that is no broader than an entry of "
+                    + SecuritySettings.SYSTEM_INDICES_RESTORE_INDICES_SETTING.getKey()
+                    + "."
             );
         }
         return Optional.empty();
+    }
+
+    /**
+     * @return true if the request lists the system index by its exact name, or lists a pattern that matches it and is
+     *         no broader than a restorable entry
+     */
+    private static boolean isNamed(final String index, final List<String> requested, final List<String> restorable) {
+        return requested.stream()
+            .anyMatch(entry -> entry.equals(index) || (Regex.simpleMatch(entry, index) && isWithinRestorable(entry, restorable)));
+    }
+
+    /**
+     * A pattern is no broader than a restorable entry when it is the same text, or when the entry ends with {@code *},
+     * the text before that {@code *} is not empty and has no other {@code *}, and the pattern starts with that text.
+     */
+    private static boolean isWithinRestorable(final String pattern, final List<String> restorable) {
+        return restorable.stream().anyMatch(entry -> {
+            if (pattern.equals(entry)) {
+                return true;
+            }
+            final String prefix = entry.endsWith("*") ? entry.substring(0, entry.length() - 1) : "";
+            return !prefix.isEmpty() && !prefix.contains("*") && pattern.startsWith(prefix);
+        });
     }
 
     /**
