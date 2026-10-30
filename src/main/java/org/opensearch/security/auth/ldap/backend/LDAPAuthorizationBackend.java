@@ -13,8 +13,6 @@ package org.opensearch.security.auth.ldap.backend;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.KeyStore;
@@ -34,13 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -53,7 +49,8 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
-import org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory;
+import org.opensearch.security.auth.ldap2.LdapCredentialConfig;
+import org.opensearch.security.auth.ldap2.SniJndiProvider;
 import org.opensearch.security.auth.ldap2.SocketFactoryClassLoader;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
@@ -75,7 +72,6 @@ import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
 import org.ldaptive.control.RequestControl;
-import org.ldaptive.provider.ProviderConfig;
 import org.ldaptive.provider.ProviderConnection;
 import org.ldaptive.sasl.Mechanism;
 import org.ldaptive.sasl.SaslConfig;
@@ -208,28 +204,14 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             ConnectionConfig config = ConnectionConfig.newConnectionConfig(connectionConfig);
             config.setConnectionInitializer(new BindConnectionInitializer(bindDn, new Credential(password)));
 
-            DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
-
-            Supplier<SNISettingTLSSocketFactory.SniContext> sniContext = () -> null;
-            if (config.getLdapUrl() != null && config.getLdapUrl().startsWith("ldaps:")) {
+            final boolean ldaps = config.getLdapUrl() != null && config.getLdapUrl().startsWith("ldaps:");
+            final DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
+            if (ldaps) {
                 configureSNISocketFactory(connFactory);
-                String ldapUrl = config.getLdapUrl();
-                try {
-                    final String sniHostname = new URI(ldapUrl).getHost();
-                    if (StringUtils.isBlank(sniHostname)) {
-                        log.warn("Could not extract hostname from LDAP URL '{}'; proceeding without SNI configuration", ldapUrl);
-                    } else {
-                        sniContext = () -> SNISettingTLSSocketFactory.configure(sniHostname);
-                    }
-                } catch (URISyntaxException e) {
-                    log.warn("Malformed LDAP URL '{}'; proceeding without SNI configuration: {}", ldapUrl, e.getMessage());
-                }
             }
 
-            try (SNISettingTLSSocketFactory.SniContext ignored = sniContext.get()) {
-                connection = connFactory.getConnection();
-                connection.open();
-            }
+            connection = connFactory.getConnection();
+            connection.open();
         } finally {
             Utils.unbindAndCloseSilently(connection);
             connection = null;
@@ -327,21 +309,17 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     // No authentication
                 }
 
-                DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
-
                 // Register custom socket factory for SNI hostname verification with BouncyCastle FIPS
                 // This addresses a known issue where JNDI LDAP doesn't pass hostname to SSLSocketFactory
                 // See: https://github.com/bcgit/bc-java/issues/460
+                // SniJndiProvider sets SNI on every open() and reopen(), not just the first open.
+                final DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
                 if (enableSSL) {
                     configureSNISocketFactory(connFactory);
-                    try (var ignored = SNISettingTLSSocketFactory.configure(split[0])) {
-                        connection = connFactory.getConnection();
-                        connection.open();
-                    }
-                } else {
-                    connection = connFactory.getConnection();
-                    connection.open();
                 }
+
+                connection = connFactory.getConnection();
+                connection.open();
 
                 if (connection != null && connection.isOpen()) {
                     break;
@@ -503,8 +481,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private static void configureSNISocketFactory(DefaultConnectionFactory connFactory) {
         Map<String, Object> props = new HashMap<>();
         props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");
-        final ProviderConfig providerConfig = connFactory.getProvider().getProviderConfig();
-        providerConfig.setProperties(props);
+        final SniJndiProvider provider = new SniJndiProvider();
+        provider.getProviderConfig().setProperties(props);
+        connFactory.setProvider(provider);
     }
 
     private static void configureSSL(final ConnectionConfig config, final Settings settings, final Path configPath) throws Exception {
@@ -619,9 +598,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 );
 
                 final String keyStoreAlias = settings.get(ConfigConstants.LDAPS_JKS_CERT_ALIAS, null);
-                final String[] keyStoreAliases = keyStoreAlias == null ? null : new String[] { keyStoreAlias };
 
-                if (enableClientAuth && keyStoreAliases == null) {
+                if (enableClientAuth && keyStoreAlias == null) {
                     throw new IllegalArgumentException(ConfigConstants.LDAPS_JKS_CERT_ALIAS + " not given");
                 }
 
@@ -630,12 +608,13 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     log.debug("trustStoreAliases: {}, keyStoreAlias: {}", trustStoreAliases, keyStoreAlias);
                 }
 
-                cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
+                // narrows the stores to the configured aliases itself; ldaptive's own copies fail for BCFKS (FIPS)
+                cc = LdapCredentialConfig.of(
                     trustStore,
                     trustStoreAliases == null ? null : trustStoreAliases.toArray(new String[0]),
                     keyStore,
                     keyStorePassword,
-                    keyStoreAliases
+                    keyStoreAlias
                 );
 
             }
@@ -663,6 +642,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     // https://www.oracle.com/technetwork/java/javase/10-0-2-relnotes-4477557.html
                     // https://www.oracle.com/technetwork/java/javase/11-0-1-relnotes-5032023.html
                 }
+
+                System.setProperty(COM_SUN_JNDI_LDAP_OBJECT_DISABLE_ENDPOINT_IDENTIFICATION, "true");
+
             }
 
             final List<String> enabledCipherSuites = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_CIPHERS, Collections.emptyList());

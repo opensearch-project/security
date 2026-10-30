@@ -14,6 +14,8 @@ package org.opensearch.security.ssl.config;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
@@ -84,6 +86,64 @@ public class KeyStoreUtilsTest {
             () -> KeyStoreUtils.loadSecretKey(store, "kirk", "changeit".toCharArray())
         );
         assertThat(e.getMessage(), containsString("'kirk' is not a SecretKey"));
+    }
+
+    @Test
+    public void testCopyKeyAliasKeepsOnlyThatKeyInAStoreOfTheGivenType() throws Exception {
+        final KeyStore store = storeWithKirkAndSpock();
+
+        final KeyStore narrowed = KeyStoreUtils.copyKeyAlias(store, store.getType(), "spock", "changeit".toCharArray(), "test");
+
+        assertThat(narrowed.getType(), equalTo(store.getType()));
+        assertThat(Collections.list(narrowed.aliases()), equalTo(List.of("spock")));
+        assertThat(narrowed.getKey("spock", "changeit".toCharArray()), equalTo(store.getKey("spock", "changeit".toCharArray())));
+        assertThat(narrowed.getCertificateChain("spock"), equalTo(store.getCertificateChain("spock")));
+    }
+
+    @Test
+    public void testCopyKeyAliasWithUnknownAlias() throws Exception {
+        final KeyStore store = storeWithKirkAndSpock();
+
+        final OpenSearchException e = assertThrows(
+            OpenSearchException.class,
+            () -> KeyStoreUtils.copyKeyAlias(store, store.getType(), "missing", "changeit".toCharArray(), "test")
+        );
+        assertThat(e.getMessage(), containsString("Failed to load key store from test"));
+        assertThat(e.getCause().getMessage(), containsString("Couldn't find SSL key for alias missing"));
+    }
+
+    @Test
+    public void testCopyAliasesKeepsOnlyThoseCertificates() throws Exception {
+        final KeyStore trustStore = FileHelper.getKeystoreFromClassPath("ldap/truststore", "changeit");
+
+        final KeyStore narrowed = KeyStoreUtils.copyAliases(trustStore, trustStore.getType(), List.of("root-ca-chain"), "test");
+
+        assertThat(narrowed.getType(), equalTo(trustStore.getType()));
+        assertThat(Collections.list(narrowed.aliases()), equalTo(List.of("root-ca-chain")));
+        assertThat(narrowed.getCertificate("root-ca-chain"), equalTo(trustStore.getCertificate("root-ca-chain")));
+    }
+
+    @Test
+    public void testCopyAliasesWithUnknownAlias() throws Exception {
+        final KeyStore trustStore = FileHelper.getKeystoreFromClassPath("ldap/truststore", "changeit");
+
+        final OpenSearchException e = assertThrows(
+            OpenSearchException.class,
+            () -> KeyStoreUtils.copyAliases(trustStore, trustStore.getType(), List.of("root-ca-chain", "missing"), "test")
+        );
+        assertThat(e.getCause().getMessage(), containsString("Alias missing does not contain a certificate entry"));
+    }
+
+    /** One store holding the kirk and spock client keys of the LDAP test certificates. */
+    private static KeyStore storeWithKirkAndSpock() throws Exception {
+        final KeyStore kirk = FileHelper.getKeystoreFromClassPath("ldap/kirk-keystore", "changeit");
+        final KeyStore spock = FileHelper.getKeystoreFromClassPath("ldap/spock-keystore", "changeit");
+        final KeyStore combined = KeyStore.getInstance(kirk.getType());
+        combined.load(null, null);
+        final KeyStore.PasswordProtection protection = new KeyStore.PasswordProtection("changeit".toCharArray());
+        combined.setEntry("kirk", kirk.getEntry("kirk", protection), protection);
+        combined.setEntry("spock", spock.getEntry("spock", protection), protection);
+        return combined;
     }
 
     private KeyStore storeWith(final String alias, final SecretKeySpec key) throws Exception {

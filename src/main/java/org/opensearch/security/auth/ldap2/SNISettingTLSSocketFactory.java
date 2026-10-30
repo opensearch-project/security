@@ -14,7 +14,7 @@ package org.opensearch.security.auth.ldap2;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.Collections;
+import java.util.List;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
@@ -24,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.util.IPAddress;
 
+import org.ldaptive.ssl.SslConfig;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
 /**
@@ -36,8 +37,8 @@ import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
  *
  * <p>The solution wraps the delegate SSLSocketFactory and intercepts all socket creation
  * methods to set SNI parameters after socket creation but before the socket is returned to
- * the caller. The hostname is provided via ThreadLocal by the connection factory before
- * establishing the connection.
+ * the caller. The hostname is provided via ThreadLocal by {@link SniJndiProvider} for each
+ * LDAP URL a connection tries.
  */
 public class SNISettingTLSSocketFactory extends SSLSocketFactory {
 
@@ -63,25 +64,50 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
      * A no-throw {@link AutoCloseable} returned by {@link #configure} for use in try-with-resources.
      */
     @FunctionalInterface
-    public interface SniContext extends AutoCloseable {
+    interface SniContext extends AutoCloseable {
         @Override
         void close();
     }
 
     /**
-     * Sets the SNI hostname for the current thread, returning an {@link SniContext} that clears it
-     * on close. Intended for use in try-with-resources:
+     * Sets the SNI hostname, and ldaptive's thread-local TLS configuration that {@link #getDefault()}
+     * wraps, for the current thread. The returned {@link SniContext} clears the hostname and restores
+     * the previous TLS configuration on close. Only {@link SniJndiProvider} calls this, around the
+     * JNDI connect to each LDAP URL:
      *
      * <pre>{@code
-     * try (var ignored = SNISettingTLSSocketFactory.configure(hostname)) {
-     *     connection.open();
+     * try (var ignored = SNISettingTLSSocketFactory.configure(hostname, sslConfig)) {
+     *     return super.createInternal(url);
      * }
      * }</pre>
+     *
+     * <p>ldaptive sets the TLS thread-local only on the thread that calls {@code getConnection()}, and
+     * it re-applies it on later opens only when JNDI uses {@link ThreadLocalTLSSocketFactory} itself.
+     * With this factory registered instead, a {@code reopen()} on another thread (ldaptive's default
+     * reopen handler, run by whichever thread hits a dropped connection) would otherwise find no
+     * configuration, or the one of another LDAP domain last used on that thread.
+     *
+     * @param sslConfig the configuration captured when the connection was created, or {@code null}
+     *                  to leave the thread-local untouched
      */
-    public static SniContext configure(String hostname) {
+    static SniContext configure(String hostname, SslConfig sslConfig) {
         hostnameThreadLocal.set(hostname);
         log.debug("Configured SNI context: hostname={}", hostname);
-        return SNISettingTLSSocketFactory::clearContext;
+        if (sslConfig == null) {
+            return SNISettingTLSSocketFactory::clearContext;
+        }
+        ThreadLocalTLSSocketFactory threadLocalConfig = new ThreadLocalTLSSocketFactory();
+        SslConfig previous = threadLocalConfig.getSslConfig();
+        threadLocalConfig.setSslConfig(sslConfig);
+        return () -> {
+            clearContext();
+            threadLocalConfig.setSslConfig(previous);
+        };
+    }
+
+    /** ldaptive's thread-local TLS configuration for the current thread, or {@code null} if none is set. */
+    static SslConfig currentSslConfig() {
+        return new ThreadLocalTLSSocketFactory().getSslConfig();
     }
 
     static String getHostname() {
@@ -104,6 +130,18 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
     @Override
     public String[] getSupportedCipherSuites() {
         return delegate.getSupportedCipherSuites();
+    }
+
+    /**
+     * Unconnected socket, which JNDI requests when {@code connect_timeout} is set and then connects
+     * itself with that timeout. Without this override, the inherited method throws and JNDI falls
+     * back to {@link #createSocket(String, int)}, which connects without any timeout.
+     */
+    @Override
+    public Socket createSocket() throws IOException {
+        log.debug("createSocket() called");
+        Socket result = delegate.createSocket();
+        return configureSocket(result);
     }
 
     @Override
@@ -168,7 +206,7 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
         String sniName = toSniName(hostname);
         if (sniName != null) {
             log.debug("Configuring SNI for hostname: {} on socket: {}", sniName, socket.getClass().getName());
-            params.setServerNames(Collections.singletonList(new SNIHostName(sniName)));
+            params.setServerNames(List.of(new SNIHostName(sniName)));
         }
 
         sslSocket.setSSLParameters(params);

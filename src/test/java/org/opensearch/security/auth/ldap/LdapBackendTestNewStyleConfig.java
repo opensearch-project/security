@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.AfterClass;
@@ -179,6 +181,29 @@ public class LdapBackendTestNewStyleConfig {
         User user = new LDAPAuthenticationBackend(settings, null).authenticate(ctx("jacksonm", "secret"));
         Assert.assertNotNull(user);
         assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+    }
+
+    @Test
+    public void testLdapsReopenOnAnotherThread() throws Exception {
+
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
+            .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
+            .put("path.home", ".")
+            .build();
+
+        // reopen() must carry the SNI hostname and ldaptive's TLS configuration itself, instead of relying on what
+        // getConnection() left on the thread that created the connection
+        final Connection con = LDAPAuthorizationBackend.getConnection(settings, null);
+        final ExecutorService otherThread = Executors.newSingleThreadExecutor();
+        try {
+            otherThread.submit(() -> con.reopen()).get();
+            Assert.assertTrue(con.isOpen());
+        } finally {
+            otherThread.shutdown();
+            con.close();
+        }
     }
 
     @Test

@@ -23,7 +23,11 @@ import javax.net.ssl.SSLSocketFactory;
 import org.junit.After;
 import org.junit.Test;
 
+import org.ldaptive.ssl.SslConfig;
+import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
@@ -34,6 +38,37 @@ public class SNISettingTLSSocketFactoryTest {
     @After
     public void clearThreadLocal() {
         SNISettingTLSSocketFactory.clearContext();
+        new ThreadLocalTLSSocketFactory().setSslConfig(null);
+    }
+
+    // --- configure ---
+
+    @Test
+    public void configure_installsSslConfig_andRestoresPreviousOnClose() {
+        SslConfig previous = new SslConfig();
+        SslConfig captured = new SslConfig();
+        new ThreadLocalTLSSocketFactory().setSslConfig(previous);
+
+        try (var ignored = SNISettingTLSSocketFactory.configure("example.com", captured)) {
+            assertEquals("example.com", SNISettingTLSSocketFactory.getHostname());
+            assertSame(captured, SNISettingTLSSocketFactory.currentSslConfig());
+        }
+
+        assertNull(SNISettingTLSSocketFactory.getHostname());
+        assertSame(previous, SNISettingTLSSocketFactory.currentSslConfig());
+    }
+
+    @Test
+    public void configure_withoutSslConfig_leavesThreadLocalUntouched() {
+        SslConfig existing = new SslConfig();
+        new ThreadLocalTLSSocketFactory().setSslConfig(existing);
+
+        try (var ignored = SNISettingTLSSocketFactory.configure("example.com", null)) {
+            assertSame(existing, SNISettingTLSSocketFactory.currentSslConfig());
+        }
+
+        assertNull(SNISettingTLSSocketFactory.getHostname());
+        assertSame(existing, SNISettingTLSSocketFactory.currentSslConfig());
     }
 
     // --- configureSocket ---
@@ -41,7 +76,7 @@ public class SNISettingTLSSocketFactoryTest {
     @Test
     public void configureSocket_setsSni() throws Exception {
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("example.com");
+        SNISettingTLSSocketFactory.configure("example.com", null);
 
         factory.configureSocket(socket);
 
@@ -55,7 +90,7 @@ public class SNISettingTLSSocketFactoryTest {
     @Test
     public void configureSocket_skipsSniForIpAddress() throws Exception {
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("192.168.1.1");
+        SNISettingTLSSocketFactory.configure("192.168.1.1", null);
 
         factory.configureSocket(socket);
 
@@ -66,7 +101,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void configureSocket_skipsSniForIpv6Address() throws Exception {
         for (String ipv6 : List.of("::1", "[::1]", "[2001:db8::10]")) {
             SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-            SNISettingTLSSocketFactory.configure(ipv6);
+            SNISettingTLSSocketFactory.configure(ipv6, null);
 
             factory.configureSocket(socket);
 
@@ -77,7 +112,7 @@ public class SNISettingTLSSocketFactoryTest {
     @Test
     public void configureSocket_stripsTrailingDot() throws Exception {
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("ldap.example.com.");
+        SNISettingTLSSocketFactory.configure("ldap.example.com.", null);
 
         factory.configureSocket(socket);
 
@@ -87,10 +122,17 @@ public class SNISettingTLSSocketFactoryTest {
     }
 
     @Test
+    public void toSniName_stripsOnlyMatchingBrackets() {
+        assertNull(SNISettingTLSSocketFactory.toSniName("[2001:db8::10]"));
+        // not an IPv6 literal, so left for SNIHostName to reject
+        assertEquals("[ldap.example.com", SNISettingTLSSocketFactory.toSniName("[ldap.example.com"));
+    }
+
+    @Test
     public void configureSocket_setsSniForSingleLabelHost() throws Exception {
         // Unlike SunJSSE's own SNI handling: BCJSSE needs the name for endpoint identification.
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("localhost");
+        SNISettingTLSSocketFactory.configure("localhost", null);
 
         factory.configureSocket(socket);
 
@@ -112,7 +154,7 @@ public class SNISettingTLSSocketFactoryTest {
     @Test(expected = IllegalArgumentException.class)
     public void configureSocket_throwsOnInvalidHostname() throws Exception {
         SSLSocket socket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
-        SNISettingTLSSocketFactory.configure("invalid..hostname");
+        SNISettingTLSSocketFactory.configure("invalid..hostname", null);
 
         factory.configureSocket(socket);
     }
@@ -120,7 +162,7 @@ public class SNISettingTLSSocketFactoryTest {
     @Test
     public void configureSocket_passesThroughNonSslSocket() {
         Socket socket = new Socket();
-        SNISettingTLSSocketFactory.configure("example.com");
+        SNISettingTLSSocketFactory.configure("example.com", null);
 
         Socket result = factory.configureSocket(socket);
 
@@ -148,10 +190,35 @@ public class SNISettingTLSSocketFactoryTest {
     // --- createSocket ---
 
     @Test
+    public void createSocket_unconnected_configuresSni() throws Exception {
+        SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
+        SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
+        SNISettingTLSSocketFactory.configure("example.com", null);
+
+        Socket result = f.createSocket();
+
+        assertSame(sslSocket, result);
+        assertEquals("example.com", ((SNIHostName) ((SSLSocket) result).getSSLParameters().getServerNames().get(0)).getAsciiName());
+    }
+
+    @Test
+    public void createSocket_unconnected_isSupported_soJndiCanApplyConnectTimeout() throws Exception {
+        // JNDI asks for an unconnected socket when connect_timeout > 0 and falls back to a connect without
+        // timeout if this throws, as the method inherited from SocketFactory does
+        SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(SSLContext.getDefault().getSocketFactory());
+        SNISettingTLSSocketFactory.configure("example.com", null);
+
+        try (Socket result = f.createSocket()) {
+            assertFalse(result.isConnected());
+            assertEquals("example.com", ((SNIHostName) ((SSLSocket) result).getSSLParameters().getServerNames().get(0)).getAsciiName());
+        }
+    }
+
+    @Test
     public void createSocket_wrappingSocket_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com");
+        SNISettingTLSSocketFactory.configure("example.com", null);
 
         Socket result = f.createSocket(new Socket(), "example.com", 636, true);
 
@@ -163,7 +230,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_stringHost_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com");
+        SNISettingTLSSocketFactory.configure("example.com", null);
 
         Socket result = f.createSocket("example.com", 636);
 
@@ -175,7 +242,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_stringHostWithLocalAddress_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com");
+        SNISettingTLSSocketFactory.configure("example.com", null);
 
         Socket result = f.createSocket("example.com", 636, InetAddress.getLoopbackAddress(), 0);
 
@@ -187,7 +254,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_inetAddress_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com");
+        SNISettingTLSSocketFactory.configure("example.com", null);
 
         Socket result = f.createSocket(InetAddress.getLoopbackAddress(), 636);
 
@@ -199,7 +266,7 @@ public class SNISettingTLSSocketFactoryTest {
     public void createSocket_inetAddressWithLocalAddress_configuresSni() throws Exception {
         SSLSocket sslSocket = (SSLSocket) SSLContext.getDefault().getSocketFactory().createSocket();
         SNISettingTLSSocketFactory f = new SNISettingTLSSocketFactory(stubDelegate(sslSocket));
-        SNISettingTLSSocketFactory.configure("example.com");
+        SNISettingTLSSocketFactory.configure("example.com", null);
 
         Socket result = f.createSocket(InetAddress.getLoopbackAddress(), 636, InetAddress.getLoopbackAddress(), 0);
 
@@ -215,6 +282,10 @@ public class SNISettingTLSSocketFactoryTest {
 
             public String[] getSupportedCipherSuites() {
                 return new String[0];
+            }
+
+            public Socket createSocket() {
+                return socket;
             }
 
             public Socket createSocket(Socket s, String host, int port, boolean autoClose) {
