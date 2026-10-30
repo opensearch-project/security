@@ -54,6 +54,12 @@ public class JwtVerifier {
     public SignedJWT getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
         try {
             SignedJWT jwt = SignedJWT.parse(encodedJwt);
+            // Reject a token from another issuer before looking up its key: its kid is unknown
+            // here, and the lookup would refresh the key set for a token this verifier never accepts.
+            // The issuer is not yet verified, so it only rejects; validateClaims checks it again.
+            if (!Strings.isNullOrEmpty(requiredIssuer) && !requiredIssuer.equals(jwt.getJWTClaimsSet().getIssuer())) {
+                throw new BadCredentialsException("Invalid issuer");
+            }
             String escapedKid = jwt.getHeader().getKeyID();
             String kid = escapedKid;
             if (!Strings.isNullOrEmpty(kid)) {
