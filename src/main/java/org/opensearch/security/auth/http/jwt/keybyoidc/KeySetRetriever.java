@@ -29,7 +29,10 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
+import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
+import org.apache.hc.client5.http.ssl.TlsSocketStrategy;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.reactor.ssl.SSLBufferMode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -321,8 +324,18 @@ public class KeySetRetriever implements KeySetProvider {
         builder.useSystemProperties();
 
         if (sslConfig != null) {
+            // CLIENT policy: with the default policy JSSE also checks the hostname, so verify_hostnames: false has no effect.
+            final TlsSocketStrategy tlsStrategy = new DefaultClientTlsStrategy(
+                sslConfig.getSslContext(),
+                sslConfig.getSupportedProtocols(),
+                sslConfig.getSupportedCipherSuites(),
+                SSLBufferMode.STATIC,
+                HostnameVerificationPolicy.CLIENT,
+                sslConfig.getHostnameVerifier()
+            );
+
             final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-                .setTlsSocketStrategy(new DefaultClientTlsStrategy(sslConfig.getSslContext()))
+                .setTlsSocketStrategy(tlsStrategy)
                 .build();
 
             builder.setConnectionManager(cm);

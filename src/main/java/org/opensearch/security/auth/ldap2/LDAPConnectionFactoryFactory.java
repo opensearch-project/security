@@ -326,7 +326,10 @@ public class LDAPConnectionFactoryFactory {
             ldaptiveSslConfig.setEnabledCipherSuites(this.sslConfig.getSupportedCipherSuites());
         }
 
-        ldaptiveSslConfig.setEnabledProtocols(this.sslConfig.getSupportedProtocols());
+        final String[] protocols = this.sslConfig.getSupportedProtocols();
+        ldaptiveSslConfig.setEnabledProtocols(
+            protocols != null ? protocols : SettingsBasedSSLConfigurator.DEFAULT_TLS_PROTOCOLS.toArray(new String[0])
+        );
 
         if (this.sslConfig.isTrustAllEnabled()) {
             ldaptiveSslConfig.setTrustManagers(new AllowAnyTrustManager());
