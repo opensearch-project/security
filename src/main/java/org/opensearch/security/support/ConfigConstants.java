@@ -424,7 +424,6 @@ public class ConfigConstants {
         ".opendistro-alerting-alerts",
         ".opendistro-alerting-alert-history-*",
         ".opendistro-ism-config",
-        ".opensearch-knn-models",
         ".ltrstore*"
     );
     public static final String SECURITY_SYSTEM_INDICES_RESTORE_DYNAMIC_ENABLED_KEY = SECURITY_SETTINGS_PREFIX

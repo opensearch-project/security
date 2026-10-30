@@ -117,9 +117,9 @@ public class SystemIndexRestoreEligibilityHelperTest {
         assertThat(helperWithDefaults.isEligible(".opendistro-alerting-alerts"), is(true));
         assertThat(helperWithDefaults.isEligible(ALERT_HISTORY), is(true));
         assertThat(helperWithDefaults.isEligible(".opendistro-ism-config"), is(true));
-        assertThat(helperWithDefaults.isEligible(".opensearch-knn-models"), is(true));
         assertThat(helperWithDefaults.isEligible(".ltrstore"), is(true));
         assertThat(helperWithDefaults.isEligible(".ltrstore_mystore"), is(true));
+        assertThat(helperWithDefaults.isEligible(".opensearch-knn-models"), is(false));
         assertThat(helperWithDefaults.isEligible(REPORTS_DEFINITIONS), is(false));
         assertThat(helperWithDefaults.isEligible(SECURITY_INDEX), is(false));
     }
