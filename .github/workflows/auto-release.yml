@@ -19,7 +19,7 @@ jobs:
           persist-credentials: false
       - name: Download release notes
         run: |
-          curl -s -o release-notes.md "https://raw.githubusercontent.com/opensearch-project/security/main/release-notes/opensearch-security.release-notes-${TAG}.md"
+          curl -fsS -o release-notes.md "https://raw.githubusercontent.com/opensearch-project/security/main/release-notes/opensearch-security.release-notes-${TAG}.md"
         env:
           TAG: ${{ steps.tag.outputs.tag }}
       - uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
