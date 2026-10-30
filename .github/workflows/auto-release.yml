@@ -8,7 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.repository == 'opensearch-project/security'
     permissions:
       contents: write
     steps:
