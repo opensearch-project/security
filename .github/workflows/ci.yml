@@ -12,6 +12,9 @@ env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
   CI_ENVIRONMENT: normal
 
+permissions:
+  contents: read
+
 jobs:
   generate-test-list:
     runs-on: ubuntu-latest
@@ -213,6 +216,10 @@ jobs:
           password: admin
 
   code-ql:
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4

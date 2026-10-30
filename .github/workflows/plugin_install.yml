@@ -6,6 +6,9 @@ env:
   OPENSEARCH_VERSION: 2.19.7
   PLUGIN_NAME: opensearch-security
 
+permissions:
+  contents: read
+
 jobs:
   plugin-install:
     strategy:
