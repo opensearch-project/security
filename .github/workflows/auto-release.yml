@@ -5,28 +5,26 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: GitHub App token
-        id: github_app_token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - name: Get tag
         id: tag
         uses: dawidd6/action-get-tag@727a6f0a561be04e09013531e73a3983a65e3479 # v1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
       - name: Download release notes
         run: |
-          curl -s -o release-notes.md https://raw.githubusercontent.com/opensearch-project/security/main/release-notes/opensearch-security.release-notes-${{ steps.tag.outputs.tag }}.md
+          curl -fsS -o release-notes.md "https://raw.githubusercontent.com/opensearch-project/security/main/release-notes/opensearch-security.release-notes-${TAG}.md"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
       - uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
         with:
-          github_token: ${{ steps.github_app_token.outputs.token }}
           bodyFile: release-notes.md
