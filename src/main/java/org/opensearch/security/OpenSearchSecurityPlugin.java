@@ -29,6 +29,7 @@ package org.opensearch.security;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -298,6 +299,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         ExtensiblePlugin
 
 {
+
+    static final String PLUGIN_PERMISSIONS_FILE = "plugin-additional-permissions.yml";
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -2854,12 +2857,28 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return tokenManager;
     }
 
+    /**
+     * Finds the plugin's own {@code plugin-additional-permissions.yml}.
+     * {@code getResource} asks the parent loader first, and a plugin's parent includes the plugins it extends, so it
+     * can return the file of an extended plugin. A plugin loader is a {@link URLClassLoader}, whose
+     * {@code findResource} searches only the plugin's own jars.
+     *
+     * @param pluginClassLoader the class loader of the plugin
+     * @return the file, or null if the plugin has none
+     */
+    static URL findPluginPermissionsFile(ClassLoader pluginClassLoader) {
+        if (pluginClassLoader instanceof URLClassLoader urlClassLoader) {
+            return urlClassLoader.findResource(PLUGIN_PERMISSIONS_FILE);
+        }
+        return pluginClassLoader.getResource(PLUGIN_PERMISSIONS_FILE);
+    }
+
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
         PluginSubject subject = new SecurePluginSubject(threadPool, settings, plugin);
         if (!client && !disabled && !sslConfig.isSslOnlyMode()) {
             String pluginPrincipal = subject.getPrincipal().getName();
-            URL resource = plugin.getClass().getClassLoader().getResource("plugin-additional-permissions.yml");
+            URL resource = findPluginPermissionsFile(plugin.getClass().getClassLoader());
             RoleV7 pluginPermissions;
             if (resource == null) {
                 log.info(
