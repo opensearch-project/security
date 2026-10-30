@@ -21,6 +21,8 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+      with:
+        persist-credentials: false
 
     - run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test
 
