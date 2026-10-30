@@ -34,6 +34,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -90,9 +91,15 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     /**
      * Does additional validations regarding limitiations of plugin permissions files.
+     * The returned role's cluster permissions are a mutable list, even when the file omits the key,
+     * because the plugin subject's grants are added to them.
      */
     public static RoleV7 fromPluginPermissionsFile(URL pluginPermissionsFile) throws IOException {
         RoleV7 role = fromYaml(pluginPermissionsFile);
+        role.cluster_permissions = role.cluster_permissions == null ? new ArrayList<>() : new ArrayList<>(role.cluster_permissions);
+        if (role.index_permissions == null) {
+            role.index_permissions = Collections.emptyList();
+        }
 
         if (role.tenant_permissions != null && !role.tenant_permissions.isEmpty()) {
             throw new OpenSearchCorruptionException(

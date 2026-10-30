@@ -24,7 +24,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.ResourceNotFoundException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
@@ -33,6 +40,8 @@ import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.action.update.UpdateResponse;
@@ -52,6 +61,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.get.GetResult;
@@ -61,10 +71,13 @@ import org.opensearch.security.resources.sharing.Recipients;
 import org.opensearch.security.resources.sharing.ResourceSharing;
 import org.opensearch.security.resources.sharing.ShareWith;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
 import static org.junit.Assert.assertEquals;
@@ -79,6 +92,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -97,6 +111,7 @@ public class ResourceSharingIndexHandlerTests {
     private static final long RESOURCE_DOC_SEQ_NO = 7L;
 
     private Client client;
+    private IndicesAdminClient indicesAdminClient;
     private ThreadPool threadPool;
     private ResourceSharingIndexHandler handler;
     // The resource document's current version, as the stubbed engine sees it
@@ -105,9 +120,57 @@ public class ResourceSharingIndexHandlerTests {
     @Before
     public void setUp() {
         client = mock(Client.class);
+        AdminClient adminClient = mock(AdminClient.class);
+        indicesAdminClient = mock(IndicesAdminClient.class);
+        when(client.admin()).thenReturn(adminClient);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+        stubSharingIndexExists(true);
         threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
         handler = new ResourceSharingIndexHandler(client, threadPool, mock(ResourcePluginInfo.class));
+    }
+
+    private void stubSharingIndexExists(boolean exists) {
+        doAnswer(inv -> {
+            ActionListener<IndicesExistsResponse> l = inv.getArgument(1);
+            l.onResponse(new IndicesExistsResponse(exists));
+            return null;
+        }).when(indicesAdminClient).exists(any(IndicesExistsRequest.class), any());
+    }
+
+    private void stubSharingIndexCreate(Consumer<ActionListener<CreateIndexResponse>> outcome) {
+        doAnswer(inv -> {
+            outcome.accept(inv.getArgument(1));
+            return null;
+        }).when(indicesAdminClient).create(any(CreateIndexRequest.class), any());
+    }
+
+    private void stubGetFails(Exception failure) {
+        doAnswer(inv -> {
+            ActionListener<GetResponse> l = inv.getArgument(1);
+            l.onFailure(failure);
+            return null;
+        }).when(client).get(any(GetRequest.class), any());
+    }
+
+    private void stubSearchFails(Exception failure) {
+        doAnswer(inv -> {
+            ActionListener<SearchResponse> l = inv.getArgument(1);
+            l.onFailure(failure);
+            return null;
+        }).when(client).search(any(SearchRequest.class), any());
+    }
+
+    private void stubDeleteFails(Exception failure) {
+        doAnswer(inv -> {
+            ActionListener<DeleteResponse> l = inv.getArgument(1);
+            l.onFailure(failure);
+            return null;
+        }).when(client).delete(any(DeleteRequest.class), any());
+    }
+
+    private static IndexNotFoundException sharingIndexMissing() {
+        return new IndexNotFoundException(getSharingIndex(RESOURCE_INDEX));
     }
 
     // reconcileWorkspaces reads the sharing record's raw source (workspaces + workspaces_seq_no) and its
@@ -210,6 +273,237 @@ public class ResourceSharingIndexHandlerTests {
 
         verify(listener, never()).onResponse(any());
         assertVisibilityWriteFailure(listener);
+    }
+
+    // ---------- sharing index created by the first record -----------------------------------------
+
+    @Test
+    public void create_writesTheRecordWithoutCreatingAnExistingSharingIndex() throws Exception {
+        stubRecordIndexSucceeds();
+
+        handler.indexResourceSharing(RESOURCE_INDEX, newRecord(), ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(indicesAdminClient, never()).create(any(CreateIndexRequest.class), any());
+        verify(client).index(any(IndexRequest.class), any());
+    }
+
+    @Test
+    public void create_createsTheSharingIndexBeforeTheFirstRecord() throws Exception {
+        stubSharingIndexExists(false);
+        stubSharingIndexCreate(l -> l.onResponse(mock(CreateIndexResponse.class)));
+        stubRecordIndexSucceeds();
+
+        handler.indexResourceSharing(RESOURCE_INDEX, newRecord(), ActionListener.wrap(r -> {}, e -> {}));
+
+        ArgumentCaptor<CreateIndexRequest> created = ArgumentCaptor.forClass(CreateIndexRequest.class);
+        InOrder order = inOrder(indicesAdminClient, client);
+        order.verify(indicesAdminClient).create(created.capture(), any());
+        order.verify(client).index(any(IndexRequest.class), any());
+        assertEquals(getSharingIndex(RESOURCE_INDEX), created.getValue().index());
+        assertEquals("1", created.getValue().settings().get("index.number_of_shards"));
+        assertEquals("true", created.getValue().settings().get("index.hidden"));
+    }
+
+    @Test
+    public void create_writesTheRecordWhenTheSharingIndexWasCreatedConcurrently() throws Exception {
+        stubSharingIndexExists(false);
+        stubSharingIndexCreate(l -> l.onFailure(new ResourceAlreadyExistsException("index [{}] already exists", RESOURCE_INDEX)));
+        stubRecordIndexSucceeds();
+
+        handler.indexResourceSharing(RESOURCE_INDEX, newRecord(), ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(client).index(any(IndexRequest.class), any());
+    }
+
+    @Test
+    public void create_reportsAFailureToCreateTheSharingIndex() throws Exception {
+        stubSharingIndexExists(false);
+        Exception failure = new OpenSearchStatusException("cluster manager not discovered", RestStatus.SERVICE_UNAVAILABLE);
+        stubSharingIndexCreate(l -> l.onFailure(failure));
+        stubRecordIndexSucceeds();
+
+        List<Exception> failures = new ArrayList<>();
+        handler.indexResourceSharing(RESOURCE_INDEX, newRecord(), ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(List.of(failure), failures);
+        verify(client, never()).index(any(IndexRequest.class), any());
+    }
+
+    @Test
+    public void create_reportsAFailedSharingIndexExistenceCheck() throws Exception {
+        Exception failure = new OpenSearchStatusException("node closed", RestStatus.SERVICE_UNAVAILABLE);
+        doAnswer(inv -> {
+            ActionListener<IndicesExistsResponse> l = inv.getArgument(1);
+            l.onFailure(failure);
+            return null;
+        }).when(indicesAdminClient).exists(any(IndicesExistsRequest.class), any());
+        stubRecordIndexSucceeds();
+
+        List<Exception> failures = new ArrayList<>();
+        handler.indexResourceSharing(RESOURCE_INDEX, newRecord(), ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(List.of(failure), failures);
+        verify(indicesAdminClient, never()).create(any(CreateIndexRequest.class), any());
+        verify(client, never()).index(any(IndexRequest.class), any());
+    }
+
+    // ---------- reads before the sharing index exists ----------------------------------------------
+
+    @Test
+    public void fetchSharingInfo_findsNoRecordWhenTheSharingIndexIsMissing() {
+        stubGetFails(sharingIndexMissing());
+
+        List<ResourceSharing> responses = new ArrayList<>();
+        handler.fetchSharingInfo(RESOURCE_INDEX, "res-1", ActionListener.wrap(responses::add, e -> fail(e.toString())));
+
+        assertEquals(1, responses.size());
+        assertNull(responses.get(0));
+    }
+
+    @Test
+    public void fetchSharingInfo_reportsOtherReadFailuresAsAnInternalError() {
+        stubGetFails(new OpenSearchStatusException("node closed", RestStatus.SERVICE_UNAVAILABLE));
+
+        List<Exception> failures = new ArrayList<>();
+        handler.fetchSharingInfo(RESOURCE_INDEX, "res-1", ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, ((OpenSearchStatusException) failures.get(0)).status());
+    }
+
+    @Test
+    public void share_findsNoRecordWhenTheSharingIndexIsMissing() {
+        stubGetFails(sharingIndexMissing());
+
+        List<ResourceSharing> responses = new ArrayList<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(responses::add, e -> fail(e.toString())));
+
+        assertEquals(1, responses.size());
+        assertNull(responses.get(0));
+        verify(client, never()).index(any(IndexRequest.class), any());
+    }
+
+    @Test
+    public void share_reportsOtherFailuresToReadTheRecord() {
+        Exception failure = new OpenSearchStatusException("node closed", RestStatus.SERVICE_UNAVAILABLE);
+        stubGetFails(failure);
+
+        List<Exception> failures = new ArrayList<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(List.of(failure), failures);
+    }
+
+    @Test
+    public void deleteResourceSharingRecord_findsNothingToDeleteWhenTheSharingIndexIsMissing() {
+        stubDeleteFails(sharingIndexMissing());
+
+        List<Boolean> responses = new ArrayList<>();
+        handler.deleteResourceSharingRecord("res-1", RESOURCE_INDEX, ActionListener.wrap(responses::add, e -> fail(e.toString())));
+
+        assertEquals(List.of(false), responses);
+    }
+
+    @Test
+    public void deleteResourceSharingRecord_reportsOtherFailures() {
+        Exception failure = new OpenSearchStatusException("node closed", RestStatus.SERVICE_UNAVAILABLE);
+        stubDeleteFails(failure);
+
+        List<Exception> failures = new ArrayList<>();
+        handler.deleteResourceSharingRecord("res-1", RESOURCE_INDEX, ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(List.of(failure), failures);
+    }
+
+    @Test
+    public void fetchAllResourceIds_findsNoneWhenTheSharingIndexIsMissing() {
+        stubSearchFails(sharingIndexMissing());
+
+        List<Set<String>> responses = new ArrayList<>();
+        handler.fetchAllResourceIds(RESOURCE_INDEX, ActionListener.wrap(responses::add, e -> fail(e.toString())));
+
+        assertEquals(List.of(Set.of()), responses);
+    }
+
+    @Test
+    public void fetchAllResourceIds_reportsOtherSearchFailures() {
+        Exception failure = new OpenSearchStatusException("node closed", RestStatus.SERVICE_UNAVAILABLE);
+        stubSearchFails(failure);
+
+        List<Exception> failures = new ArrayList<>();
+        handler.fetchAllResourceIds(RESOURCE_INDEX, ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(List.of(failure), failures);
+    }
+
+    @Test
+    public void fetchAllResourceSharingRecords_findsNoneWhenTheSharingIndexIsMissing() {
+        stubSearchFails(sharingIndexMissing());
+
+        List<Set<SharingRecord>> responses = new ArrayList<>();
+        handler.fetchAllResourceSharingRecords(RESOURCE_INDEX, "test", ActionListener.wrap(responses::add, e -> fail(e.toString())));
+
+        assertEquals(List.of(Set.of()), responses);
+    }
+
+    @Test
+    public void fetchAllResourceSharingRecords_reportsOtherSearchFailures() {
+        Exception failure = new OpenSearchStatusException("node closed", RestStatus.SERVICE_UNAVAILABLE);
+        stubSearchFails(failure);
+
+        List<Exception> failures = new ArrayList<>();
+        handler.fetchAllResourceSharingRecords(RESOURCE_INDEX, "test", ActionListener.wrap(r -> fail("must not succeed"), failures::add));
+
+        assertEquals(List.of(failure), failures);
+    }
+
+    @Test
+    public void reconcile_retriesWhenTheSharingIndexIsMissing() {
+        // The sharing index is created with the first record, so a reconcile can arrive before either exists
+        stubGetFails(sharingIndexMissing());
+
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), 5L, ActionListener.wrap(b -> {}, e -> fail(e.toString())));
+
+        verify(threadPool).schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        verify(client, never()).update(any(), any());
+    }
+
+    @Test
+    public void reconcile_givesUpWhenTheSharingIndexStaysMissing() {
+        stubGetFails(sharingIndexMissing());
+        doAnswer(inv -> {
+            ((Runnable) inv.getArgument(0)).run();
+            return null;
+        }).when(threadPool).schedule(any(Runnable.class), any(TimeValue.class), anyString());
+
+        List<Boolean> responses = new ArrayList<>();
+        handler.reconcileWorkspaces(
+            RESOURCE_INDEX,
+            "res-1",
+            Set.of("ws-a"),
+            5L,
+            ActionListener.wrap(responses::add, e -> fail(e.toString()))
+        );
+
+        assertEquals(List.of(false), responses);
+        verify(client, times(5)).get(any(GetRequest.class), any());
+    }
+
+    @Test
+    public void reconcile_reportsOtherFailuresToReadTheRecord() {
+        Exception failure = new OpenSearchStatusException("node closed", RestStatus.SERVICE_UNAVAILABLE);
+        stubGetFails(failure);
+
+        List<Exception> failures = new ArrayList<>();
+        handler.reconcileWorkspaces(
+            RESOURCE_INDEX,
+            "res-1",
+            Set.of("ws-a"),
+            5L,
+            ActionListener.wrap(b -> fail("must not succeed"), failures::add)
+        );
+
+        assertEquals(List.of(failure), failures);
+        verify(threadPool, never()).schedule(any(Runnable.class), any(TimeValue.class), anyString());
     }
 
     // ---------- fetchSharingInfoForIds -------------------------------------------------------------

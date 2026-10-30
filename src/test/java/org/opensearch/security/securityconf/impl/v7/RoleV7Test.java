@@ -12,6 +12,7 @@
 package org.opensearch.security.securityconf.impl.v7;
 
 import java.net.URL;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -116,5 +117,31 @@ public class RoleV7Test {
         assertEquals(1, role.getCluster_permissions().size());
         assertTrue(role.getCluster_permissions().contains("cluster:monitor/health"));
         assertTrue(role.getIndex_permissions().isEmpty());
+    }
+
+    @Test
+    public void testFromYmlFileWithMissingClusterPermissions() throws Exception {
+        // test-role-index-only.yml has index_permissions and no cluster_permissions key
+        URL indexOnlyYamlUrl = RoleV7Test.class.getResource("/test-role-index-only.yml");
+
+        RoleV7 role = RoleV7.fromPluginPermissionsFile(indexOnlyYamlUrl);
+
+        assertTrue(role.getCluster_permissions().isEmpty());
+        assertEquals(1, role.getIndex_permissions().size());
+        // The plugin subject's grants are added to this list when the plugin is registered
+        role.getCluster_permissions().add("indices:data/write/bulk");
+        assertEquals(List.of("indices:data/write/bulk"), role.getCluster_permissions());
+    }
+
+    @Test
+    public void testFromYmlFileWithNullPermissions() throws Exception {
+        // test-role-null-keys.yml has both keys with no value
+        URL nullKeysYamlUrl = RoleV7Test.class.getResource("/test-role-null-keys.yml");
+
+        RoleV7 role = RoleV7.fromPluginPermissionsFile(nullKeysYamlUrl);
+
+        assertTrue(role.getIndex_permissions().isEmpty());
+        role.getCluster_permissions().add("indices:data/write/bulk");
+        assertEquals(List.of("indices:data/write/bulk"), role.getCluster_permissions());
     }
 }
