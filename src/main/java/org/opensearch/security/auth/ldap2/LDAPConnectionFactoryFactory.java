@@ -12,50 +12,38 @@
 package org.opensearch.security.auth.ldap2;
 
 import java.nio.file.Path;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
-import org.opensearch.security.util.SettingsBasedSSLConfigurator;
-import org.opensearch.security.util.SettingsBasedSSLConfigurator.SSLConfigException;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.PemKeyReader;
 
 import org.ldaptive.ActivePassiveConnectionStrategy;
 import org.ldaptive.BindConnectionInitializer;
 import org.ldaptive.CompareRequest;
-import org.ldaptive.Connection;
 import org.ldaptive.ConnectionConfig;
 import org.ldaptive.ConnectionFactory;
-import org.ldaptive.ConnectionInitializer;
-import org.ldaptive.ConnectionStrategy;
 import org.ldaptive.Credential;
 import org.ldaptive.DefaultConnectionFactory;
-import org.ldaptive.LdapAttribute;
+import org.ldaptive.FilterTemplate;
+import org.ldaptive.PooledConnectionFactory;
 import org.ldaptive.RandomConnectionStrategy;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.RoundRobinConnectionStrategy;
-import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchRequest;
 import org.ldaptive.SearchScope;
-import org.ldaptive.pool.AbstractConnectionPool;
-import org.ldaptive.pool.BlockingConnectionPool;
-import org.ldaptive.pool.CompareValidator;
-import org.ldaptive.pool.ConnectionPool;
-import org.ldaptive.pool.IdlePruneStrategy;
-import org.ldaptive.pool.PoolConfig;
-import org.ldaptive.pool.PooledConnectionFactory;
-import org.ldaptive.pool.SearchValidator;
-import org.ldaptive.pool.SoftLimitConnectionPool;
-import org.ldaptive.pool.Validator;
-import org.ldaptive.provider.Provider;
-import org.ldaptive.provider.jndi.JndiProviderConfig;
-import org.ldaptive.sasl.ExternalConfig;
+import org.ldaptive.sasl.Mechanism;
+import org.ldaptive.sasl.SaslConfig;
 import org.ldaptive.ssl.AllowAnyHostnameVerifier;
 import org.ldaptive.ssl.AllowAnyTrustManager;
 import org.ldaptive.ssl.CredentialConfig;
@@ -63,113 +51,73 @@ import org.ldaptive.ssl.CredentialConfigFactory;
 import org.ldaptive.ssl.SslConfig;
 
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 public class LDAPConnectionFactoryFactory {
 
     private static final Logger log = LogManager.getLogger(LDAPConnectionFactoryFactory.class);
+    private static final List<String> DEFAULT_TLS_PROTOCOLS = Arrays.asList("TLSv1.2", "TLSv1.3");
 
     private final Settings settings;
-    private final SettingsBasedSSLConfigurator.SSLConfig sslConfig;
+    private final Path configPath;
 
-    public LDAPConnectionFactoryFactory(Settings settings, Path configPath) throws SSLConfigException {
+    public LDAPConnectionFactoryFactory(Settings settings, Path configPath) {
         this.settings = settings;
-        this.sslConfig = new SettingsBasedSSLConfigurator(settings, configPath, "").buildSSLConfig();
+        this.configPath = configPath;
     }
 
-    public ConnectionFactory createConnectionFactory(ConnectionPool connectionPool) {
-        if (connectionPool != null) {
-            return new PooledConnectionFactory(connectionPool);
+    public ConnectionFactory createConnectionFactory(PooledConnectionFactory pooledConnectionFactory) {
+        if (pooledConnectionFactory != null) {
+            return pooledConnectionFactory;
         } else {
             return createBasicConnectionFactory();
         }
     }
 
-    @SuppressWarnings("unchecked")
     public DefaultConnectionFactory createBasicConnectionFactory() {
-        DefaultConnectionFactory result = new DefaultConnectionFactory(getConnectionConfig());
-
-        result.setProvider(new PrivilegedProvider((Provider<JndiProviderConfig>) result.getProvider()));
-
-        JndiProviderConfig jndiProviderConfig = (JndiProviderConfig) result.getProvider().getProviderConfig();
-
-        if (this.sslConfig != null) {
-            configureSSLinConnectionFactory(result);
-        }
-
-        return result;
+        return new DefaultConnectionFactory(getConnectionConfig());
     }
 
-    public ConnectionPool createConnectionPool() {
-
+    public PooledConnectionFactory createPooledConnectionFactory() {
         if (!this.settings.getAsBoolean(ConfigConstants.LDAP_POOL_ENABLED, false)) {
             return null;
         }
 
-        PoolConfig poolConfig = new PoolConfig();
-
-        poolConfig.setMinPoolSize(this.settings.getAsInt(ConfigConstants.LDAP_POOL_MIN_SIZE, 3));
-        poolConfig.setMaxPoolSize(this.settings.getAsInt(ConfigConstants.LDAP_POOL_MAX_SIZE, 10));
-
-        if (this.settings.getAsBoolean("validation.enabled", false)) {
-            poolConfig.setValidateOnCheckIn(this.settings.getAsBoolean("validation.on_checkin", false));
-            poolConfig.setValidateOnCheckOut(this.settings.getAsBoolean("validation.on_checkout", false));
-            poolConfig.setValidatePeriodically(this.settings.getAsBoolean("validation.periodically", true));
-            poolConfig.setValidatePeriod(Duration.ofMinutes(this.settings.getAsLong("validation.period", 30l)));
-            poolConfig.setValidateTimeout(Duration.ofSeconds(this.settings.getAsLong("validation.timeout", 5l)));
-        }
-
-        AbstractConnectionPool result;
-
-        if ("blocking".equals(this.settings.get(ConfigConstants.LDAP_POOL_TYPE))) {
-            result = new BlockingConnectionPool(poolConfig, createBasicConnectionFactory());
-        } else {
-            result = new SoftLimitConnectionPool(poolConfig, createBasicConnectionFactory());
-        }
-
-        result.setValidator(getConnectionValidator());
-
         checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, ConfigConstants.LDAP_POOL_PRUNING_PERIOD);
         checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, ConfigConstants.LDAP_POOL_IDLE_TIME);
 
-        result.setPruneStrategy(
-            new IdlePruneStrategy(
-                Duration.ofMinutes(
-                    this.settings.getAsLong(
-                        ConfigConstants.LDAP_POOL_PRUNING_PERIOD,
-                        this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, 5l)
-                    )
-                ),
-                Duration.ofMinutes(
-                    this.settings.getAsLong(
-                        ConfigConstants.LDAP_POOL_IDLE_TIME,
-                        this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, 10l)
-                    )
-                )
-            )
-        );
+        PooledConnectionFactory pooledConnectionFactory = PooledConnectionFactory.builder()
+            .config(getConnectionConfig())
+            .min(this.settings.getAsInt(ConfigConstants.LDAP_POOL_MIN_SIZE, 3))
+            .max(this.settings.getAsInt(ConfigConstants.LDAP_POOL_MAX_SIZE, 10))
+            .validator(getConnectionValidator())
+            .build();
 
-        result.initialize();
+        pooledConnectionFactory.initialize();
 
-        return result;
+        return pooledConnectionFactory;
     }
 
     private ConnectionConfig getConnectionConfig() {
-        ConnectionConfig result = new ConnectionConfig(getLdapUrlString());
+        ConnectionConfig.Builder builder = ConnectionConfig.builder()
+            .url(getLdapUrlString())
+            .connectionStrategy(getConnectionStrategy())
+            .connectionInitializers(getConnectionInitializer());
 
-        if (this.sslConfig != null) {
-            configureSSL(result);
+        long connectTimeout = settings.getAsLong(ConfigConstants.LDAP_CONNECT_TIMEOUT, 5000L);
+        long responseTimeout = settings.getAsLong(ConfigConstants.LDAP_RESPONSE_TIMEOUT, 0L);
+
+        builder.connectTimeout(Duration.ofMillis(connectTimeout < 0L ? 0L : connectTimeout));
+        builder.responseTimeout(Duration.ofMillis(responseTimeout < 0L ? 0L : responseTimeout));
+
+        try {
+            configureSSL(builder);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to configure SSL for LDAP", e);
         }
 
-        result.setConnectionStrategy(getConnectionStrategy());
-        result.setConnectionInitializer(getConnectionInitializer());
-
-        long connectTimeout = settings.getAsLong(ConfigConstants.LDAP_CONNECT_TIMEOUT, 5000L); // 0L means TCP
-        // default timeout
-        long responseTimeout = settings.getAsLong(ConfigConstants.LDAP_RESPONSE_TIMEOUT, 0L); // 0L means wait
-        // infinitely
-
-        result.setConnectTimeout(Duration.ofMillis(connectTimeout < 0L ? 0L : connectTimeout)); // 5 sec by default
-        result.setResponseTimeout(Duration.ofMillis(responseTimeout < 0L ? 0L : responseTimeout));
+        ConnectionConfig result = builder.build();
 
         if (log.isDebugEnabled()) {
             log.debug("LDAP connection config:\n" + result);
@@ -178,9 +126,7 @@ public class LDAPConnectionFactoryFactory {
         return result;
     }
 
-    private ConnectionInitializer getConnectionInitializer() {
-        BindConnectionInitializer result = new BindConnectionInitializer();
-
+    private BindConnectionInitializer getConnectionInitializer() {
         String bindDn = settings.get(ConfigConstants.LDAP_BIND_DN, null);
         String password = settings.get(ConfigConstants.LDAP_PASSWORD, null);
 
@@ -201,25 +147,26 @@ public class LDAPConnectionFactoryFactory {
             ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH_DEFAULT
         );
 
+        BindConnectionInitializer.Builder initBuilder = BindConnectionInitializer.builder();
+
         if (bindDn != null && password != null) {
             log.debug("Will perform simple bind with bind dn");
-            result.setBindDn(bindDn);
-            result.setBindCredential(new Credential(password));
+            initBuilder.dn(bindDn).credential(new Credential(password));
 
             if (enableClientAuth) {
-                log.warn("Will perform simple bind with bind dn because to bind dn is given and overrides client cert authentication");
+                log.warn("Will perform simple bind with bind dn because bind dn is given and overrides client cert authentication");
             }
         } else if (enableClientAuth) {
             log.debug("Will perform External SASL bind because client cert authentication is enabled");
-            result.setBindSaslConfig(new ExternalConfig());
+            initBuilder.saslConfig(SaslConfig.builder().mechanism(Mechanism.EXTERNAL).build());
         } else {
             log.debug("Will perform anonymous bind because no bind dn or password is given");
         }
 
-        return result;
+        return initBuilder.build();
     }
 
-    private ConnectionStrategy getConnectionStrategy() {
+    private org.ldaptive.ConnectionStrategy getConnectionStrategy() {
         switch (this.settings.get(ConfigConstants.LDAP_CONNECTION_STRATEGY, "active_passive").toLowerCase()) {
             case "round_robin":
                 return new RoundRobinConnectionStrategy();
@@ -230,42 +177,33 @@ public class LDAPConnectionFactoryFactory {
         }
     }
 
-    private Validator<Connection> getConnectionValidator() {
+    private org.ldaptive.ConnectionValidator getConnectionValidator() {
         if (!this.settings.getAsBoolean("validation.enabled", false)) {
             return null;
         }
 
         String validationStrategy = this.settings.get("validation.strategy", "search");
-        Validator<Connection> result = null;
 
         if ("compare".equalsIgnoreCase(validationStrategy)) {
-            result = new CompareValidator(
-                new CompareRequest(
-                    this.settings.get("validation.compare.dn", ""),
-                    new LdapAttribute(
-                        this.settings.get("validation.compare.attribute", "objectClass"),
-                        this.settings.get("validation.compare.value", "top")
-                    )
-                )
-            );
+            CompareRequest compareRequest = CompareRequest.builder()
+                .dn(this.settings.get("validation.compare.dn", ""))
+                .name(this.settings.get("validation.compare.attribute", "objectClass"))
+                .value(this.settings.get("validation.compare.value", "top"))
+                .build();
+            return new org.ldaptive.CompareConnectionValidator(compareRequest);
         } else {
-            SearchRequest searchRequest = new SearchRequest();
-            searchRequest.setBaseDn(this.settings.get("validation.search.base_dn", ""));
-            searchRequest.setSearchFilter(new SearchFilter(this.settings.get("validation.search.filter", "(objectClass=*)")));
-            searchRequest.setReturnAttributes(ReturnAttributes.NONE.value());
-            searchRequest.setSearchScope(SearchScope.OBJECT);
-            searchRequest.setSizeLimit(1);
-
-            result = new SearchValidator(searchRequest);
+            SearchRequest searchRequest = SearchRequest.builder()
+                .dn(this.settings.get("validation.search.base_dn", ""))
+                .filter(FilterTemplate.builder().filter(this.settings.get("validation.search.filter", "(objectClass=*)")).build())
+                .returnAttributes(ReturnAttributes.NONE.value())
+                .scope(SearchScope.OBJECT)
+                .sizeLimit(1)
+                .build();
+            return new org.ldaptive.SearchConnectionValidator(searchRequest);
         }
-
-        return result;
     }
 
     private String getLdapUrlString() {
-        // It's a bit weird that we create from structured data a plain string which is
-        // later parsed again by ldaptive. But that's the way the API wants it to be.
-
         List<String> ldapHosts = this.settings.getAsList(ConfigConstants.LDAP_HOSTS, Collections.singletonList("localhost"));
         boolean enableSSL = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_SSL, false);
 
@@ -288,71 +226,105 @@ public class LDAPConnectionFactoryFactory {
         return result.toString();
     }
 
-    private void configureSSL(ConnectionConfig config) {
+    private void configureSSL(ConnectionConfig.Builder builder) throws Exception {
+        final boolean enableSSL = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_SSL, false);
+        final boolean enableStartTLS = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_START_TLS, false);
 
-        if (this.sslConfig == null) {
-            // Disabled
+        if (!enableSSL && !enableStartTLS) {
             return;
         }
 
-        SslConfig ldaptiveSslConfig = new SslConfig();
-        CredentialConfig cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
-            this.sslConfig.getEffectiveTruststore(),
-            this.sslConfig.getEffectiveTruststoreAliasesArray(),
-            this.sslConfig.getEffectiveKeystore(),
-            this.sslConfig.getEffectiveKeyPasswordString(),
-            this.sslConfig.getEffectiveKeyAliasesArray()
+        final boolean enableClientAuth = settings.getAsBoolean(
+            ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH,
+            ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH_DEFAULT
         );
+        final boolean trustAll = settings.getAsBoolean(ConfigConstants.LDAPS_TRUST_ALL, false);
+        final boolean verifyHostnames = !trustAll
+            && settings.getAsBoolean(ConfigConstants.LDAPS_VERIFY_HOSTNAMES, ConfigConstants.LDAPS_VERIFY_HOSTNAMES_DEFAULT);
 
-        ldaptiveSslConfig.setCredentialConfig(cc);
+        final boolean pem = settings.get(ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH, null) != null
+            || settings.get(ConfigConstants.LDAPS_PEMTRUSTEDCAS_CONTENT, null) != null;
 
-        if (!this.sslConfig.isHostnameVerificationEnabled()) {
-            ldaptiveSslConfig.setHostnameVerifier(new AllowAnyHostnameVerifier());
+        SslConfig sslConfig = new SslConfig();
 
-            if (!Boolean.parseBoolean(System.getProperty("com.sun.jndi.ldap.object.disableEndpointIdentification"))) {
-                log.warn(
-                    "In order to disable host name verification for LDAP connections (verify_hostnames: true), "
-                        + "you also need to set set the system property com.sun.jndi.ldap.object.disableEndpointIdentification to true when starting the JVM running OpenSearch. "
-                        + "This applies for all Java versions released since July 2018."
+        if (pem) {
+            X509Certificate[] trustCerts = PemKeyReader.loadCertificatesFromStream(
+                PemKeyReader.resolveStream(ConfigConstants.LDAPS_PEMTRUSTEDCAS_CONTENT, settings)
+            );
+            if (trustCerts == null) {
+                trustCerts = PemKeyReader.loadCertificatesFromFile(
+                    PemKeyReader.resolve(ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH, settings, configPath, !trustAll)
                 );
-                // See:
-                // https://www.oracle.com/technetwork/java/javase/8u181-relnotes-4479407.html
-                // https://www.oracle.com/technetwork/java/javase/10-0-2-relnotes-4477557.html
-                // https://www.oracle.com/technetwork/java/javase/11-0-1-relnotes-5032023.html
             }
+
+            X509Certificate authCert = PemKeyReader.loadCertificateFromStream(
+                PemKeyReader.resolveStream(ConfigConstants.LDAPS_PEMCERT_CONTENT, settings)
+            );
+            if (authCert == null) {
+                authCert = PemKeyReader.loadCertificateFromFile(
+                    PemKeyReader.resolve(ConfigConstants.LDAPS_PEMCERT_FILEPATH, settings, configPath, enableClientAuth)
+                );
+            }
+
+            PrivateKey authKey = PemKeyReader.loadKeyFromStream(
+                settings.get(ConfigConstants.LDAPS_PEMKEY_PASSWORD),
+                PemKeyReader.resolveStream(ConfigConstants.LDAPS_PEMKEY_CONTENT, settings)
+            );
+            if (authKey == null) {
+                authKey = PemKeyReader.loadKeyFromFile(
+                    settings.get(ConfigConstants.LDAPS_PEMKEY_PASSWORD),
+                    PemKeyReader.resolve(ConfigConstants.LDAPS_PEMKEY_FILEPATH, settings, configPath, enableClientAuth)
+                );
+            }
+
+            CredentialConfig cc = CredentialConfigFactory.createX509CredentialConfig(trustCerts, authCert, authKey);
+            sslConfig.setCredentialConfig(cc);
+        } else {
+            KeyStore trustStore = PemKeyReader.loadKeyStore(
+                PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, !trustAll),
+                SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
+                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
+            );
+
+            KeyStore keyStore = PemKeyReader.loadKeyStore(
+                PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, settings, configPath, enableClientAuth),
+                SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE)
+            );
+
+            String keyStorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(
+                settings,
+                SSLConfigConstants.DEFAULT_STORE_PASSWORD
+            );
+            List<String> trustAliases = settings.getAsList(ConfigConstants.LDAPS_JKS_TRUST_ALIAS, null);
+            String keyAlias = settings.get(ConfigConstants.LDAPS_JKS_CERT_ALIAS, null);
+
+            CredentialConfig cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
+                trustStore,
+                trustAliases != null ? trustAliases.toArray(new String[0]) : null,
+                keyStore,
+                keyStorePassword,
+                keyAlias != null ? new String[] { keyAlias } : null
+            );
+            sslConfig.setCredentialConfig(cc);
         }
 
-        if (this.sslConfig.getSupportedCipherSuites() != null && this.sslConfig.getSupportedCipherSuites().length > 0) {
-            ldaptiveSslConfig.setEnabledCipherSuites(this.sslConfig.getSupportedCipherSuites());
+        if (trustAll) {
+            sslConfig.setTrustManagers(new AllowAnyTrustManager());
+        }
+        if (!verifyHostnames) {
+            sslConfig.setHostnameVerifier(new AllowAnyHostnameVerifier());
         }
 
-        ldaptiveSslConfig.setEnabledProtocols(this.sslConfig.getSupportedProtocols());
-
-        if (this.sslConfig.isTrustAllEnabled()) {
-            ldaptiveSslConfig.setTrustManagers(new AllowAnyTrustManager());
+        List<String> ciphers = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_CIPHERS, Collections.emptyList());
+        if (!ciphers.isEmpty()) {
+            sslConfig.setEnabledCipherSuites(ciphers.toArray(new String[0]));
         }
 
-        config.setSslConfig(ldaptiveSslConfig);
+        List<String> protocols = settings.getAsList(ConfigConstants.LDAPS_ENABLED_SSL_PROTOCOLS, DEFAULT_TLS_PROTOCOLS);
+        sslConfig.setEnabledProtocols(protocols.toArray(new String[0]));
 
-        config.setUseSSL(true);
-        config.setUseStartTLS(this.sslConfig.isStartTlsEnabled());
-
-    }
-
-    @SuppressWarnings("unchecked")
-    private void configureSSLinConnectionFactory(DefaultConnectionFactory connectionFactory) {
-        if (this.sslConfig == null) {
-            // Disabled
-            return;
-        }
-
-        Map<String, Object> props = new HashMap<String, Object>();
-
-        if (this.sslConfig.isStartTlsEnabled() && !this.sslConfig.isHostnameVerificationEnabled()) {
-            props.put("jndi.starttls.allowAnyHostname", "true");
-        }
-
-        connectionFactory.getProvider().getProviderConfig().setProperties(props);
-
+        builder.sslConfig(sslConfig);
+        builder.useStartTLS(enableStartTLS);
     }
 }

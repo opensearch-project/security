@@ -42,15 +42,14 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
-import org.ldaptive.Connection;
 import org.ldaptive.ConnectionFactory;
+import org.ldaptive.FilterTemplate;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
+import org.ldaptive.PooledConnectionFactory;
 import org.ldaptive.ReturnAttributes;
-import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
-import org.ldaptive.pool.ConnectionPool;
 
 public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroyable {
 
@@ -68,7 +67,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
     private final WildcardMatcher excludeRolesMatcher;
     private final WildcardMatcher nestedRoleMatcher;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
-    private ConnectionPool connectionPool;
+    private PooledConnectionFactory pooledConnectionFactory;
     private ConnectionFactory connectionFactory;
     private LDAPUserSearcher userSearcher;
     private final String[] returnAttributes;
@@ -85,8 +84,8 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
         LDAPConnectionFactoryFactory ldapConnectionFactoryFactory = new LDAPConnectionFactoryFactory(settings, configPath);
 
-        this.connectionPool = ldapConnectionFactoryFactory.createConnectionPool();
-        this.connectionFactory = ldapConnectionFactoryFactory.createConnectionFactory(this.connectionPool);
+        this.pooledConnectionFactory = ldapConnectionFactoryFactory.createPooledConnectionFactory();
+        this.connectionFactory = ldapConnectionFactoryFactory.createConnectionFactory(this.pooledConnectionFactory);
         this.userSearcher = new LDAPUserSearcher(settings);
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value()))
             .toArray(new String[0]);
@@ -166,10 +165,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
         Set<String> additionalRoles = new HashSet<>();
 
-        try (Connection connection = this.connectionFactory.getConnection()) {
-
-            connection.open();
-
+        try {
             if (entry == null || dn == null) {
 
                 if (isValidDn(authenticatedUser)) {
@@ -178,14 +174,14 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         log.trace("{} is a valid DN", authenticatedUser);
                     }
 
-                    entry = LdapHelper.lookup(connection, authenticatedUser, this.returnAttributes, this.shouldFollowReferrals);
+                    entry = LdapHelper.lookup(connectionFactory, authenticatedUser, this.returnAttributes, this.shouldFollowReferrals);
 
                     if (entry == null) {
                         throw new OpenSearchSecurityException("No user '" + authenticatedUser + "' found");
                     }
 
                 } else {
-                    entry = this.userSearcher.exists(connection, user.getName(), this.returnAttributes, this.shouldFollowReferrals);
+                    entry = this.userSearcher.exists(connectionFactory, user.getName(), this.returnAttributes, this.shouldFollowReferrals);
 
                     if (isTraceEnabled) {
                         log.trace("{} is not a valid DN and was resolved to {}", authenticatedUser, entry);
@@ -274,16 +270,19 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 for (Map.Entry<String, Settings> roleSearchSettingsEntry : roleBaseSettings) {
                     Settings roleSearchSettings = roleSearchSettingsEntry.getValue();
 
-                    SearchFilter f = new SearchFilter();
-                    f.setFilter(roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_ROLESEARCH));
-                    f.setParameter(ZERO_PLACEHOLDER, escapedDn);
-                    f.setParameter(ONE_PLACEHOLDER, originalUserName);
-                    f.setParameter(TWO_PLACEHOLDER, userRoleAttributeValue == null ? TWO_PLACEHOLDER : userRoleAttributeValue);
+                    FilterTemplate filter = FilterTemplate.builder()
+                        .filter(roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_ROLESEARCH))
+                        .parameters(
+                            escapedDn,
+                            originalUserName,
+                            userRoleAttributeValue == null ? String.valueOf(TWO_PLACEHOLDER) : userRoleAttributeValue
+                        )
+                        .build();
 
                     List<LdapEntry> rolesResult = LdapHelper.search(
-                        connection,
+                        connectionFactory,
                         roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
-                        f,
+                        filter,
                         SearchScope.SUBTREE,
                         this.returnAttributes,
                         this.shouldFollowReferrals
@@ -334,7 +333,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
                     final Set<LdapName> nestedRoles = resolveNestedRoles(
                         roleLdapName,
-                        connection,
+                        connectionFactory,
                         userRoleNames,
                         0,
                         rolesearchEnabled,
@@ -349,7 +348,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 }
 
                 for (final LdapName roleLdapName : nestedReturn) {
-                    final String role = getRoleFromEntry(connection, roleLdapName, roleName);
+                    final String role = getRoleFromEntry(connectionFactory, roleLdapName, roleName);
 
                     if (excludeRolesMatcher.test(role)) {
                         if (isDebugEnabled) {
@@ -363,7 +362,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             } else {
                 // DN roles, extract rolename according to config
                 for (final LdapName roleLdapName : ldapRoles) {
-                    final String role = getRoleFromEntry(connection, roleLdapName, roleName);
+                    final String role = getRoleFromEntry(connectionFactory, roleLdapName, roleName);
 
                     if (excludeRolesMatcher.test(role)) {
                         if (isDebugEnabled) {
@@ -399,7 +398,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     protected Set<LdapName> resolveNestedRoles(
         final LdapName roleDn,
-        final Connection ldapConnection,
+        final ConnectionFactory connectionFactory,
         String userRoleName,
         int depth,
         final boolean rolesearchEnabled,
@@ -421,7 +420,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
+        final LdapEntry e0 = LdapHelper.lookup(connectionFactory, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (e0.getAttribute(userRoleName) != null) {
@@ -453,15 +452,15 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             for (Map.Entry<String, Settings> roleSearchBaseSettingsEntry : Utils.getOrderedBaseSettings(roleSearchBaseSettingsSet)) {
                 Settings roleSearchSettings = roleSearchBaseSettingsEntry.getValue();
 
-                SearchFilter f = new SearchFilter();
-                f.setFilter(roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_ROLESEARCH));
-                f.setParameter(ZERO_PLACEHOLDER, escapedDn);
-                f.setParameter(ONE_PLACEHOLDER, escapedDn);
+                FilterTemplate filter = FilterTemplate.builder()
+                    .filter(roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_ROLESEARCH))
+                    .parameters(escapedDn, escapedDn)
+                    .build();
 
                 List<LdapEntry> foundEntries = LdapHelper.search(
-                    ldapConnection,
+                    connectionFactory,
                     roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
-                    f,
+                    filter,
                     SearchScope.SUBTREE,
                     this.returnAttributes,
                     this.shouldFollowReferrals
@@ -508,7 +507,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
                 final Set<LdapName> in = resolveNestedRoles(
                     nm,
-                    ldapConnection,
+                    connectionFactory,
                     userRoleName,
                     depth,
                     rolesearchEnabled,
@@ -541,7 +540,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         return true;
     }
 
-    private String getRoleFromEntry(final Connection ldapConnection, final LdapName ldapName, final String role) {
+    private String getRoleFromEntry(final ConnectionFactory connectionFactory, final LdapName ldapName, final String role) {
 
         if (ldapName == null || Strings.isNullOrEmpty(role)) {
             return null;
@@ -553,7 +552,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
         try {
             final LdapEntry roleEntry = LdapHelper.lookup(
-                ldapConnection,
+                connectionFactory,
                 ldapName.toString(),
                 this.returnAttributes,
                 this.shouldFollowReferrals
@@ -574,9 +573,9 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     @Override
     public void destroy() {
-        if (this.connectionPool != null) {
-            this.connectionPool.close();
-            this.connectionPool = null;
+        if (this.pooledConnectionFactory != null) {
+            this.pooledConnectionFactory.close();
+            this.pooledConnectionFactory = null;
         }
     }
 

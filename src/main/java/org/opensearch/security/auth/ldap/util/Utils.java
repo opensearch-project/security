@@ -22,9 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.secure_sm.AccessController;
 
-import org.ldaptive.Connection;
 import org.ldaptive.LdapAttribute;
 
 public final class Utils {
@@ -33,18 +31,6 @@ public final class Utils {
 
     private Utils() {
 
-    }
-
-    public static void unbindAndCloseSilently(final Connection connection) {
-        if (connection == null) {
-            return;
-        }
-
-        try {
-            AccessController.doPrivilegedChecked(() -> connection.close());
-        } catch (Exception e) {
-            // ignore
-        }
     }
 
     public static List<Map.Entry<String, Settings>> getOrderedBaseSettings(Settings settings) {
