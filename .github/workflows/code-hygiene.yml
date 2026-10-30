@@ -2,6 +2,9 @@ name: Code Hygiene
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   linelint:
     runs-on: ubuntu-latest

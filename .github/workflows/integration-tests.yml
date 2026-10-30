@@ -5,6 +5,9 @@ on: [workflow_dispatch]
 env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
 
+permissions:
+  contents: read
+
 jobs:
   bulk-integration-test-run:
     runs-on: ubuntu-latest

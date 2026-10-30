@@ -15,6 +15,9 @@ env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
   CI_ENVIRONMENT: normal
 
+permissions:
+  contents: read
+
 jobs:
   Get-CI-Image-Tag:
     uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main

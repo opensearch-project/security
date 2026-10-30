@@ -10,6 +10,9 @@ env:
   OPENSEARCH_VERSION: 3.10.0
   PLUGIN_NAME: opensearch-security
 
+permissions:
+  contents: read
+
 jobs:
   plugin-install:
     strategy:

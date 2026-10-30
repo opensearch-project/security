@@ -3,6 +3,9 @@ name: License Header Checker
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   license-header-checker:
     runs-on: ubuntu-latest
