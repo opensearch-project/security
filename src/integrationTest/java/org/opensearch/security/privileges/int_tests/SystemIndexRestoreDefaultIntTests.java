@@ -26,18 +26,19 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.opensearch.security.privileges.int_tests.SystemIndexRestoreIntTests.ELIGIBLE;
+import static org.opensearch.security.privileges.int_tests.SystemIndexRestoreIntTests.NOT_ELIGIBLE;
 import static org.opensearch.security.privileges.int_tests.SystemIndexRestoreIntTests.REST_ADMIN;
 import static org.opensearch.security.privileges.int_tests.SystemIndexRestoreIntTests.cleanup;
 import static org.opensearch.security.privileges.int_tests.SystemIndexRestoreIntTests.createIndicesAndSnapshot;
 import static org.opensearch.security.privileges.int_tests.SystemIndexRestoreIntTests.restorePath;
 import static org.opensearch.test.framework.cluster.TestRestClient.json;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
+import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
 /**
- * With {@code plugins.security.system_indices.restore.indices} left at its empty default, a REST admin cannot
- * restore any system index, for both the legacy and the V4 privilege evaluation.
+ * With {@code plugins.security.system_indices.restore.indices} left at its default, a REST admin can restore the system
+ * indices in the default list and no others, for both the legacy and the V4 privilege evaluation.
  */
 @RunWith(Parameterized.class)
 public class SystemIndexRestoreDefaultIntTests {
@@ -50,15 +51,26 @@ public class SystemIndexRestoreDefaultIntTests {
     final LocalCluster cluster;
 
     @Test
-    public void restAdmin_cannotRestoreSystemIndexWhenNoneConfigured() {
+    public void restAdmin_restoresSystemIndicesInDefaultList() {
         createIndicesAndSnapshot(cluster, "snap_default", ELIGIBLE);
         try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
             TestRestClient.HttpResponse response = client.post(restorePath("snap_default"), json("indices", List.of(ELIGIBLE)));
-            assertThat(response, isForbidden());
-            assertThat(response.getBody(), containsString("[" + ELIGIBLE + "] are not eligible for restore."));
-            assertThat(response.getBody(), not(containsString("Restorable system indices")));
+            assertThat(response, isOk());
         } finally {
             cleanup(cluster, "snap_default", ELIGIBLE);
+        }
+    }
+
+    @Test
+    public void restAdmin_cannotRestoreSystemIndexOutsideDefaultList() {
+        createIndicesAndSnapshot(cluster, "snap_not_in_default", NOT_ELIGIBLE);
+        try (TestRestClient client = cluster.getRestClient(REST_ADMIN)) {
+            TestRestClient.HttpResponse response = client.post(restorePath("snap_not_in_default"), json("indices", List.of(NOT_ELIGIBLE)));
+            assertThat(response, isForbidden());
+            assertThat(response.getBody(), containsString("[" + NOT_ELIGIBLE + "] are not eligible for restore."));
+            assertThat(response.getBody(), containsString("Restorable system indices: [" + ELIGIBLE));
+        } finally {
+            cleanup(cluster, "snap_not_in_default", NOT_ELIGIBLE);
         }
     }
 
