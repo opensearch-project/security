@@ -208,8 +208,25 @@ public class KeySetRetrieverTest {
         assertConfiguredProtocolAndCipherAreNegotiated(false);
     }
 
+    @Test
+    public void jdkDefaultProtocolsAreUsedWhenNoneAreConfigured() throws Exception {
+        assertThat(negotiatedSession(true, Settings.EMPTY).getProtocol(), is("TLSv1.3"));
+    }
+
     private static void assertConfiguredProtocolAndCipherAreNegotiated(boolean verifyHostnames) throws Exception {
         String cipher = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+        Settings tls = Settings.builder()
+            .putList("openid_connect_idp.enabled_ssl_protocols", "TLSv1.2")
+            .putList("openid_connect_idp.enabled_ssl_ciphers", cipher)
+            .build();
+
+        SSLSession session = negotiatedSession(verifyHostnames, tls);
+
+        assertThat(session.getProtocol(), is("TLSv1.2"));
+        assertThat(session.getCipherSuite(), is(cipher));
+    }
+
+    private static SSLSession negotiatedSession(boolean verifyHostnames, Settings tls) throws Exception {
         AtomicReference<SSLSession> session = new AtomicReference<>();
 
         try (MockIpdServer server = new MockIpdServer(TestJwk.Jwks.ALL, 0, true) {
@@ -220,16 +237,9 @@ public class KeySetRetrieverTest {
                 super.handleDiscoverRequest(request, response, context);
             }
         }) {
-            Settings tls = Settings.builder()
-                .putList("openid_connect_idp.enabled_ssl_protocols", "TLSv1.2")
-                .putList("openid_connect_idp.enabled_ssl_ciphers", cipher)
-                .build();
-
             new KeySetRetriever(server.getDiscoverUri(), oidcSslConfig(verifyHostnames, tls), false).get();
-
-            assertThat(session.get().getProtocol(), is("TLSv1.2"));
-            assertThat(session.get().getCipherSuite(), is(cipher));
         }
+        return session.get();
     }
 
     private static SettingsBasedSSLConfigurator.SSLConfig oidcSslConfig(boolean verifyHostnames, Settings extra) throws Exception {

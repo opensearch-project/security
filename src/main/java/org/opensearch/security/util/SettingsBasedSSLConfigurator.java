@@ -78,7 +78,8 @@ public class SettingsBasedSSLConfigurator {
     public static final String VERIFY_HOSTNAMES = "verify_hostnames";
     public static final String TRUST_ALL = "trust_all";
 
-    private static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.of("TLSv1.2", "TLSv1.1");
+    /** Protocols that LDAP connections use when {@code enabled_ssl_protocols} is not set. */
+    public static final List<String> DEFAULT_TLS_PROTOCOLS = ImmutableList.of("TLSv1.2", "TLSv1.1");
 
     private SSLContextBuilder sslContextBuilder;
     private final Settings settings;
@@ -163,7 +164,7 @@ public class SettingsBasedSSLConfigurator {
     }
 
     private String[] getSupportedProtocols() {
-        return getSettingAsArray("enabled_ssl_protocols", DEFAULT_TLS_PROTOCOLS);
+        return getSettingAsArray("enabled_ssl_protocols", null);
     }
 
     private String[] getSupportedCipherSuites() {
@@ -457,6 +458,11 @@ public class SettingsBasedSSLConfigurator {
             return sslContext;
         }
 
+        /**
+         * Returns the configured protocols.
+         *
+         * @return the protocols from {@code enabled_ssl_protocols}, or null when the setting is not set
+         */
         public String[] getSupportedProtocols() {
             return supportedProtocols;
         }
