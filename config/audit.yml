@@ -7,12 +7,6 @@ config:
   enabled: true
 
   audit:
-    # Enable/disable REST API auditing
-    enable_rest: true
-
-    # Enable/disable Transport API auditing
-    enable_transport: true
-
     # Categories to exclude from both REST and Transport API auditing
     disabled_categories:
       - AUTHENTICATED
