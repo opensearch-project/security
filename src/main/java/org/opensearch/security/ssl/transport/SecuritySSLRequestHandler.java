@@ -22,6 +22,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,19 +92,19 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
             channel.sendResponse(exception);
             throw exception;
         }
-        if ("stream-transport".equals(channel.getChannelType())) {
-            messageReceivedDecorate(request, actualHandler, channel, task);
-            return;
-        }
+        // the stream transport (Arrow Flight) is a network transport like netty4 and must verify the peer certificate the same way
+        final boolean isStreamChannel = "stream-transport".equals(channel.getChannelType());
 
-        if (!"transport".equals(channel.getChannelType())) { // netty4
+        if (!isStreamChannel && !"transport".equals(channel.getChannelType())) { // netty4
             messageReceivedDecorate(request, actualHandler, channel, task);
             return;
         }
 
         try {
-            final SslHandler sslhandler = channel.get("ssl_server", SslHandler.class).orElse(null);
-            if (sslhandler == null) {
+            final SSLSession sslSession = isStreamChannel
+                ? channel.get("ssl_session", SSLSession.class).orElse(null)
+                : channel.get("ssl_server", SslHandler.class).map(sslHandler -> sslHandler.engine().getSession()).orElse(null);
+            if (sslSession == null) {
                 if (sslConfig.isDualModeEnabled()) {
                     log.info("Communication in dual mode. Skipping SSL handler check");
                     threadContext.putTransient(ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY, Boolean.TRUE);
@@ -117,8 +118,8 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
                 throw exception;
             }
 
-            final Certificate[] peerCerts = sslhandler.engine().getSession().getPeerCertificates();
-            final Certificate[] localCerts = sslhandler.engine().getSession().getLocalCertificates();
+            final Certificate[] peerCerts = sslSession.getPeerCertificates();
+            final Certificate[] localCerts = sslSession.getLocalCertificates();
 
             if (peerCerts != null
                 && peerCerts.length > 0
@@ -137,14 +138,8 @@ public class SecuritySSLRequestHandler<T extends TransportRequest> implements Tr
                     threadContext.putTransient("_opendistro_security_ssl_transport_principal", principal);
                     threadContext.putTransient("_opendistro_security_ssl_transport_peer_certificates", x509PeerCerts);
                     threadContext.putTransient("_opendistro_security_ssl_transport_local_certificates", x509LocalCerts);
-                    threadContext.putTransient(
-                        "_opendistro_security_ssl_transport_protocol",
-                        sslhandler.engine().getSession().getProtocol()
-                    );
-                    threadContext.putTransient(
-                        "_opendistro_security_ssl_transport_cipher",
-                        sslhandler.engine().getSession().getCipherSuite()
-                    );
+                    threadContext.putTransient("_opendistro_security_ssl_transport_protocol", sslSession.getProtocol());
+                    threadContext.putTransient("_opendistro_security_ssl_transport_cipher", sslSession.getCipherSuite());
                 }
                 messageReceivedDecorate(request, actualHandler, channel, task);
             } else {

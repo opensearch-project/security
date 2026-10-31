@@ -674,6 +674,15 @@ tasks.register("integrationTest", Test) {
     description = 'Run integration tests.'
     group = 'verification'
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
+    // required by the arrow-flight-rpc plugin used in Flight stream transport tests
+    systemProperty "io.netty.allocator.numDirectArenas", "1"
+    systemProperty "io.netty.noUnsafe", "false"
+    systemProperty "io.netty.tryUnsafe", "true"
+    systemProperty "io.netty.tryReflectionSetAccessible", "true"
+    // keep Netty on NIO as in a plugin installation: with native epoll on the test classpath, arrow-flight-rpc would
+    // pair epoll channels with its NIO event loops and fail to start on Linux
+    systemProperty "io.netty.transport.noNative", "true"
+    jvmArgs += ["--add-opens", "java.base/java.nio=ALL-UNNAMED"]
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
     //run the integrationTest task after the test task
@@ -707,6 +716,10 @@ check.dependsOn integrationTest
 
 
 dependencies {
+    // Arrow Flight stream transport, used only by the root project's Flight integration tests
+    integrationTestImplementation "org.opensearch.plugin:arrow-base:${opensearch_version}"
+    integrationTestImplementation "org.opensearch.plugin:arrow-flight-rpc:${opensearch_version}"
+    integrationTestImplementation("org.apache.arrow:flight-core:${versions.arrow}") { transitive = false }
     implementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
