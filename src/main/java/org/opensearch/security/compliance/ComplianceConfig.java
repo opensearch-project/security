@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -186,7 +185,7 @@ public class ComplianceConfig {
 
         this.readEnabledFieldsCache = CacheBuilder.newBuilder().maximumSize(CACHE_SIZE).build(new CacheLoader<String, WildcardMatcher>() {
             @Override
-            public WildcardMatcher load(String index) throws Exception {
+            public WildcardMatcher load(String index) {
                 return WildcardMatcher.from(getFieldsForIndex(index));
             }
         });
@@ -599,12 +598,7 @@ public class ComplianceConfig {
         if (isCurrentAuditLogIndex(index)) {
             return false;
         }
-        try {
-            return readEnabledFieldsCache.get(index) != WildcardMatcher.NONE;
-        } catch (ExecutionException e) {
-            log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
-            return !getFieldsForIndex(index).isEmpty();
-        }
+        return readEnabledFieldsCache.getUnchecked(index) != WildcardMatcher.NONE;
     }
 
     /**
@@ -624,13 +618,6 @@ public class ComplianceConfig {
         if (isCurrentAuditLogIndex(index)) {
             return false;
         }
-        WildcardMatcher matcher;
-        try {
-            matcher = readEnabledFieldsCache.get(index);
-        } catch (ExecutionException e) {
-            log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
-            matcher = WildcardMatcher.from(getFieldsForIndex(index));
-        }
-        return matcher.test(field);
+        return readEnabledFieldsCache.getUnchecked(index).test(field);
     }
 }

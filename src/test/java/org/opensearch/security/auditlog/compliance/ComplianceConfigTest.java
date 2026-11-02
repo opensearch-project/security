@@ -11,14 +11,11 @@
 
 package org.opensearch.security.auditlog.compliance;
 
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
@@ -216,28 +213,6 @@ public class ComplianceConfigTest {
         // act: Log for any matching index
         assertThat(complianceConfig.readHistoryEnabledForIndex("my-data"), equalTo(true));
         assertThat(complianceConfig.writeHistoryEnabledForIndex("my-data"), equalTo(true));
-    }
-
-    @Test
-    public void testReadHistoryEnabledForIndex_cacheFailureFallsBackToFields() throws Exception {
-        // arrange
-        final ComplianceConfig complianceConfig = ComplianceConfig.from(
-            Settings.builder().putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "watched*").build()
-        );
-        final Field cacheField = ComplianceConfig.class.getDeclaredField("readEnabledFieldsCache");
-        cacheField.setAccessible(true);
-        cacheField.set(complianceConfig, CacheBuilder.newBuilder().build(new CacheLoader<String, WildcardMatcher>() {
-            @Override
-            public WildcardMatcher load(String index) throws Exception {
-                throw new Exception("cache load failure");
-            }
-        }));
-
-        // act and assert: the fallback agrees with the cached path
-        assertThat(complianceConfig.readHistoryEnabledForIndex("watched-index"), equalTo(true));
-        assertThat(complianceConfig.readHistoryEnabledForIndex("other-index"), equalTo(false));
-        assertThat(complianceConfig.readHistoryEnabledForField("watched-index", "field"), equalTo(true));
-        assertThat(complianceConfig.readHistoryEnabledForField("other-index", "field"), equalTo(false));
     }
 
     @Test
