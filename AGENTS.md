@@ -185,6 +185,9 @@ SpotBugs runs on main sources (not tests). Include-filter: `spotbugs-include.xml
 - **Resource sharing** changes should be validated against the sample plugin in `sample-resource-plugin/`.
 - Types registered on the same resource index must be added to or removed from `protected_types` together; partial protection is rejected.
 - **FIPS compliance** — the build supports FIPS-140-3 mode (`gradle.properties`). Avoid cryptographic primitives that are not FIPS-approved.
+- **FLS and masking readers** — keep field metadata consistent with exposed accessors. Masked string doc values retain field presence;
+  excluded fields and masked vectors follow missing-field semantics. Recognize binary-backed k-NN fields by their existing
+  `knn_field` metadata attribute, as well as Lucene vector metadata.
 
 ## Commits
 
