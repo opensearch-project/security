@@ -324,6 +324,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 }
 
                 final Set<LdapName> nestedReturn = new HashSet<>(ldapRoles);
+                final Map<NestedRoleKey, Integer> expandedDepths = new HashMap<>();
 
                 for (final LdapName roleLdapName : ldapRoles) {
                     Set<Map.Entry<String, Settings>> nameRoleSearchBaseKeys = resultRoleSearchBaseKeys.get(roleLdapName);
@@ -339,7 +340,8 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         userRoleNames,
                         0,
                         rolesearchEnabled,
-                        nameRoleSearchBaseKeys
+                        nameRoleSearchBaseKeys,
+                        expandedDepths
                     );
 
                     if (isTraceEnabled) {
@@ -406,6 +408,31 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         final boolean rolesearchEnabled,
         Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet
     ) throws OpenSearchSecurityException, LdapException {
+        return resolveNestedRoles(
+            roleDn,
+            ldapConnection,
+            userRoleName,
+            depth,
+            rolesearchEnabled,
+            roleSearchBaseSettingsSet,
+            new HashMap<>()
+        );
+    }
+
+    /**
+     * Resolves the roles that {@code roleDn} is nested in. {@code expandedDepths} is shared by all calls for one user, so a
+     * group reached through several paths or a cycle is looked up and searched once, unless it is reached again at a
+     * smaller depth, where the depth limit allows more of its parents to be resolved.
+     */
+    private Set<LdapName> resolveNestedRoles(
+        final LdapName roleDn,
+        final Connection ldapConnection,
+        String userRoleName,
+        int depth,
+        final boolean rolesearchEnabled,
+        Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet,
+        final Map<NestedRoleKey, Integer> expandedDepths
+    ) throws OpenSearchSecurityException, LdapException {
 
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (nestedRoleMatcher.test(roleDn.toString())) {
@@ -418,6 +445,14 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         }
 
         depth++;
+
+        final NestedRoleKey key = new NestedRoleKey(roleDn, Set.copyOf(roleSearchBaseSettingsSet));
+        final Integer expandedDepth = expandedDepths.get(key);
+        if (expandedDepth != null && expandedDepth <= depth) {
+            // The earlier expansion already added everything this one would find.
+            return Collections.emptySet();
+        }
+        expandedDepths.put(key, depth);
 
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
@@ -530,13 +565,18 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                     userRoleName,
                     depth,
                     rolesearchEnabled,
-                    nameRoleSearchBaseKeys
+                    nameRoleSearchBaseKeys,
+                    expandedDepths
                 );
                 result.addAll(in);
             }
         }
 
         return result;
+    }
+
+    /** A group DN together with the role search bases used to find the groups it is a member of. */
+    private record NestedRoleKey(LdapName roleDn, Set<Map.Entry<String, Settings>> roleSearchBases) {
     }
 
     @Override

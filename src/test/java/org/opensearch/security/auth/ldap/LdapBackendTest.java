@@ -819,6 +819,34 @@ public class LdapBackendTest {
     }
 
     @Test
+    public void testNestedRolesInCycleAreSearchedOnce() throws Exception {
+        final List<String> searchedGroups;
+        try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend.class)) {
+            assertThat(nestedAttrRoles("cycleuser"), containsInAnyOrder("cyclea", "cycleb"));
+            searchedGroups = recorder.searchedGroups();
+        }
+        assertThat(searchedGroups, containsInAnyOrder("cn=cyclea,ou=groups,o=TEST", "cn=cycleb,ou=groups,o=TEST"));
+    }
+
+    @Test
+    public void testNestedRoleReachedThroughTwoPathsIsSearchedOnce() throws Exception {
+        final List<String> searchedGroups;
+        try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend.class)) {
+            assertThat(nestedAttrRoles("diamonduser"), containsInAnyOrder("diamondbottom", "diamondleft", "diamondright", "diamondtop"));
+            searchedGroups = recorder.searchedGroups();
+        }
+        assertThat(
+            searchedGroups,
+            containsInAnyOrder(
+                "cn=diamondbottom,ou=groups,o=TEST",
+                "cn=diamondleft,ou=groups,o=TEST",
+                "cn=diamondright,ou=groups,o=TEST",
+                "cn=diamondtop,ou=groups,o=TEST"
+            )
+        );
+    }
+
+    @Test
     public void testResolveNestedRolesSkipsDnRejectedByServer() throws Exception {
         final ProviderConnection providerConnection = Mockito.mock(ProviderConnection.class);
         Mockito.when(providerConnection.search(Mockito.any())).thenThrow(new LdapException("invalid DN", ResultCode.INVALID_DN_SYNTAX));

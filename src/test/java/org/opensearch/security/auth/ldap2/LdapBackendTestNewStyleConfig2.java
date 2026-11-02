@@ -33,6 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationContext;
+import org.opensearch.security.auth.ldap.NestedRoleSearchRecorder;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
 import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
@@ -968,6 +969,54 @@ public class LdapBackendTestNewStyleConfig2 {
 
         Assert.assertTrue(user.getRoles().contains("crossnested2"));
         // The user is NOT in crossnested1!
+    }
+
+    @Test
+    public void testNestedRolesInCycleAreSearchedOnce() throws Exception {
+        final List<String> searchedGroups;
+        try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend2.class)) {
+            assertThat(nestedRolesWithTwoRoleBases("cycleuser"), containsInAnyOrder("cyclea", "cycleb"));
+            searchedGroups = recorder.searchedGroups();
+        }
+        assertThat(searchedGroups, containsInAnyOrder("cn=cyclea,ou=groups,o=TEST", "cn=cycleb,ou=groups,o=TEST"));
+    }
+
+    @Test
+    public void testNestedRoleReachedThroughTwoPathsIsSearchedOnce() throws Exception {
+        final List<String> searchedGroups;
+        try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend2.class)) {
+            assertThat(
+                nestedRolesWithTwoRoleBases("diamonduser"),
+                containsInAnyOrder("diamondbottom", "diamondleft", "diamondright", "diamondtop")
+            );
+            searchedGroups = recorder.searchedGroups();
+        }
+        assertThat(
+            searchedGroups,
+            containsInAnyOrder(
+                "cn=diamondbottom,ou=groups,o=TEST",
+                "cn=diamondleft,ou=groups,o=TEST",
+                "cn=diamondright,ou=groups,o=TEST",
+                "cn=diamondtop,ou=groups,o=TEST"
+            )
+        );
+    }
+
+    private Set<String> nestedRolesWithTwoRoleBases(final String username) throws Exception {
+        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put("users.u1.search", "(uid={0})")
+            .put("users.u1.base", "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put("roles.g1.base", "ou=groups,o=TEST")
+            .put("roles.g1.search", "(uniqueMember={0})")
+            .put("roles.g2.base", "ou=groups2,o=TEST")
+            .put("roles.g2.search", "(uniqueMember={0})")
+            .build();
+
+        final User user = new LDAPAuthorizationBackend2(settings, null).addRoles(new User(username), ctx(username, username));
+        Assert.assertNotNull(user);
+        return user.getRoles();
     }
 
     @Test

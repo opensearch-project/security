@@ -15,6 +15,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import javax.naming.ldap.LdapName;
@@ -33,6 +34,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationContext;
+import org.opensearch.security.auth.ldap.NestedRoleSearchRecorder;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthenticationBackend;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
 import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
@@ -716,6 +718,34 @@ public class LdapBackendTestOldStyleConfig2 {
     @Test
     public void testLdapAuthorizationNestedAttrWithReferralToMissingEntry() throws Exception {
         assertThat(nestedAttrRoles("referralref"), containsInAnyOrder("rolemo4", "nested3", "nested4"));
+    }
+
+    @Test
+    public void testNestedRolesInCycleAreSearchedOnce() throws Exception {
+        final List<String> searchedGroups;
+        try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend2.class)) {
+            assertThat(nestedAttrRoles("cycleuser"), containsInAnyOrder("cyclea", "cycleb"));
+            searchedGroups = recorder.searchedGroups();
+        }
+        assertThat(searchedGroups, containsInAnyOrder("cn=cyclea,ou=groups,o=TEST", "cn=cycleb,ou=groups,o=TEST"));
+    }
+
+    @Test
+    public void testNestedRoleReachedThroughTwoPathsIsSearchedOnce() throws Exception {
+        final List<String> searchedGroups;
+        try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend2.class)) {
+            assertThat(nestedAttrRoles("diamonduser"), containsInAnyOrder("diamondbottom", "diamondleft", "diamondright", "diamondtop"));
+            searchedGroups = recorder.searchedGroups();
+        }
+        assertThat(
+            searchedGroups,
+            containsInAnyOrder(
+                "cn=diamondbottom,ou=groups,o=TEST",
+                "cn=diamondleft,ou=groups,o=TEST",
+                "cn=diamondright,ou=groups,o=TEST",
+                "cn=diamondtop,ou=groups,o=TEST"
+            )
+        );
     }
 
     @Test
