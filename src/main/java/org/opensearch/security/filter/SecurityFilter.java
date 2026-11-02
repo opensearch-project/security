@@ -29,7 +29,6 @@ package org.opensearch.security.filter;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -202,14 +201,10 @@ public class SecurityFilter implements ActionFilter {
         Request request,
         ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
-        ActionFilterChain<Request, Response> nextChain
+        ActionFilterChain<Request, Response> chain
     ) {
         // Only a failure raised after the request is passed on, by the next filter or the action, is returned with its cause
-        final AtomicBoolean proceeded = new AtomicBoolean();
-        final ActionFilterChain<Request, Response> chain = (t, a, r, l) -> {
-            proceeded.set(true);
-            nextChain.proceed(t, a, r, l);
-        };
+        boolean proceeded = false;
         try {
             ThreadContext threadContext = threadPool.getThreadContext();
             if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
@@ -322,6 +317,7 @@ public class SecurityFilter implements ActionFilter {
                     auditLog.logSettingsChange(action, request, task);
                 }
 
+                proceeded = true;
                 chain.proceed(task, action, request, listener);
                 return;
             }
@@ -352,6 +348,7 @@ public class SecurityFilter implements ActionFilter {
                 && (injectedRoles == null)
                 && (user == null)) {
 
+                proceeded = true;
                 chain.proceed(task, action, request, listener);
                 return;
             }
@@ -359,6 +356,7 @@ public class SecurityFilter implements ActionFilter {
             if (user == null) {
 
                 if (action.startsWith("cluster:monitor/state")) {
+                    proceeded = true;
                     chain.proceed(task, action, request, listener);
                     return;
                 }
@@ -368,6 +366,7 @@ public class SecurityFilter implements ActionFilter {
                 ) == Boolean.TRUE;
                 if ((localClusterNodeRequest || remoteClusterNodeRequest || request.remoteAddress() == null)
                     && !compatConfig.transportInterClusterAuthEnabled()) {
+                    proceeded = true;
                     chain.proceed(task, action, request, listener);
                     return;
                 } else if ((localClusterNodeRequest
@@ -503,6 +502,7 @@ public class SecurityFilter implements ActionFilter {
                 }
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
                 if (createIndexRequestBuilder == null) {
+                    proceeded = true;
                     chain.proceed(task, action, request, listener);
                 } else {
                     CreateIndexRequest createIndexRequest = createIndexRequestBuilder.request();
@@ -567,7 +567,7 @@ public class SecurityFilter implements ActionFilter {
             listener.onFailure(e);
         } catch (Throwable e) {
             log.error("Unexpected exception {}", e, e);
-            final Throwable cause = proceeded.get() ? e : null;
+            final Throwable cause = proceeded ? e : null;
             listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR, cause));
         }
     }
