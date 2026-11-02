@@ -39,7 +39,11 @@ public class MiscPrivilegesIntTests {
     );
 
     protected final static TestSecurityConfig.User SEARCH_TEMPLATE = new TestSecurityConfig.User("search_template_user").roles(
-        new Role("search_template_role").indexPermissions("read").on("services").clusterPermissions("cluster_composite_ops")
+        new Role("search_template_role").indexPermissions("read").on("services").clusterPermissions("indices:data/read/msearch")
+    );
+
+    protected final static TestSecurityConfig.User COMPOSITE_OPS_RO = new TestSecurityConfig.User("composite_ops_ro_user").roles(
+        new Role("composite_ops_ro_role").indexPermissions("read").on("r").clusterPermissions("cluster_composite_ops_ro")
     );
 
     protected final static TestSecurityConfig.User RENDER_SEARCH_TEMPLATE = new TestSecurityConfig.User("render_search_template_user")
@@ -62,7 +66,14 @@ public class MiscPrivilegesIntTests {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE, RENDER_SEARCH_TEMPLATE, TestSecurityConfig.User.USER_ADMIN)
+        .users(
+            NEGATIVE_LOOKAHEAD,
+            NEGATED_REGEX,
+            SEARCH_TEMPLATE,
+            RENDER_SEARCH_TEMPLATE,
+            COMPOSITE_OPS_RO,
+            TestSecurityConfig.User.USER_ADMIN
+        )
         .plugin(MustacheModulePlugin.class)
         .indices(R, T)
         .build();
@@ -107,6 +118,31 @@ public class MiscPrivilegesIntTests {
                 TEST_RENDER_SEARCH_TEMPLATE_QUERY
             );
             assertThat(renderSearchTemplateResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
+    }
+
+    @Test
+    public void testSearchTemplateActionsWithCompositeOpsRo() {
+        try (TestRestClient client = cluster.getRestClient(COMPOSITE_OPS_RO)) {
+            assertThat(client.postJson("_render/template", TEST_RENDER_SEARCH_TEMPLATE_QUERY).getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            TestRestClient.HttpResponse response = client.postJson("_msearch/template", """
+                {"index":"r"}
+                {"source":{"query":{"match_all":{}}}}
+                """);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+            assertThat(response.getBody(), response.bodyAsJsonNode().at("/responses/0/status").asInt(), equalTo(HttpStatus.SC_OK));
+        }
+    }
+
+    @Test
+    public void testMultiSearchTemplateRequestFailure() {
+        try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
+            TestRestClient.HttpResponse response = client.postJson("_msearch/template", """
+                {"index":"services"}
+                {"source":{"query":{"match_all":{}}}}
+                """);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 }
