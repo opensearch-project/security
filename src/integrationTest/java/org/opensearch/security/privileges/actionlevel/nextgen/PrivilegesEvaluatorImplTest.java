@@ -20,6 +20,8 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.search.SearchAction;
@@ -219,6 +221,17 @@ public class PrivilegesEvaluatorImplTest {
         } finally {
             Loggers.setLevel(LogManager.getLogger(PrivilegesEvaluatorImpl.class), initialLevel);
         }
+    }
+
+    @Test
+    public void handleRestoreSnapshot_notClusterManager_deferredToClusterManager() throws Exception {
+        PrivilegesEvaluatorImpl subject = createSubject(Settings.EMPTY);
+        PrivilegesEvaluatorResponse response = subject.handleRestoreSnapshot(
+            ctx().actionPrivileges(subject.getActionPrivileges()).roles("test_role").action(RestoreSnapshotAction.NAME).get(),
+            new RestoreSnapshotRequest("repository", "snapshot")
+        );
+        assertThat(response, isAllowed());
+        assertThat(response.isDeferredToClusterManager(), equalTo(true));
     }
 
     @Test

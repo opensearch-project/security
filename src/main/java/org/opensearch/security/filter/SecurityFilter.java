@@ -488,7 +488,10 @@ public class SecurityFilter implements ActionFilter {
             }
 
             if (pres.isAllowed()) {
-                auditLog.logGrantedPrivileges(action, request, task);
+                // The cluster manager evaluates and audits a deferred request after it is forwarded
+                if (!pres.isDeferredToClusterManager()) {
+                    auditLog.logGrantedPrivileges(action, request, task);
+                }
                 auditLog.logIndexEvent(action, request, task);
                 auditLog.logSettingsChange(action, request, task);
                 if (!dlsFlsValve.invoke(context, listener)) {
