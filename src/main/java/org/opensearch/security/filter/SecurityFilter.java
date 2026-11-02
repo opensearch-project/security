@@ -29,6 +29,7 @@ package org.opensearch.security.filter;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -201,8 +202,14 @@ public class SecurityFilter implements ActionFilter {
         Request request,
         ActionRequestMetadata<Request, Response> actionRequestMetadata,
         ActionListener<Response> listener,
-        ActionFilterChain<Request, Response> chain
+        ActionFilterChain<Request, Response> nextChain
     ) {
+        // Only a failure raised after the request is passed on, by the next filter or the action, is returned with its cause
+        final AtomicBoolean proceeded = new AtomicBoolean();
+        final ActionFilterChain<Request, Response> chain = (t, a, r, l) -> {
+            proceeded.set(true);
+            nextChain.proceed(t, a, r, l);
+        };
         try {
             ThreadContext threadContext = threadPool.getThreadContext();
             if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
@@ -560,7 +567,8 @@ public class SecurityFilter implements ActionFilter {
             listener.onFailure(e);
         } catch (Throwable e) {
             log.error("Unexpected exception {}", e, e);
-            listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
+            final Throwable cause = proceeded.get() ? e : null;
+            listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR, cause));
         }
     }
 

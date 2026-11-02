@@ -21,11 +21,15 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.support.ActionRequestMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
@@ -44,6 +48,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -133,6 +138,43 @@ public class SecurityFilterTests extends LuceneTestCase {
             );
 
             verifyNoMoreInteractions(auditLog, listener);
+        } finally {
+            ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testErrorFromChainKeepsCause() {
+        // Setup
+        final ActionListener<ActionResponse> listener = mock(ActionListener.class);
+        final ThreadPool threadPool = new ThreadPool(Settings.builder().put("node.name", "mock").build());
+        final NoSuchMethodError error = new NoSuchMethodError("missing method");
+        final ActionFilterChain<ActionRequest, ActionResponse> chain = (task, action, request, l) -> { throw error; };
+
+        try {
+            final SecurityFilter filter = new SecurityFilter(
+                settings,
+                mock(PrivilegesConfiguration.class),
+                mock(AdminDNs.class),
+                mock(DlsFlsRequestValve.class),
+                mock(AuditLog.class),
+                threadPool,
+                mock(ClusterService.class),
+                mock(CompatConfig.class),
+                mock(XFFResolver.class),
+                mock(ResourceAccessEvaluator.class)
+            );
+
+            // Act
+            filter.apply(null, WhoAmIAction.NAME, mock(ActionRequest.class), ActionRequestMetadata.empty(), listener, chain);
+
+            // Verify
+            final ArgumentCaptor<OpenSearchSecurityException> cap = ArgumentCaptor.forClass(OpenSearchSecurityException.class);
+            verify(listener).onFailure(cap.capture());
+            assertThat(cap.getValue().status(), equalTo(RestStatus.INTERNAL_SERVER_ERROR));
+            assertThat(cap.getValue().getCause(), sameInstance(error));
+            verifyNoMoreInteractions(listener);
         } finally {
             ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
         }
