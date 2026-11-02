@@ -24,6 +24,7 @@ runs:
       uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
       with:
         path: ${{ inputs.plugin-branch }}
+        persist-credentials: false
 
     - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
       if: ${{ inputs.plugin-branch != 'current_branch' }}
@@ -31,6 +32,7 @@ runs:
         repository: opensearch-project/security
         ref: ${{ inputs.plugin-branch }}
         path: ${{ inputs.plugin-branch }}
+        persist-credentials: false
 
     - name: Build
       uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
