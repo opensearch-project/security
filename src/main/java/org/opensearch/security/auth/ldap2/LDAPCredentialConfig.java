@@ -27,9 +27,9 @@ import org.ldaptive.ssl.CredentialConfigFactory;
  * parameter, so in FIPS mode any alias would fail the connection. The stores are therefore narrowed to the configured
  * aliases with {@link KeyStoreUtils} first, and ldaptive gets them without aliases.
  */
-public final class LdapCredentialConfig {
+public final class LDAPCredentialConfig {
 
-    private LdapCredentialConfig() {}
+    private LDAPCredentialConfig() {}
 
     /**
      * @param trustStoreAliases trusted certificate aliases, or {@code null} to trust every certificate of {@code trustStore}

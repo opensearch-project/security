@@ -49,7 +49,7 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
-import org.opensearch.security.auth.ldap2.LdapCredentialConfig;
+import org.opensearch.security.auth.ldap2.LDAPCredentialConfig;
 import org.opensearch.security.auth.ldap2.SniJndiProvider;
 import org.opensearch.security.auth.ldap2.SocketFactoryClassLoader;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -480,7 +480,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static void configureSNISocketFactory(DefaultConnectionFactory connFactory) {
         Map<String, Object> props = new HashMap<>();
-        props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");
+        props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SniSettingTLSSocketFactory");
         final SniJndiProvider provider = new SniJndiProvider();
         provider.getProviderConfig().setProperties(props);
         connFactory.setProvider(provider);
@@ -609,7 +609,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
 
                 // narrows the stores to the configured aliases itself; ldaptive's own copies fail for BCFKS (FIPS)
-                cc = LdapCredentialConfig.of(
+                cc = LDAPCredentialConfig.of(
                     trustStore,
                     trustStoreAliases == null ? null : trustStoreAliases.toArray(new String[0]),
                     keyStore,

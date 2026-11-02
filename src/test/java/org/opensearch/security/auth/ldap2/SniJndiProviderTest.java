@@ -58,7 +58,7 @@ public class SniJndiProviderTest {
 
     @After
     public void clearThreadLocal() {
-        SNISettingTLSSocketFactory.clearContext();
+        SniSettingTLSSocketFactory.clearContext();
         new ThreadLocalTLSSocketFactory().setSslConfig(null);
     }
 
@@ -86,7 +86,7 @@ public class SniJndiProviderTest {
             }
 
             assertEquals(List.of("localhost"), receivedSni);
-            assertNull(SNISettingTLSSocketFactory.getHostname());
+            assertNull(SniSettingTLSSocketFactory.getHostname());
         }
     }
 
@@ -95,7 +95,7 @@ public class SniJndiProviderTest {
         SslConfig sslConfig = new SslConfig();
         new ThreadLocalTLSSocketFactory().setSslConfig(sslConfig);
 
-        SniJndiProvider.SniJndiConnectionFactory factory = connectionFactory(SNISettingTLSSocketFactory.class.getName());
+        SniJndiProvider.SniJndiConnectionFactory factory = connectionFactory(SniSettingTLSSocketFactory.class.getName());
 
         assertSame(sslConfig, factory.sslConfig());
     }
@@ -116,8 +116,8 @@ public class SniJndiProviderTest {
             new ConnectionConfig("ldaps://localhost:636")
         );
 
-        assertNotNull(SNISettingTLSSocketFactory.currentSslConfig());
-        assertSame(SNISettingTLSSocketFactory.currentSslConfig(), factory.sslConfig());
+        assertNotNull(SniSettingTLSSocketFactory.currentSslConfig());
+        assertSame(SniSettingTLSSocketFactory.currentSslConfig(), factory.sslConfig());
     }
 
     @Test
@@ -137,7 +137,7 @@ public class SniJndiProviderTest {
             new ConnectionConfig("ldap://localhost:389")
         );
 
-        assertNull(SNISettingTLSSocketFactory.currentSslConfig());
+        assertNull(SniSettingTLSSocketFactory.currentSslConfig());
         assertNull(factory.sslConfig());
     }
 
@@ -149,7 +149,7 @@ public class SniJndiProviderTest {
         SniJndiProvider.SniJndiConnectionFactory factory = jndiConnectionFactory(provider, new ConnectionConfig("ldaps://localhost:636"));
 
         // ldaptive only sets its thread-local configuration when it builds the socket factory itself
-        assertNull(SNISettingTLSSocketFactory.currentSslConfig());
+        assertNull(SniSettingTLSSocketFactory.currentSslConfig());
         assertNull(factory.sslConfig());
     }
 
@@ -163,7 +163,7 @@ public class SniJndiProviderTest {
         assertNull(jndiConnectionFactory(new SniJndiProvider(), plainLdap).sslConfig());
         // ... while an explicit one naming the SNI factory is used as is
         SniJndiProvider.SniJndiConnectionFactory factory = (SniJndiProvider.SniJndiConnectionFactory) new SniJndiProvider()
-            .getJndiConnectionFactory(plainLdap, Map.of(JndiProvider.SOCKET_FACTORY, SNISettingTLSSocketFactory.class.getName()));
+            .getJndiConnectionFactory(plainLdap, Map.of(JndiProvider.SOCKET_FACTORY, SniSettingTLSSocketFactory.class.getName()));
         assertSame(existing, factory.sslConfig());
     }
 
@@ -202,7 +202,7 @@ public class SniJndiProviderTest {
             ProviderConnection connection = factory.create();
             try (Socket accepted = server.accept()) {
                 assertTrue(accepted.isConnected());
-                assertNull(SNISettingTLSSocketFactory.getHostname());
+                assertNull(SniSettingTLSSocketFactory.getHostname());
             } finally {
                 connection.close(null);
             }
@@ -214,10 +214,10 @@ public class SniJndiProviderTest {
         assertTrue(new SniJndiProvider().newInstance() instanceof SniJndiProvider);
     }
 
-    /** A provider configured like the LDAP backends do: {@link SNISettingTLSSocketFactory} as JNDI socket factory. */
+    /** A provider configured like the LDAP backends do: {@link SniSettingTLSSocketFactory} as JNDI socket factory. */
     private static SniJndiProvider sniProvider() {
         SniJndiProvider provider = new SniJndiProvider();
-        provider.getProviderConfig().setProperties(Map.of(JndiProvider.SOCKET_FACTORY, SNISettingTLSSocketFactory.class.getName()));
+        provider.getProviderConfig().setProperties(Map.of(JndiProvider.SOCKET_FACTORY, SniSettingTLSSocketFactory.class.getName()));
         return provider;
     }
 

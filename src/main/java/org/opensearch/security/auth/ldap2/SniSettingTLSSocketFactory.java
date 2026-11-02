@@ -40,9 +40,9 @@ import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
  * the caller. The hostname is provided via ThreadLocal by {@link SniJndiProvider} for each
  * LDAP URL a connection tries.
  */
-public class SNISettingTLSSocketFactory extends SSLSocketFactory {
+public class SniSettingTLSSocketFactory extends SSLSocketFactory {
 
-    private static final Logger log = LogManager.getLogger(SNISettingTLSSocketFactory.class);
+    private static final Logger log = LogManager.getLogger(SniSettingTLSSocketFactory.class);
 
     private static final ThreadLocal<String> hostnameThreadLocal = new ThreadLocal<>();
 
@@ -53,11 +53,11 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
      * This method is called by JNDI when java.naming.ldap.factory.socket is set.
      */
     public static SSLSocketFactory getDefault() {
-        log.debug("SNISettingTLSSocketFactory.getDefault() called by JNDI");
+        log.debug("SniSettingTLSSocketFactory.getDefault() called by JNDI");
         // Get the configured SSL socket factory from ldaptive's ThreadLocal
         SSLSocketFactory delegate = (SSLSocketFactory) ThreadLocalTLSSocketFactory.getDefault();
         log.debug("Wrapping delegate factory: {}", delegate.getClass().getName());
-        return new SNISettingTLSSocketFactory(delegate);
+        return new SniSettingTLSSocketFactory(delegate);
     }
 
     /**
@@ -76,7 +76,7 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
      * JNDI connect to each LDAP URL:
      *
      * <pre>{@code
-     * try (var ignored = SNISettingTLSSocketFactory.configure(hostname, sslConfig)) {
+     * try (var ignored = SniSettingTLSSocketFactory.configure(hostname, sslConfig)) {
      *     return super.createInternal(url);
      * }
      * }</pre>
@@ -94,7 +94,7 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
         hostnameThreadLocal.set(hostname);
         log.debug("Configured SNI context: hostname={}", hostname);
         if (sslConfig == null) {
-            return SNISettingTLSSocketFactory::clearContext;
+            return SniSettingTLSSocketFactory::clearContext;
         }
         ThreadLocalTLSSocketFactory threadLocalConfig = new ThreadLocalTLSSocketFactory();
         SslConfig previous = threadLocalConfig.getSslConfig();
@@ -118,7 +118,7 @@ public class SNISettingTLSSocketFactory extends SSLSocketFactory {
         hostnameThreadLocal.remove();
     }
 
-    SNISettingTLSSocketFactory(SSLSocketFactory delegate) {
+    SniSettingTLSSocketFactory(SSLSocketFactory delegate) {
         this.delegate = delegate;
     }
 

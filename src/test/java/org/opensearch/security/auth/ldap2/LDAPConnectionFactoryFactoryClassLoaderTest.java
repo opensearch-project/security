@@ -30,7 +30,7 @@ import static org.junit.Assert.assertThrows;
 
 public class LDAPConnectionFactoryFactoryClassLoaderTest {
 
-    private static final String SNI_FACTORY = "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory";
+    private static final String SNI_FACTORY = "org.opensearch.security.auth.ldap2.SniSettingTLSSocketFactory";
 
     /** Builds a real factory and returns the classloader ldap2 sets on the JNDI provider config. */
     private static ClassLoader factoryProvidedClassLoader() throws Exception {
@@ -51,7 +51,7 @@ public class LDAPConnectionFactoryFactoryClassLoaderTest {
     @Test
     public void providerConfig_carriesClassLoaderThatResolvesSniSocketFactory() throws Exception {
         ClassLoader factoryClassLoader = factoryProvidedClassLoader();
-        assertThat(factoryClassLoader.loadClass(SNI_FACTORY), is(sameInstance(SNISettingTLSSocketFactory.class)));
+        assertThat(factoryClassLoader.loadClass(SNI_FACTORY), is(sameInstance(SniSettingTLSSocketFactory.class)));
     }
 
     @Test
@@ -72,12 +72,12 @@ public class LDAPConnectionFactoryFactoryClassLoaderTest {
     @Test
     public void noArgConstructor_resolvesSniSocketFactory() throws Exception {
         ClassLoader loader = new SocketFactoryClassLoader();
-        assertThat(loader.loadClass(SNI_FACTORY), is(sameInstance(SNISettingTLSSocketFactory.class)));
+        assertThat(loader.loadClass(SNI_FACTORY), is(sameInstance(SniSettingTLSSocketFactory.class)));
     }
 
     @Test
     public void factoryNameConstants_matchClassNames() {
-        assertThat(SocketFactoryClassLoader.SNI_SETTING_TLS_SOCKET_FACTORY, is(SNISettingTLSSocketFactory.class.getName()));
+        assertThat(SocketFactoryClassLoader.SNI_SETTING_TLS_SOCKET_FACTORY, is(SniSettingTLSSocketFactory.class.getName()));
         assertThat(SocketFactoryClassLoader.THREAD_LOCAL_TLS_SOCKET_FACTORY, is(ThreadLocalTLSSocketFactory.class.getName()));
     }
 }

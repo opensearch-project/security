@@ -47,7 +47,7 @@ import static org.junit.Assert.assertFalse;
 
 /**
  * Checks which client certificate the LDAP backends present over LDAPS. Run in FIPS mode, these tests also cover that
- * {@link LdapCredentialConfig} keeps ldaptive from copying the key store, which fails for BCFKS.
+ * {@link LDAPCredentialConfig} keeps ldaptive from copying the key store, which fails for BCFKS.
  */
 public class LdapClientCertificateTest {
 

@@ -19,13 +19,13 @@ import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
  * <p>On Java 9+ the module system means JNDI's {@code com.sun.jndi.ldap.Connection.getSocketFactory}
  * loads the class named by {@code java.naming.ldap.factory.socket} through the {@code java.naming}
  * module loader, which cannot see application/plugin classes on the classpath. Installing this as the
- * thread-context classloader lets JNDI resolve {@link SNISettingTLSSocketFactory} (and ldaptive's
+ * thread-context classloader lets JNDI resolve {@link SniSettingTLSSocketFactory} (and ldaptive's
  * {@link ThreadLocalTLSSocketFactory}) by name; everything else delegates to the parent loader.
  */
 public final class SocketFactoryClassLoader extends ClassLoader {
 
     // Matched as string literals so a lookup for any other class never touches the factory class literals.
-    static final String SNI_SETTING_TLS_SOCKET_FACTORY = "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory";
+    static final String SNI_SETTING_TLS_SOCKET_FACTORY = "org.opensearch.security.auth.ldap2.SniSettingTLSSocketFactory";
     static final String THREAD_LOCAL_TLS_SOCKET_FACTORY = "org.ldaptive.ssl.ThreadLocalTLSSocketFactory";
 
     public SocketFactoryClassLoader() {
@@ -39,7 +39,7 @@ public final class SocketFactoryClassLoader extends ClassLoader {
     @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException {
         return switch (name) {
-            case SNI_SETTING_TLS_SOCKET_FACTORY -> SNISettingTLSSocketFactory.class;
+            case SNI_SETTING_TLS_SOCKET_FACTORY -> SniSettingTLSSocketFactory.class;
             case THREAD_LOCAL_TLS_SOCKET_FACTORY -> ThreadLocalTLSSocketFactory.class;
             default -> super.loadClass(name);
         };

@@ -27,22 +27,22 @@ import org.ldaptive.ssl.SslConfig;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
 /**
- * {@link JndiProvider} that establishes the {@link SNISettingTLSSocketFactory} context for every LDAP URL a connection
+ * {@link JndiProvider} that establishes the {@link SniSettingTLSSocketFactory} context for every LDAP URL a connection
  * tries, so the SNI name is the host actually being connected to. It takes effect where the provider configuration
- * registers {@link SNISettingTLSSocketFactory} as JNDI socket factory ({@code java.naming.ldap.factory.socket}).
+ * registers {@link SniSettingTLSSocketFactory} as JNDI socket factory ({@code java.naming.ldap.factory.socket}).
  *
  * <p>ldaptive fails over between the configured hosts itself: each {@code open()}/{@code reopen()} calls
  * {@link JndiConnectionFactory#createInternal(String)} once per URL, in the order of the connection strategy, until one
  * succeeds. Under BCJSSE the SNI name is also the name the server certificate is verified against, so it has to follow
  * that loop. Pooled connections, user binds and reopens all go through it as well.
  *
- * <p>ldaptive's thread-local TLS configuration, which {@link SNISettingTLSSocketFactory#getDefault()} wraps, is set on
+ * <p>ldaptive's thread-local TLS configuration, which {@link SniSettingTLSSocketFactory#getDefault()} wraps, is set on
  * the thread that calls {@code getConnection()}. ldaptive re-applies it on later opens only when JNDI uses
- * {@link ThreadLocalTLSSocketFactory} itself; this provider does the same for {@link SNISettingTLSSocketFactory}, so a
+ * {@link ThreadLocalTLSSocketFactory} itself; this provider does the same for {@link SniSettingTLSSocketFactory}, so a
  * reopen on another thread (ldaptive's default reopen handler) uses the configuration of its own connection.
  *
  * <p>This works around the JNDI LDAP provider not passing the hostname to the socket factory (bc-java#460). ldaptive
- * 2.x's own transport connects with the hostname, which would make this class and {@link SNISettingTLSSocketFactory}
+ * 2.x's own transport connects with the hostname, which would make this class and {@link SniSettingTLSSocketFactory}
  * unnecessary, see https://github.com/opensearch-project/security/issues/2959.
  */
 public class SniJndiProvider extends JndiProvider {
@@ -80,7 +80,7 @@ public class SniJndiProvider extends JndiProvider {
     /**
      * The JNDI environment of the connections: {@code env} if the provider configuration sets one explicitly, otherwise
      * ldaptive's default for {@code cc}. The default registers {@code factory} as JNDI socket factory for LDAPS, unless the
-     * provider properties (where both backends put {@link SNISettingTLSSocketFactory}) override it.
+     * provider properties (where both backends put {@link SniSettingTLSSocketFactory}) override it.
      */
     private Map<String, Object> environment(ConnectionConfig cc, Map<String, Object> env, SSLSocketFactory factory) {
         if (env != null) {
@@ -110,7 +110,7 @@ public class SniJndiProvider extends JndiProvider {
             super(url, strategy, config, env, cl);
             // true only for LDAPS with the SNI factory registered; compared by name so plain LDAP never loads the factory
             this.isSniEnabled = SocketFactoryClassLoader.SNI_SETTING_TLS_SOCKET_FACTORY.equals(env.get(SOCKET_FACTORY));
-            this.sslConfig = isSniEnabled ? SNISettingTLSSocketFactory.currentSslConfig() : null;
+            this.sslConfig = isSniEnabled ? SniSettingTLSSocketFactory.currentSslConfig() : null;
         }
 
         /** ldaptive's TLS configuration this factory re-installs for every URL. Package-private for tests. */
@@ -123,7 +123,7 @@ public class SniJndiProvider extends JndiProvider {
             if (!isSniEnabled) {
                 return super.createInternal(url);
             }
-            try (var ignored = SNISettingTLSSocketFactory.configure(new LdapURL(url).getEntry().getHostname(), sslConfig)) {
+            try (var ignored = SniSettingTLSSocketFactory.configure(new LdapURL(url).getEntry().getHostname(), sslConfig)) {
                 return super.createInternal(url);
             }
         }

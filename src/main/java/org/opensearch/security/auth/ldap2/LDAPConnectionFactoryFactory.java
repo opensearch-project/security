@@ -305,7 +305,7 @@ public class LDAPConnectionFactoryFactory {
 
         SslConfig ldaptiveSslConfig = new SslConfig();
         // narrows the stores to the configured aliases itself; ldaptive's own copies fail for BCFKS (FIPS)
-        CredentialConfig cc = LdapCredentialConfig.of(
+        CredentialConfig cc = LDAPCredentialConfig.of(
             this.sslConfig.getEffectiveTruststore(),
             this.sslConfig.getEffectiveTruststoreAliasesArray(),
             this.sslConfig.getEffectiveKeystore(),
@@ -374,11 +374,11 @@ public class LDAPConnectionFactoryFactory {
         }
 
         // JNDI does not pass the hostname to the socket factory (https://github.com/bcgit/bc-java/issues/460), so
-        // SNISettingTLSSocketFactory sets SNI from the host SniJndiProvider provides for each LDAP URL
-        props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SNISettingTLSSocketFactory");
+        // SniSettingTLSSocketFactory sets SNI from the host SniJndiProvider provides for each LDAP URL
+        props.put("java.naming.ldap.factory.socket", "org.opensearch.security.auth.ldap2.SniSettingTLSSocketFactory");
 
         JndiProviderConfig providerConfig = (JndiProviderConfig) connectionFactory.getProvider().getProviderConfig();
         providerConfig.setProperties(props);
-        providerConfig.setClassLoader(new SocketFactoryClassLoader(SNISettingTLSSocketFactory.class.getClassLoader()));
+        providerConfig.setClassLoader(new SocketFactoryClassLoader(SniSettingTLSSocketFactory.class.getClassLoader()));
     }
 }
