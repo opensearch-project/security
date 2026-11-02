@@ -17,6 +17,7 @@ package org.opensearch.security.configuration;
 //https://github.com/salyh/elasticsearch-security-plugin/blob/4b53974a43b270ae77ebe79d635e2484230c9d01/src/main/java/org/elasticsearch/plugins/security/filter/DlsWriteFilter.java
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,12 +33,15 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.ByteVectorValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.FilterDirectoryReader;
+import org.apache.lucene.index.FloatVectorValues;
 import org.apache.lucene.index.ImpactsEnum;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
@@ -52,6 +56,7 @@ import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.KnnCollector;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
@@ -88,11 +93,13 @@ import org.opensearch.security.support.WildcardMatcher;
 
 class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
+    private static final String KNN_FIELD_ATTRIBUTE = "knn_field";
     private static final String KEYWORD = ".keyword";
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
     private final Set<String> includesSet;
     private final Set<String> excludesSet;
     private final FieldInfos flsFieldInfos;
+    private final FieldInfos visibleFieldInfos;
     private final boolean flsEnabled;
     private String[] includes;
     private String[] excludes;
@@ -218,6 +225,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             this.flsFieldInfos = null;
         }
 
+        this.visibleFieldInfos = buildVisibleFieldInfos(delegate.getFieldInfos());
+
         try {
             dge = new DlsGetEvaluator(dlsQuery, in, applyDlsHere());
         } catch (IOException e) {
@@ -236,6 +245,66 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             }
         }
         return false;
+    }
+
+    private FieldInfos buildVisibleFieldInfos(FieldInfos originalFieldInfos) {
+        if (!flsEnabled && !maskFields) {
+            return originalFieldInfos;
+        }
+
+        List<FieldInfo> visibleFields = new ArrayList<>(originalFieldInfos.size());
+        boolean changed = false;
+        for (FieldInfo fieldInfo : originalFieldInfos) {
+            boolean masked = !metaFields.contains(fieldInfo.name) && isMasked(fieldInfo.name);
+            // Binary-backed k-NN fields have no Lucene vector dimension or supported masked vector representation.
+            boolean maskedVector = masked && (fieldInfo.hasVectorValues() || "true".equals(fieldInfo.getAttribute(KNN_FIELD_ATTRIBUTE)));
+            if (!(metaFields.contains(fieldInfo.name) || isFls(fieldInfo.name)) || maskedVector) {
+                changed = true;
+                continue;
+            }
+
+            FieldInfo visibleField = masked ? maskedDocValuesFieldInfo(fieldInfo) : fieldInfo;
+            visibleFields.add(visibleField);
+            changed |= visibleField != fieldInfo;
+        }
+        return changed ? new FieldInfos(visibleFields.toArray(new FieldInfo[0])) : originalFieldInfos;
+    }
+
+    private FieldInfo maskedDocValuesFieldInfo(FieldInfo fieldInfo) {
+        switch (fieldInfo.getDocValuesType()) {
+            case BINARY:
+            case SORTED:
+            case SORTED_SET:
+                break;
+            default:
+                return fieldInfo;
+        }
+        if (fieldInfo.getIndexOptions() == IndexOptions.NONE
+            && fieldInfo.getPointDimensionCount() == 0
+            && fieldInfo.getVectorDimension() == 0) {
+            return fieldInfo;
+        }
+
+        // Count shortcuts need metadata consistent with the available doc-values view.
+        return new FieldInfo(
+            fieldInfo.name,
+            fieldInfo.number,
+            false,
+            false,
+            false,
+            IndexOptions.NONE,
+            fieldInfo.getDocValuesType(),
+            fieldInfo.getDocValuesGen(),
+            fieldInfo.attributes(),
+            0,
+            0,
+            0,
+            0,
+            fieldInfo.getVectorEncoding(),
+            fieldInfo.getVectorSimilarityFunction(),
+            fieldInfo.isSoftDeletesField(),
+            fieldInfo.isParentField()
+        );
     }
 
     private class DlsGetEvaluator {
@@ -581,12 +650,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public FieldInfos getFieldInfos() {
-
-        if (!flsEnabled) {
-            return in.getFieldInfos();
-        }
-
-        return flsFieldInfos;
+        return visibleFieldInfos;
     }
 
     private class ComplianceAwareStoredFieldVisitor extends StoredFieldVisitor {
@@ -886,7 +950,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
             @Override
             public int size() {
-                return flsFieldInfos.size();
+                return visibleFieldInfos.size();
             }
 
         };
@@ -899,7 +963,13 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public BinaryDocValues getBinaryDocValues(final String field) throws IOException {
-        return isFls(field) ? wrapBinaryDocValues(field, in.getBinaryDocValues(field)) : null;
+        if (metaFields.contains(field)) {
+            return in.getBinaryDocValues(field);
+        }
+        if (visibleFieldInfos.fieldInfo(field) == null) {
+            return null;
+        }
+        return wrapBinaryDocValues(field, in.getBinaryDocValues(field));
     }
 
     private BinaryDocValues wrapBinaryDocValues(final String field, final BinaryDocValues binaryDocValues) {
@@ -1117,12 +1187,37 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         return isAllowed(field) ? in.getPointValues(field) : null;
     }
 
+    @Override
+    public FloatVectorValues getFloatVectorValues(String field) throws IOException {
+        return isAllowed(field) ? in.getFloatVectorValues(field) : null;
+    }
+
+    @Override
+    public ByteVectorValues getByteVectorValues(String field) throws IOException {
+        return isAllowed(field) ? in.getByteVectorValues(field) : null;
+    }
+
+    @Override
+    public void searchNearestVectors(String field, float[] target, KnnCollector collector, Bits acceptDocs) throws IOException {
+        if (isAllowed(field)) {
+            in.searchNearestVectors(field, target, collector, acceptDocs);
+        }
+    }
+
+    @Override
+    public void searchNearestVectors(String field, byte[] target, KnnCollector collector, Bits acceptDocs) throws IOException {
+        if (isAllowed(field)) {
+            in.searchNearestVectors(field, target, collector, acceptDocs);
+        }
+    }
+
     private boolean isAllowed(String fieldName) {
         return this.metaFields.contains(fieldName) || (isFls(fieldName) && (!isMasked(fieldName)));
     }
 
     private boolean isMasked(String field) {
-        return this.maskedFieldsMap.anyMatch(field);
+        // Doc-value masking also applies a parent field's rule to its keyword subfield.
+        return this.maskedFieldsMap.anyMatch(field) || (field.endsWith(KEYWORD) && this.maskedFieldsMap.anyMatch(handleKeyword(field)));
     }
 
     @Override
