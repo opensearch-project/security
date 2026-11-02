@@ -4,6 +4,9 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+
 jobs:
   Code-Diff-Analyzer:
     uses: opensearch-project/opensearch-build/.github/workflows/code-diff-analyzer.yml@main
