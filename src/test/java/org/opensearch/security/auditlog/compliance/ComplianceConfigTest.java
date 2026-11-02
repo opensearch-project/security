@@ -11,11 +11,14 @@
 
 package org.opensearch.security.auditlog.compliance;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
@@ -198,17 +201,43 @@ public class ComplianceConfigTest {
         // act: Don't log for the current audit log
         setYear.accept(1337);
         assertThat(complianceConfig.readHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(false));
+        assertThat(complianceConfig.readHistoryEnabledForField("audit-log-index-1337-01-01", "field"), equalTo(false));
         assertThat(complianceConfig.writeHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(false));
 
         // act: Log for current audit log when it does not match the date
         setYear.accept(2048);
-        // See https://github.com/opensearch-project/security/issues/3950
-        // assertThat(complianceConfig.readHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(true));
+        assertThat(complianceConfig.readHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(true));
+        assertThat(complianceConfig.readHistoryEnabledForField("audit-log-index-1337-01-01", "field"), equalTo(true));
         assertThat(complianceConfig.writeHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(true));
+        // act: Don't log for the audit log of the new date
+        assertThat(complianceConfig.readHistoryEnabledForIndex("audit-log-index-2048-01-01"), equalTo(false));
+        assertThat(complianceConfig.readHistoryEnabledForField("audit-log-index-2048-01-01", "field"), equalTo(false));
 
         // act: Log for any matching index
         assertThat(complianceConfig.readHistoryEnabledForIndex("my-data"), equalTo(true));
         assertThat(complianceConfig.writeHistoryEnabledForIndex("my-data"), equalTo(true));
+    }
+
+    @Test
+    public void testReadHistoryEnabledForIndex_cacheFailureFallsBackToFields() throws Exception {
+        // arrange
+        final ComplianceConfig complianceConfig = ComplianceConfig.from(
+            Settings.builder().putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "watched*").build()
+        );
+        final Field cacheField = ComplianceConfig.class.getDeclaredField("readEnabledFieldsCache");
+        cacheField.setAccessible(true);
+        cacheField.set(complianceConfig, CacheBuilder.newBuilder().build(new CacheLoader<String, WildcardMatcher>() {
+            @Override
+            public WildcardMatcher load(String index) throws Exception {
+                throw new Exception("cache load failure");
+            }
+        }));
+
+        // act and assert: the fallback agrees with the cached path
+        assertThat(complianceConfig.readHistoryEnabledForIndex("watched-index"), equalTo(true));
+        assertThat(complianceConfig.readHistoryEnabledForIndex("other-index"), equalTo(false));
+        assertThat(complianceConfig.readHistoryEnabledForField("watched-index", "field"), equalTo(true));
+        assertThat(complianceConfig.readHistoryEnabledForField("other-index", "field"), equalTo(false));
     }
 
     @Test

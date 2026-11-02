@@ -528,16 +528,6 @@ public class ComplianceConfig {
             return Collections.emptySet();
         }
 
-        if (auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
-            return Collections.emptySet();
-        }
-
-        if (auditLogPattern != null) {
-            if (index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
-                return Collections.emptySet();
-            }
-        }
-
         return watchedReadState.readEnabledFields.entrySet()
             .stream()
             .filter(entry -> entry.getKey().test(index))
@@ -572,18 +562,24 @@ public class ComplianceConfig {
         if (this.securityIndicesMatcher.test(index)) {
             return logInternalConfig;
         }
-        // if the index is used for audit logging, return false
-        if (auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
+        if (isCurrentAuditLogIndex(index)) {
             return false;
-        }
-        // if the index is used for audit logging (rolling index name), return false
-        if (auditLogPattern != null) {
-            if (index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null))) {
-                return false;
-            }
         }
 
         return watchedWriteIndicesMatcher.test(index);
+    }
+
+    /**
+     * Checks whether the index is the audit log index, or for a rolling name, the audit log index of the current date.
+     * The result depends on the date, so it must not be cached.
+     * @param index index name
+     * @return true if audit events are currently written to this index
+     */
+    private boolean isCurrentAuditLogIndex(String index) {
+        if (auditLogIndex != null && auditLogIndex.equalsIgnoreCase(index)) {
+            return true;
+        }
+        return auditLogPattern != null && index.equalsIgnoreCase(getExpandedIndexName(auditLogPattern, null));
     }
 
     /**
@@ -600,11 +596,14 @@ public class ComplianceConfig {
         if (securityIndicesMatcher.test(index)) {
             return logInternalConfig;
         }
+        if (isCurrentAuditLogIndex(index)) {
+            return false;
+        }
         try {
             return readEnabledFieldsCache.get(index) != WildcardMatcher.NONE;
         } catch (ExecutionException e) {
             log.warn("Failed to get index {} fields enabled for read from cache. Bypassing cache.", index, e);
-            return getFieldsForIndex(index).isEmpty();
+            return !getFieldsForIndex(index).isEmpty();
         }
     }
 
@@ -621,6 +620,9 @@ public class ComplianceConfig {
         // if security index (internal index) check if internal config logging is enabled
         if (securityIndicesMatcher.test(index)) {
             return logInternalConfig;
+        }
+        if (isCurrentAuditLogIndex(index)) {
+            return false;
         }
         WildcardMatcher matcher;
         try {
