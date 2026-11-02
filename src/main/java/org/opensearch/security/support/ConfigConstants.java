@@ -423,6 +423,9 @@ public class ConfigConstants {
         ".opendistro-alerting-config",
         ".opendistro-alerting-alerts",
         ".opendistro-alerting-alert-history-*",
+        ".opendistro-alerting-config-sharing",
+        ".opensearch-alerting-finding-history-*",
+        ".opensearch-alerting-comments-history-*",
         ".opendistro-ism-config",
         ".ltrstore*"
     );
