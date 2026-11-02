@@ -34,6 +34,17 @@ runs:
         path: ${{ inputs.plugin-branch }}
         persist-credentials: false
 
+    # The previous release branch still lists snapshot repositories that are no longer served, and it needs no Lucene snapshot.
+    - name: Use the current snapshot repositories
+      if: ${{ inputs.plugin-branch != 'current_branch' }}
+      shell: bash
+      working-directory: ${{ inputs.plugin-branch }}
+      run: |
+        sed -i \
+          -e 's#https://aws.oss.sonatype.org/content/repositories/snapshots#https://ci.opensearch.org/ci/dbc/snapshots/maven/#g' \
+          -e '\#https://artifacts.opensearch.org/snapshots/lucene/#d' \
+          build.gradle bwc-test/build.gradle
+
     - name: Build
       uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
       with:
