@@ -313,10 +313,18 @@ public class ResourceSharingIndexHandler {
      *
      * @param resourceId    the resource to update
      * @param resourceIndex the index that holds the resource
+     * @param seqNo         resource document version to start from, or {@code UNASSIGNED_SEQ_NO} to read it
+     * @param primaryTerm   primary term of that version
      * @param listener      {@code true} once written, {@code false} if there is no sharing record
      */
-    private void syncResourceVisibility(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
-        syncResourceVisibilityAttempt(resourceId, resourceIndex, UNASSIGNED_SEQ_NO, UNASSIGNED_PRIMARY_TERM, 1, listener);
+    private void syncResourceVisibility(
+        String resourceId,
+        String resourceIndex,
+        long seqNo,
+        long primaryTerm,
+        ActionListener<Boolean> listener
+    ) {
+        syncResourceVisibilityAttempt(resourceId, resourceIndex, seqNo, primaryTerm, 1, listener);
     }
 
     /**
@@ -460,7 +468,13 @@ public class ResourceSharingIndexHandler {
      * @param listener      completes once the field matches the record, or immediately if there is no record
      */
     public void fetchAndUpdateResourceVisibility(String resourceId, String resourceIndex, ActionListener<Void> listener) {
-        syncResourceVisibility(resourceId, resourceIndex, restoreListener(resourceId, resourceIndex, listener));
+        syncResourceVisibility(
+            resourceId,
+            resourceIndex,
+            UNASSIGNED_SEQ_NO,
+            UNASSIGNED_PRIMARY_TERM,
+            restoreListener(resourceId, resourceIndex, listener)
+        );
     }
 
     /**
@@ -480,14 +494,7 @@ public class ResourceSharingIndexHandler {
         long primaryTerm,
         ActionListener<Void> listener
     ) {
-        syncResourceVisibilityAttempt(
-            resourceId,
-            resourceIndex,
-            seqNo,
-            primaryTerm,
-            1,
-            restoreListener(resourceId, resourceIndex, listener)
-        );
+        syncResourceVisibility(resourceId, resourceIndex, seqNo, primaryTerm, restoreListener(resourceId, resourceIndex, listener));
     }
 
     private static ActionListener<Boolean> restoreListener(String resourceId, String resourceIndex, ActionListener<Void> listener) {
@@ -524,6 +531,28 @@ public class ResourceSharingIndexHandler {
      */
     public void indexResourceSharing(String resourceIndex, ResourceSharing sharingInfo, ActionListener<ResourceSharing> callerListener)
         throws IOException {
+        indexResourceSharing(resourceIndex, sharingInfo, UNASSIGNED_SEQ_NO, UNASSIGNED_PRIMARY_TERM, callerListener);
+    }
+
+    /**
+     * Same as {@link #indexResourceSharing(String, ResourceSharing, ActionListener)}, but the field write starts from a
+     * resource document version the caller already holds instead of reading it.
+     *
+     * @param resourceIndex  the index that holds the resource
+     * @param sharingInfo    the record to create
+     * @param seqNo          sequence number of the resource document write, or {@code UNASSIGNED_SEQ_NO} to read it
+     * @param primaryTerm    primary term of that write
+     * @param callerListener the record once created, {@code null} if one already existed (the field is then rewritten from it),
+     *                       or the failure
+     * @throws IOException if the record cannot be serialized
+     */
+    public void indexResourceSharing(
+        String resourceIndex,
+        ResourceSharing sharingInfo,
+        long seqNo,
+        long primaryTerm,
+        ActionListener<ResourceSharing> callerListener
+    ) throws IOException {
         final ActionListener<ResourceSharing> listener = ActionListener.notifyOnce(callerListener);
         String resourceId = sharingInfo.getResourceId();
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
@@ -539,7 +568,7 @@ public class ResourceSharingIndexHandler {
             ActionListener<IndexResponse> irListener = ActionListener.wrap(idxResponse -> {
                 ctx.restore();
                 LOGGER.info("Successfully created {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
-                syncThenRespond(resourceIndex, sharingInfo, false, listener);
+                syncThenRespond(resourceIndex, sharingInfo, seqNo, primaryTerm, false, listener);
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
                     // The record stands; rewrite the field from it, so a repeated create or migrate repairs a field that is out of step
@@ -548,6 +577,8 @@ public class ResourceSharingIndexHandler {
                     syncResourceVisibility(
                         resourceId,
                         resourceIndex,
+                        seqNo,
+                        primaryTerm,
                         ActionListener.wrap(written -> listener.onResponse(null), syncError -> {
                             LOGGER.error(
                                 "Failed to update principals field in [{}] for resource [{}]",
@@ -1058,7 +1089,7 @@ public class ResourceSharingIndexHandler {
             client.index(ir, ActionListener.wrap(idxResponse -> {
                 ctx.restore();
                 LOGGER.info("Successfully updated {} entry for resource {} in index {}.", resourceSharingIndex, resourceId, resourceIndex);
-                syncThenRespond(resourceIndex, sharingInfo, true, listener);
+                syncThenRespond(resourceIndex, sharingInfo, UNASSIGNED_SEQ_NO, UNASSIGNED_PRIMARY_TERM, true, listener);
             }, e -> {
                 ctx.restore();
                 // A concurrent write (e.g. a workspace reconcile) changed the record; re-fetch and re-apply.
@@ -1623,17 +1654,21 @@ public class ResourceSharingIndexHandler {
      *
      * @param resourceIndex the index that holds the resource
      * @param sharingInfo   the record just written
+     * @param seqNo         resource document version to start from, or {@code UNASSIGNED_SEQ_NO} to read it
+     * @param primaryTerm   primary term of that version
      * @param retryable     whether repeating the request rewrites the field; a create cannot be repeated
      * @param listener      the caller to answer
      */
     private void syncThenRespond(
         String resourceIndex,
         ResourceSharing sharingInfo,
+        long seqNo,
+        long primaryTerm,
         boolean retryable,
         ActionListener<ResourceSharing> listener
     ) {
         String resourceId = sharingInfo.getResourceId();
-        syncResourceVisibility(resourceId, resourceIndex, ActionListener.wrap(written -> {
+        syncResourceVisibility(resourceId, resourceIndex, seqNo, primaryTerm, ActionListener.wrap(written -> {
             if (written) {
                 listener.onResponse(sharingInfo);
             } else {
