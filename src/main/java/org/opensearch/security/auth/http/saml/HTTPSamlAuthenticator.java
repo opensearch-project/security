@@ -167,7 +167,8 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(request, threadContext);
 
         if (AUTHINFO_SUFFIX.equals(suffix)) {
-            this.initLogoutUrl(threadContext, authCredentials);
+            // A rejected credential has no SAML session to log out of
+            this.initLogoutUrl(threadContext, authCredentials != null && authCredentials.isRejected() ? null : authCredentials);
         }
 
         return authCredentials;

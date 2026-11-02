@@ -1,0 +1,5 @@
+index_permissions:
+  - index_patterns:
+      - "test-*"
+    allowed_actions:
+      - "indices:data/read/search*"

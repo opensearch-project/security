@@ -29,6 +29,7 @@ package org.opensearch.security;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -250,6 +251,7 @@ import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
+import org.opensearch.security.transport.InterClusterRequestEvaluatorFactory;
 import org.opensearch.security.transport.RemoteClusterIdentityPolicy;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
@@ -297,6 +299,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         ExtensiblePlugin
 
 {
+
+    static final String PLUGIN_PERMISSIONS_FILE = "plugin-additional-permissions.yml";
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -1559,17 +1563,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
 
-        final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
-        InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
-
-        final String className = settings.get(
-            ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
-            DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS
-        );
-        log.debug("Using {} as intercluster request evaluator class", className);
-        if (!DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
-        }
+        final InterClusterRequestEvaluator interClusterRequestEvaluator = InterClusterRequestEvaluatorFactory.create(settings);
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
@@ -1784,9 +1778,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         // communication with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence
         // the base values from opensearch.yml
         // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
-        if (DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
-            DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
-            e.subscribeForChanges(dcf);
+        // Check the runtime type rather than the configured class name, so a legacy class name that failed to load and fell back to the
+        // default evaluator still receives dynamic nodes_dn updates.
+        if (interClusterRequestEvaluator instanceof DefaultInterClusterRequestEvaluator defaultEvaluator) {
+            defaultEvaluator.subscribeForChanges(dcf);
         }
 
         components.add(adminDns);
@@ -2435,13 +2430,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CERT_OID, Property.NodeScope, Property.Filtered));
 
-            settings.add(
-                Setting.simpleString(
-                    ConfigConstants.SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
-                    Property.NodeScope,
-                    Property.Filtered
-                )
-            );
+            settings.add(SecuritySettings.LEGACY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
+            settings.add(SecuritySettings.INTERCLUSTER_REQUEST_EVALUATOR);
             settings.add(
                 Setting.listSetting(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)
             );// not filtered here
@@ -2552,6 +2542,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     Property.Filtered
                 )
             );
+            settings.add(SecuritySettings.RESTAPI_BULK_MAX_ENTRIES);
 
             // Compliance settings moved outside the gate — see below
 
@@ -2771,20 +2762,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
         }
 
-        // resourceSharingIndexManagementRepository will be null when sec plugin is disabled or is in SSLOnly mode, hence it will not be
-        // instantiated
-        if (resourceSharingEnabledSetting.getDynamicSettingValue()) {
-            // create resource sharing index if absent
-            // TODO check if this should be wrapped in an atomic completable future
-            log.debug("Attempting to create Resource Sharing index");
-            Set<String> resourceIndices = new HashSet<>();
-            if (resourcePluginInfo != null) {
-                resourceIndices = resourcePluginInfo.getResourceIndices();
-            }
-            rsIndexHandler.createResourceSharingIndicesIfAbsent(resourceIndices);
-
-        }
-
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -2880,12 +2857,28 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         return tokenManager;
     }
 
+    /**
+     * Finds the plugin's own {@code plugin-additional-permissions.yml}.
+     * {@code getResource} asks the parent loader first, and a plugin's parent includes the plugins it extends, so it
+     * can return the file of an extended plugin. A plugin loader is a {@link URLClassLoader}, whose
+     * {@code findResource} searches only the plugin's own jars.
+     *
+     * @param pluginClassLoader the class loader of the plugin
+     * @return the file, or null if the plugin has none
+     */
+    static URL findPluginPermissionsFile(ClassLoader pluginClassLoader) {
+        if (pluginClassLoader instanceof URLClassLoader urlClassLoader) {
+            return urlClassLoader.findResource(PLUGIN_PERMISSIONS_FILE);
+        }
+        return pluginClassLoader.getResource(PLUGIN_PERMISSIONS_FILE);
+    }
+
     @Override
     public PluginSubject getPluginSubject(Plugin plugin) {
         PluginSubject subject = new SecurePluginSubject(threadPool, settings, plugin);
         if (!client && !disabled && !sslConfig.isSslOnlyMode()) {
             String pluginPrincipal = subject.getPrincipal().getName();
-            URL resource = plugin.getClass().getClassLoader().getResource("plugin-additional-permissions.yml");
+            URL resource = findPluginPermissionsFile(plugin.getClass().getClassLoader());
             RoleV7 pluginPermissions;
             if (resource == null) {
                 log.info(

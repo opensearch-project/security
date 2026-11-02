@@ -32,6 +32,8 @@ public class ResourceSharingProtectedResourcesSettingTests {
         ResourceProvider provider = mock(ResourceProvider.class);
         when(provider.resourceType()).thenReturn(type);
         when(provider.resourceIndexName()).thenReturn(index);
+        // Types sharing an index must each declare a type field
+        when(provider.typeField()).thenReturn("type");
         ResourceSharingExtension extension = mock(ResourceSharingExtension.class);
         when(extension.getResourceProviders()).thenReturn(Set.of(provider));
         return extension;

@@ -103,7 +103,7 @@ public class AuthZinRestLayerTests {
             );
 
             // fail at REST
-            assertThat(client.get(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.get(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
             auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, NO_PERM, GET, "/" + PROTECTED_API));
         }
     }
@@ -113,7 +113,7 @@ public class AuthZinRestLayerTests {
         try (TestRestClient client = cluster.getRestClient(NO_PERM)) {
 
             // Protected Routes plugin
-            assertThat(client.getWithoutLeadingSlash(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.getWithoutLeadingSlash(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 
@@ -168,13 +168,13 @@ public class AuthZinRestLayerTests {
     @Test
     public void testShouldBlockAccessToEndpointForWhichUserHasNoPermission() {
         try (TestRestClient client = cluster.getRestClient(REST_ONLY)) {
-            assertThat(client.post(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.post(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
             auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, REST_ONLY, POST, "/" + PROTECTED_API));
         }
 
         try (TestRestClient client = cluster.getRestClient(REST_PLUS_TRANSPORT)) {
-            assertThat(client.post(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.post(PROTECTED_API).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
             auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, REST_PLUS_TRANSPORT, POST, "/" + PROTECTED_API));
         }
@@ -188,7 +188,7 @@ public class AuthZinRestLayerTests {
         // TRANSPORT_ONLY should have access to legacy endpoint, but not protected endpoint
         try (TestRestClient client = cluster.getRestClient(TRANSPORT_ONLY)) {
             TestRestClient.HttpResponse res = client.get(PROTECTED_API);
-            assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
             auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(MISSING_PRIVILEGES, TRANSPORT_ONLY, GET, "/" + PROTECTED_API));
 
             assertOKResponseFromLegacyPlugin(client);

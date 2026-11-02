@@ -337,7 +337,10 @@ public class LDAPConnectionFactoryFactory {
             log.debug("enabled ssl cipher suites for ldaps {}", Arrays.toString(enabledCipherSuites));
         }
 
-        final String[] enabledProtocols = this.sslConfig.getSupportedProtocols();
+        final String[] supportedProtocols = this.sslConfig.getSupportedProtocols();
+        final String[] enabledProtocols = supportedProtocols != null
+            ? supportedProtocols
+            : SettingsBasedSSLConfigurator.DEFAULT_TLS_PROTOCOLS.toArray(new String[0]);
         log.debug("enabled ssl/tls protocols for ldaps {}", Arrays.toString(enabledProtocols));
         ldaptiveSslConfig.setEnabledProtocols(enabledProtocols);
 

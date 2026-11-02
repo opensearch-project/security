@@ -37,6 +37,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -115,6 +116,11 @@ public class SecurityInterceptor {
         this.actionTraceEnabled = actionTraceSupplier;
         this.userFactory = userFactory;
         this.remoteClusterIdentityPolicy = remoteClusterIdentityPolicy;
+    }
+
+    @VisibleForTesting
+    public InterClusterRequestEvaluator getInterClusterRequestEvaluator() {
+        return requestEvalProvider;
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {

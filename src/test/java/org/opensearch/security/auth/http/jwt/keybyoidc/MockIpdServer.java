@@ -38,7 +38,6 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
 
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.network.SocketUtils;
 
 import com.nimbusds.jose.jwk.JWKSet;
 
@@ -50,16 +49,24 @@ class MockIpdServer implements Closeable {
     private final int port;
     private final String uri;
     private final boolean ssl;
+    private final String keyStoreName;
     private final JWKSet jwks;
 
     MockIpdServer(JWKSet jwks) throws IOException {
-        this(jwks, SocketUtils.findAvailableTcpPort(), false);
+        this(jwks, 0, false);
     }
 
     MockIpdServer(JWKSet jwks, int port, boolean ssl) throws IOException {
-        this.port = port;
-        this.uri = (ssl ? "https" : "http") + "://localhost:" + port;
+        this(jwks, port, ssl, "jwt/node-0-keystore");
+    }
+
+    /**
+     * Starts the server with the given server key store when TLS is on.
+     * @param keyStoreName base name of the server key store, without extension
+     */
+    MockIpdServer(JWKSet jwks, int port, boolean ssl, String keyStoreName) throws IOException {
         this.ssl = ssl;
+        this.keyStoreName = keyStoreName;
         this.jwks = jwks;
 
         ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap().setListenerPort(port).setRequestRouter((request, context) -> {
@@ -103,6 +110,9 @@ class MockIpdServer implements Closeable {
         this.httpServer = serverBootstrap.create();
 
         httpServer.start();
+        // Bind first so the OS reserves the port instead of probing and releasing it.
+        this.port = httpServer.getLocalPort();
+        this.uri = (ssl ? "https" : "http") + "://localhost:" + this.port;
     }
 
     @Override
@@ -161,7 +171,7 @@ class MockIpdServer implements Closeable {
             tmf.init(trustStore);
 
             final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            var typedKeyStore = FileHelper.resolveStore("jwt/node-0-keystore");
+            var typedKeyStore = FileHelper.resolveStore(keyStoreName);
             final KeyStore keyStore = KeyStore.getInstance(typedKeyStore.type());
             InputStream keyStream = new FileInputStream(typedKeyStore.path().toFile());
 

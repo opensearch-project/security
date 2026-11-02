@@ -12,6 +12,7 @@
 package org.opensearch.security.auth.http.saml;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -36,6 +37,7 @@ import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -101,6 +103,7 @@ import jakarta.servlet.http.Part;
 import net.shibboleth.shared.codec.Base64Support;
 import net.shibboleth.shared.codec.EncodingException;
 import net.shibboleth.shared.component.ComponentInitializationException;
+import net.shibboleth.shared.io.NoWrapAutoEndInflaterInputStream;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -166,6 +169,19 @@ import org.opensaml.xmlsec.signature.support.impl.ExplicitKeySignatureTrustEngin
 import org.w3c.dom.Document;
 
 class MockSamlIdpServer implements Closeable {
+
+    // Shibboleth 9.2.3 decodes with a chunked Base64 codec. Commons Codec 1.23 now enforces
+    // that layout, but SAML HTTP-Redirect messages omit line breaks. Keep this workaround in the mock IdP.
+    static class RedirectDecoder extends HTTPRedirectDeflateDecoder {
+        @Override
+        protected InputStream decodeMessage(String message) throws MessageDecodingException {
+            try {
+                return new NoWrapAutoEndInflaterInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(message)));
+            } catch (IllegalArgumentException e) {
+                throw new MessageDecodingException("Unable to Base64 decode SAML redirect message", e);
+            }
+        }
+    }
 
     final static String ENTITY_ID = "http://test.entity";
 
@@ -344,7 +360,7 @@ class MockSamlIdpServer implements Closeable {
 
             HttpServletRequest httpServletRequest = new FakeHttpServletRequest(request);
 
-            HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
+            HTTPRedirectDeflateDecoder decoder = new RedirectDecoder();
             decoder.setParserPool(XMLObjectProviderRegistrySupport.getParserPool());
             decoder.setHttpServletRequestSupplier(() -> httpServletRequest);
             decoder.initialize();
@@ -377,7 +393,7 @@ class MockSamlIdpServer implements Closeable {
 
             HttpServletRequest httpServletRequest = new FakeHttpServletRequest(request);
 
-            HTTPRedirectDeflateDecoder decoder = new HTTPRedirectDeflateDecoder();
+            HTTPRedirectDeflateDecoder decoder = new RedirectDecoder();
             decoder.setParserPool(XMLObjectProviderRegistrySupport.getParserPool());
             decoder.setHttpServletRequestSupplier(() -> httpServletRequest);
             decoder.initialize();
@@ -392,7 +408,21 @@ class MockSamlIdpServer implements Closeable {
             LogoutRequest logoutRequest = (LogoutRequest) messageContext.getMessage();
 
             SAML2HTTPRedirectDeflateSignatureSecurityHandler signatureSecurityHandler =
-                new SAML2HTTPRedirectDeflateSignatureSecurityHandler();
+                new SAML2HTTPRedirectDeflateSignatureSecurityHandler() {
+                    @Override
+                    protected byte[] getSignature() throws MessageHandlerException {
+                        String signature = getHttpServletRequest().getParameter("Signature");
+                        if (signature == null || signature.isEmpty()) {
+                            return null;
+                        }
+                        try {
+                            // Redirect signatures are unchunked Base64, just like the message itself.
+                            return Base64.getDecoder().decode(signature);
+                        } catch (IllegalArgumentException e) {
+                            throw new MessageHandlerException("Signature could not be base64 decoded", e);
+                        }
+                    }
+                };
             SignatureValidationParameters validationParams = new SignatureValidationParameters();
             SecurityParametersContext securityParametersContext = messageContext.getSubcontext(SecurityParametersContext.class, true);
 

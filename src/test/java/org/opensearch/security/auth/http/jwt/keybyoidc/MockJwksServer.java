@@ -38,7 +38,6 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
 
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.network.SocketUtils;
 
 import com.nimbusds.jose.jwk.JWKSet;
 
@@ -56,12 +55,10 @@ class MockJwksServer implements Closeable {
     private final JWKSet jwks;
 
     MockJwksServer(JWKSet jwks) throws IOException {
-        this(jwks, SocketUtils.findAvailableTcpPort(), false);
+        this(jwks, 0, false);
     }
 
     MockJwksServer(JWKSet jwks, int port, boolean ssl) throws IOException {
-        this.port = port;
-        this.uri = (ssl ? "https" : "http") + "://localhost:" + port;
         this.ssl = ssl;
         this.jwks = jwks;
 
@@ -97,6 +94,9 @@ class MockJwksServer implements Closeable {
 
         this.httpServer = serverBootstrap.create();
         httpServer.start();
+        // Bind first so the OS reserves the port instead of probing and releasing it.
+        this.port = httpServer.getLocalPort();
+        this.uri = (ssl ? "https" : "http") + "://localhost:" + this.port;
     }
 
     @Override

@@ -124,7 +124,7 @@ public class WhoAmITests {
     @Test
     public void testWhoAmIWithoutGetPermissions() {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
-            assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_UNAUTHORIZED, expectedUnuauthorizedBody);
+            assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_FORBIDDEN, expectedUnuauthorizedBody);
             // audit log, named route
             auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(WHO_AM_I_NO_PERM, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
             auditLogsRule.assertExactlyOne(
@@ -138,7 +138,7 @@ public class WhoAmITests {
     @Test
     public void testWhoAmIWithoutGetPermissionsWithoutLeadingSlashInPath() {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
-            assertThat(client.getWithoutLeadingSlash(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.getWithoutLeadingSlash(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 

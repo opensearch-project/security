@@ -14,10 +14,13 @@ package org.opensearch.security.auth.http.jwt.keybyoidc;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.security.KeyStore;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 
@@ -36,16 +39,20 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.security.util.SettingsBasedSSLConfigurator;
 
 import com.nimbusds.jose.jwk.JWKSet;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -74,6 +81,25 @@ public class KeySetRetrieverTest {
     }
 
     @Test
+    public void testMockServersUseDistinctBoundPorts() throws IOException {
+        try (
+            MockIpdServer idp = new MockIpdServer(TestJwk.Jwks.ALL, 0, false);
+            MockJwksServer jwks = new MockJwksServer(TestJwk.Jwks.ALL, 0, false)
+        ) {
+            assertTrue(idp.getPort() > 0);
+            assertTrue(jwks.getPort() > 0);
+            assertNotEquals(idp.getPort(), jwks.getPort());
+            assertEquals(idp.getPort(), URI.create(idp.getDiscoverUri()).getPort());
+            assertEquals(jwks.getPort(), URI.create(jwks.getJwksUri()).getPort());
+            assertThat(new KeySetRetriever(idp.getDiscoverUri(), null, true).get().getKeys().size(), is(greaterThan(0)));
+            assertThat(
+                KeySetRetriever.createForJwksUri(null, false, jwks.getJwksUri(), 1024 * 1024, 10).get().getKeys().size(),
+                is(greaterThan(0))
+            );
+        }
+    }
+
+    @Test
     public void cacheTest() {
         KeySetRetriever keySetRetriever = new KeySetRetriever(mockIdpServer.getDiscoverUri(), null, true);
 
@@ -90,7 +116,7 @@ public class KeySetRetrieverTest {
     @Test
     public void clientCertTest() throws Exception {
 
-        try (MockIpdServer sslMockIdpServer = new MockIpdServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), true) {
+        try (MockIpdServer sslMockIdpServer = new MockIpdServer(TestJwk.Jwks.ALL, 0, true) {
             @Override
             protected void handleDiscoverRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws IOException,
                 HttpException {
@@ -154,6 +180,84 @@ public class KeySetRetrieverTest {
             keySetRetriever.get();
 
         }
+    }
+
+    @Test
+    public void verifyHostnamesFalseLoadsKeysFromIdpWhoseCertificateDoesNotNameTheHost() throws Exception {
+        // The spock certificate has no SAN for localhost, the host in the discovery URI.
+        try (MockIpdServer server = new MockIpdServer(TestJwk.Jwks.ALL, 0, true, "jwt/spock-keystore")) {
+            KeySetRetriever keySetRetriever = new KeySetRetriever(server.getDiscoverUri(), oidcSslConfig(false, Settings.EMPTY), false);
+
+            assertThat(keySetRetriever.get().getKeys().isEmpty(), is(false));
+        }
+    }
+
+    @Test
+    public void verifyHostnamesTrueRejectsIdpWhoseCertificateDoesNotNameTheHost() throws Exception {
+        try (MockIpdServer server = new MockIpdServer(TestJwk.Jwks.ALL, 0, true, "jwt/spock-keystore")) {
+            KeySetRetriever keySetRetriever = new KeySetRetriever(server.getDiscoverUri(), oidcSslConfig(true, Settings.EMPTY), false);
+
+            AuthenticatorUnavailableException e = assertThrows(AuthenticatorUnavailableException.class, keySetRetriever::get);
+            assertThat(e.getCause(), instanceOf(SSLException.class));
+        }
+    }
+
+    @Test
+    public void configuredProtocolsAndCiphersAreUsed() throws Exception {
+        assertConfiguredProtocolAndCipherAreNegotiated(true);
+        assertConfiguredProtocolAndCipherAreNegotiated(false);
+    }
+
+    @Test
+    public void jdkDefaultProtocolsAreUsedWhenNoneAreConfigured() throws Exception {
+        assertThat(negotiatedSession(true, Settings.EMPTY).getProtocol(), is("TLSv1.3"));
+    }
+
+    private static void assertConfiguredProtocolAndCipherAreNegotiated(boolean verifyHostnames) throws Exception {
+        String cipher = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+        Settings tls = Settings.builder()
+            .putList("openid_connect_idp.enabled_ssl_protocols", "TLSv1.2")
+            .putList("openid_connect_idp.enabled_ssl_ciphers", cipher)
+            .build();
+
+        SSLSession session = negotiatedSession(verifyHostnames, tls);
+
+        assertThat(session.getProtocol(), is("TLSv1.2"));
+        assertThat(session.getCipherSuite(), is(cipher));
+    }
+
+    private static SSLSession negotiatedSession(boolean verifyHostnames, Settings tls) throws Exception {
+        AtomicReference<SSLSession> session = new AtomicReference<>();
+
+        try (MockIpdServer server = new MockIpdServer(TestJwk.Jwks.ALL, 0, true) {
+            @Override
+            protected void handleDiscoverRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws IOException,
+                HttpException {
+                session.set(((HttpCoreContext) context).getSSLSession());
+                super.handleDiscoverRequest(request, response, context);
+            }
+        }) {
+            new KeySetRetriever(server.getDiscoverUri(), oidcSslConfig(verifyHostnames, tls), false).get();
+        }
+        return session.get();
+    }
+
+    private static SettingsBasedSSLConfigurator.SSLConfig oidcSslConfig(boolean verifyHostnames, Settings extra) throws Exception {
+        var trustStore = FileHelper.resolveStore("jwt/truststore");
+        var keyStore = FileHelper.resolveStore("jwt/kirk-keystore");
+        Settings settings = Settings.builder()
+            .put("path.home", ".")
+            .put("openid_connect_idp.enable_ssl", true)
+            .put("openid_connect_idp.enable_ssl_client_auth", true)
+            .put("openid_connect_idp.cert_alias", "kirk")
+            .put("openid_connect_idp.verify_hostnames", verifyHostnames)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, trustStore.path().toString())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, trustStore.type())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, keyStore.path().toString())
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, keyStore.type())
+            .put(extra)
+            .build();
+        return new SettingsBasedSSLConfigurator(settings, null, "openid_connect_idp").buildSSLConfig();
     }
 
     // Tests for new factory method createForJwksUri
@@ -222,7 +326,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testSecurityValidation_ResponseSizeExceeded() throws IOException {
         // Create a mock server that returns a large response
-        try (MockJwksServer largeMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer largeMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
@@ -262,7 +366,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testSecurityValidation_KeyCountExceeded() throws IOException {
         // Create a mock server that returns many keys
-        try (MockJwksServer manyKeysMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer manyKeysMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
@@ -347,7 +451,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testErrorHandling_HttpErrorResponse() throws IOException {
         // Create a mock JWKS server that returns HTTP error
-        try (MockJwksServer errorMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer errorMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
@@ -370,7 +474,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testErrorHandling_EmptyResponse() throws IOException {
         // Create a mock JWKS server that returns empty response
-        try (MockJwksServer emptyMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer emptyMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {
@@ -391,7 +495,7 @@ public class KeySetRetrieverTest {
     @Test
     public void testErrorHandling_MalformedJwks() throws IOException {
         // Create a mock JWKS server that returns malformed JWKS
-        try (MockJwksServer malformedMockServer = new MockJwksServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), false) {
+        try (MockJwksServer malformedMockServer = new MockJwksServer(TestJwk.Jwks.ALL, 0, false) {
             @Override
             protected void handleJwksRequest(HttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException,
                 IOException {

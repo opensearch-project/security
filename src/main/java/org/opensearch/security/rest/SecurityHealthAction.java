@@ -112,7 +112,7 @@ public class SecurityHealthAction extends BaseRestHandler {
                     if ("strict".equalsIgnoreCase(mode)
                         && !(registry.isInitialized()
                             && privilegesConfiguration.privilegesEvaluator()
-                                .type() != PrivilegesEvaluator.PrivilegesEvaluatorType.NOT_INITIALIZED)) {
+                                .mode() != PrivilegesEvaluator.PrivilegeEvaluationMode.NOT_INITIALIZED)) {
                         status = "DOWN";
                         message = "Not initialized";
                         restStatus = RestStatus.SERVICE_UNAVAILABLE;

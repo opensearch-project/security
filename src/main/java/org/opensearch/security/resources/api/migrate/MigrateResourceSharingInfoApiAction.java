@@ -178,12 +178,6 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             ? Collections.emptyMap()
             : Utils.toMapOfStrings(defaultAccessNode);
 
-        // Collect the type-field JSON pointer for each registered type. When multiple providers
-        // share an index, each provider may declare a type-specific path (e.g. `monitor.type` /
-        // `workflow.type`); the per-doc classifier below tries each candidate and picks the
-        // first non-null value.
-        List<String> typePaths = new ArrayList<>();
-
         // Per-type owner paths. When a provider declares ownerNamePath()/ownerBackendRolesPath()
         // these take precedence over the request-level username_path/backend_roles_path so a
         // single migrate call can attribute owners for multiple types sharing one index.
@@ -195,17 +189,13 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             String type = entry.getKey();
             String defaultAccessLevelForType = entry.getValue();
 
-            // Validate resource type exists
-            ResourceProvider provider = resourcePluginInfo.getResourceProvider(type);
+            // Validate resource type exists and is protected; a registered but unprotected type gets no records
+            ResourceProvider provider = resourcePluginInfo.isProtectedType(type) ? resourcePluginInfo.getResourceProvider(type) : null;
             if (provider == null) {
-                // We do not expect this to be null, as validation check will already have been performed in request content validator
                 String message = String.format("resource_type be one of: %s", resourcePluginInfo.currentProtectedTypes());
                 return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(message));
             }
 
-            if (provider.typeField() != null) {
-                typePaths.add(provider.typeField());
-            }
             if (provider.ownerNamePath() != null) {
                 typeToOwnerNamePath.put(type, provider.ownerNamePath());
             }
@@ -269,7 +259,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     // type-scoped via provider.ownerNamePath()/ownerBackendRolesPath(). A null
                     // type is not an error here: createNewSharingRecords records the id under
                     // MigrationStats#skippedNoType so the caller sees which docs were skipped.
-                    String type = classifyDocType(rec, typePaths, typeToDefaultAccessLevel, resourcePluginInfo, sourceIndex);
+                    ResourceProvider hitProvider = classifyDocType(rec, resourcePluginInfo, sourceIndex);
+                    String type = hitProvider == null ? null : hitProvider.resourceType();
 
                     // 2) Resolve owner paths: prefer per-provider (per-type) paths, fall back to
                     // the request-level paths. When type is null we can't pick a per-type path,
@@ -295,15 +286,14 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                     String parentId = null;
                     // Workspace IDs, if the provider declares a workspaces field (see extractWorkspaces).
                     Set<String> workspaces = Collections.emptySet();
-                    if (type != null) {
-                        ResourceProvider hitProvider = resourcePluginInfo.getResourceProvider(type);
-                        if (hitProvider != null && hitProvider.parentIdField() != null) {
+                    if (hitProvider != null) {
+                        if (hitProvider.parentIdField() != null) {
                             parentId = rec.at("/" + hitProvider.parentIdField().replace(".", "/")).asText(null);
                             if (parentId != null && parentId.isEmpty()) {
                                 parentId = null;
                             }
                         }
-                        if (hitProvider != null && hitProvider.workspacesField() != null) {
+                        if (hitProvider.workspacesField() != null) {
                             workspaces = extractWorkspaces(rec, hitProvider.workspacesField());
                         }
                     }
@@ -447,7 +437,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         );
                     }
                 }, e -> {
-                    LOGGER.debug(e.getMessage());
+                    LOGGER.warn("Failed to migrate resource sharing info for [{}]: {}", resourceId, e.getMessage());
                     failureCount.getAndIncrement();
                     migrationStatsLatch.countDown();
                 });
@@ -631,38 +621,12 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     /**
-     * Determine a document's resource type using, in order:
-     * <ol>
-     *   <li>the JSON pointer at each registered type-field path (first non-null value wins);</li>
-     *   <li>the single key in {@code typeToDefaultAccessLevel} when no type paths are declared;</li>
-     *   <li>a single-type inference when neither of the above is available.</li>
-     * </ol>
-     * Returns {@code null} when the document can't be classified. Package-private for testability.
+     * The provider of the type to migrate a document as, or {@code null} to skip it. Every type on a protected index is
+     * protected, so every type the resolver recognises is migrated; {@code default_access_level} only overrides the
+     * access level a type is migrated with. Package-private for testability.
      */
-    static String classifyDocType(
-        JsonNode rec,
-        List<String> typePaths,
-        Map<String, String> typeToDefaultAccessLevel,
-        ResourcePluginInfo resourcePluginInfo,
-        String sourceIndex
-    ) {
-        if (!typePaths.isEmpty()) {
-            for (String typePath : typePaths) {
-                String type = rec.at(jsonPointer(typePath)).asText(null);
-                if (type != null) {
-                    return type;
-                }
-            }
-            return null;
-        }
-        if (!typeToDefaultAccessLevel.isEmpty()) {
-            return typeToDefaultAccessLevel.keySet().iterator().next();
-        }
-        return resourcePluginInfo.currentProtectedTypes()
-            .stream()
-            .filter(t -> sourceIndex.equals(resourcePluginInfo.indexByType(t)))
-            .findFirst()
-            .orElse(null);
+    static ResourceProvider classifyDocType(JsonNode rec, ResourcePluginInfo resourcePluginInfo, String sourceIndex) {
+        return resourcePluginInfo.resolveResourceProvider(sourceIndex, field -> rec.at(jsonPointer(field)).asText(null));
     }
 
     record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId, Set<String> workspaces,

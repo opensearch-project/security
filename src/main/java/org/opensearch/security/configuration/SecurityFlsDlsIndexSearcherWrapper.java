@@ -46,6 +46,7 @@ import org.opensearch.security.privileges.dlsfls.DlsFlsProcessedConfig;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
 import org.opensearch.security.privileges.dlsfls.FieldPrivileges;
+import org.opensearch.security.support.ConfigConstants;
 
 public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapper {
 
@@ -173,7 +174,10 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SystemIndexSearcherWrapp
 
                 }
 
-                if (!flsRule.isAllowAll() || !fmRule.isAllowAll()) {
+                // A lookup document grants access only to its internal GET, not to searches of the same index.
+                if ((documentAllowList.isAllowed(index.getName(), DocumentAllowList.ANY_DOCUMENT_ID)
+                    || index.getName().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT)))
+                    && (!flsRule.isAllowAll() || !fmRule.isAllowAll())) {
                     log.debug("Lifting FLS/FM for {} due to present document allowlist", index.getName());
                     flsRule = FieldPrivileges.FlsRule.ALLOW_ALL;
                     fmRule = FieldMasking.FieldMaskingRule.ALLOW_ALL;

@@ -47,6 +47,36 @@ public interface AuditLog extends Closeable {
     // login
     void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request);
 
+    /**
+     * Record a failed login event with an attempted principal and structured failure reason.
+     *
+     * <p>Use this overload when an authenticator rejects a candidate credential before an
+     * identity is established — for example a JWT whose subject uses a reserved security
+     * prefix. {@code effectiveUser} is expected to be {@code null} (rendered as
+     * {@code <NONE>} downstream) so callers do not conflate an attempted principal with an
+     * established one.</p>
+     *
+     * <p>Implementations that do not care about the additional fields SHOULD leave this
+     * default in place, which delegates to the four-argument overload.</p>
+     *
+     * @param effectiveUser  established effective user, or {@code null} if none
+     * @param securityadmin  whether the attempt was flagged as a security-admin attempt
+     * @param initiatingUser initiating user (may be null)
+     * @param request        the security request
+     * @param attemptedUser  attempted principal from the rejected credential (may be null)
+     * @param failureReason  serialized failure-reason enum name (may be null)
+     */
+    default void logFailedLogin(
+        String effectiveUser,
+        boolean securityadmin,
+        String initiatingUser,
+        SecurityRequest request,
+        String attemptedUser,
+        String failureReason
+    ) {
+        logFailedLogin(effectiveUser, securityadmin, initiatingUser, request);
+    }
+
     void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, SecurityRequest request);
 
     // privs
