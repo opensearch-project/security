@@ -44,12 +44,6 @@ public class Salt {
 
     private Salt(final String saltAsString) {
         this.salt16 = new byte[SALT_SIZE];
-        if (saltAsString.equals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT)) {
-            log.warn(
-                "If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes",
-                saltAsString
-            );
-        }
         try {
             ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(saltAsString);
             byteBuffer.get(salt16);
@@ -84,6 +78,27 @@ public class Salt {
             ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT
         );
         return new Salt(saltAsString);
+    }
+
+    /**
+     * Logs a warning when the default compliance salt is in use unless allow_unsafe_democertificates is enabled.
+     * Must be called once during plugin startup.
+     * @param settings fully loaded node settings
+     */
+    public static void warnIfDefaultComplianceSalt(final Settings settings) {
+        final String saltAsString = settings.get(
+            ConfigConstants.SECURITY_COMPLIANCE_SALT,
+            ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT
+        );
+        final boolean allowUnsafeDemoCertificates = settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false);
+        if (ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.equals(saltAsString) && !allowUnsafeDemoCertificates) {
+            log.warn(
+                "Default compliance salt is in use. Configure {} to a random 16-character string identical on all nodes, "
+                    + "or set {} to true for demo/test environments.",
+                ConfigConstants.SECURITY_COMPLIANCE_SALT,
+                ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES
+            );
+        }
     }
 
     /**
