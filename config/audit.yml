@@ -7,6 +7,12 @@ config:
   enabled: true
 
   audit:
+    # Enable/disable REST API auditing. Default: true
+    # enable_rest: true
+
+    # Enable/disable Transport API auditing. Default: true
+    # enable_transport: true
+
     # Categories to exclude from both REST and Transport API auditing
     disabled_categories:
       - AUTHENTICATED
@@ -19,21 +25,20 @@ config:
     ignore_users:
       - kibanaserver
 
-    # Requests to be excluded from auditing. Wildcard patterns are supported. Eg:
+    # Requests to be excluded from auditing. Wildcard patterns are supported. Default: []. Eg:
     # ignore_requests: ["indices:data/read/*", "SearchRequest"]
-    ignore_requests: []
 
-    # Log individual operations in a bulk request
-    resolve_bulk_requests: false
+    # Log individual operations in a bulk request. Default: false
+    # resolve_bulk_requests: false
 
-    # Include the body of the request (if available) for both REST and the transport layer
-    log_request_body: true
+    # Include the body of the request (if available) for both REST and the transport layer. Default: true
+    # log_request_body: true
 
-    # Logs all indices affected by a request. Resolves aliases and wildcards/date patterns
-    resolve_indices: true
+    # Logs all indices affected by a request. Resolves aliases and wildcards/date patterns. Default: true
+    # resolve_indices: true
 
-    # Exclude sensitive headers from being included in the logs. Eg: Authorization
-    exclude_sensitive_headers: true
+    # Exclude sensitive headers from being included in the logs. Eg: Authorization. Default: true
+    # exclude_sensitive_headers: true
 
   compliance:
     # enable/disable compliance

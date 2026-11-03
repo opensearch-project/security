@@ -60,6 +60,23 @@ public class AuditConfigFilterTest {
         assertTrue(config.isEnabled());
         assertTrue(config.getFilter().isRestApiAuditEnabled());
         assertTrue(config.getFilter().isTransportApiAuditEnabled());
+        assertTrue(config.getFilter().shouldLogRequestBody());
+        assertTrue(config.getFilter().shouldResolveIndices());
+        assertFalse(config.getFilter().shouldResolveBulkRequests());
+        assertTrue(config.getFilter().shouldExcludeSensitiveHeaders());
+        assertSame(WildcardMatcher.NONE, config.getFilter().getIgnoredAuditRequestsMatcher());
+    }
+
+    @Test
+    public void testFromMapWithoutKeysUsesDefaults() {
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(Collections.emptyMap());
+        assertTrue(filter.isRestApiAuditEnabled());
+        assertTrue(filter.isTransportApiAuditEnabled());
+        assertTrue(filter.shouldLogRequestBody());
+        assertTrue(filter.shouldResolveIndices());
+        assertFalse(filter.shouldResolveBulkRequests());
+        assertTrue(filter.shouldExcludeSensitiveHeaders());
+        assertSame(WildcardMatcher.NONE, filter.getIgnoredAuditRequestsMatcher());
     }
 
     @Test
