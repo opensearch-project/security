@@ -678,18 +678,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
     @Test
     public void testWrongIssuerIsRejectedWithoutFetchingJwks() throws Exception {
-        AtomicInteger jwksRequests = new AtomicInteger();
-        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL) {
-            @Override
-            protected void handleJwksRequest(
-                org.apache.hc.core5.http.HttpRequest request,
-                org.apache.hc.core5.http.ClassicHttpResponse response,
-                org.apache.hc.core5.http.protocol.HttpContext context
-            ) throws org.apache.hc.core5.http.HttpException, java.io.IOException {
-                jwksRequests.incrementAndGet();
-                super.handleJwksRequest(request, response, context);
-            }
-        };
+        CountingMockJwksServer mockJwksServer = new CountingMockJwksServer();
 
         try {
             Settings settings = Settings.builder()
@@ -705,7 +694,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
             );
 
             Assert.assertNull(creds);
-            assertThat(jwksRequests.get(), is(0));
+            assertThat(mockJwksServer.jwksRequests.get(), is(0));
         } finally {
             mockJwksServer.close();
         }
@@ -713,18 +702,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
     @Test
     public void testRequiredIssuerStillFetchesJwksForMatchingIssuer() throws Exception {
-        AtomicInteger jwksRequests = new AtomicInteger();
-        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL) {
-            @Override
-            protected void handleJwksRequest(
-                org.apache.hc.core5.http.HttpRequest request,
-                org.apache.hc.core5.http.ClassicHttpResponse response,
-                org.apache.hc.core5.http.protocol.HttpContext context
-            ) throws org.apache.hc.core5.http.HttpException, java.io.IOException {
-                jwksRequests.incrementAndGet();
-                super.handleJwksRequest(request, response, context);
-            }
-        };
+        CountingMockJwksServer mockJwksServer = new CountingMockJwksServer();
 
         try {
             Settings settings = Settings.builder()
@@ -741,9 +719,28 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
             Assert.assertNotNull(creds);
             assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
-            assertThat(jwksRequests.get(), is(1));
+            assertThat(mockJwksServer.jwksRequests.get(), is(1));
         } finally {
             mockJwksServer.close();
+        }
+    }
+
+    /** JWKS server that counts the key set requests it serves. */
+    private static class CountingMockJwksServer extends MockJwksServer {
+        private final AtomicInteger jwksRequests = new AtomicInteger();
+
+        CountingMockJwksServer() throws java.io.IOException {
+            super(TestJwk.Jwks.ALL);
+        }
+
+        @Override
+        protected void handleJwksRequest(
+            org.apache.hc.core5.http.HttpRequest request,
+            org.apache.hc.core5.http.ClassicHttpResponse response,
+            org.apache.hc.core5.http.protocol.HttpContext context
+        ) throws org.apache.hc.core5.http.HttpException, java.io.IOException {
+            jwksRequests.incrementAndGet();
+            super.handleJwksRequest(request, response, context);
         }
     }
 }
