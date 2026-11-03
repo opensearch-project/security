@@ -126,7 +126,6 @@ cluster_composite_ops_ro:
   - "indices:data/read/mget"
   - "indices:data/read/msearch"
   - "indices:data/read/msearch/template"
-  - "indices:data/read/search/template/render"
   - "indices:data/read/mtv"
   - "indices:admin/aliases/exists*"
   - "indices:admin/aliases/get*"
