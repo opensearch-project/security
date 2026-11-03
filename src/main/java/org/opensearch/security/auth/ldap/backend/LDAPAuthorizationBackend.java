@@ -64,6 +64,7 @@ import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
 import org.ldaptive.Response;
+import org.ldaptive.ResultCode;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
@@ -921,7 +922,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : nestedReturn) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (excludeRolesMatcher.test(role)) {
+                    if (role == null || excludeRolesMatcher.test(role)) {
                         if (isDebugEnabled) {
                             log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
                         }
@@ -935,7 +936,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connection, roleLdapName, roleName);
 
-                    if (excludeRolesMatcher.test(role)) {
+                    if (role == null || excludeRolesMatcher.test(role)) {
                         if (isDebugEnabled) {
                             log.debug("Role was excluded or empty, attribute: '{}' for entry: {}", roleName, roleLdapName);
                         }
@@ -994,7 +995,24 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
+        final LdapEntry e0;
+        try {
+            e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
+        } catch (final LdapException e) {
+            if (e.getResultCode() != ResultCode.INVALID_DN_SYNTAX) {
+                throw e;
+            }
+            log.warn("Skipping nested roles of {} because the LDAP server rejected the DN as invalid", roleDn);
+            return result;
+        }
+
+        if (e0 == null) {
+            // A role search with this DN can only match stale references to an entry that no longer exists.
+            if (isDebugEnabled) {
+                log.debug("Skipping nested roles of {} because no entry was found for this DN", roleDn);
+            }
+            return result;
+        }
 
         if (e0.getAttribute(userRoleName) != null) {
             final Collection<String> userRoles = e0.getAttribute(userRoleName).getStringValues();
@@ -1142,7 +1160,9 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 this.shouldFollowReferrals
             );
 
-            if (roleEntry != null) {
+            if (roleEntry == null) {
+                log.warn("Skipping role {} because no entry was found for this DN", ldapName);
+            } else {
                 final LdapAttribute roleAttribute = roleEntry.getAttribute(role);
                 if (roleAttribute != null) {
                     return Utils.getSingleStringValue(roleAttribute);

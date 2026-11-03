@@ -134,18 +134,27 @@ The Security plugin protects system indices registered by OpenSearch plugins. Th
 indices through `SystemIndexPlugin.getSystemIndexDescriptors`.
 
 Users whose mapped roles are listed in `plugins.security.restapi.roles_enabled` can restore only the system indices matched by
-`plugins.security.system_indices.restore.indices`. The default list is empty today. System indices will be added to it as their
-plugin owners confirm they restore safely. An operator sets the list in `opensearch.yml`. To also allow changing it at runtime
-with `PUT _cluster/settings`, set `plugins.security.system_indices.restore.dynamic.enabled: true` in `opensearch.yml`; the runtime
-value then takes precedence over the file. A configured value replaces the default list and is not merged
-with it. The Security configuration index can never be restored this way:
+`plugins.security.system_indices.restore.indices`. By default it holds plugin system indices that restore correctly onto a new
+cluster. To see the default list, run:
+
+```
+GET _cluster/settings?include_defaults=true&filter_path=defaults.plugins.security.system_indices.restore.indices
+```
+
+An operator can override the list in `opensearch.yml`, and a configured value replaces the default list rather than adding to
+it. To also allow changing it at runtime with `PUT _cluster/settings`, set `plugins.security.system_indices.restore.dynamic.enabled: true`
+in `opensearch.yml`; the runtime value then takes precedence over the file. The Security configuration index can never be
+restored this way:
 
 ```
 plugins.security.system_indices.restore.indices:
   - ".opendistro-alerting-config"
 ```
 
-The user must still have the snapshot restore cluster permission.
+The user must still have the snapshot restore cluster permission. In the restore request, each system index must be named exactly or
+matched by a pattern that is no broader than an entry of the list. For example, with the entry
+`.opendistro-alerting-alert-history-*`, the request can name `.opendistro-alerting-alert-history-*` or
+`.opendistro-alerting-alert-history-2026.10*`, but not `.opendistro-alerting-alert-history*` or `*`.
 
 
 ## Contributing

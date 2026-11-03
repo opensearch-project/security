@@ -28,12 +28,13 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -128,41 +129,39 @@ public class ResourceSharingIndexHandler {
     public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.hidden", "true");
 
     /**
-     * Creates the resource sharing index if it doesn't already exist.
-     * This method initializes the index with predefined mappings and settings
-     * for storing resource sharing information.
-     * The index will be created with the following structure:
-     * - source_idx (keyword): The source index containing the original document
-     * - resource_id (keyword): The ID of the shared resource
-     * - tenant (keyword): Tenant where the resource is stored
-     * - created_by (object): Information about the user who created the sharing
-     * - user (keyword): Username of the creator
-     * - share_with (object): Access control configuration for shared resources
-     * - [action-group] (object): Name of the action-group
-     * - users (array): List of users with access
-     * - roles (array): List of roles with access
-     * - backend_roles (array): List of backend roles with access
+     * Creates the sharing index with {@link #INDEX_SETTINGS} if it does not exist yet. The first sharing record written
+     * for a resource index creates its sharing index, so a cluster has no sharing index until a resource needs one.
+     * A snapshot restore can therefore bring back a sharing index without conflicting with an empty one.
      *
-     * @throws RuntimeException if there are issues reading/writing index settings
-     *                          or communicating with the cluster
+     * @param resourceSharingIndex the sharing index to create
+     * @param listener             notified once the index exists, including when another node created it first
      */
-
-    public void createResourceSharingIndicesIfAbsent(Collection<String> resourceIndices) {
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            for (String resourceIndex : resourceIndices) {
-                String resourceSharingIndex = getSharingIndex(resourceIndex);
-                CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
-                ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
-                    ctx.restore();
-                    LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
-                }, (failResponse) -> {
-                    /* Index already exists, ignore and continue */
-                    LOGGER.info("Index {} already exists.", resourceSharingIndex);
-                });
-                this.client.admin().indices().create(cir, cirListener);
+    private void createSharingIndexIfAbsent(final String resourceSharingIndex, final ActionListener<Void> listener) {
+        client.admin().indices().exists(new IndicesExistsRequest(resourceSharingIndex).local(true), ActionListener.wrap(response -> {
+            if (response.isExists()) {
+                listener.onResponse(null);
+                return;
             }
-        }
+            final CreateIndexRequest request = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
+            client.admin().indices().create(request, ActionListener.wrap(created -> {
+                LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
+                listener.onResponse(null);
+            }, e -> {
+                if (ExceptionsHelper.unwrapCause(e) instanceof ResourceAlreadyExistsException) {
+                    listener.onResponse(null);
+                } else {
+                    listener.onFailure(e);
+                }
+            }));
+        }, listener::onFailure));
+    }
+
+    /**
+     * @return true if the failure is the sharing index not existing yet, which means no resource of the resource index
+     *         has a sharing record
+     */
+    private static boolean isIndexMissing(final Exception e) {
+        return ExceptionsHelper.unwrapCause(e) instanceof IndexNotFoundException;
     }
 
     public static String getSharingIndex(String resourceIndex) {
@@ -206,25 +205,7 @@ public class ResourceSharingIndexHandler {
             client.get(new GetRequest(resourceSharingIndex).id(resourceId), ActionListener.wrap(getResponse -> {
                 ctx.restore();
                 if (!getResponse.isExists()) {
-                    // The record is created asynchronously; a reconcile from an immediate follow-up write can arrive
-                    // first. Retry rather than treating a missing record as synchronized.
-                    if (attempt < WORKSPACE_RECONCILE_MAX_ATTEMPTS) {
-                        threadPool.schedule(
-                            () -> reconcileWorkspacesAttempt(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt + 1, listener),
-                            CONFLICT_RETRY_DELAY,
-                            ThreadPool.Names.GENERIC
-                        );
-                    } else {
-                        // Fail loud: the record never appeared, so the write-path record may be out of step with the
-                        // resource's workspaces. Re-run the migrate API to repair once the record exists.
-                        LOGGER.error(
-                            "Sharing record [{}] still missing after {} attempts; workspaces left unreconciled. Re-run "
-                                + "POST _plugins/_security/api/resources/migrate to repair.",
-                            resourceId,
-                            attempt
-                        );
-                        listener.onResponse(false);
-                    }
+                    scheduleReconcileRetry(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, listener);
                     return;
                 }
 
@@ -266,7 +247,46 @@ public class ResourceSharingIndexHandler {
                         }
                     }));
                 }
-            }, listener::onFailure));
+            }, e -> {
+                ctx.restore();
+                if (isIndexMissing(e)) {
+                    // The sharing index is created with the first record, so it can be missing for the same reason
+                    scheduleReconcileRetry(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, listener);
+                    return;
+                }
+                listener.onFailure(e);
+            }));
+        }
+    }
+
+    /**
+     * The record is created asynchronously; a reconcile from an immediate follow-up write can arrive first. Retry rather
+     * than treating a missing record as synchronized.
+     */
+    private void scheduleReconcileRetry(
+        String resourceSharingIndex,
+        String resourceId,
+        Set<String> target,
+        long sourceSeqNo,
+        int attempt,
+        ActionListener<Boolean> listener
+    ) {
+        if (attempt < WORKSPACE_RECONCILE_MAX_ATTEMPTS) {
+            threadPool.schedule(
+                () -> reconcileWorkspacesAttempt(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt + 1, listener),
+                CONFLICT_RETRY_DELAY,
+                ThreadPool.Names.GENERIC
+            );
+        } else {
+            // Fail loud: the record never appeared, so the write-path record may be out of step with the
+            // resource's workspaces. Re-run the migrate API to repair once the record exists.
+            LOGGER.error(
+                "Sharing record [{}] still missing after {} attempts; workspaces left unreconciled. Re-run "
+                    + "POST _plugins/_security/api/resources/migrate to repair.",
+                resourceId,
+                attempt
+            );
+            listener.onResponse(false);
         }
     }
 
@@ -543,7 +563,12 @@ public class ResourceSharingIndexHandler {
                     listener.onFailure(e);
                 }
             });
-            client.index(ir, irListener);
+            // Writes the record once the sharing index exists
+            createSharingIndexIfAbsent(resourceSharingIndex, ActionListener.wrap(unused -> client.index(ir, irListener), e -> {
+                ctx.restore();
+                LOGGER.error("Failed to create [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
+                listener.onFailure(e);
+            }));
         }
     }
 
@@ -598,6 +623,11 @@ public class ResourceSharingIndexHandler {
                 LOGGER.debug("Found {} documents in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
             }, exception -> {
+                if (isIndexMissing(exception)) {
+                    ctx.restore();
+                    listener.onResponse(Collections.emptySet());
+                    return;
+                }
                 LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
                 listener.onFailure(exception);
             }));
@@ -626,6 +656,11 @@ public class ResourceSharingIndexHandler {
                 LOGGER.debug("Found {} resource-sharing records in {}", recs.size(), resourceSharingIndex);
                 listener.onResponse(recs);
             }, exception -> {
+                if (isIndexMissing(exception)) {
+                    ctx.restore();
+                    listener.onResponse(Collections.emptySet());
+                    return;
+                }
                 LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
                 listener.onFailure(exception);
             }));
@@ -917,6 +952,12 @@ public class ResourceSharingIndexHandler {
                     listener.onFailure(new OpenSearchStatusException(failureResponse, RestStatus.INTERNAL_SERVER_ERROR, e));
                 }
             }, exception -> {
+                if (isIndexMissing(exception)) {
+                    ctx.restore();
+                    LOGGER.debug("{} does not exist, so resource_id: {} has no sharing record", resourceSharingIndex, resourceId);
+                    listener.onResponse(null);
+                    return;
+                }
                 String failureResponse = "Something went wrong while fetching resource sharing record for resource_id: "
                     + resourceId
                     + " and source_idx: "
@@ -1065,6 +1106,10 @@ public class ResourceSharingIndexHandler {
                 }
             }, e -> {
                 ctx.restore();
+                if (isIndexMissing(e)) {
+                    listener.onResponse(null);
+                    return;
+                }
                 listener.onFailure(e);
             }));
         }
@@ -1209,6 +1254,12 @@ public class ResourceSharingIndexHandler {
                     listener.onResponse(false);
                 }
             }, failResponse -> {
+                if (isIndexMissing(failResponse)) {
+                    ctx.restore();
+                    LOGGER.debug("{} does not exist, so resource_id: {} has no record to delete", resourceSharingIndex, resourceId);
+                    listener.onResponse(false);
+                    return;
+                }
                 LOGGER.error("Failed to delete documents from {}", resourceSharingIndex, failResponse);
                 listener.onFailure(failResponse);
             }));

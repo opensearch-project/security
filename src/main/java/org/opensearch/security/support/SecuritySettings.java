@@ -349,7 +349,11 @@ public class SecuritySettings {
         false,
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
-    );
+    )
+        .withDescription(
+            "Ignores security roles forwarded by a remote cluster when authorizing incoming cross-cluster requests. "
+                + "The user's identity and backend roles remain available for local role mapping."
+        );
 
     // Deprecated: selects the inter-cluster request evaluator by class name via reflection. Kept so clusters still setting
     // plugins.security.cert.intercluster_request_evaluator_class continue to work; to be removed in a future major version (see #6479).

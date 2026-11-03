@@ -499,6 +499,7 @@ configurations {
             force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
             force "io.netty:netty-buffer:${versions.netty}"
             force "io.netty:netty-codec-base:${versions.netty}"
+            force "io.netty:netty-codec-compression:${versions.netty}"
             force "io.netty:netty-codec-http:${versions.netty}"
             force "io.netty:netty-codec-http2:${versions.netty}"
             force "io.netty:netty-codec-http3:${versions.netty}"
@@ -508,6 +509,8 @@ configurations {
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-resolver:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
+            force "io.netty:netty-transport-classes-epoll:${versions.netty}"
+            force "io.netty:netty-transport-native-epoll:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force libs.google.guava
@@ -533,12 +536,12 @@ configurations {
             force "org.apache.httpcomponents:httpcore:4.4.16"
             force "com.google.errorprone:error_prone_annotations:${versions.error_prone_annotations}"
             force "org.checkerframework:checker-qual:3.55.1"
-            force "ch.qos.logback:logback-classic:1.6.5"
+            force "ch.qos.logback:logback-classic:1.6.6"
             force "commons-io:commons-io:2.22.0"
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.2"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.24.0"
-            force "net.bytebuddy:byte-buddy:1.18.15"
+            force "net.bytebuddy:byte-buddy:1.18.16"
             force "org.ow2.asm:asm:${versions.asm}"
 
             // For org.opensearch.plugin:transport-grpc
@@ -636,7 +639,7 @@ allprojects {
                 integrationTestImplementation "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
                 integrationTestImplementation 'org.greenrobot:eventbus-java:3.3.1'
                 integrationTestImplementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
-                integrationTestImplementation('io.github.vishwakarma:zjsonpatch:0.6.3') {
+                integrationTestImplementation('io.github.vishwakarma:zjsonpatch:0.6.4') {
                     exclude(group: 'com.fasterxml.jackson.core')
                     exclude(group: 'org.apache.commons', module: 'commons-collections4')
                 }
@@ -674,6 +677,15 @@ tasks.register("integrationTest", Test) {
     description = 'Run integration tests.'
     group = 'verification'
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
+    // required by the arrow-flight-rpc plugin used in Flight stream transport tests
+    systemProperty "io.netty.allocator.numDirectArenas", "1"
+    systemProperty "io.netty.noUnsafe", "false"
+    systemProperty "io.netty.tryUnsafe", "true"
+    systemProperty "io.netty.tryReflectionSetAccessible", "true"
+    // keep Netty on NIO as in a plugin installation: with native epoll on the test classpath, arrow-flight-rpc would
+    // pair epoll channels with its NIO event loops and fail to start on Linux
+    systemProperty "io.netty.transport.noNative", "true"
+    jvmArgs += ["--add-opens", "java.base/java.nio=ALL-UNNAMED"]
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
     //run the integrationTest task after the test task
@@ -707,6 +719,10 @@ check.dependsOn integrationTest
 
 
 dependencies {
+    // Arrow Flight stream transport, used only by the root project's Flight integration tests
+    integrationTestImplementation "org.opensearch.plugin:arrow-base:${opensearch_version}"
+    integrationTestImplementation "org.opensearch.plugin:arrow-flight-rpc:${opensearch_version}"
+    integrationTestImplementation("org.apache.arrow:flight-core:${versions.arrow}") { transitive = false }
     implementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
@@ -743,7 +759,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     // JSON patch
-    implementation 'io.github.vishwakarma:zjsonpatch:0.6.3'
+    implementation 'io.github.vishwakarma:zjsonpatch:0.6.4'
     implementation "org.apache.commons:commons-collections4:${versions.commonscollections4}"
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
