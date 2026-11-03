@@ -829,6 +829,14 @@ public class LdapBackendTest {
     }
 
     @Test
+    public void testNestedRoleReachedAgainAtSmallerDepthIsExpandedAgain() throws Exception {
+        assertThat(
+            nestedAttrRoles("reexpanduser", 2),
+            containsInAnyOrder("reexpanda", "reexpandc", "reexpandd", "reexpande", "reexpandf", "reexpandg")
+        );
+    }
+
+    @Test
     public void testNestedRoleReachedThroughTwoPathsIsSearchedOnce() throws Exception {
         final List<String> searchedGroups;
         try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend.class)) {
@@ -875,6 +883,10 @@ public class LdapBackendTest {
     }
 
     private Set<String> nestedAttrRoles(final String username) throws Exception {
+        return nestedAttrRoles(username, ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH_DEFAULT);
+    }
+
+    private Set<String> nestedAttrRoles(final String username, final int maxNestedDepth) throws Exception {
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
@@ -885,6 +897,7 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
+            .put(ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH, maxNestedDepth)
             .build();
 
         final User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User(username), ctx(username, username));

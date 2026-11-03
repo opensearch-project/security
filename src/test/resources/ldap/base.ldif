@@ -354,3 +354,47 @@ objectClass: groupOfUniqueNames
 cn: diamondtop
 uniqueMember: cn=diamondleft,ou=groups,o=TEST
 uniqueMember: cn=diamondright,ou=groups,o=TEST
+
+dn: cn=Reexpand User,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Reexpand User
+sn: reexpanduser
+uid: reexpanduser
+userpassword: reexpanduser
+mail: reexpanduser@example.com
+
+# The user is in reexpanda and reexpandc, which are members of each other, so whichever is
+# resolved first reaches the other at depth 2 before it is resolved as a direct role at depth 1.
+# reexpandc -> reexpandd -> reexpande and reexpanda -> reexpandf -> reexpandg are only found
+# within max_nested_depth 2 when started from depth 1.
+dn: cn=reexpanda,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpanda
+uniqueMember: cn=Reexpand User,ou=people,o=TEST
+uniqueMember: cn=reexpandc,ou=groups,o=TEST
+
+dn: cn=reexpandc,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpandc
+uniqueMember: cn=Reexpand User,ou=people,o=TEST
+uniqueMember: cn=reexpanda,ou=groups,o=TEST
+
+dn: cn=reexpandd,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpandd
+uniqueMember: cn=reexpandc,ou=groups,o=TEST
+
+dn: cn=reexpande,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpande
+uniqueMember: cn=reexpandd,ou=groups,o=TEST
+
+dn: cn=reexpandf,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpandf
+uniqueMember: cn=reexpanda,ou=groups,o=TEST
+
+dn: cn=reexpandg,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpandg
+uniqueMember: cn=reexpandf,ou=groups,o=TEST
