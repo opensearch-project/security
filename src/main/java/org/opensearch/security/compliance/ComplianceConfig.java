@@ -595,10 +595,7 @@ public class ComplianceConfig {
         if (securityIndicesMatcher.test(index)) {
             return logInternalConfig;
         }
-        if (isCurrentAuditLogIndex(index)) {
-            return false;
-        }
-        return readEnabledFieldsCache.getUnchecked(index) != WildcardMatcher.NONE;
+        return readEnabledFieldsCache.getUnchecked(index) != WildcardMatcher.NONE && !isCurrentAuditLogIndex(index);
     }
 
     /**
@@ -615,9 +612,7 @@ public class ComplianceConfig {
         if (securityIndicesMatcher.test(index)) {
             return logInternalConfig;
         }
-        if (isCurrentAuditLogIndex(index)) {
-            return false;
-        }
-        return readEnabledFieldsCache.getUnchecked(index).test(field);
+        // the field check is a cache hit, so it runs before the date based audit index check
+        return readEnabledFieldsCache.getUnchecked(index).test(field) && !isCurrentAuditLogIndex(index);
     }
 }
