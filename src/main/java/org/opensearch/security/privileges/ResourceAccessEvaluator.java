@@ -12,6 +12,7 @@ package org.opensearch.security.privileges;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,6 +21,8 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.support.ContextPreservingActionListener;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.security.resources.ResourceAccessHandler;
@@ -49,13 +52,16 @@ public class ResourceAccessEvaluator {
 
     private final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting;
     private final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting;
+    private final ThreadContext threadContext;
 
     public ResourceAccessEvaluator(
         ResourcePluginInfo resourcePluginInfo,
         ResourceAccessHandler resourceAccessHandler,
         final OpensearchDynamicSetting<Boolean> resourceSharingEnabledSetting,
-        final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting
+        final OpensearchDynamicSetting<List<String>> protectedResourceTypesSetting,
+        final ThreadContext threadContext
     ) {
+        this.threadContext = threadContext;
         this.resourcePluginInfo = resourcePluginInfo;
         this.resourceAccessHandler = resourceAccessHandler;
         this.resourceSharingEnabledSetting = resourceSharingEnabledSetting;
@@ -97,8 +103,9 @@ public class ResourceAccessEvaluator {
 
     /**
      * Authorizes a request against the resources that govern it rather than the ones it names, by asking the plugin's
-     * resolver for them first. Every resolved id must grant the action, and a resolution that yields nothing, or that
-     * fails, denies the request.
+     * resolver for them first. Every resolved id must grant the action, and a resolution that yields nothing, a blank id,
+     * or a failure denies the request. The caller's context is restored before the check, whatever context the resolver
+     * completes in.
      * <p>
      * What the resolver names is also what the audit trail records, since those are the resources whose sharing records
      * decided the request. When nothing resolves there are none, so the request's own reference is recorded instead and the
@@ -115,26 +122,32 @@ public class ResourceAccessEvaluator {
         final GatingResourceResolver gatingResolver,
         final ActionListener<Evaluation> pResponseListener
     ) {
-        gatingResolver.resolveGatingResourceIds(request.request(), ActionListener.wrap(gatingResourceIds -> {
-            final List<String> ids = gatingResourceIds == null
-                ? List.of()
-                : gatingResourceIds.stream().filter(id -> !Strings.isNullOrEmpty(id)).distinct().toList();
-            if (ids.isEmpty()) {
-                log.debug(
-                    "No gating resource of type {} resolved for request of type {}; action {} is not allowed",
-                    gatingResolver.gatingResourceType(),
-                    request.type(),
-                    action
-                );
+        // A resolver typically reads as the plugin; the check and the transport action after it must run as the caller
+        final Supplier<ThreadContext.StoredContext> callerContext = threadContext.newRestorableContext(true);
+        gatingResolver.resolveGatingResourceIds(
+            request.request(),
+            new ContextPreservingActionListener<>(callerContext, ActionListener.wrap(gatingResourceIds -> {
+                // A blank id is an item whose governing resource is unknown, so it cannot be dropped
+                if (gatingResourceIds == null
+                    || gatingResourceIds.isEmpty()
+                    || gatingResourceIds.stream().anyMatch(Strings::isNullOrEmpty)) {
+                    log.debug(
+                        "No gating resource of type {} resolved for some item of request of type {}; action {} is not allowed",
+                        gatingResolver.gatingResourceType(),
+                        request.type(),
+                        action
+                    );
+                    pResponseListener.onResponse(deniedForRequestItself(request, action));
+                    return;
+                }
+                final List<String> ids = gatingResourceIds.stream().distinct().toList();
+                final String gatingType = gatingResolver.gatingResourceType();
+                checkPermission(ids, gatingType, resourcePluginInfo.indexByType(gatingType), action, pResponseListener);
+            }, e -> {
+                log.debug("Failed to resolve the gating resource for request of type {}: {}", request.type(), e.getMessage());
                 pResponseListener.onResponse(deniedForRequestItself(request, action));
-                return;
-            }
-            final String gatingType = gatingResolver.gatingResourceType();
-            checkPermission(ids, gatingType, resourcePluginInfo.indexByType(gatingType), action, pResponseListener);
-        }, e -> {
-            log.debug("Failed to resolve the gating resource for request of type {}: {}", request.type(), e.getMessage());
-            pResponseListener.onResponse(deniedForRequestItself(request, action));
-        }));
+            }))
+        );
     }
 
     private static Evaluation deniedForRequestItself(final ResourceRequest request, final String action) {

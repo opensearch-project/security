@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -71,6 +72,7 @@ public class ResourceAccessEvaluatorTest {
 
     private static final String IDX = "resource-index";
     private static final String TYPE = "sample-resource";
+    private static final String CALLER_TRANSIENT = "caller_transient";
 
     @Before
     public void setup() {
@@ -79,7 +81,8 @@ public class ResourceAccessEvaluatorTest {
             resourcePluginInfo,
             resourceAccessHandler,
             resourceSharingEnabledSetting,
-            protectedResourceTypesSetting
+            protectedResourceTypesSetting,
+            threadContext
         );
     }
 
@@ -396,6 +399,56 @@ public class ResourceAccessEvaluatorTest {
         assertThat(evaluation.resource().type(), equalTo(REQUEST_TYPE));
         assertThat(evaluation.resource().ids(), equalTo(List.of()));
         verify(resourceAccessHandler, never()).hasPermission(anyCollection(), anyString(), anyString(), any());
+    }
+
+    /**
+     * A blank among the resolved ids is an item whose governing resource is unknown, so the request is denied rather than
+     * allowed on the ids that did resolve.
+     */
+    @Test
+    public void testEvaluateAsync_gatedRequest_deniedWhenAnyResolvedIdIsBlank() {
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(Arrays.asList("monitor-1", null), null));
+
+        assertGatedEvaluation(false);
+        verify(resourceAccessHandler, never()).hasPermission(anyCollection(), anyString(), anyString(), any());
+    }
+
+    /**
+     * A resolver that answers from inside its own stashed context does not take the caller's context away from the check
+     * and the transport action that follow.
+     */
+    @Test
+    public void testEvaluateAsync_gatedRequest_restoresTheCallerContextAfterResolution() {
+        threadContext.putTransient(CALLER_TRANSIENT, "caller");
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(new GatingResourceResolver() {
+            @Override
+            public String requestType() {
+                return REQUEST_TYPE;
+            }
+
+            @Override
+            public String gatingResourceType() {
+                return GATING_TYPE;
+            }
+
+            @Override
+            public void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener) {
+                try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+                    listener.onResponse(List.of(GATING_ID));
+                }
+            }
+        });
+        when(resourcePluginInfo.indexByType(GATING_TYPE)).thenReturn(GATING_INDEX);
+        AtomicReference<Object> seenByCheck = new AtomicReference<>();
+        doAnswer(inv -> {
+            seenByCheck.set(threadContext.getTransient(CALLER_TRANSIENT));
+            ActionListener<Boolean> listener = inv.getArgument(3);
+            listener.onResponse(true);
+            return null;
+        }).when(resourceAccessHandler).hasPermission(eq(List.of(GATING_ID)), eq(GATING_TYPE), eq("read"), any());
+
+        assertGatedEvaluation(true);
+        assertThat(seenByCheck.get(), equalTo("caller"));
     }
 
     @Test

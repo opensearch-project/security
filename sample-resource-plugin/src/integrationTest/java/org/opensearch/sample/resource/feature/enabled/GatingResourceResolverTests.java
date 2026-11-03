@@ -89,6 +89,33 @@ public class GatingResourceResolverTests {
         forbidden(() -> api.getResourceByName("no-such-resource", NO_ACCESS_USER));
     }
 
+    /**
+     * Names are not unique. When the user can see two resources with the same name, which one the request means is
+     * unknown, so it is denied even though the user may read both.
+     */
+    @Test
+    public void nameOfTwoVisibleResources_isForbidden() throws Exception {
+        ok(() -> api.shareResource(sharedResourceId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY));
+        String sameName = api.createNamedSampleResourceAs(USER_ADMIN, SHARED_NAME);
+        api.awaitSharingEntry(sameName);
+        ok(() -> api.shareResource(sameName, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY));
+
+        forbidden(() -> api.getResourceByName(SHARED_NAME, NO_ACCESS_USER));
+    }
+
+    /**
+     * The lookup only sees resources the user may see, so a resource with the same name that is not shared with the user
+     * neither makes the name ambiguous nor is ever served.
+     */
+    @Test
+    public void nameAlsoUsedByAHiddenResource_servesTheVisibleOne() throws Exception {
+        ok(() -> api.shareResource(sharedResourceId, USER_ADMIN, NO_ACCESS_USER, SAMPLE_READ_ONLY));
+        api.awaitSharingEntry(api.createNamedSampleResourceAs(USER_ADMIN, SHARED_NAME));
+
+        TestRestClient.HttpResponse response = ok(() -> api.getResourceByName(SHARED_NAME, NO_ACCESS_USER));
+        assertThat(response.getBody(), containsString(SHARED_NAME));
+    }
+
     @Test
     public void owner_isAllowed() throws Exception {
         TestRestClient.HttpResponse response = ok(() -> api.getResourceByName(UNSHARED_NAME, USER_ADMIN));

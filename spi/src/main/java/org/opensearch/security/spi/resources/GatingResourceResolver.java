@@ -25,7 +25,7 @@ import org.opensearch.core.action.ActionListener;
  * <p>A plugin registers a resolver through {@link ResourceSharingExtension#getGatingResourceResolvers()} for the value
  * its requests report as {@link DocRequest#type()}. When such a request arrives, the evaluator asks the resolver for the
  * gating resource id and authorizes that resource, of {@link #gatingResourceType()}, instead. The request is denied if
- * resolution yields nothing or fails.
+ * resolution yields nothing, yields a blank id, or fails.
  *
  * <p>Notes for implementers:
  * <ul>
@@ -41,12 +41,8 @@ import org.opensearch.core.action.ActionListener;
  *   <li>{@link #resolveGatingResourceId} is called on the transport thread while the request is being authorized, so it
  *       must not block. Perform the read with the plugin's own client, since the requesting user usually holds no
  *       permission on the index being read.</li>
- *   <li><b>Restore the caller's context before completing the listener.</b> The access check that follows, and the
- *       transport action after it, run on whatever context the listener is invoked with. Reading as the plugin is fine,
- *       but hand the caller's context back first: {@code PluginClient} in the sample plugin shows the pattern, wrapping
- *       the listener in {@code ActionListener.runBefore(listener, storedContext::restore)}. The authenticated user itself
- *       travels in a persistent header and survives a stash, so the check would still identify the caller, but the
- *       downstream action would run with the plugin's transient state.</li>
+ *   <li>The listener may be completed in any context, for example inside the plugin's own stash: the security plugin
+ *       restores the caller's context before the access check and the transport action that follow.</li>
  * </ul>
  */
 public interface GatingResourceResolver {
@@ -75,7 +71,7 @@ public interface GatingResourceResolver {
      * own request type to read whichever field links to the governing resource.
      *
      * @param request  the request being authorized
-     * @param listener notified with the gating resource ids; nothing resolved denies the request, as does a failure
+     * @param listener notified with the gating resource ids; nothing resolved, a blank id, or a failure denies the request
      */
     void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener);
 }

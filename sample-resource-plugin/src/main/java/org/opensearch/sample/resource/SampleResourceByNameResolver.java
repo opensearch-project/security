@@ -60,14 +60,26 @@ public class SampleResourceByNameResolver implements GatingResourceResolver {
         }
         String resourceName = byNameRequest.getResourceName();
 
-        SearchSourceBuilder source = new SearchSourceBuilder().size(1)
+        // Two hits are enough to tell a unique name from an ambiguous one, since names are not unique
+        SearchSourceBuilder source = new SearchSourceBuilder().size(2)
             .fetchSource(false)
             .query(QueryBuilders.termQuery("name.keyword", resourceName));
 
         pluginClient.search(new SearchRequest(RESOURCE_INDEX_NAME).source(source), ActionListener.wrap(searchResponse -> {
             SearchHit[] hits = searchResponse.getHits().getHits();
-            // No hit means no resource governs the request, which the evaluator treats as a denial.
-            listener.onResponse(hits.length == 0 ? List.of() : List.of(hits[0].getId()));
+            if (hits.length > 1) {
+                // Authorizing one of several resources with this name would not say which one the action serves
+                listener.onFailure(new IllegalArgumentException("More than one resource is named [" + resourceName + "]"));
+                return;
+            }
+            if (hits.length == 0) {
+                // No hit means no resource governs the request, which the evaluator treats as a denial
+                listener.onResponse(List.of());
+                return;
+            }
+            // The action fetches this id, so it serves the resource that was authorized even if the name changes owner
+            byNameRequest.setResolvedResourceId(hits[0].getId());
+            listener.onResponse(List.of(hits[0].getId()));
         }, listener::onFailure));
     }
 }

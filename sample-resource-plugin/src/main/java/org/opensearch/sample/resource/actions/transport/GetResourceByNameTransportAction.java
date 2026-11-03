@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.opensearch.OpenSearchStatusException;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -20,6 +22,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilders;
@@ -52,11 +55,33 @@ public class GetResourceByNameTransportAction extends HandledTransportAction<Get
 
     @Override
     protected void doExecute(Task task, GetResourceByNameRequest request, ActionListener<GetResourceResponse> listener) {
-        SearchSourceBuilder source = new SearchSourceBuilder().size(1)
+        String resolvedId = request.getResolvedResourceId();
+        if (resolvedId != null) {
+            // Serve the resource the security plugin authorized, not whatever the name resolves to now
+            pluginClient.get(new GetRequest(RESOURCE_INDEX_NAME, resolvedId), ActionListener.wrap(getResponse -> {
+                if (!getResponse.isExists()) {
+                    listener.onResponse(new GetResourceResponse(Set.of()));
+                    return;
+                }
+                listener.onResponse(new GetResourceResponse(Set.of(parseResource(getResponse.getSourceAsString()))));
+            }, listener::onFailure));
+            return;
+        }
+
+        SearchSourceBuilder source = new SearchSourceBuilder().size(2)
             .query(QueryBuilders.termQuery("name.keyword", request.getResourceName()));
 
         pluginClient.search(new SearchRequest(RESOURCE_INDEX_NAME).source(source), ActionListener.wrap(searchResponse -> {
             SearchHit[] hits = searchResponse.getHits().getHits();
+            if (hits.length > 1) {
+                listener.onFailure(
+                    new OpenSearchStatusException(
+                        "More than one resource is named [" + request.getResourceName() + "]",
+                        RestStatus.CONFLICT
+                    )
+                );
+                return;
+            }
 
             Set<SampleResource> resources = Arrays.stream(hits).map(hit -> {
                 try {

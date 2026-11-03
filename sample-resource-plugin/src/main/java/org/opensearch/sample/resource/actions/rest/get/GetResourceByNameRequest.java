@@ -27,6 +27,9 @@ import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 public class GetResourceByNameRequest extends ActionRequest implements DocRequest {
 
     private final String resourceName;
+    // Set by the resolver on the node that authorizes the request, so the action serves exactly the resource authorized.
+    // Not serialized: a request that reaches the action without it falls back to the name lookup.
+    private volatile String resolvedResourceId;
 
     /**
      * Default constructor
@@ -51,6 +54,22 @@ public class GetResourceByNameRequest extends ActionRequest implements DocReques
 
     public String getResourceName() {
         return this.resourceName;
+    }
+
+    /**
+     * @return the id the gating resolver resolved the name to, or {@code null} if the request was not resolved
+     */
+    public String getResolvedResourceId() {
+        return this.resolvedResourceId;
+    }
+
+    /**
+     * Records the id the gating resolver resolved the name to, which is the resource the security plugin authorizes.
+     *
+     * @param resourceId the resolved resource id
+     */
+    public void setResolvedResourceId(String resourceId) {
+        this.resolvedResourceId = resourceId;
     }
 
     @Override

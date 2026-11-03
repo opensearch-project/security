@@ -1685,7 +1685,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             resourcePluginInfo,
             resourceAccessHandler,
             resourceSharingEnabledSetting,
-            resourceSharingProtectedResourceTypesSetting
+            resourceSharingProtectedResourceTypesSetting,
+            threadPool.getThreadContext()
         );
 
         sf = new SecurityFilter(
