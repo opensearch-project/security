@@ -54,6 +54,16 @@ public final class ConfigConstants {
     public static final String LDAPS_VERIFY_HOSTNAMES = "verify_hostnames";
     public static final String LDAPS_TRUST_ALL = "trust_all";
     public static final boolean LDAPS_VERIFY_HOSTNAMES_DEFAULT = true;
+    // JNDI verifies LDAPS hostnames itself unless this JVM property is set, see
+    // https://www.oracle.com/technetwork/java/javase/8u181-relnotes-4479407.html
+    // https://www.oracle.com/technetwork/java/javase/10-0-2-relnotes-4477557.html
+    // https://www.oracle.com/technetwork/java/javase/11-0-1-relnotes-5032023.html
+    public static final String LDAPS_DISABLE_ENDPOINT_IDENTIFICATION_PROPERTY = "com.sun.jndi.ldap.object.disableEndpointIdentification";
+    public static final String LDAPS_ENDPOINT_IDENTIFICATION_WARNING =
+        "Hostname verification for LDAP connections is disabled (verify_hostnames: false or trust_all: true), "
+            + "but JNDI still verifies the hostname unless the JVM is started with -D"
+            + LDAPS_DISABLE_ENDPOINT_IDENTIFICATION_PROPERTY
+            + "=true (e.g. in jvm.options). The JVM reads this property once, so it cannot be set at runtime.";
     public static final String LDAPS_ENABLE_SSL = "enable_ssl";
     public static final String LDAPS_ENABLE_START_TLS = "enable_start_tls";
     public static final String LDAPS_ENABLE_SSL_CLIENT_AUTH = "enable_ssl_client_auth";
