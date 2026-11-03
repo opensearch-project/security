@@ -48,7 +48,11 @@ public class ResourceSharingProtectedResourcesSetting extends OpensearchDynamicS
         Function.identity(),
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
-    );
+    )
+        .withDescription(
+            "Resource types protected by resource-sharing authorization when plugins.security.resource_sharing.enabled is true. "
+                + "All resource types registered on the same index must be included or excluded together."
+        );
 
     /**
      * Rewrites the pre-graduation key to the current one in the cluster state. Only the key moves, so the
@@ -84,7 +88,7 @@ public class ResourceSharingProtectedResourcesSetting extends OpensearchDynamicS
             resourcePluginInfo::validateProtectedTypes,
             Setting.Property.NodeScope,
             Setting.Property.Dynamic
-        );
+        ).withDescription(PROTECTED_TYPES.getDescription());
     }
 
     /**

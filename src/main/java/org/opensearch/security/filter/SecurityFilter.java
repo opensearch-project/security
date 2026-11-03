@@ -425,40 +425,29 @@ public class SecurityFilter implements ActionFilter {
             // We perform the rest of the evaluation as normal if the request is not for resource-access or if the feature is disabled
             // The request names its resources through one of two interfaces, normalized by the evaluator, which returns
             // null when it is not the one to authorize this request. The verdict covers the request as a whole, and is
-            // recorded against each id it names.
+            // recorded against the resources it was decided on, which for a gated request are the ones its resolver named
+            // rather than the ones the request reports.
             final ResourceAccessEvaluator.ResourceRequest resourceRequest = resourceAccessEvaluator.evaluableResourceRequest(request);
             if (resourceRequest != null) {
-                resourceAccessEvaluator.evaluateAsync(resourceRequest, action, ActionListener.wrap(response -> {
+                resourceAccessEvaluator.evaluateAsync(resourceRequest, action, ActionListener.wrap(evaluation -> {
+                    final PrivilegesEvaluatorResponse response = evaluation.response();
+                    final ResourceAccessEvaluator.AuthorizedResource resource = evaluation.resource();
                     if (handlePermissionCheckRequest(listener, response, action)) {
                         return;
                     }
                     if (response.isAllowed()) {
-                        resourceRequest.ids()
-                            .forEach(
-                                id -> auditLog.logResourceAccessGranted(
-                                    action,
-                                    id,
-                                    resourceRequest.type(),
-                                    resourceRequest.index(),
-                                    request,
-                                    task
-                                )
-                            );
+                        auditResources(
+                            resource,
+                            id -> auditLog.logResourceAccessGranted(action, id, resource.type(), resource.index(), request, task)
+                        );
                         auditLog.logIndexEvent(action, request, task);
                         auditLog.logSettingsChange(action, request, task);
                         chain.proceed(task, action, request, listener);
                     } else {
-                        resourceRequest.ids()
-                            .forEach(
-                                id -> auditLog.logResourceAccessDenied(
-                                    action,
-                                    id,
-                                    resourceRequest.type(),
-                                    resourceRequest.index(),
-                                    request,
-                                    task
-                                )
-                            );
+                        auditResources(
+                            resource,
+                            id -> auditLog.logResourceAccessDenied(action, id, resource.type(), resource.index(), request, task)
+                        );
                         handleUnauthorized.accept(response);
                     }
                 }, listener::onFailure));
@@ -696,5 +685,20 @@ public class SecurityFilter implements ActionFilter {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Records one audit entry per resource the decision was made on. A gated request that resolved nothing names no
+     * resource at all, and a denial still has to leave a trail, so it is recorded once with no id.
+     *
+     * @param resource the resources the evaluation was decided on
+     * @param record   writes the entry for one id
+     */
+    private static void auditResources(final ResourceAccessEvaluator.AuthorizedResource resource, final Consumer<String> record) {
+        if (resource.ids().isEmpty()) {
+            record.accept(null);
+            return;
+        }
+        resource.ids().forEach(record);
     }
 }

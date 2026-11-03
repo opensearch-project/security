@@ -262,3 +262,45 @@ description: ROLE/(186nn) con
  sists of\, special=
 uniqueMember: cn=ROLE/(186n) con
  sists of\, special\=chars\ ,ou=groups,o=TEST
+
+dn: cn=Dangling Ref,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Dangling Ref
+sn: danglingref
+uid: danglingref
+userpassword: danglingref
+mail: danglingref@example.com
+# rolemo4 exists, the other two group DNs have no entry
+description: cn=rolemo4,ou=groups,o=TEST
+description: cn=doesnotexist,ou=groups,o=TEST
+description: CN=SCA-LDAP\0ACNF,ou=groups,o=TEST
+
+dn: cn=danglingnest,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: danglingnest
+uniqueMember: cn=Dangling Ref,ou=people,o=TEST
+# nested group DN that has no entry
+description: cn=alsomissing,ou=groups,o=TEST
+
+dn: cn=staleparent,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: staleparent
+# stale member reference to a group DN that has no entry
+uniqueMember: cn=doesnotexist,ou=groups,o=TEST
+
+dn: cn=Referral Ref,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Referral Ref
+sn: referralref
+uid: referralref
+userpassword: referralref
+mail: referralref@example.com
+# rolemo4 exists, refmissing is a referral to a DN that has no entry
+description: cn=rolemo4,ou=groups,o=TEST
+description: cn=refmissing,ou=groups,o=TEST
+
+dn: cn=refmissing,ou=groups,o=TEST
+cn: refmissing
+objectClass: referral
+objectClass: extensibleObject
+ref: ldap://localhost:${port}/cn=refgone,ou=groups,o=TEST
