@@ -9,8 +9,10 @@
 package org.opensearch.security.privileges;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +20,7 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.action.DocRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -25,6 +28,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.GatingResourceResolver;
 import org.opensearch.security.spi.resources.MultiResourceRequest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -37,9 +41,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -65,6 +72,7 @@ public class ResourceAccessEvaluatorTest {
 
     private static final String IDX = "resource-index";
     private static final String TYPE = "sample-resource";
+    private static final String CALLER_TRANSIENT = "caller_transient";
 
     @Before
     public void setup() {
@@ -73,7 +81,8 @@ public class ResourceAccessEvaluatorTest {
             resourcePluginInfo,
             resourceAccessHandler,
             resourceSharingEnabledSetting,
-            protectedResourceTypesSetting
+            protectedResourceTypesSetting,
+            threadContext
         );
     }
 
@@ -135,15 +144,18 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(resourceAccessHandler).hasPermission(eq(List.of("anyId")), eq("indices"), eq("read"), any());
 
-        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+        ActionListener<ResourceAccessEvaluator.Evaluation> callback = mock(ActionListener.class);
 
         evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(req), "read", callback);
 
-        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        ArgumentCaptor<ResourceAccessEvaluator.Evaluation> captor = ArgumentCaptor.forClass(ResourceAccessEvaluator.Evaluation.class);
         verify(callback).onResponse(captor.capture());
 
-        PrivilegesEvaluatorResponse out = captor.getValue();
-        assertThat(out.isAllowed(), equalTo(expectedAllowed));
+        ResourceAccessEvaluator.Evaluation out = captor.getValue();
+        assertThat(out.response().isAllowed(), equalTo(expectedAllowed));
+        // an ordinary request is audited against the resource it names
+        assertThat(out.resource().ids(), equalTo(List.of("anyId")));
+        assertThat(out.resource().index(), equalTo(IDX));
     }
 
     @Test
@@ -167,12 +179,12 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(resourceAccessHandler).hasPermission(eq(List.of("id-1", "id-2")), eq(TYPE), eq("read"), any());
 
-        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+        ActionListener<ResourceAccessEvaluator.Evaluation> callback = mock(ActionListener.class);
         evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(req), "read", callback);
 
-        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        ArgumentCaptor<ResourceAccessEvaluator.Evaluation> captor = ArgumentCaptor.forClass(ResourceAccessEvaluator.Evaluation.class);
         verify(callback).onResponse(captor.capture());
-        assertThat(captor.getValue().isAllowed(), equalTo(true));
+        assertThat(captor.getValue().response().isAllowed(), equalTo(true));
     }
 
     @Test
@@ -186,12 +198,12 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(resourceAccessHandler).hasPermission(eq(List.of("id-1", "id-2")), eq(TYPE), eq("read"), any());
 
-        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+        ActionListener<ResourceAccessEvaluator.Evaluation> callback = mock(ActionListener.class);
         evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(req), "read", callback);
 
-        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        ArgumentCaptor<ResourceAccessEvaluator.Evaluation> captor = ArgumentCaptor.forClass(ResourceAccessEvaluator.Evaluation.class);
         verify(callback).onResponse(captor.capture());
-        assertThat(captor.getValue().isAllowed(), equalTo(false));
+        assertThat(captor.getValue().response().isAllowed(), equalTo(false));
     }
 
     /**
@@ -209,12 +221,12 @@ public class ResourceAccessEvaluatorTest {
             return null;
         }).when(resourceAccessHandler).hasPermission(eq(List.of("id-1", "id-2")), eq(TYPE), eq("read"), any());
 
-        ActionListener<PrivilegesEvaluatorResponse> callback = mock(ActionListener.class);
+        ActionListener<ResourceAccessEvaluator.Evaluation> callback = mock(ActionListener.class);
         evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(req), "read", callback);
 
-        ArgumentCaptor<PrivilegesEvaluatorResponse> captor = ArgumentCaptor.forClass(PrivilegesEvaluatorResponse.class);
+        ArgumentCaptor<ResourceAccessEvaluator.Evaluation> captor = ArgumentCaptor.forClass(ResourceAccessEvaluator.Evaluation.class);
         verify(callback).onResponse(captor.capture());
-        assertThat(captor.getValue().isAllowed(), equalTo(false));
+        assertThat(captor.getValue().response().isAllowed(), equalTo(false));
     }
 
     @Test
@@ -312,4 +324,222 @@ public class ResourceAccessEvaluatorTest {
         assertThat(shouldEvaluate(new MultiIdRequest(List.of("id-1"))), equalTo(false));
     }
 
+    private static final String REQUEST_TYPE = "alerting-comment";
+    private static final String GATING_TYPE = "monitor";
+    private static final String GATING_ID = "monitor-1";
+    private static final String GATING_INDEX = ".alerting-config";
+
+    /**
+     * A request whose access is governed by another resource: the evaluator asks the plugin's resolver for that resource
+     * and authorizes it, of the gating type, rather than the one the request names. The audit trail records the resolved
+     * resource, since that is the one whose sharing record decided the request.
+     */
+    @Test
+    public void testEvaluateAsync_gatedRequest_authorizesAndAuditsTheResolvedResource() {
+        stubAuthenticatedUser();
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(List.of(GATING_ID), null));
+        when(resourcePluginInfo.indexByType(GATING_TYPE)).thenReturn(GATING_INDEX);
+
+        doAnswer(inv -> {
+            ActionListener<Boolean> listener = inv.getArgument(3);
+            listener.onResponse(true);
+            return null;
+        }).when(resourceAccessHandler).hasPermission(eq(List.of(GATING_ID)), eq(GATING_TYPE), eq("read"), any());
+
+        ResourceAccessEvaluator.Evaluation evaluation = assertGatedEvaluation(true);
+
+        assertThat(evaluation.resource().type(), equalTo(GATING_TYPE));
+        assertThat(evaluation.resource().ids(), equalTo(List.of(GATING_ID)));
+        assertThat(evaluation.resource().index(), equalTo(GATING_INDEX));
+    }
+
+    @Test
+    public void testEvaluateAsync_gatedRequest_deniedWhenTheResolvedResourceDoesNotGrantTheAction() {
+        stubAuthenticatedUser();
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(List.of(GATING_ID), null));
+        when(resourcePluginInfo.indexByType(GATING_TYPE)).thenReturn(GATING_INDEX);
+
+        doAnswer(inv -> {
+            ActionListener<Boolean> listener = inv.getArgument(3);
+            listener.onResponse(false);
+            return null;
+        }).when(resourceAccessHandler).hasPermission(eq(List.of(GATING_ID)), eq(GATING_TYPE), eq("read"), any());
+
+        assertGatedEvaluation(false);
+    }
+
+    /**
+     * Every resolved id must grant the action, which is what lets a request naming several resources be gated as a whole.
+     */
+    @Test
+    public void testEvaluateAsync_gatedRequest_authorizesEveryResolvedId() {
+        stubAuthenticatedUser();
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(List.of("monitor-1", "monitor-2"), null));
+        when(resourcePluginInfo.indexByType(GATING_TYPE)).thenReturn(GATING_INDEX);
+
+        doAnswer(inv -> {
+            ActionListener<Boolean> listener = inv.getArgument(3);
+            listener.onResponse(false);
+            return null;
+        }).when(resourceAccessHandler).hasPermission(eq(List.of("monitor-1", "monitor-2")), eq(GATING_TYPE), eq("read"), any());
+
+        assertGatedEvaluation(false);
+    }
+
+    /**
+     * Nothing resolved means no gating resource to name, so the request's own reference is audited and the denial still
+     * leaves a trail.
+     */
+    @Test
+    public void testEvaluateAsync_gatedRequest_auditsTheRequestWhenNothingResolves() {
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(List.of(), null));
+
+        ResourceAccessEvaluator.Evaluation evaluation = assertGatedEvaluation(false);
+
+        assertThat(evaluation.resource().type(), equalTo(REQUEST_TYPE));
+        assertThat(evaluation.resource().ids(), equalTo(List.of()));
+        verify(resourceAccessHandler, never()).hasPermission(anyCollection(), anyString(), anyString(), any());
+    }
+
+    /**
+     * A blank among the resolved ids is an item whose governing resource is unknown, so the request is denied rather than
+     * allowed on the ids that did resolve.
+     */
+    @Test
+    public void testEvaluateAsync_gatedRequest_deniedWhenAnyResolvedIdIsBlank() {
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(Arrays.asList("monitor-1", null), null));
+
+        assertGatedEvaluation(false);
+        verify(resourceAccessHandler, never()).hasPermission(anyCollection(), anyString(), anyString(), any());
+    }
+
+    /**
+     * A resolver that answers from inside its own stashed context does not take the caller's context away from the check
+     * and the transport action that follow.
+     */
+    @Test
+    public void testEvaluateAsync_gatedRequest_restoresTheCallerContextAfterResolution() {
+        threadContext.putTransient(CALLER_TRANSIENT, "caller");
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(new GatingResourceResolver() {
+            @Override
+            public String requestType() {
+                return REQUEST_TYPE;
+            }
+
+            @Override
+            public String gatingResourceType() {
+                return GATING_TYPE;
+            }
+
+            @Override
+            public void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener) {
+                try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+                    listener.onResponse(List.of(GATING_ID));
+                }
+            }
+        });
+        when(resourcePluginInfo.indexByType(GATING_TYPE)).thenReturn(GATING_INDEX);
+        AtomicReference<Object> seenByCheck = new AtomicReference<>();
+        doAnswer(inv -> {
+            seenByCheck.set(threadContext.getTransient(CALLER_TRANSIENT));
+            ActionListener<Boolean> listener = inv.getArgument(3);
+            listener.onResponse(true);
+            return null;
+        }).when(resourceAccessHandler).hasPermission(eq(List.of(GATING_ID)), eq(GATING_TYPE), eq("read"), any());
+
+        assertGatedEvaluation(true);
+        assertThat(seenByCheck.get(), equalTo("caller"));
+    }
+
+    @Test
+    public void testEvaluateAsync_gatedRequest_deniedWhenResolutionFails() {
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(null, new RuntimeException("boom")));
+
+        assertGatedEvaluation(false);
+        verify(resourceAccessHandler, never()).hasPermission(anyCollection(), anyString(), anyString(), any());
+    }
+
+    /**
+     * A gated request reporting no id must still be evaluated. The id check used to run first, which took exactly the case
+     * the hook exists for, a create, out of resource evaluation entirely. {@code getResourceIndicesForProtectedTypes} is
+     * deliberately not stubbed: a gated request's own index is not a resource index, so it must not be consulted.
+     */
+    @Test
+    public void testShouldEvaluate_gatedRequestReportingNoId() {
+        when(resourceSharingEnabledSetting.getDynamicSettingValue()).thenReturn(true);
+        when(protectedResourceTypesSetting.getDynamicSettingValue()).thenReturn(List.of(GATING_TYPE));
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(List.of(GATING_ID), null));
+
+        GatedRequest request = new GatedRequest();
+        assertThat(request.id(), equalTo(null));
+        assertThat(evaluator.shouldEvaluate(request), equalTo(true));
+    }
+
+    @Test
+    public void testShouldEvaluate_gatedRequestWhenGatingTypeIsNotProtected() {
+        when(resourceSharingEnabledSetting.getDynamicSettingValue()).thenReturn(true);
+        when(protectedResourceTypesSetting.getDynamicSettingValue()).thenReturn(List.of("some-other-type"));
+        when(resourcePluginInfo.gatingResolver(REQUEST_TYPE)).thenReturn(resolverReturning(List.of(GATING_ID), null));
+
+        assertThat(evaluator.shouldEvaluate(new GatedRequest()), equalTo(false));
+    }
+
+    private ResourceAccessEvaluator.Evaluation assertGatedEvaluation(boolean expectedAllowed) {
+        ActionListener<ResourceAccessEvaluator.Evaluation> callback = mock(ActionListener.class);
+        evaluator.evaluateAsync(ResourceAccessEvaluator.resourceRequest(new GatedRequest()), "read", callback);
+
+        ArgumentCaptor<ResourceAccessEvaluator.Evaluation> captor = ArgumentCaptor.forClass(ResourceAccessEvaluator.Evaluation.class);
+        verify(callback).onResponse(captor.capture());
+        assertThat(captor.getValue().response().isAllowed(), equalTo(expectedAllowed));
+        return captor.getValue();
+    }
+
+    private GatingResourceResolver resolverReturning(Collection<String> gatingIds, Exception failure) {
+        return new GatingResourceResolver() {
+            @Override
+            public String requestType() {
+                return REQUEST_TYPE;
+            }
+
+            @Override
+            public String gatingResourceType() {
+                return GATING_TYPE;
+            }
+
+            @Override
+            public void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener) {
+                if (failure != null) {
+                    listener.onFailure(failure);
+                } else {
+                    listener.onResponse(gatingIds);
+                }
+            }
+        };
+    }
+
+    /**
+     * A request whose access is governed by a resource of another type, naming no resource of its own, which is the shape a
+     * create has.
+     */
+    private static class GatedRequest extends ActionRequest implements DocRequest {
+        @Override
+        public ActionRequestValidationException validate() {
+            return null;
+        }
+
+        @Override
+        public String type() {
+            return REQUEST_TYPE;
+        }
+
+        @Override
+        public String index() {
+            return "some-other-index";
+        }
+
+        @Override
+        public String id() {
+            return null;
+        }
+    }
 }
