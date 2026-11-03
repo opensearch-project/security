@@ -52,11 +52,25 @@ public class SslParametersTest {
 
     @Before
     public void setup() throws NoSuchAlgorithmException {
-        final var defaultCiphers = List.of(ALLOWED_SSL_CIPHERS);
-        finalDefaultCiphers = Stream.of(SSLContext.getDefault().getDefaultSSLParameters().getCipherSuites())
-            .filter(defaultCiphers::contains)
-            .sorted(String::compareTo)
-            .collect(Collectors.toList());
+        final var supportedCiphers = List.of(SSLContext.getDefault().getDefaultSSLParameters().getCipherSuites());
+        finalDefaultCiphers = Stream.of(ALLOWED_SSL_CIPHERS).filter(supportedCiphers::contains).collect(Collectors.toList());
+    }
+
+    @Test
+    public void testCipherPreferenceOrder() {
+        final var preferred = List.of("TLS_AES_256_GCM_SHA384", "TLS_AES_128_GCM_SHA256");
+        for (CertType certType : List.of(CertType.HTTP, CertType.TRANSPORT, MOCK_AUX_CERT_TYPE_FOO)) {
+            final var settings = Settings.builder()
+                .putList(
+                    certType.sslSettingPrefix() + ENABLED_CIPHERS,
+                    preferred.get(0),
+                    "unsupported_cipher",
+                    preferred.get(1),
+                    preferred.get(0)
+                )
+                .build();
+            assertThat(SslParameters.loader(certType, settings).load().allowedCiphers(), is(preferred));
+        }
     }
 
     @Test

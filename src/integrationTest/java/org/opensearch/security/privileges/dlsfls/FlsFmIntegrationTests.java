@@ -880,12 +880,6 @@ public class FlsFmIntegrationTests {
 
     @Test
     public void search_sortBy_explicitKeywordAttribute() {
-        if (user == Users.MASKING_ON_KEYWORD) {
-            // Sorting by a masked field produces an error 500. Skip this until this is fixed.
-            // Issue: https://github.com/opensearch-project/security/issues/5254
-            return;
-        }
-
         try (TestRestClient client = cluster.getRestClient(user)) {
             TestRestClient.HttpResponse response = client.postJson(TEST_INDEX.name() + "/_search?size=1000", """
                 {

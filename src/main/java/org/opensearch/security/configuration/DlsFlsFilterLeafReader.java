@@ -25,7 +25,10 @@ import java.util.Set;
 import com.google.common.collect.Iterators;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.ByteVectorValues;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValuesSkipIndexType;
+import org.apache.lucene.index.DocValuesSkipper;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
@@ -33,7 +36,9 @@ import org.apache.lucene.index.FilterBinaryDocValues;
 import org.apache.lucene.index.FilterDirectoryReader;
 import org.apache.lucene.index.FilterSortedDocValues;
 import org.apache.lucene.index.FilterSortedSetDocValues;
+import org.apache.lucene.index.FloatVectorValues;
 import org.apache.lucene.index.ImpactsEnum;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
@@ -47,8 +52,10 @@ import org.apache.lucene.index.TermState;
 import org.apache.lucene.index.TermVectors;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.search.AcceptDocs;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.KnnCollector;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
@@ -78,7 +85,9 @@ import org.opensearch.security.support.ConfigConstants;
 
 class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
-    private final FieldInfos flsFieldInfos;
+    private static final String KNN_FIELD_ATTRIBUTE = "knn_field";
+
+    private final FieldInfos visibleFieldInfos;
     private final IndexService indexService;
     private final ThreadContext threadContext;
     private final ClusterService clusterService;
@@ -115,25 +124,73 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         this.metaFields = metaFields;
 
         try {
-            if (!flsRule.isAllowAll()) {
-                FieldInfos originalFieldInfos = delegate.getFieldInfos();
-                List<FieldInfo> restrictedFieldInfos = new ArrayList<>(originalFieldInfos.size());
-
-                for (FieldInfo fieldInfo : originalFieldInfos) {
-                    if (metaFields.contains(fieldInfo.name) || flsRule.isAllowedRecursive(fieldInfo.name)) {
-                        restrictedFieldInfos.add(fieldInfo);
-                    }
-                }
-
-                this.flsFieldInfos = new FieldInfos(restrictedFieldInfos.toArray(new FieldInfo[restrictedFieldInfos.size()]));
-            } else {
-                this.flsFieldInfos = delegate.getFieldInfos();
-            }
-
+            this.visibleFieldInfos = buildVisibleFieldInfos(delegate.getFieldInfos());
             dge = new DlsGetEvaluator(dlsQuery, in, dlsQuery != null && applyDlsHere());
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
+    }
+
+    private FieldInfos buildVisibleFieldInfos(FieldInfos originalFieldInfos) {
+        if (flsRule.isAllowAll() && fmRule == FieldMasking.FieldMaskingRule.ALLOW_ALL) {
+            return originalFieldInfos;
+        }
+
+        List<FieldInfo> visibleFields = new ArrayList<>(originalFieldInfos.size());
+        boolean changed = false;
+        for (FieldInfo fieldInfo : originalFieldInfos) {
+            boolean masked = !metaFields.contains(fieldInfo.name) && fmRule.isMasked(fieldInfo.name);
+            // Binary-backed k-NN fields have no Lucene vector dimension or supported masked vector representation.
+            boolean maskedVector = masked && (fieldInfo.hasVectorValues() || "true".equals(fieldInfo.getAttribute(KNN_FIELD_ATTRIBUTE)));
+            if (!isAllowedButPossiblyMasked(fieldInfo.name) || maskedVector) {
+                changed = true;
+                continue;
+            }
+
+            FieldInfo visibleField = masked ? maskedDocValuesFieldInfo(fieldInfo) : fieldInfo;
+            visibleFields.add(visibleField);
+            changed |= visibleField != fieldInfo;
+        }
+        return changed ? new FieldInfos(visibleFields.toArray(new FieldInfo[0])) : originalFieldInfos;
+    }
+
+    private FieldInfo maskedDocValuesFieldInfo(FieldInfo fieldInfo) {
+        switch (fieldInfo.getDocValuesType()) {
+            case BINARY:
+            case SORTED:
+            case SORTED_SET:
+                break;
+            default:
+                return fieldInfo;
+        }
+        if (fieldInfo.getIndexOptions() == IndexOptions.NONE
+            && fieldInfo.docValuesSkipIndexType() == DocValuesSkipIndexType.NONE
+            && fieldInfo.getPointDimensionCount() == 0
+            && fieldInfo.getVectorDimension() == 0) {
+            return fieldInfo;
+        }
+
+        // Count shortcuts need metadata consistent with the available doc-values view.
+        return new FieldInfo(
+            fieldInfo.name,
+            fieldInfo.number,
+            false,
+            false,
+            false,
+            IndexOptions.NONE,
+            fieldInfo.getDocValuesType(),
+            DocValuesSkipIndexType.NONE,
+            fieldInfo.getDocValuesGen(),
+            fieldInfo.attributes(),
+            0,
+            0,
+            0,
+            0,
+            fieldInfo.getVectorEncoding(),
+            fieldInfo.getVectorSimilarityFunction(),
+            fieldInfo.isSoftDeletesField(),
+            fieldInfo.isParentField()
+        );
     }
 
     private class DlsGetEvaluator {
@@ -419,12 +476,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @Override
     public FieldInfos getFieldInfos() {
-
-        if (flsRule.isAllowAll()) {
-            return in.getFieldInfos();
-        }
-
-        return flsFieldInfos;
+        return visibleFieldInfos;
     }
 
     private class ComplianceAwareStoredFieldVisitor extends StoredFieldVisitor {
@@ -535,7 +587,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
                     @Override
                     public int size() {
-                        return flsFieldInfos.size();
+                        return visibleFieldInfos.size();
                     }
 
                 };
@@ -555,8 +607,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             return in.getBinaryDocValues(field);
         }
 
-        if (!this.flsRule.isAllowedRecursive(field)) {
-            // Forbidden by FLS
+        if (visibleFieldInfos.fieldInfo(field) == null) {
             return null;
         }
 
@@ -684,9 +735,39 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     }
 
     @Override
+    public DocValuesSkipper getDocValuesSkipper(final String field) throws IOException {
+        // Skip summaries must describe the same field view as doc values.
+        return isAllowed(field) ? in.getDocValuesSkipper(field) : null;
+    }
+
+    @Override
     public PointValues getPointValues(String field) throws IOException {
         // PointValues maps to OpenSearch types IP and geospatial types
         return isAllowed(field) ? in.getPointValues(field) : null;
+    }
+
+    @Override
+    public FloatVectorValues getFloatVectorValues(String field) throws IOException {
+        return isAllowed(field) ? in.getFloatVectorValues(field) : null;
+    }
+
+    @Override
+    public ByteVectorValues getByteVectorValues(String field) throws IOException {
+        return isAllowed(field) ? in.getByteVectorValues(field) : null;
+    }
+
+    @Override
+    public void searchNearestVectors(String field, float[] target, KnnCollector collector, AcceptDocs acceptDocs) throws IOException {
+        if (isAllowed(field)) {
+            in.searchNearestVectors(field, target, collector, acceptDocs);
+        }
+    }
+
+    @Override
+    public void searchNearestVectors(String field, byte[] target, KnnCollector collector, AcceptDocs acceptDocs) throws IOException {
+        if (isAllowed(field)) {
+            in.searchNearestVectors(field, target, collector, acceptDocs);
+        }
     }
 
     @Override

@@ -70,13 +70,6 @@ public class PrivilegesConfiguration {
 
     private ApiTokenRepository apiTokenRepository;
     private final Map<String, ActionPrivileges> tokenIdToActionPrivileges = new ConcurrentHashMap<>();
-    /**
-     * The pure static action groups should be ONLY used by action privileges for plugins; only those cannot and should
-     * not have knowledge of any action groups defined in the dynamic configuration. All other functionality should
-     * use the action groups derived from the dynamic configuration (which is always computed on the fly on
-     * configuration updates).
-     */
-    private final FlattenedActionGroups staticActionGroups;
 
     private final FieldMasking.Config fieldMaskingConfig;
 
@@ -85,7 +78,6 @@ public class PrivilegesConfiguration {
         this.privilegesEvaluator = new AtomicReference<>(
             new PrivilegesEvaluator.NotInitialized(coreDependencies.unavailablityReasonSupplier())
         );
-        this.staticActionGroups = buildStaticActionGroups();
         this.specialIndices = new SpecialIndices(coreDependencies.settings());
         this.fieldMaskingConfig = FieldMasking.Config.fromSettings(coreDependencies.settings());
 
@@ -166,19 +158,18 @@ public class PrivilegesConfiguration {
                         memberIndexPrivilegesYieldAliasPrivileges
                     );
 
-                    PrivilegesEvaluator.DynamicDependencies dynamicDependencies = new PrivilegesEvaluator.DynamicDependencies(
-                        flattenedActionGroups,
-                        staticActionGroups,
-                        newCompiledRoles,
-                        rawConfiguration.privilegesEvaluatorGlobalSettings,
-                        specialIndices,
-                        this.tenantPrivileges::get,
-                        this.multiTenancyConfiguration::get,
-                        this.pluginIdToRolePrivileges,
-                        this.tokenIdToActionPrivileges
-                    );
-
                     if (currentMode != targetMode) {
+                        PrivilegesEvaluator.DynamicDependencies dynamicDependencies = new PrivilegesEvaluator.DynamicDependencies(
+                            flattenedActionGroups,
+                            buildStaticActionGroups(),
+                            newCompiledRoles,
+                            rawConfiguration.privilegesEvaluatorGlobalSettings,
+                            specialIndices,
+                            this.tenantPrivileges::get,
+                            this.multiTenancyConfiguration::get,
+                            this.pluginIdToRolePrivileges,
+                            this.tokenIdToActionPrivileges
+                        );
                         PrivilegesEvaluator oldInstance = privilegesEvaluator.getAndSet(
                             targetMode.factory.create(coreDependencies, dynamicDependencies)
                         );
@@ -252,7 +243,6 @@ public class PrivilegesConfiguration {
      */
     public PrivilegesConfiguration(PrivilegesEvaluator privilegesEvaluator) {
         this.privilegesEvaluator = new AtomicReference<>(privilegesEvaluator);
-        this.staticActionGroups = buildStaticActionGroups();
         this.specialIndices = new SpecialIndices(Settings.EMPTY);
         this.fieldMaskingConfig = FieldMasking.Config.DEFAULT;
     }
@@ -300,6 +290,10 @@ public class PrivilegesConfiguration {
         );
     }
 
+    /**
+     * Flattens static_action_groups.yml for plugin privileges, which must not depend on dynamic action groups.
+     * Call it when an evaluator is built: DynamicConfigFactory loads the static groups after this class is constructed.
+     */
     private static FlattenedActionGroups buildStaticActionGroups() {
         return new FlattenedActionGroups(DynamicConfigFactory.addStatics(SecurityDynamicConfiguration.empty(CType.ACTIONGROUPS)));
     }

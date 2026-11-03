@@ -52,7 +52,6 @@ import java.util.Locale;
 import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -73,10 +72,8 @@ import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
-import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 
@@ -1508,14 +1505,7 @@ public class SecurityAdmin {
                     .setCiphers(supportedCipherSuites)
                     .setHostVerificationPolicy(HostnameVerificationPolicy.CLIENT)
                     .setHostnameVerifier(hnv)
-                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                    .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
-                        @Override
-                        public TlsDetails create(final SSLEngine sslEngine) {
-                            return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
-                        }
-                    })
-                    .build();
+                    .buildAsync();
 
                 final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
                     .setTlsStrategy(tlsStrategy)

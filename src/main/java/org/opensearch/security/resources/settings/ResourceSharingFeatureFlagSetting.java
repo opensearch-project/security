@@ -48,7 +48,11 @@ public class ResourceSharingFeatureFlagSetting extends OpensearchDynamicSetting<
         LEGACY_RESOURCE_SHARING_ENABLED,
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
-    );
+    )
+        .withDescription(
+            "Enables resource-sharing authorization for participating plugins. "
+                + "The resource types to protect are selected by plugins.security.resource_sharing.protected_types."
+        );
 
     /**
      * Rewrites the pre-graduation key to the current one in the cluster state, so an upgraded cluster stops

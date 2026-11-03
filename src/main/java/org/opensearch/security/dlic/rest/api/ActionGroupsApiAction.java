@@ -68,6 +68,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
             new Route(Method.GET, "/actiongroups/{name}"),
             new Route(Method.GET, "/actiongroups"),
             new Route(Method.DELETE, "/actiongroups/{name}"),
+            new Route(Method.PUT, "/actiongroups"),
             new Route(Method.PUT, "/actiongroups/{name}"),
             new Route(Method.PATCH, "/actiongroups"),
             new Route(Method.PATCH, "/actiongroups/{name}")
@@ -85,6 +86,7 @@ public class ActionGroupsApiAction extends AbstractApiAction {
             new DeprecatedRoute(Method.GET, "/actiongroups/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.GET, "/actiongroups", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.DELETE, "/actiongroups/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
+            new DeprecatedRoute(Method.PUT, "/actiongroups", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PUT, "/actiongroups/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PATCH, "/actiongroups", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PATCH, "/actiongroups/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE)
@@ -139,6 +141,27 @@ public class ActionGroupsApiAction extends AbstractApiAction {
                 return EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateType)
                     .map(this::actionGroupNameIsNotSameAsRoleName)
                     .map(this::hasSelfReference);
+            }
+
+            @Override
+            public ValidationResult<List<SecurityConfiguration>> onConfigChange(final List<SecurityConfiguration> securityConfigurations)
+                throws IOException {
+                // Bulk form: load the roles configuration once and run the same checks the single-entity path performs (group
+                // immutability, REST-admin permissions in the group, type, name not an existing role, no self-reference) for every
+                // group against that one copy, instead of reloading the roles configuration once per group. References between
+                // groups are deliberately not checked here, matching the single-entity path: FlattenedActionGroups tolerates unknown
+                // names and cycles at resolution time, so the outcome never depends on the order of entries in the request.
+                return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
+                    for (final var securityConfiguration : securityConfigurations) {
+                        final var result = EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateType)
+                            .map(sc -> actionGroupNameIsNotSameAsRoleName(sc, rolesConfiguration))
+                            .map(this::hasSelfReference);
+                        if (result.isValid() == false) {
+                            return ValidationResult.error(result.status(), result.errorMessage());
+                        }
+                    }
+                    return ValidationResult.success(securityConfigurations);
+                });
             }
 
             @Override

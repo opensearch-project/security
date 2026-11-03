@@ -33,7 +33,6 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
-import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -185,9 +184,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
                     .setSslContext(sslContext)
                     .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
                     .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                    .setTlsDetailsFactory(sslEngine -> new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol()))
-                    .build();
+                    .buildAsync();
 
                 final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
                     .setTlsStrategy(tlsStrategy)
