@@ -983,9 +983,10 @@ public class SearchOperationTest {
             grantedPrivilege(LIMITED_READ_USER, "SearchRequest").withIndex(SONG_INDEX_NAME),
             "indices:data/read/search"
         );
-        auditLogsRule.assertExactlyOne(
-            missingPrivilege(LIMITED_READ_USER, "SearchRequest").withPrivilege("indices:data/read/search")
-                .withIndex(PROHIBITED_SONG_INDEX_NAME)
+        assertPrivilegeEvents(
+            1,
+            missingPrivilege(LIMITED_READ_USER, "SearchRequest").withIndex(PROHIBITED_SONG_INDEX_NAME),
+            "indices:data/read/search"
         );
     }
 
@@ -1051,9 +1052,10 @@ public class SearchOperationTest {
             assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
         }
         auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/prohibited_song_lyrics/_search"));
-        auditLogsRule.assertExactlyOne(
-            missingPrivilege(LIMITED_READ_USER, "SearchRequest").withPrivilege("indices:data/read/search")
-                .withIndex(PROHIBITED_SONG_INDEX_NAME)
+        assertPrivilegeEvents(
+            1,
+            missingPrivilege(LIMITED_READ_USER, "SearchRequest").withIndex(PROHIBITED_SONG_INDEX_NAME),
+            "indices:data/read/search"
         );
     }
 
