@@ -198,13 +198,17 @@ public class ComplianceConfigTest {
         // act: Don't log for the current audit log
         setYear.accept(1337);
         assertThat(complianceConfig.readHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(false));
+        assertThat(complianceConfig.readHistoryEnabledForField("audit-log-index-1337-01-01", "field"), equalTo(false));
         assertThat(complianceConfig.writeHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(false));
 
         // act: Log for current audit log when it does not match the date
         setYear.accept(2048);
-        // See https://github.com/opensearch-project/security/issues/3950
-        // assertThat(complianceConfig.readHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(true));
+        assertThat(complianceConfig.readHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(true));
+        assertThat(complianceConfig.readHistoryEnabledForField("audit-log-index-1337-01-01", "field"), equalTo(true));
         assertThat(complianceConfig.writeHistoryEnabledForIndex("audit-log-index-1337-01-01"), equalTo(true));
+        // act: Don't log for the audit log of the new date
+        assertThat(complianceConfig.readHistoryEnabledForIndex("audit-log-index-2048-01-01"), equalTo(false));
+        assertThat(complianceConfig.readHistoryEnabledForField("audit-log-index-2048-01-01", "field"), equalTo(false));
 
         // act: Log for any matching index
         assertThat(complianceConfig.readHistoryEnabledForIndex("my-data"), equalTo(true));
