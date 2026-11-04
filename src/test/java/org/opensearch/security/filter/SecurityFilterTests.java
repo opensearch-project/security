@@ -13,6 +13,7 @@ package org.opensearch.security.filter;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
@@ -55,6 +56,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -228,6 +230,65 @@ public class SecurityFilterTests extends LuceneTestCase {
 
             // Verify
             verify(evaluator).evaluate(context);
+            final ArgumentCaptor<OpenSearchSecurityException> cap = ArgumentCaptor.forClass(OpenSearchSecurityException.class);
+            verify(listener).onFailure(cap.capture());
+            assertThat(cap.getValue().status(), equalTo(RestStatus.INTERNAL_SERVER_ERROR));
+            assertThat(cap.getValue().getCause(), sameInstance(error));
+            verifyNoMoreInteractions(listener);
+        } finally {
+            ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testErrorFromChainKeepsCauseWhenResourceAccessAnswersOnSameThread() {
+        // Setup
+        final ActionListener<ActionResponse> listener = mock(ActionListener.class);
+        final ThreadPool threadPool = new ThreadPool(Settings.builder().put("node.name", "mock").build());
+        final NoSuchMethodError error = new NoSuchMethodError("missing method");
+        final ActionFilterChain<ActionRequest, ActionResponse> chain = (task, action, request, l) -> { throw error; };
+        final ActionRequest request = mock(ActionRequest.class);
+
+        final PrivilegesEvaluator evaluator = mock(PrivilegesEvaluator.class);
+        when(evaluator.createContext(any(), any(), any(), any(), any())).thenReturn(mock(PrivilegesEvaluationContext.class));
+        final PrivilegesConfiguration privilegesConfiguration = mock(PrivilegesConfiguration.class);
+        when(privilegesConfiguration.privilegesEvaluator()).thenReturn(evaluator);
+
+        // Answers on the calling thread, as an admin user's permission check does
+        final ResourceAccessEvaluator resourceAccessEvaluator = mock(ResourceAccessEvaluator.class);
+        when(resourceAccessEvaluator.evaluableResourceRequest(request)).thenReturn(
+            new ResourceAccessEvaluator.ResourceRequest("resource-index", "resource-type", List.of("id-1"))
+        );
+        doAnswer(invocation -> {
+            invocation.<ActionListener<PrivilegesEvaluatorResponse>>getArgument(2).onResponse(PrivilegesEvaluatorResponse.ok());
+            return null;
+        }).when(resourceAccessEvaluator).evaluateAsync(any(), any(), any());
+
+        final ThreadContext threadContext = threadPool.getThreadContext();
+        try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User("test_user"));
+            // Already set, so the filter does not build the user info from the mocked context
+            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, "test_user");
+
+            final SecurityFilter filter = new SecurityFilter(
+                settings,
+                privilegesConfiguration,
+                mock(AdminDNs.class),
+                mock(DlsFlsRequestValve.class),
+                mock(AuditLog.class),
+                threadPool,
+                mock(ClusterService.class),
+                mock(CompatConfig.class),
+                mock(XFFResolver.class),
+                resourceAccessEvaluator
+            );
+
+            // Act
+            filter.apply(null, "indices:data/read/get", request, ActionRequestMetadata.empty(), listener, chain);
+
+            // Verify
+            verify(resourceAccessEvaluator).evaluateAsync(any(), any(), any());
             final ArgumentCaptor<OpenSearchSecurityException> cap = ArgumentCaptor.forClass(OpenSearchSecurityException.class);
             verify(listener).onFailure(cap.capture());
             assertThat(cap.getValue().status(), equalTo(RestStatus.INTERNAL_SERVER_ERROR));
