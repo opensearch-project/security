@@ -348,6 +348,30 @@ public class BackendRegistry {
             }
 
             /*
+            The authenticator found a credential but refused it before authentication, for example a JWT subject with a
+            reserved prefix. An explicit rejection fails the request: later auth domains and anonymous login are not tried.
+            The rejected credential is never kept as authCredentials, so it cannot become the effective user.
+             */
+            if (ac != null && ac.isRejected()) {
+                final Optional<SecurityResponse> challengeResponse = firstChallengingHttpAuthenticator == null
+                    ? Optional.empty()
+                    : firstChallengingHttpAuthenticator.reRequestAuthentication(request, null);
+                auditLog.logFailedLogin(
+                    authCredentials == null ? "<NONE>" : authCredentials.getUsername(),
+                    false,
+                    null,
+                    request,
+                    ac.getAttemptedPrincipal(),
+                    ac.getFailureReason().name()
+                );
+                notifyIpAuthFailureListeners(request, authCredentials);
+                request.queueForSending(
+                    challengeResponse.orElseGet(() -> new SecurityResponse(SC_UNAUTHORIZED, "Authentication finally failed"))
+                );
+                return false;
+            }
+
+            /*
             User may be blocked from authenticating with this auth backend based on rate limiting configurations.
             Skip this auth domain if the user is blocked.
              */

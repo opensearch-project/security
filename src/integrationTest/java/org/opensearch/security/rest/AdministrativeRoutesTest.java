@@ -90,7 +90,7 @@ public class AdministrativeRoutesTest {
     public void restAdminStillNeedsActionPermissions() {
         try (TestRestClient client = cluster.getRestClient(ROLE_ONLY)) {
             assertEquals(403, client.get(BASE + "/admin/one").getStatusCode());
-            assertEquals(401, client.get(BASE + "/named").getStatusCode());
+            assertEquals(403, client.get(BASE + "/named").getStatusCode());
         }
     }
 

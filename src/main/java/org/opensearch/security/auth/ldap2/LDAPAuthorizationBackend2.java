@@ -48,6 +48,7 @@ import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
 import org.ldaptive.PooledConnectionFactory;
+import org.ldaptive.ResultCode;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchScope;
 
@@ -350,7 +351,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 for (final LdapName roleLdapName : nestedReturn) {
                     final String role = getRoleFromEntry(connectionFactory, roleLdapName, roleName);
 
-                    if (excludeRolesMatcher.test(role)) {
+                    if (role == null || excludeRolesMatcher.test(role)) {
                         if (isDebugEnabled) {
                             log.debug("Role was excluded or empty attribute '{}' for entry {}", roleName, roleLdapName);
                         }
@@ -364,7 +365,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 for (final LdapName roleLdapName : ldapRoles) {
                     final String role = getRoleFromEntry(connectionFactory, roleLdapName, roleName);
 
-                    if (excludeRolesMatcher.test(role)) {
+                    if (role == null || excludeRolesMatcher.test(role)) {
                         if (isDebugEnabled) {
                             log.debug("Role was excluded or empty attribute '{}' for entry {}", roleName, roleLdapName);
                         }
@@ -420,7 +421,19 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(connectionFactory, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
+        final LdapEntry e0;
+        try {
+            e0 = LdapHelper.lookup(connectionFactory, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
+        } catch (LdapException e) {
+            if (e.getResultCode() == ResultCode.INVALID_DN_SYNTAX) {
+                log.warn("Skipping nested role with invalid DN {}", roleDn);
+                return Collections.emptySet();
+            }
+            throw e;
+        }
+        if (e0 == null) {
+            return Collections.emptySet();
+        }
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (e0.getAttribute(userRoleName) != null) {

@@ -31,6 +31,7 @@ import org.opensearch.http.HttpRequest;
 import org.opensearch.http.HttpResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.security.auth.AuthenticationFailureReason;
 import org.opensearch.security.filter.SecurityRequestChannel;
 import org.opensearch.security.filter.SecurityRequestFactory;
 import org.opensearch.security.support.ConfigConstants;
@@ -38,8 +39,10 @@ import org.opensearch.security.user.AuthCredentials;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class HTTPProxyAuthenticatorTest {
 
@@ -83,7 +86,10 @@ public class HTTPProxyAuthenticatorTest {
     public void testRejectsReservedPluginPrefix() {
         headers.put("user", new ArrayList<>());
         headers.get("user").add("plugin:org.opensearch.ml.plugin.MachineLearningPlugin");
-        assertNull(authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context));
+        assertRejected(
+            authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context),
+            "plugin:org.opensearch.ml.plugin.MachineLearningPlugin"
+        );
     }
 
     /** The API-token reserved prefix must likewise be rejected from an external proxy header. */
@@ -91,7 +97,7 @@ public class HTTPProxyAuthenticatorTest {
     public void testRejectsReservedTokenPrefix() {
         headers.put("user", new ArrayList<>());
         headers.get("user").add("token:some-api-token");
-        assertNull(authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context));
+        assertRejected(authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context), "token:some-api-token");
     }
 
     /** A legitimate username that merely contains the substring must still be accepted. */
@@ -102,6 +108,16 @@ public class HTTPProxyAuthenticatorTest {
         AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers).asSecurityRequest(), context);
         assertNotNull(creds);
         assertThat(creds.getUsername(), is("not-a-plugin:user"));
+    }
+
+    /** The credential must be refused, never complete, and carry the attempted subject for the FAILED_LOGIN audit event. */
+    private static void assertRejected(final AuthCredentials credentials, final String subject) {
+        assertNotNull(credentials);
+        assertTrue(credentials.isRejected());
+        assertFalse(credentials.isComplete());
+        assertThat(credentials.getAttemptedPrincipal(), is(subject));
+        assertThat(credentials.getFailureReason(), is(AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX));
+        assertTrue(credentials.getAttributes().isEmpty());
     }
 
     static class TestRestRequest extends RestRequest {

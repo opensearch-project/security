@@ -28,12 +28,13 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -61,6 +62,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -81,6 +83,8 @@ import org.opensearch.transport.client.Client;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
+import static org.opensearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 /**
  * This class handles the creation and management of the resource sharing index.
@@ -118,45 +122,46 @@ public class ResourceSharingIndexHandler {
     // Create and restore are not retried by a caller; the next write to the resource restores the field
     private static final String NEXT_WRITE_REPAIRS =
         "its sharing record was written, and the field is restored on the next update to the resource";
+    // A create that finds the record already there changed only the field; a repeated migrate or the next update repairs it
+    private static final String EXISTING_RECORD_REPAIRS =
+        "its sharing record was unchanged, and repeating the request or the next update to the resource re-applies it";
 
     public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.hidden", "true");
 
     /**
-     * Creates the resource sharing index if it doesn't already exist.
-     * This method initializes the index with predefined mappings and settings
-     * for storing resource sharing information.
-     * The index will be created with the following structure:
-     * - source_idx (keyword): The source index containing the original document
-     * - resource_id (keyword): The ID of the shared resource
-     * - tenant (keyword): Tenant where the resource is stored
-     * - created_by (object): Information about the user who created the sharing
-     * - user (keyword): Username of the creator
-     * - share_with (object): Access control configuration for shared resources
-     * - [action-group] (object): Name of the action-group
-     * - users (array): List of users with access
-     * - roles (array): List of roles with access
-     * - backend_roles (array): List of backend roles with access
+     * Creates the sharing index with {@link #INDEX_SETTINGS} if it does not exist yet. The first sharing record written
+     * for a resource index creates its sharing index, so a cluster has no sharing index until a resource needs one.
+     * A snapshot restore can therefore bring back a sharing index without conflicting with an empty one.
      *
-     * @throws RuntimeException if there are issues reading/writing index settings
-     *                          or communicating with the cluster
+     * @param resourceSharingIndex the sharing index to create
+     * @param listener             notified once the index exists, including when another node created it first
      */
-
-    public void createResourceSharingIndicesIfAbsent(Collection<String> resourceIndices) {
-        // TODO: Once stashContext is replaced with switchContext this call will have to be modified
-        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            for (String resourceIndex : resourceIndices) {
-                String resourceSharingIndex = getSharingIndex(resourceIndex);
-                CreateIndexRequest cir = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
-                ActionListener<CreateIndexResponse> cirListener = ActionListener.wrap(response -> {
-                    ctx.restore();
-                    LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
-                }, (failResponse) -> {
-                    /* Index already exists, ignore and continue */
-                    LOGGER.info("Index {} already exists.", resourceSharingIndex);
-                });
-                this.client.admin().indices().create(cir, cirListener);
+    private void createSharingIndexIfAbsent(final String resourceSharingIndex, final ActionListener<Void> listener) {
+        client.admin().indices().exists(new IndicesExistsRequest(resourceSharingIndex).local(true), ActionListener.wrap(response -> {
+            if (response.isExists()) {
+                listener.onResponse(null);
+                return;
             }
-        }
+            final CreateIndexRequest request = new CreateIndexRequest(resourceSharingIndex).settings(INDEX_SETTINGS).waitForActiveShards(1);
+            client.admin().indices().create(request, ActionListener.wrap(created -> {
+                LOGGER.info("Resource sharing index {} created.", resourceSharingIndex);
+                listener.onResponse(null);
+            }, e -> {
+                if (ExceptionsHelper.unwrapCause(e) instanceof ResourceAlreadyExistsException) {
+                    listener.onResponse(null);
+                } else {
+                    listener.onFailure(e);
+                }
+            }));
+        }, listener::onFailure));
+    }
+
+    /**
+     * @return true if the failure is the sharing index not existing yet, which means no resource of the resource index
+     *         has a sharing record
+     */
+    private static boolean isIndexMissing(final Exception e) {
+        return ExceptionsHelper.unwrapCause(e) instanceof IndexNotFoundException;
     }
 
     public static String getSharingIndex(String resourceIndex) {
@@ -200,25 +205,7 @@ public class ResourceSharingIndexHandler {
             client.get(new GetRequest(resourceSharingIndex).id(resourceId), ActionListener.wrap(getResponse -> {
                 ctx.restore();
                 if (!getResponse.isExists()) {
-                    // The record is created asynchronously; a reconcile from an immediate follow-up write can arrive
-                    // first. Retry rather than treating a missing record as synchronized.
-                    if (attempt < WORKSPACE_RECONCILE_MAX_ATTEMPTS) {
-                        threadPool.schedule(
-                            () -> reconcileWorkspacesAttempt(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt + 1, listener),
-                            CONFLICT_RETRY_DELAY,
-                            ThreadPool.Names.GENERIC
-                        );
-                    } else {
-                        // Fail loud: the record never appeared, so the write-path record may be out of step with the
-                        // resource's workspaces. Re-run the migrate API to repair once the record exists.
-                        LOGGER.error(
-                            "Sharing record [{}] still missing after {} attempts; workspaces left unreconciled. Re-run "
-                                + "POST _plugins/_security/api/resources/migrate to repair.",
-                            resourceId,
-                            attempt
-                        );
-                        listener.onResponse(false);
-                    }
+                    scheduleReconcileRetry(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, listener);
                     return;
                 }
 
@@ -260,7 +247,46 @@ public class ResourceSharingIndexHandler {
                         }
                     }));
                 }
-            }, listener::onFailure));
+            }, e -> {
+                ctx.restore();
+                if (isIndexMissing(e)) {
+                    // The sharing index is created with the first record, so it can be missing for the same reason
+                    scheduleReconcileRetry(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, listener);
+                    return;
+                }
+                listener.onFailure(e);
+            }));
+        }
+    }
+
+    /**
+     * The record is created asynchronously; a reconcile from an immediate follow-up write can arrive first. Retry rather
+     * than treating a missing record as synchronized.
+     */
+    private void scheduleReconcileRetry(
+        String resourceSharingIndex,
+        String resourceId,
+        Set<String> target,
+        long sourceSeqNo,
+        int attempt,
+        ActionListener<Boolean> listener
+    ) {
+        if (attempt < WORKSPACE_RECONCILE_MAX_ATTEMPTS) {
+            threadPool.schedule(
+                () -> reconcileWorkspacesAttempt(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt + 1, listener),
+                CONFLICT_RETRY_DELAY,
+                ThreadPool.Names.GENERIC
+            );
+        } else {
+            // Fail loud: the record never appeared, so the write-path record may be out of step with the
+            // resource's workspaces. Re-run the migrate API to repair once the record exists.
+            LOGGER.error(
+                "Sharing record [{}] still missing after {} attempts; workspaces left unreconciled. Re-run "
+                    + "POST _plugins/_security/api/resources/migrate to repair.",
+                resourceId,
+                attempt
+            );
+            listener.onResponse(false);
         }
     }
 
@@ -290,42 +316,84 @@ public class ResourceSharingIndexHandler {
      * @param listener      {@code true} once written, {@code false} if there is no sharing record
      */
     private void syncResourceVisibility(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
-        syncResourceVisibilityAttempt(resourceId, resourceIndex, 1, listener);
+        syncResourceVisibilityAttempt(resourceId, resourceIndex, UNASSIGNED_SEQ_NO, UNASSIGNED_PRIMARY_TERM, 1, listener);
     }
 
-    private void syncResourceVisibilityAttempt(String resourceId, String resourceIndex, int attempt, ActionListener<Boolean> listener) {
+    /**
+     * One sync attempt. A known {@code seqNo} skips the version read; {@code UNASSIGNED_SEQ_NO} reads it.
+     */
+    private void syncResourceVisibilityAttempt(
+        String resourceId,
+        String resourceIndex,
+        long seqNo,
+        long primaryTerm,
+        int attempt,
+        ActionListener<Boolean> listener
+    ) {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            if (seqNo != UNASSIGNED_SEQ_NO) {
+                writeVisibilityFromRecord(resourceId, resourceIndex, seqNo, primaryTerm, attempt, ctx, listener);
+                return;
+            }
             ActionListener<Boolean> restoring = ActionListener.runBefore(listener, ctx::restore);
             GetRequest versionRead = new GetRequest(resourceIndex).id(resourceId)
                 .fetchSourceContext(FetchSourceContext.DO_NOT_FETCH_SOURCE);
             client.get(versionRead, ActionListener.wrap(resource -> {
                 if (!resource.isExists()) {
-                    restoring.onFailure(new ResourceNotFoundException("Resource [{}] does not exist in [{}]", resourceId, resourceIndex));
+                    restoring.onFailure(resourceMissing(resourceId, resourceIndex));
                     return;
                 }
-                fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
-                    if (sharingInfo == null) {
-                        restoring.onResponse(false);
-                        return;
-                    }
-                    UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                        .setDoc(Map.of("all_shared_principals", sharingInfo.getAllPrincipals()))
-                        .setIfSeqNo(resource.getSeqNo())
-                        .setIfPrimaryTerm(resource.getPrimaryTerm())
-                        .request();
-                    client.update(ur, ActionListener.wrap(updated -> restoring.onResponse(true), e -> {
-                        if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException
-                            && attempt < SHARING_UPDATE_MAX_ATTEMPTS) {
-                            ctx.restore();
-                            retryVisibilitySync(resourceId, resourceIndex, attempt, listener);
-                            return;
-                        }
-                        restoring.onFailure(e);
-                    }));
-                }, restoring::onFailure));
+                writeVisibilityFromRecord(
+                    resourceId,
+                    resourceIndex,
+                    resource.getSeqNo(),
+                    resource.getPrimaryTerm(),
+                    attempt,
+                    ctx,
+                    listener
+                );
             }, restoring::onFailure));
         }
+    }
+
+    /**
+     * Reads the sharing record and writes the principals it allows, guarded by a document version read before the record.
+     */
+    private void writeVisibilityFromRecord(
+        String resourceId,
+        String resourceIndex,
+        long seqNo,
+        long primaryTerm,
+        int attempt,
+        ThreadContext.StoredContext ctx,
+        ActionListener<Boolean> listener
+    ) {
+        ActionListener<Boolean> restoring = ActionListener.runBefore(listener, ctx::restore);
+        fetchSharingInfo(resourceIndex, resourceId, ActionListener.wrap(sharingInfo -> {
+            if (sharingInfo == null) {
+                restoring.onResponse(false);
+                return;
+            }
+            UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setDoc(Map.of("all_shared_principals", sharingInfo.getAllPrincipals()))
+                .setIfSeqNo(seqNo)
+                .setIfPrimaryTerm(primaryTerm)
+                .request();
+            client.update(ur, ActionListener.wrap(updated -> restoring.onResponse(true), e -> {
+                Throwable cause = ExceptionsHelper.unwrapCause(e);
+                if (cause instanceof VersionConflictEngineException && attempt < SHARING_UPDATE_MAX_ATTEMPTS) {
+                    ctx.restore();
+                    retryVisibilitySync(resourceId, resourceIndex, attempt, listener);
+                    return;
+                }
+                if (cause instanceof DocumentMissingException) {
+                    restoring.onFailure(resourceMissing(resourceId, resourceIndex));
+                    return;
+                }
+                restoring.onFailure(e);
+            }));
+        }, restoring::onFailure));
     }
 
     private void retryVisibilitySync(String resourceId, String resourceIndex, int attempt, ActionListener<Boolean> listener) {
@@ -336,7 +404,14 @@ public class ResourceSharingIndexHandler {
             threadPool.schedule(new AbstractRunnable() {
                 @Override
                 protected void doRun() {
-                    syncResourceVisibilityAttempt(resourceId, resourceIndex, attempt + 1, listener);
+                    syncResourceVisibilityAttempt(
+                        resourceId,
+                        resourceIndex,
+                        UNASSIGNED_SEQ_NO,
+                        UNASSIGNED_PRIMARY_TERM,
+                        attempt + 1,
+                        listener
+                    );
                 }
 
                 @Override
@@ -366,6 +441,17 @@ public class ResourceSharingIndexHandler {
         );
     }
 
+    /** The failure to report for a failed sync: a missing resource as it is, anything else as a failed field write. */
+    private static Exception visibilityFailure(String resourceId, String outcome, Exception cause) {
+        return ExceptionsHelper.unwrapCause(cause) instanceof ResourceNotFoundException
+            ? cause
+            : visibilityUpdateFailed(resourceId, outcome, cause);
+    }
+
+    private static ResourceNotFoundException resourceMissing(String resourceId, String resourceIndex) {
+        return new ResourceNotFoundException("Resource [{}] does not exist in [{}]", resourceId, resourceIndex);
+    }
+
     /**
      * Restores {@code all_shared_principals} after a write to the resource document, which may have replaced it.
      *
@@ -374,19 +460,46 @@ public class ResourceSharingIndexHandler {
      * @param listener      completes once the field matches the record, or immediately if there is no record
      */
     public void fetchAndUpdateResourceVisibility(String resourceId, String resourceIndex, ActionListener<Void> listener) {
-        syncResourceVisibility(resourceId, resourceIndex, ActionListener.notifyOnce(ActionListener.wrap(written -> {
+        syncResourceVisibility(resourceId, resourceIndex, restoreListener(resourceId, resourceIndex, listener));
+    }
+
+    /**
+     * Restores {@code all_shared_principals} after a write to the resource document, starting from the version that write
+     * produced. A later write makes the first attempt conflict, and the retry reads the version again.
+     *
+     * @param resourceId    the resource that was written
+     * @param resourceIndex the index that holds the resource
+     * @param seqNo         sequence number of the write, or {@code UNASSIGNED_SEQ_NO} to read it
+     * @param primaryTerm   primary term of the write
+     * @param listener      completes once the field matches the record, or immediately if there is no record
+     */
+    public void fetchAndUpdateResourceVisibility(
+        String resourceId,
+        String resourceIndex,
+        long seqNo,
+        long primaryTerm,
+        ActionListener<Void> listener
+    ) {
+        syncResourceVisibilityAttempt(
+            resourceId,
+            resourceIndex,
+            seqNo,
+            primaryTerm,
+            1,
+            restoreListener(resourceId, resourceIndex, listener)
+        );
+    }
+
+    private static ActionListener<Boolean> restoreListener(String resourceId, String resourceIndex, ActionListener<Void> listener) {
+        return ActionListener.notifyOnce(ActionListener.wrap(written -> {
             if (!written) {
                 LOGGER.debug("No sharing info found for resource {} in index {}", resourceId, resourceIndex);
             }
             listener.onResponse(null);
         }, e -> {
             LOGGER.error("Failed to restore principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-            listener.onFailure(
-                ExceptionsHelper.unwrapCause(e) instanceof ResourceNotFoundException
-                    ? e
-                    : visibilityUpdateFailed(resourceId, NEXT_WRITE_REPAIRS, e)
-            );
-        })));
+            listener.onFailure(visibilityFailure(resourceId, NEXT_WRITE_REPAIRS, e));
+        }));
     }
 
     /**
@@ -405,7 +518,8 @@ public class ResourceSharingIndexHandler {
      *                          "backend_roles": ["backend_role1"]
      *                        }
      *                      }
-     * @param callerListener Returns resourceSharing object if the operation was successful, exception otherwise
+     * @param callerListener the record once created, {@code null} if one already existed (the field is then rewritten from it),
+     *                       or the failure
      * @throws IOException if there are issues with index operations or JSON processing
      */
     public void indexResourceSharing(String resourceIndex, ResourceSharing sharingInfo, ActionListener<ResourceSharing> callerListener)
@@ -428,15 +542,33 @@ public class ResourceSharingIndexHandler {
                 syncThenRespond(resourceIndex, sharingInfo, false, listener);
             }, (e) -> {
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
-                    // already exists → skipping
-                    LOGGER.debug("Entry for [{}] already exists in [{}], skipping", resourceId, resourceSharingIndex);
-                    listener.onResponse(null);
+                    // The record stands; rewrite the field from it, so a repeated create or migrate repairs a field that is out of step
+                    LOGGER.debug("Entry for [{}] already exists in [{}], updating visibility from it", resourceId, resourceSharingIndex);
+                    ctx.restore();
+                    syncResourceVisibility(
+                        resourceId,
+                        resourceIndex,
+                        ActionListener.wrap(written -> listener.onResponse(null), syncError -> {
+                            LOGGER.error(
+                                "Failed to update principals field in [{}] for resource [{}]",
+                                resourceIndex,
+                                resourceId,
+                                syncError
+                            );
+                            listener.onFailure(visibilityFailure(resourceId, EXISTING_RECORD_REPAIRS, syncError));
+                        })
+                    );
                 } else {
                     LOGGER.error("Failed to create entry in [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
                     listener.onFailure(e);
                 }
             });
-            client.index(ir, irListener);
+            // Writes the record once the sharing index exists
+            createSharingIndexIfAbsent(resourceSharingIndex, ActionListener.wrap(unused -> client.index(ir, irListener), e -> {
+                ctx.restore();
+                LOGGER.error("Failed to create [{}] for resource [{}]", resourceSharingIndex, resourceId, e);
+                listener.onFailure(e);
+            }));
         }
     }
 
@@ -491,6 +623,11 @@ public class ResourceSharingIndexHandler {
                 LOGGER.debug("Found {} documents in {}", resourceIds.size(), resourceSharingIndex);
                 listener.onResponse(resourceIds);
             }, exception -> {
+                if (isIndexMissing(exception)) {
+                    ctx.restore();
+                    listener.onResponse(Collections.emptySet());
+                    return;
+                }
                 LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
                 listener.onFailure(exception);
             }));
@@ -519,6 +656,11 @@ public class ResourceSharingIndexHandler {
                 LOGGER.debug("Found {} resource-sharing records in {}", recs.size(), resourceSharingIndex);
                 listener.onResponse(recs);
             }, exception -> {
+                if (isIndexMissing(exception)) {
+                    ctx.restore();
+                    listener.onResponse(Collections.emptySet());
+                    return;
+                }
                 LOGGER.error("Search failed while locating all records inside resourceIndex={} ", resourceIndex, exception);
                 listener.onFailure(exception);
             }));
@@ -810,6 +952,12 @@ public class ResourceSharingIndexHandler {
                     listener.onFailure(new OpenSearchStatusException(failureResponse, RestStatus.INTERNAL_SERVER_ERROR, e));
                 }
             }, exception -> {
+                if (isIndexMissing(exception)) {
+                    ctx.restore();
+                    LOGGER.debug("{} does not exist, so resource_id: {} has no sharing record", resourceSharingIndex, resourceId);
+                    listener.onResponse(null);
+                    return;
+                }
                 String failureResponse = "Something went wrong while fetching resource sharing record for resource_id: "
                     + resourceId
                     + " and source_idx: "
@@ -958,6 +1106,10 @@ public class ResourceSharingIndexHandler {
                 }
             }, e -> {
                 ctx.restore();
+                if (isIndexMissing(e)) {
+                    listener.onResponse(null);
+                    return;
+                }
                 listener.onFailure(e);
             }));
         }
@@ -1102,6 +1254,12 @@ public class ResourceSharingIndexHandler {
                     listener.onResponse(false);
                 }
             }, failResponse -> {
+                if (isIndexMissing(failResponse)) {
+                    ctx.restore();
+                    LOGGER.debug("{} does not exist, so resource_id: {} has no record to delete", resourceSharingIndex, resourceId);
+                    listener.onResponse(false);
+                    return;
+                }
                 LOGGER.error("Failed to delete documents from {}", resourceSharingIndex, failResponse);
                 listener.onFailure(failResponse);
             }));
@@ -1483,11 +1641,7 @@ public class ResourceSharingIndexHandler {
             }
         }, e -> {
             LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
-            listener.onFailure(
-                ExceptionsHelper.unwrapCause(e) instanceof ResourceNotFoundException
-                    ? e
-                    : visibilityUpdateFailed(resourceId, retryable ? RETRY_REPAIRS : NEXT_WRITE_REPAIRS, e)
-            );
+            listener.onFailure(visibilityFailure(resourceId, retryable ? RETRY_REPAIRS : NEXT_WRITE_REPAIRS, e));
         }));
     }
 

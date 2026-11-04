@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.auth.AuthenticationFailureReason;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
@@ -79,7 +80,7 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
         // internal principal (the 'plugin:' runtime identity or the 'token:' API-token identity).
         if (requestUserHeader.map(User::hasReservedPrefix).orElse(false)) {
             log.warn("Rejecting proxy authentication: user header uses a reserved internal identity prefix");
-            return null;
+            return AuthCredentials.rejected(requestUserHeader.get(), AuthenticationFailureReason.RESERVED_SUBJECT_PREFIX);
         }
 
         return requestUserHeader.map(userHeader -> {

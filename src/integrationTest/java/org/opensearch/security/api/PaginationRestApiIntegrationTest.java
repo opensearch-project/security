@@ -24,6 +24,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 
 /**
@@ -326,6 +327,39 @@ public class PaginationRestApiIntegrationTest extends AbstractApiIntegrationTest
 
             // Cleanup
             client.delete(apiPath("roles", newRoleName));
+        }
+    }
+
+    // ── token can be sent back verbatim, without URL-encoding ──
+
+    @Test
+    public void nextTokenCanBeSentBackWithoutUrlEncoding() throws Exception {
+        // Under standard Base64 a cursor ending on this name contains '+', which the query-string decoder turns into a space
+        final String roleName = "ab~";
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            client.putJson(
+                apiPath("roles", roleName),
+                (builder, params) -> builder.startObject().startArray("cluster_permissions").endArray().endObject()
+            );
+            try {
+                // Size the first page so that it ends exactly on roleName
+                final var allNames = new ArrayList<String>();
+                ok(() -> client.get(withParams(apiPath("roles"), SIZE, "1000", SORT, "asc"))).bodyAsJsonNode()
+                    .get("roles")
+                    .propertyNames()
+                    .forEach(allNames::add);
+                final int pageSize = allNames.indexOf(roleName) + 1;
+                assertThat(pageSize > 0 && pageSize < allNames.size(), is(true));
+
+                final var firstPage = ok(() -> client.get(withParams(apiPath("roles"), SIZE, String.valueOf(pageSize), SORT, "asc")));
+                final String token = firstPage.bodyAsJsonNode().get(NEXT).asText();
+                assertThat(token, matchesPattern("[A-Za-z0-9_-]+"));
+
+                final var secondPage = ok(() -> client.get(withParams(apiPath("roles"), SIZE, "1", SORT, "asc", TOKEN, token)));
+                assertThat(secondPage.bodyAsJsonNode().get("roles").has(allNames.get(pageSize)), is(true));
+            } finally {
+                client.delete(apiPath("roles", roleName));
+            }
         }
     }
 

@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.AfterClass;
@@ -41,6 +42,7 @@ import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -174,7 +176,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -194,7 +195,6 @@ public class LdapBackendTest {
                 ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").toFile().getName()
             )
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .put("path.conf", FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").getParent())
             .build();
@@ -216,7 +216,6 @@ public class LdapBackendTest {
 
     @Test
     public void testLdapAuthenticationSSLSSLv3() throws Exception {
-
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
@@ -245,7 +244,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_ciphers", "AAA")
             .put("path.home", ".")
             .build();
@@ -268,7 +266,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "TLSv1.2")
             .putList("enabled_ssl_ciphers", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA")
             .put("path.home", ".")
@@ -288,7 +285,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -730,7 +726,6 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -807,6 +802,34 @@ public class LdapBackendTest {
         assertThat(user.getRoles().size(), is(8));
         MatcherAssert.assertThat(user.getRoles(), hasItem("nested3"));
         MatcherAssert.assertThat(user.getRoles(), hasItem("rolemo4"));
+    }
+
+    @Test
+    public void testLdapAuthorizationNestedAttrWithMissingEntries() throws Exception {
+        assertThat(nestedAttrRoles("danglingref"), containsInAnyOrder("danglingnest", "rolemo4", "nested3", "nested4"));
+    }
+
+    @Test
+    public void testLdapAuthorizationNestedAttrWithReferralToMissingEntry() throws Exception {
+        assertThat(nestedAttrRoles("referralref"), containsInAnyOrder("rolemo4", "nested3", "nested4"));
+    }
+
+    private Set<String> nestedAttrRoles(final String username) throws Exception {
+        final Settings settings = Settings.builder()
+            .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+            .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+            .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLEBASE, "ou=groups,o=TEST")
+            .put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+            .put(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, true)
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
+            .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
+            .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
+            .build();
+
+        final User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User(username), ctx(username, username));
+        Assert.assertNotNull(user);
+        return user.getRoles();
     }
 
     @Test

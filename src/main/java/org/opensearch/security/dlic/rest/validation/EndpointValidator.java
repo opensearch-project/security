@@ -200,6 +200,22 @@ public interface EndpointValidator {
         return isAllowedToChangeImmutableEntity(securityConfiguration);
     }
 
+    /**
+     * Bulk form of {@link #onConfigChange(SecurityConfiguration)}, invoked once per bulk request with every entity that passed
+     * name and content validation. The default validates the entities one by one and stops at the first failure. Endpoints whose
+     * per-entity validation consults another configuration type override this to load that configuration once per request.
+     */
+    default ValidationResult<List<SecurityConfiguration>> onConfigChange(final List<SecurityConfiguration> securityConfigurations)
+        throws IOException {
+        for (final var securityConfiguration : securityConfigurations) {
+            final var result = onConfigChange(securityConfiguration);
+            if (result.isValid() == false) {
+                return ValidationResult.error(result.status(), result.errorMessage());
+            }
+        }
+        return ValidationResult.success(securityConfigurations);
+    }
+
     RequestContentValidator createRequestContentValidator(final Object... params);
 
 }

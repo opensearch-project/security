@@ -95,10 +95,8 @@ public class LdapHelper {
         }
     }
 
-    private static String escapeDn(String dn) throws InvalidNameException {
-        // LdapName handles proper DN escaping - just return the normalized form
-        final LdapName dnName = new LdapName(dn);
-        return dnName.toString();
+    static String escapeDn(String dn) throws InvalidNameException {
+        return new LdapName(dn).toString();
     }
 
 }

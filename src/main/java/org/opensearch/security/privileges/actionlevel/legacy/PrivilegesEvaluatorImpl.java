@@ -220,8 +220,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     }
 
     @Override
-    public PrivilegesEvaluatorType type() {
-        return PrivilegesEvaluatorType.LEGACY;
+    public PrivilegeEvaluationMode mode() {
+        return PrivilegeEvaluationMode.LEGACY;
     }
 
     @Override

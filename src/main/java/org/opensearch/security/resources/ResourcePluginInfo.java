@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,6 +36,7 @@ import org.opensearch.security.securityconf.FlattenedActionGroups;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.GatingResourceResolver;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -57,6 +59,13 @@ public class ResourcePluginInfo {
     // type <-> resource provider
     private final Map<String, ResourceProvider> typeToProvider = new HashMap<>();
 
+    // request type <-> resolver of the resource that governs access to requests of that type. Read on the privilege path,
+    // more than once per request, so it is held in a concurrent map rather than behind the registration lock.
+    private final Map<String, GatingResourceResolver> requestTypeToGatingResolver = new ConcurrentHashMap<>();
+
+    // The value DocRequest.type() reports when a request does not declare one of its own
+    private static final String DEFAULT_DOC_REQUEST_TYPE = "indices";
+
     // UI: access-level *names* per type
     private final Map<String, LinkedHashSet<String>> typeToAccessLevels = new HashMap<>();
 
@@ -66,11 +75,37 @@ public class ResourcePluginInfo {
     // default access level per type (for migration)
     private final Map<String, String> typeToDefaultAccessLevel = new HashMap<>();
 
-    // cache current protected types and their indices
+    // Resource indices of the protected types, recomputed on change because every index and delete operation reads it
+    private volatile Set<String> protectedResourceIndices = Collections.emptySet();
+
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
 
     public void setProtectedTypesSetting(OpensearchDynamicSetting<List<String>> protectedTypesSetting) {
-        this.protectedTypesSetting = protectedTypesSetting;
+        lock.writeLock().lock();
+        try {
+            this.protectedTypesSetting = protectedTypesSetting;
+            refreshProtectedResourceIndices(currentProtectedTypes());
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Recomputes {@link #protectedResourceIndices}. Must be called with the write lock held, so a reader cannot observe
+     * a snapshot that disagrees with {@link #typeToProvider}.
+     *
+     * @param protectedTypes the types to treat as protected
+     */
+    private void refreshProtectedResourceIndices(List<String> protectedTypes) {
+        if (protectedTypes == null || protectedTypes.isEmpty()) {
+            protectedResourceIndices = Collections.emptySet();
+            return;
+        }
+        protectedResourceIndices = typeToProvider.entrySet()
+            .stream()
+            .filter(e -> protectedTypes.contains(e.getKey()))
+            .map(e -> e.getValue().resourceIndexName())
+            .collect(Collectors.toUnmodifiableSet());
     }
 
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
@@ -82,6 +117,7 @@ public class ResourcePluginInfo {
             validateTypeFields(extensions);
             resourceSharingExtensions.clear();
             typeToProvider.clear();
+            requestTypeToGatingResolver.clear();
 
             // Providers may share a resource index, but must then agree on the workspaces field: DLS filters a single
             // field per index while ingestion uses each provider's declared field, so a disagreement would silently
@@ -117,10 +153,71 @@ public class ResourcePluginInfo {
                     }
                 }
             }
+            registerGatingResolvers(extensions, typeToProvider.keySet());
             resourceSharingExtensions.addAll(extensions);
+            refreshProtectedResourceIndices(currentProtectedTypes());
         } finally {
             lock.writeLock().unlock();
         }
+    }
+
+    /**
+     * Registers the resolvers that name the resource governing access to a request, keyed by request type. A resolver is
+     * rejected when its request type is already a registered resource type, since a request of a registered type is
+     * authorized against that type directly and the resolver would never be consulted, and when two resolvers claim the
+     * same request type.
+     *
+     * @param extensions    the extensions being registered
+     * @param resourceTypes the resource types registered by those extensions
+     */
+    private void registerGatingResolvers(Set<ResourceSharingExtension> extensions, Set<String> resourceTypes) {
+        for (ResourceSharingExtension extension : extensions) {
+            for (var resolver : extension.getGatingResourceResolvers()) {
+                // "indices" is what DocRequest.type() returns when a request does not override it, so a resolver claiming
+                // it would be consulted for every such request in the cluster
+                if (DEFAULT_DOC_REQUEST_TYPE.equals(resolver.requestType())) {
+                    throw new OpenSearchSecurityException(
+                        String.format(
+                            "Request type [%s] declared by the gating resource resolver of %s is the default reported by"
+                                + " requests that do not declare a type. A gated request must declare a type of its own.",
+                            resolver.requestType(),
+                            extension.getClass().getName()
+                        )
+                    );
+                }
+                if (resourceTypes.contains(resolver.requestType())) {
+                    throw new OpenSearchSecurityException(
+                        String.format(
+                            "Request type [%s] declared by the gating resource resolver of %s is a registered resource type."
+                                + " Requests of a registered type are authorized against that type directly.",
+                            resolver.requestType(),
+                            extension.getClass().getName()
+                        )
+                    );
+                }
+                GatingResourceResolver existing = requestTypeToGatingResolver.putIfAbsent(resolver.requestType(), resolver);
+                if (existing != null) {
+                    throw new OpenSearchSecurityException(
+                        String.format(
+                            "Request type [%s] already has a gating resource resolver. Please provide a different unique name for the"
+                                + " request type declared by %s.",
+                            resolver.requestType(),
+                            extension.getClass().getName()
+                        )
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns the resolver of the resource that governs access to requests of the given type, if the plugin declared one.
+     *
+     * @param requestType the value a request reports as its type
+     * @return the resolver, or null if requests of this type are authorized against the type and id they report
+     */
+    public GatingResourceResolver gatingResolver(String requestType) {
+        return requestTypeToGatingResolver.get(requestType);
     }
 
     public void updateProtectedTypes(List<String> protectedTypes) {
@@ -131,6 +228,7 @@ public class ResourcePluginInfo {
             typeToProvider.clear();
 
             if (protectedTypes == null || protectedTypes.isEmpty()) {
+                refreshProtectedResourceIndices(protectedTypes);
                 return;
             }
 
@@ -141,6 +239,7 @@ public class ResourcePluginInfo {
                     typeToProvider.put(rp.resourceType(), rp);
                 }
             }
+            refreshProtectedResourceIndices(protectedTypes);
         } finally {
             lock.writeLock().unlock();
         }
@@ -502,28 +601,19 @@ public class ResourcePluginInfo {
         }
     }
 
+    /**
+     * The resource indices of the currently protected types, as an immutable snapshot. Consulted on every index and
+     * delete operation in the cluster, so it is not recomputed per call.
+     */
     public Set<String> getResourceIndicesForProtectedTypes() {
-        List<String> resourceTypes = this.protectedTypesSetting.getDynamicSettingValue();
-        if (resourceTypes == null || resourceTypes.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        lock.readLock().lock();
-        try {
-            return typeToProvider.entrySet()
-                .stream()
-                .filter(e -> resourceTypes.contains(e.getKey()))
-                .map(e -> e.getValue().resourceIndexName())
-                .collect(Collectors.toSet());
-        } finally {
-            lock.readLock().unlock();
-        }
+        return protectedResourceIndices;
     }
 
+    /** The types currently listed as protected, or null before the setting is wired. */
     public List<String> currentProtectedTypes() {
         lock.readLock().lock();
         try {
-            return protectedTypesSetting.getDynamicSettingValue();
+            return protectedTypesSetting == null ? null : protectedTypesSetting.getDynamicSettingValue();
         } finally {
             lock.readLock().unlock();
         }

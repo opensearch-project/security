@@ -208,7 +208,12 @@ public class ResourceAccessHandler {
                 needContainerCheck.size()
             );
             for (ResourceSharing sharingInfo : needContainerCheck) {
-                checkContainers(sharingInfo, action, groupedListener);
+                // Each id walks its own chain, so none may share a visited set: these run concurrently, and a parent
+                // shared by two ids would look already visited for the second. The single-id path seeds the chain with
+                // the record it was asked about on entry; this path enters the walk lower down and seeds it here.
+                final Set<String> visitedChain = new HashSet<>();
+                visitedChain.add(chainKey(resourceType, sharingInfo.getResourceId()));
+                checkContainers(sharingInfo, action, visitedChain, groupedListener);
             }
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resources {}: {}", user.getName(), distinctIds, e.getMessage());
@@ -230,6 +235,23 @@ public class ResourceAccessHandler {
         @NonNull String action,
         ActionListener<Boolean> listener
     ) {
+        hasPermission(resourceId, resourceType, action, new HashSet<>(), listener);
+    }
+
+    /**
+     * The single-id check, carrying the records the chain has already consulted so a cyclic chain terminates (see
+     * {@link #checkParent}).
+     */
+    private void hasPermission(
+        @NonNull String resourceId,
+        @NonNull String resourceType,
+        @NonNull String action,
+        Set<String> visitedChain,
+        ActionListener<Boolean> listener
+    ) {
+        // Recorded here, from the id this was asked about, rather than from the record that has not been read yet
+        visitedChain.add(chainKey(resourceType, resourceId));
+
         final User user = (User) threadContext.getPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER);
 
         if (user == null) {
@@ -269,7 +291,7 @@ public class ResourceAccessHandler {
             }
 
             // resource itself does not grant the action: fall back to its containers (parent and/or workspaces)
-            checkContainers(sharingInfo, action, listener);
+            checkContainers(sharingInfo, action, visitedChain, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
@@ -304,11 +326,12 @@ public class ResourceAccessHandler {
      * {@link #WORKSPACE_RESOURCE_TYPE} is a placeholder until the workspace provider is registered via the SPI; if it
      * isn't, {@code indexByType} returns null and the workspace branch denies cleanly.
      *
-     * @param sharingInfo the sharing record of the resource whose containers should be consulted
-     * @param action      the action being authorized
-     * @param listener    notified with {@code true} if any container grants access, {@code false} otherwise
+     * @param sharingInfo  the sharing record of the resource whose containers should be consulted
+     * @param action       the action being authorized
+     * @param visitedChain the records the chain has already consulted, carried so a cycle terminates
+     * @param listener     notified with {@code true} if any container grants access, {@code false} otherwise
      */
-    private void checkContainers(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
+    private void checkContainers(ResourceSharing sharingInfo, String action, Set<String> visitedChain, ActionListener<Boolean> listener) {
         final User user = getAuthenticatedUser();
         if (user == null) {
             listener.onResponse(false);
@@ -329,23 +352,46 @@ public class ResourceAccessHandler {
                         return;
                     }
                 }
-                checkParent(sharingInfo, action, listener);
+                checkParent(sharingInfo, action, visitedChain, listener);
             }, listener::onFailure));
         } else {
-            checkParent(sharingInfo, action, listener);
+            checkParent(sharingInfo, action, visitedChain, listener);
         }
     }
 
     /**
      * Resolves access inherited from the single hierarchical parent (if any), recursing via {@link #hasPermission} so
      * grandparent chains continue to work. Denies when there is no parent.
+     * <p>
+     * Nothing rejects a provider declaring a type as its own parent type, or two types as each other's, so the chain a
+     * document describes can be cyclic. Each hop is a sharing-record read, so a cycle would read forever rather than
+     * exhaust the stack. The walk therefore ends at the first record it reaches twice, and denies, since a cycle has no
+     * terminating ancestor to grant the action.
      */
-    private void checkParent(ResourceSharing sharingInfo, String action, ActionListener<Boolean> listener) {
-        if (sharingInfo.getParentId() != null) {
-            hasPermission(sharingInfo.getParentId(), sharingInfo.getParentType(), action, listener);
-        } else {
+    private void checkParent(ResourceSharing sharingInfo, String action, Set<String> visitedChain, ActionListener<Boolean> listener) {
+        final String parentId = sharingInfo.getParentId();
+        if (parentId == null) {
             listener.onResponse(false);
+            return;
         }
+        final String parentType = sharingInfo.getParentType();
+        if (!visitedChain.add(chainKey(parentType, parentId))) {
+            LOGGER.warn(
+                "Parent chain of resource '{}' revisits {} '{}'; the hierarchy is cyclic. Action {} is not allowed.",
+                sharingInfo.getResourceId(),
+                parentType,
+                parentId,
+                action
+            );
+            listener.onResponse(false);
+            return;
+        }
+        hasPermission(parentId, parentType, action, visitedChain, listener);
+    }
+
+    /** Identifies a sharing record within one chain. */
+    private static String chainKey(String resourceType, String resourceId) {
+        return resourceType + "/" + resourceId;
     }
 
     /**

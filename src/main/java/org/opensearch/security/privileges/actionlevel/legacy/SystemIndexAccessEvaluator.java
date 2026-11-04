@@ -76,6 +76,7 @@ public class SystemIndexAccessEvaluator {
     private final WildcardMatcher systemIndexMatcher;
     private final WildcardMatcher superAdminAccessOnlyIndexMatcher;
     private final WildcardMatcher deniedActionsMatcher;
+    private final WildcardMatcher protectedIndexMatcher;
 
     private final boolean isSystemIndexEnabled;
     private final boolean isSystemIndexPermissionEnabled;
@@ -120,6 +121,14 @@ public class SystemIndexAccessEvaluator {
             ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_ENABLED_KEY,
             ConfigConstants.SECURITY_SYSTEM_INDICES_PERMISSIONS_DEFAULT
         );
+        this.protectedIndexMatcher = settings.getAsBoolean(
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY,
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT
+        )
+            ? WildcardMatcher.from(
+                settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_DEFAULT)
+            )
+            : WildcardMatcher.NONE;
     }
 
     private static List<String> deniedActionPatterns() {
@@ -149,6 +158,7 @@ public class SystemIndexAccessEvaluator {
         final Set<String> systemIndicesToRestore = request instanceof RestoreSnapshotRequest
             && restoreEligibility.isRestAdmin(context.getMappedRoles()) ? getAllSystemIndices(requestedResolved) : Set.of();
 
+        final Set<String> matchingPluginIndices = getMatchingPluginIndices(user, requestedResolved);
         final PrivilegesEvaluatorResponse presponse;
         if (!systemIndicesToRestore.isEmpty()) {
             presponse = evaluateRestAdminRestore(
@@ -159,18 +169,33 @@ public class SystemIndexAccessEvaluator {
                 task,
                 context,
                 actionPrivileges,
-                user
+                user,
+                matchingPluginIndices
             );
         } else {
-            presponse = evaluateSystemIndicesAccess(action, requestedResolved, request, task, context, actionPrivileges, user);
+            presponse = evaluateSystemIndicesAccess(
+                action,
+                requestedResolved,
+                request,
+                task,
+                context,
+                actionPrivileges,
+                user,
+                matchingPluginIndices
+            );
         }
         if (presponse != null && !presponse.isAllowed()) {
             return presponse;
         }
 
+        // A realtime get of an unrefreshed document reads the translog, which the security index searcher wrappers do
+        // not filter, and the request cache key does not include the user. The wrappers do not filter a plugin's reads
+        // of its own system indices unless they are protected, so those reads keep realtime and the request cache.
+        final boolean ownUnprotectedSystemIndicesOnly = containsOnlyPluginSystemIndices(requestedResolved, matchingPluginIndices)
+            && !protectedIndexMatcher.matchAny(requestedResolved.getAllIndices());
         if (requestedResolved.isLocalAll()
             || requestedResolved.getAllIndices().contains(securityIndex)
-            || requestContainsAnySystemIndices(requestedResolved)) {
+            || (requestContainsAnySystemIndices(requestedResolved) && !ownUnprotectedSystemIndicesOnly)) {
 
             if (request instanceof SearchRequest) {
                 ((SearchRequest) request).requestCache(Boolean.FALSE);
@@ -205,7 +230,8 @@ public class SystemIndexAccessEvaluator {
         final Task task,
         final PrivilegesEvaluationContext context,
         final ActionPrivileges actionPrivileges,
-        final User user
+        final User user,
+        final Set<String> matchingPluginIndices
     ) {
         final Optional<String> denialReason = restoreEligibility.denialReason(request, systemIndices);
         if (denialReason.isEmpty()) {
@@ -221,7 +247,8 @@ public class SystemIndexAccessEvaluator {
             task,
             context,
             actionPrivileges,
-            user
+            user,
+            matchingPluginIndices
         );
         if (presponse != null && !presponse.isAllowed()) {
             log.warn("{} denied for REST admin: {}", action, denialReason.get());
@@ -319,6 +346,16 @@ public class SystemIndexAccessEvaluator {
     }
 
     /**
+     * Checks whether every requested index is one of the plugin user's own registered system indices.
+     * @param requestedResolved request which contains indices to be matched
+     * @param matchingPluginIndices the requested indices that the plugin user registered as system indices
+     * @return true if the request names at least one index and all of them belong to the plugin
+     */
+    private static boolean containsOnlyPluginSystemIndices(final Resolved requestedResolved, final Set<String> matchingPluginIndices) {
+        return !matchingPluginIndices.isEmpty() && requestedResolved.getAllIndices().equals(matchingPluginIndices);
+    }
+
+    /**
      * Perform access check on requested indices and actions for those indices
      * @param action action to be performed on request indices
      * @param requestedResolved this object contains all indices this request is resolved to
@@ -327,6 +364,7 @@ public class SystemIndexAccessEvaluator {
      * @param context conveys information about user and mapped roles, etc.
      * @param actionPrivileges the up-to-date ActionPrivileges instance
      * @param user this user's permissions will be looked up
+     * @param matchingPluginIndices the requested indices that the plugin user registered as system indices
      */
     private PrivilegesEvaluatorResponse evaluateSystemIndicesAccess(
         final String action,
@@ -335,17 +373,15 @@ public class SystemIndexAccessEvaluator {
         final Task task,
         final PrivilegesEvaluationContext context,
         final ActionPrivileges actionPrivileges,
-        final User user
+        final User user,
+        final Set<String> matchingPluginIndices
     ) {
         // Perform access check is system index permissions are enabled
         boolean containsSystemIndex = requestContainsAnySystemIndices(requestedResolved);
         boolean containsRegularIndex = requestContainsAnyRegularIndices(requestedResolved);
         boolean serviceAccountUser = user.isServiceAccount();
 
-        // Calculate plugin-related information once for reuse
-        final Set<String> matchingPluginIndices = getMatchingPluginIndices(user, requestedResolved);
-        final boolean containsOnlyPluginSystemIndices = !matchingPluginIndices.isEmpty()
-            && requestedResolved.getAllIndices().equals(matchingPluginIndices);
+        final boolean containsOnlyPluginSystemIndices = containsOnlyPluginSystemIndices(requestedResolved, matchingPluginIndices);
 
         if (isSystemIndexPermissionEnabled) {
             if (serviceAccountUser && containsRegularIndex) {

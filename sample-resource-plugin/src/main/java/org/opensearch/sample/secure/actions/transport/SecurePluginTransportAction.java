@@ -17,6 +17,10 @@ import org.opensearch.action.admin.cluster.state.ClusterStateAction;
 import org.opensearch.action.admin.cluster.state.ClusterStateRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexAction;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.ingest.GetPipelineAction;
+import org.opensearch.action.ingest.GetPipelineRequest;
+import org.opensearch.action.search.SearchAction;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -87,6 +91,30 @@ public class SecurePluginTransportAction extends HandledTransportAction<SecurePl
                         new SecurePluginResponse(
                             String.valueOf(createIndexResponse.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                         )
+                    ),
+                    listener::onFailure
+                )
+            );
+            return;
+        } else if (GetPipelineAction.NAME.equals(action)) {
+            pluginClient.execute(
+                GetPipelineAction.INSTANCE,
+                new GetPipelineRequest(),
+                ActionListener.wrap(
+                    getPipelineResponse -> listener.onResponse(
+                        new SecurePluginResponse("number_of_pipelines: " + getPipelineResponse.pipelines().size())
+                    ),
+                    listener::onFailure
+                )
+            );
+            return;
+        } else if (SearchAction.NAME.equals(action)) {
+            pluginClient.execute(
+                SearchAction.INSTANCE,
+                new SearchRequest(request.getIndex()),
+                ActionListener.wrap(
+                    searchResponse -> listener.onResponse(
+                        new SecurePluginResponse("number_of_hits: " + searchResponse.getHits().getTotalHits().value())
                     ),
                     listener::onFailure
                 )

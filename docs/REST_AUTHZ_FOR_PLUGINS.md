@@ -11,7 +11,7 @@ The security plugin must be installed and operational in your OpenSearch cluster
 ### How does NamedRoute authorization work?
 
 Once the routes are defined as NamedRoute, they, along-with their handlers, will be registered the same way as Route objects. When a request comes in, `SecurityRestFilter.java` applies an authorization check which extracts information about the NamedRoute.
-Next we get the unique name and actionNames associated with that route and evaluate these against existing `cluster_permissions` across all roles of the requesting user. If the authorization check succeeds, the request chain proceeds as normal. If it fails, a 401 response is returned to the user.
+Next we get the unique name and actionNames associated with that route and evaluate these against existing `cluster_permissions` across all roles of the requesting user. If the authorization check succeeds, the request chain proceeds as normal. If it fails, a 403 response is returned to the user.
 
 NOTE:
 1. The action names defined in roles must exactly match the names of registered routes, or else, the request would be deemed unauthorized.

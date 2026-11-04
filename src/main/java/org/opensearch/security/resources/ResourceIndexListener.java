@@ -101,7 +101,17 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     e
                 )
             );
-            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
+            if (result.getResultType() == Engine.Result.Type.SUCCESS) {
+                this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(
+                    resourceId,
+                    resourceIndex,
+                    result.getSeqNo(),
+                    result.getTerm(),
+                    listener
+                );
+            } else {
+                this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
+            }
 
             // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
             // so the write-path record tracks the read-path field. The op's seq_no is the monotonic guard.

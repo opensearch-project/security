@@ -200,6 +200,9 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Impers
         ConnectionConfig originalConfig = ((DefaultConnectionFactory) authConnectionFactory).getConnectionConfig();
         ConnectionConfig authConfig = ConnectionConfig.builder()
             .url(originalConfig.getLdapUrl())
+            .connectionStrategy(originalConfig.getConnectionStrategy())
+            .connectTimeout(originalConfig.getConnectTimeout())
+            .responseTimeout(originalConfig.getResponseTimeout())
             .sslConfig(originalConfig.getSslConfig())
             .useStartTLS(originalConfig.getUseStartTLS())
             .connectionInitializers(BindConnectionInitializer.builder().dn(dn).credential(new Credential(password)).build())

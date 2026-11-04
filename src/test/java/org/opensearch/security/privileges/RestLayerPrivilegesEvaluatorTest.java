@@ -204,8 +204,8 @@ public class RestLayerPrivilegesEvaluatorTest {
             }
 
             @Override
-            public PrivilegesEvaluatorType type() {
-                return PrivilegesEvaluatorType.LEGACY;
+            public PrivilegeEvaluationMode mode() {
+                return PrivilegeEvaluationMode.LEGACY;
             }
         };
 

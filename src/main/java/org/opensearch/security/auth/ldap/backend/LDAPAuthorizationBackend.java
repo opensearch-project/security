@@ -41,6 +41,7 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.auth.ldap.util.Utils;
+import org.opensearch.security.auth.ldap2.LDAPCredentialConfig;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.WildcardMatcher;
@@ -55,6 +56,7 @@ import org.ldaptive.FilterTemplate;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
+import org.ldaptive.ResultCode;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchScope;
 import org.ldaptive.sasl.Mechanism;
@@ -277,12 +279,12 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             List<String> trustAliases = settings.getAsList(ConfigConstants.LDAPS_JKS_TRUST_ALIAS, null);
             String keyAlias = settings.get(ConfigConstants.LDAPS_JKS_CERT_ALIAS, null);
 
-            CredentialConfig cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
+            CredentialConfig cc = LDAPCredentialConfig.of(
                 trustStore,
-                trustAliases != null ? trustAliases.toArray(new String[0]) : null,
+                trustAliases == null ? null : trustAliases.toArray(new String[0]),
                 keyStore,
                 keyStorePassword,
-                keyAlias != null ? new String[] { keyAlias } : null
+                keyAlias
             );
             sslConfig.setCredentialConfig(cc);
         }
@@ -492,9 +494,22 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(connectionFactory, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
+        final LdapEntry e0;
+        try {
+            e0 = LdapHelper.lookup(connectionFactory, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
+        } catch (LdapException e) {
+            if (e.getResultCode() == ResultCode.INVALID_DN_SYNTAX) {
+                log.warn("Skipping nested role with invalid DN {}", roleDn);
+                return Collections.emptySet();
+            }
+            throw e;
+        }
 
-        if (e0 != null && e0.getAttribute(userRoleName) != null) {
+        if (e0 == null) {
+            return Collections.emptySet();
+        }
+
+        if (e0.getAttribute(userRoleName) != null) {
             final Collection<String> userRoles = e0.getAttribute(userRoleName).getStringValues();
             for (final String possibleRoleDN : userRoles) {
                 if (isValidDn(possibleRoleDN)) {

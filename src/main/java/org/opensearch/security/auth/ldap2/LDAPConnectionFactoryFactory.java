@@ -299,12 +299,12 @@ public class LDAPConnectionFactoryFactory {
             List<String> trustAliases = settings.getAsList(ConfigConstants.LDAPS_JKS_TRUST_ALIAS, null);
             String keyAlias = settings.get(ConfigConstants.LDAPS_JKS_CERT_ALIAS, null);
 
-            CredentialConfig cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
+            CredentialConfig cc = LDAPCredentialConfig.of(
                 trustStore,
-                trustAliases != null ? trustAliases.toArray(new String[0]) : null,
+                trustAliases == null ? null : trustAliases.toArray(new String[0]),
                 keyStore,
                 keyStorePassword,
-                keyAlias != null ? new String[] { keyAlias } : null
+                keyAlias
             );
             sslConfig.setCredentialConfig(cc);
         }

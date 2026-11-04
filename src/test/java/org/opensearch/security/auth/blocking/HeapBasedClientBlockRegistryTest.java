@@ -18,15 +18,27 @@
 
 package org.opensearch.security.auth.blocking;
 
+import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.junit.Test;
+
+import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class HeapBasedClientBlockRegistryTest {
 
@@ -203,5 +215,31 @@ public class HeapBasedClientBlockRegistryTest {
 
         Thread.sleep(50);
         assertFalse(registry.isBlocked("a"));
+    }
+
+    @Test
+    public void blockTwiceDoesNotLogUnblock() {
+        final Appender appender = mock(Appender.class);
+        when(appender.getName()).thenReturn("MockAppender");
+        when(appender.isStarted()).thenReturn(true);
+        final Logger logger = (Logger) LogManager.getLogger(HeapBasedClientBlockRegistry.class);
+        final Level previousLevel = logger.getLevel();
+        logger.addAppender(appender);
+        logger.setLevel(Level.INFO);
+        try {
+            HeapBasedClientBlockRegistry<String> registry = new HeapBasedClientBlockRegistry<>(60_000, 10, String.class);
+            registry.block("a");
+            registry.block("a");
+            assertTrue(registry.isBlocked("a"));
+            registry.unblock("a");
+
+            final ArgumentCaptor<LogEvent> events = ArgumentCaptor.forClass(LogEvent.class);
+            verify(appender, atLeastOnce()).append(events.capture());
+            final List<String> messages = events.getAllValues().stream().map(e -> e.getMessage().getFormattedMessage()).toList();
+            assertEquals(List.of("Blocking a", "Blocking a", "Unblocking a"), messages);
+        } finally {
+            logger.removeAppender(appender);
+            logger.setLevel(previousLevel);
+        }
     }
 }
