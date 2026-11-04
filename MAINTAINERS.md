@@ -20,6 +20,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Derek Ho         | [derek-ho](https://github.com/derek-ho)               | Amazon      |
 | Ryan Liang       | [RyanL1997](https://github.com/RyanL1997)             | Amazon      |
 | Rishav Kumar     | [Rishav9852Kumar](https://github.com/Rishav9852Kumar) | Amazon      |
+| Ralph Ursprung   | [rursprung](https://github.com/rursprung)             | Avaloq      |
 | Shikhar Jain     | [shikharj05](https://github.com/shikharj05)           | Independent |
 | Finnegan Carroll | [finnegancarroll](https://github.com/finnegancarroll) | Amazon      |
 | Andriy Redko     | [reta](https://github.com/reta)                       | Independent |
