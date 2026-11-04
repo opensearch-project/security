@@ -470,6 +470,9 @@ sourceSets {
         resources {
             srcDir file('src/integrationTest/resources')
         }
+        // On the root integration test class path only, not in the source set output that the sample resource plugin's
+        // integration tests load, so it does not shadow that plugin's own plugin-additional-permissions.yml.
+        runtimeClasspath += files('src/integrationTest/plugin-permissions')
         processIntegrationTestResources {
             duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }
@@ -499,6 +502,7 @@ configurations {
             force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
             force "io.netty:netty-buffer:${versions.netty}"
             force "io.netty:netty-codec-base:${versions.netty}"
+            force "io.netty:netty-codec-compression:${versions.netty}"
             force "io.netty:netty-codec-http:${versions.netty}"
             force "io.netty:netty-codec-http2:${versions.netty}"
             force "io.netty:netty-codec-http3:${versions.netty}"
@@ -508,6 +512,8 @@ configurations {
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-resolver:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
+            force "io.netty:netty-transport-classes-epoll:${versions.netty}"
+            force "io.netty:netty-transport-native-epoll:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force libs.google.guava
@@ -538,7 +544,7 @@ configurations {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.9.2"
             force "org.hamcrest:hamcrest:2.2"
             force "org.mockito:mockito-core:5.24.0"
-            force "net.bytebuddy:byte-buddy:1.18.15"
+            force "net.bytebuddy:byte-buddy:1.18.16"
             force "org.ow2.asm:asm:${versions.asm}"
 
             // For org.opensearch.plugin:transport-grpc
@@ -674,6 +680,15 @@ tasks.register("integrationTest", Test) {
     description = 'Run integration tests.'
     group = 'verification'
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
+    // required by the arrow-flight-rpc plugin used in Flight stream transport tests
+    systemProperty "io.netty.allocator.numDirectArenas", "1"
+    systemProperty "io.netty.noUnsafe", "false"
+    systemProperty "io.netty.tryUnsafe", "true"
+    systemProperty "io.netty.tryReflectionSetAccessible", "true"
+    // keep Netty on NIO as in a plugin installation: with native epoll on the test classpath, arrow-flight-rpc would
+    // pair epoll channels with its NIO event loops and fail to start on Linux
+    systemProperty "io.netty.transport.noNative", "true"
+    jvmArgs += ["--add-opens", "java.base/java.nio=ALL-UNNAMED"]
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
     //run the integrationTest task after the test task
@@ -707,6 +722,10 @@ check.dependsOn integrationTest
 
 
 dependencies {
+    // Arrow Flight stream transport, used only by the root project's Flight integration tests
+    integrationTestImplementation "org.opensearch.plugin:arrow-base:${opensearch_version}"
+    integrationTestImplementation "org.opensearch.plugin:arrow-flight-rpc:${opensearch_version}"
+    integrationTestImplementation("org.apache.arrow:flight-core:${versions.arrow}") { transitive = false }
     implementation project(path: ":${rootProject.name}-spi", configuration: 'shadow')
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"

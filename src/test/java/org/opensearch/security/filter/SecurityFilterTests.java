@@ -258,10 +258,16 @@ public class SecurityFilterTests extends LuceneTestCase {
         // Answers on the calling thread, as an admin user's permission check does
         final ResourceAccessEvaluator resourceAccessEvaluator = mock(ResourceAccessEvaluator.class);
         when(resourceAccessEvaluator.evaluableResourceRequest(request)).thenReturn(
-            new ResourceAccessEvaluator.ResourceRequest("resource-index", "resource-type", List.of("id-1"))
+            new ResourceAccessEvaluator.ResourceRequest(request, "resource-index", "resource-type", List.of("id-1"))
         );
         doAnswer(invocation -> {
-            invocation.<ActionListener<PrivilegesEvaluatorResponse>>getArgument(2).onResponse(PrivilegesEvaluatorResponse.ok());
+            invocation.<ActionListener<ResourceAccessEvaluator.Evaluation>>getArgument(2)
+                .onResponse(
+                    new ResourceAccessEvaluator.Evaluation(
+                        PrivilegesEvaluatorResponse.ok(),
+                        new ResourceAccessEvaluator.AuthorizedResource("resource-type", List.of("id-1"), "resource-index")
+                    )
+                );
             return null;
         }).when(resourceAccessEvaluator).evaluateAsync(any(), any(), any());
 

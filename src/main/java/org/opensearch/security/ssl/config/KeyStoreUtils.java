@@ -209,21 +209,64 @@ public final class KeyStoreUtils {
      * Copies the certificate of a single alias into a new in-memory store of {@code targetType}, so that only
      * that certificate is trusted. The source store is never modified.
      */
-    public static KeyStore copyAlias(final KeyStore trustStore, final String targetType, final String alias, final String source) {
+    public static KeyStore copyAlias(final KeyStore keyStore, final String targetType, final String alias, final String source) {
+        return copyAliases(keyStore, targetType, List.of(alias), source);
+    }
+
+    /**
+     * Copies the certificates of {@code aliases} into a new in-memory store of {@code targetType}, so that only
+     * those certificates are trusted. The source store is never modified.
+     */
+    public static KeyStore copyAliases(final KeyStore keyStore, final String targetType, final List<String> aliases, final String source) {
         try {
-            if (!trustStore.isCertificateEntry(alias)) {
-                throw new OpenSearchException("Alias " + alias + " does not contain a certificate entry");
-            }
-            final var aliasCertificate = (X509Certificate) trustStore.getCertificate(alias);
-            if (aliasCertificate == null) {
-                throw new OpenSearchException("Couldn't find SSL certificate for alias " + alias);
-            }
             final var narrowed = newKeyStore(targetType);
-            narrowed.setCertificateEntry(alias, aliasCertificate);
+            for (final String alias : aliases) {
+                if (!keyStore.isCertificateEntry(alias)) {
+                    throw new OpenSearchException("Alias " + alias + " does not contain a certificate entry");
+                }
+                final var aliasCertificate = (X509Certificate) keyStore.getCertificate(alias);
+                if (aliasCertificate == null) {
+                    throw new OpenSearchException("Couldn't find SSL certificate for alias " + alias);
+                }
+                narrowed.setCertificateEntry(alias, aliasCertificate);
+            }
             return narrowed;
         } catch (Exception e) {
             throw new OpenSearchException("Failed to load trust store from " + source, e);
         }
+    }
+
+    /**
+     * Copies the key entry of a single alias, with its certificate chain, into a new in-memory store of
+     * {@code targetType}, so that only that key is used. The source store is never modified.
+     */
+    public static KeyStore copyKeyAlias(
+        final KeyStore keyStore,
+        final String targetType,
+        final String alias,
+        final char[] keyPassword,
+        final String source
+    ) {
+        try {
+            return copyKeyEntry(keyStore, targetType, alias, keyPassword);
+        } catch (Exception e) {
+            throw new OpenSearchException("Failed to load key store from " + source, e);
+        }
+    }
+
+    private static KeyStore copyKeyEntry(final KeyStore keyStore, final String targetType, final String alias, final char[] keyPassword)
+        throws GeneralSecurityException, IOException {
+        if (!keyStore.isKeyEntry(alias)) {
+            throw new CertificateException("Couldn't find SSL key for alias " + alias);
+        }
+        final var certificateChain = keyStore.getCertificateChain(alias);
+        if (certificateChain == null) {
+            throw new CertificateException("Couldn't find certificate chain for alias " + alias);
+        }
+        final var key = keyStore.getKey(alias, keyPassword);
+        final var narrowed = newKeyStore(targetType);
+        narrowed.setKeyEntry(alias, key, keyPassword, certificateChain);
+        return narrowed;
     }
 
     public static KeyStore newTrustStoreFromPem(final Path pemFile) {
@@ -368,20 +411,8 @@ public final class KeyStoreUtils {
         final char[] keyPassword
     ) {
         try {
-            var keyStore = loadKeyStore(path, type, password);
-            if (alias != null) {
-                if (!keyStore.isKeyEntry(alias)) {
-                    throw new CertificateException("Couldn't find SSL key for alias " + alias);
-                }
-                final var certificateChain = keyStore.getCertificateChain(alias);
-                if (certificateChain == null) {
-                    throw new CertificateException("Couldn't find certificate chain for alias " + alias);
-                }
-                final var key = keyStore.getKey(alias, keyPassword);
-                keyStore = newKeyStore(type);
-                keyStore.setKeyEntry(alias, key, keyPassword, certificateChain);
-            }
-            return keyStore;
+            final var keyStore = loadKeyStore(path, type, password);
+            return alias != null ? copyKeyEntry(keyStore, type, alias, keyPassword) : keyStore;
         } catch (final Exception e) {
             throw new OpenSearchException("Failed to load key store from " + path, e);
         }

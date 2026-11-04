@@ -125,6 +125,7 @@ cluster_composite_ops_ro:
   allowed_actions:
   - "indices:data/read/mget"
   - "indices:data/read/msearch"
+  - "indices:data/read/msearch/template"
   - "indices:data/read/mtv"
   - "indices:admin/aliases/exists*"
   - "indices:admin/aliases/get*"

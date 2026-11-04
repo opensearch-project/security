@@ -92,6 +92,7 @@ configurations {
             // Netty version alignment with OpenSearch core
             force "io.netty:netty-buffer:${versions.netty}"
             force "io.netty:netty-codec-base:${versions.netty}"
+            force "io.netty:netty-codec-compression:${versions.netty}"
             force "io.netty:netty-codec-http:${versions.netty}"
             force "io.netty:netty-codec-http2:${versions.netty}"
             force "io.netty:netty-codec-http3:${versions.netty}"
@@ -99,6 +100,8 @@ configurations {
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-resolver:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
+            force "io.netty:netty-transport-classes-epoll:${versions.netty}"
+            force "io.netty:netty-transport-native-epoll:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
 
             force "jakarta.json:jakarta.json-api:2.1.3"

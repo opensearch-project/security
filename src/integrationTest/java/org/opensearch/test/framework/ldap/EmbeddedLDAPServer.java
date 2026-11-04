@@ -54,6 +54,10 @@ public class EmbeddedLDAPServer extends ExternalResource {
         }
     }
 
+    public void closeAllConnections() {
+        server.closeAllConnections();
+    }
+
     public int getLdapNonTlsPort() {
         return server.getLdapNonTlsPort();
     }

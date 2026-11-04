@@ -220,7 +220,42 @@ public class MultiGetResourceRequest extends ActionRequest implements MultiResou
 }
 ```
 
-A collection that is empty, or that holds a blank id, is not evaluated: such a request falls through to the regular privileges evaluator, as a blank `id()` does. A request meaning "all resources" is therefore still filtered by the plugin itself.
+A blank id is dropped and the rest of the collection is still authorized, since a blank names no resource. A request left with no id at all is not evaluated and falls through to the regular privileges evaluator, as a blank `id()` does, so a request meaning "all resources" is still filtered by the plugin itself.
+
+When access to a request is governed by a resource the request does not name, and that resource is known only after a read, the plugin registers a `GatingResourceResolver` for the value its requests report as `type()`. The security plugin asks the resolver for the gating resource id and authorizes that resource instead; a resolution that yields nothing, or fails, denies the request. alerting's alert comments are the case: an index, update or delete carries an alert or comment id and the monitor that governs access is only known after reading it.
+
+```java
+public class AlertingCommentResolver implements GatingResourceResolver {
+
+    @Override
+    public String requestType() {
+        return "alerting-comment"; // the value the comment requests report as type()
+    }
+
+    @Override
+    public String gatingResourceType() {
+        return "monitor";
+    }
+
+    @Override
+    public void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener) {
+        // read the alert as the plugin, then hand back the monitor id
+    }
+}
+```
+
+```java
+@Override
+public Set<GatingResourceResolver> getGatingResourceResolvers() {
+    return Set.of(new AlertingCommentResolver());
+}
+```
+
+Every resolved id must grant the action, which is what lets a request naming several resources be gated as a whole. Nothing resolved denies the request, and so does a blank among the resolved ids: unlike a blank among the request's own ids, it stands for an item whose governing resource is unknown.
+
+The request type a resolver claims must be the plugin's own: not a registered resource type, since a request of a registered type is authorized against that type directly, and not `indices`, which is what `DocRequest.type()` reports for a request that declares nothing. Resolution is only performed while the gating type is protected. The request's own index need not be a resource index and it need not name a resource at all, which is what lets a create be gated by an existing parent; the resolver receives the request and reads whichever field carries the link.
+
+The resolver is called while the request is being authorized, so it must not block, and the read should use the plugin's own client since the requesting user usually holds no permission on the index being read. The security plugin restores the caller's context when the resolver completes, so the access check and the transport action after it run as the caller whatever context the listener is invoked with.
 
 ---
 
