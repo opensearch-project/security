@@ -76,7 +76,7 @@ public class Saml2SettingsProvider {
         this.dashboardsUrlSupplier = dashboardsUrlSupplier;
     }
 
-    Saml2Settings get() throws SamlConfigException {
+    Saml2Settings get(String dashboardsUrl) throws SamlConfigException {
         try {
             HashMap<String, Object> configProperties = new HashMap<>();
 
@@ -102,7 +102,7 @@ public class Saml2SettingsProvider {
             initIdpEndpoints(idpSsoDescriptor, configProperties);
             initIdpCerts(idpSsoDescriptor, configProperties);
 
-            initSpEndpoints(configProperties);
+            initSpEndpoints(configProperties, dashboardsUrl);
 
             initMisc(configProperties);
 
@@ -121,18 +121,19 @@ public class Saml2SettingsProvider {
     Saml2Settings getCached() throws SamlConfigException {
         Instant tempLastUpdate = null;
 
+        final String currentDashboardsUrl = this.dashboardsUrlSupplier.get();
+
         if (this.metadataResolver instanceof RefreshableMetadataResolver && this.isUpdateRequired()) {
             this.cachedSaml2Settings = null;
             tempLastUpdate = ((RefreshableMetadataResolver) this.metadataResolver).getLastUpdate();
         }
 
-        if (this.isDashboardsUrlChanged()) {
+        if (this.isDashboardsUrlChanged(currentDashboardsUrl)) {
             this.cachedSaml2Settings = null;
         }
 
         if (this.cachedSaml2Settings == null) {
-            String currentDashboardsUrl = this.dashboardsUrlSupplier.get();
-            this.cachedSaml2Settings = this.get();
+            this.cachedSaml2Settings = this.get(currentDashboardsUrl);
             this.metadataUpdateTime = tempLastUpdate;
             this.lastUsedDashboardsUrl = currentDashboardsUrl;
         }
@@ -154,8 +155,7 @@ public class Saml2SettingsProvider {
         }
     }
 
-    private boolean isDashboardsUrlChanged() {
-        String currentDashboardsUrl = this.dashboardsUrlSupplier.get();
+    private boolean isDashboardsUrlChanged(String currentDashboardsUrl) {
         if (!Objects.equals(this.lastUsedDashboardsUrl, currentDashboardsUrl)) {
             log.debug(
                 "Dashboards URL has changed from '{}' to '{}'; SAML settings cache will be refreshed",
@@ -173,10 +173,10 @@ public class Saml2SettingsProvider {
         configProperties.put(SettingsBuilder.SP_PRIVATEKEY_PROPERTY_KEY, this.spSignaturePrivateKey);
     }
 
-    private void initSpEndpoints(HashMap<String, Object> configProperties) {
+    private void initSpEndpoints(HashMap<String, Object> configProperties, String dashboardsUrl) {
         configProperties.put(
             SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_URL_PROPERTY_KEY,
-            this.buildAssertionConsumerEndpoint(this.dashboardsUrlSupplier.get())
+            this.buildAssertionConsumerEndpoint(dashboardsUrl)
         );
         configProperties.put(
             SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_BINDING_PROPERTY_KEY,

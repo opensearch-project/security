@@ -40,6 +40,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.opensearch.common.io.stream.BytesStreamOutput;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
@@ -1036,6 +1037,45 @@ public class HTTPSamlAuthenticatorTest {
                 .build();
             HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
             String acsUrl = samlAuthenticator.saml2SettingsProvider.getCached().getSpAssertionConsumerServiceUrl().toString();
+            assertThat(acsUrl, Matchers.startsWith("http://kibana-fallback"));
+        } finally {
+            OpenSearchSecurityPlugin.GuiceHolder.setDashboardsUrlSetting(null);
+        }
+    }
+
+    @Test
+    public void cachedSettingsFollowRuntimeChangeAndClearOfDynamicSetting() throws Exception {
+        DashboardsUrlSetting dynamicSetting = new DashboardsUrlSetting(Settings.builder().build());
+        ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, Set.of(dynamicSetting.getDynamicSetting()));
+        dynamicSetting.registerClusterSettingsChangeListener(clusterSettings);
+        OpenSearchSecurityPlugin.GuiceHolder.setDashboardsUrlSetting(dynamicSetting);
+
+        try {
+            Settings settings = Settings.builder()
+                .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://kibana-fallback")
+                .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("exchange_key", "abc")
+                .put("roles_key", "roles")
+                .put("path.home", ".")
+                .build();
+            HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+            String acsUrl = samlAuthenticator.saml2SettingsProvider.getCached().getSpAssertionConsumerServiceUrl().toString();
+            assertThat(acsUrl, Matchers.startsWith("http://kibana-fallback"));
+
+            // Runtime update: cached SAML settings must be rebuilt with the new URL
+            clusterSettings.applySettings(
+                Settings.builder()
+                    .put(org.opensearch.security.support.ConfigConstants.SECURITY_DASHBOARDS_URL, "http://updated-dashboards")
+                    .build()
+            );
+            acsUrl = samlAuthenticator.saml2SettingsProvider.getCached().getSpAssertionConsumerServiceUrl().toString();
+            assertThat(acsUrl, Matchers.startsWith("http://updated-dashboards"));
+
+            // Clearing the override falls back to kibana_url
+            clusterSettings.applySettings(Settings.EMPTY);
+            acsUrl = samlAuthenticator.saml2SettingsProvider.getCached().getSpAssertionConsumerServiceUrl().toString();
             assertThat(acsUrl, Matchers.startsWith("http://kibana-fallback"));
         } finally {
             OpenSearchSecurityPlugin.GuiceHolder.setDashboardsUrlSetting(null);
