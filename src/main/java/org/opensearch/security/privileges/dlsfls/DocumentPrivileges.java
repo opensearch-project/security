@@ -168,12 +168,17 @@ public class DocumentPrivileges extends AbstractRuleBasedPrivileges<DocumentPriv
                 if (UserAttributes.needsAttributeSubstitution(effectiveQueryString)) {
                     List<String> unresolved = UserAttributes.findUnresolvedAttributes(effectiveQueryString);
                     Set<String> available = context.getUser().getCustomAttributesMap().keySet();
-                    String availableStr = available.size() > MAX_ATTRIBUTES_IN_ERROR_MESSAGE
-                        ? available.stream().limit(MAX_ATTRIBUTES_IN_ERROR_MESSAGE).collect(Collectors.joining(", "))
+                    String availableStr;
+                    if (available.size() > MAX_ATTRIBUTES_IN_ERROR_MESSAGE) {
+                        availableStr = available.stream().limit(MAX_ATTRIBUTES_IN_ERROR_MESSAGE).collect(Collectors.joining(", "))
                             + " ... and "
                             + (available.size() - MAX_ATTRIBUTES_IN_ERROR_MESSAGE)
-                            + " more"
-                        : String.join(", ", available);
+                            + " more";
+                    } else if (!available.isEmpty()) {
+                        availableStr = String.join(", ", available);
+                    } else {
+                        availableStr = "[none]";
+                    }
                     throw new PrivilegesEvaluationException(
                         "DLS query references undefined user attributes: " + unresolved + ". Available attributes are: " + availableStr,
                         new OpenSearchSecurityException("User attribute substitution failed")

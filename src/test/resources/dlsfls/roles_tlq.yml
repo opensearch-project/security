@@ -16,3 +16,17 @@ os_dls_tlq_lookup:
       - "tlqdummy"
       allowed_actions:
         - "*"
+
+os_dls_tlq_query_lookup:
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+      - "tlqdocuments"
+      dls: "{ \"terms\": { \"access_codes\": { \"index\": \"user_access_codes\", \"path\": \"access_codes\", \"query\": { \"term\": { \"_id\": \"${user.name}\" } } } } }"
+      allowed_actions:
+        - "*"
+    - index_patterns:
+      - "tlqdummy"
+      allowed_actions:
+        - "*"

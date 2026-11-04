@@ -28,6 +28,7 @@ package org.opensearch.security.compliance;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,6 +56,7 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecuritySettings;
 import org.opensearch.security.support.WildcardMatcher;
 
 import org.joda.time.DateTime;
@@ -82,29 +84,43 @@ public class ComplianceConfig {
 
     private final boolean logExternalConfig;
     private final boolean logInternalConfig;
-    private final boolean logReadMetadataOnly;
-    private final boolean logWriteMetadataOnly;
+    private volatile boolean logReadMetadataOnly;
+    private volatile boolean logWriteMetadataOnly;
     @JsonProperty("write_log_diffs")
-    private final boolean logDiffsForWrite;
+    private volatile boolean logDiffsForWrite;
     @JsonProperty("read_watched_fields")
-    private final Map<String, List<String>> watchedReadFields;
+    private volatile Map<String, List<String>> watchedReadFields;
     @JsonProperty("read_ignore_users")
     private final Set<String> ignoredComplianceUsersForRead;
     @JsonProperty("write_watched_indices")
-    private final List<String> watchedWriteIndicesPatterns;
+    private volatile List<String> watchedWriteIndicesPatterns;
     @JsonProperty("write_ignore_users")
     private final Set<String> ignoredComplianceUsersForWrite;
 
-    private final WildcardMatcher watchedWriteIndicesMatcher;
+    private volatile WildcardMatcher watchedWriteIndicesMatcher;
     private final WildcardMatcher ignoredComplianceUsersForReadMatcher;
     private final WildcardMatcher ignoredComplianceUsersForWriteMatcher;
     private final String securityIndex;
 
-    private final Map<WildcardMatcher, Set<String>> readEnabledFields;
-    private final LoadingCache<String, WildcardMatcher> readEnabledFieldsCache;
+    /**
+     * Immutable holder for watched-read state. Bundling these fields ensures readers always
+     * see a consistent pair — no partial updates visible between setter writes.
+     */
+    private static class WatchedReadState {
+        final Map<String, List<String>> watchedReadFields;
+        final Map<WildcardMatcher, Set<String>> readEnabledFields;
+
+        WatchedReadState(Map<String, List<String>> watchedReadFields, Map<WildcardMatcher, Set<String>> readEnabledFields) {
+            this.watchedReadFields = watchedReadFields;
+            this.readEnabledFields = readEnabledFields;
+        }
+    }
+
+    private volatile WatchedReadState watchedReadState = new WatchedReadState(Map.of(), Map.of());
+    private volatile LoadingCache<String, WildcardMatcher> readEnabledFieldsCache;
     private final DateTimeFormatter auditLogPattern;
     private final String auditLogIndex;
-    private final boolean enabled;
+    private volatile boolean enabled;
     private final Supplier<DateTime> dateProvider;
     private final WildcardMatcher securityIndicesMatcher;
 
@@ -130,21 +146,22 @@ public class ComplianceConfig {
         this.logReadMetadataOnly = logReadMetadataOnly;
         this.logWriteMetadataOnly = logWriteMetadataOnly;
         this.logDiffsForWrite = logDiffsForWrite;
+        this.watchedReadFields = watchedReadFields;
         this.watchedWriteIndicesMatcher = WildcardMatcher.from(watchedWriteIndicesPatterns);
         this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
         this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
         this.securityIndex = securityIndex;
-        this.watchedReadFields = watchedReadFields;
         this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
         this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
         this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
 
-        this.readEnabledFields = watchedReadFields.entrySet()
+        final Map<WildcardMatcher, Set<String>> readEnabled = watchedReadFields.entrySet()
             .stream()
             .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
             .collect(
                 ImmutableMap.toImmutableMap(entry -> WildcardMatcher.from(entry.getKey()), entry -> ImmutableSet.copyOf(entry.getValue()))
             );
+        this.watchedReadState = new WatchedReadState(Map.copyOf(watchedReadFields), Map.copyOf(readEnabled));
 
         DateTimeFormatter auditLogPattern = null;
         String auditLogIndex = null;
@@ -217,7 +234,7 @@ public class ComplianceConfig {
         logger.info("Auditing of external configuration is {}.", logExternalConfig ? "enabled" : "disabled");
         logger.info("Auditing of internal configuration is {}.", logInternalConfig ? "enabled" : "disabled");
         logger.info("Auditing only metadata information for read request is {}.", logReadMetadataOnly ? "enabled" : "disabled");
-        logger.info("Auditing will watch {} for read requests.", readEnabledFields);
+        logger.info("Auditing will watch {} for read requests.", watchedReadState.readEnabledFields);
         logger.info("Auditing read operation requests from {} users is disabled.", ignoredComplianceUsersForReadMatcher);
         logger.info("Auditing only metadata information for write request is {}.", logWriteMetadataOnly ? "enabled" : "disabled");
         logger.info("Auditing diffs for write requests is {}.", logDiffsForWrite ? "enabled" : "disabled");
@@ -340,8 +357,10 @@ public class ComplianceConfig {
             false
         );
 
+        final boolean enabled = SecuritySettings.COMPLIANCE_ENABLED.get(settings);
+
         return new ComplianceConfig(
-            true,
+            enabled,
             logExternalConfig,
             logInternalConfig,
             logReadMetadataOnly,
@@ -381,6 +400,46 @@ public class ComplianceConfig {
     @JsonProperty
     public boolean isEnabled() {
         return this.enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public void setWriteMetadataOnly(boolean writeMetadataOnly) {
+        this.logWriteMetadataOnly = writeMetadataOnly;
+    }
+
+    public void setReadMetadataOnly(boolean readMetadataOnly) {
+        this.logReadMetadataOnly = readMetadataOnly;
+    }
+
+    public void setLogDiffsForWrite(boolean logDiffs) {
+        this.logDiffsForWrite = logDiffs;
+    }
+
+    public void setWatchedWriteIndices(List<String> indices) {
+        this.watchedWriteIndicesPatterns = indices;
+        this.watchedWriteIndicesMatcher = WildcardMatcher.from(indices);
+    }
+
+    public void setWatchedReadFields(List<String> readFields) {
+        // Single-pass: parse format "indexpattern,field1,field2,..." and build both maps simultaneously
+        final Map<String, List<String>> parsed = new HashMap<>(readFields.size());
+        final Map<WildcardMatcher, Set<String>> enabled = new HashMap<>(readFields.size());
+        for (final String entry : readFields) {
+            final String[] split = entry.split(",");
+            if (split.length == 0 || split[0].isEmpty()) {
+                continue;
+            }
+            final List<String> fields = split.length == 1 ? List.of("*") : List.of(Arrays.copyOfRange(split, 1, split.length));
+            parsed.put(split[0], fields);
+            enabled.put(WildcardMatcher.from(split[0]), Set.copyOf(fields));
+        }
+        // Atomic swap — readers always see a consistent pair of maps
+        this.watchedReadFields = Map.copyOf(parsed);
+        this.watchedReadState = new WatchedReadState(Map.copyOf(parsed), Map.copyOf(enabled));
+        this.readEnabledFieldsCache.invalidateAll();
     }
 
     /**
@@ -440,7 +499,7 @@ public class ComplianceConfig {
 
     @VisibleForTesting
     public Map<WildcardMatcher, Set<String>> getReadEnabledFields() {
-        return readEnabledFields;
+        return watchedReadState.readEnabledFields;
     }
 
     @VisibleForTesting
@@ -478,7 +537,7 @@ public class ComplianceConfig {
             }
         }
 
-        return readEnabledFields.entrySet()
+        return watchedReadState.readEnabledFields.entrySet()
             .stream()
             .filter(entry -> entry.getKey().test(index))
             .flatMap(entry -> entry.getValue().stream())

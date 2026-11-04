@@ -31,8 +31,11 @@ import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
 
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
+import org.snakeyaml.engine.v2.api.Dump;
+import org.snakeyaml.engine.v2.api.DumpSettings;
+import org.snakeyaml.engine.v2.api.Load;
+import org.snakeyaml.engine.v2.api.LoadSettings;
+import org.snakeyaml.engine.v2.common.FlowStyle;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
@@ -80,8 +83,9 @@ public class SecuritySettingsConfigurer {
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
-            Yaml yaml = new Yaml();
-            Map<String, Object> yamlData = yaml.load(br);
+            Load yaml = new Load(LoadSettings.builder().build());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> yamlData = (Map<String, Object>) yaml.loadFromReader(br);
             if (yamlData == null) return false;
 
             String[] requiredSettings = {
@@ -135,8 +139,9 @@ public class SecuritySettingsConfigurer {
         // Check if the configuration file contains security settings
         if (installer.OPENSEARCH_CONF_FILE != null && new File(installer.OPENSEARCH_CONF_FILE).exists()) {
             try (BufferedReader br = new BufferedReader(new FileReader(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8))) {
-                Yaml yaml = new Yaml();
-                Map<String, Object> yamlData = yaml.load(br);
+                Load yaml = new Load(LoadSettings.builder().build());
+                @SuppressWarnings("unchecked")
+                Map<String, Object> yamlData = (Map<String, Object>) yaml.loadFromReader(br);
                 if (yamlData != null) {
                     // Check for flat keys
                     for (String key : yamlData.keySet()) {
@@ -298,10 +303,8 @@ public class SecuritySettingsConfigurer {
 
         try (FileWriter writer = new FileWriter(installer.OPENSEARCH_CONF_FILE, StandardCharsets.UTF_8, true)) {
             writer.write(configHeader);
-            Yaml yaml = new Yaml();
-            DumperOptions options = new DumperOptions();
-            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-            String yamlString = yaml.dump(securityConfigAsMap);
+            Dump yaml = new Dump(DumpSettings.builder().setDefaultFlowStyle(FlowStyle.BLOCK).build());
+            String yamlString = yaml.dumpToString(securityConfigAsMap);
             writer.write(yamlString);
             writer.write(configFooter);
         } catch (IOException e) {

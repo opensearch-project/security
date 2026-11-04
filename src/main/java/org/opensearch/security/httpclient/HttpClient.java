@@ -39,6 +39,7 @@ import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBu
 import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.HostnameVerificationPolicy;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpHost;
@@ -283,6 +284,7 @@ public class HttpClient implements Closeable {
                 supportedProtocols,
                 supportedCipherSuites,
                 SSLBufferMode.STATIC,
+                HostnameVerificationPolicy.CLIENT,
                 hnv
             );
 

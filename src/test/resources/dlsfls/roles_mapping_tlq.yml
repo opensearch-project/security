@@ -5,3 +5,6 @@ _meta:
 
 os_dls_tlq_lookup:
   backend_roles: ["os_dls_tlq_lookup"]
+
+os_dls_tlq_query_lookup:
+  backend_roles: ["os_dls_tlq_query_lookup"]

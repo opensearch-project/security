@@ -43,6 +43,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchException;
+import org.opensearch.common.UUIDs;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
@@ -71,6 +72,7 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
+import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -175,6 +177,12 @@ public class SecurityRestFilter {
                     request.param(unconsumedParam);
                 }
             });
+
+            // Stash audit correlation ID: use X-Request-Id header if present, otherwise generate UUID
+            if (threadContext.getTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID) == null) {
+                String requestId = sanitizeRequestId(threadContext.getHeader(Task.X_REQUEST_ID));
+                threadContext.putTransient(ConfigConstants.SECURITY_AUDIT_REQUEST_ID, requestId);
+            }
 
             RestRequest filteredRequest = maybeFilterRestRequest(request);
 
@@ -407,5 +415,27 @@ public class SecurityRestFilter {
             }
         }
         return true;
+    }
+
+    /** Pre-compiled pattern for control character stripping — avoids recompilation on every call. */
+    private static final Pattern CONTROL_CHARS = Pattern.compile("\\p{Cntrl}");
+
+    /**
+     * Sanitizes a raw X-Request-Id header value for use as an audit correlation ID.
+     * Strips control characters to prevent log injection. Does not truncate — core's
+     * http.request_id.max_length setting already validates length before the header reaches us.
+     * Returns null if the input reduces to empty after sanitization (caller should skip storing).
+     */
+    public static String sanitizeRequestId(String rawRequestId) {
+        if (rawRequestId == null || rawRequestId.isEmpty()) {
+            return UUIDs.base64UUID();
+        }
+        rawRequestId = CONTROL_CHARS.matcher(rawRequestId).replaceAll("");
+        if (rawRequestId.isEmpty()) {
+            // Header was entirely control chars — unusable. Return null so each node
+            // doesn't independently generate a different ID (which defeats correlation).
+            return null;
+        }
+        return rawRequestId;
     }
 }

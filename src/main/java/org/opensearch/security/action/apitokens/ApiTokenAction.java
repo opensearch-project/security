@@ -130,6 +130,11 @@ public class ApiTokenAction extends BaseRestHandler {
     }
 
     RestChannelConsumer doPrepareRequest(RestRequest request, NodeClient client) {
+        ConfigV7 config = configurationRepository.getConfiguration(CType.CONFIG).getCEntry(CType.CONFIG.name());
+        if (config == null || config.dynamic == null || !Boolean.TRUE.equals(config.dynamic.api_tokens.getEnabled())) {
+            return channel -> forbidden(channel, "API tokens are not enabled.");
+        }
+
         final var originalUserAndRemoteAddress = Utils.userAndRemoteAddressFrom(client.threadPool().getThreadContext());
         try (final ThreadContext.StoredContext ctx = client.threadPool().getThreadContext().stashContext()) {
             client.threadPool()

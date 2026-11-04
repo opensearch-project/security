@@ -16,11 +16,11 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.security.auth.UserSubjectImpl;
 import org.opensearch.security.resources.ResourceAccessHandler;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -63,9 +63,9 @@ public class ResourceAccessEvaluatorTest {
     }
 
     private void stubAuthenticatedUser() {
-        UserSubjectImpl subject = mock(UserSubjectImpl.class);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
-        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, subject);
+        User user = new User("test-user");
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
+        threadContext.putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, user);
     }
 
     private void assertEvaluateAsync(boolean hasPermission, boolean expectedAllowed) {

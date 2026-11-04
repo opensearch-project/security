@@ -33,7 +33,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.network.SocketUtils;
 
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
@@ -121,11 +120,8 @@ final class LdapServer {
         );
         // final SSLUtil clientSSLUtil = new SSLUtil(new TrustStoreTrustManager(serverKeyStorePath));
 
-        ldapPort = SocketUtils.findAvailableTcpPort();
-        ldapsPort = SocketUtils.findAvailableTcpPort();
-
-        listenerConfigs.add(InMemoryListenerConfig.createLDAPConfig("ldap", null, ldapPort, serverSSLUtil.createSSLSocketFactory()));
-        listenerConfigs.add(InMemoryListenerConfig.createLDAPSConfig("ldaps", ldapsPort, serverSSLUtil.createSSLServerSocketFactory()));
+        listenerConfigs.add(InMemoryListenerConfig.createLDAPConfig("ldap", null, 0, serverSSLUtil.createSSLSocketFactory()));
+        listenerConfigs.add(InMemoryListenerConfig.createLDAPSConfig("ldaps", 0, serverSSLUtil.createSSLServerSocketFactory()));
 
         return listenerConfigs;
     }
@@ -165,6 +161,8 @@ final class LdapServer {
             /* Clear entries from server. */
             server.clear();
             server.startListening();
+            ldapPort = server.getListenPort("ldap");
+            ldapsPort = server.getListenPort("ldaps");
             return loadLdifFiles(ldifFiles);
         } catch (LDAPException ldape) {
             if (ldape.getMessage().contains("java.net.BindException")) {
