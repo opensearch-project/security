@@ -11,6 +11,8 @@
 
 package org.opensearch.security.auditlog.config;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -23,10 +25,13 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
+
+import tools.jackson.databind.InjectableValues;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -37,11 +42,42 @@ import static org.opensearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
 import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
 import static org.opensearch.security.auditlog.impl.AuditCategory.SSL_EXCEPTION;
+import static org.opensearch.security.test.SingleClusterTest.PROJECT_ROOT_RELATIVE_PATH;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class AuditConfigFilterTest {
+
+    @Test
+    public void testSampleConfigEnablesRestAndTransportByDefault() throws Exception {
+        final String yaml = Files.readString(Path.of(PROJECT_ROOT_RELATIVE_PATH, "config", "audit.yml"));
+        final var mapper = DefaultObjectMapper.yamlMapper()
+            .rebuild()
+            .injectableValues(new InjectableValues.Std().addValue(Settings.class, Settings.EMPTY))
+            .build();
+        final AuditConfig config = mapper.treeToValue(mapper.readTree(yaml).required("config"), AuditConfig.class);
+        assertTrue(config.isEnabled());
+        assertTrue(config.getFilter().isRestApiAuditEnabled());
+        assertTrue(config.getFilter().isTransportApiAuditEnabled());
+        assertTrue(config.getFilter().shouldLogRequestBody());
+        assertTrue(config.getFilter().shouldResolveIndices());
+        assertFalse(config.getFilter().shouldResolveBulkRequests());
+        assertTrue(config.getFilter().shouldExcludeSensitiveHeaders());
+        assertSame(WildcardMatcher.NONE, config.getFilter().getIgnoredAuditRequestsMatcher());
+    }
+
+    @Test
+    public void testFromMapWithoutKeysUsesDefaults() {
+        final AuditConfig.Filter filter = AuditConfig.Filter.from(Collections.emptyMap());
+        assertTrue(filter.isRestApiAuditEnabled());
+        assertTrue(filter.isTransportApiAuditEnabled());
+        assertTrue(filter.shouldLogRequestBody());
+        assertTrue(filter.shouldResolveIndices());
+        assertFalse(filter.shouldResolveBulkRequests());
+        assertTrue(filter.shouldExcludeSensitiveHeaders());
+        assertSame(WildcardMatcher.NONE, filter.getIgnoredAuditRequestsMatcher());
+    }
 
     @Test
     public void testDefault() {

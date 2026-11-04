@@ -176,6 +176,7 @@ import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.configuration.DlsFlsValveImpl;
+import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.configuration.SecurityConfigVersionHandler;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import org.opensearch.security.dlic.rest.api.Endpoint;
@@ -778,6 +779,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             }
 
         }
+
+        Salt.warnIfDefaultComplianceSalt(settings);
 
         // TODO: Uncomment for 4.0 - enforce that the default compliance salt is not used outside of demo configuration
         // Salt.validateSaltSettings(settings);
@@ -1688,7 +1691,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
             resourcePluginInfo,
             resourceAccessHandler,
             resourceSharingEnabledSetting,
-            resourceSharingProtectedResourceTypesSetting
+            resourceSharingProtectedResourceTypesSetting,
+            threadPool.getThreadContext()
         );
 
         sf = new SecurityFilter(

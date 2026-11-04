@@ -71,7 +71,6 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnab
 public class SecurityRequestHandler<T extends TransportRequest> extends SecuritySSLRequestHandler<T> {
 
     private static final String DIRECT_CHANNEL_TYPE = "direct";
-    private static final String STREAM_CHANNEL_TYPE = "stream-transport";
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
@@ -161,7 +160,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 );
             }
 
-            if (isDirectOrStreamChannel(channelType)) {
+            if (DIRECT_CHANNEL_TYPE.equals(channelType)) {
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
             }
@@ -278,10 +277,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CONTAIN_PARENT_CHILD_QUERY, Boolean.TRUE);
             }
         }
-    }
-
-    private boolean isDirectOrStreamChannel(String channelType) {
-        return DIRECT_CHANNEL_TYPE.equals(channelType) || STREAM_CHANNEL_TYPE.equals(channelType);
     }
 
     private void populateDualModeContext(TransportRequest request) {

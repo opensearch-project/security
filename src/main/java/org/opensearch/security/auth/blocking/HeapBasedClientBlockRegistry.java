@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import org.apache.logging.log4j.LogManager;
@@ -65,7 +66,8 @@ public class HeapBasedClientBlockRegistry<ClientIdType> implements ClientBlockRe
             .removalListener(new RemovalListener<ClientIdType, Long>() {
                 @Override
                 public void onRemoval(RemovalNotification<ClientIdType, Long> notification) {
-                    if (log.isInfoEnabled()) {
+                    // A put for a client that is already blocked replaces the entry, the client stays blocked
+                    if (notification.getCause() != RemovalCause.REPLACED && log.isInfoEnabled()) {
                         log.info("Unblocking " + notification.getKey());
                     }
                 }

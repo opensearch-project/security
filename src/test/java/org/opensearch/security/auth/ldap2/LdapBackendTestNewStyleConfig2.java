@@ -18,6 +18,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
@@ -39,7 +41,6 @@ import org.opensearch.security.auth.ldap.srv.EmbeddedLDAPServer;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.auth.ldap.util.LdapHelper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
@@ -197,7 +198,50 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
+            .put("path.home", ".")
+            .build();
+
+        User user = new LDAPAuthenticationBackend2(settings, null).authenticate(ctx("jacksonm", "secret"));
+        Assert.assertNotNull(user);
+        assertThat(user.getName(), is("cn=Michael Jackson,ou=people,o=TEST"));
+    }
+
+    @Test
+    public void testLdapsReopenOnAnotherThread() throws Exception {
+
+        final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
+            .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
+            .put("path.home", ".")
+            .build();
+
+        // ldaptive's default reopen handler reopens a dropped (pooled) connection on whichever thread runs the next
+        // operation, which is not the thread that created the connection
+        final Connection con = new LDAPConnectionFactoryFactory(settings, null).createConnectionFactory(null).getConnection();
+        final ExecutorService otherThread = Executors.newSingleThreadExecutor();
+        try {
+            con.open();
+            otherThread.submit(() -> con.reopen()).get();
+            Assert.assertTrue(con.isOpen());
+        } finally {
+            otherThread.shutdown();
+            con.close();
+        }
+    }
+
+    @Test
+    public void testLdapsFailoverToSecondHost() throws Exception {
+
+        // .invalid never resolves (RFC 6761), so ldaptive fails over to localhost; the server certificate is checked
+        // against the SNI name, so that must be the host actually reached, not the first configured one
+        final Settings settings = createBaseSettings().putList(
+            ConfigConstants.LDAP_HOSTS,
+            "ldap.invalid:" + ldapsPort,
+            "localhost:" + ldapsPort
+        )
+            .put("users.u1.search", "(uid={0})")
+            .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
             .put("path.home", ".")
             .build();
 
@@ -216,7 +260,6 @@ public class LdapBackendTestNewStyleConfig2 {
                 ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").toFile().getName()
             )
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .put("path.conf", FileHelper.getAbsoluteFilePathFromClassPath("ldap/root-ca.pem").getParent())
             .build();
@@ -239,7 +282,6 @@ public class LdapBackendTestNewStyleConfig2 {
 
     @Test
     public void testLdapAuthenticationSSLSSLv3() throws Exception {
-
         final Settings settings = createBaseSettings().putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
@@ -266,7 +308,6 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_ciphers", "AAA")
             .put("path.home", ".")
             .build();
@@ -276,12 +317,13 @@ public class LdapBackendTestNewStyleConfig2 {
             Assert.fail("Expected Exception");
         } catch (Exception e) {
             assertThat(e.getCause().getClass(), is(org.ldaptive.provider.ConnectionException.class));
-            Assert.assertTrue(
-                ExceptionUtils.getStackTrace(e),
-                WildcardMatcher.from("*unsupported*ciphersuite*aaa*").test(ExceptionUtils.getStackTrace(e).toLowerCase())
-            );
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains(getUnsupportedCipherMessage()));
         }
 
+    }
+
+    protected String getUnsupportedCipherMessage() {
+        return "Unsupported CipherSuite: AAA";
     }
 
     @Test
@@ -291,7 +333,6 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .putList("enabled_ssl_protocols", "TLSv1.2")
             .putList("enabled_ssl_ciphers", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA")
             .put("path.home", ".")
@@ -310,7 +351,6 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 
@@ -614,7 +654,6 @@ public class LdapBackendTestNewStyleConfig2 {
             .put("users.u1.search", "(uid={0})")
             .put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.resolveStore("ldap/truststore").path())
-            .put("verify_hostnames", false)
             .put("path.home", ".")
             .build();
 

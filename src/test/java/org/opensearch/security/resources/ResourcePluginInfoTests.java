@@ -9,6 +9,8 @@
 package org.opensearch.security.resources;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -19,10 +21,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.mapper.ParsedDocument;
 import org.opensearch.security.resources.settings.ResourceSharingProtectedResourcesSetting;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.spi.resources.GatingResourceResolver;
 import org.opensearch.security.spi.resources.ResourceProvider;
 import org.opensearch.security.spi.resources.ResourceSharingExtension;
 import org.opensearch.security.spi.resources.client.ResourceSharingClient;
@@ -197,7 +202,7 @@ public class ResourcePluginInfoTests {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
             @Override
             public Set<ResourceProvider> getResourceProviders() {
-                var providers = new java.util.LinkedHashSet<ResourceProvider>();
+                var providers = new LinkedHashSet<ResourceProvider>();
                 providers.add(workspacesProvider("a", ".shared-index", "workspaces"));
                 providers.add(workspacesProvider("b", ".shared-index", "ws"));
                 return providers;
@@ -220,7 +225,7 @@ public class ResourcePluginInfoTests {
         ResourceSharingExtension extension = new ResourceSharingExtension() {
             @Override
             public Set<ResourceProvider> getResourceProviders() {
-                var providers = new java.util.LinkedHashSet<ResourceProvider>();
+                var providers = new LinkedHashSet<ResourceProvider>();
                 providers.add(workspacesProvider("a", ".shared-index", "workspaces"));
                 providers.add(workspacesProvider("b", ".shared-index", "workspaces"));
                 providers.add(workspacesProvider("c", ".shared-index", null));
@@ -236,7 +241,102 @@ public class ResourcePluginInfoTests {
         assertEquals("workspaces", resourcePluginInfo.workspacesFieldForIndex(".shared-index"));
     }
 
+    @Test
+    public void testRegistersGatingResourceResolverByRequestType() {
+        resourcePluginInfo.setResourceSharingExtensions(Set.of(gatingResolverExtension("monitor", "alerting-comment", "monitor")));
+
+        assertEquals("monitor", resourcePluginInfo.gatingResolver("alerting-comment").gatingResourceType());
+        assertNull(resourcePluginInfo.gatingResolver("monitor"));
+    }
+
+    @Test
+    public void testRejectsGatingResourceResolverClaimingARegisteredResourceType() {
+        // A request of a registered type is authorized against that type directly, so a resolver claiming the same name
+        // would never be consulted. Reject it rather than let it look registered.
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> resourcePluginInfo.setResourceSharingExtensions(Set.of(gatingResolverExtension("monitor", "monitor", "monitor")))
+        );
+        assertTrue(ex.getMessage().contains("is a registered resource type"));
+    }
+
+    /**
+     * {@code "indices"} is what {@link org.opensearch.action.DocRequest#type()} reports for a request that declares no
+     * type, so a resolver claiming it would be consulted for every such request in the cluster.
+     */
+    @Test
+    public void testRejectsGatingResourceResolverClaimingTheDefaultRequestType() {
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> resourcePluginInfo.setResourceSharingExtensions(Set.of(gatingResolverExtension("monitor", "indices", "monitor")))
+        );
+        assertTrue(ex.getMessage().contains("default reported by"));
+    }
+
+    @Test
+    public void testRejectsTwoGatingResourceResolversForTheSameRequestType() {
+        ResourceSharingExtension extension = new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                return Set.of(workspacesProvider("monitor", ".alerting-config", "workspaces"));
+            }
+
+            @Override
+            public Set<GatingResourceResolver> getGatingResourceResolvers() {
+                var resolvers = new LinkedHashSet<GatingResourceResolver>();
+                resolvers.add(gatingResolver("alerting-comment", "monitor"));
+                resolvers.add(gatingResolver("alerting-comment", "monitor"));
+                return resolvers;
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        };
+
+        OpenSearchSecurityException ex = assertThrows(
+            OpenSearchSecurityException.class,
+            () -> resourcePluginInfo.setResourceSharingExtensions(Set.of(extension))
+        );
+        assertTrue(ex.getMessage().contains("already has a gating resource resolver"));
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+    private ResourceSharingExtension gatingResolverExtension(String resourceType, String requestType, String gatingType) {
+        return new ResourceSharingExtension() {
+            @Override
+            public Set<ResourceProvider> getResourceProviders() {
+                return Set.of(workspacesProvider(resourceType, ".alerting-config", "workspaces"));
+            }
+
+            @Override
+            public Set<GatingResourceResolver> getGatingResourceResolvers() {
+                return Set.of(gatingResolver(requestType, gatingType));
+            }
+
+            @Override
+            public void assignResourceSharingClient(ResourceSharingClient client) {}
+        };
+    }
+
+    private GatingResourceResolver gatingResolver(String requestType, String gatingType) {
+        return new GatingResourceResolver() {
+            @Override
+            public String requestType() {
+                return requestType;
+            }
+
+            @Override
+            public String gatingResourceType() {
+                return gatingType;
+            }
+
+            @Override
+            public void resolveGatingResourceIds(ActionRequest request, ActionListener<Collection<String>> listener) {
+                listener.onResponse(List.of());
+            }
+        };
+    }
 
     /** The type of the document {@code indexOp} writes, or {@code null}. */
     private String typeOf(String index, Engine.Index indexOp) {

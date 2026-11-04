@@ -18,6 +18,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.net.BindException;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
+import javax.net.ssl.TrustManagerFactory;
 
 import com.google.common.io.CharStreams;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -32,6 +34,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
@@ -44,7 +47,6 @@ import com.unboundid.ldap.sdk.schema.Schema;
 import com.unboundid.ldif.LDIFReader;
 import com.unboundid.util.ssl.KeyStoreKeyManager;
 import com.unboundid.util.ssl.SSLUtil;
-import com.unboundid.util.ssl.TrustStoreTrustManager;
 
 final class LdapServer {
     private final static Logger LOG = LogManager.getLogger(LdapServer.class);
@@ -114,11 +116,15 @@ final class LdapServer {
         Collection<InMemoryListenerConfig> listenerConfigs = new ArrayList<InMemoryListenerConfig>();
 
         String serverKeyStorePath = FileHelper.resolveStore("ldap/node-0-keystore").path().toFile().getAbsolutePath();
+
+        KeyStore trustStore = FileHelper.getKeystoreFromClassPath("ldap/truststore", SSLConfigConstants.DEFAULT_STORE_PASSWORD);
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustStore);
+
         final SSLUtil serverSSLUtil = new SSLUtil(
-            new KeyStoreKeyManager(serverKeyStorePath, "changeit".toCharArray()),
-            new TrustStoreTrustManager(serverKeyStorePath)
+            new KeyStoreKeyManager(serverKeyStorePath, SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray()),
+            tmf.getTrustManagers()[0]
         );
-        // final SSLUtil clientSSLUtil = new SSLUtil(new TrustStoreTrustManager(serverKeyStorePath));
 
         listenerConfigs.add(InMemoryListenerConfig.createLDAPConfig("ldap", null, 0, serverSSLUtil.createSSLSocketFactory()));
         listenerConfigs.add(InMemoryListenerConfig.createLDAPSConfig("ldaps", 0, serverSSLUtil.createSSLServerSocketFactory()));
