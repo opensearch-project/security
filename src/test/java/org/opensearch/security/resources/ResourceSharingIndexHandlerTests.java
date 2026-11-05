@@ -952,16 +952,20 @@ public class ResourceSharingIndexHandlerTests {
     }
 
     /**
-     * A create started by the resource write passes that write's version, so the field write needs no version read.
+     * A create started by the resource write passes that write's version, so the field write reads neither the version
+     * nor the record it just created.
      */
     @Test
-    public void create_fromAKnownVersionSkipsTheVersionRead() throws Exception {
+    public void create_fromAKnownVersionReadsNothing() throws Exception {
         AtomicInteger resourceReads = new AtomicInteger();
-        String record = recordJson(List.of("alice"));
+        AtomicInteger recordReads = new AtomicInteger();
         stubGets(() -> {
             resourceReads.incrementAndGet();
             return resourceDoc();
-        }, () -> getResult(record, 1L));
+        }, () -> {
+            recordReads.incrementAndGet();
+            return getResult(recordJson(List.of("alice")), 1L);
+        });
         stubRecordIndexSucceeds();
         UpdateRequestBuilder builder = stubUpdateBuilder();
         List<List<String>> landed = new ArrayList<>();
@@ -978,7 +982,8 @@ public class ResourceSharingIndexHandlerTests {
 
         assertEquals(1, created.size());
         assertEquals(0, resourceReads.get());
-        assertEquals(1, landed.size());
+        assertEquals(0, recordReads.get());
+        assertEquals("the field is written from the record just created", List.of(newRecord().getAllPrincipals()), landed);
         verify(builder).setIfSeqNo(RESOURCE_DOC_SEQ_NO);
         verify(builder).setIfPrimaryTerm(1L);
     }
@@ -1012,12 +1017,14 @@ public class ResourceSharingIndexHandlerTests {
     }
 
     /**
-     * When the resource has moved on since the write that created it, the field write conflicts and reads the version.
+     * When the resource has moved on since the write that created it, the field write conflicts, and the retry reads the
+     * version and the record as it now stands, which here a share has changed since the create.
      */
     @Test
     public void create_fromAStaleVersionRereadsTheVersion() throws Exception {
         runScheduledTasksInline();
-        AtomicInteger resourceReads = stubCountedGets(() -> getResult(recordJson(List.of("alice")), 1L));
+        String sharedSinceCreate = recordJson(List.of("alice"));
+        AtomicInteger resourceReads = stubCountedGets(() -> getResult(sharedSinceCreate, 1L));
         stubRecordIndexSucceeds();
         UpdateRequestBuilder builder = stubUpdateBuilder();
         List<List<String>> landed = new ArrayList<>();
@@ -1035,6 +1042,7 @@ public class ResourceSharingIndexHandlerTests {
         assertEquals(1, created.size());
         assertEquals(1, resourceReads.get());
         assertEquals(1, landed.size());
+        assertEquals(Set.copyOf(principalsOf(sharedSinceCreate)), Set.copyOf(landed.get(0)));
     }
 
     /**

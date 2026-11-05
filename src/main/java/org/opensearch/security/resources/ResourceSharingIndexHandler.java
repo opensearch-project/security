@@ -382,26 +382,62 @@ public class ResourceSharingIndexHandler {
                 restoring.onResponse(false);
                 return;
             }
-            UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                .setDoc(Map.of("all_shared_principals", sharingInfo.getAllPrincipals()))
-                .setIfSeqNo(seqNo)
-                .setIfPrimaryTerm(primaryTerm)
-                .request();
-            client.update(ur, ActionListener.wrap(updated -> restoring.onResponse(true), e -> {
-                Throwable cause = ExceptionsHelper.unwrapCause(e);
-                if (cause instanceof VersionConflictEngineException && attempt < SHARING_UPDATE_MAX_ATTEMPTS) {
-                    ctx.restore();
-                    retryVisibilitySync(resourceId, resourceIndex, attempt, listener);
-                    return;
-                }
-                if (cause instanceof DocumentMissingException) {
-                    restoring.onFailure(resourceMissing(resourceId, resourceIndex));
-                    return;
-                }
-                restoring.onFailure(e);
-            }));
+            writeVisibility(resourceId, resourceIndex, sharingInfo, seqNo, primaryTerm, attempt, ctx, listener);
         }, restoring::onFailure));
+    }
+
+    /**
+     * Writes the field from a record just created, at the resource version its create produced, without reading either.
+     * <p>
+     * Only safe when that version was taken before the record was written: any later change to the record comes with a
+     * field write that moves the version on, so this attempt conflicts and the retry reads both.
+     */
+    private void syncFromCreatedRecord(
+        String resourceId,
+        String resourceIndex,
+        ResourceSharing createdRecord,
+        long seqNo,
+        long primaryTerm,
+        ActionListener<Boolean> listener
+    ) {
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            writeVisibility(resourceId, resourceIndex, createdRecord, seqNo, primaryTerm, 1, ctx, listener);
+        }
+    }
+
+    /**
+     * Writes the principals {@code sharingInfo} allows, guarded by {@code seqNo}; a conflict retries with fresh reads.
+     */
+    private void writeVisibility(
+        String resourceId,
+        String resourceIndex,
+        ResourceSharing sharingInfo,
+        long seqNo,
+        long primaryTerm,
+        int attempt,
+        ThreadContext.StoredContext ctx,
+        ActionListener<Boolean> listener
+    ) {
+        ActionListener<Boolean> restoring = ActionListener.runBefore(listener, ctx::restore);
+        UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
+            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+            .setDoc(Map.of("all_shared_principals", sharingInfo.getAllPrincipals()))
+            .setIfSeqNo(seqNo)
+            .setIfPrimaryTerm(primaryTerm)
+            .request();
+        client.update(ur, ActionListener.wrap(updated -> restoring.onResponse(true), e -> {
+            Throwable cause = ExceptionsHelper.unwrapCause(e);
+            if (cause instanceof VersionConflictEngineException && attempt < SHARING_UPDATE_MAX_ATTEMPTS) {
+                ctx.restore();
+                retryVisibilitySync(resourceId, resourceIndex, attempt, listener);
+                return;
+            }
+            if (cause instanceof DocumentMissingException) {
+                restoring.onFailure(resourceMissing(resourceId, resourceIndex));
+                return;
+            }
+            restoring.onFailure(e);
+        }));
     }
 
     private void retryVisibilitySync(String resourceId, String resourceIndex, int attempt, ActionListener<Boolean> listener) {
@@ -1668,7 +1704,7 @@ public class ResourceSharingIndexHandler {
         ActionListener<ResourceSharing> listener
     ) {
         String resourceId = sharingInfo.getResourceId();
-        syncResourceVisibility(resourceId, resourceIndex, seqNo, primaryTerm, ActionListener.wrap(written -> {
+        ActionListener<Boolean> respond = ActionListener.wrap(written -> {
             if (written) {
                 listener.onResponse(sharingInfo);
             } else {
@@ -1677,7 +1713,13 @@ public class ResourceSharingIndexHandler {
         }, e -> {
             LOGGER.error("Failed to update principals field in [{}] for resource [{}]", resourceIndex, resourceId, e);
             listener.onFailure(visibilityFailure(resourceId, retryable ? RETRY_REPAIRS : NEXT_WRITE_REPAIRS, e));
-        }));
+        });
+        if (seqNo != UNASSIGNED_SEQ_NO) {
+            // The version predates the record write, so the record in hand cannot be older than what that version guards
+            syncFromCreatedRecord(resourceId, resourceIndex, sharingInfo, seqNo, primaryTerm, respond);
+        } else {
+            syncResourceVisibility(resourceId, resourceIndex, UNASSIGNED_SEQ_NO, UNASSIGNED_PRIMARY_TERM, respond);
+        }
     }
 
 }
