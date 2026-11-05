@@ -157,6 +157,7 @@ cluster_monitor:
   static: true
   allowed_actions:
   - "cluster:monitor/*"
+  - "indices:monitor/settings/describe"
   type: "cluster"
   description: "Allow monitoring the cluster"
 manage_snapshots:
