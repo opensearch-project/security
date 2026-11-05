@@ -187,6 +187,10 @@ class ActionConfiguration {
         builder.add(SimulateIndexTemplateAction.NAME);
         builder.add(SimulateTemplateAction.NAME);
 
+        // Like _search/point_in_time/_all above, the index settings describe action provides no possibility to specify/reduce
+        // indices: it reads setting definitions from the node registry and names no index. Thus, it should be a cluster action.
+        builder.add("indices:monitor/settings/describe");
+
         builder.addAll(FORCE_AS_CLUSTER_ACTIONS.get(settings));
         return builder.build();
     }
