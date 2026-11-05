@@ -1,0 +1,110 @@
+## Version 3.10.0 Release Notes
+
+Compatible with OpenSearch and OpenSearch Dashboards version 3.10.0
+
+### Features
+
+* Add pagination support for Security configuration collection APIs with cursor-based navigation ([#6378](https://github.com/opensearch-project/security/pull/6378))
+* Add `forbidden_subjects` setting for JWT authentication configuration ([#6541](https://github.com/opensearch-project/security/pull/6541))
+* Add `notifications_send_access` reserved role for sending messages through existing Notifications channels ([#6602](https://github.com/opensearch-project/security/pull/6602))
+* Add opt-in `base_dashboards_user` and `base_dashboards_user_read_only` static roles for Dashboards access ([#6574](https://github.com/opensearch-project/security/pull/6574))
+* Add bulk upsert API for roles configuration ([#6542](https://github.com/opensearch-project/security/pull/6542))
+* Add bulk upsert API for role mappings configuration ([#6692](https://github.com/opensearch-project/security/pull/6692))
+* Add bulk upsert API for action groups configuration ([#6698](https://github.com/opensearch-project/security/pull/6698))
+* Allow REST admins to restore allowlisted system indices for disaster recovery ([#6557](https://github.com/opensearch-project/security/pull/6557))
+* Allow restoring system indices by wildcard patterns no broader than an allowlist entry ([#6704](https://github.com/opensearch-project/security/pull/6704))
+* Support proxy authentication on gRPC auxiliary transport ([#6469](https://github.com/opensearch-project/security/pull/6469))
+* Read client certificate from header when a trusted proxy forwards it ([#6287](https://github.com/opensearch-project/security/pull/6287))
+* Authorize requests that name multiple resources in a single transport action ([#6570](https://github.com/opensearch-project/security/pull/6570))
+* Resolve the resource governing a request through a provider hook for gating resources ([#6571](https://github.com/opensearch-project/security/pull/6571))
+* Require REST admin roles for plugin routes marked as administrative ([#6662](https://github.com/opensearch-project/security/pull/6662))
+
+### Enhancements
+
+* Add FIPS build mode and the `*FipsTests`/`*FipsIT` test-selection convention ([#6394](https://github.com/opensearch-project/security/pull/6394))
+* Add shared security API request validation to reject environment variable expressions in write payloads ([#6595](https://github.com/opensearch-project/security/pull/6595))
+* Add tenant information to audit log events ([#6181](https://github.com/opensearch-project/security/pull/6181))
+* Align stream transport handling with Netty transport for Arrow Flight TLS and request processing ([#6707](https://github.com/opensearch-project/security/pull/6707))
+* Add plugin system indices to the default restorable list ([#6691](https://github.com/opensearch-project/security/pull/6691))
+* Add alerting sharing, findings, and comments indices to the default restorable list ([#6724](https://github.com/opensearch-project/security/pull/6724))
+* Centralize security configuration index identity into `SecurityIndexIdentity` ([#6564](https://github.com/opensearch-project/security/pull/6564))
+* Define password hashing settings alongside their consumer in `PasswordHasherFactory` ([#6554](https://github.com/opensearch-project/security/pull/6554))
+* Model key and trust store configurations as records and support PKCS#11 for HSM-backed node TLS ([#6395](https://github.com/opensearch-project/security/pull/6395))
+* Load OBO token encryption key from a keystore and upgrade encryption to AES-256-GCM with HKDF-derived keys ([#6397](https://github.com/opensearch-project/security/pull/6397))
+* LDAPS: add SNI per host, reconnect support, connect timeout, and alias fixes ([#6396](https://github.com/opensearch-project/security/pull/6396))
+* Record attempted principal and failure reason on `FAILED_LOGIN` audit events ([#6547](https://github.com/opensearch-project/security/pull/6547))
+* Reduce per-request work on the resource-sharing evaluation path ([#6601](https://github.com/opensearch-project/security/pull/6601))
+* Refactor `HeapBasedClientBlockRegistry` to per-entry expiry for cluster-wide block enforcement ([#6545](https://github.com/opensearch-project/security/pull/6545))
+* Reject unknown action names in role API writes with a 400 response ([#6597](https://github.com/opensearch-project/security/pull/6597))
+* Create resource sharing index with its first sharing record instead of at node start ([#6708](https://github.com/opensearch-project/security/pull/6708))
+* Require index-wide resource protection for all registered types sharing an index ([#6637](https://github.com/opensearch-project/security/pull/6637))
+* Describe visible security cluster settings via the `_describe` API ([#6714](https://github.com/opensearch-project/security/pull/6714))
+* Support `wait_for_completion` on Security configuration write APIs ([#6409](https://github.com/opensearch-project/security/pull/6409))
+* Validate auth failure listener API payloads and reject invalid or overflowing settings ([#6508](https://github.com/opensearch-project/security/pull/6508))
+* Use URL-safe Base64 encoding for pagination `next_token` to avoid query-string decoding issues ([#6689](https://github.com/opensearch-project/security/pull/6689))
+* Deprecate FQCN-based inter-cluster request evaluator setting ([#6546](https://github.com/opensearch-project/security/pull/6546))
+
+### Bug Fixes
+
+* Apply OIDC and JWKS TLS settings (`verify_hostnames`, protocols, ciphers) to the key set client ([#6703](https://github.com/opensearch-project/security/pull/6703))
+* Block DLS bypass via `global` and `multi_terms` aggregations, including nested sub-aggregations ([#6555](https://github.com/opensearch-project/security/pull/6555))
+* Check `required_issuer` before JWT key lookup to avoid unnecessary JWKS refreshes ([#6694](https://github.com/opensearch-project/security/pull/6694))
+* Do not rate-limit IP addresses for credential-less authentication challenges ([#6582](https://github.com/opensearch-project/security/pull/6582))
+* Emit `FAILED_LOGIN` audit event when Basic Auth rejects credentials in multi-auth setups ([#6285](https://github.com/opensearch-project/security/pull/6285))
+* Fix `disabled_categories` so it can fully replace deprecated split audit category settings ([#6626](https://github.com/opensearch-project/security/pull/6626))
+* Follow symlinks when checking config file permissions on startup ([#6558](https://github.com/opensearch-project/security/pull/6558))
+* Grant `indices:admin/get` to `kibana_server` role for Dashboards bootstrap ([#6254](https://github.com/opensearch-project/security/pull/6254))
+* Honor configured server TLS cipher suites without merging HTTP/2 recommendations ([#6654](https://github.com/opensearch-project/security/pull/6654))
+* Honor field visibility in vector APIs and doc-values metadata for FLS and field masking ([#6722](https://github.com/opensearch-project/security/pull/6722))
+* Fix role creation failure for `restapi:admin/*` permissions when requested by superadmin ([#6226](https://github.com/opensearch-project/security/pull/6226))
+* Allow `allow_now_in_dls` setting to be changed dynamically via cluster settings API ([#6633](https://github.com/opensearch-project/security/pull/6633))
+* Allow a plugin permissions file without `cluster_permissions` key ([#6701](https://github.com/opensearch-project/security/pull/6701))
+* Preserve field restrictions during DLS terms lookup queries ([#6658](https://github.com/opensearch-project/security/pull/6658))
+* Read a plugin's permissions file from its own jars only, not from extended plugins ([#6710](https://github.com/opensearch-project/security/pull/6710))
+* Read `disable_envvar_replacement` through its registered setting for consistent defaults ([#6605](https://github.com/opensearch-project/security/pull/6605))
+* Reject invalid DLS queries on role creation and preserve restrictions for malformed stored DLS ([#6581](https://github.com/opensearch-project/security/pull/6581))
+* Reject reserved internal identity prefixes (`plugin:`, `token:`) in proxy authenticators ([#6664](https://github.com/opensearch-project/security/pull/6664))
+* Repair `all_shared_principals` on a repeated resource sharing migration ([#6666](https://github.com/opensearch-project/security/pull/6666))
+* Report WRITE tenant access for the private tenant in thread-context user info ([#6696](https://github.com/opensearch-project/security/pull/6696))
+* Resolve action groups in plugin permissions files ([#6667](https://github.com/opensearch-project/security/pull/6667))
+* Resolve a resource's type from its provider instead of from the document's type field value ([#6627](https://github.com/opensearch-project/security/pull/6627))
+* Restore API token permissions after node restart ([#6652](https://github.com/opensearch-project/security/pull/6652))
+* Restore explicit `securityadmin` cluster-name checks before writes ([#6591](https://github.com/opensearch-project/security/pull/6591))
+* Return 403 instead of 401 when a named route action check fails for an authenticated user ([#6688](https://github.com/opensearch-project/security/pull/6688))
+* Return the matcher itself when `WildcardMatcher.concat` collapses to one, fixing dynamic `nodes_dn` duplication crash ([#6599](https://github.com/opensearch-project/security/pull/6599))
+* Skip group DNs without an entry when resolving nested LDAP roles ([#6697](https://github.com/opensearch-project/security/pull/6697))
+* Avoid refreshing on every internal audit write by removing hardcoded IMMEDIATE refresh policy ([#6656](https://github.com/opensearch-project/security/pull/6656))
+* Remove usage of deprecated `ClientTlsStrategyBuilder::setTlsDetailsFactory` ([#6706](https://github.com/opensearch-project/security/pull/6706))
+* Log default compliance salt warning once at startup instead of on every construction ([#6253](https://github.com/opensearch-project/security/pull/6253))
+
+### Infrastructure
+
+* Add explicit `PluginInfo` to avoid serialization errors in tests ([#6575](https://github.com/opensearch-project/security/pull/6575))
+* Authenticate Codecov uploads with OIDC instead of long-lived token ([#6540](https://github.com/opensearch-project/security/pull/6540))
+* Avoid port allocation races in OIDC and JWKS tests ([#6624](https://github.com/opensearch-project/security/pull/6624))
+* Fix intermittent `InstallerTests` failure caused by static field pollution ([#6559](https://github.com/opensearch-project/security/pull/6559))
+* Fix unchunked SAML redirects in the mock IdP for Commons Codec 1.23.0 compatibility ([#6684](https://github.com/opensearch-project/security/pull/6684))
+* Isolate democonfig test config directories with `TemporaryFolder` ([#6566](https://github.com/opensearch-project/security/pull/6566))
+* Enable logger usage checks in precommit ([#6607](https://github.com/opensearch-project/security/pull/6607))
+* Enable source file permission checks in precommit ([#6608](https://github.com/opensearch-project/security/pull/6608))
+* Tighten `SearchOperationTest` audit assertions with exact action names and counts ([#6594](https://github.com/opensearch-project/security/pull/6594))
+* Align compression and epoll dependencies with core Netty ([#6735](https://github.com/opensearch-project/security/pull/6735))
+* Align sample plugin HTTP dependencies with core ([#6636](https://github.com/opensearch-project/security/pull/6636))
+* Load sample plugin mappings with `getResourceAsStream` to fix forbidden-apis check ([#6579](https://github.com/opensearch-project/security/pull/6579))
+* Run the masked keyword sort test now that Lucene 10.4.0 handles it ([#6712](https://github.com/opensearch-project/security/pull/6712))
+* Simplify sample audit configuration defaults by removing redundant `enable_rest`/`enable_transport` ([#6611](https://github.com/opensearch-project/security/pull/6611))
+* Use unified `disabled_categories` in default audit config ([#6577](https://github.com/opensearch-project/security/pull/6577))
+* Switch license header checker to `peterzhuamazon/license_checker_github_action` ([#6661](https://github.com/opensearch-project/security/pull/6661))
+* Remove the automatic-merges workflow ([#6702](https://github.com/opensearch-project/security/pull/6702))
+* Strengthen GitHub workflows: default token for releases, read-only permissions, no persisted credentials ([#6711](https://github.com/opensearch-project/security/pull/6711))
+
+### Documentation
+
+* Move repository guides into `docs/` directory ([#6596](https://github.com/opensearch-project/security/pull/6596))
+* Add Hardik Shah as a co-maintainer of the Security repo ([#6613](https://github.com/opensearch-project/security/pull/6613))
+* Recognize former security maintainers in the Emeritus section ([#6567](https://github.com/opensearch-project/security/pull/6567))
+
+### Maintenance
+
+* Clean up SSL-related settings by consolidating into `SSLConfig` ([#6592](https://github.com/opensearch-project/security/pull/6592))
+* Rename `PrivilegesEvaluatorType` to `PrivilegeEvaluationMode` ([#6699](https://github.com/opensearch-project/security/pull/6699))
