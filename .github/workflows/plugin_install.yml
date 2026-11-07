@@ -53,7 +53,7 @@ jobs:
         shell: bash
 
       - name: Run Opensearch with A Single Plugin
-        uses: opensearch-project/opensearch-build/.github/actions/start-opensearch@58029ed0db12929e8e920eb875925335583f9490
+        uses: opensearch-project/opensearch-build/.github/actions/start-opensearch@1dd09b4576744f53c2f01c16dda94e5ce839bd4f
         if: ${{ runner.os != 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
@@ -63,7 +63,7 @@ jobs:
           jdk-version: 21
 
       - name: Run Opensearch with A Single Plugin
-        uses: opensearch-project/opensearch-build/.github/actions/start-opensearch@58029ed0db12929e8e920eb875925335583f9490
+        uses: opensearch-project/opensearch-build/.github/actions/start-opensearch@1dd09b4576744f53c2f01c16dda94e5ce839bd4f
         if: ${{ runner.os == 'Windows' }}
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
