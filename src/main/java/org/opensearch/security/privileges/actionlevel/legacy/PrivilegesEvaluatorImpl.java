@@ -626,6 +626,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             || (action0.equals(MultiTermVectorsAction.NAME))
             || (action0.equals(ReindexAction.NAME))
             || (action0.equals(RenderSearchTemplateAction.NAME))
+            // Describes index setting definitions from the node registry; the request names no index.
+            || (action0.equals("indices:monitor/settings/describe"))
             || !action0.startsWith("indices:"));
     }
 
