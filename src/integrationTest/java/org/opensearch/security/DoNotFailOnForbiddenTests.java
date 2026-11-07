@@ -47,6 +47,8 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.transport.client.Client;
 
 import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
@@ -126,7 +128,8 @@ public class DoNotFailOnForbiddenTests {
                 "indices:data/read/scroll",
                 "indices:monitor/settings/get",
                 "indices:monitor/stats",
-                "indices:admin/aliases/get"
+                "indices:admin/aliases/get",
+                "indices:admin/get"
             )
             .on(MARVELOUS_SONGS)
     );
@@ -506,6 +509,25 @@ public class DoNotFailOnForbiddenTests {
             assertThat(aliases, hasItem(containsString("marvelous_songs")));
             assertThat(aliases, hasItem(containsString("horrible_songs")));
 
+        }
+    }
+
+    @Test
+    public void shouldGetIndex_positive() {
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
+            for (String path : List.of("_all", BOTH_INDEX_PATTERN)) {
+                HttpResponse response = client.get(path);
+
+                response.assertStatusCode(SC_OK);
+                assertThat(response.getBody(), response.bodyAsMap().keySet(), containsInAnyOrder(MARVELOUS_SONGS));
+            }
+        }
+    }
+
+    @Test
+    public void shouldGetIndex_negative() {
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
+            client.get(HORRIBLE_SONGS).assertStatusCode(SC_FORBIDDEN);
         }
     }
 
