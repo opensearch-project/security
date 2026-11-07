@@ -193,7 +193,7 @@ public class PrivilegesInterceptor {
         // request not made by the kibana server and user index is the only index/alias involved
         if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.isLocalAll()) {
             final Set<String> indices = requestedResolved.getAllIndices();
-            final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
+            final String tenantIndexName = tenantAliasName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1
                 && indices.iterator().next().startsWith(tenantIndexName)
                 && (isPrivateTenant || tenantPrivileges.hasTenantPrivilege(context, requestedTenant, actionType))) {
@@ -218,7 +218,7 @@ public class PrivilegesInterceptor {
             // regular tenant
             // to avoid security issue
 
-            final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
+            final String tenantIndexName = tenantAliasName(dashboardsIndexName, requestedTenant);
 
             // The new DLS/FLS implementation defaults to a "deny all" pattern in case no roles are configured
             // for an index. As the PrivilegeInterceptor grants access to indices bypassing index privileges,
@@ -434,7 +434,7 @@ public class PrivilegesInterceptor {
         return createIndexRequestBuilder;
     }
 
-    private String toUserIndexName(final String originalDashboardsIndex, final String tenant) {
+    private String tenantAliasName(final String originalDashboardsIndex, final String tenant) {
 
         if (tenant == null) {
             throw new OpenSearchException("tenant must not be null here");
