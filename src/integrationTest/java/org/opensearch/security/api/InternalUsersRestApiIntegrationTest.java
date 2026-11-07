@@ -236,7 +236,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         assertThat(
             client.putJson(
                 apiPath(predefinedUserName),
-                internalUser(randomAsciiAlphanumOfLength(10), configJsonArray(generateArrayValues(false)), null, null)
+                internalUser(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH), configJsonArray(generateArrayValues(false)), null, null)
             ),
             isCreated()
         );
@@ -382,7 +382,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         final var newUserJsonPut = internalUser(
             hidden,
             reserved,
-            randomAsciiAlphanumOfLength(10),
+            randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH),
             randomConfigArray(false),
             attributes,
             securityRoles
@@ -397,7 +397,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         final var updatedUserJsonPut = internalUser(
             hidden,
             reserved,
-            randomAsciiAlphanumOfLength(10),
+            randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH),
             randomConfigArray(false),
             attributes,
             securityRoles
@@ -417,7 +417,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         final var newUserJsonPatch = internalUser(
             hidden,
             reserved,
-            randomAsciiAlphanumOfLength(10),
+            randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH),
             configJsonArray("a", "b"),
             (builder, params) -> builder.startObject().endObject(),
             configJsonArray()
@@ -584,7 +584,9 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 assertThat(
                     client.putJson(
                         apiPath(dottedUserName),
-                        (builder, params) -> builder.startObject().field("password", randomAsciiAlphanumOfLength(10)).endObject()
+                        (builder, params) -> builder.startObject()
+                            .field("password", randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))
+                            .endObject()
                     ),
                     isCreated()
                 );
@@ -594,7 +596,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                     client.putJson(
                         apiPath(dottedUserName),
                         (builder, params) -> builder.startObject()
-                            .field("hash", passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
+                            .field("hash", passwordHasher.hash(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH).toCharArray()))
                             .endObject()
                     ),
                     isCreated()
@@ -608,7 +610,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                             addOp(
                                 dottedUserName,
                                 (ToXContentObject) (builder, params) -> builder.startObject()
-                                    .field("password", randomAsciiAlphanumOfLength(10))
+                                    .field("password", randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))
                                     .endObject()
                             )
                         )
@@ -624,7 +626,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                             addOp(
                                 dottedUserName,
                                 (ToXContentObject) (builder, params) -> builder.startObject()
-                                    .field("hash", passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
+                                    .field("hash", passwordHasher.hash(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH).toCharArray()))
                                     .endObject()
                             )
                         )
@@ -663,7 +665,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                     apiPath("user1"),
                     (builder, params) -> builder.startObject()
                         .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
-                        .field("password", randomAsciiAlphanumOfLength(10))
+                        .field("password", randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))
                         .field("backend_roles", configJsonArray("admin", "role_a"))
                         .endObject()
                 ),
@@ -674,7 +676,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                     apiPath("user2"),
                     (builder, params) -> builder.startObject()
                         .field("hash", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m")
-                        .field("password", randomAsciiAlphanumOfLength(10))
+                        .field("password", randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))
                         .endObject()
                 ),
                 isCreated()
@@ -693,7 +695,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 client.putJson(
                     apiPath("user2"),
                     (builder, params) -> builder.startObject()
-                        .field("password", randomAsciiAlphanumOfLength(10))
+                        .field("password", randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))
                         .field("backend_roles", configJsonArray("admin", "role_b"))
                         .endObject()
                 ),
@@ -705,7 +707,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     @Test
     public void securityRoles() throws Exception {
         final var userWithSecurityRoles = randomAsciiAlphanumOfLength(15);
-        final var userWithSecurityRolesPassword = randomAsciiAlphanumOfLength(10);
+        final var userWithSecurityRolesPassword = randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH);
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             assertThat(
                 client.patch(apiPath(), patch(addOp(userWithSecurityRoles, internalUser(userWithSecurityRolesPassword, null, null, null)))),
@@ -767,7 +769,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         assertThat(
             client.putJson(
                 apiPath(randomAsciiAlphanumOfLength(10)),
-                internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))
+                internalUser(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH), null, null, configJsonArray(HIDDEN_ROLE))
             ),
             isNotFound().withAttribute("/message", "Resource 'hidden-role' is not available.")
         );
@@ -778,7 +780,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 patch(
                     addOp(
                         randomAsciiAlphanumOfLength(10),
-                        internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))
+                        internalUser(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH), null, null, configJsonArray(HIDDEN_ROLE))
                     )
                 )
             ),
@@ -794,7 +796,10 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     void canAssignedHiddenRole(final TestRestClient client) throws Exception {
         final var userNamePut = randomAsciiAlphanumOfLength(4);
         assertThat(
-            client.putJson(apiPath(userNamePut), internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray(HIDDEN_ROLE))),
+            client.putJson(
+                apiPath(userNamePut),
+                internalUser(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH), null, null, configJsonArray(HIDDEN_ROLE))
+            ),
             isCreated()
         );
     }
@@ -803,7 +808,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         assertThat(
             client.putJson(
                 apiPath(randomAsciiAlphanumOfLength(10)),
-                internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray("unknown-role"))
+                internalUser(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH), null, null, configJsonArray("unknown-role"))
             ),
             isNotFound().withAttribute("/message", "role 'unknown-role' not found.")
         );
@@ -813,7 +818,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 patch(
                     addOp(
                         randomAsciiAlphanumOfLength(4),
-                        internalUser(randomAsciiAlphanumOfLength(10), null, null, configJsonArray("unknown-role"))
+                        internalUser(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH), null, null, configJsonArray("unknown-role"))
                     )
                 )
             ),
@@ -838,7 +843,9 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                         executorService.submit(
                             () -> client.putJson(
                                 apiPath(userName),
-                                (builder, params) -> builder.startObject().field("password", randomAsciiAlphanumOfLength(10)).endObject()
+                                (builder, params) -> builder.startObject()
+                                    .field("password", randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))
+                                    .endObject()
                             )
                         )
                     );
@@ -875,11 +882,17 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                         URLEncoder.encode(randomAsciiAlphanumOfLength(4) + ":" + randomAsciiAlphanumOfLength(3), StandardCharsets.UTF_8)
                     )) {
                         assertThat(
-                            client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(10))),
+                            client.putJson(
+                                apiPath(username),
+                                internalUserWithPassword(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))
+                            ),
                             isBadRequest("/message", restrictedTerm)
                         );
                         assertThat(
-                            client.patch(apiPath(), patch(addOp(username, internalUserWithPassword(randomAsciiAlphanumOfLength(10))))),
+                            client.patch(
+                                apiPath(),
+                                patch(addOp(username, internalUserWithPassword(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH))))
+                            ),
                             isBadRequest("/message", restrictedTerm)
                         );
                     }
@@ -928,12 +941,12 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
             assertThat(
                 client.putJson(
                     apiPath(randomAsciiAlphanumOfLength(10)),
-                    serviceUserWithHash(true, passwordHasher.hash(randomAsciiAlphanumOfLength(10).toCharArray()))
+                    serviceUserWithHash(true, passwordHasher.hash(randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH).toCharArray()))
                 ),
                 isBadRequest()
             );
             // Add Service account with password & Hash -- should fail
-            final var password = randomAsciiAlphanumOfLength(10);
+            final var password = randomAsciiAlphanumOfLength(FIPS_MIN_PASSWORD_LENGTH);
             assertThat(
                 client.putJson(
                     apiPath(randomAsciiAlphanumOfLength(10)),
@@ -969,7 +982,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         }
     }
 
-    private String randomAsciiAlphanumOfLength(int length) {
+    protected String randomAsciiAlphanumOfLength(int length) {
         final var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         final var random = new Random();
         final var sb = new StringBuilder(length);

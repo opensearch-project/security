@@ -40,6 +40,7 @@ import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
+import org.opensearch.security.test.helper.file.FipsHashAdapter;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.transport.client.Client;
@@ -120,7 +121,10 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
             + cl2Info.httpPort
             + "\","
             + "\"username\": \"nagilum\","
-            + "\"password\": \"nagilum\""
+            // Pad under FIPS so the remote credential matches cl2's adapted (PBKDF2) fixture hash.
+            + "\"password\": \""
+            + FipsHashAdapter.adaptPassword("nagilum")
+            + "\""
             + "},"
             + "\"index\": \"twitter\","
             + "\"size\": 10"

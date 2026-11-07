@@ -155,7 +155,7 @@ public final class ExternalOpenSearchSink extends AuditLogSink {
                     );
                 }
 
-                effectiveKeyPassword = PemKeyReader.randomChars(12);
+                effectiveKeyPassword = SSLConfigConstants.DEFAULT_STORE_PASSWORD.toCharArray();
                 effectiveKeyAlias = "al";
                 effectiveTruststore = PemKeyReader.toTruststore(effectiveKeyAlias, trustCertificates);
                 effectiveKeystore = PemKeyReader.toKeystore(
