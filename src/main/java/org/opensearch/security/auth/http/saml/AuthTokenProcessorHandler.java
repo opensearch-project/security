@@ -19,6 +19,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -72,7 +73,7 @@ class AuthTokenProcessorHandler {
     private String jwtRolesKey;
     private String samlSubjectKey;
     private String samlRolesKey;
-    private String kibanaRootUrl;
+    private Supplier<String> dashboardsUrlSupplier;
 
     private long expiryOffset = 0;
     private ExpiryBaseValue expiryBaseValue = ExpiryBaseValue.AUTO;
@@ -81,7 +82,17 @@ class AuthTokenProcessorHandler {
     private Pattern samlRolesSeparatorPattern;
 
     AuthTokenProcessorHandler(Settings settings, Settings jwtSettings, Saml2SettingsProvider saml2SettingsProvider) throws Exception {
+        this(settings, jwtSettings, saml2SettingsProvider, () -> settings.get("kibana_url"));
+    }
+
+    AuthTokenProcessorHandler(
+        Settings settings,
+        Settings jwtSettings,
+        Saml2SettingsProvider saml2SettingsProvider,
+        Supplier<String> dashboardsUrlSupplier
+    ) throws Exception {
         this.saml2SettingsProvider = saml2SettingsProvider;
+        this.dashboardsUrlSupplier = dashboardsUrlSupplier;
 
         this.jwtRolesKey = jwtSettings.get("roles_key", "roles");
         this.jwtSubjectKey = jwtSettings.get("subject_key", "sub");
@@ -90,7 +101,6 @@ class AuthTokenProcessorHandler {
         this.samlSubjectKey = settings.get("subject_key");
         // Originally release with a typo, prioritize correct spelling over typo'ed version
         String samlRolesSeparator = settings.get("roles_separator", settings.get("roles_seperator"));
-        this.kibanaRootUrl = settings.get("kibana_url");
         if (samlRolesSeparator != null) {
             this.samlRolesSeparatorPattern = Pattern.compile(samlRolesSeparator);
         }
@@ -394,7 +404,12 @@ class AuthTokenProcessorHandler {
             if (acsEndpointUri.isAbsolute()) {
                 return acsEndpoint;
             } else {
-                return new URI(this.kibanaRootUrl).resolve(acsEndpointUri).toString();
+                String dashboardsUrl = dashboardsUrlSupplier.get();
+                if (dashboardsUrl == null || dashboardsUrl.isEmpty()) {
+                    log.error("Dashboards URL is not configured; cannot resolve relative acsEndpoint: {}", acsEndpoint);
+                    return acsEndpoint;
+                }
+                return new URI(dashboardsUrl).resolve(acsEndpointUri).toString();
             }
         } catch (URISyntaxException e) {
             log.error("Could not parse URI for acsEndpoint: {}", acsEndpoint);

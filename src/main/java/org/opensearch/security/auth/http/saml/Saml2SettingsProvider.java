@@ -18,7 +18,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -52,17 +54,29 @@ public class Saml2SettingsProvider {
     private final MetadataResolver metadataResolver;
     private final String idpEntityId;
     private final PrivateKey spSignaturePrivateKey;
+    private final Supplier<String> dashboardsUrlSupplier;
     private Saml2Settings cachedSaml2Settings;
     private Instant metadataUpdateTime;
+    private String lastUsedDashboardsUrl;
 
     Saml2SettingsProvider(Settings opensearchSettings, MetadataResolver metadataResolver, PrivateKey spSignaturePrivateKey) {
+        this(opensearchSettings, metadataResolver, spSignaturePrivateKey, () -> opensearchSettings.get("kibana_url"));
+    }
+
+    Saml2SettingsProvider(
+        Settings opensearchSettings,
+        MetadataResolver metadataResolver,
+        PrivateKey spSignaturePrivateKey,
+        Supplier<String> dashboardsUrlSupplier
+    ) {
         this.opensearchSettings = opensearchSettings;
         this.metadataResolver = metadataResolver;
         this.idpEntityId = opensearchSettings.get("idp.entity_id");
         this.spSignaturePrivateKey = spSignaturePrivateKey;
+        this.dashboardsUrlSupplier = dashboardsUrlSupplier;
     }
 
-    Saml2Settings get() throws SamlConfigException {
+    Saml2Settings get(String dashboardsUrl) throws SamlConfigException {
         try {
             HashMap<String, Object> configProperties = new HashMap<>();
 
@@ -88,7 +102,7 @@ public class Saml2SettingsProvider {
             initIdpEndpoints(idpSsoDescriptor, configProperties);
             initIdpCerts(idpSsoDescriptor, configProperties);
 
-            initSpEndpoints(configProperties);
+            initSpEndpoints(configProperties, dashboardsUrl);
 
             initMisc(configProperties);
 
@@ -107,14 +121,21 @@ public class Saml2SettingsProvider {
     Saml2Settings getCached() throws SamlConfigException {
         Instant tempLastUpdate = null;
 
+        final String currentDashboardsUrl = this.dashboardsUrlSupplier.get();
+
         if (this.metadataResolver instanceof RefreshableMetadataResolver && this.isUpdateRequired()) {
             this.cachedSaml2Settings = null;
             tempLastUpdate = ((RefreshableMetadataResolver) this.metadataResolver).getLastUpdate();
         }
 
+        if (this.isDashboardsUrlChanged(currentDashboardsUrl)) {
+            this.cachedSaml2Settings = null;
+        }
+
         if (this.cachedSaml2Settings == null) {
-            this.cachedSaml2Settings = this.get();
+            this.cachedSaml2Settings = this.get(currentDashboardsUrl);
             this.metadataUpdateTime = tempLastUpdate;
+            this.lastUsedDashboardsUrl = currentDashboardsUrl;
         }
 
         return this.cachedSaml2Settings;
@@ -134,16 +155,28 @@ public class Saml2SettingsProvider {
         }
     }
 
+    private boolean isDashboardsUrlChanged(String currentDashboardsUrl) {
+        if (!Objects.equals(this.lastUsedDashboardsUrl, currentDashboardsUrl)) {
+            log.debug(
+                "Dashboards URL has changed from '{}' to '{}'; SAML settings cache will be refreshed",
+                this.lastUsedDashboardsUrl,
+                currentDashboardsUrl
+            );
+            return true;
+        }
+        return false;
+    }
+
     private void initMisc(HashMap<String, Object> configProperties) {
         configProperties.put(SettingsBuilder.STRICT_PROPERTY_KEY, true);
         configProperties.put(SettingsBuilder.SECURITY_REJECT_UNSOLICITED_RESPONSES_WITH_INRESPONSETO, true);
         configProperties.put(SettingsBuilder.SP_PRIVATEKEY_PROPERTY_KEY, this.spSignaturePrivateKey);
     }
 
-    private void initSpEndpoints(HashMap<String, Object> configProperties) {
+    private void initSpEndpoints(HashMap<String, Object> configProperties, String dashboardsUrl) {
         configProperties.put(
             SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_URL_PROPERTY_KEY,
-            this.buildAssertionConsumerEndpoint(this.opensearchSettings.get("kibana_url"))
+            this.buildAssertionConsumerEndpoint(dashboardsUrl)
         );
         configProperties.put(
             SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_BINDING_PROPERTY_KEY,
