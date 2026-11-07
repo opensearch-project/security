@@ -29,13 +29,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 /**
- * Proves that SNI hostname is correctly propagated via ThreadLocal when connecting over LDAPS.
+ * Proves that ldaptive 2.x passes the LDAPS hostname to its native TLS transport.
  *
- * The LDAP client connects to "localhost" with explicit hostname verification enabled.
- * BouncyCastle requires the hostname from ThreadLocal (set by SniJndiProvider
- * before JNDI resolves it to an IP) to verify the server certificate's SAN against "localhost".
- * Successful authentication proves SNI was correctly set — without it, BouncyCastle cannot
- * determine the expected hostname and hostname verification would fail.
+ * The LDAP client connects to "localhost" with explicit hostname verification enabled. Successful authentication proves
+ * that the transport supplied the hostname for SNI and certificate verification.
  */
 public class LdapMtlsSniAuthenticationTest {
 

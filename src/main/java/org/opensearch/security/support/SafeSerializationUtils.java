@@ -24,10 +24,8 @@ import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableSet;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
-import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
-import org.ldaptive.SearchEntry;
 
 /**
  * Provides functionality to verify if a class is categorised to be safe for serialization or
@@ -46,9 +44,7 @@ public final class SafeSerializationUtils {
         org.opensearch.security.user.serialized.User.class,
         SourceFieldsContext.class,
         LdapUser.class,
-        SearchEntry.class,
         LdapEntry.class,
-        AbstractLdapBean.class,
         LdapAttribute.class
     );
 
