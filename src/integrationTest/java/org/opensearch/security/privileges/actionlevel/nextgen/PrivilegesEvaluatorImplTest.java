@@ -19,7 +19,10 @@ import org.apache.logging.log4j.LogManager;
 import org.junit.Rule;
 import org.junit.Test;
 
+import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.search.SearchAction;
@@ -28,11 +31,15 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.ResolvedIndices;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.logging.Loggers;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.privileges.CompiledRoles;
@@ -48,10 +55,12 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.SecuritySettings;
+import org.opensearch.security.support.SnapshotRestoreHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.test.framework.log.LogsRule;
 
 import com.selectivem.collections.CheckTable;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -222,6 +231,41 @@ public class PrivilegesEvaluatorImplTest {
     }
 
     @Test
+    public void handleRestoreSnapshot_notClusterManager_deferredToClusterManager() throws Exception {
+        PrivilegesEvaluatorImpl subject = createSubject(Settings.EMPTY);
+        PrivilegesEvaluatorResponse response = subject.handleRestoreSnapshot(
+            ctx().actionPrivileges(subject.getActionPrivileges()).roles("test_role").action(RestoreSnapshotAction.NAME).get(),
+            new RestoreSnapshotRequest("repository", "snapshot")
+        );
+        assertThat(response, isAllowed());
+        assertThat(response.isDeferredToClusterManager(), equalTo(true));
+    }
+
+    @Test
+    public void handleRestoreSnapshot_clusterManager_notDeferred() throws Exception {
+        DiscoveryNode localNode = new DiscoveryNode("local", new TransportAddress(TransportAddress.META_ADDRESS, 9300), Version.CURRENT);
+        DiscoveryNodes nodes = DiscoveryNodes.builder().add(localNode).localNodeId("local").clusterManagerNodeId("local").build();
+        PrivilegesEvaluatorImpl subject = createSubject(Settings.EMPTY, PrivilegesEvaluator.DynamicDependencies.EMPTY, nodes);
+        RestoreSnapshotRequest request = new RestoreSnapshotRequest("repository", "snapshot");
+
+        // The snapshot is read from the repository only on the cluster manager, so the restored indices are given here
+        try (MockedStatic<SnapshotRestoreHelper> helper = Mockito.mockStatic(SnapshotRestoreHelper.class)) {
+            helper.when(() -> SnapshotRestoreHelper.resolveTargetIndices(request)).thenReturn(ResolvedIndices.of("index_a1"));
+
+            PrivilegesEvaluatorResponse response = subject.handleRestoreSnapshot(
+                ctx().actionPrivileges(subject.getActionPrivileges())
+                    .roles("restore_role")
+                    .action(RestoreSnapshotAction.NAME)
+                    .indexMetadata(indices("index_a1").build())
+                    .get(),
+                request
+            );
+            assertThat(response, isAllowed());
+            assertThat(response.isDeferredToClusterManager(), equalTo(false));
+        }
+    }
+
+    @Test
     public void requiredIndexPermissions_defaultSearchRequest() throws Exception {
         PrivilegesEvaluatorImpl subject = createSubject(Settings.EMPTY);
         Set<String> result = subject.requiredIndexPermissions(new SearchRequest(), "indices:custom/action");
@@ -252,13 +296,25 @@ public class PrivilegesEvaluatorImplTest {
 
     static PrivilegesEvaluatorImpl createSubject(Settings settings, PrivilegesEvaluator.DynamicDependencies dynamicDependencies)
         throws Exception {
+        return createSubject(settings, dynamicDependencies, DiscoveryNodes.EMPTY_NODES);
+    }
+
+    static PrivilegesEvaluatorImpl createSubject(
+        Settings settings,
+        PrivilegesEvaluator.DynamicDependencies dynamicDependencies,
+        DiscoveryNodes nodes
+    ) throws Exception {
         Metadata metadata = indices("index_a1", "index_a2", "index_b1", "index_b2").build();
-        ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).build();
+        ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).nodes(nodes).build();
         RoleMapper roleMapper = (user, caller) -> user.getRoles();
         SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml("""
             test_role:
                cluster_permissions:
                - 'cluster:allowed/*'
+            restore_role:
+               index_permissions:
+               - index_patterns: ['index_a*']
+                 allowed_actions: ['indices:admin/create', 'indices:data/write/index']
             """, CType.ROLES);
 
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);

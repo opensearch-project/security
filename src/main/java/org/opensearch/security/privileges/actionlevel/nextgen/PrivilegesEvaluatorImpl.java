@@ -655,7 +655,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             // We need to return ok here, because we can only retrieve the snapshot info on a cluster manager node.
             // This is fine, as the next thing the TransportAction implementation will do, is forwarding the request to a
             // cluster manager node.
-            return PrivilegesEvaluatorResponse.ok();
+            return PrivilegesEvaluatorResponse.deferredToClusterManager();
         }
 
         OptionallyResolvedIndices optionallyResolvedIndices = SnapshotRestoreHelper.resolveTargetIndices(request);
