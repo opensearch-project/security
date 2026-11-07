@@ -162,7 +162,13 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 if (provider.workspacesField() != null) {
                     builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
                 }
-                this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, builder.build(), listener);
+                this.resourceSharingIndexHandler.indexResourceSharing(
+                    resourceIndex,
+                    builder.build(),
+                    result.getSeqNo(),
+                    result.getTerm(),
+                    listener
+                );
             } catch (IOException e) {
                 log.warn("Failed to create a resource sharing entry for resource: {}", resourceId, e);
             }
@@ -219,6 +225,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
             if (provider.workspacesField() != null) {
                 childBuilder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
             }
+            // The parent read above widens the window for a later write, so the field write reads the version itself
             this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, childBuilder.build(), listener);
         },
             e -> log.warn(
