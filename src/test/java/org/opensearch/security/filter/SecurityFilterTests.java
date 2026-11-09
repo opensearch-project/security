@@ -22,6 +22,7 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.support.ActionRequestMetadata;
@@ -45,6 +46,7 @@ import org.opensearch.security.privileges.ResourceAccessEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
+import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.ArgumentCaptor;
@@ -56,6 +58,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -183,6 +186,57 @@ public class SecurityFilterTests extends LuceneTestCase {
             assertThat(cap.getValue().status(), equalTo(RestStatus.INTERNAL_SERVER_ERROR));
             assertThat(cap.getValue().getCause(), sameInstance(error));
             verifyNoMoreInteractions(listener);
+        } finally {
+            ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testOpenSearchExceptionFromChainIsPassedOnUnchanged() {
+        final OpenSearchStatusException exception = new OpenSearchStatusException("conflict", RestStatus.CONFLICT);
+        final Task task = mock(Task.class);
+        for (final Task t : java.util.Arrays.asList(task, null)) {
+            final ActionListener<ActionResponse> listener = mock(ActionListener.class);
+            applyWhoAmI(t, listener, (tk, action, request, l) -> { throw exception; });
+
+            verify(listener).onFailure(same(exception));
+            verifyNoMoreInteractions(listener);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testResponseFromChainIsPassedOn() {
+        final ActionResponse response = mock(ActionResponse.class);
+        final ActionListener<ActionResponse> listener = mock(ActionListener.class);
+        applyWhoAmI(null, listener, (tk, action, request, l) -> l.onResponse(response));
+
+        verify(listener).onResponse(same(response));
+        verifyNoMoreInteractions(listener);
+    }
+
+    /** Applies the filter to a WhoAmI request, which passes through without a privilege check. */
+    private void applyWhoAmI(
+        final Task task,
+        final ActionListener<ActionResponse> listener,
+        final ActionFilterChain<ActionRequest, ActionResponse> chain
+    ) {
+        final ThreadPool threadPool = new ThreadPool(Settings.builder().put("node.name", "mock").build());
+        try {
+            final SecurityFilter filter = new SecurityFilter(
+                settings,
+                mock(PrivilegesConfiguration.class),
+                mock(AdminDNs.class),
+                mock(DlsFlsRequestValve.class),
+                mock(AuditLog.class),
+                threadPool,
+                mock(ClusterService.class),
+                mock(CompatConfig.class),
+                mock(XFFResolver.class),
+                mock(ResourceAccessEvaluator.class)
+            );
+            filter.apply(task, WhoAmIAction.NAME, mock(ActionRequest.class), ActionRequestMetadata.empty(), listener, chain);
         } finally {
             ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
         }
