@@ -194,6 +194,9 @@ public class PrivilegesInterceptor {
         if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.isLocalAll()) {
             final Set<String> indices = requestedResolved.getAllIndices();
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
+            if (indices.size() == 1 && isDirectTenantBackingIndexCreation(request, indices.iterator().next(), tenantIndexName)) {
+                return ACCESS_DENIED_REPLACE_RESULT;
+            }
             if (indices.size() == 1
                 && indices.iterator().next().startsWith(tenantIndexName)
                 && (isPrivateTenant || tenantPrivileges.hasTenantPrivilege(context, requestedTenant, actionType))) {
@@ -257,6 +260,32 @@ public class PrivilegesInterceptor {
         }
 
         return CONTINUE_EVALUATION_REPLACE_RESULT;
+    }
+
+    private boolean isDirectTenantBackingIndexCreation(ActionRequest request, String indexName, String tenantAliasName) {
+        if (!isTenantBackingIndex(indexName, tenantAliasName)) {
+            return false;
+        }
+
+        if (request instanceof CreateIndexRequest createIndexRequest) {
+            return createIndexRequest.aliases().stream().noneMatch(alias -> tenantAliasName.equals(alias.name()));
+        }
+
+        if (clusterStateSupplier.get().metadata().getIndicesLookup().containsKey(indexName)) {
+            return false;
+        }
+
+        return request instanceof IndexRequest || request instanceof UpdateRequest || request instanceof BulkRequest;
+    }
+
+    private static boolean isTenantBackingIndex(String indexName, String tenantAliasName) {
+        String prefix = tenantAliasName + "_";
+        if (!indexName.startsWith(prefix)) {
+            return false;
+        }
+
+        String generation = indexName.substring(prefix.length());
+        return !generation.isEmpty() && generation.chars().allMatch(Character::isDigit);
     }
 
     private void applyDocumentAllowList(String indexName) {

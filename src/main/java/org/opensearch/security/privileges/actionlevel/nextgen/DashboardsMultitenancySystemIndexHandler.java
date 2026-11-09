@@ -179,6 +179,12 @@ public class DashboardsMultitenancySystemIndexHandler {
                     applyDocumentAllowList(tenantAliasName);
                     return PrivilegesEvaluatorResponse.ok();
                 } else if (referencedIndexOrAlias.startsWith(tenantAliasName)) {
+                    if (isDirectTenantBackingIndexCreation(request, referencedIndexOrAlias, tenantAliasName)) {
+                        return PrivilegesEvaluatorResponse.insufficient(action)
+                            .reason(
+                                "Dashboards Multitenancy: Direct creation of a tenant backing index without its tenant alias is not allowed."
+                            );
+                    }
                     if (isGlobalTenant(context)) {
                         String aliasOfIndex = aliasOfIndex(referencedIndexOrAlias, dashboardsAliasName);
                         if (aliasOfIndex != null && aliasOfIndex.equals(dashboardsAliasName)) {
@@ -207,6 +213,32 @@ public class DashboardsMultitenancySystemIndexHandler {
             // Does not reference the dashboards alias or any of its tenant indices
             return null;
         }
+    }
+
+    private boolean isDirectTenantBackingIndexCreation(ActionRequest request, String indexName, String tenantAliasName) {
+        if (!isTenantBackingIndex(indexName, tenantAliasName)) {
+            return false;
+        }
+
+        if (request instanceof CreateIndexRequest createIndexRequest) {
+            return createIndexRequest.aliases().stream().noneMatch(alias -> tenantAliasName.equals(alias.name()));
+        }
+
+        if (this.clusterStateSupplier.get().metadata().getIndicesLookup().containsKey(indexName)) {
+            return false;
+        }
+
+        return request instanceof IndexRequest || request instanceof UpdateRequest || request instanceof BulkRequest;
+    }
+
+    private static boolean isTenantBackingIndex(String indexName, String tenantAliasName) {
+        String prefix = tenantAliasName + "_";
+        if (!indexName.startsWith(prefix)) {
+            return false;
+        }
+
+        String generation = indexName.substring(prefix.length());
+        return !generation.isEmpty() && generation.chars().allMatch(Character::isDigit);
     }
 
     private boolean hasPermission(PrivilegesEvaluationContext context) {

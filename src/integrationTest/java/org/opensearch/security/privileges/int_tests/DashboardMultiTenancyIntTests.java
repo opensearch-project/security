@@ -940,6 +940,32 @@ public class DashboardMultiTenancyIntTests {
         }
     }
 
+    @Test
+    public void createDirectTenantBackingIndex_withTenantHeader_shouldBeDenied() {
+        if (!user.equals(HR_EMPLOYEE)) {
+            return;
+        }
+
+        String directBackingIndex = ".kibana_1592542611_humanresources_2";
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            TestRestClient.HttpResponse explicitCreate = restClient.putJson(
+                directBackingIndex,
+                "{}",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+            assertThat(explicitCreate, isForbidden());
+
+            TestRestClient.HttpResponse autoCreate = restClient.postJson(
+                directBackingIndex + "/_doc/direct-create",
+                "{\"value\":\"must not create a tenant backing index directly\"}",
+                new BasicHeader("securitytenant", "human_resources")
+            );
+            assertThat(autoCreate, isForbidden());
+        } finally {
+            delete(directBackingIndex);
+        }
+    }
+
     @Parameters(name = "{0}, {2}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
