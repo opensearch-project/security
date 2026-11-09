@@ -89,7 +89,7 @@ public class SnapshotRestoreEvaluator {
         }
 
         if (!isLocalNodeElectedClusterManagerSupplier.get()) {
-            return PrivilegesEvaluatorResponse.ok();
+            return PrivilegesEvaluatorResponse.deferredToClusterManager();
         }
 
         final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
