@@ -22,6 +22,7 @@ import org.opensearch.security.action.apitokens.ApiTokenRepository;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.AuthenticationContext;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
@@ -49,7 +50,7 @@ public class DynamicConfigModelV7Tests {
                 mock(InternalAuthenticationBackend.class),
                 mock(ClusterInfoHolder.class),
                 mock(ApiTokenRepository.class),
-                null,
+                OnBehalfOfKeys.NONE,
                 secrets
             );
         }
@@ -72,7 +73,7 @@ public class DynamicConfigModelV7Tests {
                     mock(InternalAuthenticationBackend.class),
                     mock(ClusterInfoHolder.class),
                     mock(ApiTokenRepository.class),
-                    null,
+                    OnBehalfOfKeys.NONE,
                     secrets
                 )
             );
