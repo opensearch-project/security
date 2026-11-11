@@ -12,17 +12,27 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -33,6 +43,7 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator.Fiel
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.securityconf.Hashed;
+import org.opensearch.security.securityconf.RoleMappings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.SecurityJsonNode;
@@ -40,11 +51,16 @@ import org.opensearch.security.user.UserFilterType;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.conflict;
+import static org.opensearch.security.dlic.rest.api.Responses.conflictMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.internalServerError;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
@@ -54,6 +70,8 @@ import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPre
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class InternalUsersApiAction extends AbstractApiAction {
+
+    private static final Logger LOGGER = LogManager.getLogger(InternalUsersApiAction.class);
 
     private final PasswordHasher passwordHasher;
 
@@ -79,6 +97,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
             new Route(Method.GET, "/internalusers/{name}"),
             new Route(Method.GET, "/internalusers"),
             new Route(Method.POST, "/internalusers/{name}/authtoken"),
+            new Route(Method.POST, "/internalusers/{name}/_rename"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
             new Route(Method.PATCH, "/internalusers"),
@@ -150,9 +169,12 @@ public class InternalUsersApiAction extends AbstractApiAction {
             })
         )
             // Overrides the GET request functionality to allow for the special case of requesting an auth token.
-            .override(
-                Method.POST,
-                (channel, request, client) -> withAuthTokenPath(request).map(
+            .override(Method.POST, (channel, request, client) -> {
+                if (isRenameRequest(request)) {
+                    handleRenameRequest(channel, request, client);
+                    return;
+                }
+                withAuthTokenPath(request).map(
                     username -> loadConfiguration(getConfigType(), true, false).map(
                         configuration -> ValidationResult.success(SecurityConfiguration.of(username, configuration))
                     )
@@ -160,8 +182,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
                     .map(endpointValidator::entityExists)
                     .map(endpointValidator::isAllowedToLoadOrChangeHiddenEntity)
                     .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
-                    .error((status, toXContent) -> response(channel, status, toXContent))
-            )
+                    .error((status, toXContent) -> response(channel, status, toXContent));
+            })
             .onChangeRequest(Method.PATCH, this::processPatchRequest)
             .onChangeRequest(
                 Method.PUT,
@@ -213,6 +235,281 @@ public class InternalUsersApiAction extends AbstractApiAction {
             ok(channel, "'" + username + "' authtoken generated " + authToken);
         } catch (final UserServiceException e) {
             badRequest(channel, e.getMessage());
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Rename: POST /_plugins/_security/api/internalusers/{name}/_rename {"new_username": "..."}
+    //
+    // A rename changes two documents in the security index: "internalusers" (the user record) and
+    // "rolesmapping" (explicit "users" references). OpenSearch has no multi-document transaction, so:
+    // 1. Plan: read both documents, validate everything and build the new versions in memory.
+    // 2. Write internalusers, then rolesmapping. Each write is guarded by the _seq_no we read, so a
+    // concurrent change by another admin fails with 409 instead of being silently overwritten.
+    // 3. If the rolesmapping write fails, write the original internalusers document back (undo).
+    // 4. Reload both config types on every node.
+    // internalusers is written first so that the worst case (undo also fails) leaves the renamed
+    // user with fewer permissions, not more.
+    // ---------------------------------------------------------------------------------------------
+
+    static final String NEW_USERNAME_FIELD = "new_username";
+
+    /** Everything a rename needs, computed and validated before anything is written. */
+    record RenamePlan(String oldUsername, String newUsername, SecurityDynamicConfiguration<?> originalInternalUsers,
+        SecurityDynamicConfiguration<?> renamedInternalUsers, SecurityDynamicConfiguration<?> updatedRolesMapping, List<
+            String> updatedRoleMappings) {
+    }
+
+    boolean isRenameRequest(final RestRequest request) {
+        return request.path().endsWith("/_rename");
+    }
+
+    void handleRenameRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
+        endpointValidator.withRequiredEntityName(nameParam(request))
+            .map(oldUsername -> renameRequestContentValidator().validate(request).map(content -> {
+                final String newUsername = content.get(NEW_USERNAME_FIELD).asText();
+                return loadConfiguration(CType.INTERNALUSERS, false, false).map(
+                    internalUsers -> loadConfiguration(CType.ROLESMAPPING, false, false).map(
+                        rolesMapping -> planRename(oldUsername, newUsername, internalUsers, rolesMapping)
+                    )
+                );
+            }))
+            .valid(plan -> executeRename(channel, client, plan))
+            .error((status, toXContent) -> response(channel, status, toXContent));
+    }
+
+    private RequestContentValidator renameRequestContentValidator() {
+        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return new Object[0];
+            }
+
+            @Override
+            public Settings settings() {
+                return securityApiDependencies.settings();
+            }
+
+            @Override
+            public Set<String> mandatoryKeys() {
+                return Set.of(NEW_USERNAME_FIELD);
+            }
+
+            @Override
+            public Map<String, FieldConfiguration> allowedKeys() {
+                return Map.of(NEW_USERNAME_FIELD, FieldConfiguration.of(DataType.STRING));
+            }
+        });
+    }
+
+    /** Step 1: validate and compute the new documents. Pure in-memory work; any error here means nothing was written. */
+    ValidationResult<RenamePlan> planRename(
+        final String oldUsername,
+        final String newUsername,
+        final SecurityDynamicConfiguration<?> internalUsers,
+        final SecurityDynamicConfiguration<?> rolesMapping
+    ) throws IOException {
+        // Validate the new name with the same rules as user creation.
+        final var newNameValid = endpointValidator.withRequiredEntityName(Strings.isNullOrEmpty(newUsername) ? null : newUsername);
+        if (!newNameValid.isValid()) {
+            return ValidationResult.error(newNameValid.status(), newNameValid.errorMessage());
+        }
+        final var restricted = UserService.restrictedFromUsername(newUsername);
+        if (restricted.isPresent()) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(restricted.get()));
+        }
+        if (newUsername.equals(oldUsername)) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("'new_username' must differ from the current username.")
+            );
+        }
+
+        // Source user must exist and be changeable by the caller (hidden/reserved users need admin rights).
+        final var source = endpointValidator.entityExists(SecurityConfiguration.of(oldUsername, internalUsers))
+            .map(endpointValidator::isAllowedToLoadOrChangeHiddenEntity)
+            .map(endpointValidator::isAllowedToChangeImmutableEntity);
+        if (!source.isValid()) {
+            return ValidationResult.error(source.status(), source.errorMessage());
+        }
+        // Static users come from code, not the security index, so they cannot be renamed by anyone.
+        if (internalUsers.isStatic(oldUsername)) {
+            return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Resource '" + oldUsername + "' is static."));
+        }
+
+        // Destination must be free.
+        if (internalUsers.exists(newUsername)) {
+            return ValidationResult.error(RestStatus.CONFLICT, conflictMessage("User '" + newUsername + "' already exists."));
+        }
+
+        // Rewrite explicit "users" references in role mappings. Wildcard patterns (e.g. "ali*") are left untouched.
+        final var updatedRolesMapping = rolesMapping.deepClone();
+        final List<String> updatedRoleMappings = new ArrayList<>();
+        for (final var entry : updatedRolesMapping.getCEntries().entrySet()) {
+            final var mapping = (RoleMappings) entry.getValue();
+            if (!mapping.getUsers().contains(oldUsername)) {
+                continue;
+            }
+            final var mappingChangeable = endpointValidator.isAllowedToChangeImmutableEntity(
+                SecurityConfiguration.of(entry.getKey(), updatedRolesMapping)
+            );
+            if (!mappingChangeable.isValid()) {
+                return ValidationResult.error(mappingChangeable.status(), mappingChangeable.errorMessage());
+            }
+            final List<String> users = new ArrayList<>();
+            for (final String user : mapping.getUsers()) {
+                final String replacement = user.equals(oldUsername) ? newUsername : user;
+                if (!users.contains(replacement)) {
+                    users.add(replacement);
+                }
+            }
+            mapping.setUsers(users);
+            updatedRoleMappings.add(entry.getKey());
+        }
+        Collections.sort(updatedRoleMappings);
+
+        final var renamedInternalUsers = internalUsers.deepClone();
+        moveEntry(renamedInternalUsers, oldUsername, newUsername);
+
+        return ValidationResult.success(
+            new RenamePlan(oldUsername, newUsername, internalUsers, renamedInternalUsers, updatedRolesMapping, updatedRoleMappings)
+        );
+    }
+
+    private static <T> void moveEntry(final SecurityDynamicConfiguration<T> configuration, final String from, final String to) {
+        final T entry = configuration.getCEntry(from);
+        configuration.remove(from);
+        configuration.putCEntry(to, entry);
+    }
+
+    /** Steps 2-4: write internalusers, then rolesmapping (undoing the first write if the second fails), then reload. */
+    void executeRename(final RestChannel channel, final Client client, final RenamePlan plan) {
+        final var usersWrite = createIndexRequestForConfig(securityApiDependencies, CType.INTERNALUSERS, plan.renamedInternalUsers());
+        client.index(usersWrite, new ActionListener<>() {
+            @Override
+            public void onResponse(final IndexResponse usersWriteResponse) {
+                if (plan.updatedRoleMappings().isEmpty()) {
+                    reloadAndRespond(channel, client, plan, usersWriteResponse, CType.INTERNALUSERS);
+                    return;
+                }
+                final var mappingsWrite = createIndexRequestForConfig(
+                    securityApiDependencies,
+                    CType.ROLESMAPPING,
+                    plan.updatedRolesMapping()
+                );
+                client.index(mappingsWrite, new ActionListener<>() {
+                    @Override
+                    public void onResponse(final IndexResponse mappingsWriteResponse) {
+                        reloadAndRespond(channel, client, plan, mappingsWriteResponse, CType.INTERNALUSERS, CType.ROLESMAPPING);
+                    }
+
+                    @Override
+                    public void onFailure(final Exception mappingsWriteFailure) {
+                        undoInternalUsersWrite(channel, client, plan, usersWriteResponse, mappingsWriteFailure);
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(final Exception usersWriteFailure) {
+                // Nothing was written.
+                respondWithWriteFailure(channel, plan, usersWriteFailure);
+            }
+        });
+    }
+
+    private void undoInternalUsersWrite(
+        final RestChannel channel,
+        final Client client,
+        final RenamePlan plan,
+        final IndexResponse usersWriteResponse,
+        final Exception mappingsWriteFailure
+    ) {
+        // Restore the original document, guarded by the _seq_no of our own write so we never overwrite
+        // a change another admin made in the meantime.
+        final var original = plan.originalInternalUsers();
+        original.setSeqNo(usersWriteResponse.getSeqNo());
+        original.setPrimaryTerm(usersWriteResponse.getPrimaryTerm());
+        client.index(createIndexRequestForConfig(securityApiDependencies, CType.INTERNALUSERS, original), new ActionListener<>() {
+            @Override
+            public void onResponse(final IndexResponse undoResponse) {
+                // Reload so no node keeps the intermediate state, then report the original failure.
+                new ConfigUpdatingActionListener<IndexResponse>(
+                    new String[] { CType.INTERNALUSERS.toLCString() },
+                    client,
+                    new ActionListener<IndexResponse>() {
+                        @Override
+                        public void onResponse(final IndexResponse ignored) {
+                            respondWithWriteFailure(channel, plan, mappingsWriteFailure);
+                        }
+
+                        @Override
+                        public void onFailure(final Exception e) {
+                            respondWithWriteFailure(channel, plan, mappingsWriteFailure);
+                        }
+                    }
+                ).onResponse(undoResponse);
+            }
+
+            @Override
+            public void onFailure(final Exception undoFailure) {
+                LOGGER.error(
+                    "Rename of internal user '{}' to '{}' was partially applied: the user was renamed but role mappings were not "
+                        + "updated, and restoring the original user failed. Role mappings that still reference '{}': {}",
+                    plan.oldUsername(),
+                    plan.newUsername(),
+                    plan.oldUsername(),
+                    plan.updatedRoleMappings(),
+                    undoFailure
+                );
+                internalServerError(
+                    channel,
+                    "Rename partially applied: user '"
+                        + plan.oldUsername()
+                        + "' was renamed to '"
+                        + plan.newUsername()
+                        + "' but role mappings "
+                        + plan.updatedRoleMappings()
+                        + " were not updated. Update them manually."
+                );
+            }
+        });
+    }
+
+    private void reloadAndRespond(
+        final RestChannel channel,
+        final Client client,
+        final RenamePlan plan,
+        final IndexResponse lastWrite,
+        final CType<?>... changedTypes
+    ) {
+        final String[] types = Arrays.stream(changedTypes).map(CType::toLCString).toArray(String[]::new);
+        new ConfigUpdatingActionListener<>(types, client, new OnSucessActionListener<IndexResponse>(channel) {
+            @Override
+            public void onResponse(final IndexResponse ignored) {
+                ok(
+                    channel,
+                    (builder, params) -> builder.startObject()
+                        .field("status", RestStatus.OK.name())
+                        .field("message", "'" + plan.oldUsername() + "' renamed to '" + plan.newUsername() + "'.")
+                        .field("previous_username", plan.oldUsername())
+                        .field("username", plan.newUsername())
+                        .field("updated_roles_mapping", plan.updatedRoleMappings())
+                        .endObject()
+                );
+            }
+        }).onResponse(lastWrite);
+    }
+
+    private void respondWithWriteFailure(final RestChannel channel, final RenamePlan plan, final Exception e) {
+        if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
+            conflict(
+                channel,
+                "Security configuration was modified concurrently; '" + plan.oldUsername() + "' was not renamed. Retry the request."
+            );
+        } else {
+            LOGGER.error("Failed to rename internal user '{}' to '{}'", plan.oldUsername(), plan.newUsername(), e);
+            internalServerError(channel, "Failed to rename '" + plan.oldUsername() + "': " + e.getMessage());
         }
     }
 
