@@ -69,6 +69,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -77,6 +78,22 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DlsFlsValveImplTest {
+
+    @Test
+    public void validatesConfiguredDlsMode() {
+        assertThat(DlsFlsValveImpl.Mode.get(Settings.EMPTY), is(DlsFlsValveImpl.Mode.ADAPTIVE));
+        for (DlsFlsValveImpl.Mode mode : DlsFlsValveImpl.Mode.values()) {
+            Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DLS_MODE, mode.name()).build();
+            assertThat(DlsFlsValveImpl.Mode.get(settings), is(mode));
+            Settings lowerCaseSettings = Settings.builder()
+                .put(ConfigConstants.SECURITY_DLS_MODE, mode.name().toLowerCase(java.util.Locale.ROOT))
+                .build();
+            assertThat(DlsFlsValveImpl.Mode.get(lowerCaseSettings), is(mode));
+        }
+        Settings invalid = Settings.builder().put(ConfigConstants.SECURITY_DLS_MODE, "adptive").build();
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> DlsFlsValveImpl.Mode.SETTING.get(invalid));
+        assertThat(error.getMessage().contains(ConfigConstants.SECURITY_DLS_MODE), is(true));
+    }
 
     @Test
     public void appliesDlsFilterToTopLevelHybridQueryInAdaptiveMode() {
