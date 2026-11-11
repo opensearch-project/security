@@ -23,6 +23,10 @@ import org.apache.lucene.search.BooleanClause;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.cluster.ClusterState;
@@ -1256,6 +1260,103 @@ public class DlsFilterLevelActionHandlerTest {
     @Test
     public void rejectsSuggestionsForHybridFilterLevelDlsBeforeDispatch() {
         assertHybridTermLookupDispatch(false, false, true);
+    }
+
+    @Test
+    public void filterLevelDispatchHandlesGetMultiGetAndCrossClusterShards() {
+        for (ActionRequest request : List.of(
+            new GetRequest("index", "id"),
+            new MultiGetRequest().add("index", "id"),
+            new ClusterSearchShardsRequest("index")
+        )) {
+            ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+            threadContext.putHeader("caller", "original");
+            PrivilegesEvaluationContext context = mock(PrivilegesEvaluationContext.class);
+            when(context.getAction()).thenReturn("indices:data/read/test");
+            when(context.getRequest()).thenReturn(request);
+            when(context.getResolvedIndices()).thenReturn(ResolvedIndices.of("index"));
+            DocumentPrivileges.RenderedDlsQuery rule = mock(DocumentPrivileges.RenderedDlsQuery.class);
+            when(rule.getQueryBuilder()).thenReturn(QueryBuilders.termQuery("tenant", "allowed"));
+            IndexToRuleMap<DlsRestriction> restrictions = new IndexToRuleMap<>(ImmutableMap.of("index", new DlsRestriction(List.of(rule))));
+            ClusterService clusterService = mock(ClusterService.class);
+            when(clusterService.state()).thenReturn(mock(ClusterState.class));
+            Client client = mock(Client.class);
+            AtomicReference<Exception> failure = new AtomicReference<>();
+            ActionListener<Object> listener = ActionListener.wrap(
+                response -> { throw new AssertionError("unexpected response"); },
+                error -> {
+                    assertThat(threadContext.getHeader("caller"), is("original"));
+                    assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+                    failure.set(error);
+                }
+            );
+            RuntimeException searchFailure = new RuntimeException("search failed");
+            doAnswer(invocation -> {
+                assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is("true"));
+                invocation.<ActionListener<SearchResponse>>getArgument(1).onFailure(searchFailure);
+                return null;
+            }).when(client).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
+
+            assertThat(
+                DlsFilterLevelActionHandler.handle(
+                    context,
+                    restrictions,
+                    listener,
+                    client,
+                    clusterService,
+                    null,
+                    threadContext,
+                    DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
+                ),
+                is(false)
+            );
+            if (request instanceof ClusterSearchShardsRequest) {
+                assertThat(
+                    failure.get().getMessage(),
+                    is("Filter-level DLS via cross cluster search is not available for scrolling and minimize_roundtrips=true")
+                );
+                verify(client, never()).search(
+                    any(SearchRequest.class),
+                    org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any()
+                );
+            } else {
+                assertThat(failure.get(), sameInstance(searchFailure));
+            }
+            assertThat(threadContext.getHeader("caller"), is("original"));
+            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+        }
+    }
+
+    @Test
+    public void sourceLessSearchInHybridFilterLevelModeReceivesDlsQuery() {
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        SearchRequest request = new SearchRequest().indices("index");
+        PrivilegesEvaluationContext context = mock(PrivilegesEvaluationContext.class);
+        when(context.getAction()).thenReturn("indices:data/read/search");
+        when(context.getRequest()).thenReturn(request);
+        when(context.getResolvedIndices()).thenReturn(ResolvedIndices.of("index"));
+        DocumentPrivileges.RenderedDlsQuery rule = mock(DocumentPrivileges.RenderedDlsQuery.class);
+        QueryBuilder dls = QueryBuilders.termQuery("tenant", "allowed");
+        when(rule.getQueryBuilder()).thenReturn(dls);
+        IndexToRuleMap<DlsRestriction> restrictions = new IndexToRuleMap<>(ImmutableMap.of("index", new DlsRestriction(List.of(rule))));
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.state()).thenReturn(mock(ClusterState.class));
+        Client client = mock(Client.class);
+        assertThat(
+            DlsFilterLevelActionHandler.handle(
+                context,
+                restrictions,
+                mock(ActionListener.class),
+                client,
+                clusterService,
+                null,
+                threadContext,
+                DlsFilterLevelActionHandler.QueryHandling.HYBRID_FILTER_LEVEL
+            ),
+            is(false)
+        );
+        assertThat(((BoolQueryBuilder) request.source().query()).should(), contains(sameInstance(dls)));
+        verify(client).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
     }
 
     private static void assertHybridTermLookupDispatch(boolean queryLookup, boolean fail, boolean suggest) {

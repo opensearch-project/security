@@ -372,6 +372,26 @@ public class DlsFlsValveImplTest {
     }
 
     @Test
+    public void leavesHybridQueryUnmodifiedInLuceneLevelMode() throws Exception {
+        QueryBuilder hybrid = mock(QueryBuilder.class);
+        when(hybrid.getName()).thenReturn("hybrid");
+        invokeDlsValve(
+            hybrid,
+            null,
+            true,
+            Version.CURRENT,
+            null,
+            null,
+            true,
+            false,
+            Settings.builder().put(ConfigConstants.SECURITY_DLS_MODE, "lucene_level").build(),
+            QueryBuilders.termQuery("tenant", "allowed"),
+            false
+        );
+        verify(hybrid, never()).filter(any(QueryBuilder.class));
+    }
+
+    @Test
     public void preparesLegacyHeadersForFilterLevelDls() throws Exception {
         ThreadContext threadContext = invokeAdaptiveDlsValve(
             new BoolQueryBuilder(),
