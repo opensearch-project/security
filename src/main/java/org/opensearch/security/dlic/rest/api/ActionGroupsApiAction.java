@@ -12,6 +12,8 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -26,6 +28,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.dlic.rest.support.Utils;
@@ -33,11 +36,14 @@ import org.opensearch.security.dlic.rest.validation.EndpointValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.FieldConfiguration;
+import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.threadpool.ThreadPool;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
@@ -93,13 +99,17 @@ public class ActionGroupsApiAction extends AbstractApiAction {
         )
     );
 
+    private final RolePermissionValidator permissionValidator;
+
     @Inject
     public ActionGroupsApiAction(
         final ClusterService clusterService,
         final ThreadPool threadPool,
-        final SecurityApiDependencies securityApiDependencies
+        final SecurityApiDependencies securityApiDependencies,
+        final RolePermissionValidator permissionValidator
     ) {
         super(Endpoint.ACTIONGROUPS, clusterService, threadPool, securityApiDependencies);
+        this.permissionValidator = permissionValidator;
         this.requestHandlersBuilder.configureRequestHandlers(this::actionGroupsApiRequestHandlers);
     }
 
@@ -119,7 +129,53 @@ public class ActionGroupsApiAction extends AbstractApiAction {
     }
 
     private void actionGroupsApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onChangeRequest(Method.PATCH, this::processPatchRequest).override(Method.POST, methodNotImplementedHandler);
+        requestHandlersBuilder.onChangeRequest(
+            Method.PUT,
+            request -> processPutRequest(request).map(securityConfiguration -> validateAllowedActions(request, securityConfiguration))
+        )
+            .onChangeRequest(
+                Method.PATCH,
+                request -> processPatchRequest(request).map(securityConfiguration -> validateAllowedActions(request, securityConfiguration))
+            )
+            .override(Method.POST, methodNotImplementedHandler);
+    }
+
+    /**
+     * Rejects unknown or malformed allowed_actions in the action groups written by the request. It runs on the configuration
+     * that would be saved, so action groups created in the same request can reference each other. Action groups the request
+     * does not write are not checked, so existing entries with unknown actions do not block unrelated changes.
+     */
+    private ValidationResult<SecurityConfiguration> validateAllowedActions(
+        final RestRequest request,
+        final SecurityConfiguration securityConfiguration
+    ) throws IOException {
+        final var configuration = securityConfiguration.configuration();
+        final var configurationAsJson = Utils.convertJsonToJackson(configuration, true);
+        final Map<String, JsonNode> writtenActionGroups = new LinkedHashMap<>();
+        for (final String name : writtenEntityNames(request, securityConfiguration)) {
+            final var actionGroup = configurationAsJson.get(name);
+            // null if a PATCH removed the action group
+            if (actionGroup != null) {
+                writtenActionGroups.put(name, actionGroup);
+            }
+        }
+        return permissionValidator.validateActionGroups(writtenActionGroups, configuration.withStaticConfig().getCEntries().keySet())
+            .map(ignore -> ValidationResult.success(securityConfiguration));
+    }
+
+    private Set<String> writtenEntityNames(final RestRequest request, final SecurityConfiguration securityConfiguration)
+        throws IOException {
+        if (securityConfiguration.maybeEntityName().isPresent()) {
+            return Set.of(securityConfiguration.entityName());
+        }
+        // Bulk PUT and batch PATCH have no entity name in the URI; the request content was already parsed and validated.
+        final var requestContent = Utils.toJsonNode(request.content().utf8ToString());
+        if (request.method() == Method.PATCH) {
+            return patchEntityNames(requestContent);
+        }
+        final Set<String> names = new LinkedHashSet<>();
+        requestContent.properties().forEach(entity -> names.add(entity.getKey()));
+        return names;
     }
 
     @Override
@@ -149,8 +205,8 @@ public class ActionGroupsApiAction extends AbstractApiAction {
                 // Bulk form: load the roles configuration once and run the same checks the single-entity path performs (group
                 // immutability, REST-admin permissions in the group, type, name not an existing role, no self-reference) for every
                 // group against that one copy, instead of reloading the roles configuration once per group. References between
-                // groups are deliberately not checked here, matching the single-entity path: FlattenedActionGroups tolerates unknown
-                // names and cycles at resolution time, so the outcome never depends on the order of entries in the request.
+                // groups are deliberately not checked here, matching the single-entity path: validateAllowedActions checks them
+                // against the configuration that would be saved, so the outcome never depends on the order of entries in the request.
                 return loadConfiguration(CType.ROLES, false, false).map(rolesConfiguration -> {
                     for (final var securityConfiguration : securityConfigurations) {
                         final var result = EndpointValidator.super.onConfigChange(securityConfiguration).map(this::validateType)

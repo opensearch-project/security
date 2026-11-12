@@ -85,7 +85,7 @@ public class SecurityRestApiActions {
                 new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies, passwordHasher),
                 new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
                 new RolesApiAction(clusterService, threadPool, securityApiDependencies, permissionValidator),
-                new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
+                new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies, permissionValidator),
                 new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies, apiTokenRepository),
                 new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies),
                 // FIXME Change inheritance for PermissionsInfoAction

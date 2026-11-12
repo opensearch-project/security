@@ -87,4 +87,34 @@ public class RolePermissionValidatorTest {
         assertFalse(valid("restapi:admin/rolez", Set.of()));
         assertFalse(valid("", Set.of()));
     }
+
+    @Test
+    public void validatesActionGroupAllowedActions() {
+        registry.registerUnmodifiableActionMap(Map.of(SearchAction.INSTANCE, mock(TransportAction.class)));
+        assertTrue(validActionGroup(SearchAction.NAME, Set.of()));
+        assertTrue(validActionGroup("custom_group", Set.of("custom_group")));
+        assertTrue(validActionGroup("restapi:admin/actiongroups", Set.of()));
+        assertTrue(validActionGroup("indices:data/read/*", Set.of()));
+        assertTrue(validActionGroup("/indices:.*/", Set.of()));
+        assertFalse(validActionGroup("indices:data/read/searhc", Set.of()));
+        assertFalse(validActionGroup("custom_group_typo", Set.of("custom_group")));
+        assertFalse(validActionGroup("/[/", Set.of()));
+        assertFalse(validActionGroup("", Set.of()));
+    }
+
+    @Test
+    public void resolvesActionGroupReferencesAgainstGivenGroups() {
+        var mapper = DefaultObjectMapper.objectMapper();
+        var first = mapper.createObjectNode();
+        first.putArray("allowed_actions").add("second");
+        // "second" is written in the same request, so the caller passes it as a known group
+        assertTrue(validator.validateActionGroups(Map.of("first", first), Set.of("first", "second")).isValid());
+        assertFalse(validator.validateActionGroups(Map.of("first", first), Set.of("first")).isValid());
+    }
+
+    private boolean validActionGroup(String permission, Set<String> groups) {
+        var actionGroup = DefaultObjectMapper.objectMapper().createObjectNode();
+        actionGroup.putArray("allowed_actions").add(permission);
+        return validator.validateActionGroups(Map.of("group", actionGroup), groups).isValid();
+    }
 }
