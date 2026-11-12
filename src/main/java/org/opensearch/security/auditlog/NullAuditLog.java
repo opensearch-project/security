@@ -27,6 +27,7 @@
 package org.opensearch.security.auditlog;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.opensearch.core.index.shard.ShardId;
@@ -146,6 +147,17 @@ public class NullAuditLog implements AuditLog {
 
     @Override
     public void logApiTokenRevoked(String tokenId, String revokedBy) {
+        // noop
+    }
+
+    @Override
+    public void logInternalUserRenamed(
+        String previousUsername,
+        String newUsername,
+        List<String> rolesMapping,
+        boolean completed,
+        String effectiveUser
+    ) {
         // noop
     }
 

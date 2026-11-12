@@ -75,6 +75,7 @@ import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityIndexIdentity;
@@ -1109,6 +1110,49 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addEffectiveUser(revokedBy);
         msg.addTenant(getTenant());
         msg.addSecurityConfigWriteDiffSource("{\"action\":\"revoked\",\"token_id\":\"" + tokenId + "\"}", tokenId);
+        save(msg);
+    }
+
+    @Override
+    public void logInternalUserRenamed(
+        String previousUsername,
+        String newUsername,
+        List<String> rolesMapping,
+        boolean completed,
+        String effectiveUser
+    ) {
+        final ComplianceConfig complianceConfig = getComplianceConfig();
+        if (complianceConfig == null || !complianceConfig.writeHistoryEnabledForIndex(securityIndex)) {
+            return;
+        }
+        final AuditCategory category = AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE;
+        if (!checkComplianceFilter(category, effectiveUser, getOrigin(), complianceConfig)) {
+            return;
+        }
+
+        final String id = CType.INTERNALUSERS.toLCString();
+        final AuditMessage msg = new AuditMessage(category, clusterService, getOrigin(), null);
+        msg.addRemoteAddress(getRemoteAddress());
+        msg.addEffectiveUser(effectiveUser);
+        msg.addTenant(getTenant());
+        msg.addIndices(new String[] { securityIndex });
+        msg.addResolvedIndices(new String[] { securityIndex });
+        msg.addId(id);
+        msg.addComplianceOperation(Operation.UPDATE);
+        try {
+            final XContentBuilder builder = XContentBuilder.builder(JsonXContent.jsonXContent);
+            builder.startObject()
+                .field("action", "rename")
+                .field("outcome", completed ? "completed" : "partially_applied")
+                .field("previous_username", previousUsername)
+                .field("username", newUsername)
+                .field(completed ? "updated_roles_mapping" : "stale_roles_mapping", rolesMapping)
+                .endObject();
+            builder.close();
+            msg.addSecurityConfigWriteDiffSource(builder.toString(), id);
+        } catch (IOException e) {
+            log.error("Unable to build audit message for rename of internal user {}", previousUsername, e);
+        }
         save(msg);
     }
 
