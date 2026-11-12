@@ -812,6 +812,42 @@ public class LdapBackendTest {
     }
 
     @Test
+    public void testNestedRolesInCycleAreSearchedOnce() throws Exception {
+        final List<String> searchedGroups;
+        try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend.class)) {
+            assertThat(nestedAttrRoles("cycleuser"), containsInAnyOrder("cyclea", "cycleb"));
+            searchedGroups = recorder.searchedGroups();
+        }
+        assertThat(searchedGroups, containsInAnyOrder("cn=cyclea,ou=groups,o=TEST", "cn=cycleb,ou=groups,o=TEST"));
+    }
+
+    @Test
+    public void testNestedRoleReachedAgainAtSmallerDepthIsExpandedAgain() throws Exception {
+        assertThat(
+            nestedAttrRoles("reexpanduser", 2),
+            containsInAnyOrder("reexpanda", "reexpandc", "reexpandd", "reexpande", "reexpandf", "reexpandg")
+        );
+    }
+
+    @Test
+    public void testNestedRoleReachedThroughTwoPathsIsSearchedOnce() throws Exception {
+        final List<String> searchedGroups;
+        try (NestedRoleSearchRecorder recorder = NestedRoleSearchRecorder.record(LDAPAuthorizationBackend.class)) {
+            assertThat(nestedAttrRoles("diamonduser"), containsInAnyOrder("diamondbottom", "diamondleft", "diamondright", "diamondtop"));
+            searchedGroups = recorder.searchedGroups();
+        }
+        assertThat(
+            searchedGroups,
+            containsInAnyOrder(
+                "cn=diamondbottom,ou=groups,o=TEST",
+                "cn=diamondleft,ou=groups,o=TEST",
+                "cn=diamondright,ou=groups,o=TEST",
+                "cn=diamondtop,ou=groups,o=TEST"
+            )
+        );
+    }
+
+    @Test
     public void testResolveNestedRolesSkipsDnRejectedByServer() throws Exception {
         final ProviderConnection providerConnection = Mockito.mock(ProviderConnection.class);
         Mockito.when(providerConnection.search(Mockito.any())).thenThrow(new LdapException("invalid DN", ResultCode.INVALID_DN_SYNTAX));
@@ -840,6 +876,10 @@ public class LdapBackendTest {
     }
 
     private Set<String> nestedAttrRoles(final String username) throws Exception {
+        return nestedAttrRoles(username, ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH_DEFAULT);
+    }
+
+    private Set<String> nestedAttrRoles(final String username, final int maxNestedDepth) throws Exception {
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
             .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
@@ -850,6 +890,7 @@ public class LdapBackendTest {
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, "(uniqueMember={0})")
             .put(ConfigConstants.LDAP_AUTHZ_USERROLENAME, "description") // no memberOf OID
             .put(ConfigConstants.LDAP_AUTHZ_ROLESEARCH_ENABLED, true)
+            .put(ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH, maxNestedDepth)
             .build();
 
         final User user = new LDAPAuthorizationBackend(settings, null).addRoles(new User(username), ctx(username, username));
