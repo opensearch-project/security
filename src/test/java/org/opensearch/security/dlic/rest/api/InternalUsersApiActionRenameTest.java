@@ -35,6 +35,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -58,6 +59,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -85,6 +87,9 @@ public class InternalUsersApiActionRenameTest {
     RestApiAuthorizationEvaluator restApiAuthorizationEvaluator;
 
     @Mock
+    AuditLog auditLog;
+
+    @Mock
     UserService userService;
 
     @Mock
@@ -108,7 +113,7 @@ public class InternalUsersApiActionRenameTest {
             configurationRepository,
             null,
             restApiAuthorizationEvaluator,
-            null,
+            auditLog,
             Settings.EMPTY
         );
         action = new InternalUsersApiAction(
@@ -127,7 +132,7 @@ public class InternalUsersApiActionRenameTest {
         writeOutcomes(null, null);
         reloadsSucceed();
 
-        action.executeRename(channel, client, plan());
+        action.executeRename(channel, client, plan(), "admin");
 
         assertThat(writtenDocIds(), contains("internalusers", "rolesmapping"));
         // Both writes carry the _seq_no guard from when the documents were read.
@@ -136,6 +141,7 @@ public class InternalUsersApiActionRenameTest {
         assertThat(usernames(writes.get(0)), containsInAnyOrder("alice2", "bob"));
         assertThat(reloads, contains(List.of("internalusers", "rolesmapping")));
         assertThat(sentResponse().status(), is(RestStatus.OK));
+        verify(auditLog).logInternalUserRenamed("alice", "alice2", List.of("readall"), true, "admin");
     }
 
     @Test
@@ -144,7 +150,7 @@ public class InternalUsersApiActionRenameTest {
         writeOutcomes(null, conflict(), null);
         reloadsSucceed();
 
-        action.executeRename(channel, client, plan());
+        action.executeRename(channel, client, plan(), "admin");
 
         assertThat(writtenDocIds(), contains("internalusers", "rolesmapping", "internalusers"));
         final var undo = writes.get(2);
@@ -158,14 +164,16 @@ public class InternalUsersApiActionRenameTest {
         assertThat(reloads, contains(List.of("internalusers")));
         final var response = sentResponse();
         assertThat(response.status(), is(RestStatus.CONFLICT));
-        assertThat(response.content().utf8ToString(), containsString("was not renamed"));
+        assertThat(response.content().utf8ToString(), containsString("version conflict"));
+        // Net state is unchanged, so there's no rename to audit.
+        verifyNoInteractions(auditLog);
     }
 
     @Test
     public void failedUndoReportsPartialRename() throws Exception {
         writeOutcomes(null, conflict(), conflict());
 
-        action.executeRename(channel, client, plan());
+        action.executeRename(channel, client, plan(), "admin");
 
         assertThat(writtenDocIds(), contains("internalusers", "rolesmapping", "internalusers"));
         assertThat(reloads, is(empty()));
@@ -173,17 +181,20 @@ public class InternalUsersApiActionRenameTest {
         assertThat(response.status(), is(RestStatus.INTERNAL_SERVER_ERROR));
         assertThat(response.content().utf8ToString(), containsString("partially applied"));
         assertThat(response.content().utf8ToString(), containsString("readall"));
+        // The config really did change, so the partial state is audited: readall still lists alice.
+        verify(auditLog).logInternalUserRenamed("alice", "alice2", List.of("readall"), false, "admin");
     }
 
     @Test
     public void failedUsersWriteStopsBeforeTouchingMappings() throws Exception {
         writeOutcomes(conflict());
 
-        action.executeRename(channel, client, plan());
+        action.executeRename(channel, client, plan(), "admin");
 
         assertThat(writtenDocIds(), contains("internalusers"));
         assertThat(reloads, is(empty()));
         assertThat(sentResponse().status(), is(RestStatus.CONFLICT));
+        verifyNoInteractions(auditLog);
     }
 
     // ---------------------------------------------------------------------------------------------
