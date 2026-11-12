@@ -31,6 +31,8 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
             return Password.hash(passwordBuffer).addRandomSalt(DEFAULT_SALT_LENGTH).with(hashingFunction).getResult();
+        } catch (Error e) {
+            throw FipsErrors.asSecurityExceptionOrPropagate(e);
         } finally {
             cleanup(passwordBuffer);
         }
@@ -43,6 +45,8 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
             return Password.check(passwordBuffer, hash).with(getPBKDF2FunctionFromHash(hash));
+        } catch (Error e) {
+            throw FipsErrors.asSecurityExceptionOrPropagate(e);
         } finally {
             cleanup(passwordBuffer);
         }
