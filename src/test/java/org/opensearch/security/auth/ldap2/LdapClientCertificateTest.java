@@ -36,11 +36,11 @@ import org.junit.rules.TemporaryFolder;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.ldap.backend.LDAPAuthorizationBackend;
 import org.opensearch.security.auth.ldap.util.ConfigConstants;
-import org.opensearch.security.auth.ldap.util.Utils;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 import org.ldaptive.Connection;
+import org.ldaptive.ConnectionFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -81,10 +81,11 @@ public class LdapClientCertificateTest {
     public void ldap_keystore_presentsCertAlias() throws Exception {
         for (String alias : List.of("kirk", "spock")) {
             assertOnlyPresented(certificate(alias), port -> {
+                ConnectionFactory factory = LDAPAuthorizationBackend.getConnectionFactory(keystoreSettings(port, alias), null);
                 try {
-                    Utils.unbindAndCloseSilently(LDAPAuthorizationBackend.getConnection(keystoreSettings(port, alias), null));
-                } catch (Exception e) {
-                    // the server does not speak LDAP; only the certificate received matters
+                    openAndClose(factory.getConnection());
+                } finally {
+                    factory.close();
                 }
             });
         }
