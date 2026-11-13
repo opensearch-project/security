@@ -35,6 +35,7 @@ import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -46,6 +47,7 @@ import org.opensearch.action.search.ClearScrollRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.inject.Inject;
@@ -166,6 +168,18 @@ public class ResourceSharingIndexHandler {
 
     public static String getSharingIndex(String resourceIndex) {
         return resourceIndex + "-sharing";
+    }
+
+    /**
+     * Makes every sharing record of a resource index searchable now, for a bulk writer that answers once at the end.
+     *
+     * @param resourceIndex the index whose sharing index is refreshed; a missing sharing index is not an error
+     */
+    public void refreshSharingIndex(String resourceIndex) {
+        RefreshRequest refresh = new RefreshRequest(getSharingIndex(resourceIndex)).indicesOptions(IndicesOptions.lenientExpandOpen());
+        try (ThreadContext.StoredContext ignored = this.threadPool.getThreadContext().stashContext()) {
+            client.admin().indices().refresh(refresh).actionGet();
+        }
     }
 
     /**
@@ -529,8 +543,10 @@ public class ResourceSharingIndexHandler {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            // No forced refresh: records are read by realtime GET; only the admin listing searches them, and it sees the
+            // record at the next scheduled refresh
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.NONE)
                 .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
                 .setId(resourceId)

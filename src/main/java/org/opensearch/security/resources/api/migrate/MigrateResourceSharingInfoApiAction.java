@@ -471,6 +471,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted while waiting for migration to finish", ie);
         }
+        // Each record is written without a refresh; one refresh at the end makes them all searchable when migrate answers
+        sharingIndexHandler.refreshSharingIndex(sourceInfo.sourceIndex);
 
         String summary = String.format(
             "Migration complete. migrated %d; backfilledExisting %d; skippedNoType %s; skippedExisting %s; failed %d",
