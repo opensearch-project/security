@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.Version;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.sample.SampleResourcePlugin;
+import org.opensearch.sample.resource.TestUtils;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -42,6 +43,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_MIGRATION_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -237,6 +239,23 @@ public class MigrateApiTests {
             );
 
         }
+    }
+
+    @Test
+    public void testMigrateReadsNoResourceDocumentBeforeItsFieldWrite() {
+        TestUtils.ApiHelper api = new TestUtils.ApiHelper(cluster);
+        List<String> ids = List.of(createSampleResource(), createSampleResource());
+        clearResourceSharingEntries();
+
+        long before = api.resourceDocumentGets();
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid()).assertStatusCode(HttpStatus.SC_OK);
+        }
+        ids.forEach(api::awaitPrincipals);
+
+        // Each field write is an update, which reads the document itself, and its restore is a NOOP update that does too
+        long reads = api.resourceDocumentGets() - before;
+        assertThat("resource document GETs during migrate: " + reads, reads, lessThanOrEqualTo(2L * ids.size()));
     }
 
     @Test

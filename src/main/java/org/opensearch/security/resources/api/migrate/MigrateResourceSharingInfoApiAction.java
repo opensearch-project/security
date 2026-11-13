@@ -55,6 +55,7 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.resources.ResourcePluginInfo;
 import org.opensearch.security.resources.ResourceSharingIndexHandler;
+import org.opensearch.security.resources.ResourceVersion;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.Recipient;
 import org.opensearch.security.resources.sharing.Recipients;
@@ -238,7 +239,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 .source(
                     new SearchSourceBuilder().query(QueryBuilders.matchAllQuery())
                         .size(1_000)                 // batch size per scroll “page”
-                        .seqNoAndPrimaryTerm(true)   // source-doc seq_no is the monotonic guard for workspace reconcile
+                        .seqNoAndPrimaryTerm(true)   // guards the workspace reconcile and the all_shared_principals write
                 );
 
             // 2) execute first search
@@ -298,7 +299,17 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         }
                     }
 
-                    results.add(new SourceDoc(id, username, backendRoles, type, parentId, workspaces, hit.getSeqNo()));
+                    results.add(
+                        new SourceDoc(
+                            id,
+                            username,
+                            backendRoles,
+                            type,
+                            parentId,
+                            workspaces,
+                            new ResourceVersion(hit.getSeqNo(), hit.getPrimaryTerm())
+                        )
+                    );
                 }
                 // 4) fetch next batch
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId).scroll(scroll);
@@ -402,7 +413,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
 
                 // 5) index the new record
                 final Set<String> docWorkspaces = doc.workspaces;
-                final long docSeqNo = doc.seqNo;
+                final long docSeqNo = doc.version.seqNo();
                 ActionListener<ResourceSharing> listener = ActionListener.wrap(entry -> {
                     if (entry != null) {
                         LOGGER.debug(
@@ -456,7 +467,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                 }
                 ResourceSharing sharingInfo = sharingBuilder.build();
 
-                sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, listener);
+                // The scroll read this version before the record is written, so the field write can start from it
+                sharingIndexHandler.indexResourceSharing(sourceInfo.sourceIndex, sharingInfo, doc.version, listener);
             } catch (Exception e) {
                 LOGGER.warn("Failed indexing sharing info for [{}]: {}", resourceId, e.getMessage());
                 failureCount.getAndIncrement();
@@ -630,7 +642,7 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
     }
 
     record SourceDoc(String resourceId, String username, List<String> backendRoles, String type, String parentId, Set<String> workspaces,
-        long seqNo) {
+        ResourceVersion version) {
     }
 
     record ValidationResultArg(String sourceIndex, String defaultOwnerName, Map<String, String> typeToDefaultAccessLevel, List<

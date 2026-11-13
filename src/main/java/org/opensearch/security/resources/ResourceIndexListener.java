@@ -101,17 +101,10 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     e
                 )
             );
-            if (result.getResultType() == Engine.Result.Type.SUCCESS) {
-                this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(
-                    resourceId,
-                    resourceIndex,
-                    result.getSeqNo(),
-                    result.getTerm(),
-                    listener
-                );
-            } else {
-                this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
-            }
+            ResourceVersion written = result.getResultType() == Engine.Result.Type.SUCCESS
+                ? new ResourceVersion(result.getSeqNo(), result.getTerm())
+                : ResourceVersion.UNKNOWN;
+            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, written, listener);
 
             // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
             // so the write-path record tracks the read-path field. The op's seq_no is the monotonic guard.
@@ -162,7 +155,12 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 if (provider.workspacesField() != null) {
                     builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
                 }
-                this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, builder.build(), listener);
+                this.resourceSharingIndexHandler.indexResourceSharing(
+                    resourceIndex,
+                    builder.build(),
+                    new ResourceVersion(result.getSeqNo(), result.getTerm()),
+                    listener
+                );
             } catch (IOException e) {
                 log.warn("Failed to create a resource sharing entry for resource: {}", resourceId, e);
             }
@@ -219,6 +217,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
             if (provider.workspacesField() != null) {
                 childBuilder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
             }
+            // The parent read above widens the window for a later write, so the field write reads the version itself
             this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, childBuilder.build(), listener);
         },
             e -> log.warn(
