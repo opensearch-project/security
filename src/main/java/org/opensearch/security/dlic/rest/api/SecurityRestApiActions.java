@@ -61,7 +61,8 @@ public class SecurityRestApiActions {
         final ResourceSharingIndexHandler resourceSharingIndexHandler,
         final ResourcePluginInfo resourcePluginInfo,
         final ApiTokenRepository apiTokenRepository,
-        final RolePermissionValidator permissionValidator
+        final RolePermissionValidator permissionValidator,
+        final RegisteredActions registeredActions
     ) {
         final var restApiAuthorizationEvaluator = new RestApiAuthorizationEvaluator(
             settings,
@@ -85,6 +86,7 @@ public class SecurityRestApiActions {
                 new InternalUsersApiAction(clusterService, threadPool, userService, securityApiDependencies, passwordHasher),
                 new RolesMappingApiAction(clusterService, threadPool, securityApiDependencies),
                 new RolesApiAction(clusterService, threadPool, securityApiDependencies, permissionValidator),
+                new PermissionsApiAction(clusterService, threadPool, securityApiDependencies, registeredActions),
                 new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies),
                 new FlushCacheApiAction(clusterService, threadPool, securityApiDependencies, apiTokenRepository),
                 new SecurityConfigApiAction(clusterService, threadPool, securityApiDependencies),
