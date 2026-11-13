@@ -137,6 +137,11 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                     }
 
                     @Override
+                    public Optional<TrustManagerFactory> clientTrustManagerFactory() {
+                        return sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).map(SslContextHandler::trustManagerFactory);
+                    }
+
+                    @Override
                     public Optional<Boolean> enforceHostnameVerification() {
                         return Optional.of(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION.get(transportSettings));
                     }
