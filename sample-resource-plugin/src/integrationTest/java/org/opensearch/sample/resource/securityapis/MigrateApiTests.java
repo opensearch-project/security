@@ -41,7 +41,10 @@ import tools.jackson.databind.node.ObjectNode;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_MIGRATION_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_CREATE_ENDPOINT;
 import static org.opensearch.sample.resource.TestUtils.SAMPLE_RESOURCE_GET_ENDPOINT;
@@ -237,6 +240,73 @@ public class MigrateApiTests {
             );
 
         }
+    }
+
+    @Test
+    public void testMigrateReadsNoResourceDocumentBeforeItsFieldWrite() {
+        String first = createSampleResource();
+        String second = createSampleResource();
+        clearResourceSharingEntries();
+
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            long before = resourceDocumentGets(client);
+            client.postJson(RESOURCE_SHARING_MIGRATION_ENDPOINT, migrationPayload_valid()).assertStatusCode(HttpStatus.SC_OK);
+            for (String id : List.of(first, second)) {
+                // Read by search, which the GET statistics do not count
+                Awaitility.await("all_shared_principals written for " + id)
+                    .untilAsserted(() -> assertThat(principalsBySearch(client, id), not(empty())));
+            }
+            // Each field write is an update, which reads the document itself, and its restore is a NOOP update that does too
+            long reads = resourceDocumentGets(client) - before;
+            assertThat("resource document GETs during migrate: " + reads, reads, lessThanOrEqualTo(4L));
+        }
+    }
+
+    @Test
+    public void testCreateReadsNoResourceDocumentBeforeItsFieldWrite() {
+        // The first create makes the resource index, so the statistics exist to compare against
+        String warmup = createSampleResourceWithoutReads();
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            Awaitility.await("all_shared_principals written for " + warmup)
+                .untilAsserted(() -> assertThat(principalsBySearch(client, warmup), not(empty())));
+            long before = resourceDocumentGets(client);
+            List<String> ids = List.of(createSampleResourceWithoutReads(), createSampleResourceWithoutReads());
+            for (String id : ids) {
+                Awaitility.await("all_shared_principals written for " + id)
+                    .untilAsserted(() -> assertThat(principalsBySearch(client, id), not(empty())));
+            }
+            long reads = resourceDocumentGets(client) - before;
+            assertThat("resource document GETs during create: " + reads, reads, lessThanOrEqualTo(4L));
+        }
+    }
+
+    /** Creates a resource without reading it back, so the GET statistics count only what the create itself does. */
+    private String createSampleResourceWithoutReads() {
+        try (TestRestClient client = cluster.getRestClient(MIGRATION_USER)) {
+            TestRestClient.HttpResponse response = client.putJson(
+                SAMPLE_RESOURCE_CREATE_ENDPOINT,
+                "{\"name\":\"sample\",\"store_user\":true}"
+            );
+            response.assertStatusCode(HttpStatus.SC_OK);
+            return response.getTextFromJsonBody("/message").split(":")[1].trim();
+        }
+    }
+
+    private static List<String> principalsBySearch(TestRestClient client, String resourceId) {
+        TestRestClient.HttpResponse response = client.postJson(
+            RESOURCE_INDEX_NAME + "/_search",
+            "{\"query\":{\"ids\":{\"values\":[\"" + resourceId + "\"]}}}"
+        );
+        response.assertStatusCode(HttpStatus.SC_OK);
+        List<String> principals = new ArrayList<>();
+        response.bodyAsJsonNode().at("/hits/hits/0/_source/all_shared_principals").forEach(n -> principals.add(n.asString()));
+        return principals;
+    }
+
+    private static long resourceDocumentGets(TestRestClient client) {
+        TestRestClient.HttpResponse stats = client.get(RESOURCE_INDEX_NAME + "/_stats/get");
+        stats.assertStatusCode(HttpStatus.SC_OK);
+        return stats.bodyAsJsonNode().at("/_all/total/get/total").asLong();
     }
 
     @Test

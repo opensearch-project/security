@@ -101,17 +101,10 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     e
                 )
             );
-            if (result.getResultType() == Engine.Result.Type.SUCCESS) {
-                this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(
-                    resourceId,
-                    resourceIndex,
-                    result.getSeqNo(),
-                    result.getTerm(),
-                    listener
-                );
-            } else {
-                this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
-            }
+            ResourceVersion written = result.getResultType() == Engine.Result.Type.SUCCESS
+                ? new ResourceVersion(result.getSeqNo(), result.getTerm())
+                : ResourceVersion.UNKNOWN;
+            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, written, listener);
 
             // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
             // so the write-path record tracks the read-path field. The op's seq_no is the monotonic guard.
@@ -165,8 +158,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 this.resourceSharingIndexHandler.indexResourceSharing(
                     resourceIndex,
                     builder.build(),
-                    result.getSeqNo(),
-                    result.getTerm(),
+                    new ResourceVersion(result.getSeqNo(), result.getTerm()),
                     listener
                 );
             } catch (IOException e) {

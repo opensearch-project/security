@@ -269,7 +269,7 @@ public class ResourceSharingIndexHandlerTests {
         stubUpdateFails();
 
         ActionListener<Void> listener = mock(ActionListener.class);
-        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, listener);
+        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, ResourceVersion.UNKNOWN, listener);
 
         verify(listener, never()).onResponse(any());
         assertVisibilityWriteFailure(listener);
@@ -975,8 +975,7 @@ public class ResourceSharingIndexHandlerTests {
         handler.indexResourceSharing(
             RESOURCE_INDEX,
             newRecord(),
-            RESOURCE_DOC_SEQ_NO,
-            1L,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
             ActionListener.wrap(created::add, e -> fail(e.toString()))
         );
 
@@ -1005,8 +1004,7 @@ public class ResourceSharingIndexHandlerTests {
         handler.indexResourceSharing(
             RESOURCE_INDEX,
             newRecord(),
-            RESOURCE_DOC_SEQ_NO,
-            1L,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
             ActionListener.wrap(responses::add, e -> fail(e.toString()))
         );
 
@@ -1034,8 +1032,7 @@ public class ResourceSharingIndexHandlerTests {
         handler.indexResourceSharing(
             RESOURCE_INDEX,
             newRecord(),
-            RESOURCE_DOC_SEQ_NO - 1,
-            1L,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO - 1, 1L),
             ActionListener.wrap(created::add, e -> fail(e.toString()))
         );
 
@@ -1081,8 +1078,7 @@ public class ResourceSharingIndexHandlerTests {
         handler.indexResourceSharing(
             RESOURCE_INDEX,
             newRecord(),
-            RESOURCE_DOC_SEQ_NO - 1,
-            1L,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO - 1, 1L),
             ActionListener.wrap(responses::add, e -> fail(e.toString()))
         );
 
@@ -1107,8 +1103,7 @@ public class ResourceSharingIndexHandlerTests {
         handler.indexResourceSharing(
             RESOURCE_INDEX,
             newRecord(),
-            RESOURCE_DOC_SEQ_NO,
-            1L,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
             ActionListener.wrap(r -> fail("must not succeed"), failures::add)
         );
 
@@ -1127,9 +1122,14 @@ public class ResourceSharingIndexHandlerTests {
         stubUpdates(builder, landed::add);
 
         List<Object> done = new ArrayList<>();
-        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, RESOURCE_DOC_SEQ_NO, 1L, ActionListener.wrap(done::add, e -> {
-            fail(e.toString());
-        }));
+        handler.fetchAndUpdateResourceVisibility(
+            "res-1",
+            RESOURCE_INDEX,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
+            ActionListener.wrap(done::add, e -> {
+                fail(e.toString());
+            })
+        );
 
         assertEquals(1, done.size());
         assertEquals(0, resourceReads.get());
@@ -1159,8 +1159,7 @@ public class ResourceSharingIndexHandlerTests {
         handler.fetchAndUpdateResourceVisibility(
             "res-1",
             RESOURCE_INDEX,
-            RESOURCE_DOC_SEQ_NO - 1,
-            1L,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO - 1, 1L),
             ActionListener.wrap(done::add, e -> fail(e.toString()))
         );
 
@@ -1226,9 +1225,14 @@ public class ResourceSharingIndexHandlerTests {
         stubUpdateFails(() -> new DocumentMissingException(new ShardId(RESOURCE_INDEX, "_na_", 0), "res-1"));
 
         List<Exception> failures = new ArrayList<>();
-        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, RESOURCE_DOC_SEQ_NO, 1L, ActionListener.wrap(r -> {
-            fail("must not succeed");
-        }, failures::add));
+        handler.fetchAndUpdateResourceVisibility(
+            "res-1",
+            RESOURCE_INDEX,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
+            ActionListener.wrap(r -> {
+                fail("must not succeed");
+            }, failures::add)
+        );
 
         assertEquals(1, failures.size());
         assertTrue(failures.get(0) instanceof ResourceNotFoundException);
