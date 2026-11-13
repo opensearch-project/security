@@ -24,7 +24,9 @@ public record ResourceVersion(long seqNo, long primaryTerm) {
     public static final ResourceVersion UNKNOWN = new ResourceVersion(UNASSIGNED_SEQ_NO, UNASSIGNED_PRIMARY_TERM);
 
     /**
-     * @return whether a write can start from this version without reading it
+     * Whether a write can start from this version without reading the document first.
+     *
+     * @return {@code true} unless this is {@link #UNKNOWN}
      */
     public boolean isKnown() {
         return seqNo != UNASSIGNED_SEQ_NO;

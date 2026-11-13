@@ -382,8 +382,9 @@ public class ResourceSharingIndexHandler {
     /**
      * Writes the field from a record just created, at the resource version its create produced, without reading either.
      * <p>
-     * Only safe when that version was taken before the record was written: any later change to the record comes with a
-     * field write that moves the version on, so this attempt conflicts and the retry reads both.
+     * Only safe when that version was taken before the record was written. A later change to the record comes with a field
+     * write that moves the version on, so this attempt conflicts and the retry reads both; if that field write was a NOOP,
+     * this write lands, and the restore it triggers reads the record and writes the field again.
      */
     private void syncFromCreatedRecord(
         String resourceId,
