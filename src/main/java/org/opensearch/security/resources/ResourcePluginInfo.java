@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,11 +76,12 @@ public class ResourcePluginInfo {
     // default access level per type (for migration)
     private final Map<String, String> typeToDefaultAccessLevel = new HashMap<>();
 
-    // Resource indices of the protected types, recomputed on change because every index and delete operation reads it
-    private volatile Set<String> protectedResourceIndices = Collections.emptySet();
+    // Read without the lock by every index and delete operation, so recomputed on change rather than per call
+    private volatile Snapshot snapshot = new Snapshot(Set.of(), Map.of());
 
-    // Providers per resource index, recomputed on change because every write to a protected index resolves its type
-    private volatile Map<String, IndexProviders> providersByIndex = Map.of();
+    /** The resource indices of the protected types, and the providers of each resource index. */
+    private record Snapshot(Set<String> protectedIndices, Map<String, IndexProviders> providersByIndex) {
+    }
 
     /** The providers on one resource index, and whether two of them read the same type field. */
     private record IndexProviders(List<ResourceProvider> providers, boolean sharedTypeField) {
@@ -106,31 +108,23 @@ public class ResourcePluginInfo {
     }
 
     /**
-     * Recomputes {@link #providersByIndex} and {@link #protectedResourceIndices}. Must be called with the write lock held,
-     * so a reader cannot observe a snapshot that disagrees with {@link #typeToProvider}.
+     * Recomputes {@link #snapshot}. Must be called with the write lock held, so a reader cannot observe a snapshot that
+     * disagrees with {@link #typeToProvider}.
      *
      * @param protectedTypes the types to treat as protected
      */
     private void refreshSnapshots(List<String> protectedTypes) {
-        providersByIndex = typeToProvider.values()
-            .stream()
-            .collect(
-                Collectors.collectingAndThen(
-                    Collectors.groupingBy(ResourceProvider::resourceIndexName),
-                    byIndex -> byIndex.entrySet()
-                        .stream()
-                        .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> IndexProviders.of(e.getValue())))
-                )
-            );
-        if (protectedTypes == null || protectedTypes.isEmpty()) {
-            protectedResourceIndices = Collections.emptySet();
-            return;
+        Map<String, List<ResourceProvider>> byIndex = new HashMap<>();
+        Set<String> protectedIndices = new HashSet<>();
+        for (ResourceProvider provider : typeToProvider.values()) {
+            byIndex.computeIfAbsent(provider.resourceIndexName(), index -> new ArrayList<>()).add(provider);
+            if (protectedTypes != null && protectedTypes.contains(provider.resourceType())) {
+                protectedIndices.add(provider.resourceIndexName());
+            }
         }
-        protectedResourceIndices = typeToProvider.entrySet()
-            .stream()
-            .filter(e -> protectedTypes.contains(e.getKey()))
-            .map(e -> e.getValue().resourceIndexName())
-            .collect(Collectors.toUnmodifiableSet());
+        Map<String, IndexProviders> providersByIndex = new HashMap<>();
+        byIndex.forEach((index, providers) -> providersByIndex.put(index, IndexProviders.of(providers)));
+        snapshot = new Snapshot(Set.copyOf(protectedIndices), Map.copyOf(providersByIndex));
     }
 
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
@@ -370,8 +364,8 @@ public class ResourcePluginInfo {
     }
 
     /**
-     * Extracts all values of a multi-valued field from the Lucene document backing an {@link Engine.Index} op —
-     * e.g. the set of workspace IDs a resource belongs to (see {@link ResourceProvider#workspacesField()}). Unlike
+     * Extracts all values of a multi-valued field from the Lucene document backing an {@link Engine.Index} op,
+     * for example the set of workspace IDs a resource belongs to (see {@link ResourceProvider#workspacesField()}). Unlike
      * {@link #extractFieldFromIndexOp} it collects every {@link IndexableField} for {@code fieldName}, which is how a
      * {@code keyword} array surfaces (one field per element). Indexed, stored and doc-values fields all surface.
      *
@@ -408,11 +402,11 @@ public class ResourcePluginInfo {
      * @return the provider, or {@code null} if no provider matches, or more than one does
      */
     public ResourceProvider resolveResourceProvider(String resourceIndex, Function<String, String> fieldValue) {
-        IndexProviders candidates = providersByIndex.get(resourceIndex);
+        IndexProviders candidates = snapshot.providersByIndex().get(resourceIndex);
         if (candidates == null) {
             return null;
         }
-        // Types that share a type field would each read it, so read it once
+        // Only shared type fields are worth caching: a lookup map costs more than reading two distinct fields
         Function<String, String> reader = candidates.sharedTypeField() ? readOnce(fieldValue) : fieldValue;
         ResourceProvider match = null;
         for (ResourceProvider provider : candidates.providers()) {
@@ -435,6 +429,7 @@ public class ResourcePluginInfo {
 
     private static Function<String, String> readOnce(Function<String, String> fieldValue) {
         Map<String, String> read = new HashMap<>();
+        // containsKey, not computeIfAbsent, so an absent field (null) is cached too
         return field -> {
             if (!read.containsKey(field)) {
                 read.put(field, fieldValue.apply(field));
@@ -642,7 +637,7 @@ public class ResourcePluginInfo {
      * delete operation in the cluster, so it is not recomputed per call.
      */
     public Set<String> getResourceIndicesForProtectedTypes() {
-        return protectedResourceIndices;
+        return snapshot.protectedIndices();
     }
 
     /** The types currently listed as protected, or null before the setting is wired. */

@@ -106,12 +106,11 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 changed -> log.debug("postIndex: workspace reconcile for {} changed={}", resourceId, changed),
                 e -> log.warn("postIndex: failed to reconcile workspaces for {}: {}", resourceId, e.getMessage())
             );
-            // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
-            // so the write-path record tracks the read-path field. The op's seq_no is the monotonic guard.
+            // The sharing record's workspaces follow the doc's current set; the op's seq_no is the monotonic guard
             Set<String> currentWorkspaces = provider.workspacesField() == null
                 ? null
                 : ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
-            // Without an assigned seqNo the version is read first, which the single-read path cannot do
+            // A write with a seqNo guards the restore with it; any other write reads the document version first
             if (result.getResultType() == Engine.Result.Type.SUCCESS && result.getSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
                 this.resourceSharingIndexHandler.syncAfterResourceUpdate(
                     resourceIndex,

@@ -68,7 +68,6 @@ import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MatchAllQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.search.Scroll;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -83,8 +82,6 @@ import org.opensearch.transport.client.Client;
 
 import static org.opensearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
-import static org.opensearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
-import static org.opensearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 /**
  * This class handles the creation and management of the resource sharing index.
@@ -207,49 +204,44 @@ public class ResourceSharingIndexHandler {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             client.get(new GetRequest(resourceSharingIndex).id(resourceId), ActionListener.wrap(getResponse -> {
                 ctx.restore();
-                reconcileFromRecord(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, getResponse, listener);
-            }, e -> {
-                ctx.restore();
-                if (isIndexMissing(e)) {
-                    // The sharing index is created with the first record, so it can be missing for the same reason
-                    scheduleReconcileRetry(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, listener);
+                ResourceSharing record;
+                try {
+                    record = parseSharingRecord(getResponse);
+                } catch (Exception e) {
+                    listener.onFailure(e);
                     return;
                 }
-                listener.onFailure(e);
+                reconcileFromRecord(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, record, getResponse, listener);
+            }, e -> {
+                ctx.restore();
+                reconcileReadFailed(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, e, listener);
             }));
         }
     }
 
-    /**
-     * Applies one reconcile attempt to a sharing record that has been read.
-     *
-     * @param getResponse the read of the sharing record
-     */
+    /** Applies one reconcile attempt to a sharing record that has been read, or retries if there is none yet. */
     private void reconcileFromRecord(
         String resourceSharingIndex,
         String resourceId,
         Set<String> target,
         long sourceSeqNo,
         int attempt,
+        ResourceSharing record,
         GetResponse getResponse,
         ActionListener<Boolean> listener
     ) {
-        if (!getResponse.isExists()) {
+        if (record == null) {
             scheduleReconcileRetry(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, listener);
             return;
         }
-
-        Map<String, Object> source = getResponse.getSourceAsMap();
-        long storedSeqNo = source.get(WORKSPACES_SEQ_NO_FIELD) instanceof Number n ? n.longValue() : SequenceNumbers.UNASSIGNED_SEQ_NO;
         // Monotonic guard: an older source operation must never overwrite state written by a newer one.
-        if (sourceSeqNo <= storedSeqNo) {
+        if (sourceSeqNo <= record.getWorkspacesSeqNo()) {
             listener.onResponse(false);
             return;
         }
 
-        Set<String> current = workspacesFromSource(source);
-        boolean contentChanged = !current.equals(target);
-        try (ThreadContext.StoredContext ctx2 = this.threadPool.getThreadContext().stashContext()) {
+        boolean contentChanged = !record.getWorkspaces().equals(target);
+        try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             Map<String, Object> doc = new HashMap<>();
             doc.put("workspaces", new ArrayList<>(target));
             doc.put(WORKSPACES_SEQ_NO_FIELD, sourceSeqNo);
@@ -262,10 +254,10 @@ public class ResourceSharingIndexHandler {
                 .setIfPrimaryTerm(getResponse.getPrimaryTerm())
                 .request();
             client.update(ur, ActionListener.wrap(updateResponse -> {
-                ctx2.restore();
+                ctx.restore();
                 listener.onResponse(contentChanged);
             }, e -> {
-                ctx2.restore();
+                ctx.restore();
                 // A concurrent reconcile won the compare-and-set; re-read and re-evaluate the guard.
                 if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException
                     && attempt < WORKSPACE_RECONCILE_MAX_ATTEMPTS) {
@@ -274,6 +266,23 @@ public class ResourceSharingIndexHandler {
                     listener.onFailure(e);
                 }
             }));
+        }
+    }
+
+    private void reconcileReadFailed(
+        String resourceSharingIndex,
+        String resourceId,
+        Set<String> target,
+        long sourceSeqNo,
+        int attempt,
+        Exception e,
+        ActionListener<Boolean> listener
+    ) {
+        if (isIndexMissing(e)) {
+            // The sharing index is created with the first record, so it can be missing for the same reason
+            scheduleReconcileRetry(resourceSharingIndex, resourceId, target, sourceSeqNo, attempt, listener);
+        } else {
+            listener.onFailure(e);
         }
     }
 
@@ -308,21 +317,6 @@ public class ResourceSharingIndexHandler {
         }
     }
 
-    private static Set<String> workspacesFromSource(Map<String, Object> source) {
-        Object v = source == null ? null : source.get("workspaces");
-        Set<String> result = new HashSet<>();
-        if (v instanceof Collection<?> c) {
-            for (Object o : c) {
-                if (o != null) {
-                    result.add(o.toString());
-                }
-            }
-        } else if (v instanceof String s && !s.isEmpty()) {
-            result.add(s);
-        }
-        return result;
-    }
-
     /**
      * Brings the resource's {@code all_shared_principals} in step with its sharing record.
      * <p>
@@ -334,25 +328,12 @@ public class ResourceSharingIndexHandler {
      * @param listener      {@code true} once written, {@code false} if there is no sharing record
      */
     private void syncResourceVisibility(String resourceId, String resourceIndex, ActionListener<Boolean> listener) {
-        syncResourceVisibilityAttempt(resourceId, resourceIndex, UNASSIGNED_SEQ_NO, UNASSIGNED_PRIMARY_TERM, 1, listener);
+        syncResourceVisibilityAttempt(resourceId, resourceIndex, 1, listener);
     }
 
-    /**
-     * One sync attempt. A known {@code seqNo} skips the version read; {@code UNASSIGNED_SEQ_NO} reads it.
-     */
-    private void syncResourceVisibilityAttempt(
-        String resourceId,
-        String resourceIndex,
-        long seqNo,
-        long primaryTerm,
-        int attempt,
-        ActionListener<Boolean> listener
-    ) {
+    /** One sync attempt: reads the document version, then the record. */
+    private void syncResourceVisibilityAttempt(String resourceId, String resourceIndex, int attempt, ActionListener<Boolean> listener) {
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            if (seqNo != UNASSIGNED_SEQ_NO) {
-                writeVisibilityFromRecord(resourceId, resourceIndex, seqNo, primaryTerm, attempt, ctx, listener);
-                return;
-            }
             ActionListener<Boolean> restoring = ActionListener.runBefore(listener, ctx::restore);
             GetRequest versionRead = new GetRequest(resourceIndex).id(resourceId)
                 .fetchSourceContext(FetchSourceContext.DO_NOT_FETCH_SOURCE);
@@ -439,14 +420,7 @@ public class ResourceSharingIndexHandler {
             threadPool.schedule(new AbstractRunnable() {
                 @Override
                 protected void doRun() {
-                    syncResourceVisibilityAttempt(
-                        resourceId,
-                        resourceIndex,
-                        UNASSIGNED_SEQ_NO,
-                        UNASSIGNED_PRIMARY_TERM,
-                        attempt + 1,
-                        listener
-                    );
+                    syncResourceVisibilityAttempt(resourceId, resourceIndex, attempt + 1, listener);
                 }
 
                 @Override
@@ -499,33 +473,6 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Restores {@code all_shared_principals} after a write to the resource document, starting from the version that write
-     * produced. A later write makes the first attempt conflict, and the retry reads the version again.
-     *
-     * @param resourceId    the resource that was written
-     * @param resourceIndex the index that holds the resource
-     * @param seqNo         sequence number of the write, or {@code UNASSIGNED_SEQ_NO} to read it
-     * @param primaryTerm   primary term of the write
-     * @param listener      completes once the field matches the record, or immediately if there is no record
-     */
-    public void fetchAndUpdateResourceVisibility(
-        String resourceId,
-        String resourceIndex,
-        long seqNo,
-        long primaryTerm,
-        ActionListener<Void> listener
-    ) {
-        syncResourceVisibilityAttempt(
-            resourceId,
-            resourceIndex,
-            seqNo,
-            primaryTerm,
-            1,
-            restoreListener(resourceId, resourceIndex, listener)
-        );
-    }
-
-    /**
      * Brings the sharing record's projections in step after an update to a resource document, reading the record once
      * for both. The principals are written only when the document does not already hold the ones the record allows.
      *
@@ -550,45 +497,43 @@ public class ResourceSharingIndexHandler {
     ) {
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         ActionListener<Boolean> visibility = restoreListener(resourceId, resourceIndex, visibilityListener);
-        ActionListener<Boolean> reconciled = ActionListener.notifyOnce(workspacesListener);
-        Set<String> target = workspaces == null ? null : new HashSet<>(workspaces);
+        ActionListener<Boolean> reconciled = workspaces == null ? null : ActionListener.notifyOnce(workspacesListener);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            client.get(new GetRequest(resourceSharingIndex).id(resourceId), ActionListener.wrap(record -> {
+            client.get(new GetRequest(resourceSharingIndex).id(resourceId), ActionListener.wrap(getResponse -> {
                 ctx.restore();
-                if (target != null) {
+                ResourceSharing record;
+                try {
+                    record = parseSharingRecord(getResponse);
+                } catch (Exception e) {
+                    if (reconciled != null) {
+                        reconciled.onFailure(e);
+                    }
+                    visibility.onFailure(e);
+                    return;
+                }
+                if (reconciled != null) {
                     // Kept apart, so a reconcile that throws cannot stop the visibility restore below
                     try {
-                        reconcileFromRecord(resourceSharingIndex, resourceId, target, seqNo, 1, record, reconciled);
+                        reconcileFromRecord(resourceSharingIndex, resourceId, workspaces, seqNo, 1, record, getResponse, reconciled);
                     } catch (Exception e) {
                         reconciled.onFailure(e);
                     }
                 }
-                ResourceSharing sharingInfo;
-                try {
-                    sharingInfo = parseSharingRecord(record);
-                } catch (Exception e) {
-                    visibility.onFailure(e);
-                    return;
-                }
-                if (sharingInfo == null) {
+                if (record == null) {
                     visibility.onResponse(false);
                     return;
                 }
-                if (documentPrincipals.equals(new HashSet<>(sharingInfo.getAllPrincipals()))) {
+                if (documentPrincipals.equals(new HashSet<>(record.getAllPrincipals()))) {
                     visibility.onResponse(true);
                     return;
                 }
                 try (ThreadContext.StoredContext writeCtx = this.threadPool.getThreadContext().stashContext()) {
-                    writeVisibility(sharingInfo, resourceId, resourceIndex, seqNo, primaryTerm, 1, writeCtx, visibility);
+                    writeVisibility(record, resourceId, resourceIndex, seqNo, primaryTerm, 1, writeCtx, visibility);
                 }
             }, e -> {
                 ctx.restore();
-                if (target != null) {
-                    if (isIndexMissing(e)) {
-                        scheduleReconcileRetry(resourceSharingIndex, resourceId, target, seqNo, 1, reconciled);
-                    } else {
-                        reconciled.onFailure(e);
-                    }
+                if (reconciled != null) {
+                    reconcileReadFailed(resourceSharingIndex, resourceId, workspaces, seqNo, 1, e, reconciled);
                 }
                 if (isIndexMissing(e)) {
                     visibility.onResponse(false);
@@ -1002,14 +947,8 @@ public class ResourceSharingIndexHandler {
                     if (item == null || item.isFailed()) continue;
                     final GetResponse gr = item.getResponse();
                     if (gr == null || !gr.isExists()) continue;
-                    try (
-                        XContentParser parser = XContentType.JSON.xContent()
-                            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, gr.getSourceAsString())
-                    ) {
-                        parser.nextToken();
-                        ResourceSharing rs = ResourceSharing.fromXContent(parser);
-                        rs.setResourceId(gr.getId());
-                        records.put(gr.getId(), rs);
+                    try {
+                        records.put(gr.getId(), parseSharingRecord(gr));
                     } catch (Exception ex) {
                         LOGGER.warn("Failed to parse resource-sharing doc id={} from {}", gr.getId(), resourceSharingIndex, ex);
                     }
@@ -1205,13 +1144,8 @@ public class ResourceSharingIndexHandler {
                     listener.onResponse(null);
                     return;
                 }
-                try (
-                    XContentParser parser = XContentType.JSON.xContent()
-                        .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, getResponse.getSourceAsString())
-                ) {
-                    parser.nextToken();
-                    ResourceSharing resourceSharing = ResourceSharing.fromXContent(parser);
-                    resourceSharing.setResourceId(getResponse.getId());
+                try {
+                    ResourceSharing resourceSharing = parseSharingRecord(getResponse);
                     listener.onResponse(
                         new VersionedResourceSharing(resourceSharing, getResponse.getSeqNo(), getResponse.getPrimaryTerm())
                     );

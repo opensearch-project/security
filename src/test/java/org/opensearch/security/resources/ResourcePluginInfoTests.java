@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -167,7 +168,7 @@ public class ResourcePluginInfoTests {
     @Test
     public void testSharedTypeFieldIsReadOnce() {
         registerProviders(List.of("a", "b", "c"), ".sample-index", "resource_type");
-        java.util.concurrent.atomic.AtomicInteger reads = new java.util.concurrent.atomic.AtomicInteger();
+        AtomicInteger reads = new AtomicInteger();
 
         ResourceProvider resolved = resourcePluginInfo.resolveResourceProvider(".sample-index", field -> {
             reads.incrementAndGet();

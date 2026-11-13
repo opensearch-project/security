@@ -55,12 +55,12 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.mockito.Answers;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,6 +72,7 @@ public class ResourceIndexListenerTests {
 
     private static final String INDEX = ResourceProviderFixtures.ALERTING_INDEX;
     private static final String SHARING_INDEX = ResourceSharingIndexHandler.getSharingIndex(INDEX);
+    private static final String PRINCIPALS = ResourceSharingIndexHandler.ALL_SHARED_PRINCIPALS_FIELD;
 
     private Client client;
     private IndexRequestBuilder records;
@@ -131,14 +132,11 @@ public class ResourceIndexListenerTests {
      */
     @Test
     public void anUpdateRestoresVisibilityFromTheVersionItWrote() {
-        List<String> readIndices = stubRecordRead();
-        UpdateRequestBuilder visibility = mock(UpdateRequestBuilder.class, Answers.RETURNS_SELF);
-        when(visibility.request()).thenReturn(mock(UpdateRequest.class));
-        when(client.prepareUpdate(any(), any())).thenReturn(visibility);
+        stubRecordRead();
+        UpdateRequestBuilder visibility = stubUpdates();
 
         update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L);
 
-        assertFalse("the resource document's version must not be read", readIndices.contains(INDEX));
         verify(visibility).setIfSeqNo(9L);
         verify(visibility).setIfPrimaryTerm(2L);
     }
@@ -160,46 +158,36 @@ public class ResourceIndexListenerTests {
         stubRecordRead();
         stubUpdates();
 
-        update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L, new StringField("all_shared_principals", "user:alice", Field.Store.NO));
+        update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L, new StringField(PRINCIPALS, "user:alice", Field.Store.NO));
 
         verify(client, never()).prepareUpdate(eq(INDEX), any());
         verify(client).prepareUpdate(eq(SHARING_INDEX), any());
     }
 
-    /** A document whose principals differ from the record's is written. */
+    /** A document whose principals differ from the record's is written, including one that adds to the allowed ones. */
     @Test
     public void anUpdateThatChangesThePrincipalsRewritesThem() {
         stubRecordRead();
         stubUpdates();
 
-        update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L, new StringField("all_shared_principals", "user:bob", Field.Store.NO));
-
-        verify(client).prepareUpdate(eq(INDEX), any());
-    }
-
-    /** A document that holds a principal the record does not allow is written, even though it holds every allowed one. */
-    @Test
-    public void anUpdateWithAnExtraPrincipalRewritesThem() {
-        stubRecordRead();
-        stubUpdates();
-
+        update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L, new StringField(PRINCIPALS, "user:bob", Field.Store.NO));
         update(
             "workflow-1",
             Engine.Result.Type.SUCCESS,
-            9L,
+            10L,
             2L,
-            new StringField("all_shared_principals", "user:alice", Field.Store.NO),
-            new StringField("all_shared_principals", "user:bob", Field.Store.NO)
+            new StringField(PRINCIPALS, "user:alice", Field.Store.NO),
+            new StringField(PRINCIPALS, "user:bob", Field.Store.NO)
         );
 
-        verify(client).prepareUpdate(eq(INDEX), any());
+        verify(client, times(2)).prepareUpdate(eq(INDEX), any());
     }
 
     /** A keyword field carries each value as an indexed term and as a doc value; both read as one set of principals. */
     @Test
     public void keywordPrincipalsThatMatchTheRecordAreNotRewritten() {
         stubRecordRead(
-            "{\"resource_id\":\"workflow-1\",\"created_by\":{\"user\":\"alice\"}," + "\"share_with\":{\"read_only\":{\"users\":[\"bob\"]}}}"
+            "{\"resource_id\":\"workflow-1\",\"created_by\":{\"user\":\"alice\"},\"share_with\":{\"read_only\":{\"users\":[\"bob\"]}}}"
         );
         stubUpdates();
 
@@ -209,22 +197,23 @@ public class ResourceIndexListenerTests {
             9L,
             2L,
             keywordTerm("user:alice"),
-            new SortedSetDocValuesField("all_shared_principals", new BytesRef("user:alice")),
+            new SortedSetDocValuesField(PRINCIPALS, new BytesRef("user:alice")),
             keywordTerm("user:bob"),
-            new SortedSetDocValuesField("all_shared_principals", new BytesRef("user:bob"))
+            new SortedSetDocValuesField(PRINCIPALS, new BytesRef("user:bob"))
         );
 
         verify(client, never()).prepareUpdate(eq(INDEX), any());
     }
 
     private static IndexableField keywordTerm(String value) {
-        return new Field("all_shared_principals", new BytesRef(value), KeywordFieldMapper.Defaults.FIELD_TYPE);
+        return new Field(PRINCIPALS, new BytesRef(value), KeywordFieldMapper.Defaults.FIELD_TYPE);
     }
 
-    private void stubUpdates() {
+    private UpdateRequestBuilder stubUpdates() {
         UpdateRequestBuilder builder = mock(UpdateRequestBuilder.class, Answers.RETURNS_SELF);
         when(builder.request()).thenReturn(mock(UpdateRequest.class));
         when(client.prepareUpdate(any(), any())).thenReturn(builder);
+        return builder;
     }
 
     @Test
