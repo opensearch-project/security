@@ -314,6 +314,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public static final String PLUGINS_PREFIX = "_plugins/_security";
 
     private boolean sslCertReloadEnabled;
+    // Set in createComponents (not in SSL-only mode); used by the transport SPI's node certificate check.
+    private volatile InterClusterRequestEvaluator nodeCertificateEvaluator;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesConfiguration privilegesConfiguration;
     private volatile RoleMapper roleMapper;
@@ -1567,6 +1569,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
 
         final InterClusterRequestEvaluator interClusterRequestEvaluator = InterClusterRequestEvaluatorFactory.create(settings);
+        nodeCertificateEvaluator = interClusterRequestEvaluator;
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
@@ -2912,9 +2915,25 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 sslSettingsManager,
                 evaluateSslExceptionHandler(),
                 securityRestHandler,
-                sslConfig
+                sslConfig,
+                migrateSettings(settings),
+                this::isNodeCertificate
             )
         );
+    }
+
+    /**
+     * Whether a peer certificate chain is a node of this cluster, by the rules transport uses for inter-node requests
+     * (nodes_dn, the dynamic nodes DN list, the node OID). Empty in SSL-only mode, where no evaluator exists.
+     */
+    private Optional<Boolean> isNodeCertificate(final X509Certificate[] chain) {
+        final InterClusterRequestEvaluator evaluator = nodeCertificateEvaluator;
+        if (evaluator == null || principalExtractor == null || chain == null || chain.length == 0) {
+            return Optional.empty();
+        }
+        final String principal = principalExtractor.extractPrincipal(chain[0], PrincipalExtractor.Type.TRANSPORT);
+        // There is no transport request for this check; the default evaluator does not read it.
+        return Optional.of(evaluator.isInterClusterRequest(null, null, chain, principal));
     }
 
     @Override
