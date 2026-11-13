@@ -25,6 +25,7 @@ import org.opensearch.action.admin.indices.create.AutoCreateAction;
 import org.opensearch.action.admin.indices.create.CreateIndexAction;
 import org.opensearch.action.admin.indices.mapping.put.AutoPutMappingAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
+import org.opensearch.action.admin.indices.settings.describe.IndicesDescribeSettingsAction;
 import org.opensearch.action.admin.indices.template.delete.DeleteComposableIndexTemplateAction;
 import org.opensearch.action.admin.indices.template.delete.DeleteIndexTemplateAction;
 import org.opensearch.action.admin.indices.template.get.GetComposableIndexTemplateAction;
@@ -186,6 +187,10 @@ class ActionConfiguration {
         builder.add(GetComposableIndexTemplateAction.NAME);
         builder.add(SimulateIndexTemplateAction.NAME);
         builder.add(SimulateTemplateAction.NAME);
+
+        // Like _search/point_in_time/_all above, the index settings describe action provides no possibility to specify/reduce
+        // indices: it reads setting definitions from the node registry and names no index. Thus, it should be a cluster action.
+        builder.add(IndicesDescribeSettingsAction.NAME);
 
         builder.addAll(FORCE_AS_CLUSTER_ACTIONS.get(settings));
         return builder.build();

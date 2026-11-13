@@ -57,6 +57,7 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexAction;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.put.AutoPutMappingAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
+import org.opensearch.action.admin.indices.settings.describe.IndicesDescribeSettingsAction;
 import org.opensearch.action.bulk.BulkAction;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkRequest;
@@ -127,6 +128,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     );
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
+
+    private static final WildcardMatcher CLUSTER_LEVEL_INDICES_ACTIONS = WildcardMatcher.from(IndicesDescribeSettingsAction.NAME);
 
     private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
 
@@ -626,7 +629,16 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             || (action0.equals(MultiTermVectorsAction.NAME))
             || (action0.equals(ReindexAction.NAME))
             || (action0.equals(RenderSearchTemplateAction.NAME))
+            || allowedIndicesPatterns(action0)
             || !action0.startsWith("indices:"));
+    }
+
+    /**
+     * indices:* actions that are evaluated as cluster permissions although they live in the indices: namespace, because
+     * the request names no index. The index settings describe action reads setting definitions from the node registry.
+     */
+    public static boolean allowedIndicesPatterns(String action) {
+        return CLUSTER_LEVEL_INDICES_ACTIONS.test(action);
     }
 
     private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {
