@@ -78,25 +78,50 @@ public class ResourcePluginInfo {
     // Resource indices of the protected types, recomputed on change because every index and delete operation reads it
     private volatile Set<String> protectedResourceIndices = Collections.emptySet();
 
+    // Providers per resource index, recomputed on change because every write to a protected index resolves its type
+    private volatile Map<String, IndexProviders> providersByIndex = Map.of();
+
+    /** The providers on one resource index, and whether two of them read the same type field. */
+    private record IndexProviders(List<ResourceProvider> providers, boolean sharedTypeField) {
+        static IndexProviders of(List<ResourceProvider> providers) {
+            Set<String> fields = new HashSet<>();
+            boolean shared = false;
+            for (ResourceProvider provider : providers) {
+                shared |= provider.typeField() != null && !fields.add(provider.typeField());
+            }
+            return new IndexProviders(List.copyOf(providers), shared);
+        }
+    }
+
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
 
     public void setProtectedTypesSetting(OpensearchDynamicSetting<List<String>> protectedTypesSetting) {
         lock.writeLock().lock();
         try {
             this.protectedTypesSetting = protectedTypesSetting;
-            refreshProtectedResourceIndices(currentProtectedTypes());
+            refreshSnapshots(currentProtectedTypes());
         } finally {
             lock.writeLock().unlock();
         }
     }
 
     /**
-     * Recomputes {@link #protectedResourceIndices}. Must be called with the write lock held, so a reader cannot observe
-     * a snapshot that disagrees with {@link #typeToProvider}.
+     * Recomputes {@link #providersByIndex} and {@link #protectedResourceIndices}. Must be called with the write lock held,
+     * so a reader cannot observe a snapshot that disagrees with {@link #typeToProvider}.
      *
      * @param protectedTypes the types to treat as protected
      */
-    private void refreshProtectedResourceIndices(List<String> protectedTypes) {
+    private void refreshSnapshots(List<String> protectedTypes) {
+        providersByIndex = typeToProvider.values()
+            .stream()
+            .collect(
+                Collectors.collectingAndThen(
+                    Collectors.groupingBy(ResourceProvider::resourceIndexName),
+                    byIndex -> byIndex.entrySet()
+                        .stream()
+                        .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> IndexProviders.of(e.getValue())))
+                )
+            );
         if (protectedTypes == null || protectedTypes.isEmpty()) {
             protectedResourceIndices = Collections.emptySet();
             return;
@@ -155,7 +180,7 @@ public class ResourcePluginInfo {
             }
             registerGatingResolvers(extensions, typeToProvider.keySet());
             resourceSharingExtensions.addAll(extensions);
-            refreshProtectedResourceIndices(currentProtectedTypes());
+            refreshSnapshots(currentProtectedTypes());
         } finally {
             lock.writeLock().unlock();
         }
@@ -228,7 +253,7 @@ public class ResourcePluginInfo {
             typeToProvider.clear();
 
             if (protectedTypes == null || protectedTypes.isEmpty()) {
-                refreshProtectedResourceIndices(protectedTypes);
+                refreshSnapshots(protectedTypes);
                 return;
             }
 
@@ -239,7 +264,7 @@ public class ResourcePluginInfo {
                     typeToProvider.put(rp.resourceType(), rp);
                 }
             }
-            refreshProtectedResourceIndices(protectedTypes);
+            refreshSnapshots(protectedTypes);
         } finally {
             lock.writeLock().unlock();
         }
@@ -383,28 +408,39 @@ public class ResourcePluginInfo {
      * @return the provider, or {@code null} if no provider matches, or more than one does
      */
     public ResourceProvider resolveResourceProvider(String resourceIndex, Function<String, String> fieldValue) {
-        lock.readLock().lock();
-        try {
-            ResourceProvider match = null;
-            for (ResourceProvider provider : typeToProvider.values()) {
-                if (!provider.resourceIndexName().equals(resourceIndex) || !provider.matchesResource(fieldValue)) {
-                    continue;
-                }
-                if (match != null) {
-                    log.warn(
-                        "A document in index [{}] matches resource types [{}] and [{}]; it is not treated as a resource",
-                        resourceIndex,
-                        match.resourceType(),
-                        provider.resourceType()
-                    );
-                    return null;
-                }
-                match = provider;
-            }
-            return match;
-        } finally {
-            lock.readLock().unlock();
+        IndexProviders candidates = providersByIndex.get(resourceIndex);
+        if (candidates == null) {
+            return null;
         }
+        // Types that share a type field would each read it, so read it once
+        Function<String, String> reader = candidates.sharedTypeField() ? readOnce(fieldValue) : fieldValue;
+        ResourceProvider match = null;
+        for (ResourceProvider provider : candidates.providers()) {
+            if (!provider.matchesResource(reader)) {
+                continue;
+            }
+            if (match != null) {
+                log.warn(
+                    "A document in index [{}] matches resource types [{}] and [{}]; it is not treated as a resource",
+                    resourceIndex,
+                    match.resourceType(),
+                    provider.resourceType()
+                );
+                return null;
+            }
+            match = provider;
+        }
+        return match;
+    }
+
+    private static Function<String, String> readOnce(Function<String, String> fieldValue) {
+        Map<String, String> read = new HashMap<>();
+        return field -> {
+            if (!read.containsKey(field)) {
+                read.put(field, fieldValue.apply(field));
+            }
+            return read.get(field);
+        };
     }
 
     /** Whether {@code resourceType} is listed in the protected-types setting. */

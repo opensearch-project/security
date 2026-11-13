@@ -153,6 +153,30 @@ public class ResourcePluginInfoTests {
     }
 
     @Test
+    public void testResolutionFollowsTheLatestRegistration() {
+        registerExtension(provider("old-type", ".shared-index", "kind"));
+        assertEquals("old-type", typeOf(".shared-index", mockIndexOp(new StringField("kind", "old-type", Field.Store.NO))));
+
+        registerExtension(provider("new-type", ".shared-index", "kind"));
+        assertNull(typeOf(".shared-index", mockIndexOp(new StringField("kind", "old-type", Field.Store.NO))));
+        assertEquals("new-type", typeOf(".shared-index", mockIndexOp(new StringField("kind", "new-type", Field.Store.NO))));
+    }
+
+    @Test
+    public void testSharedTypeFieldIsReadOnce() {
+        registerProviders(List.of("a", "b", "c"), ".sample-index", "resource_type");
+        java.util.concurrent.atomic.AtomicInteger reads = new java.util.concurrent.atomic.AtomicInteger();
+
+        ResourceProvider resolved = resourcePluginInfo.resolveResourceProvider(".sample-index", field -> {
+            reads.incrementAndGet();
+            return "b";
+        });
+
+        assertEquals("b", resolved.resourceType());
+        assertEquals(1, reads.get());
+    }
+
+    @Test
     public void testTwoTypesMatchingTheSameDocumentsResolveToNone() {
         registerExtension(provider("a", ".shared-index", "kind", "same"), provider("b", ".shared-index", "kind", "same"));
 
