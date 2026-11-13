@@ -42,6 +42,7 @@ import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.action.update.UpdateResponse;
@@ -696,6 +697,43 @@ public class ResourceSharingIndexHandlerTests {
 
     // ---------- all_shared_principals stays in step with the record ---------------------------------
 
+    /**
+     * A create writes its record without a refresh, since records are only read by realtime GET, and still makes the
+     * field searchable before it answers.
+     */
+    @Test
+    public void create_writesTheRecordWithoutARefresh() throws Exception {
+        stubSharingAndResource(() -> recordJson(List.of()));
+        IndexRequestBuilder record = stubRecordIndex(l -> l.onResponse(mock(IndexResponse.class)));
+        UpdateRequestBuilder field = stubUpdateBuilder();
+        stubUpdates(field, landed -> {});
+
+        List<ResourceSharing> created = new ArrayList<>();
+        handler.indexResourceSharing(RESOURCE_INDEX, newRecord(), ActionListener.wrap(created::add, e -> fail(e.toString())));
+
+        assertEquals(1, created.size());
+        verify(record).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
+        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+    }
+
+    /**
+     * A share is answered to the user who asked for it, so its writes are searchable when the request returns.
+     */
+    @Test
+    public void share_forcesTheRefresh() {
+        stubSharingAndResource(() -> recordJson(List.of()));
+        IndexRequestBuilder record = stubRecordIndex(l -> l.onResponse(mock(IndexResponse.class)));
+        UpdateRequestBuilder field = stubUpdateBuilder();
+        stubUpdates(field, landed -> {});
+
+        List<ResourceSharing> shared = new ArrayList<>();
+        handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(shared::add, e -> fail(e.toString())));
+
+        assertEquals(1, shared.size());
+        verify(record).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+    }
+
     @Test
     public void share_guardsTheVisibilityWriteWithTheResourceDocumentVersion() {
         stubSharingAndResource(() -> recordJson(List.of()));
@@ -1101,7 +1139,7 @@ public class ResourceSharingIndexHandlerTests {
         stubRecordIndex(l -> l.onFailure(versionConflict()));
     }
 
-    private void stubRecordIndex(Consumer<ActionListener<IndexResponse>> outcome) {
+    private IndexRequestBuilder stubRecordIndex(Consumer<ActionListener<IndexResponse>> outcome) {
         IndexRequestBuilder indexBuilder = mock(IndexRequestBuilder.class, org.mockito.Answers.RETURNS_SELF);
         when(indexBuilder.request()).thenReturn(mock(IndexRequest.class));
         when(client.prepareIndex(anyString())).thenReturn(indexBuilder);
@@ -1109,6 +1147,7 @@ public class ResourceSharingIndexHandlerTests {
             outcome.accept(inv.getArgument(1));
             return null;
         }).when(client).index(any(IndexRequest.class), any());
+        return indexBuilder;
     }
 
     private void stubUpdateFails(Supplier<Exception> failure) {

@@ -529,8 +529,10 @@ public class ResourceSharingIndexHandler {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
+            // No forced refresh: records are read by realtime GET; only the admin listing searches them, and it sees the
+            // record at the next scheduled refresh
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.NONE)
                 .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
                 .setId(resourceId)
