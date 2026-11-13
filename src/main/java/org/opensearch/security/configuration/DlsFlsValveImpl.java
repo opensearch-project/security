@@ -43,6 +43,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -209,7 +210,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                         clusterService,
                         OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
                         threadContext,
-                        false
+                        DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
                     );
                 }
             }
@@ -253,7 +254,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             IndexToRuleMap<DlsRestriction> dlsRestrictionMap = null;
             boolean doFilterLevelDls;
-            boolean applyDlsFilterToHybridQuery = false;
+            boolean applyDlsFilterToHybridQuery = mode != Mode.LUCENE_LEVEL
+                && shouldApplyDlsFilterToHybridQuery(request, hasDlsRestrictions, isLocalOnlyRequest(resolved));
 
             if (mode == Mode.FILTER_LEVEL) {
                 doFilterLevelDls = true;
@@ -270,13 +272,6 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 } else {
                     boolean containsTermLookupQuery = dlsRestrictionMap.containsAny(DlsRestriction::containsTermLookupQuery);
                     doFilterLevelDls = shouldUseFilterLevelDlsInAdaptiveMode(hasDlsRestrictions, containsTermLookupQuery);
-                    applyDlsFilterToHybridQuery = shouldApplyDlsFilterToHybridQueryInAdaptiveMode(
-                        request,
-                        hasDlsRestrictions,
-                        containsTermLookupQuery,
-                        isLocalOnlyRequest(resolved)
-                    );
-
                     if (doFilterLevelDls) {
                         setDlsModeHeader(Mode.FILTER_LEVEL);
                         log.debug("Doing filter-level DLS because the query contains a TLQ");
@@ -436,6 +431,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
                     threadContext,
                     applyDlsFilterToHybridQuery
+                        ? (doFilterLevelDls
+                            ? DlsFilterLevelActionHandler.QueryHandling.HYBRID_FILTER_LEVEL
+                            : DlsFilterLevelActionHandler.QueryHandling.HYBRID_WITH_READER_DLS)
+                        : DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
                 );
             } else {
                 return true;
@@ -455,16 +454,8 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return hasDlsRestrictions && containsTermLookupQuery;
     }
 
-    static boolean shouldApplyDlsFilterToHybridQueryInAdaptiveMode(
-        ActionRequest request,
-        boolean hasDlsRestrictions,
-        boolean containsTermLookupQuery,
-        boolean localOnlyRequest
-    ) {
-        return hasDlsRestrictions
-            && !containsTermLookupQuery
-            && localOnlyRequest
-            && isTopLevelHybridQueryWithoutParentChildClauses(request);
+    static boolean shouldApplyDlsFilterToHybridQuery(ActionRequest request, boolean hasDlsRestrictions, boolean localOnlyRequest) {
+        return hasDlsRestrictions && localOnlyRequest && isTopLevelHybridQueryWithoutParentChildClauses(request);
     }
 
     static boolean isLocalOnlyRequest(OptionallyResolvedIndices resolved) {
@@ -883,9 +874,19 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         LUCENE_LEVEL,
         FILTER_LEVEL;
 
-        static Mode get(Settings settings) {
-            String modeString = settings.get(ConfigConstants.SECURITY_DLS_MODE);
+        public static final Setting<String> SETTING = Setting.simpleString(
+            ConfigConstants.SECURITY_DLS_MODE,
+            "adaptive",
+            Mode::parse,
+            Setting.Property.NodeScope,
+            Setting.Property.Final
+        );
 
+        static Mode get(Settings settings) {
+            return parse(SETTING.get(settings));
+        }
+
+        private static Mode parse(String modeString) {
             if ("adaptive".equalsIgnoreCase(modeString)) {
                 return Mode.ADAPTIVE;
             } else if ("lucene_level".equalsIgnoreCase(modeString)) {
@@ -893,7 +894,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             } else if ("filter_level".equalsIgnoreCase(modeString)) {
                 return Mode.FILTER_LEVEL;
             } else {
-                return Mode.ADAPTIVE;
+                throw new IllegalArgumentException(
+                    "Invalid value ["
+                        + modeString
+                        + "] for ["
+                        + ConfigConstants.SECURITY_DLS_MODE
+                        + "]; expected adaptive, filter_level, or lucene_level"
+                );
             }
         }
     }
