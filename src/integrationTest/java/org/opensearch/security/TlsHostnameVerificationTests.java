@@ -71,7 +71,11 @@ public class TlsHostnameVerificationTests {
                 );
             clusterFuture.cancel(true);
         } catch (Exception e) {
-            logsRule.assertThatContain("No subject alternative names matching IP address 127.0.0.1 found");
+            assertHostnameVerificationFailureLogged();
         }
+    }
+
+    protected void assertHostnameVerificationFailureLogged() {
+        logsRule.assertThatContain("No subject alternative names matching IP address 127.0.0.1 found");
     }
 }

@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -37,7 +36,11 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.hasher.PasswordHasher;
+import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.tools.Hasher;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -46,14 +49,15 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
-import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_ADMIN_PASSWORD;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_PASSWORD_MIN_LENGTH;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isKeyPresentInYMLFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiAlphanumOfLength;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 @RunWith(RandomizedRunner.class)
 public class SecuritySettingsConfigurerTests {
@@ -126,7 +130,8 @@ public class SecuritySettingsConfigurerTests {
     }
 
     @Test
-    public void testUpdateAdminPassword_noPasswordSupplied() throws IOException {
+    public void testUpdateAdminPassword_noPasswordSupplied() throws NoSuchFieldException, IllegalAccessException {
+        unsetEnvVariables();
         // Ensure ADMIN_PASSWORD is empty so that no custom password is supplied
         SecuritySettingsConfigurer.ADMIN_PASSWORD = "";
         installer.setExitHandler(status -> { throw new TestExitException(status); });
@@ -172,6 +177,7 @@ public class SecuritySettingsConfigurerTests {
     @Test
     public void testUpdateAdminPasswordWithWeakPassword_skipPasswordValidation() throws NoSuchFieldException, IllegalAccessException,
         IOException {
+        assumeFalse("Weak passwords cannot be hashed with FIPS-approved KDFs (112-bit minimum)", FipsMode.isEnabled());
         setEnv(adminPasswordKey, "weakpassword");
         installer.environment = ExecutionEnvironment.TEST;
         // In test environment, password validation is skipped.
@@ -191,7 +197,7 @@ public class SecuritySettingsConfigurerTests {
             "  type: \"internalusers\"",
             "  config_version: 2",
             "admin:",
-            "  hash: " + Hasher.hash(RandomStringUtils.randomAlphanumeric(16).toCharArray()),
+            "  hash: " + Hasher.hash(randomAsciiAlphanumOfLength(16).toCharArray(), fixtureHasherSettings()),
             "  backend_roles:",
             "  - \"admin\""
         );
@@ -414,15 +420,21 @@ public class SecuritySettingsConfigurerTests {
         assertThat(outContent.toString(), containsString(s));
     }
 
+    private static Settings fixtureHasherSettings() {
+        String algorithm = FipsMode.isEnabled() ? PasswordHasherFactory.PBKDF2 : PasswordHasherFactory.BCRYPT;
+        return Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), algorithm).build();
+    }
+
     private void setUpInternalUsersYML() throws IOException {
         String internalUsersFile = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
         Path internalUsersFilePath = Paths.get(internalUsersFile);
+        PasswordHasher fixtureHasher = PasswordHasherFactory.createPasswordHasher(fixtureHasherSettings());
         List<String> defaultContent = Arrays.asList(
             "_meta:",
             "  type: \"internalusers\"",
             "  config_version: 2",
             "admin:",
-            "  hash: " + Hasher.hash(DEFAULT_ADMIN_PASSWORD.toCharArray()),
+            "  hash: " + fixtureHasher.hash(fixtureHasher.defaultAdminPassword().toCharArray()),
             "  reserved: true",
             "  backend_roles:",
             "  - \"admin\"",

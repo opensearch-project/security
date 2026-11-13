@@ -26,8 +26,8 @@ import org.bouncycastle.util.io.pem.PemObject;
 public class CertificatesUtils {
 
     public static void writePemContent(final Path path, final Object... content) throws IOException {
-        for (final Object c : content) {
-            try (JcaPEMWriter writer = new JcaPEMWriter(Files.newBufferedWriter(path))) {
+        try (JcaPEMWriter writer = new JcaPEMWriter(Files.newBufferedWriter(path))) {
+            for (final Object c : content) {
                 writer.writeObject(c);
             }
         }
@@ -36,7 +36,7 @@ public class CertificatesUtils {
     public static PemObject privateKeyToPemObject(final PrivateKey privateKey, final String password) throws Exception {
         return new PKCS8Generator(
             PrivateKeyInfo.getInstance(privateKey.getEncoded()),
-            new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.PBE_SHA1_3DES).setRandom(new SecureRandom())
+            new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC).setRandom(new SecureRandom())
                 .setPassword(password.toCharArray())
                 .build()
         ).generate();

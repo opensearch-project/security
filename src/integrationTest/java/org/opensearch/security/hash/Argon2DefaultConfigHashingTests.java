@@ -33,7 +33,7 @@ public class Argon2DefaultConfigHashingTests extends HashingTests {
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
         .hash(
             generateArgon2Hash(
-                "secret",
+                TestSecurityConfig.DEFAULT_TEST_PASSWORD,
                 PasswordHasherFactory.ARGON2_MEMORY.getDefault(Settings.EMPTY),
                 PasswordHasherFactory.ARGON2_ITERATIONS.getDefault(Settings.EMPTY),
                 PasswordHasherFactory.ARGON2_PARALLELISM.getDefault(Settings.EMPTY),

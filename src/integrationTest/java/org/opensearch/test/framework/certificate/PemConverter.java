@@ -109,7 +109,7 @@ class PemConverter {
 
     private static OutputEncryptor getPasswordEncryptor(String password) throws OperatorCreationException {
         if (!Strings.isNullOrEmpty(password)) {
-            JceOpenSSLPKCS8EncryptorBuilder encryptorBuilder = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.PBE_SHA1_3DES);
+            JceOpenSSLPKCS8EncryptorBuilder encryptorBuilder = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC);
             encryptorBuilder.setRandom(secureRandom);
             encryptorBuilder.setPassword(password.toCharArray());
             return encryptorBuilder.build();

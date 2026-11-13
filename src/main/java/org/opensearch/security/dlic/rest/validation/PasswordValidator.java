@@ -38,6 +38,17 @@ public class PasswordValidator {
     private static final int MAX_LENGTH = 100;
 
     /**
+     * Minimum password length required under FIPS mode, {@value} characters.
+     *
+     * <p>BC FIPS derives PBKDF2 keys from the password and rejects key material below 112 bits — fewer than
+     * 14 ASCII characters — throwing a {@link org.bouncycastle.crypto.fips.FipsUnapprovedOperationError} at
+     * hashing time. To avoid that, under FIPS the node raises the configurable
+     * {@value org.opensearch.security.support.ConfigConstants#SECURITY_RESTAPI_PASSWORD_MIN_LENGTH} to at least
+     * this value (see {@link org.opensearch.security.OpenSearchSecurityPlugin#additionalSettings}).
+     */
+    public static final int FIPS_MIN_PASSWORD_LENGTH = 14;
+
+    /**
      * Checks a username similarity and a password
      * names and passwords like:
      *  - some_user_name/456Some_uSer_Name_1234
