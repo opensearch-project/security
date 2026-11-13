@@ -2027,7 +2027,7 @@ public class SearchOperationTest {
         assertPrivilegeEvents(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"), "cluster:admin/repository/put");
         auditLogsRule.assertAtLeast(1, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
-        auditLogsRule.assertAtLeast(1, grantedPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
+        auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
         auditLogsRule.assertAtLeast(
             restoredCount.get(),
             grantedPrivilege(LIMITED_WRITE_USER, "SearchRequest").withPrivilege("indices:data/read/search")
@@ -2100,6 +2100,7 @@ public class SearchOperationTest {
         auditLogsRule.assertAtLeast(snapshotGetCount, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
         auditLogsRule.assertAtLeast(1, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
         auditLogsRule.assertAtLeast(1, missingPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
+        auditLogsRule.assertExactly(0, grantedPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
         auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
     }
 

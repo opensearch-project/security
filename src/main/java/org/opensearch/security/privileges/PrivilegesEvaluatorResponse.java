@@ -59,6 +59,11 @@ public class PrivilegesEvaluatorResponse {
      */
     private ImmutableList<PrivilegesEvaluationException> evaluationExceptions;
 
+    /**
+     * True if the privileges are evaluated on the cluster manager after the request is forwarded there.
+     */
+    private final boolean deferredToClusterManager;
+
     public PrivilegesEvaluatorResponse(
         boolean allowed,
         ImmutableSet<String> onlyAllowedForIndices,
@@ -70,6 +75,32 @@ public class PrivilegesEvaluatorResponse {
         PrivilegesEvaluatorResponse originalResult,
         ImmutableList<PrivilegesEvaluatorResponse> subResults
     ) {
+        this(
+            allowed,
+            onlyAllowedForIndices,
+            indexToActionCheckTable,
+            privilegeMatrix,
+            reason,
+            evaluationExceptions,
+            createIndexRequestBuilder,
+            originalResult,
+            subResults,
+            false
+        );
+    }
+
+    private PrivilegesEvaluatorResponse(
+        boolean allowed,
+        ImmutableSet<String> onlyAllowedForIndices,
+        CheckTable<String, String> indexToActionCheckTable,
+        String privilegeMatrix,
+        String reason,
+        ImmutableList<PrivilegesEvaluationException> evaluationExceptions,
+        CreateIndexRequestBuilder createIndexRequestBuilder,
+        PrivilegesEvaluatorResponse originalResult,
+        ImmutableList<PrivilegesEvaluatorResponse> subResults,
+        boolean deferredToClusterManager
+    ) {
         this.allowed = allowed;
         this.createIndexRequestBuilder = createIndexRequestBuilder;
         this.onlyAllowedForIndices = onlyAllowedForIndices;
@@ -79,6 +110,7 @@ public class PrivilegesEvaluatorResponse {
         this.evaluationExceptions = evaluationExceptions;
         this.originalResult = originalResult;
         this.subResults = subResults;
+        this.deferredToClusterManager = deferredToClusterManager;
     }
 
     public PrivilegesEvaluatorResponse(
@@ -95,6 +127,7 @@ public class PrivilegesEvaluatorResponse {
         this.evaluationExceptions = ImmutableList.of();
         this.originalResult = null;
         this.subResults = ImmutableList.of();
+        this.deferredToClusterManager = false;
     }
 
     /**
@@ -145,7 +178,8 @@ public class PrivilegesEvaluatorResponse {
             this.evaluationExceptions,
             this.createIndexRequestBuilder,
             this.originalResult,
-            this.subResults
+            this.subResults,
+            this.deferredToClusterManager
         );
     }
 
@@ -166,6 +200,14 @@ public class PrivilegesEvaluatorResponse {
         return result.toString();
     }
 
+    /**
+     * Returns true if the privileges were not evaluated here, because the request will be forwarded to the cluster
+     * manager, which evaluates them.
+     */
+    public boolean isDeferredToClusterManager() {
+        return deferredToClusterManager;
+    }
+
     public boolean hasEvaluationExceptions() {
         return !evaluationExceptions.isEmpty();
     }
@@ -183,7 +225,8 @@ public class PrivilegesEvaluatorResponse {
             ImmutableList.<PrivilegesEvaluationException>builder().addAll(this.evaluationExceptions).addAll(evaluationExceptions).build(),
             this.createIndexRequestBuilder,
             this.originalResult,
-            this.subResults
+            this.subResults,
+            this.deferredToClusterManager
         );
     }
 
@@ -236,7 +279,8 @@ public class PrivilegesEvaluatorResponse {
             this.evaluationExceptions,
             createIndexRequestBuilder,
             this.originalResult,
-            this.subResults
+            this.subResults,
+            this.deferredToClusterManager
         );
     }
 
@@ -263,7 +307,8 @@ public class PrivilegesEvaluatorResponse {
                 evaluationExceptions,
                 this.createIndexRequestBuilder,
                 originalResult,
-                this.subResults
+                this.subResults,
+                this.deferredToClusterManager
             );
         } else {
             return this;
@@ -317,6 +362,25 @@ public class PrivilegesEvaluatorResponse {
 
     public static PrivilegesEvaluatorResponse ok() {
         return new PrivilegesEvaluatorResponse(true, ImmutableSet.of(), null);
+    }
+
+    /**
+     * Returns a response that lets the request through on a node that is not the cluster manager, so that it can be
+     * forwarded there for the actual privilege evaluation. Such a response must not be audited as granted.
+     */
+    public static PrivilegesEvaluatorResponse deferredToClusterManager() {
+        return new PrivilegesEvaluatorResponse(
+            true,
+            ImmutableSet.of(),
+            null,
+            null,
+            null,
+            ImmutableList.of(),
+            null,
+            null,
+            ImmutableList.of(),
+            true
+        );
     }
 
     public static PrivilegesEvaluatorResponse ok(CheckTable<String, String> indexToActionCheckTable) {
