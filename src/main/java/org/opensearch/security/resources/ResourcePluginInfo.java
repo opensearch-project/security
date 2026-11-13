@@ -9,6 +9,7 @@
 package org.opensearch.security.resources;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,8 +76,24 @@ public class ResourcePluginInfo {
     // default access level per type (for migration)
     private final Map<String, String> typeToDefaultAccessLevel = new HashMap<>();
 
-    // Resource indices of the protected types, recomputed on change because every index and delete operation reads it
-    private volatile Set<String> protectedResourceIndices = Collections.emptySet();
+    // Read without the lock by every index and delete operation, so recomputed on change rather than per call
+    private volatile Snapshot snapshot = new Snapshot(Set.of(), Map.of());
+
+    /** The resource indices of the protected types, and the providers of each resource index. */
+    private record Snapshot(Set<String> protectedIndices, Map<String, IndexProviders> providersByIndex) {
+    }
+
+    /** The providers on one resource index, and whether two of them read the same type field. */
+    private record IndexProviders(List<ResourceProvider> providers, boolean sharedTypeField) {
+        static IndexProviders of(List<ResourceProvider> providers) {
+            Set<String> fields = new HashSet<>();
+            boolean shared = false;
+            for (ResourceProvider provider : providers) {
+                shared |= provider.typeField() != null && !fields.add(provider.typeField());
+            }
+            return new IndexProviders(List.copyOf(providers), shared);
+        }
+    }
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();    // make the updates/reads thread-safe
 
@@ -84,28 +101,30 @@ public class ResourcePluginInfo {
         lock.writeLock().lock();
         try {
             this.protectedTypesSetting = protectedTypesSetting;
-            refreshProtectedResourceIndices(currentProtectedTypes());
+            refreshSnapshots(currentProtectedTypes());
         } finally {
             lock.writeLock().unlock();
         }
     }
 
     /**
-     * Recomputes {@link #protectedResourceIndices}. Must be called with the write lock held, so a reader cannot observe
-     * a snapshot that disagrees with {@link #typeToProvider}.
+     * Recomputes {@link #snapshot}. Must be called with the write lock held, so a reader cannot observe a snapshot that
+     * disagrees with {@link #typeToProvider}.
      *
      * @param protectedTypes the types to treat as protected
      */
-    private void refreshProtectedResourceIndices(List<String> protectedTypes) {
-        if (protectedTypes == null || protectedTypes.isEmpty()) {
-            protectedResourceIndices = Collections.emptySet();
-            return;
+    private void refreshSnapshots(List<String> protectedTypes) {
+        Map<String, List<ResourceProvider>> byIndex = new HashMap<>();
+        Set<String> protectedIndices = new HashSet<>();
+        for (ResourceProvider provider : typeToProvider.values()) {
+            byIndex.computeIfAbsent(provider.resourceIndexName(), index -> new ArrayList<>()).add(provider);
+            if (protectedTypes != null && protectedTypes.contains(provider.resourceType())) {
+                protectedIndices.add(provider.resourceIndexName());
+            }
         }
-        protectedResourceIndices = typeToProvider.entrySet()
-            .stream()
-            .filter(e -> protectedTypes.contains(e.getKey()))
-            .map(e -> e.getValue().resourceIndexName())
-            .collect(Collectors.toUnmodifiableSet());
+        Map<String, IndexProviders> providersByIndex = new HashMap<>();
+        byIndex.forEach((index, providers) -> providersByIndex.put(index, IndexProviders.of(providers)));
+        snapshot = new Snapshot(Set.copyOf(protectedIndices), Map.copyOf(providersByIndex));
     }
 
     public void setResourceSharingExtensions(Set<ResourceSharingExtension> extensions) {
@@ -155,8 +174,9 @@ public class ResourcePluginInfo {
             }
             registerGatingResolvers(extensions, typeToProvider.keySet());
             resourceSharingExtensions.addAll(extensions);
-            refreshProtectedResourceIndices(currentProtectedTypes());
         } finally {
+            // Also after a rejected registration, so the lock-free readers see the same providers as the locked ones
+            refreshSnapshots(currentProtectedTypes());
             lock.writeLock().unlock();
         }
     }
@@ -228,7 +248,7 @@ public class ResourcePluginInfo {
             typeToProvider.clear();
 
             if (protectedTypes == null || protectedTypes.isEmpty()) {
-                refreshProtectedResourceIndices(protectedTypes);
+                refreshSnapshots(protectedTypes);
                 return;
             }
 
@@ -239,7 +259,7 @@ public class ResourcePluginInfo {
                     typeToProvider.put(rp.resourceType(), rp);
                 }
             }
-            refreshProtectedResourceIndices(protectedTypes);
+            refreshSnapshots(protectedTypes);
         } finally {
             lock.writeLock().unlock();
         }
@@ -344,11 +364,10 @@ public class ResourcePluginInfo {
     }
 
     /**
-     * Extracts all values of a multi-valued field from the Lucene document backing an {@link Engine.Index} op —
-     * e.g. the set of workspace IDs a resource belongs to (see {@link ResourceProvider#workspacesField()}). Unlike
+     * Extracts all values of a multi-valued field from the Lucene document backing an {@link Engine.Index} op,
+     * for example the set of workspace IDs a resource belongs to (see {@link ResourceProvider#workspacesField()}). Unlike
      * {@link #extractFieldFromIndexOp} it collects every {@link IndexableField} for {@code fieldName}, which is how a
-     * {@code keyword} array surfaces (one field per element). Values only surface for indexed/stored mappings, not
-     * {@code doc_values}-only fields.
+     * {@code keyword} array surfaces (one field per element). Indexed, stored and doc-values fields all surface.
      *
      * @param fieldName the multi-valued field to extract; must not be {@code null}
      * @param indexOp   the index op whose parsed document is inspected; must not be {@code null}
@@ -383,28 +402,40 @@ public class ResourcePluginInfo {
      * @return the provider, or {@code null} if no provider matches, or more than one does
      */
     public ResourceProvider resolveResourceProvider(String resourceIndex, Function<String, String> fieldValue) {
-        lock.readLock().lock();
-        try {
-            ResourceProvider match = null;
-            for (ResourceProvider provider : typeToProvider.values()) {
-                if (!provider.resourceIndexName().equals(resourceIndex) || !provider.matchesResource(fieldValue)) {
-                    continue;
-                }
-                if (match != null) {
-                    log.warn(
-                        "A document in index [{}] matches resource types [{}] and [{}]; it is not treated as a resource",
-                        resourceIndex,
-                        match.resourceType(),
-                        provider.resourceType()
-                    );
-                    return null;
-                }
-                match = provider;
-            }
-            return match;
-        } finally {
-            lock.readLock().unlock();
+        IndexProviders candidates = snapshot.providersByIndex().get(resourceIndex);
+        if (candidates == null) {
+            return null;
         }
+        // Only shared type fields are worth caching: a lookup map costs more than reading two distinct fields
+        Function<String, String> reader = candidates.sharedTypeField() ? readOnce(fieldValue) : fieldValue;
+        ResourceProvider match = null;
+        for (ResourceProvider provider : candidates.providers()) {
+            if (!provider.matchesResource(reader)) {
+                continue;
+            }
+            if (match != null) {
+                log.warn(
+                    "A document in index [{}] matches resource types [{}] and [{}]; it is not treated as a resource",
+                    resourceIndex,
+                    match.resourceType(),
+                    provider.resourceType()
+                );
+                return null;
+            }
+            match = provider;
+        }
+        return match;
+    }
+
+    private static Function<String, String> readOnce(Function<String, String> fieldValue) {
+        Map<String, String> read = new HashMap<>();
+        // containsKey, not computeIfAbsent, so an absent field (null) is cached too
+        return field -> {
+            if (!read.containsKey(field)) {
+                read.put(field, fieldValue.apply(field));
+            }
+            return read.get(field);
+        };
     }
 
     /** Whether {@code resourceType} is listed in the protected-types setting. */
@@ -606,7 +637,7 @@ public class ResourcePluginInfo {
      * delete operation in the cluster, so it is not recomputed per call.
      */
     public Set<String> getResourceIndicesForProtectedTypes() {
-        return protectedResourceIndices;
+        return snapshot.protectedIndices();
     }
 
     /** The types currently listed as protected, or null before the setting is wired. */
