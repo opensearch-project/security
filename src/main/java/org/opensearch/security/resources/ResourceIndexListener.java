@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.ResourceSharing;
@@ -101,31 +102,37 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     e
                 )
             );
-            if (result.getResultType() == Engine.Result.Type.SUCCESS) {
-                this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(
-                    resourceId,
-                    resourceIndex,
-                    result.getSeqNo(),
-                    result.getTerm(),
-                    listener
-                );
-            } else {
-                this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
-            }
-
+            ActionListener<Boolean> workspacesListener = ActionListener.wrap(
+                changed -> log.debug("postIndex: workspace reconcile for {} changed={}", resourceId, changed),
+                e -> log.warn("postIndex: failed to reconcile workspaces for {}: {}", resourceId, e.getMessage())
+            );
             // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
             // so the write-path record tracks the read-path field. The op's seq_no is the monotonic guard.
-            if (provider.workspacesField() != null) {
-                Set<String> currentWorkspaces = ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
+            Set<String> currentWorkspaces = provider.workspacesField() == null
+                ? null
+                : ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
+            // Without an assigned seqNo the version is read first, which the single-read path cannot do
+            if (result.getResultType() == Engine.Result.Type.SUCCESS && result.getSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
+                this.resourceSharingIndexHandler.syncAfterResourceUpdate(
+                    resourceIndex,
+                    resourceId,
+                    result.getSeqNo(),
+                    result.getTerm(),
+                    ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(ResourceSharingIndexHandler.ALL_SHARED_PRINCIPALS_FIELD, index),
+                    currentWorkspaces,
+                    listener,
+                    workspacesListener
+                );
+                return;
+            }
+            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
+            if (currentWorkspaces != null) {
                 this.resourceSharingIndexHandler.reconcileWorkspaces(
                     resourceIndex,
                     resourceId,
                     currentWorkspaces,
                     result.getSeqNo(),
-                    ActionListener.wrap(
-                        changed -> log.debug("postIndex: workspace reconcile for {} changed={}", resourceId, changed),
-                        e -> log.warn("postIndex: failed to reconcile workspaces for {}: {}", resourceId, e.getMessage())
-                    )
+                    workspacesListener
                 );
             }
             return;

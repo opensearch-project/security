@@ -152,6 +152,7 @@ public class ResourcePluginInfoTests {
         assertNull(typeOf(".alerting-config", both));
     }
 
+    /** A new registration replaces the providers that type resolution reads. */
     @Test
     public void testResolutionFollowsTheLatestRegistration() {
         registerExtension(provider("old-type", ".shared-index", "kind"));
@@ -162,6 +163,7 @@ public class ResourcePluginInfoTests {
         assertEquals("new-type", typeOf(".shared-index", mockIndexOp(new StringField("kind", "new-type", Field.Store.NO))));
     }
 
+    /** Providers that share a type field read it from the document once. */
     @Test
     public void testSharedTypeFieldIsReadOnce() {
         registerProviders(List.of("a", "b", "c"), ".sample-index", "resource_type");

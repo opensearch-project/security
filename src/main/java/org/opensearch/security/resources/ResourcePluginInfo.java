@@ -180,8 +180,9 @@ public class ResourcePluginInfo {
             }
             registerGatingResolvers(extensions, typeToProvider.keySet());
             resourceSharingExtensions.addAll(extensions);
-            refreshSnapshots(currentProtectedTypes());
         } finally {
+            // Also after a rejected registration, so the lock-free readers see the same providers as the locked ones
+            refreshSnapshots(currentProtectedTypes());
             lock.writeLock().unlock();
         }
     }
@@ -372,8 +373,7 @@ public class ResourcePluginInfo {
      * Extracts all values of a multi-valued field from the Lucene document backing an {@link Engine.Index} op —
      * e.g. the set of workspace IDs a resource belongs to (see {@link ResourceProvider#workspacesField()}). Unlike
      * {@link #extractFieldFromIndexOp} it collects every {@link IndexableField} for {@code fieldName}, which is how a
-     * {@code keyword} array surfaces (one field per element). Values only surface for indexed/stored mappings, not
-     * {@code doc_values}-only fields.
+     * {@code keyword} array surfaces (one field per element). Indexed, stored and doc-values fields all surface.
      *
      * @param fieldName the multi-valued field to extract; must not be {@code null}
      * @param indexOp   the index op whose parsed document is inspected; must not be {@code null}
