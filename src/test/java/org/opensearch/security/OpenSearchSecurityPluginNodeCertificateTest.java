@@ -93,9 +93,9 @@ public class OpenSearchSecurityPluginNodeCertificateTest {
     private static Optional<Boolean> isNodeCertificate(
         final InterClusterRequestEvaluator evaluator,
         final X509Certificate[] localCerts,
-        final X509Certificate[] chain
+        final X509Certificate[] peerCerts
     ) {
-        return OpenSearchSecurityPlugin.isNodeCertificate(evaluator, new DefaultPrincipalExtractor(), localCerts, chain);
+        return OpenSearchSecurityPlugin.isNodeCertificate(evaluator, new DefaultPrincipalExtractor(), localCerts, peerCerts);
     }
 
     private static X509Certificate certificate(final String dn, final byte[] nodeOidExtension) {

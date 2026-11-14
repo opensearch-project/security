@@ -2927,7 +2927,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
      * Whether a peer certificate chain is a node of this cluster, by the rules transport uses for inter-node requests
      * (nodes_dn, the dynamic nodes DN list, the node OID). Empty in SSL-only mode, where no evaluator exists.
      */
-    private Optional<Boolean> isNodeCertificate(final X509Certificate[] chain) {
+    private Optional<Boolean> isNodeCertificate(final X509Certificate[] peerCerts) {
         final InterClusterRequestEvaluator evaluator = nodeCertificateEvaluator;
         if (evaluator == null) {
             return Optional.empty();
@@ -2941,21 +2941,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                     .toArray(X509Certificate[]::new)
             )
             .orElse(null);
-        return isNodeCertificate(evaluator, principalExtractor, localCerts, chain);
+        return isNodeCertificate(evaluator, principalExtractor, localCerts, peerCerts);
     }
 
     static Optional<Boolean> isNodeCertificate(
         final InterClusterRequestEvaluator evaluator,
         final PrincipalExtractor principalExtractor,
         final X509Certificate[] localCerts,
-        final X509Certificate[] chain
+        final X509Certificate[] peerCerts
     ) {
-        if (evaluator == null || principalExtractor == null || chain == null || chain.length == 0) {
+        if (evaluator == null || principalExtractor == null || peerCerts == null || peerCerts.length == 0) {
             return Optional.empty();
         }
-        final String principal = principalExtractor.extractPrincipal(chain[0], PrincipalExtractor.Type.TRANSPORT);
+        final String principal = principalExtractor.extractPrincipal(peerCerts[0], PrincipalExtractor.Type.TRANSPORT);
         // There is no transport request for this check; the built-in evaluators (nodes_dn, OID) do not read it.
-        return Optional.of(evaluator.isInterClusterRequest(null, localCerts, chain, principal));
+        return Optional.of(evaluator.isInterClusterRequest(null, localCerts, peerCerts, principal));
     }
 
     @Override
