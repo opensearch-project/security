@@ -11,10 +11,12 @@
 
 package org.opensearch.security.ssl;
 
+import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -50,6 +52,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
     private final SSLConfig sslConfig;
     // The settings the transport itself reads (after migrateSettings), for the host name flags.
     private final Settings transportSettings;
+    private final Function<X509Certificate[], Optional<Boolean>> nodeCertificateCheck;
 
     public OpenSearchSecureSettingsFactory(
         ThreadPool threadPool,
@@ -57,7 +60,8 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
         SslExceptionHandler sslExceptionHandler,
         SecurityRestFilter restFilter,
         SSLConfig sslConfig,
-        Settings transportSettings
+        Settings transportSettings,
+        Function<X509Certificate[], Optional<Boolean>> nodeCertificateCheck
     ) {
         this.threadPool = threadPool;
         this.sslSettingsManager = sslSettingsManager;
@@ -65,6 +69,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
         this.restFilter = restFilter;
         this.sslConfig = sslConfig;
         this.transportSettings = transportSettings;
+        this.nodeCertificateCheck = nodeCertificateCheck;
     }
 
     @Override
@@ -159,6 +164,11 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             @Override
             public void addReloadListener(Runnable listener) {
                 sslSettingsManager.addTransportReloadListener(listener);
+            }
+
+            @Override
+            public Optional<Boolean> isNodeCertificate(X509Certificate[] chain) {
+                return nodeCertificateCheck.apply(chain);
             }
 
             @Override

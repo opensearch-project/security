@@ -689,7 +689,8 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 NOOP_SSL_EXCEPTION_HANDLER,
                 securityRestHandler,
                 sslConfig,
-                migrateSettings(settings)
+                migrateSettings(settings),
+                chain -> Optional.empty()
             )
         );
     }

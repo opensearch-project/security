@@ -50,7 +50,8 @@ public class SslContextHandler {
 
     private final SslConfiguration sslConfiguration;
 
-    private final List<Certificate> loadedCertificates;
+    // Readers retain an immutable snapshot while a reload publishes its replacement.
+    private volatile List<Certificate> loadedCertificates;
 
     public SslContextHandler(final SslConfiguration sslConfiguration) {
         this(sslConfiguration, false);
@@ -59,7 +60,7 @@ public class SslContextHandler {
     public SslContextHandler(final SslConfiguration sslConfiguration, final boolean client) {
         setContext(client ? sslConfiguration.buildClientSslContext(true) : sslConfiguration.buildServerSslContext(true));
         this.sslConfiguration = sslConfiguration;
-        this.loadedCertificates = sslConfiguration.certificates();
+        this.loadedCertificates = List.copyOf(sslConfiguration.certificates());
     }
 
     public SSLEngine createSSLEngine() {
@@ -134,7 +135,8 @@ public class SslContextHandler {
     }
 
     public Stream<Certificate> certificates() {
-        return Stream.concat(authorityCertificates(), keyMaterialCertificates())
+        final var certificates = loadedCertificates;
+        return Stream.concat(authorityCertificates(certificates), keyMaterialCertificates(certificates))
             .sorted((c1, c2) -> Boolean.compare(c1.hasPrivateKey(), c2.hasPrivateKey()));
     }
 
@@ -155,12 +157,13 @@ public class SslContextHandler {
     }
 
     boolean reloadSslContext() throws CertificateException {
-        final var newCertificates = sslConfiguration.certificates();
+        final var previousCertificates = loadedCertificates;
+        final var newCertificates = List.copyOf(sslConfiguration.certificates());
 
         boolean hasChanges = false;
 
-        final var loadedAuthorityCertificates = authorityCertificates().collect(Collectors.toList());
-        final var loadedKeyMaterialCertificates = keyMaterialCertificates().collect(Collectors.toList());
+        final var loadedAuthorityCertificates = authorityCertificates(previousCertificates).collect(Collectors.toList());
+        final var loadedKeyMaterialCertificates = keyMaterialCertificates(previousCertificates).collect(Collectors.toList());
         final var newAuthorityCertificates = authorityCertificates(newCertificates).collect(Collectors.toList());
         final var newKeyMaterialCertificates = keyMaterialCertificates(newCertificates).collect(Collectors.toList());
 
@@ -186,8 +189,7 @@ public class SslContextHandler {
             } else {
                 setContext(sslConfiguration.buildServerSslContext(false));
             }
-            loadedCertificates.clear();
-            loadedCertificates.addAll(newCertificates);
+            loadedCertificates = newCertificates;
         }
         return hasChanges;
     }
