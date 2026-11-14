@@ -47,6 +47,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.opensearch.common.network.NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_KEY;
@@ -194,6 +195,35 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
             );
             assertThat(transports, hasKey("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport"));
             assertThat(transports.get("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport").get(), not(nullValue()));
+        }
+    }
+
+    @Test
+    public void testSecureTransportParametersFollowTheTransport() throws IOException {
+        // Only the security plugin's own (deprecated) keys: the node settings do not hold the core keys,
+        // so the provider must report the values its transport uses after migrateSettings.
+        final Settings own = Settings.builder()
+            .put(settings)
+            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
+            .build();
+
+        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(own, osPathHome, false)) {
+            final SecureTransportSettingsProvider provider = plugin.getSecureSettingFactory(own)
+                .orElseThrow()
+                .getSecureTransportSettingsProvider(own)
+                .orElseThrow();
+            final SecureTransportSettingsProvider.SecureTransportParameters parameters = provider.parameters(own).orElseThrow();
+            assertThat(parameters.enforceHostnameVerification(), is(Optional.of(false)));
+            assertThat(parameters.resolveHostname(), is(Optional.of(false)));
+            assertThat(parameters.keyManagerFactory().isPresent(), is(true));
+            assertThat(parameters.clientKeyManagerFactory().isPresent(), is(true));
+            assertThat(parameters.trustManagerFactory().isPresent(), is(true));
+            // The client side has its own context, so the client trust material is not the server instance.
+            assertThat(
+                parameters.clientTrustManagerFactory().orElseThrow(),
+                not(sameInstance(parameters.trustManagerFactory().orElseThrow()))
+            );
         }
     }
 

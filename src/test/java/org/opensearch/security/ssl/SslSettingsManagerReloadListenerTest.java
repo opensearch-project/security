@@ -21,6 +21,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
@@ -43,6 +44,8 @@ import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.ssl.CertificatesUtils.privateKeyToPemObject;
 import static org.opensearch.security.ssl.CertificatesUtils.writePemContent;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.ENABLED;
@@ -225,6 +228,10 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
         var accessKeyAndCertificate = defaultCertificates.v2().v2();
         certificatesWriter.write(certNamePrefix, caCertificate, accessKeyAndCertificate);
         final var sslSettingsManager = new SslSettingsManager(TestEnvironment.newEnvironment(settings));
+        final var transportReloads = new AtomicInteger();
+        // A failing transport reload listener must not stop the reload or the next listener.
+        sslSettingsManager.addTransportReloadListener(() -> { throw new IllegalStateException("listener failure"); });
+        sslSettingsManager.addTransportReloadListener(transportReloads::incrementAndGet);
         sslSettingsManager.addSslConfigurationsChangeListener(resourceWatcherService);
         final var sslContextBefore = sslSettingsManager.sslContextHandler(certType).orElseThrow().sslContext();
         if (randomBoolean()) {
@@ -245,6 +252,11 @@ public class SslSettingsManagerReloadListenerTest extends RandomizedTest {
             final var sslContextAfter = sslSettingsManager.sslContextHandler(certType).orElseThrow().sslContext();
             return !sslContextAfter.equals(sslContextBefore);
         });
+        if (CertType.TRANSPORT.equals(certType)) {
+            Awaitility.await("Wait for the transport reload listener").until(() -> transportReloads.get() > 0);
+        } else {
+            assertThat("No transport reload listener call for " + certType.id(), transportReloads.get(), is(0));
+        }
     }
 
     private Tuple<KeyPair, Tuple<X509CertificateHolder, Tuple<PrivateKey, X509CertificateHolder>>> generateCertificates() throws Exception {
