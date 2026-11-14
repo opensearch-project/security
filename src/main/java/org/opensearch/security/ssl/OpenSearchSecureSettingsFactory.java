@@ -11,10 +11,12 @@
 
 package org.opensearch.security.ssl;
 
+import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -47,19 +49,22 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
     private final SslExceptionHandler sslExceptionHandler;
     private final SecurityRestFilter restFilter;
     private final SSLConfig sslConfig;
+    private final Function<X509Certificate[], Optional<Boolean>> nodeCertificateCheck;
 
     public OpenSearchSecureSettingsFactory(
         ThreadPool threadPool,
         SslSettingsManager sslSettingsManager,
         SslExceptionHandler sslExceptionHandler,
         SecurityRestFilter restFilter,
-        SSLConfig sslConfig
+        SSLConfig sslConfig,
+        Function<X509Certificate[], Optional<Boolean>> nodeCertificateCheck
     ) {
         this.threadPool = threadPool;
         this.sslSettingsManager = sslSettingsManager;
         this.sslExceptionHandler = sslExceptionHandler;
         this.restFilter = restFilter;
         this.sslConfig = sslConfig;
+        this.nodeCertificateCheck = nodeCertificateCheck;
     }
 
     @Override
@@ -125,6 +130,11 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             @Override
             public Optional<SSLContext> buildSecureTransportContext(Settings settings) {
                 return sslSettingsManager.sslContextHandler(CertType.TRANSPORT).map(SslContextHandler::tryFetchSSLContext);
+            }
+
+            @Override
+            public Optional<Boolean> isNodeCertificate(X509Certificate[] chain) {
+                return nodeCertificateCheck.apply(chain);
             }
 
             @Override

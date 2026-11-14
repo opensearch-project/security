@@ -10,6 +10,7 @@ package org.opensearch.security.ssl;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -169,6 +170,17 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
             );
             assertThat(transports, hasKey("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport"));
             assertThat(transports.get("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport").get(), not(nullValue()));
+        }
+    }
+
+    @Test
+    public void testSslOnlyPluginHasNoNodeCertificateRules() throws IOException {
+        try (OpenSearchSecuritySSLPlugin plugin = new OpenSearchSecuritySSLPlugin(settings, osPathHome, false)) {
+            final SecureTransportSettingsProvider provider = plugin.getSecureSettingFactory(settings)
+                .orElseThrow()
+                .getSecureTransportSettingsProvider(settings)
+                .orElseThrow();
+            assertThat(provider.isNodeCertificate(new X509Certificate[0]), is(Optional.empty()));
         }
     }
 
