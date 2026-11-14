@@ -44,6 +44,10 @@ public class OpenSearchSecurityPluginNodeCertificateTest {
         assertThat(isNodeCertificate(null, chain, chain), is(Optional.empty()));
         assertThat(isNodeCertificate(new OIDClusterRequestEvaluator(SETTINGS), chain, new X509Certificate[0]), is(Optional.empty()));
         assertThat(isNodeCertificate(new OIDClusterRequestEvaluator(SETTINGS), chain, null), is(Optional.empty()));
+        assertThat(
+            OpenSearchSecurityPlugin.isNodeCertificate(new OIDClusterRequestEvaluator(SETTINGS), null, chain, chain),
+            is(Optional.empty())
+        );
     }
 
     @Test
