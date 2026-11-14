@@ -20,8 +20,11 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.transport.client.Client;
+
+import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -67,6 +70,45 @@ public class DlsNestedTest extends AbstractDlsFlsTest {
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"amount\": 1500,\"owner\": \"b\", \"my_nested_object\" : {\"name\": \"spock\"}}", XContentType.JSON)
         ).actionGet();
+        // hidden from dept_manager by DLS (amount outside 1000..20000)
+        tc.index(
+            new IndexRequest("deals").id("2")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"amount\": 50,\"owner\": \"c\", \"my_nested_object\" : {\"name\": \"spock\"}}", XContentType.JSON)
+        ).actionGet();
+    }
+
+    private static final String NESTED_QUERY = "{"
+        + "  \"nested\": {"
+        + "    \"path\": \"my_nested_object\","
+        + "    \"query\": {"
+        + "      \"match\": {\"my_nested_object.name\" : \"spock\"}"
+        + "    },"
+        + "    \"inner_hits\": {} "
+        + "  }"
+        + "}";
+
+    @Test
+    public void testNestedQueryWhenDlsIsAppliedToReader() throws Exception {
+        setup();
+
+        // A suggester makes DLS apply at the Lucene reader level instead of rewriting the query.
+        // The nested documents of allowed parents must stay visible there as well.
+        String query = "{"
+            + "  \"query\": "
+            + NESTED_QUERY
+            + ","
+            + "  \"suggest\": {\"s\": {\"text\": \"b\", \"term\": {\"field\": \"owner\"}}}"
+            + "}";
+
+        HttpResponse res = rh.executePostRequest("/deals/_search", query, encodeBasicHeader("dept_manager", "password"));
+        assertThat(res.getBody(), res.getStatusCode(), is(HttpStatus.SC_OK));
+
+        JsonNode hits = DefaultObjectMapper.readTree(res.getBody()).path("hits");
+        assertThat(res.getBody(), hits.path("total").path("value").asInt(), is(1));
+        JsonNode hit = hits.path("hits").path(0);
+        assertThat(res.getBody(), hit.path("_id").asText(), is("1"));
+        assertThat(res.getBody(), hit.path("inner_hits").path("my_nested_object").path("hits").path("total").path("value").asInt(), is(1));
     }
 
     @Test
