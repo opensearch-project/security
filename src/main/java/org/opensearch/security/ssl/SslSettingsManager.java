@@ -15,10 +15,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import javax.crypto.Cipher;
 
@@ -85,8 +87,18 @@ public class SslSettingsManager {
 
     private final Map<CertType, SslContextHandler> sslSettingsContexts;
 
+    private final List<Runnable> transportReloadListeners = new CopyOnWriteArrayList<>();
+
     public SslSettingsManager(final Environment environment) {
         this.sslSettingsContexts = buildSslContexts(environment);
+    }
+
+    /**
+     * Registers a listener that runs after the transport (or transport client) context was reloaded with new certificates
+     * that passed the checks. It does not run when a reload finds no change or fails.
+     */
+    public void addTransportReloadListener(final Runnable listener) {
+        transportReloadListeners.add(listener);
     }
 
     public Optional<SslConfiguration> sslConfiguration(final CertType certType) {
@@ -133,11 +145,25 @@ public class SslSettingsManager {
             try {
                 if (sscContextHandler.reloadSslContext()) {
                     LOGGER.info("{} SSL context reloaded", certType.id());
+                    if (CertType.TRANSPORT.equals(certType) || CertType.TRANSPORT_CLIENT.equals(certType)) {
+                        notifyTransportReloadListeners(certType);
+                    }
                 }
             } catch (CertificateException e) {
                 throw new OpenSearchException(e);
             }
         }, () -> LOGGER.error("Missing SSL Context for {}", certType.id()));
+    }
+
+    private void notifyTransportReloadListeners(final CertType certType) {
+        for (final Runnable listener : transportReloadListeners) {
+            try {
+                listener.run();
+            } catch (RuntimeException e) {
+                // A consumer must not fail the reload: the transport already uses the new context.
+                LOGGER.warn("Transport reload listener failed after the {} reload", certType.id(), e);
+            }
+        }
     }
 
     private Map<CertType, SslConfiguration> loadConfigurations(final Environment environment) {

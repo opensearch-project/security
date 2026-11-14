@@ -2912,7 +2912,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 sslSettingsManager,
                 evaluateSslExceptionHandler(),
                 securityRestHandler,
-                sslConfig
+                sslConfig,
+                migrateSettings(settings)
             )
         );
     }
