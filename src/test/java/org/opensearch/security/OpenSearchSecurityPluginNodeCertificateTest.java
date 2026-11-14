@@ -11,6 +11,7 @@
 
 package org.opensearch.security;
 
+import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.Optional;
 import javax.security.auth.x500.X500Principal;
@@ -18,6 +19,7 @@ import javax.security.auth.x500.X500Principal;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.plugins.SecureTransportSettingsProvider;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
@@ -48,6 +50,19 @@ public class OpenSearchSecurityPluginNodeCertificateTest {
             OpenSearchSecurityPlugin.isNodeCertificate(new OIDClusterRequestEvaluator(SETTINGS), null, chain, chain),
             is(Optional.empty())
         );
+    }
+
+    @Test
+    public void disabledPluginHasNoNodeCertificateRules() throws IOException {
+        // A disabled plugin has no evaluator and no SSL settings manager: the check must return empty, not fail.
+        final Settings disabled = Settings.builder().put(ConfigConstants.SECURITY_DISABLED, true).build();
+        try (OpenSearchSecurityPlugin plugin = new OpenSearchSecurityPlugin(disabled, null)) {
+            final SecureTransportSettingsProvider provider = plugin.getSecureSettingFactory(disabled)
+                .orElseThrow()
+                .getSecureTransportSettingsProvider(disabled)
+                .orElseThrow();
+            assertThat(provider.isNodeCertificate(new X509Certificate[] { certificate(NODE_DN, null) }), is(Optional.empty()));
+        }
     }
 
     @Test
