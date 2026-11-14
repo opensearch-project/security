@@ -10,6 +10,7 @@ package org.opensearch.security.ssl;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -224,6 +225,8 @@ public class OpenSearchSecuritySSLPluginTest extends AbstractSecurityUnitTest {
                 parameters.clientTrustManagerFactory().orElseThrow(),
                 not(sameInstance(parameters.trustManagerFactory().orElseThrow()))
             );
+            // The SSL plugin alone has no node rules.
+            assertThat(provider.isNodeCertificate(new X509Certificate[0]), is(Optional.empty()));
         }
     }
 

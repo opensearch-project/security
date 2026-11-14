@@ -238,6 +238,7 @@ import org.opensearch.security.ssl.ExternalSecurityKeyStore;
 import org.opensearch.security.ssl.OpenSearchSecureSettingsFactory;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.SslExceptionHandler;
+import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -314,6 +315,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     public static final String PLUGINS_PREFIX = "_plugins/_security";
 
     private boolean sslCertReloadEnabled;
+    // Set in createComponents (not in SSL-only mode); used by the transport SPI's node certificate check.
+    private volatile InterClusterRequestEvaluator nodeCertificateEvaluator;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesConfiguration privilegesConfiguration;
     private volatile RoleMapper roleMapper;
@@ -1567,6 +1570,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
 
         final InterClusterRequestEvaluator interClusterRequestEvaluator = InterClusterRequestEvaluatorFactory.create(settings);
+        nodeCertificateEvaluator = interClusterRequestEvaluator;
 
         UserFactory userFactory = new UserFactory.Caching(settings);
 
@@ -2913,9 +2917,45 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 evaluateSslExceptionHandler(),
                 securityRestHandler,
                 sslConfig,
-                migrateSettings(settings)
+                migrateSettings(settings),
+                this::isNodeCertificate
             )
         );
+    }
+
+    /**
+     * Whether a peer certificate chain is a node of this cluster, by the rules transport uses for inter-node requests
+     * (nodes_dn, the dynamic nodes DN list, the node OID). Empty in SSL-only mode, where no evaluator exists.
+     */
+    private Optional<Boolean> isNodeCertificate(final X509Certificate[] chain) {
+        final InterClusterRequestEvaluator evaluator = nodeCertificateEvaluator;
+        if (evaluator == null) {
+            return Optional.empty();
+        }
+        // The node's own transport certificates, as the transport passes its local certificates: the OID evaluator
+        // compares them with the peer.
+        final X509Certificate[] localCerts = sslSettingsManager.sslContextHandler(CertType.TRANSPORT)
+            .map(
+                handler -> handler.keyMaterialCertificates()
+                    .map(org.opensearch.security.ssl.config.Certificate::x509Certificate)
+                    .toArray(X509Certificate[]::new)
+            )
+            .orElse(null);
+        return isNodeCertificate(evaluator, principalExtractor, localCerts, chain);
+    }
+
+    static Optional<Boolean> isNodeCertificate(
+        final InterClusterRequestEvaluator evaluator,
+        final PrincipalExtractor principalExtractor,
+        final X509Certificate[] localCerts,
+        final X509Certificate[] chain
+    ) {
+        if (evaluator == null || principalExtractor == null || chain == null || chain.length == 0) {
+            return Optional.empty();
+        }
+        final String principal = principalExtractor.extractPrincipal(chain[0], PrincipalExtractor.Type.TRANSPORT);
+        // There is no transport request for this check; the built-in evaluators (nodes_dn, OID) do not read it.
+        return Optional.of(evaluator.isInterClusterRequest(null, localCerts, chain, principal));
     }
 
     @Override
