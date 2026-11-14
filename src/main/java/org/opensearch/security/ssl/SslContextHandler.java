@@ -19,10 +19,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,6 +43,11 @@ public class SslContextHandler {
 
     private SslContext sslContext;
 
+    // The factories the current context was built from; read by the transport SPI from other threads.
+    private volatile KeyManagerFactory keyManagerFactory;
+
+    private volatile TrustManagerFactory trustManagerFactory;
+
     private final SslConfiguration sslConfiguration;
 
     private final List<Certificate> loadedCertificates;
@@ -50,7 +57,7 @@ public class SslContextHandler {
     }
 
     public SslContextHandler(final SslConfiguration sslConfiguration, final boolean client) {
-        this.sslContext = client ? sslConfiguration.buildClientSslContext(true) : sslConfiguration.buildServerSslContext(true);
+        setContext(client ? sslConfiguration.buildClientSslContext(true) : sslConfiguration.buildServerSslContext(true));
         this.sslConfiguration = sslConfiguration;
         this.loadedCertificates = sslConfiguration.certificates();
     }
@@ -107,6 +114,25 @@ public class SslContextHandler {
         return sslContext;
     }
 
+    /**
+     * The key manager factory the current context was built from. After a reload it holds the new key material, and it
+     * needs no access to the key files, which may be gone by then.
+     */
+    public KeyManagerFactory keyManagerFactory() {
+        return keyManagerFactory;
+    }
+
+    /** The trust manager factory the current context was built from. */
+    public TrustManagerFactory trustManagerFactory() {
+        return trustManagerFactory;
+    }
+
+    private void setContext(final SslConfiguration.BuiltContext built) {
+        this.keyManagerFactory = built.keyManagerFactory();
+        this.trustManagerFactory = built.trustManagerFactory();
+        this.sslContext = built.sslContext();
+    }
+
     public Stream<Certificate> certificates() {
         return Stream.concat(authorityCertificates(), keyMaterialCertificates())
             .sorted((c1, c2) -> Boolean.compare(c1.hasPrivateKey(), c2.hasPrivateKey()));
@@ -156,9 +182,9 @@ public class SslContextHandler {
         if (hasChanges) {
             invalidateSessions();
             if (sslContext.isClient()) {
-                sslContext = sslConfiguration.buildClientSslContext(false);
+                setContext(sslConfiguration.buildClientSslContext(false));
             } else {
-                sslContext = sslConfiguration.buildServerSslContext(false);
+                setContext(sslConfiguration.buildServerSslContext(false));
             }
             loadedCertificates.clear();
             loadedCertificates.addAll(newCertificates);

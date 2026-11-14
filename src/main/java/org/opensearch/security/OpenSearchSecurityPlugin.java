@@ -2917,6 +2917,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 evaluateSslExceptionHandler(),
                 securityRestHandler,
                 sslConfig,
+                migrateSettings(settings),
                 this::isNodeCertificate
             )
         );

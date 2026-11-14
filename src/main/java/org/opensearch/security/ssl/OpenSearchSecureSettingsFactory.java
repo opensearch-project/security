@@ -23,6 +23,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 
+import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.netty4.Netty4Http3ServerTransport;
@@ -49,6 +50,8 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
     private final SslExceptionHandler sslExceptionHandler;
     private final SecurityRestFilter restFilter;
     private final SSLConfig sslConfig;
+    // The settings the transport itself reads (after migrateSettings), for the host name flags.
+    private final Settings transportSettings;
     private final Function<X509Certificate[], Optional<Boolean>> nodeCertificateCheck;
 
     public OpenSearchSecureSettingsFactory(
@@ -57,6 +60,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
         SslExceptionHandler sslExceptionHandler,
         SecurityRestFilter restFilter,
         SSLConfig sslConfig,
+        Settings transportSettings,
         Function<X509Certificate[], Optional<Boolean>> nodeCertificateCheck
     ) {
         this.threadPool = threadPool;
@@ -64,6 +68,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
         this.sslExceptionHandler = sslExceptionHandler;
         this.restFilter = restFilter;
         this.sslConfig = sslConfig;
+        this.transportSettings = transportSettings;
         this.nodeCertificateCheck = nodeCertificateCheck;
     }
 
@@ -114,14 +119,38 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                             .orElse(Collections.emptyList());
                     }
 
+                    // The factories of the current transport context, not new ones from the files: the key files can be
+                    // removed from disk after start, and a reload listener must see the new key material.
                     @Override
                     public Optional<KeyManagerFactory> keyManagerFactory() {
-                        return sslSettingsManager.sslConfiguration(CertType.TRANSPORT).map(SslConfiguration::keyStoreFactory);
+                        return sslSettingsManager.sslContextHandler(CertType.TRANSPORT).map(SslContextHandler::keyManagerFactory);
+                    }
+
+                    @Override
+                    public Optional<KeyManagerFactory> clientKeyManagerFactory() {
+                        return sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).map(SslContextHandler::keyManagerFactory);
                     }
 
                     @Override
                     public Optional<TrustManagerFactory> trustManagerFactory() {
-                        return sslSettingsManager.sslConfiguration(CertType.TRANSPORT).map(SslConfiguration::trustStoreFactory);
+                        return sslSettingsManager.sslContextHandler(CertType.TRANSPORT).map(SslContextHandler::trustManagerFactory);
+                    }
+
+                    @Override
+                    public Optional<TrustManagerFactory> clientTrustManagerFactory() {
+                        return sslSettingsManager.sslContextHandler(CertType.TRANSPORT_CLIENT).map(SslContextHandler::trustManagerFactory);
+                    }
+
+                    @Override
+                    public Optional<Boolean> enforceHostnameVerification() {
+                        return Optional.of(NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION.get(transportSettings));
+                    }
+
+                    @Override
+                    public Optional<Boolean> resolveHostname() {
+                        return Optional.of(
+                            NetworkModule.TRANSPORT_SSL_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME.get(transportSettings)
+                        );
                     }
 
                 });
@@ -130,6 +159,11 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
             @Override
             public Optional<SSLContext> buildSecureTransportContext(Settings settings) {
                 return sslSettingsManager.sslContextHandler(CertType.TRANSPORT).map(SslContextHandler::tryFetchSSLContext);
+            }
+
+            @Override
+            public void addReloadListener(Runnable listener) {
+                sslSettingsManager.addTransportReloadListener(listener);
             }
 
             @Override
