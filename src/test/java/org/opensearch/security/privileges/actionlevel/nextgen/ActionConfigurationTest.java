@@ -41,15 +41,16 @@ public class ActionConfigurationTest {
     }
 
     @Test
-    public void indexSettingsDescribeIsGrantedByClusterMonitor() throws Exception {
-        // A cluster permission is only reachable through a cluster-type action group. cluster_monitor already covers the cluster
-        // settings describe action through cluster:monitor/*; the index one has an indices: name, so it is listed explicitly.
+    public void indexSettingsDescribeIsGrantedByClusterCompositeOpsRo() throws Exception {
+        // A cluster permission is only reachable through a cluster-type action group. cluster_composite_ops_ro is the group
+        // for read-only indices:* actions that are evaluated as cluster permissions (mget, msearch, scroll, ...), so the index
+        // settings describe action is listed there rather than under cluster_monitor.
         JsonNode groups = DefaultObjectMapper.yamlMapper()
             .readTree(ActionConfigurationTest.class.getResourceAsStream("/static_config/static_action_groups.yml"));
-        JsonNode clusterMonitor = groups.get("cluster_monitor");
-        assertEquals("cluster", clusterMonitor.get("type").asText());
+        JsonNode compositeOpsRo = groups.get("cluster_composite_ops_ro");
+        assertEquals("cluster", compositeOpsRo.get("type").asText());
         List<String> allowed = new ArrayList<>();
-        clusterMonitor.get("allowed_actions").forEach(action -> allowed.add(action.asText()));
+        compositeOpsRo.get("allowed_actions").forEach(action -> allowed.add(action.asText()));
         assertThat(allowed, hasItem(DESCRIBE_INDEX_SETTINGS));
     }
 }
