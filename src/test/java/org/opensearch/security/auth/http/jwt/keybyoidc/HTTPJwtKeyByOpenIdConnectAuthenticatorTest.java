@@ -504,4 +504,53 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
         assertThat(creds.getAttributes().size(), is(4));
     }
 
+    @Test
+    public void testRequireExpClaimRejectsTokenWithoutExp() {
+        Settings settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .put("require_exp_claim", true)
+            .build();
+
+        AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_OCT_1), new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(creds);
+    }
+
+    @Test
+    public void testRequireIatClaimRejectsTokenWithoutIat() {
+        Settings settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .put("require_iat_claim", true)
+            .build();
+
+        AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_WITH_EXP_ONLY_SIGNED_OCT_1), new HashMap<>())
+                .asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(creds);
+    }
+
+    @Test
+    public void testRequireExpAndIatClaimsAcceptsTokenWithBoth() {
+        Settings settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .put("require_exp_claim", true)
+            .put("require_iat_claim", true)
+            .build();
+
+        AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_WITH_EXP_AND_IAT_SIGNED_OCT_1), new HashMap<>())
+                .asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+    }
+
 }

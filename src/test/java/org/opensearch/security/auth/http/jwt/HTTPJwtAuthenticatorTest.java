@@ -615,6 +615,87 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
+    public void testRequireExpClaimRejectsTokenWithoutExp() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(true, false),
+            Jwts.builder().setSubject("Leonard McCoy")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequireExpClaimAcceptsTokenWithExp() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(true, false),
+            Jwts.builder().setSubject("Leonard McCoy").setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
+        );
+
+        Assert.assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+    }
+
+    @Test
+    public void testRequireIatClaimRejectsTokenWithoutIat() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(false, true),
+            Jwts.builder().setSubject("Leonard McCoy")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequireIatClaimAcceptsTokenWithIat() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(false, true),
+            Jwts.builder().setSubject("Leonard McCoy").setIssuedAt(new Date())
+        );
+
+        Assert.assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+    }
+
+    @Test
+    public void testRequireIatClaimOnlyChecksPresence() {
+        // require_iat_claim checks presence only; an iat in the future is still accepted
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(false, true),
+            Jwts.builder().setSubject("Leonard McCoy").setIssuedAt(new Date(System.currentTimeMillis() + 3_600_000))
+        );
+
+        Assert.assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+    }
+
+    @Test
+    public void testRequireBothClaimsRejectsTokenWithOnlyExp() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(true, true),
+            Jwts.builder().setSubject("Leonard McCoy").setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequireIatClaimRejectsMalformedIat() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(false, true),
+            Jwts.builder().setPayload("{\"sub\": \"Leonard McCoy\", \"iat\": \"abc\"}")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    private static Settings.Builder settingsRequiringClaims(final boolean requireExp, final boolean requireIat) {
+        return Settings.builder()
+            .put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes))
+            .put("require_exp_claim", requireExp)
+            .put("require_iat_claim", requireIat);
+    }
+
+    @Test
     public void testRS256() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);

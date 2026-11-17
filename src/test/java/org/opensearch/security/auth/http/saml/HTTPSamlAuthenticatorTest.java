@@ -201,6 +201,49 @@ public class HTTPSamlAuthenticatorTest {
         }
     }
 
+    @Test
+    public void sessionJwtSatisfiesRequiredExpAndIatClaims() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+
+        Settings settings = Settings.builder()
+            .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+            .put("kibana_url", "http://wherever")
+            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+            .put("exchange_key", "abc")
+            .put("roles_key", "roles")
+            .put("jwt.require_exp_claim", true)
+            .put("jwt.require_iat_claim", true)
+            .put("path.home", ".")
+            .build();
+
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper()
+            .readValue(responseJson, new TypeReference<HashMap<String, Object>>() {
+            });
+        String authorization = (String) response.get("authorization");
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+        SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
+        Assert.assertNotNull(jwt.getJWTClaimsSet().getExpirationTime());
+        Assert.assertNotNull(jwt.getJWTClaimsSet().getIssueTime());
+
+        AuthCredentials creds = samlAuthenticator.extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", authorization), new HashMap<>()).asSecurityRequest(),
+            null
+        );
+        Assert.assertNotNull(creds);
+        assertThat(creds.getUsername(), is("horst"));
+    }
+
     private Optional<SecurityResponse> sendToAuthenticator(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) {
         final SecurityRequest tokenRestChannel = SecurityRequestFactory.from(request);
 
