@@ -57,6 +57,7 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexAction;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.put.AutoPutMappingAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
+import org.opensearch.action.admin.indices.settings.describe.IndicesDescribeSettingsAction;
 import org.opensearch.action.bulk.BulkAction;
 import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkRequest;
@@ -127,6 +128,20 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
     );
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
+
+    /**
+     * indices:* actions that are evaluated as cluster permissions although they live in the indices: namespace: the
+     * request either names no index or spans indices as one request. Exact action names only; prefixes are checked
+     * in {@link #isClusterPerm(String)}.
+     */
+    private static final Set<String> CLUSTER_LEVEL_INDICES_ACTIONS = ImmutableSet.of(
+        BulkAction.NAME,
+        MultiGetAction.NAME,
+        MultiTermVectorsAction.NAME,
+        ReindexAction.NAME,
+        RenderSearchTemplateAction.NAME,
+        IndicesDescribeSettingsAction.NAME
+    );
 
     private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
 
@@ -620,12 +635,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             || action0.startsWith("indices:admin/template/")
             || action0.startsWith("indices:admin/index_template/")
             || action0.startsWith(SearchScrollAction.NAME)
-            || (action0.equals(BulkAction.NAME))
-            || (action0.equals(MultiGetAction.NAME))
-            || (action0.startsWith(MultiSearchAction.NAME))
-            || (action0.equals(MultiTermVectorsAction.NAME))
-            || (action0.equals(ReindexAction.NAME))
-            || (action0.equals(RenderSearchTemplateAction.NAME))
+            || action0.startsWith(MultiSearchAction.NAME)
+            || CLUSTER_LEVEL_INDICES_ACTIONS.contains(action0)
             || !action0.startsWith("indices:"));
     }
 
