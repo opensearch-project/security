@@ -256,6 +256,7 @@ class AuthTokenProcessorHandler {
 
     private String createJwt(SamlResponse samlResponse) throws Exception {
         JWTClaimsSet.Builder jwtClaimsBuilder = new JWTClaimsSet.Builder().notBeforeTime(new Date())
+            .issueTime(new Date())
             .expirationTime(new Date(getJwtExpiration(samlResponse)))
             .claim(this.jwtSubjectKey, this.extractSubject(samlResponse));
 

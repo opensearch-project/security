@@ -136,6 +136,8 @@ config:
             jwt_clock_skew_tolerance_seconds: 30
             roles_key: null
             subject_key: null
+            require_exp_claim: false
+            require_iat_claim: false
         authentication_backend:
           type: noop
       clientcert_auth_domain:

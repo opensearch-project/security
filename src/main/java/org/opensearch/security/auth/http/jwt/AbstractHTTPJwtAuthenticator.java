@@ -69,6 +69,9 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 30;
     private final int clockSkewToleranceSeconds;
 
+    private final boolean requireExpClaim;
+    private final boolean requireIatClaim;
+
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
         jwtHeaderName = settings.get("jwt_header", AUTHORIZATION);
@@ -78,6 +81,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
         requiredAudience = settings.getAsList("required_audience");
         requiredIssuer = settings.get("required_issuer");
+        requireExpClaim = settings.getAsBoolean("require_exp_claim", false);
+        requireIatClaim = settings.getAsBoolean("require_iat_claim", false);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -88,7 +93,14 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);
-            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience);
+            jwtVerifier = new JwtVerifier(
+                keyProvider,
+                clockSkewToleranceSeconds,
+                requiredIssuer,
+                requiredAudience,
+                requireExpClaim,
+                requireIatClaim
+            );
 
         } catch (Exception e) {
             log.error("Error creating JWT authenticator. JWT authentication will not work", e);

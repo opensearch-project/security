@@ -69,6 +69,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final List<String> requiredAudience;
     private final String requireIssuer;
     private final int clockSkewToleranceSeconds;
+    private final boolean requireExpClaim;
+    private final boolean requireIatClaim;
     private final Set<String> forbiddenSubjects;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -87,6 +89,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             "jwt_clock_skew_tolerance_seconds",
             AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS
         );
+        requireExpClaim = settings.getAsBoolean("require_exp_claim", false);
+        requireIatClaim = settings.getAsBoolean("require_iat_claim", false);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -164,6 +168,9 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
                 final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
+                // Check if required exp and iat claims are present in JWT
+                assertRequiredTimeClaims(claims);
+
                 if (!requiredAudience.isEmpty()) {
                     assertValidAudienceClaim(claims);
                 }
@@ -207,6 +214,15 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
         log.debug("Unable to authenticate JWT Token with any configured signing key");
         return null;
+    }
+
+    private void assertRequiredTimeClaims(Claims claims) throws BadJWTException {
+        if (requireExpClaim && claims.getExpiration() == null) {
+            throw new BadJWTException("JWT missing required claim: exp");
+        }
+        if (requireIatClaim && claims.getIssuedAt() == null) {
+            throw new BadJWTException("JWT missing required claim: iat");
+        }
     }
 
     private void assertValidAudienceClaim(Claims claims) throws BadJWTException {
