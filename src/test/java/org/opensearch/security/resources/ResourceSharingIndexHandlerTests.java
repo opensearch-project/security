@@ -269,7 +269,7 @@ public class ResourceSharingIndexHandlerTests {
         stubUpdateFails();
 
         ActionListener<Void> listener = mock(ActionListener.class);
-        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, listener);
+        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, ResourceVersion.UNKNOWN, listener);
 
         verify(listener, never()).onResponse(any());
         assertVisibilityWriteFailure(listener);
@@ -952,23 +952,184 @@ public class ResourceSharingIndexHandlerTests {
     }
 
     /**
+     * A create started by the resource write passes that write's version, so the field write reads neither the version
+     * nor the record it just created.
+     */
+    @Test
+    public void create_fromAKnownVersionReadsNothing() throws Exception {
+        AtomicInteger resourceReads = new AtomicInteger();
+        AtomicInteger recordReads = new AtomicInteger();
+        stubGets(() -> {
+            resourceReads.incrementAndGet();
+            return resourceDoc();
+        }, () -> {
+            recordReads.incrementAndGet();
+            return getResult(recordJson(List.of("alice")), 1L);
+        });
+        stubRecordIndexSucceeds();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, landed::add);
+
+        List<ResourceSharing> created = new ArrayList<>();
+        handler.indexResourceSharing(
+            RESOURCE_INDEX,
+            newRecord(),
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
+            ActionListener.wrap(created::add, e -> fail(e.toString()))
+        );
+
+        assertEquals(1, created.size());
+        assertEquals(0, resourceReads.get());
+        assertEquals(0, recordReads.get());
+        assertEquals("the field is written from the record just created", List.of(newRecord().getAllPrincipals()), landed);
+        verify(builder).setIfSeqNo(RESOURCE_DOC_SEQ_NO);
+        verify(builder).setIfPrimaryTerm(1L);
+    }
+
+    @Test
+    public void create_fromAKnownVersionOnAnExistingRecordSkipsTheVersionRead() throws Exception {
+        AtomicInteger resourceReads = new AtomicInteger();
+        String existing = recordJson(List.of("alice", "bob"));
+        stubGets(() -> {
+            resourceReads.incrementAndGet();
+            return resourceDoc();
+        }, () -> getResult(existing, 1L));
+        stubRecordIndexConflicts();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, landed::add);
+
+        List<Object> responses = new ArrayList<>();
+        handler.indexResourceSharing(
+            RESOURCE_INDEX,
+            newRecord(),
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
+            ActionListener.wrap(responses::add, e -> fail(e.toString()))
+        );
+
+        assertEquals(1, responses.size());
+        assertNull(responses.get(0));
+        assertEquals(0, resourceReads.get());
+        assertEquals(Set.copyOf(principalsOf(existing)), Set.copyOf(landed.get(0)));
+    }
+
+    /**
+     * When the resource has moved on since the write that created it, the field write conflicts, and the retry reads the
+     * version and the record as it now stands, which here a share has changed since the create.
+     */
+    @Test
+    public void create_fromAStaleVersionRereadsTheVersion() throws Exception {
+        runScheduledTasksInline();
+        String sharedSinceCreate = recordJson(List.of("alice"));
+        AtomicInteger resourceReads = stubCountedGets(() -> getResult(sharedSinceCreate, 1L));
+        stubRecordIndexSucceeds();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, landed::add);
+
+        List<ResourceSharing> created = new ArrayList<>();
+        handler.indexResourceSharing(
+            RESOURCE_INDEX,
+            newRecord(),
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO - 1, 1L),
+            ActionListener.wrap(created::add, e -> fail(e.toString()))
+        );
+
+        assertEquals(1, created.size());
+        assertEquals(1, resourceReads.get());
+        assertEquals(1, landed.size());
+        assertEquals(Set.copyOf(principalsOf(sharedSinceCreate)), Set.copyOf(landed.get(0)));
+    }
+
+    /**
+     * Without a version, the field write reads it first: migrate holds none.
+     */
+    @Test
+    public void create_withoutAVersionReadsItFirst() throws Exception {
+        AtomicInteger resourceReads = stubCountedGets(() -> getResult(recordJson(List.of("alice")), 1L));
+        stubRecordIndexSucceeds();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        stubUpdates(builder, landed -> {});
+
+        List<ResourceSharing> created = new ArrayList<>();
+        handler.indexResourceSharing(RESOURCE_INDEX, newRecord(), ActionListener.wrap(created::add, e -> fail(e.toString())));
+
+        assertEquals(1, created.size());
+        assertEquals(1, resourceReads.get());
+        verify(builder).setIfSeqNo(RESOURCE_DOC_SEQ_NO);
+    }
+
+    @Test
+    public void create_fromAStaleVersionOnAnExistingRecordRereadsTheVersion() throws Exception {
+        runScheduledTasksInline();
+        AtomicInteger resourceReads = new AtomicInteger();
+        String existing = recordJson(List.of("alice", "bob"));
+        stubGets(() -> {
+            resourceReads.incrementAndGet();
+            return resourceDoc();
+        }, () -> getResult(existing, 1L));
+        stubRecordIndexConflicts();
+        UpdateRequestBuilder builder = stubUpdateBuilder();
+        List<List<String>> landed = new ArrayList<>();
+        stubUpdates(builder, landed::add);
+
+        List<Object> responses = new ArrayList<>();
+        handler.indexResourceSharing(
+            RESOURCE_INDEX,
+            newRecord(),
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO - 1, 1L),
+            ActionListener.wrap(responses::add, e -> fail(e.toString()))
+        );
+
+        assertEquals(1, responses.size());
+        assertNull(responses.get(0));
+        assertEquals(1, resourceReads.get());
+        assertEquals(Set.copyOf(principalsOf(existing)), Set.copyOf(landed.get(0)));
+    }
+
+    /**
+     * With a known version there is no read to report a missing resource, so a resource deleted after its create is
+     * caught by the guarded update and still reported as missing.
+     */
+    @Test
+    public void create_fromAKnownVersionReportsADeletedResourceAsMissing() throws Exception {
+        stubSharingAndResource(() -> recordJson(List.of("alice")));
+        stubRecordIndexSucceeds();
+        stubUpdateBuilder();
+        stubUpdateFails(() -> new DocumentMissingException(new ShardId(RESOURCE_INDEX, "_na_", 0), "res-1"));
+
+        List<Exception> failures = new ArrayList<>();
+        handler.indexResourceSharing(
+            RESOURCE_INDEX,
+            newRecord(),
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
+            ActionListener.wrap(r -> fail("must not succeed"), failures::add)
+        );
+
+        assertEquals(1, failures.size());
+        assertTrue(failures.get(0) instanceof ResourceNotFoundException);
+    }
+
+    /**
      * The restore that follows a resource write starts from that write's version, so it needs no version read.
      */
     @Test
     public void restore_fromAKnownVersionSkipsTheVersionRead() {
-        AtomicInteger resourceReads = new AtomicInteger();
-        stubGets(() -> {
-            resourceReads.incrementAndGet();
-            return resourceDoc();
-        }, () -> getResult(recordJson(List.of("alice")), 1L));
+        AtomicInteger resourceReads = stubCountedGets(() -> getResult(recordJson(List.of("alice")), 1L));
         UpdateRequestBuilder builder = stubUpdateBuilder();
         List<List<String>> landed = new ArrayList<>();
         stubUpdates(builder, landed::add);
 
         List<Object> done = new ArrayList<>();
-        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, RESOURCE_DOC_SEQ_NO, 1L, ActionListener.wrap(done::add, e -> {
-            fail(e.toString());
-        }));
+        handler.fetchAndUpdateResourceVisibility(
+            "res-1",
+            RESOURCE_INDEX,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
+            ActionListener.wrap(done::add, e -> {
+                fail(e.toString());
+            })
+        );
 
         assertEquals(1, done.size());
         assertEquals(0, resourceReads.get());
@@ -998,8 +1159,7 @@ public class ResourceSharingIndexHandlerTests {
         handler.fetchAndUpdateResourceVisibility(
             "res-1",
             RESOURCE_INDEX,
-            RESOURCE_DOC_SEQ_NO - 1,
-            1L,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO - 1, 1L),
             ActionListener.wrap(done::add, e -> fail(e.toString()))
         );
 
@@ -1065,9 +1225,14 @@ public class ResourceSharingIndexHandlerTests {
         stubUpdateFails(() -> new DocumentMissingException(new ShardId(RESOURCE_INDEX, "_na_", 0), "res-1"));
 
         List<Exception> failures = new ArrayList<>();
-        handler.fetchAndUpdateResourceVisibility("res-1", RESOURCE_INDEX, RESOURCE_DOC_SEQ_NO, 1L, ActionListener.wrap(r -> {
-            fail("must not succeed");
-        }, failures::add));
+        handler.fetchAndUpdateResourceVisibility(
+            "res-1",
+            RESOURCE_INDEX,
+            new ResourceVersion(RESOURCE_DOC_SEQ_NO, 1L),
+            ActionListener.wrap(r -> {
+                fail("must not succeed");
+            }, failures::add)
+        );
 
         assertEquals(1, failures.size());
         assertTrue(failures.get(0) instanceof ResourceNotFoundException);
@@ -1148,6 +1313,16 @@ public class ResourceSharingIndexHandlerTests {
             l.onResponse(new GetResponse(request.index().equals(RESOURCE_INDEX) ? resource.get() : record.get()));
             return null;
         }).when(client).get(any(GetRequest.class), any());
+    }
+
+    /** Same as {@link #stubSharingAndResource}, and counts the resource document reads. */
+    private AtomicInteger stubCountedGets(Supplier<GetResult> record) {
+        AtomicInteger resourceReads = new AtomicInteger();
+        stubGets(() -> {
+            resourceReads.incrementAndGet();
+            return resourceDoc();
+        }, record);
+        return resourceReads;
     }
 
     private GetResult resourceDoc() {
