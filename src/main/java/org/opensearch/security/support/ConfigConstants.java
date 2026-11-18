@@ -239,6 +239,10 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_OPENSEARCH_INDEX = "index";
     public static final String SECURITY_AUDIT_OPENSEARCH_TYPE = "type";
 
+    // Internal OpenSearch: create an index template with mappings for the audit log indices
+    // TODO: default to true in 4.0
+    public static final String SECURITY_AUDIT_OPENSEARCH_INDEX_TEMPLATE_ENABLED = "index_template.enabled";
+
     // External OpenSearch
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS = "http_endpoints";
     public static final String SECURITY_AUDIT_CONFIG_USERNAME = "username";

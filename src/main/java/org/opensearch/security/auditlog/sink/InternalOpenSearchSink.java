@@ -13,6 +13,7 @@ package org.opensearch.security.auditlog.sink;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -32,6 +33,10 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
     final String index;
     final String type;
     private DateTimeFormatter indexPattern;
+
+    /** Index template with mappings for the audit log indices, or {@code null} if it is not created. */
+    final AuditLogIndexTemplate indexTemplate;
+    private volatile boolean aliasTargetWarningLogged = false;
 
     public InternalOpenSearchSink(
         final String name,
@@ -57,6 +62,29 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
                 e.getMessage()
             );
         }
+
+        this.indexTemplate = sinkSettings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX_TEMPLATE_ENABLED, false)
+            ? createIndexTemplate(clientProvider)
+            : null;
+    }
+
+    private AuditLogIndexTemplate createIndexTemplate(final Client clientProvider) {
+        final String templateName = AuditLogIndexTemplate.nameForSink(getName());
+        final List<String> patterns = AuditLogIndexTemplate.indexPatternsFor(index, indexPattern != null);
+        if (patterns.isEmpty()) {
+            log.warn(
+                "Cannot derive an index template pattern from the audit log index setting '{}'. It must be a plain index name,"
+                    + " or start with quoted text, and must not contain wildcards. The audit log index template '{}' is not created.",
+                index,
+                templateName
+            );
+            return null;
+        }
+        final String mappings = AuditLogIndexTemplate.loadMappings();
+        if (mappings == null) {
+            return null;
+        }
+        return new AuditLogIndexTemplate(templateName, patterns, null, null, mappings, clientProvider);
     }
 
     @Override
@@ -65,7 +93,20 @@ public final class InternalOpenSearchSink extends AbstractInternalOpenSearchSink
 
         if (metadata.hasAlias(indexName)) {
             log.debug("Audit log target '{}' is an alias. Audit events will be written to the associated write index.", indexName);
+            if (indexTemplate != null && !aliasTargetWarningLogged) {
+                aliasTargetWarningLogged = true;
+                log.warn(
+                    "The audit log target '{}' is an alias, so the audit log index template '{}' is not created. Create an index"
+                        + " template matching the backing indices of the alias instead.",
+                    indexName,
+                    indexTemplate.name()
+                );
+            }
             return true;
+        }
+        // Before the existence check, so that the index template is in place when the next index is created
+        if (indexTemplate != null && !indexTemplate.ensureExists(metadata)) {
+            return false;
         }
         if (metadata.hasIndex(indexName)) {
             log.debug("Audit log index '{}' already exists.", indexName);
