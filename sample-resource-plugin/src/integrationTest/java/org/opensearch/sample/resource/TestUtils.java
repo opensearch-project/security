@@ -37,6 +37,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.sample.utils.Constants.RESOURCE_GROUP_TYPE;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
@@ -385,6 +386,35 @@ public final class TestUtils {
                 String jsonBody = "{ \"query\": { \"match_all\": {} } }";
                 TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
                 resp.assertStatusCode(HttpStatus.SC_OK);
+            }
+        }
+
+        /**
+         * Counts the GETs the resource index has served, which a search does not add to.
+         *
+         * @return the total of the index's GET statistics
+         */
+        public long resourceDocumentGets() {
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                TestRestClient.HttpResponse stats = client.get(RESOURCE_INDEX_NAME + "/_stats/get");
+                stats.assertStatusCode(HttpStatus.SC_OK);
+                return stats.bodyAsJsonNode().at("/_all/total/get/total").asLong();
+            }
+        }
+
+        /**
+         * Waits until the resource holds {@code all_shared_principals}, reading by search so the GET statistics do not move.
+         *
+         * @param resourceId the resource to wait for
+         */
+        public void awaitPrincipals(String resourceId) {
+            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+                String query = "{\"query\":{\"ids\":{\"values\":[\"" + resourceId + "\"]}}}";
+                Awaitility.await("all_shared_principals written for " + resourceId).untilAsserted(() -> {
+                    TestRestClient.HttpResponse response = client.postJson(RESOURCE_INDEX_NAME + "/_search", query);
+                    response.assertStatusCode(HttpStatus.SC_OK);
+                    assertThat(response.bodyAsJsonNode().at("/hits/hits/0/_source/all_shared_principals").size(), greaterThan(0));
+                });
             }
         }
 

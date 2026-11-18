@@ -11,13 +11,18 @@
 
 package org.opensearch.security.ssl;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -292,6 +297,57 @@ public class SslContextHandlerTest {
     }
 
     @Test
+    public void transportCertificateStreamsKeepTheirSnapshotAcrossReload() throws Exception {
+        certificateStreamsKeepTheirSnapshotAcrossReload(CertType.TRANSPORT);
+    }
+
+    @Test
+    public void httpCertificateStreamsKeepTheirSnapshotAcrossReload() throws Exception {
+        certificateStreamsKeepTheirSnapshotAcrossReload(CertType.HTTP);
+    }
+
+    private void certificateStreamsKeepTheirSnapshotAcrossReload(final CertType certType) throws Exception {
+        final var sslContextHandler = sslContextHandler(certType);
+        final var originalKeyCertificates = sslContextHandler.keyMaterialCertificates().toList();
+        final var originalAuthorityCertificates = sslContextHandler.authorityCertificates().toList();
+        final var originalCertificates = sslContextHandler.certificates().toList();
+
+        final var keyPair = certificatesRule.generateKeyPair();
+        final var newCaCertificate = certificatesRule.generateCaCertificate(keyPair);
+        final var currentAccessCertificate = certificatesRule.x509AccessCertificate();
+        final var newAccessCertificate = certificatesRule.generateAccessCertificate(
+            keyPair,
+            currentAccessCertificate.getNotBefore().toInstant(),
+            currentAccessCertificate.getNotAfter().toInstant().plus(10, ChronoUnit.MINUTES)
+        );
+
+        // Delay traversal until after reload to exercise an overlapping reader without depending on thread timing.
+        try (
+            final var keyCertificates = sslContextHandler.keyMaterialCertificates();
+            final var authorityCertificates = sslContextHandler.authorityCertificates();
+            final var certificates = sslContextHandler.certificates()
+        ) {
+            writeCertificates(newCaCertificate, newAccessCertificate.v2(), newAccessCertificate.v1());
+            assertThat("Context reloaded", sslContextHandler.reloadSslContext(), is(true));
+
+            assertThat("Existing key stream keeps its snapshot", keyCertificates.toList(), is(originalKeyCertificates));
+            assertThat("Existing authority stream keeps its snapshot", authorityCertificates.toList(), is(originalAuthorityCertificates));
+            assertThat("Existing combined stream keeps its snapshot", certificates.toList(), is(originalCertificates));
+
+            assertThat(
+                "New key stream sees the replacement certificate",
+                sslContextHandler.keyMaterialCertificates().map(c -> c.x509Certificate().getSerialNumber()).toList(),
+                contains(newAccessCertificate.v2().getSerialNumber())
+            );
+            assertThat(
+                "New authority stream sees the replacement certificate",
+                sslContextHandler.authorityCertificates().map(c -> c.x509Certificate().getSerialNumber()).toList(),
+                contains(newCaCertificate.getSerialNumber())
+            );
+        }
+    }
+
+    @Test
     public void reloadSslContextForShuffledSameSans() throws Exception {
         final var sslContextHandler = sslContextHandler();
 
@@ -332,6 +388,53 @@ public class SslContextHandlerTest {
         assertThat(sslConfiguration.dependentFiles(), contains(accessCertificatePath, accessCertificatePrivateKeyPath));
     }
 
+    @Test
+    public void keepsKeyMaterialOfCurrentContextWithoutTheFiles() throws Exception {
+        final var sslContextHandler = sslContextHandler();
+        assertThat(
+            "Loaded certificate",
+            Arrays.equals(serverCertificate(sslContextHandler).getEncoded(), certificatesRule.x509AccessCertificate().getEncoded()),
+            is(true)
+        );
+
+        final var keyPair = certificatesRule.generateKeyPair();
+        final var newCaCertificate = certificatesRule.generateCaCertificate(keyPair);
+        final var currentAccessCertificate = certificatesRule.x509AccessCertificate();
+        final var newAccessCertificate = certificatesRule.generateAccessCertificate(
+            keyPair,
+            currentAccessCertificate.getNotBefore().toInstant(),
+            currentAccessCertificate.getNotAfter().toInstant().plus(10, ChronoUnit.MINUTES)
+        );
+        writeCertificates(newCaCertificate, newAccessCertificate.v2(), newAccessCertificate.v1());
+        assertThat("Context reloaded", sslContextHandler.reloadSslContext(), is(true));
+
+        // The key files can be removed from disk after start or after a reload; the kept factories must not need them.
+        Files.delete(caCertificatePath);
+        Files.delete(accessCertificatePath);
+        Files.delete(accessCertificatePrivateKeyPath);
+
+        assertThat(
+            "New certificate",
+            Arrays.equals(serverCertificate(sslContextHandler).getEncoded(), newAccessCertificate.v2().getEncoded()),
+            is(true)
+        );
+        final var trustManager = (X509TrustManager) sslContextHandler.trustManagerFactory().getTrustManagers()[0];
+        assertThat("New CA trusted", Arrays.stream(trustManager.getAcceptedIssuers()).anyMatch(ca -> {
+            try {
+                return Arrays.equals(ca.getEncoded(), newCaCertificate.getEncoded());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }), is(true));
+    }
+
+    private static X509Certificate serverCertificate(final SslContextHandler sslContextHandler) {
+        final var keyManager = (X509KeyManager) sslContextHandler.keyManagerFactory().getKeyManagers()[0];
+        final var alias = keyManager.getServerAliases("RSA", null)[0];
+        assertThat("Private key present", keyManager.getPrivateKey(alias) != null, is(true));
+        return keyManager.getCertificateChain(alias)[0];
+    }
+
     List<ASN1Encodable> shuffledSans(Extension currentSans) {
         final var san1Sequence = ASN1Sequence.getInstance(currentSans.getParsedValue().toASN1Primitive());
 
@@ -347,7 +450,11 @@ public class SslContextHandlerTest {
     }
 
     SslContextHandler sslContextHandler() {
-        final var sslParameters = SslParameters.loader(CertType.TRANSPORT, Settings.EMPTY).load();
+        return sslContextHandler(CertType.TRANSPORT);
+    }
+
+    SslContextHandler sslContextHandler(final CertType certType) {
+        final var sslParameters = SslParameters.loader(certType, Settings.EMPTY).load();
         final var trustStoreConfiguration = new TrustStoreConfiguration.PemTrustStoreConfiguration(caCertificatePath);
         final var keyStoreConfiguration = new KeyStoreConfiguration.PemKeyStoreConfiguration(
             accessCertificatePath,

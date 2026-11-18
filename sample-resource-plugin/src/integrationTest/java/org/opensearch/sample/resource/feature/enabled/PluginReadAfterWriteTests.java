@@ -27,8 +27,8 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
@@ -59,7 +59,7 @@ public class PluginReadAfterWriteTests {
     @Test
     public void createsDoNotForceASharingIndexRefreshEach() {
         // The first create makes the sharing index, so its statistics exist to compare against
-        awaitPrincipals(api.createSampleResourceAs(FULL_ACCESS_USER));
+        api.awaitPrincipals(api.createSampleResourceAs(FULL_ACCESS_USER));
         int creates = 10;
 
         long before = refreshes(RESOURCE_SHARING_INDEX);
@@ -67,7 +67,7 @@ public class PluginReadAfterWriteTests {
         for (int i = 0; i < creates; i++) {
             ids.add(api.createSampleResourceAs(FULL_ACCESS_USER));
         }
-        ids.forEach(this::awaitPrincipals);
+        ids.forEach(api::awaitPrincipals);
         long refreshed = refreshes(RESOURCE_SHARING_INDEX) - before;
 
         assertThat("sharing index refreshes for " + creates + " creates: " + refreshed, refreshed, lessThan((long) creates));
@@ -81,15 +81,22 @@ public class PluginReadAfterWriteTests {
         }
     }
 
-    private void awaitPrincipals(String resourceId) {
-        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            String query = "{\"query\":{\"ids\":{\"values\":[\"" + resourceId + "\"]}}}";
-            Awaitility.await("all_shared_principals written for " + resourceId).untilAsserted(() -> {
-                HttpResponse response = client.postJson(RESOURCE_INDEX_NAME + "/_search", query);
-                response.assertStatusCode(HttpStatus.SC_OK);
-                assertThat(response.bodyAsJsonNode().at("/hits/hits/0/_source/all_shared_principals").size(), greaterThan(0));
-            });
-        }
+    /**
+     * A new resource's field write starts from the version its create produced and from the record just created, so the
+     * create reads the resource document only inside its own updates.
+     */
+    @Test
+    public void createReadsNoResourceDocumentBeforeItsFieldWrite() {
+        // The first create makes the resource index, so the statistics exist to compare against
+        api.awaitPrincipals(api.createSampleResourceAs(FULL_ACCESS_USER));
+
+        long before = api.resourceDocumentGets();
+        List<String> ids = List.of(api.createSampleResourceAs(FULL_ACCESS_USER), api.createSampleResourceAs(FULL_ACCESS_USER));
+        ids.forEach(api::awaitPrincipals);
+
+        // Each field write is an update, which reads the document itself, and its restore is a NOOP update that does too
+        long reads = api.resourceDocumentGets() - before;
+        assertThat("resource document GETs during create: " + reads, reads, lessThanOrEqualTo(2L * ids.size()));
     }
 
     @Test
