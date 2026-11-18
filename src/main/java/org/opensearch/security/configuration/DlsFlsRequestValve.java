@@ -39,6 +39,14 @@ public interface DlsFlsRequestValve {
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool);
 
+    /**
+     * Applies DLS before the dfs phase collects term statistics, so they are scoped the way the query phase's are.
+     *
+     * @param context the context the dfs phase is about to run against
+     * @param threadPool the thread pool carrying the request's thread context
+     */
+    default void handleDfsSearchContext(SearchContext context, ThreadPool threadPool) {}
+
     void onQueryPhase(QuerySearchResult queryResult);
 
     boolean hasFlsOrFieldMasking(String index) throws PrivilegesEvaluationException;

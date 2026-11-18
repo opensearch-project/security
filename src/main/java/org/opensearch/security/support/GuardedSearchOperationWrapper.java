@@ -28,6 +28,13 @@ public interface GuardedSearchOperationWrapper {
 
     void onPreQueryPhase(final SearchContext context);
 
+    /**
+     * Runs before the dfs phase collects term statistics.
+     *
+     * @param context the context the dfs phase is about to run against
+     */
+    default void onPreDfsPhase(final SearchContext context) {}
+
     void onNewReaderContext(final ReaderContext readerContext);
 
     void onNewScrollContext(final ReaderContext readerContext);
@@ -56,6 +63,12 @@ public interface GuardedSearchOperationWrapper {
                 searchContext.setTask(null);
                 log.error("Cancelled request due to internal error", e);
             }
+        }
+
+        @Override
+        public void onPreDfsPhase(final SearchContext searchContext) {
+            // Not caught: core fails the request, since statistics must not be collected without the restriction.
+            that.onPreDfsPhase(searchContext);
         }
 
         @Override
