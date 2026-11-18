@@ -688,6 +688,24 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertNull(credentials);
     }
 
+    @Test
+    public void testRequireExpClaimWithMultipleSigningKeys() {
+        final byte[] otherKeyBytes = new byte[64];
+        new SecureRandom().nextBytes(otherKeyBytes);
+        // The helper signs with secretKey, which is the second configured key; the first key will not match
+        final Settings.Builder settings = Settings.builder()
+            .putList("signing_key", Base64.getEncoder().encodeToString(otherKeyBytes), Base64.getEncoder().encodeToString(secretKeyBytes))
+            .put("require_exp_claim", true);
+
+        Assert.assertNotNull(
+            extractCredentialsFromJwtHeader(
+                settings,
+                Jwts.builder().setSubject("Leonard McCoy").setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
+            )
+        );
+        Assert.assertNull(extractCredentialsFromJwtHeader(settings, Jwts.builder().setSubject("Leonard McCoy")));
+    }
+
     private static Settings.Builder settingsRequiringClaims(final boolean requireExp, final boolean requireIat) {
         return Settings.builder()
             .put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes))

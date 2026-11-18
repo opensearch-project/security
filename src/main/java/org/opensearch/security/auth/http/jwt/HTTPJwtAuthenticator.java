@@ -168,8 +168,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
                 final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
-                // Check if required exp and iat claims are present in JWT
-                assertRequiredTimeClaims(claims);
+                // Verify presence of required 'exp' and 'iat' claims
+                if (!hasRequiredTimeClaims(claims)) {
+                    return null;
+                }
 
                 if (!requiredAudience.isEmpty()) {
                     assertValidAudienceClaim(claims);
@@ -216,13 +218,16 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return null;
     }
 
-    private void assertRequiredTimeClaims(Claims claims) throws BadJWTException {
+    private boolean hasRequiredTimeClaims(Claims claims) {
         if (requireExpClaim && claims.getExpiration() == null) {
-            throw new BadJWTException("JWT missing required claim: exp");
+            log.debug("JWT is missing required claim 'exp'");
+            return false;
         }
         if (requireIatClaim && claims.getIssuedAt() == null) {
-            throw new BadJWTException("JWT missing required claim: iat");
+            log.debug("JWT is missing required claim 'iat'");
+            return false;
         }
+        return true;
     }
 
     private void assertValidAudienceClaim(Claims claims) throws BadJWTException {
