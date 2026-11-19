@@ -1083,6 +1083,10 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 isBadRequest()
             );
             assertThat(client.postJson(renamePath(source), renameBody("")), isBadRequest());
+            assertThat(
+                client.postJson(renamePath(source), (builder, params) -> builder.startObject().nullField("new_username").endObject()),
+                isBadRequest()
+            );
             assertThat(client.postJson(renamePath(source), renameBody("a:b")), isBadRequest("/message", ":"));
             assertThat(client.postJson(renamePath(source), renameBody(source)), isBadRequest());
 

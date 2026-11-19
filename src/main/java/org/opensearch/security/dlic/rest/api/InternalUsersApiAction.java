@@ -50,6 +50,7 @@ import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
@@ -251,7 +252,14 @@ public class InternalUsersApiAction extends AbstractApiAction {
         final String requestedBy = caller == null ? null : caller.getName();
         endpointValidator.withRequiredEntityName(nameParam(request))
             .map(oldUsername -> renameRequestContentValidator().validate(request).map(content -> {
-                final String newUsername = content.get(NEW_USERNAME_FIELD).asText();
+                final JsonNode newUsernameNode = content.get(NEW_USERNAME_FIELD);
+                if (newUsernameNode == null || newUsernameNode.isNull() || !newUsernameNode.isTextual()) {
+                    return ValidationResult.<RenamePlan>error(
+                        RestStatus.BAD_REQUEST,
+                        badRequestMessage("'" + NEW_USERNAME_FIELD + "' must be a non-null string.")
+                    );
+                }
+                final String newUsername = newUsernameNode.asText();
                 return loadConfiguration(CType.INTERNALUSERS, false, false).map(
                     internalUsers -> loadConfiguration(CType.ROLESMAPPING, false, false).map(
                         rolesMapping -> planRename(oldUsername, newUsername, internalUsers, rolesMapping)
