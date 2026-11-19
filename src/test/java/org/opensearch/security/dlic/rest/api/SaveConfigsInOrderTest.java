@@ -159,6 +159,31 @@ public class SaveConfigsInOrderTest {
         }).when(client).execute(eq(ConfigUpdateAction.INSTANCE), any(ConfigUpdateRequest.class), any());
     }
 
+    private void reloadsFail() {
+        doAnswer(invocation -> {
+            final ConfigUpdateRequest request = invocation.getArgument(1);
+            final ActionListener<ConfigUpdateResponse> reloadListener = invocation.getArgument(2);
+            reloads.add(Arrays.asList(request.getConfigTypes()));
+            reloadListener.onFailure(new IllegalStateException("reload failed"));
+            return null;
+        }).when(client).execute(eq(ConfigUpdateAction.INSTANCE), any(ConfigUpdateRequest.class), any());
+    }
+
+    @Test
+    public void failedRestoreReloadReportsPartiallyApplied() throws Exception {
+        // Writes succeed up to a failure, the restores succeed, but the reload of the restored types fails —
+        // nodes may keep the stale in-memory state, so the caller must learn about it.
+        writeOutcomes(null, null, conflict(), null, null);
+        reloadsFail();
+
+        AbstractApiAction.saveConfigsInOrderAsync(dependencies, client, threeWrites(), listener());
+
+        assertThat(writes, contains("internalusers:1", "rolesmapping:2", "roles:3", "rolesmapping:101", "internalusers:100"));
+        assertThat(reloads, contains(List.of("internalusers", "rolesmapping")));
+        assertThat(success.get(), is(nullValue()));
+        assertThat(failure.get(), instanceOf(AbstractApiAction.PartiallyAppliedConfigWriteException.class));
+    }
+
     private static Exception conflict() {
         return new VersionConflictEngineException(SECURITY_SHARD, "doc", "version conflict");
     }

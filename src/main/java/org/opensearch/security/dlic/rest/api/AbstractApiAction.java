@@ -807,11 +807,24 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                 listener.onFailure(failure);
                 return;
             }
+            // The index is restored; now reload the restored types so no node keeps the intermediate state in memory.
+            // If that reload fails, some nodes may still serve the stale state, so surface it rather than hide it behind
+            // the original failure.
             final String[] restored = writes.subList(0, completed.size()).stream().map(w -> w.cType().toLCString()).toArray(String[]::new);
             new ConfigUpdatingActionListener<>(
                 restored,
                 client,
-                ActionListener.<IndexResponse>wrap(ignored -> listener.onFailure(failure), ignored -> listener.onFailure(failure))
+                ActionListener.<IndexResponse>wrap(ignored -> listener.onFailure(failure), reloadFailure -> {
+                    final var partial = new PartiallyAppliedConfigWriteException(
+                        "Writes to "
+                            + List.of(restored)
+                            + " were restored but reloading them across nodes failed: "
+                            + reloadFailure.getMessage(),
+                        failure
+                    );
+                    partial.addSuppressed(reloadFailure);
+                    listener.onFailure(partial);
+                })
             ).onResponse(completed.get(0));
             return;
         }
