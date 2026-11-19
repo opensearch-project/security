@@ -64,14 +64,14 @@ public class RolePermissionValidator {
      */
     public ValidationResult<Map<String, JsonNode>> validateActionGroups(Map<String, JsonNode> actionGroups, Set<String> knownActionGroups) {
         List<String> invalid = new ArrayList<>();
-        actionGroups.forEach(
-            (name, actionGroup) -> validatePermissions(
-                actionGroup.path("allowed_actions"),
-                "/" + name + "/allowed_actions",
+        for (Map.Entry<String, JsonNode> actionGroup : actionGroups.entrySet()) {
+            validatePermissions(
+                actionGroup.getValue().path("allowed_actions"),
+                "/" + actionGroup.getKey() + "/allowed_actions",
                 knownActionGroups,
                 invalid
-            )
-        );
+            );
+        }
         if (invalid.isEmpty()) {
             return ValidationResult.success(actionGroups);
         }

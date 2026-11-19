@@ -174,7 +174,9 @@ public class ActionGroupsApiAction extends AbstractApiAction {
             return patchEntityNames(requestContent);
         }
         final Set<String> names = new LinkedHashSet<>();
-        requestContent.properties().forEach(entity -> names.add(entity.getKey()));
+        for (final Map.Entry<String, JsonNode> entity : requestContent.properties()) {
+            names.add(entity.getKey());
+        }
         return names;
     }
 
