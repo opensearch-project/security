@@ -8,6 +8,8 @@
 
 package org.opensearch.sample.resource.feature.enabled;
 
+import java.util.List;
+
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
@@ -23,6 +25,7 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
@@ -43,6 +46,24 @@ public class PluginReadAfterWriteTests {
     @After
     public void cleanup() {
         api.wipeOutResourceEntries();
+    }
+
+    /**
+     * A new resource's field write starts from the version its create produced and from the record just created, so the
+     * create reads the resource document only inside its own updates.
+     */
+    @Test
+    public void createReadsNoResourceDocumentBeforeItsFieldWrite() {
+        // The first create makes the resource index, so the statistics exist to compare against
+        api.awaitPrincipals(api.createSampleResourceAs(FULL_ACCESS_USER));
+
+        long before = api.resourceDocumentGets();
+        List<String> ids = List.of(api.createSampleResourceAs(FULL_ACCESS_USER), api.createSampleResourceAs(FULL_ACCESS_USER));
+        ids.forEach(api::awaitPrincipals);
+
+        // Each field write is an update, which reads the document itself, and its restore is a NOOP update that does too
+        long reads = api.resourceDocumentGets() - before;
+        assertThat("resource document GETs during create: " + reads, reads, lessThanOrEqualTo(2L * ids.size()));
     }
 
     @Test

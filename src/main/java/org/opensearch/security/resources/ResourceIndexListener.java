@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
-import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.security.resources.sharing.CreatedBy;
 import org.opensearch.security.resources.sharing.ResourceSharing;
@@ -110,13 +109,15 @@ public class ResourceIndexListener implements IndexingOperationListener {
             Set<String> currentWorkspaces = provider.workspacesField() == null
                 ? null
                 : ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
-            // A write with a seqNo guards the restore with it; any other write reads the document version first
-            if (result.getResultType() == Engine.Result.Type.SUCCESS && result.getSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
+            ResourceVersion written = result.getResultType() == Engine.Result.Type.SUCCESS
+                ? new ResourceVersion(result.getSeqNo(), result.getTerm())
+                : ResourceVersion.UNKNOWN;
+            // A write with a known version guards the restore with it; any other write reads the document version first
+            if (written.isKnown()) {
                 this.resourceSharingIndexHandler.syncAfterResourceUpdate(
                     resourceIndex,
                     resourceId,
-                    result.getSeqNo(),
-                    result.getTerm(),
+                    written,
                     ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(ResourceSharingIndexHandler.ALL_SHARED_PRINCIPALS_FIELD, index),
                     currentWorkspaces,
                     listener,
@@ -124,7 +125,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 );
                 return;
             }
-            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, listener);
+            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, ResourceVersion.UNKNOWN, listener);
             if (currentWorkspaces != null) {
                 this.resourceSharingIndexHandler.reconcileWorkspaces(
                     resourceIndex,
@@ -168,7 +169,12 @@ public class ResourceIndexListener implements IndexingOperationListener {
                 if (provider.workspacesField() != null) {
                     builder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
                 }
-                this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, builder.build(), listener);
+                this.resourceSharingIndexHandler.indexResourceSharing(
+                    resourceIndex,
+                    builder.build(),
+                    new ResourceVersion(result.getSeqNo(), result.getTerm()),
+                    listener
+                );
             } catch (IOException e) {
                 log.warn("Failed to create a resource sharing entry for resource: {}", resourceId, e);
             }
@@ -225,6 +231,7 @@ public class ResourceIndexListener implements IndexingOperationListener {
             if (provider.workspacesField() != null) {
                 childBuilder.workspaces(ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index));
             }
+            // The parent read above widens the window for a later write, so the field write reads the version itself
             this.resourceSharingIndexHandler.indexResourceSharing(resourceIndex, childBuilder.build(), listener);
         },
             e -> log.warn(

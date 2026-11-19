@@ -78,6 +78,10 @@ configurations {
             force 'org.hamcrest:hamcrest:2.2'
             force 'org.mockito:mockito-core:5.24.0'
             force 'org.slf4j:slf4j-api:1.7.36'
+            // Jackson 2.x alignment with OpenSearch core: opensearch-java brings an older Jackson 2.x BOM
+            force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+            force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+            force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
 
             // Duplicate dependencies with conflicting versions from org.opensearch.plugin:transport-grpc
             // Force versions present in security plugin

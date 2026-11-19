@@ -135,7 +135,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 final var settings = cipherSettings(certType).putList(certType.sslSettingPrefix() + "enabled_ciphers", ciphers).build();
                 final var environment = TestEnvironment.newEnvironment(settings);
                 final var configuration = new SslSettingsManager(environment).sslConfiguration(certType).orElseThrow();
-                final var engine = configuration.buildServerSslContext(true).newEngine(UnpooledByteBufAllocator.DEFAULT);
+                final var engine = configuration.buildServerSslContext(true).sslContext().newEngine(UnpooledByteBufAllocator.DEFAULT);
                 assertEquals(ciphers, List.of(engine.getEnabledCipherSuites()));
                 final var legacy = new DefaultSecurityKeyStore(settings, environment.configDir());
                 final var legacyEngine = certType == CertType.HTTP ? legacy.createHTTPSSLEngine() : legacy.createServerTransportSSLEngine();
@@ -155,7 +155,7 @@ public class SslSettingsManagerTest extends RandomizedTest {
             final var configuration = new SslSettingsManager(TestEnvironment.newEnvironment(cipherSettings(certType).build()))
                 .sslConfiguration(certType)
                 .orElseThrow();
-            final var engine = configuration.buildServerSslContext(true).newEngine(UnpooledByteBufAllocator.DEFAULT);
+            final var engine = configuration.buildServerSslContext(true).sslContext().newEngine(UnpooledByteBufAllocator.DEFAULT);
             assertEquals(
                 new TreeSet<>(configuration.sslParameters().allowedCiphers()),
                 new TreeSet<>(List.of(engine.getEnabledCipherSuites()))
@@ -187,8 +187,8 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 .build();
             final var configuration = new SslSettingsManager(TestEnvironment.newEnvironment(settings)).sslConfiguration(certType)
                 .orElseThrow();
-            final var serverContext = (JdkSslContext) configuration.buildServerSslContext(true);
-            final var clientContext = (JdkSslContext) configuration.buildClientSslContext(true);
+            final var serverContext = (JdkSslContext) configuration.buildServerSslContext(true).sslContext();
+            final var clientContext = (JdkSslContext) configuration.buildClientSslContext(true).sslContext();
             for (String cipher : List.of("TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256")) {
                 // ChaCha is unavailable with FIPS providers; still exercise the AES-only restriction there.
                 if (cipher.equals("TLS_CHACHA20_POLY1305_SHA256")
@@ -247,8 +247,8 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 .build();
             final var configuration = new SslSettingsManager(TestEnvironment.newEnvironment(settings)).sslConfiguration(certType)
                 .orElseThrow();
-            final var serverContext = (JdkSslContext) configuration.buildServerSslContext(true);
-            final var clientContext = (JdkSslContext) configuration.buildClientSslContext(true);
+            final var serverContext = (JdkSslContext) configuration.buildServerSslContext(true).sslContext();
+            final var clientContext = (JdkSslContext) configuration.buildClientSslContext(true).sslContext();
             try (
                 var executor = Executors.newSingleThreadExecutor();
                 var server = (SSLServerSocket) serverContext.context()

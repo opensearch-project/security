@@ -304,3 +304,97 @@ cn: refmissing
 objectClass: referral
 objectClass: extensibleObject
 ref: ldap://localhost:${port}/cn=refgone,ou=groups,o=TEST
+
+dn: cn=Cycle User,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Cycle User
+sn: cycleuser
+uid: cycleuser
+userpassword: cycleuser
+mail: cycleuser@example.com
+
+# cyclea and cycleb are members of each other
+dn: cn=cyclea,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: cyclea
+uniqueMember: cn=Cycle User,ou=people,o=TEST
+uniqueMember: cn=cycleb,ou=groups,o=TEST
+
+dn: cn=cycleb,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: cycleb
+uniqueMember: cn=cyclea,ou=groups,o=TEST
+
+dn: cn=Diamond User,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Diamond User
+sn: diamonduser
+uid: diamonduser
+userpassword: diamonduser
+mail: diamonduser@example.com
+
+# diamondtop is reached through diamondleft and through diamondright
+dn: cn=diamondbottom,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: diamondbottom
+uniqueMember: cn=Diamond User,ou=people,o=TEST
+
+dn: cn=diamondleft,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: diamondleft
+uniqueMember: cn=diamondbottom,ou=groups,o=TEST
+
+dn: cn=diamondright,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: diamondright
+uniqueMember: cn=diamondbottom,ou=groups,o=TEST
+
+dn: cn=diamondtop,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: diamondtop
+uniqueMember: cn=diamondleft,ou=groups,o=TEST
+uniqueMember: cn=diamondright,ou=groups,o=TEST
+
+dn: cn=Reexpand User,ou=people,o=TEST
+objectclass: inetOrgPerson
+cn: Reexpand User
+sn: reexpanduser
+uid: reexpanduser
+userpassword: reexpanduser
+mail: reexpanduser@example.com
+
+# The user is in reexpanda and reexpandc, which are members of each other, so whichever is
+# resolved first reaches the other at depth 2 before it is resolved as a direct role at depth 1.
+# reexpandc -> reexpandd -> reexpande and reexpanda -> reexpandf -> reexpandg are only found
+# within max_nested_depth 2 when started from depth 1.
+dn: cn=reexpanda,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpanda
+uniqueMember: cn=Reexpand User,ou=people,o=TEST
+uniqueMember: cn=reexpandc,ou=groups,o=TEST
+
+dn: cn=reexpandc,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpandc
+uniqueMember: cn=Reexpand User,ou=people,o=TEST
+uniqueMember: cn=reexpanda,ou=groups,o=TEST
+
+dn: cn=reexpandd,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpandd
+uniqueMember: cn=reexpandc,ou=groups,o=TEST
+
+dn: cn=reexpande,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpande
+uniqueMember: cn=reexpandd,ou=groups,o=TEST
+
+dn: cn=reexpandf,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpandf
+uniqueMember: cn=reexpanda,ou=groups,o=TEST
+
+dn: cn=reexpandg,ou=groups,o=TEST
+objectClass: groupOfUniqueNames
+cn: reexpandg
+uniqueMember: cn=reexpandf,ou=groups,o=TEST

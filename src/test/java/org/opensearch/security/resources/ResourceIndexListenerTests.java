@@ -29,6 +29,7 @@ import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexRequestBuilder;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.common.settings.Settings;
@@ -55,6 +56,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.mockito.Answers;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -120,6 +122,34 @@ public class ResourceIndexListenerTests {
         verify(records).setId("workflow-1");
     }
 
+    /**
+     * A new resource's field write starts from the version its create produced, without reading it.
+     */
+    @Test
+    public void aCreateWritesVisibilityFromTheVersionItWrote() {
+        doAnswer(inv -> {
+            ActionListener<IndexResponse> l = inv.getArgument(1);
+            l.onResponse(mock(IndexResponse.class));
+            return null;
+        }).when(client).index(any(IndexRequest.class), any());
+        List<String> readIndices = stubRecordRead();
+        UpdateRequestBuilder visibility = stubVisibilityUpdate();
+
+        Engine.IndexResult result = mock(Engine.IndexResult.class);
+        when(result.isCreated()).thenReturn(true);
+        when(result.getSeqNo()).thenReturn(9L);
+        when(result.getTerm()).thenReturn(2L);
+        listener.postIndex(
+            new ShardId(INDEX, "uuid", 0),
+            indexOp("workflow-1", new StringField("workflow.type", "workflow", Field.Store.NO)),
+            result
+        );
+
+        assertFalse("the resource document's version must not be read", readIndices.contains(INDEX));
+        verify(visibility).setIfSeqNo(9L);
+        verify(visibility).setIfPrimaryTerm(2L);
+    }
+
     @Test
     public void createsNoRecordForADocumentOfNoRegisteredType() {
         create("metadata-1", new StringField("metadata.monitor_id", "monitor-1", Field.Store.NO));
@@ -133,7 +163,7 @@ public class ResourceIndexListenerTests {
     @Test
     public void anUpdateRestoresVisibilityFromTheVersionItWrote() {
         stubRecordRead();
-        UpdateRequestBuilder visibility = stubUpdates();
+        UpdateRequestBuilder visibility = stubVisibilityUpdate();
 
         update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L);
 
@@ -145,7 +175,7 @@ public class ResourceIndexListenerTests {
     @Test
     public void anUpdateReadsTheSharingRecordOnce() {
         List<String> readIndices = stubRecordRead();
-        stubUpdates();
+        stubVisibilityUpdate();
 
         update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L);
 
@@ -156,7 +186,7 @@ public class ResourceIndexListenerTests {
     @Test
     public void anUpdateThatKeepsThePrincipalsDoesNotRewriteThem() {
         stubRecordRead();
-        stubUpdates();
+        stubVisibilityUpdate();
 
         update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L, new StringField(PRINCIPALS, "user:alice", Field.Store.NO));
 
@@ -168,7 +198,7 @@ public class ResourceIndexListenerTests {
     @Test
     public void anUpdateThatChangesThePrincipalsRewritesThem() {
         stubRecordRead();
-        stubUpdates();
+        stubVisibilityUpdate();
 
         update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L, new StringField(PRINCIPALS, "user:bob", Field.Store.NO));
         update(
@@ -189,7 +219,7 @@ public class ResourceIndexListenerTests {
         stubRecordRead(
             "{\"resource_id\":\"workflow-1\",\"created_by\":{\"user\":\"alice\"},\"share_with\":{\"read_only\":{\"users\":[\"bob\"]}}}"
         );
-        stubUpdates();
+        stubVisibilityUpdate();
 
         update(
             "workflow-1",
@@ -209,13 +239,6 @@ public class ResourceIndexListenerTests {
         return new Field(PRINCIPALS, new BytesRef(value), KeywordFieldMapper.Defaults.FIELD_TYPE);
     }
 
-    private UpdateRequestBuilder stubUpdates() {
-        UpdateRequestBuilder builder = mock(UpdateRequestBuilder.class, Answers.RETURNS_SELF);
-        when(builder.request()).thenReturn(mock(UpdateRequest.class));
-        when(client.prepareUpdate(any(), any())).thenReturn(builder);
-        return builder;
-    }
-
     @Test
     public void aFailedWriteReadsTheVersion() {
         List<String> readIndices = stubRecordRead();
@@ -232,6 +255,13 @@ public class ResourceIndexListenerTests {
         update("workflow-1", Engine.Result.Type.SUCCESS, SequenceNumbers.UNASSIGNED_SEQ_NO, 0L);
 
         assertEquals("the version is read before the record", INDEX, readIndices.get(0));
+    }
+
+    private UpdateRequestBuilder stubVisibilityUpdate() {
+        UpdateRequestBuilder visibility = mock(UpdateRequestBuilder.class, Answers.RETURNS_SELF);
+        when(visibility.request()).thenReturn(mock(UpdateRequest.class));
+        when(client.prepareUpdate(any(), any())).thenReturn(visibility);
+        return visibility;
     }
 
     /** Records the index of every GET and answers a sharing-index GET with a record. */
@@ -274,6 +304,8 @@ public class ResourceIndexListenerTests {
     private void create(String id, StringField... fields) {
         Engine.IndexResult result = mock(Engine.IndexResult.class);
         when(result.isCreated()).thenReturn(true);
+        when(result.getSeqNo()).thenReturn(0L);
+        when(result.getTerm()).thenReturn(1L);
 
         listener.postIndex(new ShardId(INDEX, "uuid", 0), indexOp(id, fields), result);
     }
