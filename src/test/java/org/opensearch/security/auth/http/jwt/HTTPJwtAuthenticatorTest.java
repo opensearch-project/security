@@ -636,7 +636,7 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
-    public void testRequireIatClaimRejectsTokenWithoutIat() {
+    public void testRequireNbfClaimRejectsTokenWithoutNbf() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             settingsRequiringClaims(false, true),
             Jwts.builder().setSubject("Leonard McCoy")
@@ -646,10 +646,10 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
-    public void testRequireIatClaimAcceptsTokenWithIat() {
+    public void testRequireNbfClaimAcceptsTokenWithNbf() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             settingsRequiringClaims(false, true),
-            Jwts.builder().setSubject("Leonard McCoy").setIssuedAt(new Date())
+            Jwts.builder().setSubject("Leonard McCoy").setNotBefore(new Date())
         );
 
         Assert.assertNotNull(credentials);
@@ -657,15 +657,14 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
-    public void testRequireIatClaimOnlyChecksPresence() {
-        // require_iat_claim checks presence only; an iat in the future is still accepted
+    public void testRequireNbfClaimStillRejectsFutureNbf() {
+        // require_nbf_claim only adds a presence check; the existing not-before check still rejects a future nbf
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             settingsRequiringClaims(false, true),
-            Jwts.builder().setSubject("Leonard McCoy").setIssuedAt(new Date(System.currentTimeMillis() + 3_600_000))
+            Jwts.builder().setSubject("Leonard McCoy").setNotBefore(new Date(System.currentTimeMillis() + 3_600_000))
         );
 
-        Assert.assertNotNull(credentials);
-        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+        Assert.assertNull(credentials);
     }
 
     @Test
@@ -679,10 +678,10 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
-    public void testRequireIatClaimRejectsMalformedIat() {
+    public void testRequireNbfClaimRejectsMalformedNbf() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             settingsRequiringClaims(false, true),
-            Jwts.builder().setPayload("{\"sub\": \"Leonard McCoy\", \"iat\": \"abc\"}")
+            Jwts.builder().setPayload("{\"sub\": \"Leonard McCoy\", \"nbf\": \"abc\"}")
         );
 
         Assert.assertNull(credentials);
@@ -706,11 +705,11 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertNull(extractCredentialsFromJwtHeader(settings, Jwts.builder().setSubject("Leonard McCoy")));
     }
 
-    private static Settings.Builder settingsRequiringClaims(final boolean requireExp, final boolean requireIat) {
+    private static Settings.Builder settingsRequiringClaims(final boolean requireExp, final boolean requireNbf) {
         return Settings.builder()
             .put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes))
             .put("require_exp_claim", requireExp)
-            .put("require_iat_claim", requireIat);
+            .put("require_nbf_claim", requireNbf);
     }
 
     @Test

@@ -76,21 +76,21 @@ public class JwtVerifierTest {
     }
 
     @Test
-    public void missingIatIsRejectedWhenRequired() throws Exception {
+    public void missingNbfIsRejectedWhenRequired() throws Exception {
         JwtVerifier verifier = verifierRequiring(false, true);
 
         BadCredentialsException e = Assert.assertThrows(
             BadCredentialsException.class,
             () -> verifier.getVerifiedJwtToken(TestJwts.MC_COY_WITH_EXP_ONLY_SIGNED_RSA_1)
         );
-        assertThat(e.getMessage(), containsString("iat"));
+        assertThat(e.getMessage(), containsString("nbf"));
     }
 
     @Test
-    public void presentExpAndIatAreAcceptedWhenRequired() throws Exception {
+    public void presentExpAndNbfAreAcceptedWhenRequired() throws Exception {
         JwtVerifier verifier = verifierRequiring(true, true);
 
-        SignedJWT jwt = verifier.getVerifiedJwtToken(TestJwts.MC_COY_WITH_EXP_AND_IAT_SIGNED_RSA_1);
+        SignedJWT jwt = verifier.getVerifiedJwtToken(TestJwts.MC_COY_WITH_EXP_AND_NBF_SIGNED_RSA_1);
 
         assertThat(jwt.getJWTClaimsSet().getSubject(), is(TestJwts.MCCOY_SUBJECT));
     }
@@ -103,14 +103,14 @@ public class JwtVerifierTest {
 
         BadCredentialsException e = Assert.assertThrows(
             BadCredentialsException.class,
-            () -> verifier.getVerifiedJwtToken(TestJwts.MC_COY_SIGNED_RSA_1) // also has no exp/iat
+            () -> verifier.getVerifiedJwtToken(TestJwts.MC_COY_SIGNED_RSA_1) // also has no exp/nbf
         );
         assertThat(e.getMessage(), is("Invalid JWT signature"));
     }
 
-    private static JwtVerifier verifierRequiring(boolean requireExp, boolean requireIat) throws Exception {
+    private static JwtVerifier verifierRequiring(boolean requireExp, boolean requireNbf) throws Exception {
         KeyProvider keyProvider = mock(KeyProvider.class);
         when(keyProvider.getKey(any())).thenReturn(TestJwk.RSA_1_PUBLIC);
-        return new JwtVerifier(keyProvider, 30, null, Collections.emptyList(), requireExp, requireIat);
+        return new JwtVerifier(keyProvider, 30, null, Collections.emptyList(), requireExp, requireNbf);
     }
 }

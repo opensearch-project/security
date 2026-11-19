@@ -202,7 +202,7 @@ public class HTTPSamlAuthenticatorTest {
     }
 
     @Test
-    public void sessionJwtSatisfiesRequiredExpAndIatClaims() throws Exception {
+    public void sessionJwtSatisfiesRequiredExpAndNbfClaims() throws Exception {
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
         mockSamlIdpServer.setAuthenticateUser("horst");
@@ -215,7 +215,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("exchange_key", "abc")
             .put("roles_key", "roles")
             .put("jwt.require_exp_claim", true)
-            .put("jwt.require_iat_claim", true)
+            .put("jwt.require_nbf_claim", true)
             .put("path.home", ".")
             .build();
 
@@ -234,7 +234,7 @@ public class HTTPSamlAuthenticatorTest {
 
         SignedJWT jwt = SignedJWT.parse(authorization.replaceAll("\\s*bearer\\s*", ""));
         Assert.assertNotNull(jwt.getJWTClaimsSet().getExpirationTime());
-        Assert.assertNotNull(jwt.getJWTClaimsSet().getIssueTime());
+        Assert.assertNotNull(jwt.getJWTClaimsSet().getNotBeforeTime());
 
         AuthCredentials creds = samlAuthenticator.extractCredentials(
             new FakeRestRequest(ImmutableMap.of("Authorization", authorization), new HashMap<>()).asSecurityRequest(),

@@ -29,7 +29,6 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
 import static com.nimbusds.jwt.JWTClaimNames.EXPIRATION_TIME;
-import static com.nimbusds.jwt.JWTClaimNames.ISSUED_AT;
 import static com.nimbusds.jwt.JWTClaimNames.NOT_BEFORE;
 
 class TestJwts {
@@ -62,7 +61,7 @@ class TestJwts {
         TEST_ROLES_STRING
     );
 
-    static final JWTClaimsSet MC_COY_WITH_EXP_AND_IAT = create(
+    static final JWTClaimsSet MC_COY_WITH_EXP_AND_NBF = create(
         MCCOY_SUBJECT,
         TEST_AUDIENCE,
         TEST_ISSUER,
@@ -70,7 +69,7 @@ class TestJwts {
         TEST_ROLES_STRING,
         EXPIRATION_TIME,
         NOW_EPOCH_SECONDS + ONE_HOUR_SECONDS,
-        ISSUED_AT,
+        NOT_BEFORE,
         NOW_EPOCH_SECONDS
     );
 
@@ -117,8 +116,8 @@ class TestJwts {
     );
 
     static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
-    static final String MC_COY_WITH_EXP_AND_IAT_SIGNED_OCT_1 = createSigned(MC_COY_WITH_EXP_AND_IAT, TestJwk.OCT_1);
-    static final String MC_COY_WITH_EXP_AND_IAT_SIGNED_RSA_1 = createSigned(MC_COY_WITH_EXP_AND_IAT, TestJwk.RSA_1);
+    static final String MC_COY_WITH_EXP_AND_NBF_SIGNED_OCT_1 = createSigned(MC_COY_WITH_EXP_AND_NBF, TestJwk.OCT_1);
+    static final String MC_COY_WITH_EXP_AND_NBF_SIGNED_RSA_1 = createSigned(MC_COY_WITH_EXP_AND_NBF, TestJwk.RSA_1);
     static final String MC_COY_WITH_EXP_ONLY_SIGNED_OCT_1 = createSigned(MC_COY_WITH_EXP_ONLY, TestJwk.OCT_1);
     static final String MC_COY_WITH_EXP_ONLY_SIGNED_RSA_1 = createSigned(MC_COY_WITH_EXP_ONLY, TestJwk.RSA_1);
 

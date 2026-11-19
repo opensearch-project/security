@@ -70,7 +70,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final int clockSkewToleranceSeconds;
 
     private final boolean requireExpClaim;
-    private final boolean requireIatClaim;
+    private final boolean requireNbfClaim;
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
@@ -82,7 +82,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         requiredAudience = settings.getAsList("required_audience");
         requiredIssuer = settings.get("required_issuer");
         requireExpClaim = settings.getAsBoolean("require_exp_claim", false);
-        requireIatClaim = settings.getAsBoolean("require_iat_claim", false);
+        requireNbfClaim = settings.getAsBoolean("require_nbf_claim", false);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -99,7 +99,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
                 requiredIssuer,
                 requiredAudience,
                 requireExpClaim,
-                requireIatClaim
+                requireNbfClaim
             );
 
         } catch (Exception e) {

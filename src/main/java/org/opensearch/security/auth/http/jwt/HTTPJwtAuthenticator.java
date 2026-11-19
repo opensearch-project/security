@@ -70,7 +70,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final String requireIssuer;
     private final int clockSkewToleranceSeconds;
     private final boolean requireExpClaim;
-    private final boolean requireIatClaim;
+    private final boolean requireNbfClaim;
     private final Set<String> forbiddenSubjects;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -90,7 +90,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS
         );
         requireExpClaim = settings.getAsBoolean("require_exp_claim", false);
-        requireIatClaim = settings.getAsBoolean("require_iat_claim", false);
+        requireNbfClaim = settings.getAsBoolean("require_nbf_claim", false);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -168,7 +168,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
                 final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
-                // Verify presence of required 'exp' and 'iat' claims
+                // Verify presence of required 'exp' and 'nbf' claims
                 if (!hasRequiredTimeClaims(claims)) {
                     return null;
                 }
@@ -223,8 +223,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             log.debug("JWT is missing required claim 'exp'");
             return false;
         }
-        if (requireIatClaim && claims.getIssuedAt() == null) {
-            log.debug("JWT is missing required claim 'iat'");
+        if (requireNbfClaim && claims.getNotBefore() == null) {
+            log.debug("JWT is missing required claim 'nbf'");
             return false;
         }
         return true;

@@ -137,7 +137,7 @@ config:
             roles_key: null
             subject_key: null
             require_exp_claim: false
-            require_iat_claim: false
+            require_nbf_claim: false
         authentication_backend:
           type: noop
       clientcert_auth_domain:

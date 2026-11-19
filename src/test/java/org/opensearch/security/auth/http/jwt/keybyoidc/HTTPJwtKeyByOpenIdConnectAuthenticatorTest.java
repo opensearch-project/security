@@ -520,10 +520,10 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testRequireIatClaimRejectsTokenWithoutIat() {
+    public void testRequireNbfClaimRejectsTokenWithoutNbf() {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("require_iat_claim", true)
+            .put("require_nbf_claim", true)
             .build();
 
         AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
@@ -536,15 +536,15 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     }
 
     @Test
-    public void testRequireExpAndIatClaimsAcceptsTokenWithBoth() {
+    public void testRequireExpAndNbfClaimsAcceptsTokenWithBoth() {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
             .put("require_exp_claim", true)
-            .put("require_iat_claim", true)
+            .put("require_nbf_claim", true)
             .build();
 
         AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_WITH_EXP_AND_IAT_SIGNED_OCT_1), new HashMap<>())
+            new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_WITH_EXP_AND_NBF_SIGNED_OCT_1), new HashMap<>())
                 .asSecurityRequest(),
             null
         );

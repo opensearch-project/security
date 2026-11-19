@@ -57,20 +57,20 @@ public class JwtVerifier {
         String requiredIssuer,
         List<String> requiredAudience,
         boolean requireExpClaim,
-        boolean requireIatClaim
+        boolean requireNbfClaim
     ) {
         this.keyProvider = keyProvider;
         this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
         this.requiredIssuer = requiredIssuer;
         this.requiredAudience = requiredAudience;
 
-        // add required exp and iat claims to requiredClaims set
+        // add required exp and nbf claims to requiredClaims set
         Set<String> claims = new HashSet<>();
         if (requireExpClaim) {
             claims.add(JWTClaimNames.EXPIRATION_TIME);
         }
-        if (requireIatClaim) {
-            claims.add(JWTClaimNames.ISSUED_AT);
+        if (requireNbfClaim) {
+            claims.add(JWTClaimNames.NOT_BEFORE);
         }
         this.requiredClaims = Set.copyOf(claims);
     }

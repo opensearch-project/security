@@ -280,18 +280,18 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
     }
 
     @Test
-    public void testRequireExpAndIatClaimsAcceptsTokenWithBoth() throws Exception {
+    public void testRequireExpAndNbfClaimsAcceptsTokenWithBoth() throws Exception {
         MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
         try {
             Settings settings = Settings.builder()
                 .put("jwks_uri", mockJwksServer.getJwksUri())
                 .put("require_exp_claim", true)
-                .put("require_iat_claim", true)
+                .put("require_nbf_claim", true)
                 .build();
 
             AuthCredentials creds = extractWithJwksAuthenticator(
                 new HTTPJwtKeyByJWKSAuthenticator(settings, null),
-                TestJwts.MC_COY_WITH_EXP_AND_IAT_SIGNED_RSA_1
+                TestJwts.MC_COY_WITH_EXP_AND_NBF_SIGNED_RSA_1
             );
 
             Assert.assertNotNull(creds);
