@@ -16,6 +16,7 @@ import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -104,20 +105,23 @@ public class AccessibleResourcesApiTests {
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString(user.getName()));
         }
-        try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
-            assertThat(resources.size(), equalTo(1));
-            Map<String, Object> resource = (Map<String, Object>) resources.getFirst();
-            assertThat(resource.get("resource_id"), equalTo(adminResId));
-            assertThat(resource.get("created_by"), equalTo(Map.of("user", USER_ADMIN.getName())));
-            assertThat(
-                resource.get("share_with"),
-                equalTo(Map.of(SAMPLE_READ_ONLY, Map.of(Recipient.USERS.getName(), List.of(user.getName()))))
-            );
-            assertThat(resource.get("can_share"), equalTo(Boolean.FALSE));
-        }
+        // Listing searches the all_shared_principals field, which the share makes searchable at the next refresh
+        Awaitility.await("listing shows the share").untilAsserted(() -> {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
+                response.assertStatusCode(HttpStatus.SC_OK);
+                List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
+                assertThat(resources.size(), equalTo(1));
+                Map<String, Object> resource = (Map<String, Object>) resources.getFirst();
+                assertThat(resource.get("resource_id"), equalTo(adminResId));
+                assertThat(resource.get("created_by"), equalTo(Map.of("user", USER_ADMIN.getName())));
+                assertThat(
+                    resource.get("share_with"),
+                    equalTo(Map.of(SAMPLE_READ_ONLY, Map.of(Recipient.USERS.getName(), List.of(user.getName()))))
+                );
+                assertThat(resource.get("can_share"), equalTo(Boolean.FALSE));
+            }
+        });
 
         // share at full-access, can_share should say true
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -134,23 +138,26 @@ public class AccessibleResourcesApiTests {
             response.assertStatusCode(HttpStatus.SC_OK);
             assertThat(response.getBody(), containsString(user.getName()));
         }
-        try (TestRestClient client = cluster.getRestClient(user)) {
-            TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
-            response.assertStatusCode(HttpStatus.SC_OK);
-            List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
-            assertThat(resources.size(), equalTo(1));
-            Map<String, Object> resource = (Map<String, Object>) resources.getFirst();
-            assertThat(resource.get("resource_id"), equalTo(adminResId));
-            assertThat(resource.get("created_by"), equalTo(Map.of("user", USER_ADMIN.getName())));
-            Map<String, Object> shareWith = Map.of(
-                SAMPLE_READ_ONLY,
-                Map.of(Recipient.USERS.getName(), List.of(user.getName())),
-                SAMPLE_FULL_ACCESS,
-                Map.of(Recipient.USERS.getName(), List.of(user.getName()))
-            );
-            assertThat(resource.get("share_with"), equalTo(shareWith));
-            assertThat(resource.get("can_share"), equalTo(Boolean.TRUE));
-        }
+        // Listing searches the all_shared_principals field, which the share makes searchable at the next refresh
+        Awaitility.await("listing shows the share").untilAsserted(() -> {
+            try (TestRestClient client = cluster.getRestClient(user)) {
+                TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
+                response.assertStatusCode(HttpStatus.SC_OK);
+                List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");
+                assertThat(resources.size(), equalTo(1));
+                Map<String, Object> resource = (Map<String, Object>) resources.getFirst();
+                assertThat(resource.get("resource_id"), equalTo(adminResId));
+                assertThat(resource.get("created_by"), equalTo(Map.of("user", USER_ADMIN.getName())));
+                Map<String, Object> shareWith = Map.of(
+                    SAMPLE_READ_ONLY,
+                    Map.of(Recipient.USERS.getName(), List.of(user.getName())),
+                    SAMPLE_FULL_ACCESS,
+                    Map.of(Recipient.USERS.getName(), List.of(user.getName()))
+                );
+                assertThat(resource.get("share_with"), equalTo(shareWith));
+                assertThat(resource.get("can_share"), equalTo(Boolean.TRUE));
+            }
+        });
     }
 
     @Test
@@ -173,6 +180,12 @@ public class AccessibleResourcesApiTests {
 
     @SuppressWarnings("unchecked")
     private void assertListApiWithOwnerAndSuperAdmin(TestRestClient client) {
+        // The listing searches, so it shows the new resource after the next refresh
+        Awaitility.await("listing shows " + adminResId).untilAsserted(() -> assertListedForOwnerOrSuperAdmin(client));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void assertListedForOwnerOrSuperAdmin(TestRestClient client) {
         TestRestClient.HttpResponse response = client.get(SECURITY_LIST_ENDPOINT + "?resource_type=" + RESOURCE_TYPE);
         response.assertStatusCode(HttpStatus.SC_OK);
         List<Object> resources = (List<Object>) response.bodyAsMap().get("resources");

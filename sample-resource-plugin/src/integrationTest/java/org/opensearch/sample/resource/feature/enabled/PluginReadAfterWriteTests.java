@@ -14,7 +14,6 @@ import java.util.List;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
-import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -53,24 +52,29 @@ public class PluginReadAfterWriteTests {
     }
 
     /**
-     * The sharing record a create writes waits for the next scheduled refresh instead of forcing one, so creating many
-     * resources refreshes the sharing index a few times, not once per resource.
+     * A create forces no refresh for its sharing writes, so creating many resources refreshes the sharing index a few
+     * times, not once per resource, and the resource index less often than the forced writes did.
      */
     @Test
-    public void createsDoNotForceASharingIndexRefreshEach() {
+    public void createsDoNotForceRefreshes() {
         // The first create makes the sharing index, so its statistics exist to compare against
         api.awaitPrincipals(api.createSampleResourceAs(FULL_ACCESS_USER));
         int creates = 10;
 
-        long before = refreshes(RESOURCE_SHARING_INDEX);
+        long sharingBefore = refreshes(RESOURCE_SHARING_INDEX);
+        long resourceBefore = refreshes(RESOURCE_INDEX_NAME);
         List<String> ids = new ArrayList<>();
         for (int i = 0; i < creates; i++) {
             ids.add(api.createSampleResourceAs(FULL_ACCESS_USER));
         }
         ids.forEach(api::awaitPrincipals);
-        long refreshed = refreshes(RESOURCE_SHARING_INDEX) - before;
+        long sharing = refreshes(RESOURCE_SHARING_INDEX) - sharingBefore;
+        long resource = refreshes(RESOURCE_INDEX_NAME) - resourceBefore;
 
-        assertThat("sharing index refreshes for " + creates + " creates: " + refreshed, refreshed, lessThan((long) creates));
+        String counts = creates + " creates refreshed the sharing index " + sharing + " times and the resource index " + resource;
+        assertThat(counts, sharing, lessThan((long) creates));
+        // Forced sharing writes cost about four resource index refreshes per create; the plugin's own create forces one
+        assertThat(counts, resource, lessThan(3L * creates));
     }
 
     private long refreshes(String index) {

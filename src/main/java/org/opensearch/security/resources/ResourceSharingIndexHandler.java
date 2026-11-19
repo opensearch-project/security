@@ -128,6 +128,10 @@ public class ResourceSharingIndexHandler {
 
     public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.hidden", "true");
 
+    // Sharing writes do not force a refresh. Access checks read records by realtime GET, so they see a write at once;
+    // searches (the admin listing, and the all_shared_principals filter) see it at the next scheduled refresh.
+    private static final WriteRequest.RefreshPolicy SHARING_WRITE_REFRESH = WriteRequest.RefreshPolicy.NONE;
+
     /**
      * Creates the sharing index with {@link #INDEX_SETTINGS} if it does not exist yet. The first sharing record written
      * for a resource index creates its sharing index, so a cluster has no sharing index until a resource needs one.
@@ -169,12 +173,14 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Makes every sharing record of a resource index searchable now, for a bulk writer that answers once at the end.
+     * Makes the sharing writes on a resource index searchable now, for a bulk writer that answers once at the end.
      *
-     * @param resourceIndex the index whose sharing index is refreshed; a missing sharing index is not an error
+     * @param resourceIndex the resource index to refresh with its sharing index; a missing index is not an error
      */
-    public void refreshSharingIndex(String resourceIndex) {
-        RefreshRequest refresh = new RefreshRequest(getSharingIndex(resourceIndex)).indicesOptions(IndicesOptions.lenientExpandOpen());
+    public void refreshSharingWrites(String resourceIndex) {
+        RefreshRequest refresh = new RefreshRequest(resourceIndex, getSharingIndex(resourceIndex)).indicesOptions(
+            IndicesOptions.lenientExpandOpen()
+        );
         try (ThreadContext.StoredContext ignored = this.threadPool.getThreadContext().stashContext()) {
             client.admin().indices().refresh(refresh).actionGet();
         }
@@ -237,10 +243,8 @@ public class ResourceSharingIndexHandler {
                     Map<String, Object> doc = new HashMap<>();
                     doc.put("workspaces", new ArrayList<>(target));
                     doc.put(WORKSPACES_SEQ_NO_FIELD, sourceSeqNo);
-                    // WAIT_UNTIL (not IMMEDIATE): write-path reads are realtime GET/mget, so a forced refresh per
-                    // reconcile is unnecessary; wait for the next scheduled refresh instead.
                     UpdateRequest ur = client.prepareUpdate(resourceSharingIndex, resourceId)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL)
+                        .setRefreshPolicy(SHARING_WRITE_REFRESH)
                         .setDoc(doc)
                         .setIfSeqNo(getResponse.getSeqNo())
                         .setIfPrimaryTerm(getResponse.getPrimaryTerm())
@@ -426,7 +430,7 @@ public class ResourceSharingIndexHandler {
     ) {
         ActionListener<Boolean> restoring = ActionListener.runBefore(listener, ctx::restore);
         UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
-            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+            .setRefreshPolicy(SHARING_WRITE_REFRESH)
             .setDoc(Map.of("all_shared_principals", sharingInfo.getAllPrincipals()))
             .setIfSeqNo(version.seqNo())
             .setIfPrimaryTerm(version.primaryTerm())
@@ -573,10 +577,8 @@ public class ResourceSharingIndexHandler {
         // TODO: Once stashContext is replaced with switchContext this call will have to be modified
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
-            // No forced refresh: records are read by realtime GET; only the admin listing searches them, and it sees the
-            // record at the next scheduled refresh
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.NONE)
+                .setRefreshPolicy(SHARING_WRITE_REFRESH)
                 .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
                 .setId(resourceId)
@@ -1095,7 +1097,7 @@ public class ResourceSharingIndexHandler {
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                 .setId(resourceId)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .setRefreshPolicy(SHARING_WRITE_REFRESH)
                 .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.INDEX)
                 .setIfSeqNo(seqNo)

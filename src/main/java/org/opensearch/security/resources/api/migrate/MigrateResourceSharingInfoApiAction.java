@@ -242,7 +242,9 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
                         .seqNoAndPrimaryTerm(true)   // guards the workspace reconcile and the all_shared_principals write
                 );
 
-            // 2) execute first search
+            // 2) execute first search, after a refresh: sharing writes do not force one, and the scroll must see every
+            // document at its latest version, which guards the field write
+            sharingIndexHandler.refreshSharingWrites(sourceIndex);
             SearchResponse searchResponse = client.search(searchRequest).actionGet();
             String scrollId = searchResponse.getScrollId();
 
@@ -483,8 +485,8 @@ public class MigrateResourceSharingInfoApiAction extends AbstractApiAction {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted while waiting for migration to finish", ie);
         }
-        // Each record is written without a refresh; one refresh at the end makes them all searchable when migrate answers
-        sharingIndexHandler.refreshSharingIndex(sourceInfo.sourceIndex);
+        // Sharing writes do not refresh; one refresh at the end makes records and fields searchable when migrate answers
+        sharingIndexHandler.refreshSharingWrites(sourceInfo.sourceIndex);
 
         String summary = String.format(
             "Migration complete. migrated %d; backfilledExisting %d; skippedNoType %s; skippedExisting %s; failed %d",

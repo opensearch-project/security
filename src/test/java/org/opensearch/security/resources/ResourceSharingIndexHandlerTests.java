@@ -698,11 +698,10 @@ public class ResourceSharingIndexHandlerTests {
     // ---------- all_shared_principals stays in step with the record ---------------------------------
 
     /**
-     * A create writes its record without a refresh, since records are only read by realtime GET, and still makes the
-     * field searchable before it answers.
+     * A create writes its record and its field without forcing a refresh: access checks read the record by realtime GET.
      */
     @Test
-    public void create_writesTheRecordWithoutARefresh() throws Exception {
+    public void create_forcesNoRefresh() throws Exception {
         stubSharingAndResource(() -> recordJson(List.of()));
         IndexRequestBuilder record = stubRecordIndex(l -> l.onResponse(mock(IndexResponse.class)));
         UpdateRequestBuilder field = stubUpdateBuilder();
@@ -713,14 +712,11 @@ public class ResourceSharingIndexHandlerTests {
 
         assertEquals(1, created.size());
         verify(record).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
-        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
     }
 
-    /**
-     * A share is answered to the user who asked for it, so its writes are searchable when the request returns.
-     */
     @Test
-    public void share_forcesTheRefresh() {
+    public void share_forcesNoRefresh() {
         stubSharingAndResource(() -> recordJson(List.of()));
         IndexRequestBuilder record = stubRecordIndex(l -> l.onResponse(mock(IndexResponse.class)));
         UpdateRequestBuilder field = stubUpdateBuilder();
@@ -730,8 +726,8 @@ public class ResourceSharingIndexHandlerTests {
         handler.share("res-1", RESOURCE_INDEX, shareWith("alice"), ActionListener.wrap(shared::add, e -> fail(e.toString())));
 
         assertEquals(1, shared.size());
-        verify(record).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        verify(record).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
+        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
     }
 
     @Test
