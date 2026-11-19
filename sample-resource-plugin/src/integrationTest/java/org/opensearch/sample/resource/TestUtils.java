@@ -370,17 +370,6 @@ public final class TestUtils {
         }
 
         // Wipe out all entries in sample index
-        /**
-         * Makes the latest resource and sharing writes searchable, as the next scheduled refresh would. Sharing writes do
-         * not force a refresh, so a test that searches right after one calls this first.
-         */
-        public void refreshForSearch() {
-            try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-                client.post(RESOURCE_INDEX_NAME + "," + RESOURCE_SHARING_INDEX + "/_refresh?ignore_unavailable=true")
-                    .assertStatusCode(HttpStatus.SC_OK);
-            }
-        }
-
         public void wipeOutResourceEntries() {
             try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
                 // 1) Only run if the index exists
@@ -391,15 +380,16 @@ public final class TestUtils {
                 }
                 exists.assertStatusCode(HttpStatus.SC_OK); // fail fast on anything unexpected
 
-                // Delete-by-query only sees refreshed documents, and resource writes do not force a refresh
-                client.post(RESOURCE_INDEX_NAME + "/_refresh").assertStatusCode(HttpStatus.SC_OK);
-
-                // 2) Delete-by-query but ignore version conflicts
+                // Delete-by-query skips a document it conflicts with, such as one an in-flight all_shared_principals write
+                // is updating, so repeat until a pass has no conflicts; refresh first, since it deletes only what it can find.
                 String endpoint = RESOURCE_INDEX_NAME + "/_delete_by_query?conflicts=proceed&refresh=true&wait_for_completion=true";
-
                 String jsonBody = "{ \"query\": { \"match_all\": {} } }";
-                TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
-                resp.assertStatusCode(HttpStatus.SC_OK);
+                Awaitility.await("resource index emptied").pollInterval(Duration.ofMillis(200)).untilAsserted(() -> {
+                    client.post(RESOURCE_INDEX_NAME + "/_refresh").assertStatusCode(HttpStatus.SC_OK);
+                    TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
+                    resp.assertStatusCode(HttpStatus.SC_OK);
+                    assertThat(resp.getBody(), resp.bodyAsJsonNode().get("version_conflicts").asInt(), equalTo(0));
+                });
             }
         }
 
@@ -498,7 +488,6 @@ public final class TestUtils {
          * every one of them and the call is allowed only if all of them are accessible to the user.
          */
         public TestRestClient.HttpResponse multiGetResources(List<String> resourceIds, TestSecurityConfig.User user) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_MGET_ENDPOINT + "/" + String.join(",", resourceIds));
             }
@@ -509,7 +498,6 @@ public final class TestUtils {
          * the resource that governs it and the security plugin authorizes that resource.
          */
         public TestRestClient.HttpResponse getResourceByName(String resourceName, TestSecurityConfig.User user) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_GET_BY_NAME_ENDPOINT + "/" + resourceName);
             }
@@ -530,7 +518,6 @@ public final class TestUtils {
         }
 
         public TestRestClient.HttpResponse searchResources(TestSecurityConfig.User user) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_SEARCH_ENDPOINT);
             }
@@ -548,7 +535,6 @@ public final class TestUtils {
             int expectedHits,
             String expectedResourceName
         ) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 TestRestClient.HttpResponse response = client.get(endpoint);
                 response.assertStatusCode(status);
@@ -594,21 +580,18 @@ public final class TestUtils {
         }
 
         public TestRestClient.HttpResponse searchResources(String searchPayload, TestSecurityConfig.User user) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.postJson(SAMPLE_RESOURCE_SEARCH_ENDPOINT, searchPayload);
             }
         }
 
         public TestRestClient.HttpResponse searchResourceIndex(String searchPayload, TestSecurityConfig.User user) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.postJson(RESOURCE_INDEX_NAME + "/_search", searchPayload);
             }
         }
 
         public TestRestClient.HttpResponse searchResourceIndex(TestSecurityConfig.User user) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(RESOURCE_INDEX_NAME + "/_search");
             }
@@ -633,7 +616,6 @@ public final class TestUtils {
             int expectedHits,
             String expectedResourceName
         ) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 TestRestClient.HttpResponse response = client.postJson(endpoint, searchPayload);
                 response.assertStatusCode(status);
@@ -646,7 +628,6 @@ public final class TestUtils {
         }
 
         public TestRestClient.HttpResponse listResources(TestSecurityConfig.User user) {
-            refreshForSearch();
             try (TestRestClient client = cluster.getRestClient(user)) {
                 return client.get(SAMPLE_RESOURCE_GET_ENDPOINT);
             }

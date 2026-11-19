@@ -10,6 +10,7 @@ package org.opensearch.security.resources;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import org.opensearch.action.StepListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -128,9 +130,12 @@ public class ResourceSharingIndexHandler {
 
     public final static Map<String, Object> INDEX_SETTINGS = Map.of("index.number_of_shards", 1, "index.hidden", "true");
 
-    // Sharing writes do not force a refresh. Access checks read records by realtime GET, so they see a write at once;
-    // searches (the admin listing, and the all_shared_principals filter) see it at the next scheduled refresh.
-    private static final WriteRequest.RefreshPolicy SHARING_WRITE_REFRESH = WriteRequest.RefreshPolicy.NONE;
+    // Sharing record writes force no refresh: access checks read a record by realtime GET, so they see it at once. Only
+    // the admin listing searches the sharing index, and it sees a record once that index is refreshed.
+    private static final WriteRequest.RefreshPolicy RECORD_WRITE_REFRESH = WriteRequest.RefreshPolicy.NONE;
+    // The all_shared_principals write forces a refresh, so search and list reflect a create, share, revoke or update as
+    // soon as the request that made it returns.
+    private static final WriteRequest.RefreshPolicy VISIBILITY_WRITE_REFRESH = WriteRequest.RefreshPolicy.IMMEDIATE;
 
     /**
      * Creates the sharing index with {@link #INDEX_SETTINGS} if it does not exist yet. The first sharing record written
@@ -173,16 +178,24 @@ public class ResourceSharingIndexHandler {
     }
 
     /**
-     * Makes the sharing writes on a resource index searchable now, for a bulk writer that answers once at the end.
+     * Makes the sharing records of a resource index searchable now, for a bulk writer that answers once at the end.
      *
-     * @param resourceIndex the resource index to refresh with its sharing index; a missing index is not an error
+     * @param resourceIndex the resource index whose sharing index is refreshed; a missing sharing index is not an error
      */
-    public void refreshSharingWrites(String resourceIndex) {
-        RefreshRequest refresh = new RefreshRequest(resourceIndex, getSharingIndex(resourceIndex)).indicesOptions(
-            IndicesOptions.lenientExpandOpen()
-        );
+    public void refreshSharingIndex(String resourceIndex) {
+        String sharingIndex = getSharingIndex(resourceIndex);
+        RefreshRequest refresh = new RefreshRequest(sharingIndex).indicesOptions(IndicesOptions.lenientExpandOpen());
         try (ThreadContext.StoredContext ignored = this.threadPool.getThreadContext().stashContext()) {
-            client.admin().indices().refresh(refresh).actionGet();
+            RefreshResponse response = client.admin().indices().refresh(refresh).actionGet();
+            if (response.getFailedShards() > 0) {
+                LOGGER.warn(
+                    "Refresh of {} failed on {} of {} shards: {}",
+                    sharingIndex,
+                    response.getFailedShards(),
+                    response.getTotalShards(),
+                    Arrays.toString(response.getShardFailures())
+                );
+            }
         }
     }
 
@@ -244,7 +257,7 @@ public class ResourceSharingIndexHandler {
                     doc.put("workspaces", new ArrayList<>(target));
                     doc.put(WORKSPACES_SEQ_NO_FIELD, sourceSeqNo);
                     UpdateRequest ur = client.prepareUpdate(resourceSharingIndex, resourceId)
-                        .setRefreshPolicy(SHARING_WRITE_REFRESH)
+                        .setRefreshPolicy(RECORD_WRITE_REFRESH)
                         .setDoc(doc)
                         .setIfSeqNo(getResponse.getSeqNo())
                         .setIfPrimaryTerm(getResponse.getPrimaryTerm())
@@ -430,7 +443,7 @@ public class ResourceSharingIndexHandler {
     ) {
         ActionListener<Boolean> restoring = ActionListener.runBefore(listener, ctx::restore);
         UpdateRequest ur = client.prepareUpdate(resourceIndex, resourceId)
-            .setRefreshPolicy(SHARING_WRITE_REFRESH)
+            .setRefreshPolicy(VISIBILITY_WRITE_REFRESH)
             .setDoc(Map.of("all_shared_principals", sharingInfo.getAllPrincipals()))
             .setIfSeqNo(version.seqNo())
             .setIfPrimaryTerm(version.primaryTerm())
@@ -578,7 +591,7 @@ public class ResourceSharingIndexHandler {
         String resourceSharingIndex = getSharingIndex(resourceIndex);
         try (ThreadContext.StoredContext ctx = this.threadPool.getThreadContext().stashContext()) {
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
-                .setRefreshPolicy(SHARING_WRITE_REFRESH)
+                .setRefreshPolicy(RECORD_WRITE_REFRESH)
                 .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.CREATE) // only create if an entry doesn't exist
                 .setId(resourceId)
@@ -1097,7 +1110,7 @@ public class ResourceSharingIndexHandler {
         try (ThreadContext.StoredContext ctx = threadPool.getThreadContext().stashContext()) {
             IndexRequest ir = client.prepareIndex(resourceSharingIndex)
                 .setId(resourceId)
-                .setRefreshPolicy(SHARING_WRITE_REFRESH)
+                .setRefreshPolicy(RECORD_WRITE_REFRESH)
                 .setSource(sharingInfo.toXContent(jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setOpType(DocWriteRequest.OpType.INDEX)
                 .setIfSeqNo(seqNo)

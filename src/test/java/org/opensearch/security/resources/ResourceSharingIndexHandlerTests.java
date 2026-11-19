@@ -30,6 +30,8 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
@@ -46,6 +48,7 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateRequestBuilder;
 import org.opensearch.action.update.UpdateResponse;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.AbstractRunnable;
@@ -81,6 +84,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import static org.opensearch.security.resources.ResourceSharingIndexHandler.getSharingIndex;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -698,10 +702,11 @@ public class ResourceSharingIndexHandlerTests {
     // ---------- all_shared_principals stays in step with the record ---------------------------------
 
     /**
-     * A create writes its record and its field without forcing a refresh: access checks read the record by realtime GET.
+     * A create writes its record without forcing a refresh, since access checks read records by realtime GET, and
+     * forces one on its all_shared_principals write, so search sees the new resource when the create's sync completes.
      */
     @Test
-    public void create_forcesNoRefresh() throws Exception {
+    public void create_refreshesOnlyTheVisibilityWrite() throws Exception {
         stubSharingAndResource(() -> recordJson(List.of()));
         IndexRequestBuilder record = stubRecordIndex(l -> l.onResponse(mock(IndexResponse.class)));
         UpdateRequestBuilder field = stubUpdateBuilder();
@@ -712,11 +717,11 @@ public class ResourceSharingIndexHandlerTests {
 
         assertEquals(1, created.size());
         verify(record).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
-        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
+        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     }
 
     @Test
-    public void share_forcesNoRefresh() {
+    public void share_refreshesOnlyTheVisibilityWrite() {
         stubSharingAndResource(() -> recordJson(List.of()));
         IndexRequestBuilder record = stubRecordIndex(l -> l.onResponse(mock(IndexResponse.class)));
         UpdateRequestBuilder field = stubUpdateBuilder();
@@ -727,7 +732,58 @@ public class ResourceSharingIndexHandlerTests {
 
         assertEquals(1, shared.size());
         verify(record).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
-        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
+        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+    }
+
+    /** The restore after a resource update puts the field back where search sees it when the restore completes. */
+    @Test
+    public void restore_refreshesTheVisibilityWrite() {
+        stubSharingAndResource(() -> recordJson(List.of("alice")));
+        UpdateRequestBuilder field = stubUpdateBuilder();
+        stubUpdates(field, landed -> {});
+
+        List<Object> done = new ArrayList<>();
+        handler.fetchAndUpdateResourceVisibility(
+            "res-1",
+            RESOURCE_INDEX,
+            ResourceVersion.UNKNOWN,
+            ActionListener.wrap(done::add, e -> fail(e.toString()))
+        );
+
+        assertEquals(1, done.size());
+        verify(field).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+    }
+
+    @Test
+    public void reconcile_writesTheRecordWithoutARefresh() {
+        stubRecordGet(true, "{\"resource_id\":\"res-1\",\"created_by\":{\"user\":\"alice\"}}");
+        UpdateRequestBuilder record = stubUpdateBuilder();
+        doAnswer(inv -> {
+            ActionListener<UpdateResponse> l = inv.getArgument(1);
+            l.onResponse(mock(UpdateResponse.class));
+            return null;
+        }).when(client).update(any(UpdateRequest.class), any());
+
+        AtomicReference<Boolean> out = new AtomicReference<>();
+        handler.reconcileWorkspaces(RESOURCE_INDEX, "res-1", Set.of("ws-a"), 5L, ActionListener.wrap(out::set, e -> fail(e.toString())));
+
+        assertTrue(out.get());
+        verify(record).setRefreshPolicy(WriteRequest.RefreshPolicy.NONE);
+    }
+
+    /** Migrate refreshes only the sharing index: the all_shared_principals writes already refreshed the resource index. */
+    @Test
+    public void refreshSharingIndex_refreshesOnlyTheSharingIndex() {
+        RefreshResponse response = mock(RefreshResponse.class);
+        ActionFuture<RefreshResponse> future = mock(ActionFuture.class);
+        when(future.actionGet()).thenReturn(response);
+        ArgumentCaptor<RefreshRequest> request = ArgumentCaptor.forClass(RefreshRequest.class);
+        when(indicesAdminClient.refresh(request.capture())).thenReturn(future);
+
+        handler.refreshSharingIndex(RESOURCE_INDEX);
+
+        assertArrayEquals(new String[] { getSharingIndex(RESOURCE_INDEX) }, request.getValue().indices());
+        assertTrue(request.getValue().indicesOptions().ignoreUnavailable());
     }
 
     @Test

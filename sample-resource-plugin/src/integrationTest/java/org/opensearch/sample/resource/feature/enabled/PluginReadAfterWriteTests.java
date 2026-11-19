@@ -52,36 +52,53 @@ public class PluginReadAfterWriteTests {
     }
 
     /**
-     * A create forces no refresh for its sharing writes, so creating many resources refreshes the sharing index a few
-     * times, not once per resource, and the resource index less often than the forced writes did.
+     * A create writes its sharing record without forcing a refresh, so creating many resources barely refreshes the
+     * sharing index. Its all_shared_principals write still forces one on the resource index, as the plugin's create does.
      */
     @Test
-    public void createsDoNotForceRefreshes() {
-        // The first create makes the sharing index, so its statistics exist to compare against
+    public void createsForceNoSharingIndexRefresh() {
+        // The first create makes the sharing index, so its settings and statistics exist
         api.awaitPrincipals(api.createSampleResourceAs(FULL_ACCESS_USER));
         int creates = 10;
 
-        long sharingBefore = refreshes(RESOURCE_SHARING_INDEX);
-        long resourceBefore = refreshes(RESOURCE_INDEX_NAME);
-        List<String> ids = new ArrayList<>();
-        for (int i = 0; i < creates; i++) {
-            ids.add(api.createSampleResourceAs(FULL_ACCESS_USER));
+        // With scheduled refreshes off, every refresh counted below is one a write forced
+        setRefreshInterval("-1");
+        long sharing;
+        long resource;
+        try {
+            long sharingBefore = primaryRefreshes(RESOURCE_SHARING_INDEX);
+            long resourceBefore = primaryRefreshes(RESOURCE_INDEX_NAME);
+            List<String> ids = new ArrayList<>();
+            for (int i = 0; i < creates; i++) {
+                ids.add(api.createSampleResourceAs(FULL_ACCESS_USER));
+            }
+            ids.forEach(api::awaitPrincipals);
+            sharing = primaryRefreshes(RESOURCE_SHARING_INDEX) - sharingBefore;
+            resource = primaryRefreshes(RESOURCE_INDEX_NAME) - resourceBefore;
+        } finally {
+            setRefreshInterval(null);
         }
-        ids.forEach(api::awaitPrincipals);
-        long sharing = refreshes(RESOURCE_SHARING_INDEX) - sharingBefore;
-        long resource = refreshes(RESOURCE_INDEX_NAME) - resourceBefore;
 
         String counts = creates + " creates refreshed the sharing index " + sharing + " times and the resource index " + resource;
+        // A record write that forced a refresh would cost one refresh per create
         assertThat(counts, sharing, lessThan((long) creates));
-        // Forced sharing writes cost about four resource index refreshes per create; the plugin's own create forces one
-        assertThat(counts, resource, lessThan(3L * creates));
+        // One forced refresh for the plugin's own create and one for the all_shared_principals write
+        assertThat(counts, resource, lessThanOrEqualTo(2L * creates));
     }
 
-    private long refreshes(String index) {
+    private void setRefreshInterval(String interval) {
+        String body = "{\"index.refresh_interval\":" + (interval == null ? "null" : "\"" + interval + "\"") + "}";
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            client.putJson(RESOURCE_INDEX_NAME + "," + RESOURCE_SHARING_INDEX + "/_settings", body).assertStatusCode(HttpStatus.SC_OK);
+        }
+    }
+
+    // Primaries only, so the count does not depend on how many replicas the test cluster allocates
+    private long primaryRefreshes(String index) {
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
             HttpResponse stats = client.get(index + "/_stats/refresh");
             stats.assertStatusCode(HttpStatus.SC_OK);
-            return stats.bodyAsJsonNode().at("/_all/total/refresh/total").asLong();
+            return stats.bodyAsJsonNode().at("/_all/primaries/refresh/total").asLong();
         }
     }
 
