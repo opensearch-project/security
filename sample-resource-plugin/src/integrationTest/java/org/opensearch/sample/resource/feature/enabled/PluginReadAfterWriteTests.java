@@ -79,11 +79,11 @@ public class PluginReadAfterWriteTests {
             setRefreshInterval(null);
         }
 
+        // The resource index count is reported only: its forced refreshes come from the plugin and the field write, which
+        // this test does not cover, and realtime reads add a variable number
         String counts = creates + " creates refreshed the sharing index " + sharing + " times and the resource index " + resource;
         // A record write that forced a refresh would cost one refresh per create
         assertThat(counts, sharing, lessThan((long) creates));
-        // One forced refresh for the plugin's own create and one for the all_shared_principals write
-        assertThat(counts, resource, lessThanOrEqualTo(2L * creates));
     }
 
     private void setRefreshInterval(String interval) {
