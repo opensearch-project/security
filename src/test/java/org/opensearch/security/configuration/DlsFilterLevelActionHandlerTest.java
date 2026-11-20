@@ -12,6 +12,8 @@
 package org.opensearch.security.configuration;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
@@ -21,6 +23,10 @@ import org.apache.lucene.search.BooleanClause;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.cluster.ClusterState;
@@ -34,7 +40,11 @@ import org.opensearch.index.query.ConstantScoreQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilderVisitor;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.indices.TermsLookup;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.suggest.SuggestBuilder;
+import org.opensearch.search.suggest.term.TermSuggestionBuilder;
+import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
 import org.opensearch.security.privileges.dlsfls.DlsRestriction;
 import org.opensearch.security.privileges.dlsfls.DocumentPrivileges;
@@ -1090,7 +1100,7 @@ public class DlsFilterLevelActionHandlerTest {
             clusterService,
             null,
             threadContext,
-            false
+            DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
         );
 
         assertThat(result, is(true));
@@ -1145,7 +1155,7 @@ public class DlsFilterLevelActionHandlerTest {
                 clusterService,
                 null,
                 threadContext,
-                true
+                DlsFilterLevelActionHandler.QueryHandling.HYBRID_WITH_READER_DLS
             );
 
             assertThat(result, is(false));
@@ -1188,7 +1198,7 @@ public class DlsFilterLevelActionHandlerTest {
             clusterService,
             null,
             threadContext,
-            true
+            DlsFilterLevelActionHandler.QueryHandling.HYBRID_WITH_READER_DLS
         );
 
         assertThat(result, is(false));
@@ -1209,13 +1219,22 @@ public class DlsFilterLevelActionHandlerTest {
         when(context.getAction()).thenReturn("cluster:test");
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
 
-        boolean result = DlsFilterLevelActionHandler.handle(context, null, null, null, null, null, threadContext, false);
+        boolean result = DlsFilterLevelActionHandler.handle(
+            context,
+            null,
+            null,
+            null,
+            null,
+            null,
+            threadContext,
+            DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
+        );
 
         assertThat(result, is(true));
     }
 
     @Test
-    public void wrapsHybridQueryWhenReaderLevelDlsIsNotPreserved() {
+    public void wrapsHybridQueryWhenHybridInjectionIsNotSelected() {
         QueryBuilder hybridQuery = mock(QueryBuilder.class);
         BoolQueryBuilder dlsQuery = createDlsQuery();
         SearchSourceBuilder searchSource = SearchSourceBuilder.searchSource().query(hybridQuery);
@@ -1227,6 +1246,221 @@ public class DlsFilterLevelActionHandlerTest {
         assertThat(searchSource.query(), sameInstance(dlsQuery));
         assertThat(dlsQuery.must(), contains(sameInstance(hybridQuery)));
         verify(hybridQuery, never()).filter(dlsQuery);
+    }
+
+    @Test
+    public void scopesHybridTermLookupStateAcrossAsyncCallbacks() {
+        for (boolean queryLookup : List.of(false, true)) {
+            for (boolean fail : List.of(false, true)) {
+                assertHybridTermLookupDispatch(queryLookup, fail, false);
+            }
+        }
+    }
+
+    @Test
+    public void rejectsSuggestionsForHybridFilterLevelDlsBeforeDispatch() {
+        assertHybridTermLookupDispatch(false, false, true);
+    }
+
+    @Test
+    public void filterLevelDispatchHandlesGetMultiGetAndCrossClusterShards() {
+        for (ActionRequest request : List.of(
+            new GetRequest("index", "id"),
+            new MultiGetRequest().add("index", "id"),
+            new ClusterSearchShardsRequest("index")
+        )) {
+            ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+            threadContext.putHeader("caller", "original");
+            PrivilegesEvaluationContext context = mock(PrivilegesEvaluationContext.class);
+            when(context.getAction()).thenReturn("indices:data/read/test");
+            when(context.getRequest()).thenReturn(request);
+            when(context.getResolvedIndices()).thenReturn(ResolvedIndices.of("index"));
+            DocumentPrivileges.RenderedDlsQuery rule = mock(DocumentPrivileges.RenderedDlsQuery.class);
+            when(rule.getQueryBuilder()).thenReturn(QueryBuilders.termQuery("tenant", "allowed"));
+            IndexToRuleMap<DlsRestriction> restrictions = new IndexToRuleMap<>(ImmutableMap.of("index", new DlsRestriction(List.of(rule))));
+            ClusterService clusterService = mock(ClusterService.class);
+            when(clusterService.state()).thenReturn(mock(ClusterState.class));
+            Client client = mock(Client.class);
+            AtomicReference<Exception> failure = new AtomicReference<>();
+            ActionListener<Object> listener = ActionListener.wrap(
+                response -> { throw new AssertionError("unexpected response"); },
+                error -> {
+                    assertThat(threadContext.getHeader("caller"), is("original"));
+                    assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+                    failure.set(error);
+                }
+            );
+            RuntimeException searchFailure = new RuntimeException("search failed");
+            doAnswer(invocation -> {
+                assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is("true"));
+                invocation.<ActionListener<SearchResponse>>getArgument(1).onFailure(searchFailure);
+                return null;
+            }).when(client).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
+
+            assertThat(
+                DlsFilterLevelActionHandler.handle(
+                    context,
+                    restrictions,
+                    listener,
+                    client,
+                    clusterService,
+                    null,
+                    threadContext,
+                    DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
+                ),
+                is(false)
+            );
+            if (request instanceof ClusterSearchShardsRequest) {
+                assertThat(
+                    failure.get().getMessage(),
+                    is("Filter-level DLS via cross cluster search is not available for scrolling and minimize_roundtrips=true")
+                );
+                verify(client, never()).search(
+                    any(SearchRequest.class),
+                    org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any()
+                );
+            } else {
+                assertThat(failure.get(), sameInstance(searchFailure));
+            }
+            assertThat(threadContext.getHeader("caller"), is("original"));
+            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+        }
+    }
+
+    @Test
+    public void sourceLessSearchInHybridFilterLevelModeReceivesDlsQuery() {
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        SearchRequest request = new SearchRequest().indices("index");
+        PrivilegesEvaluationContext context = mock(PrivilegesEvaluationContext.class);
+        when(context.getAction()).thenReturn("indices:data/read/search");
+        when(context.getRequest()).thenReturn(request);
+        when(context.getResolvedIndices()).thenReturn(ResolvedIndices.of("index"));
+        DocumentPrivileges.RenderedDlsQuery rule = mock(DocumentPrivileges.RenderedDlsQuery.class);
+        QueryBuilder dls = QueryBuilders.termQuery("tenant", "allowed");
+        when(rule.getQueryBuilder()).thenReturn(dls);
+        IndexToRuleMap<DlsRestriction> restrictions = new IndexToRuleMap<>(ImmutableMap.of("index", new DlsRestriction(List.of(rule))));
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.state()).thenReturn(mock(ClusterState.class));
+        Client client = mock(Client.class);
+        assertThat(
+            DlsFilterLevelActionHandler.handle(
+                context,
+                restrictions,
+                mock(ActionListener.class),
+                client,
+                clusterService,
+                null,
+                threadContext,
+                DlsFilterLevelActionHandler.QueryHandling.HYBRID_FILTER_LEVEL
+            ),
+            is(false)
+        );
+        assertThat(((BoolQueryBuilder) request.source().query()).should(), contains(sameInstance(dls)));
+        verify(client).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
+    }
+
+    private static void assertHybridTermLookupDispatch(boolean queryLookup, boolean fail, boolean suggest) {
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        try (ThreadContext.StoredContext ignored = threadContext.stashContext()) {
+            threadContext.putHeader("caller", "original");
+            QueryBuilder hybrid = mock(QueryBuilder.class);
+            QueryBuilder[] branches = { QueryBuilders.matchAllQuery(), QueryBuilders.termQuery("tag", "search") };
+            stubHybridQuery(hybrid, branches);
+            when(hybrid.filter(any(QueryBuilder.class))).thenAnswer(invocation -> {
+                for (int i = 0; i < branches.length; i++) {
+                    branches[i] = branches[i].filter(invocation.getArgument(0));
+                }
+                return hybrid;
+            });
+            SearchRequest request = new SearchRequest("index").source(SearchSourceBuilder.searchSource().query(hybrid));
+            if (suggest) {
+                request.source().suggest(new SuggestBuilder().addSuggestion("suggest", new TermSuggestionBuilder("tag").text("search")));
+            }
+            TermsLookup lookup = queryLookup
+                ? new TermsLookup("lookup", null, "tenants", QueryBuilders.termQuery("user", "alice"))
+                : new TermsLookup("lookup", "alice", "tenants");
+            DocumentPrivileges.RenderedDlsQuery rule = mock(DocumentPrivileges.RenderedDlsQuery.class);
+            when(rule.getQueryBuilder()).thenReturn(QueryBuilders.termsLookupQuery("tenant", lookup));
+            IndexToRuleMap<DlsRestriction> restrictions = new IndexToRuleMap<>(ImmutableMap.of("index", new DlsRestriction(List.of(rule))));
+            PrivilegesEvaluationContext context = mock(PrivilegesEvaluationContext.class);
+            when(context.getAction()).thenReturn("indices:data/read/search");
+            when(context.getRequest()).thenReturn(request);
+            when(context.getResolvedIndices()).thenReturn(ResolvedIndices.of("index"));
+            ClusterService clusterService = mock(ClusterService.class);
+            when(clusterService.state()).thenReturn(mock(ClusterState.class));
+            Client client = mock(Client.class);
+            AtomicReference<ActionListener<SearchResponse>> callback = new AtomicReference<>();
+            AtomicReference<Supplier<ThreadContext.StoredContext>> childContext = new AtomicReference<>();
+            doAnswer(invocation -> {
+                assertThat(request.source().query(), sameInstance(hybrid));
+                assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is("true"));
+                assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED), is((String) null));
+                DocumentAllowList allowlist = DocumentAllowList.get(threadContext);
+                assertThat(allowlist.isAllowed("lookup", queryLookup ? DocumentAllowList.ANY_DOCUMENT_ID : "alice"), is(true));
+                assertThat(allowlist.isAllowed("unrelated", "alice"), is(false));
+                callback.set(invocation.getArgument(1));
+                childContext.set(threadContext.newRestorableContext(false));
+                return null;
+            }).when(client).search(any(SearchRequest.class), org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any());
+            AtomicInteger completed = new AtomicInteger();
+            RuntimeException failure = new RuntimeException("search failed");
+            Runnable assertCallerContext = () -> {
+                assertThat(threadContext.getHeader("caller"), is("original"));
+                assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+                assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_FILTER_APPLIED), is((String) null));
+                assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER), is((String) null));
+                completed.incrementAndGet();
+            };
+            ActionListener<SearchResponse> listener = ActionListener.wrap(response -> {
+                assertThat(fail || suggest, is(false));
+                assertCallerContext.run();
+            }, error -> {
+                if (suggest) {
+                    assertThat(error.getMessage(), is("Suggestions are not supported for hybrid queries with filter-level DLS"));
+                } else {
+                    assertThat(fail, is(true));
+                    assertThat(error, sameInstance(failure));
+                }
+                assertCallerContext.run();
+            });
+            boolean result = DlsFilterLevelActionHandler.handle(
+                context,
+                restrictions,
+                listener,
+                client,
+                clusterService,
+                null,
+                threadContext,
+                DlsFilterLevelActionHandler.QueryHandling.HYBRID_FILTER_LEVEL
+            );
+            assertThat(result, is(false));
+            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is((String) null));
+            assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER), is((String) null));
+            if (suggest) {
+                verify(client, never()).search(
+                    any(SearchRequest.class),
+                    org.mockito.ArgumentMatchers.<ActionListener<SearchResponse>>any()
+                );
+                verify(hybrid, never()).filter(any(QueryBuilder.class));
+            } else {
+                assertThat(completed.get(), is(0));
+                try (ThreadContext.StoredContext worker = threadContext.stashContext()) {
+                    threadContext.putHeader("worker", "unrelated");
+                    try (ThreadContext.StoredContext child = childContext.get().get()) {
+                        if (fail) {
+                            callback.get().onFailure(failure);
+                        } else {
+                            callback.get().onResponse(mock(SearchResponse.class));
+                        }
+                        assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE), is("true"));
+                    }
+                    assertThat(threadContext.getHeader("worker"), is("unrelated"));
+                    assertThat(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER), is((String) null));
+                }
+            }
+            assertThat(completed.get(), is(1));
+            assertThat(threadContext.getHeader("caller"), is("original"));
+        }
     }
 
     private static BoolQueryBuilder createDlsQuery() {
@@ -1275,7 +1509,16 @@ public class DlsFilterLevelActionHandlerTest {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putHeader(header, "true");
 
-        boolean result = DlsFilterLevelActionHandler.handle(null, null, null, null, null, null, threadContext, false);
+        boolean result = DlsFilterLevelActionHandler.handle(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            threadContext,
+            DlsFilterLevelActionHandler.QueryHandling.FILTER_LEVEL
+        );
 
         assertThat(result, is(true));
     }
