@@ -121,7 +121,7 @@ public class JwtVerifier {
         }
 
         if (result == null) {
-            throw new BadCredentialsException("Cannot verify JWT");
+            throw new BadCredentialsException("Cannot verify JWT - unsupported key type: " + key.getClass().getName());
         } else {
             return result;
         }

@@ -38,9 +38,9 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
     private final static String HIDDEN_USERS = "hidden-user";
 
-    public final static String TEST_USER_PASSWORD = randomAlphabetic(10);
+    public final static String TEST_USER_PASSWORD = randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH);
 
-    public final static String TEST_USER_NEW_PASSWORD = randomAlphabetic(10);
+    public final static String TEST_USER_NEW_PASSWORD = randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH);
 
     @ClassRule
     public static LocalCluster localCluster = clusterBuilder().users(
@@ -69,11 +69,11 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
             assertThat(response.getBody(), account.get("tenants").isObject());
             assertThat(response.getBody(), account.get("roles").isArray());
         }
-        try (TestRestClient client = localCluster.getRestClient(NEW_USER.getName(), "a")) {
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER.getName(), randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH))) {
             HttpResponse response = client.get(accountPath());
             assertThat(response, isUnauthorized());
         }
-        try (TestRestClient client = localCluster.getRestClient("a", "b")) {
+        try (TestRestClient client = localCluster.getRestClient("a", randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH))) {
             HttpResponse response = client.get(accountPath());
             assertThat(response, isUnauthorized());
         }
@@ -90,18 +90,27 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
             HttpResponse response = client.get(accountPath());
             assertThat(response, isOk());
             assertThat(response.getBooleanFromJsonBody("/is_reserved"), is(true));
-            assertThat(client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))), isForbidden());
+            assertThat(
+                client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH))),
+                isForbidden()
+            );
         }
         try (TestRestClient client = localCluster.getRestClient(HIDDEN_USERS, DEFAULT_PASSWORD)) {
             HttpResponse response = client.get(accountPath());
             assertThat(response, isOk());
             assertThat(response.getBooleanFromJsonBody("/is_hidden"), is(true));
-            assertThat(client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))), isNotFound());
+            assertThat(
+                client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH))),
+                isNotFound()
+            );
         }
         try (TestRestClient client = localCluster.getAdminCertRestClient()) {
             HttpResponse response = client.get(accountPath());
             assertThat(response, isOk());
-            assertThat(client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(10))), isNotFound());
+            assertThat(
+                client.putJson(accountPath(), changePasswordPayload(DEFAULT_PASSWORD, randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH))),
+                isNotFound()
+            );
         }
     }
 
@@ -127,7 +136,7 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
     }
 
     private void verifyPasswordCanBeChanged() throws Exception {
-        final var newPassword = randomAlphabetic(10);
+        final var newPassword = randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH);
         try (TestRestClient client = localCluster.getRestClient(TEST_USER, TEST_USER_PASSWORD)) {
             HttpResponse resp = client.putJson(
                 accountPath(),
@@ -144,8 +153,8 @@ public class AccountRestApiIntegrationTest extends AbstractApiIntegrationTest {
     @Test
     public void testPutAccountRetainsAccountInformation() throws Exception {
         final var username = "test";
-        final String password = randomAlphabetic(10);
-        final String newPassword = randomAlphabetic(10);
+        final String password = randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH);
+        final String newPassword = randomAlphabetic(FIPS_MIN_PASSWORD_LENGTH);
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             assertThat(
                 client.putJson(

@@ -32,7 +32,10 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends AbstractApiIntegrationTest {
 
     @ClassRule
-    public static LocalCluster localCluster = clusterBuilder().nodeSetting(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 9).build();
+    public static LocalCluster localCluster = clusterBuilder().nodeSetting(
+        ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH,
+        FIPS_MIN_PASSWORD_LENGTH
+    ).build();
 
     String internalUsers(String... path) {
         final var fullPath = new StringJoiner("/").add(super.apiPath("internalusers"));
@@ -53,14 +56,14 @@ public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends 
     @Test
     public void canNotCreateUsersWithPassword() throws Exception {
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
-            final var r1 = client.putJson(internalUsers("admin"), internalUserWithPassword("password89"));
+            final var r1 = client.putJson(internalUsers("admin"), internalUserWithPassword("password123456789"));
             assertThat(r1, isBadRequest());
             assertThat(
                 r1.getTextFromJsonBody("/reason"),
                 org.hamcrest.Matchers.containsString(RequestContentValidator.ValidationError.WEAK_PASSWORD.message())
             );
 
-            final var r2 = client.putJson(internalUsers("admin"), internalUserWithPassword("A123456789"));
+            final var r2 = client.putJson(internalUsers("admin"), internalUserWithPassword("ABCDE123456789"));
             assertThat(r2, isBadRequest());
             assertThat(
                 r2.getTextFromJsonBody("/reason"),
@@ -79,10 +82,10 @@ public class InternalUsersScoreBasedPasswordRulesRestApiIntegrationTest extends 
     @Test
     public void canCreateUserWithPassword() throws Exception {
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
-            final var createdResp = client.putJson(internalUsers("str1234567"), internalUserWithPassword("s5tRx2r4bwex"));
+            final var createdResp = client.putJson(internalUsers("str1234567"), internalUserWithPassword("s5tRx2r4bwexYZ"));
             assertThat(createdResp, isCreated());
 
-            final var patchResp = client.patch(internalUsers(), patch(addOp("str1234567", internalUserWithPassword("s5tRx2r4bwex"))));
+            final var patchResp = client.patch(internalUsers(), patch(addOp("str1234567", internalUserWithPassword("s5tRx2r4bwexYZ"))));
             assertThat(patchResp, isOk());
         }
     }

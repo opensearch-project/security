@@ -110,8 +110,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Imp
         if (!internalUsersModel.exists(credentials.getUsername())) {
             userExists = false;
             password = credentials.getPassword();
-            hash = "$2y$12$NmKhjNssNgSIj8iXT7SYxeXvMA1E95a9tCt4cySY9FrQ4fB18xEc2"; // Ensure the same cryptographic complexity for users not
-                                                                                   // found and invalid password
+            hash = passwordHasher.getDummyHash(); // Ensure the same cryptographic complexity for users not found and invalid password
         } else {
             userExists = true;
             password = credentials.getPassword();
