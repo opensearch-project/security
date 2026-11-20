@@ -10,6 +10,7 @@ package org.opensearch.security.dlic.rest.validation;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -24,7 +25,7 @@ import org.opensearch.transport.TransportService;
 
 import tools.jackson.databind.JsonNode;
 
-/** Validates literal permissions on role writes, without classifying them as cluster or index actions. */
+/** Validates literal permissions on role and action group writes, without classifying them as cluster or index actions. */
 public class RolePermissionValidator {
     private static final Set<String> SECURITY_PERMISSIONS = securityPermissions();
 
@@ -51,11 +52,38 @@ public class RolePermissionValidator {
         if (invalid.isEmpty()) {
             return ValidationResult.success(role);
         }
+        return invalidPermissions("Unknown or invalid role permissions", invalid);
+    }
+
+    /**
+     * Validates the allowed_actions of written action groups.
+     *
+     * @param actionGroups      the written action groups keyed by name
+     * @param knownActionGroups the names of all action groups in the configuration that would result from the write,
+     *                          including static ones, so that groups written together can reference each other
+     */
+    public ValidationResult<Map<String, JsonNode>> validateActionGroups(Map<String, JsonNode> actionGroups, Set<String> knownActionGroups) {
+        List<String> invalid = new ArrayList<>();
+        for (Map.Entry<String, JsonNode> actionGroup : actionGroups.entrySet()) {
+            validatePermissions(
+                actionGroup.getValue().path("allowed_actions"),
+                "/" + actionGroup.getKey() + "/allowed_actions",
+                knownActionGroups,
+                invalid
+            );
+        }
+        if (invalid.isEmpty()) {
+            return ValidationResult.success(actionGroups);
+        }
+        return invalidPermissions("Unknown or invalid action group permissions", invalid);
+    }
+
+    private static <T> ValidationResult<T> invalidPermissions(String reason, List<String> invalid) {
         return ValidationResult.error(
             RestStatus.BAD_REQUEST,
             (builder, params) -> builder.startObject()
                 .field("status", "error")
-                .field("reason", "Unknown or invalid role permissions")
+                .field("reason", reason)
                 .field("invalid_permissions", invalid)
                 .endObject()
         );

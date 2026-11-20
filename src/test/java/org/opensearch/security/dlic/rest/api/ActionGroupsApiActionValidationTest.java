@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.security.dlic.rest.validation.RolePermissionValidator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 
@@ -40,8 +41,12 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         Mockito.<Object>when(configuration.getCEntry("ag")).thenReturn(actionGroups);
         when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
 
-        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator();
+        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator();
 
         final var result = actionGroupsApiActionEndpointValidator.isAllowedToChangeImmutableEntity(
             SecurityConfiguration.of("ag", configuration)
@@ -57,8 +62,12 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         Mockito.<Object>when(configuration.getCEntry("ag")).thenReturn(actionGroups);
         when(restApiAuthorizationEvaluator.containsRestApiAdminPermissions(any(Object.class))).thenCallRealMethod();
 
-        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator();
+        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator();
 
         final var result = actionGroupsApiActionEndpointValidator.isAllowedToChangeImmutableEntity(
             SecurityConfiguration.of("ag", configuration)
@@ -74,8 +83,12 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         final var ag = objectMapper.createObjectNode()
             .put("type", ActionGroupsApiAction.CLUSTER_TYPE)
             .set("allowed_actions", objectMapper.createArrayNode().add("indices:*"));
-        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator();
+        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator();
 
         final var result = actionGroupsApiActionEndpointValidator.onConfigChange(
             SecurityConfiguration.of(ag, "kibana_read_only", configuration)
@@ -95,8 +108,12 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         final var ag = objectMapper.createObjectNode()
             .put("type", ActionGroupsApiAction.INDEX_TYPE)
             .set("allowed_actions", objectMapper.createArrayNode().add("ag"));
-        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator();
+        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator();
 
         final var result = actionGroupsApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of(ag, "ag", configuration));
         assertFalse(result.isValid());
@@ -111,8 +128,12 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         final var ag = objectMapper.createObjectNode()
             .put("type", "some_type_we_know_nothing_about")
             .set("allowed_actions", objectMapper.createArrayNode().add("ag"));
-        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator();
+        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator();
 
         final var result = actionGroupsApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of(ag, "ag", configuration));
         assertFalse(result.isValid());
@@ -128,8 +149,12 @@ public class ActionGroupsApiActionValidationTest extends AbstractApiActionValida
         doReturn(CType.ACTIONGROUPS).when(configuration).getCType();
         when(configuration.getImplementingClass()).thenCallRealMethod();
         final var ag = objectMapper.createObjectNode().set("allowed_actions", objectMapper.createArrayNode().add("ag"));
-        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(clusterService, threadPool, securityApiDependencies)
-            .createEndpointValidator();
+        final var actionGroupsApiActionEndpointValidator = new ActionGroupsApiAction(
+            clusterService,
+            threadPool,
+            securityApiDependencies,
+            new RolePermissionValidator()
+        ).createEndpointValidator();
 
         final var result = actionGroupsApiActionEndpointValidator.onConfigChange(SecurityConfiguration.of(ag, "some_ag", configuration));
         assertTrue(result.isValid());
