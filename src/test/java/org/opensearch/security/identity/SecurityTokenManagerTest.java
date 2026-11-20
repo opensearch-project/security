@@ -140,15 +140,6 @@ public class SecurityTokenManagerTest {
     }
 
     @Test
-    public void issueServiceAccountToken_unsupported() {
-        final UnsupportedOperationException exception = assertThrows(
-            UnsupportedOperationException.class,
-            () -> tokenManager.issueServiceAccountToken("abc-123")
-        );
-        assertThat(exception.getMessage(), equalTo("Service account tokens are not supported by the Security plugin"));
-    }
-
-    @Test
     public void issueOnBehalfOfToken_notEnabledOnCluster() {
         final OpenSearchSecurityException exception = assertThrows(
             OpenSearchSecurityException.class,

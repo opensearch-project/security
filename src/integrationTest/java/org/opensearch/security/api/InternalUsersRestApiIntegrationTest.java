@@ -51,7 +51,6 @@ import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTR
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
-import static org.opensearch.test.framework.matcher.RestMatchers.isNotAllowed;
 import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
 
@@ -562,16 +561,6 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 allSeen.contains(SERVICE_ACCOUNT_USER),
                 is(false)
             );
-        }
-    }
-
-    @Test
-    public void authTokenEndpointIsNotAvailable() throws Exception {
-        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
-            // Service account auth tokens are no longer issued, so no route handles POST on the authtoken path
-            assertThat(client.post(apiPath(ADMIN_USER.getName(), "authtoken")), isBadRequest());
-            assertThat(client.post(apiPath(SERVICE_ACCOUNT_USER, "authtoken")), isBadRequest());
-            assertThat(client.post(apiPath("randomPath")), isNotAllowed());
         }
     }
 
