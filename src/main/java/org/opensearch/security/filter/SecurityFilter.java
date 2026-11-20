@@ -315,7 +315,7 @@ public class SecurityFilter implements ActionFilter {
                     auditLog.logSettingsChange(action, request, task);
                 }
 
-                chain.proceed(task, action, request, listener);
+                proceedKeepingCause(chain, task, action, request, listener);
                 return;
             }
 
@@ -345,14 +345,14 @@ public class SecurityFilter implements ActionFilter {
                 && (injectedRoles == null)
                 && (user == null)) {
 
-                chain.proceed(task, action, request, listener);
+                proceedKeepingCause(chain, task, action, request, listener);
                 return;
             }
 
             if (user == null) {
 
                 if (action.startsWith("cluster:monitor/state")) {
-                    chain.proceed(task, action, request, listener);
+                    proceedKeepingCause(chain, task, action, request, listener);
                     return;
                 }
 
@@ -361,7 +361,7 @@ public class SecurityFilter implements ActionFilter {
                 ) == Boolean.TRUE;
                 if ((localClusterNodeRequest || remoteClusterNodeRequest || request.remoteAddress() == null)
                     && !compatConfig.transportInterClusterAuthEnabled()) {
-                    chain.proceed(task, action, request, listener);
+                    proceedKeepingCause(chain, task, action, request, listener);
                     return;
                 } else if ((localClusterNodeRequest
                     || remoteClusterNodeRequest
@@ -442,7 +442,7 @@ public class SecurityFilter implements ActionFilter {
                         );
                         auditLog.logIndexEvent(action, request, task);
                         auditLog.logSettingsChange(action, request, task);
-                        chain.proceed(task, action, request, listener);
+                        proceedKeepingCause(chain, task, action, request, listener);
                     } else {
                         auditResources(
                             resource,
@@ -488,7 +488,7 @@ public class SecurityFilter implements ActionFilter {
                 }
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
                 if (createIndexRequestBuilder == null) {
-                    chain.proceed(task, action, request, listener);
+                    proceedKeepingCause(chain, task, action, request, listener);
                 } else {
                     CreateIndexRequest createIndexRequest = createIndexRequestBuilder.request();
                     log.info(
@@ -505,7 +505,7 @@ public class SecurityFilter implements ActionFilter {
                                 alias2Name(createIndexRequest.aliases()),
                                 request.getClass().getSimpleName()
                             );
-                            chain.proceed(task, action, request, listener);
+                            proceedKeepingCause(chain, task, action, request, listener);
                         } else {
                             String message = LoggerMessageFormat.format(
                                 "Request to create index {} with aliases {} was not acknowledged, failing {}",
@@ -526,7 +526,7 @@ public class SecurityFilter implements ActionFilter {
                                 request.getClass().getSimpleName(),
                                 e
                             );
-                            chain.proceed(task, action, request, listener);
+                            proceedKeepingCause(chain, task, action, request, listener);
                         } else {
                             log.error(
                                 "Request to create index {} with aliases {} failed, failing {}",
@@ -553,6 +553,33 @@ public class SecurityFilter implements ActionFilter {
         } catch (Throwable e) {
             log.error("Unexpected exception {}", e, e);
             listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    /**
+     * Passes the request on to the next filter or the action and returns any failure it throws with its cause.
+     * Listeners can run on the calling thread, so the failure is handled here instead of by the catch in
+     * {@link #apply0}, which drops the cause.
+     */
+    private <Request extends ActionRequest, Response extends ActionResponse> void proceedKeepingCause(
+        ActionFilterChain<Request, Response> chain,
+        Task task,
+        String action,
+        Request request,
+        ActionListener<Response> listener
+    ) {
+        try {
+            chain.proceed(task, action, request, listener);
+        } catch (OpenSearchException e) {
+            if (task != null) {
+                log.debug("Failed to apply filter. Task id: {} ({}). Action: {}", task.getId(), task.getDescription(), action, e);
+            } else {
+                log.debug("Failed to apply filter. Action: {}", action, e);
+            }
+            listener.onFailure(e);
+        } catch (Throwable t) {
+            log.error("Unexpected exception {}", t, t);
+            listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR, t));
         }
     }
 
