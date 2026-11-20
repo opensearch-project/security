@@ -237,6 +237,8 @@ sequenceDiagram
 
 #### Extension Service Account Authorization
 
+> **Note:** The Security plugin no longer issues service account tokens. The flow below describes the original design and is retained for historical context.
+
 Service account information is provided to the extension on initialization.  This allows extension to make requests against the OpenSearch Cluster without needing an incoming request.  Since this request is down in the context of a different identity it can have different permissions from that of an On Behalf Of user such as modification to a persistent data store used by the extension.
 
 ```mermaid

@@ -1635,7 +1635,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
         this.roleMapper = roleMapper;
         // Secure settings are only readable during node construction, so the keystore keys are loaded here.
         final OnBehalfOfKeys oboKeystoreKeys = OnBehalfOfKeys.load(settings, configPath);
-        tokenManager = new SecurityTokenManager(cs, threadPool, userService, roleMapper, oboKeystoreKeys);
+        tokenManager = new SecurityTokenManager(cs, threadPool, roleMapper, oboKeystoreKeys);
         apiTokenRepository = new ApiTokenRepository(localClient, clusterService);
 
         PrivilegesConfiguration privilegesConfiguration = new PrivilegesConfiguration(

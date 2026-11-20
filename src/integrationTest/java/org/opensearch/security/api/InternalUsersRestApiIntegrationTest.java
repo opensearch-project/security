@@ -566,13 +566,11 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     }
 
     @Test
-    public void verifyPOSTOnlyForAuthTokenEndpoint() throws Exception {
+    public void authTokenEndpointIsNotAvailable() throws Exception {
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            // Service account auth tokens are no longer issued, so no route handles POST on the authtoken path
             assertThat(client.post(apiPath(ADMIN_USER.getName(), "authtoken")), isBadRequest());
-            assertThat(client.post(apiPath(SERVICE_ACCOUNT_USER, "authtoken")), isOk());
-            /*
-              should be notImplement but the call doesn't reach {@link org.opensearch.security.dlic.rest.api.InternalUsersApiAction#withAuthTokenPath(RestRequest)}
-             */
+            assertThat(client.post(apiPath(SERVICE_ACCOUNT_USER, "authtoken")), isBadRequest());
             assertThat(client.post(apiPath("randomPath")), isNotAllowed());
         }
     }

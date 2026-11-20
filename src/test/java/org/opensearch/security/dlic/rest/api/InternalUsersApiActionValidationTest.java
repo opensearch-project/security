@@ -13,14 +13,12 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationMap;
 import org.opensearch.security.dlic.rest.validation.ValidationResult;
@@ -30,7 +28,6 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.user.UserService;
-import org.opensearch.security.util.FakeRestRequest;
 
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -98,30 +95,6 @@ public class InternalUsersApiActionValidationTest extends AbstractApiActionValid
         assertFalse(securityConfiguration.requestContent().has("password"));
         assertTrue(securityConfiguration.requestContent().has("hash"));
         assertTrue(passwordHasher.check("aaaaaa".toCharArray(), securityConfiguration.requestContent().get("hash").asText()));
-    }
-
-    @Test
-    public void withAuthTokenPath() throws Exception {
-        final var internalUsersApiAction = createInternalUsersApiAction();
-        var result = internalUsersApiAction.withAuthTokenPath(
-            FakeRestRequest.builder()
-                .withMethod(RestRequest.Method.POST)
-                .withPath("_plugins/_security/api/internalusers/aaaa")
-                .withParams(Map.of("name", "aaaa"))
-                .build()
-        );
-        assertFalse(result.isValid());
-        assertThat(result.status(), is(RestStatus.NOT_IMPLEMENTED));
-
-        result = internalUsersApiAction.withAuthTokenPath(
-            FakeRestRequest.builder()
-                .withMethod(RestRequest.Method.POST)
-                .withPath("_plugins/_security/api/internalusers/aaaa/authtoken")
-                .withParams(Map.of("name", "aaaa"))
-                .build()
-        );
-        assertTrue(result.isValid());
-        assertThat(result.status(), is(RestStatus.OK));
     }
 
     @Test
