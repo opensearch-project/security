@@ -15,15 +15,13 @@ import java.util.List;
 import java.util.function.Function;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.join.BitSetProducer;
 import org.apache.lucene.search.join.ToChildBlockJoinQuery;
 
+import org.opensearch.common.lucene.search.Queries;
 import org.opensearch.index.query.ParsedQuery;
 import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.query.TermsQueryBuilder;
@@ -37,19 +35,6 @@ public class DlsRestriction extends AbstractRuleBasedPrivileges.Rule {
 
     public static final DlsRestriction NONE = new DlsRestriction(Collections.emptyList());
     public static final DlsRestriction FULL = new DlsRestriction(ImmutableList.of(DocumentPrivileges.RenderedDlsQuery.MATCH_NONE));
-
-    private static final Query NON_NESTED_QUERY;
-
-    static {
-        // Moved from
-        // https://github.com/opensearch-project/security/blob/main/src/main/java/org/opensearch/security/configuration/DlsQueryParser.java
-        // Match all documents but not the nested ones
-        // Nested document types start with __
-        // https://discuss.elastic.co/t/whats-nested-documents-layout-inside-the-lucene/59944/9
-        NON_NESTED_QUERY = new BooleanQuery.Builder().add(new MatchAllDocsQuery(), BooleanClause.Occur.FILTER)
-            .add(new PrefixQuery(new Term("_type", "__")), BooleanClause.Occur.MUST_NOT)
-            .build();
-    }
 
     private final ImmutableList<DocumentPrivileges.RenderedDlsQuery> queries;
 
@@ -86,8 +71,15 @@ public class DlsRestriction extends AbstractRuleBasedPrivileges.Rule {
             dlsQueryBuilder.add(luceneQuery, BooleanClause.Occur.SHOULD);
 
             if (hasNestedMapping) {
-                final BitSetProducer parentDocumentsFilter = queryShardContext.bitsetFilter(NON_NESTED_QUERY);
-                dlsQueryBuilder.add(new ToChildBlockJoinQuery(luceneQuery, parentDocumentsFilter), BooleanClause.Occur.SHOULD);
+                // Also allow the nested documents of allowed parent documents. Nested documents are
+                // recognized the same way as in OpenSearch core, which works for all index versions.
+                final Query nonNestedQuery = Queries.newNonNestedFilter();
+                final BitSetProducer parentDocumentsFilter = queryShardContext.bitsetFilter(nonNestedQuery);
+                // ToChildBlockJoinQuery fails if the parent query matches nested documents
+                final Query parentQuery = new BooleanQuery.Builder().add(luceneQuery, BooleanClause.Occur.MUST)
+                    .add(nonNestedQuery, BooleanClause.Occur.FILTER)
+                    .build();
+                dlsQueryBuilder.add(new ToChildBlockJoinQuery(parentQuery, parentDocumentsFilter), BooleanClause.Occur.SHOULD);
             }
         }
 
