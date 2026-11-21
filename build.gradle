@@ -730,7 +730,7 @@ dependencies {
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-client:${opensearch_version}"
     implementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
-    implementation 'org.opensearch.client:opensearch-java:3.10.0'
+    implementation 'org.opensearch.client:opensearch-java:3.11.0'
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
