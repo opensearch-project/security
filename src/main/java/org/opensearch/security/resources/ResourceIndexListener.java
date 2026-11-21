@@ -101,24 +101,38 @@ public class ResourceIndexListener implements IndexingOperationListener {
                     e
                 )
             );
+            ActionListener<Boolean> workspacesListener = ActionListener.wrap(
+                changed -> log.debug("postIndex: workspace reconcile for {} changed={}", resourceId, changed),
+                e -> log.warn("postIndex: failed to reconcile workspaces for {}: {}", resourceId, e.getMessage())
+            );
+            // The sharing record's workspaces follow the doc's current set; the op's seq_no is the monotonic guard
+            Set<String> currentWorkspaces = provider.workspacesField() == null
+                ? null
+                : ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
             ResourceVersion written = result.getResultType() == Engine.Result.Type.SUCCESS
                 ? new ResourceVersion(result.getSeqNo(), result.getTerm())
                 : ResourceVersion.UNKNOWN;
-            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, written, listener);
-
-            // Reconcile the sharing record's workspaces to the doc's current set (associate/dissociate, incl. removals)
-            // so the write-path record tracks the read-path field. The op's seq_no is the monotonic guard.
-            if (provider.workspacesField() != null) {
-                Set<String> currentWorkspaces = ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(provider.workspacesField(), index);
+            // A write with a known version guards the restore with it; any other write reads the document version first
+            if (written.isKnown()) {
+                this.resourceSharingIndexHandler.syncAfterResourceUpdate(
+                    resourceIndex,
+                    resourceId,
+                    written,
+                    ResourcePluginInfo.extractMultiValuedFieldFromIndexOp(ResourceSharingIndexHandler.ALL_SHARED_PRINCIPALS_FIELD, index),
+                    currentWorkspaces,
+                    listener,
+                    workspacesListener
+                );
+                return;
+            }
+            this.resourceSharingIndexHandler.fetchAndUpdateResourceVisibility(resourceId, resourceIndex, ResourceVersion.UNKNOWN, listener);
+            if (currentWorkspaces != null) {
                 this.resourceSharingIndexHandler.reconcileWorkspaces(
                     resourceIndex,
                     resourceId,
                     currentWorkspaces,
                     result.getSeqNo(),
-                    ActionListener.wrap(
-                        changed -> log.debug("postIndex: workspace reconcile for {} changed={}", resourceId, changed),
-                        e -> log.warn("postIndex: failed to reconcile workspaces for {}: {}", resourceId, e.getMessage())
-                    )
+                    workspacesListener
                 );
             }
             return;

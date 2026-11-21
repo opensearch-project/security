@@ -16,7 +16,10 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,6 +39,7 @@ import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.Engine;
 import org.opensearch.index.get.GetResult;
+import org.opensearch.index.mapper.KeywordFieldMapper;
 import org.opensearch.index.mapper.ParseContext;
 import org.opensearch.index.mapper.ParsedDocument;
 import org.opensearch.index.seqno.SequenceNumbers;
@@ -54,9 +58,11 @@ import org.mockito.Answers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,6 +74,7 @@ public class ResourceIndexListenerTests {
 
     private static final String INDEX = ResourceProviderFixtures.ALERTING_INDEX;
     private static final String SHARING_INDEX = ResourceSharingIndexHandler.getSharingIndex(INDEX);
+    private static final String PRINCIPALS = ResourceSharingIndexHandler.ALL_SHARED_PRINCIPALS_FIELD;
 
     private Client client;
     private IndexRequestBuilder records;
@@ -155,14 +162,81 @@ public class ResourceIndexListenerTests {
      */
     @Test
     public void anUpdateRestoresVisibilityFromTheVersionItWrote() {
-        List<String> readIndices = stubRecordRead();
+        stubRecordRead();
         UpdateRequestBuilder visibility = stubVisibilityUpdate();
 
         update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L);
 
-        assertFalse("the resource document's version must not be read", readIndices.contains(INDEX));
         verify(visibility).setIfSeqNo(9L);
         verify(visibility).setIfPrimaryTerm(2L);
+    }
+
+    /** The visibility restore and the workspace reconcile share one read of the sharing record. */
+    @Test
+    public void anUpdateReadsTheSharingRecordOnce() {
+        List<String> readIndices = stubRecordRead();
+        stubVisibilityUpdate();
+
+        update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L);
+
+        assertEquals(List.of(SHARING_INDEX), readIndices);
+    }
+
+    /** A document that already holds the principals the record allows is not written again. */
+    @Test
+    public void anUpdateThatKeepsThePrincipalsDoesNotRewriteThem() {
+        stubRecordRead();
+        stubVisibilityUpdate();
+
+        update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L, new StringField(PRINCIPALS, "user:alice", Field.Store.NO));
+
+        verify(client, never()).prepareUpdate(eq(INDEX), any());
+        verify(client).prepareUpdate(eq(SHARING_INDEX), any());
+    }
+
+    /** A document whose principals differ from the record's is written, including one that adds to the allowed ones. */
+    @Test
+    public void anUpdateThatChangesThePrincipalsRewritesThem() {
+        stubRecordRead();
+        stubVisibilityUpdate();
+
+        update("workflow-1", Engine.Result.Type.SUCCESS, 9L, 2L, new StringField(PRINCIPALS, "user:bob", Field.Store.NO));
+        update(
+            "workflow-1",
+            Engine.Result.Type.SUCCESS,
+            10L,
+            2L,
+            new StringField(PRINCIPALS, "user:alice", Field.Store.NO),
+            new StringField(PRINCIPALS, "user:bob", Field.Store.NO)
+        );
+
+        verify(client, times(2)).prepareUpdate(eq(INDEX), any());
+    }
+
+    /** A keyword field carries each value as an indexed term and as a doc value; both read as one set of principals. */
+    @Test
+    public void keywordPrincipalsThatMatchTheRecordAreNotRewritten() {
+        stubRecordRead(
+            "{\"resource_id\":\"workflow-1\",\"created_by\":{\"user\":\"alice\"},\"share_with\":{\"read_only\":{\"users\":[\"bob\"]}}}"
+        );
+        stubVisibilityUpdate();
+
+        update(
+            "workflow-1",
+            Engine.Result.Type.SUCCESS,
+            9L,
+            2L,
+            keywordTerm("user:alice"),
+            new SortedSetDocValuesField(PRINCIPALS, new BytesRef("user:alice")),
+            keywordTerm("user:bob"),
+            new SortedSetDocValuesField(PRINCIPALS, new BytesRef("user:bob"))
+        );
+
+        verify(client, never()).prepareUpdate(eq(INDEX), any());
+    }
+
+    private static IndexableField keywordTerm(String value) {
+        return new Field(PRINCIPALS, new BytesRef(value), KeywordFieldMapper.Defaults.FIELD_TYPE);
     }
 
     @Test
@@ -192,12 +266,16 @@ public class ResourceIndexListenerTests {
 
     /** Records the index of every GET and answers a sharing-index GET with a record. */
     private List<String> stubRecordRead() {
+        return stubRecordRead("{\"resource_id\":\"workflow-1\",\"created_by\":{\"user\":\"alice\"}}");
+    }
+
+    /** Records the index of every GET and answers a sharing-index GET with {@code json} as the record. */
+    private List<String> stubRecordRead(String json) {
         List<String> readIndices = new ArrayList<>();
         doAnswer(inv -> {
             GetRequest request = inv.getArgument(0);
             readIndices.add(request.index());
             if (request.index().equals(SHARING_INDEX)) {
-                String json = "{\"resource_id\":\"workflow-1\",\"created_by\":{\"user\":\"alice\"}}";
                 GetResult record = mock(GetResult.class);
                 when(record.isExists()).thenReturn(true);
                 when(record.sourceAsString()).thenReturn(json);
@@ -211,18 +289,16 @@ public class ResourceIndexListenerTests {
         return readIndices;
     }
 
-    private void update(String id, Engine.Result.Type resultType, long seqNo, long primaryTerm) {
+    private void update(String id, Engine.Result.Type resultType, long seqNo, long primaryTerm, IndexableField... extraFields) {
         Engine.IndexResult result = mock(Engine.IndexResult.class);
         when(result.isCreated()).thenReturn(false);
         when(result.getResultType()).thenReturn(resultType);
         when(result.getSeqNo()).thenReturn(seqNo);
         when(result.getTerm()).thenReturn(primaryTerm);
 
-        listener.postIndex(
-            new ShardId(INDEX, "uuid", 0),
-            indexOp(id, new StringField("workflow.type", "workflow", Field.Store.NO)),
-            result
-        );
+        List<IndexableField> fields = new ArrayList<>(List.of(extraFields));
+        fields.add(new StringField("workflow.type", "workflow", Field.Store.NO));
+        listener.postIndex(new ShardId(INDEX, "uuid", 0), indexOp(id, fields.toArray(IndexableField[]::new)), result);
     }
 
     private void create(String id, StringField... fields) {
@@ -234,9 +310,9 @@ public class ResourceIndexListenerTests {
         listener.postIndex(new ShardId(INDEX, "uuid", 0), indexOp(id, fields), result);
     }
 
-    private static Engine.Index indexOp(String id, StringField... fields) {
+    private static Engine.Index indexOp(String id, IndexableField... fields) {
         ParseContext.Document rootDoc = new ParseContext.Document();
-        for (StringField field : fields) {
+        for (IndexableField field : fields) {
             rootDoc.add(field);
         }
         ParsedDocument parsedDoc = mock(ParsedDocument.class);
