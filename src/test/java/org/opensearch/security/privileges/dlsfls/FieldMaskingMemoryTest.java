@@ -11,6 +11,8 @@
 
 package org.opensearch.security.privileges.dlsfls;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.nio.charset.StandardCharsets;
@@ -211,6 +213,58 @@ public class FieldMaskingMemoryTest {
             }
         }
         assertThat(new String(first, StandardCharsets.UTF_8), equalTo("{\"secret\":\"" + BLAKE2B_FOOBAR + "\",\"n\":42}"));
+    }
+
+    @Test
+    public void constructingAFieldDoesNotRequireBlake2bOnTheClasspath() throws Exception {
+        // Regression test for the sample-plugin-integration-tests CI failure: Field instances are
+        // constructed for every index (e.g. via FieldMasking.fullyRestricted() when system index
+        // searchers are wrapped), including in classpath-plugin deployments where the security
+        // plugin classes are visible but the bundled blake2b jar is not. Constructing a Field must
+        // therefore not resolve the com.rfksystems.blake2b.Blake2b class; it is only needed when a
+        // value is actually hashed (see Field#blake2bHash).
+        final String dlsflsPackage = "org.opensearch.security.privileges.dlsfls.";
+        final ClassLoader blake2bHidingLoader = new ClassLoader(getClass().getClassLoader()) {
+            @Override
+            protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+                if (name.startsWith("com.rfksystems.blake2b.")) {
+                    throw new ClassNotFoundException(name);
+                }
+                if (name.startsWith(dlsflsPackage)) {
+                    // Load the whole dlsfls package in this loader (child-first) so that package-private
+                    // members stay accessible within a single runtime package, while any Blake2b
+                    // reference would have to resolve through this loader and fail.
+                    synchronized (getClassLoadingLock(name)) {
+                        Class<?> clazz = findLoadedClass(name);
+                        if (clazz == null) {
+                            final String resource = name.replace('.', '/') + ".class";
+                            try (InputStream in = getParent().getResourceAsStream(resource)) {
+                                if (in == null) {
+                                    throw new ClassNotFoundException(name);
+                                }
+                                final byte[] bytes = in.readAllBytes();
+                                clazz = defineClass(name, bytes, 0, bytes.length);
+                            } catch (IOException e) {
+                                throw new ClassNotFoundException(name, e);
+                            }
+                        }
+                        if (resolve) {
+                            resolveClass(clazz);
+                        }
+                        return clazz;
+                    }
+                }
+                return super.loadClass(name, resolve);
+            }
+        };
+
+        // Build a masking rule through the public factory; this constructs a Field internally.
+        final Class<?> configClass = Class.forName(dlsflsPackage + "FieldMasking$Config", true, blake2bHidingLoader);
+        final Object config = configClass.getMethod("fromSettings", Settings.class).invoke(null, Settings.EMPTY);
+        final Class<?> ruleClass = Class.forName(dlsflsPackage + "FieldMasking$FieldMaskingRule", true, blake2bHidingLoader);
+        assertThat(ruleClass.getClassLoader(), is(blake2bHidingLoader));
+        final Object rule = ruleClass.getMethod("of", configClass, String[].class).invoke(null, config, new String[] { "secret" });
+        assertThat(rule, notNullValue());
     }
 
     private static com.sun.management.ThreadMXBean threadAllocatedMemoryBean() {

@@ -231,20 +231,6 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
              */
             private static final int DIGEST_SCRATCH_SIZE = 64;
 
-            /**
-             * Thread-local cache of {@link MessageDigest} instances keyed by algorithm name.
-             * {@link MessageDigest} is not thread-safe, so each thread gets its own instance; the map is
-             * bounded by the number of distinct configured hash algorithms (usually a single one), so it
-             * cannot grow without bound. Instances are reset automatically after every digest() call.
-             */
-            private static final ThreadLocal<Map<String, MessageDigest>> MESSAGE_DIGESTS = ThreadLocal.withInitial(HashMap::new);
-
-            /**
-             * Thread-local scratch buffer for raw (non hex-encoded) hash results, reused across invocations
-             * to avoid one allocation per masked value.
-             */
-            private static final ThreadLocal<byte[]> DIGEST_SCRATCH = ThreadLocal.withInitial(() -> new byte[DIGEST_SCRATCH_SIZE]);
-
             private final FieldMaskingExpression expression;
 
             private final String hashAlgorithm;
@@ -253,12 +239,38 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             private final boolean useLegacyDefaultAlgorithm;
 
             /**
+             * Per-thread cache of {@link MessageDigest} instances keyed by algorithm name.
+             * {@link MessageDigest} is not thread-safe, so each thread gets its own instance; the map is
+             * bounded by the number of distinct configured hash algorithms (usually a single one), so it
+             * cannot grow without bound. The cache is scoped to this {@code Field} instance (not static)
+             * so that no state is retained on long-lived threads beyond the lifetime of this instance and
+             * the classloader that loaded it. Instances are reset after every digest() call.
+             */
+            private final ThreadLocal<Map<String, MessageDigest>> messageDigests = ThreadLocal.withInitial(HashMap::new);
+
+            /**
+             * Per-thread scratch buffer for raw (non hex-encoded) hash results, reused across invocations
+             * to avoid one allocation per masked value. Scoped to this {@code Field} instance for the same
+             * reason as {@link #messageDigests}.
+             */
+            private final ThreadLocal<byte[]> digestScratch = ThreadLocal.withInitial(() -> new byte[DIGEST_SCRATCH_SIZE]);
+
+            /**
              * Reusable per-thread Blake2b instances (normal and legacy parameterization). Blake2b is not
              * thread-safe; {@code digest()} leaves the instance in a reset state with the salt retained,
              * so the instance can safely be reused instead of allocating a new one per masked value.
+             * <p>
+             * The ThreadLocals are deliberately created WITHOUT a supplier: spinning up a lambda whose
+             * return type is {@code Blake2b} would resolve the {@code Blake2b} class already in the
+             * constructor of {@code Field}. {@code Field} instances are constructed for every index
+             * (e.g. via {@link FieldMasking#fullyRestricted()}), including in classpath-plugin deployments
+             * (e.g. the sample-resource-plugin integration tests) where the security plugin classes are
+             * visible but the bundled blake2b jar is not, which would fail with
+             * {@code NoClassDefFoundError}. The {@code Blake2b} instance is therefore created lazily in
+             * {@link #blake2bHash}, i.e. only when a value is actually hashed.
              */
-            private final ThreadLocal<Blake2b> blake2b;
-            private final ThreadLocal<Blake2b> blake2bLegacy;
+            private final ThreadLocal<Blake2b> blake2b = new ThreadLocal<>();
+            private final ThreadLocal<Blake2b> blake2bLegacy = new ThreadLocal<>();
 
             Field(FieldMaskingExpression expression, FieldMasking.Config fieldMaskingConfig) {
                 this.expression = expression;
@@ -268,8 +280,7 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                 this.useLegacyDefaultAlgorithm = fieldMaskingConfig.useLegacyDefaultAlgorithm();
                 this.salt = fieldMaskingConfig.getSalt();
                 this.saltBytes = this.salt.getSalt16();
-                this.blake2b = ThreadLocal.withInitial(() -> new Blake2b(null, 32, saltBytes, null));
-                this.blake2bLegacy = ThreadLocal.withInitial(() -> new Blake2b(null, 32, null, saltBytes));
+                // Note: no Blake2b reference here on purpose, see the javadoc of blake2b/blake2bLegacy.
             }
 
             /**
@@ -277,8 +288,8 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
              * on first use. This avoids the cost of a provider lookup (and the allocation) of
              * {@code MessageDigest.getInstance()} for every masked field value.
              */
-            private static MessageDigest messageDigest(String algorithm) {
-                final Map<String, MessageDigest> digests = MESSAGE_DIGESTS.get();
+            private MessageDigest messageDigest(String algorithm) {
+                final Map<String, MessageDigest> digests = messageDigests.get();
                 MessageDigest digest = digests.get(algorithm);
                 if (digest == null) {
                     try {
@@ -327,6 +338,9 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                 // field value for every masked document. This is called once per masked field value per
                 // document, so avoiding the copy significantly reduces allocation pressure and heap
                 // usage during searches with field masking enabled.
+                // NOTE: apply(byte[], int, int) MUST treat the input array as read-only, since
+                // value.bytes may be a shared Lucene-owned buffer. Do not introduce any in-place
+                // mutation of the input slice in the hashing or regex paths.
                 return new BytesRef(apply(value.bytes, value.offset, value.length));
             }
 
@@ -357,7 +371,10 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
 
             private byte[] customHash(byte[] in, int offset, int length, String algorithm) {
                 final MessageDigest digest = messageDigest(algorithm);
-                final byte[] scratch = DIGEST_SCRATCH.get();
+                final byte[] scratch = digestScratch.get();
+                // Reset defensively so a previous use that aborted mid-operation (e.g. a DigestException)
+                // cannot leak partial state into this invocation.
+                digest.reset();
                 if (digest.getDigestLength() > 0 && digest.getDigestLength() <= scratch.length) {
                     // Hash the input slice in place (no copy of the field value) and digest directly
                     // into the reusable thread-local scratch buffer. The digest is reset automatically
@@ -392,12 +409,23 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
 
             private byte[] blake2bHash(byte[] in, int offset, int length, boolean useLegacyDefaultAlgorithm) {
                 // Reuse a per-thread Blake2b instance instead of allocating a new one for every masked
-                // value. digest() leaves the instance in a reset state (salt/personalization retained),
-                // so it can safely be reused; reset() is called defensively in case a previous use aborted.
-                final Blake2b hash = useLegacyDefaultAlgorithm ? blake2bLegacy.get() : blake2b.get();
+                // value. The instance is created lazily here (and NOT in the constructor) so that the
+                // Blake2b class is only resolved when a value is actually hashed; Field instances are
+                // constructed for every index (e.g. via FieldMasking.fullyRestricted()), including in
+                // classpath-plugin deployments where the bundled blake2b jar is not visible.
+                final ThreadLocal<Blake2b> cache = useLegacyDefaultAlgorithm ? blake2bLegacy : blake2b;
+                Blake2b hash = cache.get();
+                if (hash == null) {
+                    hash = useLegacyDefaultAlgorithm ? new Blake2b(null, 32, null, saltBytes) : new Blake2b(null, 32, saltBytes, null);
+                    cache.set(hash);
+                }
+                // digest() leaves the instance in a reset state (salt/personalization retained), so it can
+                // safely be reused; reset() is called defensively in case a previous use aborted.
                 hash.reset();
                 hash.update(in, offset, length);
-                final byte[] scratch = DIGEST_SCRATCH.get();
+                final byte[] scratch = digestScratch.get();
+                // Blake2b is constructed with a fixed 32 byte digest size, which always fits into the
+                // 64 byte scratch buffer, so digest(scratch, 0) can never overflow it.
                 hash.digest(scratch, 0);
                 return hexEncode(scratch, hash.getDigestSize());
             }
