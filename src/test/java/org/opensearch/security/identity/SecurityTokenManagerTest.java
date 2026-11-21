@@ -11,13 +11,11 @@
 
 package org.opensearch.security.identity;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,7 +37,6 @@ import org.opensearch.security.authtoken.jwt.claims.JwtClaimsBuilder;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.mockito.ArgumentCaptor;
@@ -59,7 +56,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -77,14 +73,10 @@ public class SecurityTokenManagerTest {
     private ClusterService cs;
     @Mock
     private ThreadPool threadPool;
-    @Mock
-    private UserService userService;
 
     @Before
     public void setup() {
-        tokenManager = spy(
-            new SecurityTokenManager(cs, threadPool, userService, (user, caller) -> user.getSecurityRoles(), OnBehalfOfKeys.NONE)
-        );
+        tokenManager = spy(new SecurityTokenManager(cs, threadPool, (user, caller) -> user.getSecurityRoles(), OnBehalfOfKeys.NONE));
         clusterOf(false);
     }
 
@@ -96,11 +88,6 @@ public class SecurityTokenManagerTest {
     void clusterOf(final boolean withPreUpgradeNode) {
         lenient().when(cs.state())
             .thenReturn(ClusterState.builder(new ClusterName("cluster17")).nodes(cluster(withPreUpgradeNode)).build());
-    }
-
-    @After
-    public void after() {
-        verifyNoMoreInteractions(userService);
     }
 
     final static String signingKey =
@@ -150,33 +137,6 @@ public class SecurityTokenManagerTest {
         final byte[] keyMaterial = new byte[32];
         new SecureRandom().nextBytes(keyMaterial);
         return Base64.getEncoder().encodeToString(keyMaterial);
-    }
-
-    @Test
-    public void issueServiceAccountToken_error() throws Exception {
-        final String expectedAccountName = "abc-123";
-        when(userService.generateAuthToken(expectedAccountName)).thenThrow(new IOException("foobar"));
-
-        final OpenSearchSecurityException exception = assertThrows(
-            OpenSearchSecurityException.class,
-            () -> tokenManager.issueServiceAccountToken(expectedAccountName)
-        );
-        assertThat(exception.getMessage(), equalTo("Unable to issue service account token"));
-
-        verify(userService).generateAuthToken(expectedAccountName);
-    }
-
-    @Test
-    public void issueServiceAccountToken_success() throws Exception {
-        final String expectedAccountName = "abc-123";
-        final AuthToken authToken = mock(AuthToken.class);
-        when(userService.generateAuthToken(expectedAccountName)).thenReturn(authToken);
-
-        final AuthToken token = tokenManager.issueServiceAccountToken(expectedAccountName);
-
-        assertThat(token, equalTo(authToken));
-
-        verify(userService).generateAuthToken(expectedAccountName);
     }
 
     @Test
