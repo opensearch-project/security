@@ -481,7 +481,10 @@ ltr_read_access:
   reserved: true
   cluster_permissions:
     - cluster:admin/ltr/caches/stats
+    - cluster:admin/ltr/featurestore/exists
+    - cluster:admin/ltr/featurestore/get
     - cluster:admin/ltr/featurestore/list
+    - cluster:admin/ltr/featurestore/search
     - cluster:admin/ltr/stats
 
 # Allow users to execute all LTR actions
