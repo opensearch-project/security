@@ -39,13 +39,27 @@ import tools.jackson.core.json.JsonFactory;
 class FlsDocumentFilter {
     private static final JsonFactory JSON_FACTORY = new JsonFactory();
 
+    /**
+     * Upper bound for pre-sizing the output buffer in {@link #filter(byte[], FieldPrivileges.FlsRule,
+     * FieldMasking.FieldMaskingRule, Set)}. Pre-sizing avoids the repeated buffer-doubling copies of
+     * {@link ByteArrayOutputStream} for typical documents, while the cap keeps the transient waste
+     * bounded for documents that shrink a lot during filtering (e.g. when a large field value is
+     * replaced by a short masked hash).
+     */
+    private static final int MAX_INITIAL_OUTPUT_BUFFER_SIZE = 64 * 1024;
+
     static byte[] filter(
         byte[] bytes,
         FieldPrivileges.FlsRule flsRule,
         FieldMasking.FieldMaskingRule fieldMaskingRule,
         Set<String> metaFields
     ) throws IOException {
-        try (InputStream in = new ByteArrayInputStream(bytes); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        try (
+            InputStream in = new ByteArrayInputStream(bytes);
+            // Pre-size the output buffer to the input size (capped) so that filtering a document does
+            // not repeatedly grow (and copy) a small 32 byte buffer for every stored document read.
+            ByteArrayOutputStream out = new ByteArrayOutputStream(Math.min(bytes.length, MAX_INITIAL_OUTPUT_BUFFER_SIZE))
+        ) {
             filter(in, out, flsRule, fieldMaskingRule, metaFields);
             return out.toByteArray();
         }

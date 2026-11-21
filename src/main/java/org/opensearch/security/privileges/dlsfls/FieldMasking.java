@@ -11,11 +11,14 @@
 package org.opensearch.security.privileges.dlsfls;
 
 import java.nio.charset.StandardCharsets;
+import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.regex.PatternSyntaxException;
@@ -25,7 +28,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.util.BytesRef;
-import org.bouncycastle.util.encoders.Hex;
 
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.common.settings.Settings;
@@ -220,12 +222,43 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
          * configuration.
          */
         public static class Field {
+            private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
+
+            /**
+             * Size of the thread-local scratch buffer used to hold raw hash results before hex encoding.
+             * 64 bytes covers all standard MessageDigest algorithms (e.g. SHA-512) and the 32 byte Blake2b
+             * digest used for field masking.
+             */
+            private static final int DIGEST_SCRATCH_SIZE = 64;
+
+            /**
+             * Thread-local cache of {@link MessageDigest} instances keyed by algorithm name.
+             * {@link MessageDigest} is not thread-safe, so each thread gets its own instance; the map is
+             * bounded by the number of distinct configured hash algorithms (usually a single one), so it
+             * cannot grow without bound. Instances are reset automatically after every digest() call.
+             */
+            private static final ThreadLocal<Map<String, MessageDigest>> MESSAGE_DIGESTS = ThreadLocal.withInitial(HashMap::new);
+
+            /**
+             * Thread-local scratch buffer for raw (non hex-encoded) hash results, reused across invocations
+             * to avoid one allocation per masked value.
+             */
+            private static final ThreadLocal<byte[]> DIGEST_SCRATCH = ThreadLocal.withInitial(() -> new byte[DIGEST_SCRATCH_SIZE]);
+
             private final FieldMaskingExpression expression;
 
             private final String hashAlgorithm;
             private final Salt salt;
             private final byte[] saltBytes;
             private final boolean useLegacyDefaultAlgorithm;
+
+            /**
+             * Reusable per-thread Blake2b instances (normal and legacy parameterization). Blake2b is not
+             * thread-safe; {@code digest()} leaves the instance in a reset state with the salt retained,
+             * so the instance can safely be reused instead of allocating a new one per masked value.
+             */
+            private final ThreadLocal<Blake2b> blake2b;
+            private final ThreadLocal<Blake2b> blake2bLegacy;
 
             Field(FieldMaskingExpression expression, FieldMasking.Config fieldMaskingConfig) {
                 this.expression = expression;
@@ -235,6 +268,41 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                 this.useLegacyDefaultAlgorithm = fieldMaskingConfig.useLegacyDefaultAlgorithm();
                 this.salt = fieldMaskingConfig.getSalt();
                 this.saltBytes = this.salt.getSalt16();
+                this.blake2b = ThreadLocal.withInitial(() -> new Blake2b(null, 32, saltBytes, null));
+                this.blake2bLegacy = ThreadLocal.withInitial(() -> new Blake2b(null, 32, null, saltBytes));
+            }
+
+            /**
+             * Returns a thread-local {@link MessageDigest} for the given algorithm, creating and caching it
+             * on first use. This avoids the cost of a provider lookup (and the allocation) of
+             * {@code MessageDigest.getInstance()} for every masked field value.
+             */
+            private static MessageDigest messageDigest(String algorithm) {
+                final Map<String, MessageDigest> digests = MESSAGE_DIGESTS.get();
+                MessageDigest digest = digests.get(algorithm);
+                if (digest == null) {
+                    try {
+                        digest = MessageDigest.getInstance(algorithm);
+                    } catch (NoSuchAlgorithmException e) {
+                        throw new IllegalArgumentException(e);
+                    }
+                    digests.put(algorithm, digest);
+                }
+                return digest;
+            }
+
+            /**
+             * Hex-encodes the first {@code length} bytes of {@code in} into a freshly allocated array
+             * (lowercase, same output as {@code org.bouncycastle.util.encoders.Hex.encode}).
+             */
+            private static byte[] hexEncode(byte[] in, int length) {
+                final byte[] out = new byte[length * 2];
+                for (int i = 0, j = 0; i < length; i++) {
+                    final int v = in[i] & 0xFF;
+                    out[j++] = (byte) HEX_DIGITS[v >>> 4];
+                    out[j++] = (byte) HEX_DIGITS[v & 0x0F];
+                }
+                return out;
             }
 
             public WildcardMatcher getPattern() {
@@ -242,19 +310,12 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             }
 
             public byte[] apply(byte[] value) {
-                if (expression.getRegexReplacements() != null) {
-                    return applyRegexReplacements(value, expression.getRegexReplacements());
-                } else if (this.useLegacyDefaultAlgorithm) {
-                    return blake2bHash(value, true);
-                } else if (this.hashAlgorithm != null) {
-                    return customHash(value, this.hashAlgorithm);
-                } else {
-                    return blake2bHash(value, false);
-                }
+                return apply(value, 0, value.length);
             }
 
             public String apply(String value) {
-                return new String(apply(value.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+                final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+                return new String(apply(bytes, 0, bytes.length), StandardCharsets.UTF_8);
             }
 
             public BytesRef apply(BytesRef value) {
@@ -262,7 +323,23 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                     return null;
                 }
 
-                return new BytesRef(apply(BytesRef.deepCopyOf(value).bytes));
+                // Hash the value in place instead of creating a defensive copy of the (potentially large)
+                // field value for every masked document. This is called once per masked field value per
+                // document, so avoiding the copy significantly reduces allocation pressure and heap
+                // usage during searches with field masking enabled.
+                return new BytesRef(apply(value.bytes, value.offset, value.length));
+            }
+
+            private byte[] apply(byte[] value, int offset, int length) {
+                if (expression.getRegexReplacements() != null) {
+                    return applyRegexReplacements(value, offset, length, expression.getRegexReplacements());
+                } else if (this.useLegacyDefaultAlgorithm) {
+                    return blake2bHash(value, offset, length, true);
+                } else if (this.hashAlgorithm != null) {
+                    return customHash(value, offset, length, this.hashAlgorithm);
+                } else {
+                    return blake2bHash(value, offset, length, false);
+                }
             }
 
             @Override
@@ -278,35 +355,51 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                 return expression;
             }
 
-            private static byte[] customHash(byte[] in, String algorithm) {
-                try {
-                    MessageDigest digest = MessageDigest.getInstance(algorithm);
-                    return Hex.encode(digest.digest(in));
-                } catch (NoSuchAlgorithmException e) {
-                    throw new IllegalArgumentException(e);
+            private byte[] customHash(byte[] in, int offset, int length, String algorithm) {
+                final MessageDigest digest = messageDigest(algorithm);
+                final byte[] scratch = DIGEST_SCRATCH.get();
+                if (digest.getDigestLength() > 0 && digest.getDigestLength() <= scratch.length) {
+                    // Hash the input slice in place (no copy of the field value) and digest directly
+                    // into the reusable thread-local scratch buffer. The digest is reset automatically
+                    // after digest() completes, so the thread-local instance can safely be reused.
+                    try {
+                        digest.update(in, offset, length);
+                        final int digestLength = digest.digest(scratch, 0, scratch.length);
+                        return hexEncode(scratch, digestLength);
+                    } catch (DigestException e) {
+                        // Cannot happen: the scratch buffer is pre-checked to be large enough
+                        throw new IllegalStateException("Unexpected failure digesting with algorithm " + algorithm, e);
+                    }
                 }
+                // Fallback for exotic algorithms with an unusually large digest size
+                digest.update(in, offset, length);
+                final byte[] raw = digest.digest();
+                return hexEncode(raw, raw.length);
             }
 
-            private byte[] applyRegexReplacements(byte[] value, List<FieldMaskingExpression.RegexReplacement> regexReplacements) {
-                String string = new String(value, StandardCharsets.UTF_8);
+            private byte[] applyRegexReplacements(
+                byte[] value,
+                int offset,
+                int length,
+                List<FieldMaskingExpression.RegexReplacement> regexReplacements
+            ) {
+                String string = new String(value, offset, length, StandardCharsets.UTF_8);
                 for (FieldMaskingExpression.RegexReplacement rr : regexReplacements) {
                     string = rr.getRegex().matcher(string).replaceAll(rr.getReplacement());
                 }
                 return string.getBytes(StandardCharsets.UTF_8);
             }
 
-            private byte[] blake2bHash(byte[] in, boolean useLegacyDefaultAlgorithm) {
-                final Blake2b hash;
-                if (useLegacyDefaultAlgorithm) {
-                    hash = new Blake2b(null, 32, null, saltBytes);
-                } else {
-                    hash = new Blake2b(null, 32, saltBytes, null);
-                }
-                hash.update(in, 0, in.length);
-                final byte[] out = new byte[hash.getDigestSize()];
-                hash.digest(out, 0);
-
-                return Hex.encode(out);
+            private byte[] blake2bHash(byte[] in, int offset, int length, boolean useLegacyDefaultAlgorithm) {
+                // Reuse a per-thread Blake2b instance instead of allocating a new one for every masked
+                // value. digest() leaves the instance in a reset state (salt/personalization retained),
+                // so it can safely be reused; reset() is called defensively in case a previous use aborted.
+                final Blake2b hash = useLegacyDefaultAlgorithm ? blake2bLegacy.get() : blake2b.get();
+                hash.reset();
+                hash.update(in, offset, length);
+                final byte[] scratch = DIGEST_SCRATCH.get();
+                hash.digest(scratch, 0);
+                return hexEncode(scratch, hash.getDigestSize());
             }
         }
     }
