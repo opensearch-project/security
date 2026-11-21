@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.StringJoiner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -44,6 +45,7 @@ import tools.jackson.databind.JsonNode;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
@@ -54,6 +56,7 @@ import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
 import static org.opensearch.test.framework.matcher.RestMatchers.isNotAllowed;
 import static org.opensearch.test.framework.matcher.RestMatchers.isNotFound;
 import static org.opensearch.test.framework.matcher.RestMatchers.isOk;
+import static org.opensearch.test.framework.matcher.RestMatchers.isUnauthorized;
 
 public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApiIntegrationTest {
 
@@ -966,6 +969,227 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 ),
                 isBadRequest()
             );
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Rename: POST /_plugins/_security/api/internalusers/{name}/_rename {"new_username": "..."}
+    // The route is only registered under the current /_plugins prefix, not the deprecated
+    // /_opendistro prefix, so these tests build paths with a fixed prefix instead of apiPath().
+    // ---------------------------------------------------------------------------------------------
+
+    private static String securityApi(final String... path) {
+        final var fullPath = new StringJoiner("/").add(PLUGINS_PREFIX).add("api");
+        for (final var p : path) {
+            fullPath.add(p);
+        }
+        return fullPath.toString();
+    }
+
+    private static String renamePath(final String username) {
+        return securityApi("internalusers", username, "_rename");
+    }
+
+    private static ToXContentObject renameBody(final String newUsername) {
+        return (builder, params) -> builder.startObject().field("new_username", newUsername).endObject();
+    }
+
+    /** Creates an empty role and a role mapping that lists the given users explicitly. */
+    private static void createRoleMappedToUsers(final TestRestClient client, final String role, final String... users) {
+        assertThat(
+            client.putJson(
+                securityApi("roles", role),
+                (builder, params) -> builder.startObject().field("description", "rename test").endObject()
+            ),
+            isCreated()
+        );
+        assertThat(
+            client.putJson(securityApi("rolesmapping", role), (builder, params) -> builder.startObject().array("users", users).endObject()),
+            isCreated()
+        );
+    }
+
+    private static List<String> mappedUsers(final TestRestClient client, final String role) {
+        final var response = client.get(securityApi("rolesmapping", role));
+        assertThat(response, isOk());
+        final List<String> users = new ArrayList<>();
+        response.bodyAsJsonNode().get(role).get("users").forEach(user -> users.add(user.asText()));
+        return users;
+    }
+
+    @Test
+    public void renameMovesUserAndExplicitRoleMappingReferences() throws Exception {
+        final var oldName = "rename_src_" + randomAsciiAlphanumOfLength(8);
+        final var newName = "rename_dst_" + randomAsciiAlphanumOfLength(8);
+        final var otherUser = "rename_other_" + randomAsciiAlphanumOfLength(8);
+        final var mappedRole = "rename_role_" + randomAsciiAlphanumOfLength(8);
+        final var unrelatedRole = "rename_unrelated_" + randomAsciiAlphanumOfLength(8);
+        final var password = randomAsciiAlphanumOfLength(12);
+
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            assertThat(client.putJson(apiPath(oldName), internalUserWithPassword(password)), isCreated());
+            createRoleMappedToUsers(client, mappedRole, oldName, otherUser);
+            createRoleMappedToUsers(client, unrelatedRole, otherUser);
+
+            final var response = client.postJson(renamePath(oldName), renameBody(newName));
+            assertThat(response, isOk());
+            assertThat(response.getTextFromJsonBody("/previous_username"), is(oldName));
+            assertThat(response.getTextFromJsonBody("/username"), is(newName));
+            assertThat(response.getTextFromJsonBody("/updated_roles_mapping/0"), is(mappedRole));
+            assertThat(response.bodyAsJsonNode().get("updated_roles_mapping").size(), is(1));
+
+            // Document 1: the user record moved.
+            assertThat(client.get(apiPath(oldName)), isNotFound());
+            assertThat(client.get(apiPath(newName)), isOk());
+            // Document 2: explicit references rewritten in place; mappings that don't name the user are untouched.
+            assertThat(mappedUsers(client, mappedRole), is(List.of(newName, otherUser)));
+            assertThat(mappedUsers(client, unrelatedRole), is(List.of(otherUser)));
+        }
+
+        // After the reload, every node sees both changes: the new name logs in with the old password and keeps its role.
+        try (TestRestClient renamed = localCluster.getRestClient(newName, password)) {
+            final var authInfo = renamed.getAuthInfo();
+            assertThat(authInfo, isOk());
+            final List<String> roles = new ArrayList<>();
+            authInfo.bodyAsJsonNode().get("roles").forEach(role -> roles.add(role.asText()));
+            assertThat(roles.contains(mappedRole), is(true));
+        }
+        try (TestRestClient old = localCluster.getRestClient(oldName, password)) {
+            assertThat(old.getAuthInfo(), isUnauthorized());
+        }
+    }
+
+    @Test
+    public void renameRejectsInvalidRequestsWithoutChangingAnything() throws Exception {
+        final var source = "rename_src_" + randomAsciiAlphanumOfLength(8);
+        final var taken = "rename_taken_" + randomAsciiAlphanumOfLength(8);
+        final var role = "rename_role_" + randomAsciiAlphanumOfLength(8);
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            assertThat(client.putJson(apiPath(source), internalUserWithPassword(randomAsciiAlphanumOfLength(12))), isCreated());
+            assertThat(client.putJson(apiPath(taken), internalUserWithPassword(randomAsciiAlphanumOfLength(12))), isCreated());
+            createRoleMappedToUsers(client, role, source);
+
+            // Source must exist.
+            assertThat(client.postJson(renamePath("rename_missing_" + randomAsciiAlphanumOfLength(8)), renameBody("x")), isNotFound());
+            // Destination must be free.
+            assertThat(client.postJson(renamePath(source), renameBody(taken)).getStatusCode(), is(HttpStatus.SC_CONFLICT));
+            // Body must be exactly {"new_username": <valid name>}.
+            assertThat(client.postJson(renamePath(source), EMPTY_BODY), isBadRequest());
+            assertThat(
+                client.postJson(
+                    renamePath(source),
+                    (builder, params) -> builder.startObject().field("new_username", "x").field("unexpected", "y").endObject()
+                ),
+                isBadRequest()
+            );
+            assertThat(client.postJson(renamePath(source), renameBody("")), isBadRequest());
+            assertThat(
+                client.postJson(renamePath(source), (builder, params) -> builder.startObject().nullField("new_username").endObject()),
+                isBadRequest()
+            );
+            assertThat(client.postJson(renamePath(source), renameBody("a:b")), isBadRequest("/message", ":"));
+            assertThat(client.postJson(renamePath(source), renameBody(source)), isBadRequest());
+
+            // None of the rejected requests changed either document.
+            assertThat(client.get(apiPath(source)), isOk());
+            assertThat(client.get(apiPath(taken)), isOk());
+            assertThat(mappedUsers(client, role), is(List.of(source)));
+        }
+    }
+
+    @Test
+    public void renameRespectsAccessControl() throws Exception {
+        final var reservedUser = "rename_reserved_" + randomAsciiAlphanumOfLength(8);
+        final var regularUser = "rename_regular_" + randomAsciiAlphanumOfLength(8);
+        final var reservedMapping = "rename_reserved_role_" + randomAsciiAlphanumOfLength(8);
+        try (TestRestClient superAdmin = localCluster.getAdminCertRestClient()) {
+            assertThat(
+                superAdmin.putJson(apiPath(reservedUser), internalUser(null, true, randomAsciiAlphanumOfLength(12), null, null, null)),
+                isCreated()
+            );
+            assertThat(superAdmin.putJson(apiPath(regularUser), internalUserWithPassword(randomAsciiAlphanumOfLength(12))), isCreated());
+            assertThat(
+                superAdmin.putJson(
+                    securityApi("roles", reservedMapping),
+                    (builder, params) -> builder.startObject().field("description", "rename test").endObject()
+                ),
+                isCreated()
+            );
+            assertThat(
+                superAdmin.putJson(
+                    securityApi("rolesmapping", reservedMapping),
+                    (builder, params) -> builder.startObject().array("users", regularUser).field("reserved", true).endObject()
+                ),
+                isCreated()
+            );
+        }
+
+        // No REST API access at all.
+        try (TestRestClient client = localCluster.getRestClient(NEW_USER)) {
+            assertThat(client.postJson(renamePath(regularUser), renameBody("x")), isForbidden());
+        }
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            // Reserved users can't be renamed without REST admin rights.
+            assertThat(client.postJson(renamePath(reservedUser), renameBody(reservedUser + "_2")), isForbidden());
+            // Nor can a regular user whose name appears in a reserved role mapping: the rename would edit that mapping.
+            assertThat(client.postJson(renamePath(regularUser), renameBody(regularUser + "_2")), isForbidden());
+            assertThat(client.get(apiPath(regularUser)), isOk());
+            assertThat(mappedUsers(client, reservedMapping), is(List.of(regularUser)));
+        }
+        // The super-admin can do both.
+        try (TestRestClient superAdmin = localCluster.getAdminCertRestClient()) {
+            assertThat(superAdmin.postJson(renamePath(reservedUser), renameBody(reservedUser + "_2")), isOk());
+            assertThat(superAdmin.postJson(renamePath(regularUser), renameBody(regularUser + "_2")), isOk());
+            assertThat(mappedUsers(superAdmin, reservedMapping), is(List.of(regularUser + "_2")));
+        }
+    }
+
+    @Test
+    public void parallelRenamesOfSameUserLeaveConsistentState() throws Exception {
+        final var source = "rename_src_" + randomAsciiAlphanumOfLength(8);
+        final var role = "rename_role_" + randomAsciiAlphanumOfLength(8);
+        final var targets = new ArrayList<String>();
+        for (int i = 0; i < 10; i++) {
+            targets.add(source + "_" + i);
+        }
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            assertThat(client.putJson(apiPath(source), internalUserWithPassword(randomAsciiAlphanumOfLength(12))), isCreated());
+            createRoleMappedToUsers(client, role, source);
+
+            final var responses = new ArrayList<HttpResponse>();
+            try (final var executorService = Executors.newFixedThreadPool(targets.size())) {
+                final var futures = new ArrayList<Future<HttpResponse>>();
+                for (final var target : targets) {
+                    futures.add(executorService.submit(() -> client.postJson(renamePath(source), renameBody(target))));
+                }
+                for (final var future : futures) {
+                    responses.add(future.get());
+                }
+            }
+
+            // Exactly one rename wins. The rest either lost the _seq_no race (409) or arrived after the
+            // source was gone (404). None may succeed partially.
+            final var winners = new ArrayList<String>();
+            for (int i = 0; i < responses.size(); i++) {
+                final int status = responses.get(i).getStatusCode();
+                if (status == HttpStatus.SC_OK) {
+                    winners.add(targets.get(i));
+                } else {
+                    assertThat(status == HttpStatus.SC_CONFLICT || status == HttpStatus.SC_NOT_FOUND, is(true));
+                }
+            }
+            assertThat(winners.size(), is(1));
+            final var winner = winners.get(0);
+
+            // Both documents agree on the winner.
+            assertThat(client.get(apiPath(source)), isNotFound());
+            for (final var target : targets) {
+                assertThat(
+                    client.get(apiPath(target)).getStatusCode(),
+                    is(target.equals(winner) ? HttpStatus.SC_OK : HttpStatus.SC_NOT_FOUND)
+                );
+            }
+            assertThat(mappedUsers(client, role), is(List.of(winner)));
         }
     }
 
