@@ -11,6 +11,8 @@
 
 package org.opensearch.security.auth.http.jwt.keybyoidc;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,6 +31,9 @@ import org.opensearch.security.auth.http.jwt.keybyjwks.HTTPJwtKeyByJWKSAuthentic
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.OctetSequenceKey;
 import org.mockito.ArgumentCaptor;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -253,6 +258,75 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
 
         Assert.assertNotNull(jwtAuth);
         assertThat(jwtAuth.getType(), is("jwt"));
+    }
+
+    @Test
+    public void testRequireExpClaimRejectsTokenWithoutExp() throws Exception {
+        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
+        try {
+            Settings settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).put("require_exp_claim", true).build();
+
+            AuthCredentials creds = extractWithJwksAuthenticator(
+                new HTTPJwtKeyByJWKSAuthenticator(settings, null),
+                TestJwts.MC_COY_SIGNED_RSA_1
+            );
+
+            Assert.assertNull(creds);
+        } finally {
+            try {
+                mockJwksServer.close();
+            } catch (Exception ignored) {}
+        }
+    }
+
+    @Test
+    public void testRequireExpAndNbfClaimsAcceptsTokenWithBoth() throws Exception {
+        MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
+        try {
+            Settings settings = Settings.builder()
+                .put("jwks_uri", mockJwksServer.getJwksUri())
+                .put("require_exp_claim", true)
+                .put("require_nbf_claim", true)
+                .build();
+
+            AuthCredentials creds = extractWithJwksAuthenticator(
+                new HTTPJwtKeyByJWKSAuthenticator(settings, null),
+                TestJwts.MC_COY_WITH_EXP_AND_NBF_SIGNED_RSA_1
+            );
+
+            Assert.assertNotNull(creds);
+            assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+        } finally {
+            try {
+                mockJwksServer.close();
+            } catch (Exception ignored) {}
+        }
+    }
+
+    @Test
+    public void testStaticFallbackAppliesRequireExpClaim() {
+        // Without jwks_uri the authenticator delegates to HTTPJwtAuthenticator; the setting must reach it
+        byte[] secret = "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+        JWK staticKey = new OctetSequenceKey.Builder(secret).algorithm(JWSAlgorithm.HS256).build();
+        Settings settings = Settings.builder()
+            .put("signing_key", Base64.getEncoder().encodeToString(secret))
+            .put("require_exp_claim", true)
+            .build();
+        HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
+
+        AuthCredentials withExp = extractWithJwksAuthenticator(jwtAuth, TestJwts.createSigned(TestJwts.MC_COY_WITH_EXP_ONLY, staticKey));
+        Assert.assertNotNull(withExp);
+        assertThat(withExp.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+
+        AuthCredentials withoutExp = extractWithJwksAuthenticator(jwtAuth, TestJwts.createSigned(TestJwts.MC_COY, staticKey));
+        Assert.assertNull(withoutExp);
+    }
+
+    private static AuthCredentials extractWithJwksAuthenticator(HTTPJwtKeyByJWKSAuthenticator jwtAuth, String token) {
+        return jwtAuth.extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", token), new HashMap<>()).asSecurityRequest(),
+            null
+        );
     }
 
     @Test

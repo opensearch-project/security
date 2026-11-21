@@ -615,6 +615,104 @@ public class HTTPJwtAuthenticatorTest {
     }
 
     @Test
+    public void testRequireExpClaimRejectsTokenWithoutExp() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(true, false),
+            Jwts.builder().setSubject("Leonard McCoy")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequireExpClaimAcceptsTokenWithExp() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(true, false),
+            Jwts.builder().setSubject("Leonard McCoy").setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
+        );
+
+        Assert.assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+    }
+
+    @Test
+    public void testRequireNbfClaimRejectsTokenWithoutNbf() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(false, true),
+            Jwts.builder().setSubject("Leonard McCoy")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequireNbfClaimAcceptsTokenWithNbf() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(false, true),
+            Jwts.builder().setSubject("Leonard McCoy").setNotBefore(new Date())
+        );
+
+        Assert.assertNotNull(credentials);
+        assertThat(credentials.getUsername(), is("Leonard McCoy"));
+    }
+
+    @Test
+    public void testRequireNbfClaimStillRejectsFutureNbf() {
+        // require_nbf_claim only adds a presence check; the existing not-before check still rejects a future nbf
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(false, true),
+            Jwts.builder().setSubject("Leonard McCoy").setNotBefore(new Date(System.currentTimeMillis() + 3_600_000))
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequireBothClaimsRejectsTokenWithOnlyExp() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(true, true),
+            Jwts.builder().setSubject("Leonard McCoy").setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequireNbfClaimRejectsMalformedNbf() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims(false, true),
+            Jwts.builder().setPayload("{\"sub\": \"Leonard McCoy\", \"nbf\": \"abc\"}")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequireExpClaimWithMultipleSigningKeys() {
+        final byte[] otherKeyBytes = new byte[64];
+        new SecureRandom().nextBytes(otherKeyBytes);
+        // The helper signs with secretKey, which is the second configured key; the first key will not match
+        final Settings.Builder settings = Settings.builder()
+            .putList("signing_key", Base64.getEncoder().encodeToString(otherKeyBytes), Base64.getEncoder().encodeToString(secretKeyBytes))
+            .put("require_exp_claim", true);
+
+        Assert.assertNotNull(
+            extractCredentialsFromJwtHeader(
+                settings,
+                Jwts.builder().setSubject("Leonard McCoy").setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
+            )
+        );
+        Assert.assertNull(extractCredentialsFromJwtHeader(settings, Jwts.builder().setSubject("Leonard McCoy")));
+    }
+
+    private static Settings.Builder settingsRequiringClaims(final boolean requireExp, final boolean requireNbf) {
+        return Settings.builder()
+            .put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes))
+            .put("require_exp_claim", requireExp)
+            .put("require_nbf_claim", requireNbf);
+    }
+
+    @Test
     public void testRS256() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);

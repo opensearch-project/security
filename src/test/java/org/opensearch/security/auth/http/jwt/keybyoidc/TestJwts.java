@@ -44,6 +44,8 @@ class TestJwts {
     static final List<String> NESTED_MCCOY_SUBJECT = List.of("attributes_sub", "sub");
 
     static final String TEST_ISSUER = "TestIssuer";
+    static final long NOW_EPOCH_SECONDS = System.currentTimeMillis() / 1000;
+    static final long ONE_HOUR_SECONDS = 3600;
 
     static final JWTClaimsSet MC_COY = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
@@ -57,6 +59,28 @@ class TestJwts {
         MCCOY_SUBJECT,
         ROLES_CLAIM,
         TEST_ROLES_STRING
+    );
+
+    static final JWTClaimsSet MC_COY_WITH_EXP_AND_NBF = create(
+        MCCOY_SUBJECT,
+        TEST_AUDIENCE,
+        TEST_ISSUER,
+        ROLES_CLAIM,
+        TEST_ROLES_STRING,
+        EXPIRATION_TIME,
+        NOW_EPOCH_SECONDS + ONE_HOUR_SECONDS,
+        NOT_BEFORE,
+        NOW_EPOCH_SECONDS
+    );
+
+    static final JWTClaimsSet MC_COY_WITH_EXP_ONLY = create(
+        MCCOY_SUBJECT,
+        TEST_AUDIENCE,
+        TEST_ISSUER,
+        ROLES_CLAIM,
+        TEST_ROLES_STRING,
+        EXPIRATION_TIME,
+        NOW_EPOCH_SECONDS + ONE_HOUR_SECONDS
     );
 
     static final JWTClaimsSet MC_COY_NESTED_ROLES = create(
@@ -92,6 +116,10 @@ class TestJwts {
     );
 
     static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
+    static final String MC_COY_WITH_EXP_AND_NBF_SIGNED_OCT_1 = createSigned(MC_COY_WITH_EXP_AND_NBF, TestJwk.OCT_1);
+    static final String MC_COY_WITH_EXP_AND_NBF_SIGNED_RSA_1 = createSigned(MC_COY_WITH_EXP_AND_NBF, TestJwk.RSA_1);
+    static final String MC_COY_WITH_EXP_ONLY_SIGNED_OCT_1 = createSigned(MC_COY_WITH_EXP_ONLY, TestJwk.OCT_1);
+    static final String MC_COY_WITH_EXP_ONLY_SIGNED_RSA_1 = createSigned(MC_COY_WITH_EXP_ONLY, TestJwk.RSA_1);
 
     static final String MC_COY_SIGNED_OCT_2 = createSigned(MC_COY_2, TestJwk.OCT_2);
     static final String MC_COY_SIGNED_NESTED_SUBJECT_OCT_1 = createSigned(MC_COY_NESTED_SUBJECT, TestJwk.OCT_1);

@@ -69,6 +69,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final List<String> requiredAudience;
     private final String requireIssuer;
     private final int clockSkewToleranceSeconds;
+    private final boolean requireExpClaim;
+    private final boolean requireNbfClaim;
     private final Set<String> forbiddenSubjects;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -87,6 +89,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             "jwt_clock_skew_tolerance_seconds",
             AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS
         );
+        requireExpClaim = settings.getAsBoolean("require_exp_claim", false);
+        requireNbfClaim = settings.getAsBoolean("require_nbf_claim", false);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -164,6 +168,11 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
                 final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
+                // Verify presence of required 'exp' and 'nbf' claims
+                if (!hasRequiredTimeClaims(claims)) {
+                    return null;
+                }
+
                 if (!requiredAudience.isEmpty()) {
                     assertValidAudienceClaim(claims);
                 }
@@ -207,6 +216,18 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
         log.debug("Unable to authenticate JWT Token with any configured signing key");
         return null;
+    }
+
+    private boolean hasRequiredTimeClaims(Claims claims) {
+        if (requireExpClaim && claims.getExpiration() == null) {
+            log.debug("JWT is missing required claim 'exp'");
+            return false;
+        }
+        if (requireNbfClaim && claims.getNotBefore() == null) {
+            log.debug("JWT is missing required claim 'nbf'");
+            return false;
+        }
+        return true;
     }
 
     private void assertValidAudienceClaim(Claims claims) throws BadJWTException {

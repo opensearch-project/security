@@ -15,6 +15,7 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -30,6 +31,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.proc.SimpleSecurityContext;
+import com.nimbusds.jwt.JWTClaimNames;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
@@ -43,12 +45,34 @@ public class JwtVerifier {
     private final int clockSkewToleranceSeconds;
     private final String requiredIssuer;
     private final List<String> requiredAudience;
+    private final Set<String> requiredClaims;
 
     public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, List<String> requiredAudience) {
+        this(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience, false, false);
+    }
+
+    public JwtVerifier(
+        KeyProvider keyProvider,
+        int clockSkewToleranceSeconds,
+        String requiredIssuer,
+        List<String> requiredAudience,
+        boolean requireExpClaim,
+        boolean requireNbfClaim
+    ) {
         this.keyProvider = keyProvider;
         this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
         this.requiredIssuer = requiredIssuer;
         this.requiredAudience = requiredAudience;
+
+        // add required exp and nbf claims to requiredClaims set
+        Set<String> claims = new HashSet<>();
+        if (requireExpClaim) {
+            claims.add(JWTClaimNames.EXPIRATION_TIME);
+        }
+        if (requireNbfClaim) {
+            claims.add(JWTClaimNames.NOT_BEFORE);
+        }
+        this.requiredClaims = Set.copyOf(claims);
     }
 
     public SignedJWT getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
@@ -134,7 +158,7 @@ public class JwtVerifier {
             DefaultJWTClaimsVerifier<SimpleSecurityContext> claimsVerifier = new DefaultJWTClaimsVerifier<>(
                 requiredAudience.isEmpty() ? null : new HashSet<>(requiredAudience),
                 null,
-                Collections.emptySet(),
+                requiredClaims,
                 null
             );
             claimsVerifier.setMaxClockSkew(clockSkewToleranceSeconds);

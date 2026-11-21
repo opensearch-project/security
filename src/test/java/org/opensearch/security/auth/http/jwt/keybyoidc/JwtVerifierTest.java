@@ -16,7 +16,10 @@ import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.nimbusds.jwt.SignedJWT;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -59,5 +62,55 @@ public class JwtVerifierTest {
         JwtVerifier verifier = new JwtVerifier(keyProvider, 30, "OtherIssuer", Collections.emptyList());
         BadCredentialsException e = Assert.assertThrows(BadCredentialsException.class, () -> verifier.getVerifiedJwtToken(token));
         assertThat(e.getMessage(), is("Invalid issuer"));
+    }
+
+    @Test
+    public void missingExpIsRejectedWhenRequired() throws Exception {
+        JwtVerifier verifier = verifierRequiring(true, false);
+
+        BadCredentialsException e = Assert.assertThrows(
+            BadCredentialsException.class,
+            () -> verifier.getVerifiedJwtToken(TestJwts.MC_COY_SIGNED_RSA_1)
+        );
+        assertThat(e.getMessage(), containsString("exp"));
+    }
+
+    @Test
+    public void missingNbfIsRejectedWhenRequired() throws Exception {
+        JwtVerifier verifier = verifierRequiring(false, true);
+
+        BadCredentialsException e = Assert.assertThrows(
+            BadCredentialsException.class,
+            () -> verifier.getVerifiedJwtToken(TestJwts.MC_COY_WITH_EXP_ONLY_SIGNED_RSA_1)
+        );
+        assertThat(e.getMessage(), containsString("nbf"));
+    }
+
+    @Test
+    public void presentExpAndNbfAreAcceptedWhenRequired() throws Exception {
+        JwtVerifier verifier = verifierRequiring(true, true);
+
+        SignedJWT jwt = verifier.getVerifiedJwtToken(TestJwts.MC_COY_WITH_EXP_AND_NBF_SIGNED_RSA_1);
+
+        assertThat(jwt.getJWTClaimsSet().getSubject(), is(TestJwts.MCCOY_SUBJECT));
+    }
+
+    @Test
+    public void signatureIsVerifiedBeforeRequiredClaims() throws Exception {
+        KeyProvider keyProvider = mock(KeyProvider.class);
+        when(keyProvider.getKey(any())).thenReturn(TestJwk.RSA_2_PUBLIC); // wrong key for an RSA_1-signed token
+        JwtVerifier verifier = new JwtVerifier(keyProvider, 30, null, Collections.emptyList(), true, true);
+
+        BadCredentialsException e = Assert.assertThrows(
+            BadCredentialsException.class,
+            () -> verifier.getVerifiedJwtToken(TestJwts.MC_COY_SIGNED_RSA_1) // also has no exp/nbf
+        );
+        assertThat(e.getMessage(), is("Invalid JWT signature"));
+    }
+
+    private static JwtVerifier verifierRequiring(boolean requireExp, boolean requireNbf) throws Exception {
+        KeyProvider keyProvider = mock(KeyProvider.class);
+        when(keyProvider.getKey(any())).thenReturn(TestJwk.RSA_1_PUBLIC);
+        return new JwtVerifier(keyProvider, 30, null, Collections.emptyList(), requireExp, requireNbf);
     }
 }
