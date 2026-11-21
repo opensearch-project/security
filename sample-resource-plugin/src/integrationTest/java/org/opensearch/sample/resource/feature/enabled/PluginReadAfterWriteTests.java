@@ -8,6 +8,7 @@
 
 package org.opensearch.sample.resource.feature.enabled;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
@@ -25,8 +26,10 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.opensearch.sample.resource.TestUtils.FULL_ACCESS_USER;
+import static org.opensearch.sample.resource.TestUtils.RESOURCE_SHARING_INDEX;
 import static org.opensearch.sample.resource.TestUtils.newCluster;
 import static org.opensearch.sample.utils.Constants.RESOURCE_INDEX_NAME;
 
@@ -46,6 +49,57 @@ public class PluginReadAfterWriteTests {
     @After
     public void cleanup() {
         api.wipeOutResourceEntries();
+    }
+
+    /**
+     * A create writes its sharing record without forcing a refresh, so creating many resources barely refreshes the
+     * sharing index. Its all_shared_principals write still forces one on the resource index, as the plugin's create does.
+     */
+    @Test
+    public void createsForceNoSharingIndexRefresh() {
+        // The first create makes the sharing index, so its settings and statistics exist
+        api.awaitPrincipals(api.createSampleResourceAs(FULL_ACCESS_USER));
+        int creates = 10;
+
+        // With scheduled refreshes off, every refresh counted below is one a write forced
+        setRefreshInterval("-1");
+        long sharing;
+        long resource;
+        try {
+            long sharingBefore = primaryRefreshes(RESOURCE_SHARING_INDEX);
+            long resourceBefore = primaryRefreshes(RESOURCE_INDEX_NAME);
+            List<String> ids = new ArrayList<>();
+            for (int i = 0; i < creates; i++) {
+                ids.add(api.createSampleResourceAs(FULL_ACCESS_USER));
+            }
+            ids.forEach(api::awaitPrincipals);
+            sharing = primaryRefreshes(RESOURCE_SHARING_INDEX) - sharingBefore;
+            resource = primaryRefreshes(RESOURCE_INDEX_NAME) - resourceBefore;
+        } finally {
+            setRefreshInterval(null);
+        }
+
+        // The resource index count is reported only: its forced refreshes come from the plugin and the field write, which
+        // this test does not cover, and realtime reads add a variable number
+        String counts = creates + " creates refreshed the sharing index " + sharing + " times and the resource index " + resource;
+        // A record write that forced a refresh would cost one refresh per create
+        assertThat(counts, sharing, lessThan((long) creates));
+    }
+
+    private void setRefreshInterval(String interval) {
+        String body = "{\"index.refresh_interval\":" + (interval == null ? "null" : "\"" + interval + "\"") + "}";
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            client.putJson(RESOURCE_INDEX_NAME + "," + RESOURCE_SHARING_INDEX + "/_settings", body).assertStatusCode(HttpStatus.SC_OK);
+        }
+    }
+
+    // Primaries only, so the count does not depend on how many replicas the test cluster allocates
+    private long primaryRefreshes(String index) {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse stats = client.get(index + "/_stats/refresh");
+            stats.assertStatusCode(HttpStatus.SC_OK);
+            return stats.bodyAsJsonNode().at("/_all/primaries/refresh/total").asLong();
+        }
     }
 
     /**

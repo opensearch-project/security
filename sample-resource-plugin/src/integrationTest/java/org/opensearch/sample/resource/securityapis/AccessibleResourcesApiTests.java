@@ -16,6 +16,7 @@ import java.util.Set;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -195,7 +196,9 @@ public class AccessibleResourcesApiTests {
     public void testListAccessibleResources_superAdmin() {
         // owner should be able to see their own resource through list api
         try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-            assertListApiWithOwnerAndSuperAdmin(client);
+            // A super admin's listing searches the sharing index, whose record writes force no refresh, so it lists the
+            // resource once that index is refreshed
+            Awaitility.await("super admin listing shows " + adminResId).untilAsserted(() -> assertListApiWithOwnerAndSuperAdmin(client));
         }
     }
 }
