@@ -55,15 +55,15 @@ import static org.junit.Assert.assertTrue;
 
 public class WhoAmITests {
     protected final static TestSecurityConfig.User WHO_AM_I = new TestSecurityConfig.User("who_am_i_user").roles(
-        new Role("who_am_i_role").clusterPermissions("security:whoamiprotected")
+        new Role("who_am_i_role").clusterPermissions("cluster:admin/opendistro_security/whoamiprotected")
     );
 
     protected final static TestSecurityConfig.User AUDIT_LOG_VERIFIER = new TestSecurityConfig.User("audit_log_verifier").roles(
         new Role("audit_log_verifier_role").clusterPermissions("*").indexPermissions("*").on("*")
     );
 
-    protected final static TestSecurityConfig.User WHO_AM_I_LEGACY = new TestSecurityConfig.User("who_am_i_user_legacy").roles(
-        new Role("who_am_i_role_legacy").clusterPermissions("cluster:admin/opendistro_security/whoamiprotected")
+    protected final static TestSecurityConfig.User WHO_AM_I_NON_CLUSTER = new TestSecurityConfig.User("who_am_i_user_non_cluster").roles(
+        new Role("who_am_i_role_non_cluster").clusterPermissions("security:whoamiprotected")
     );
 
     protected final static TestSecurityConfig.User WHO_AM_I_NO_PERM = new TestSecurityConfig.User("who_am_i_user_no_perm").roles(
@@ -74,7 +74,7 @@ public class WhoAmITests {
 
     protected final String expectedAuthorizedBody = "{\"dn\":null,\"is_admin\":false,\"is_node_certificate_request\":false}";
     protected final String expectedUnuauthorizedBody =
-        "no permissions for [any of [cluster:admin/opendistro_security/whoamiprotected, security:whoamiprotected]] and User [name=who_am_i_user_no_perm, backend_roles=[], requestedTenant=null]";
+        "no permissions for [cluster:admin/opendistro_security/whoamiprotected] and User [name=who_am_i_user_no_perm, backend_roles=[], requestedTenant=null]";
 
     public static final String WHOAMI_ENDPOINT = "_plugins/_security/whoami";
     public static final String WHOAMI_PROTECTED_ENDPOINT = "_plugins/_security/whoamiprotected";
@@ -82,7 +82,7 @@ public class WhoAmITests {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(WHO_AM_I, WHO_AM_I_LEGACY, WHO_AM_I_NO_PERM, AUDIT_LOG_VERIFIER)
+        .users(WHO_AM_I, WHO_AM_I_NON_CLUSTER, WHO_AM_I_NO_PERM, AUDIT_LOG_VERIFIER)
         .audit(
             new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
                 .filters(new AuditFilters().enabledRest(true).enabledTransport(true).resolveBulkRequests(true))
@@ -107,14 +107,14 @@ public class WhoAmITests {
     }
 
     @Test
-    public void testWhoAmIWithGetPermissionsLegacy() {
-        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_LEGACY)) {
-            assertResponse(client.get(WHOAMI_PROTECTED_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
+    public void testWhoAmIRejectsNonClusterPermission() {
+        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NON_CLUSTER)) {
+            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
             // audit log, named route
-            auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(WHO_AM_I_LEGACY, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
+            auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(WHO_AM_I_NON_CLUSTER, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
             auditLogsRule.assertExactlyOne(
-                privilegePredicateRESTLayer(GRANTED_PRIVILEGES, WHO_AM_I_LEGACY, GET, "/" + WHOAMI_PROTECTED_ENDPOINT)
+                privilegePredicateRESTLayer(MISSING_PRIVILEGES, WHO_AM_I_NON_CLUSTER, GET, "/" + WHOAMI_PROTECTED_ENDPOINT)
             );
 
             assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
@@ -148,7 +148,7 @@ public class WhoAmITests {
             assertThat(client.post(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 
-        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_LEGACY)) {
+        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NON_CLUSTER)) {
             assertThat(client.post(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 

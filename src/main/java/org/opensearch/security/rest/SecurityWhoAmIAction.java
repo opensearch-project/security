@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -52,8 +51,7 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
             new Route(POST, "/whoami"),
             new NamedRoute.Builder().method(GET)
                 .path("/whoamiprotected")
-                .uniqueName("security:whoamiprotected")
-                .legacyActionNames(Set.of("cluster:admin/opendistro_security/whoamiprotected"))
+                .uniqueName("cluster:admin/opendistro_security/whoamiprotected")
                 .build()
         ),
         "/_plugins/_security"
