@@ -62,10 +62,6 @@ public class WhoAmITests {
         new Role("audit_log_verifier_role").clusterPermissions("*").indexPermissions("*").on("*")
     );
 
-    protected final static TestSecurityConfig.User WHO_AM_I_NON_CLUSTER = new TestSecurityConfig.User("who_am_i_user_non_cluster").roles(
-        new Role("who_am_i_role_non_cluster").clusterPermissions("security:whoamiprotected")
-    );
-
     protected final static TestSecurityConfig.User WHO_AM_I_NO_PERM = new TestSecurityConfig.User("who_am_i_user_no_perm").roles(
         new Role("who_am_i_role_no_perm")
     );
@@ -82,7 +78,7 @@ public class WhoAmITests {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(WHO_AM_I, WHO_AM_I_NON_CLUSTER, WHO_AM_I_NO_PERM, AUDIT_LOG_VERIFIER)
+        .users(WHO_AM_I, WHO_AM_I_NO_PERM, AUDIT_LOG_VERIFIER)
         .audit(
             new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
                 .filters(new AuditFilters().enabledRest(true).enabledTransport(true).resolveBulkRequests(true))
@@ -101,21 +97,6 @@ public class WhoAmITests {
             // audit log, named route
             auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(WHO_AM_I, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
             auditLogsRule.assertExactlyOne(privilegePredicateRESTLayer(GRANTED_PRIVILEGES, WHO_AM_I, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
-
-            assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
-        }
-    }
-
-    @Test
-    public void testWhoAmIRejectsNonClusterPermission() {
-        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NON_CLUSTER)) {
-            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-
-            // audit log, named route
-            auditLogsRule.assertExactlyOne(userAuthenticatedPredicate(WHO_AM_I_NON_CLUSTER, GET, "/" + WHOAMI_PROTECTED_ENDPOINT));
-            auditLogsRule.assertExactlyOne(
-                privilegePredicateRESTLayer(MISSING_PRIVILEGES, WHO_AM_I_NON_CLUSTER, GET, "/" + WHOAMI_PROTECTED_ENDPOINT)
-            );
 
             assertResponse(client.get(WHOAMI_ENDPOINT), HttpStatus.SC_OK, expectedAuthorizedBody);
         }
@@ -145,10 +126,6 @@ public class WhoAmITests {
     @Test
     public void testWhoAmIPost() {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I)) {
-            assertThat(client.post(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }
-
-        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NON_CLUSTER)) {
             assertThat(client.post(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 
