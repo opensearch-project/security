@@ -30,7 +30,7 @@ public class ActionAliasPrivilegesTest {
     private static final String LEGACY = "cluster:admin/opendistro/reports/instance/get";
 
     @Test
-    public void oldAndNewPermissionsAuthorizeEitherRegisteredName() throws Exception {
+    public void oldAndNewPermissionsAuthorizeCanonicalAction() throws Exception {
         for (String granted : List.of(CANONICAL, LEGACY, "cluster:admin/opendistro/reports/instance/*")) {
             SecurityDynamicConfiguration<RoleV7> roles = SecurityDynamicConfiguration.fromYaml(
                 "reader:\n  cluster_permissions:\n    - '" + granted + "'\n",
@@ -42,11 +42,9 @@ public class ActionAliasPrivilegesTest {
                 Settings.EMPTY,
                 false
             );
-            for (String invoked : List.of(CANONICAL, LEGACY)) {
-                var context = context(invoked, metadata(), privileges);
-                assertTrue(privileges.hasClusterPrivilege(context, invoked).isAllowed());
-                assertFalse(privileges.hasClusterPrivilege(context, "cluster:admin/unrelated/delete").isAllowed());
-            }
+            var context = context(CANONICAL, metadata(), privileges);
+            assertTrue(privileges.hasClusterPrivilege(context, CANONICAL).isAllowed());
+            assertFalse(privileges.hasClusterPrivilege(context, "cluster:admin/unrelated/delete").isAllowed());
         }
     }
 
@@ -56,15 +54,11 @@ public class ActionAliasPrivilegesTest {
             Set.of(CANONICAL),
             context(CANONICAL, ActionRequestMetadata.empty(), ActionPrivileges.EMPTY).getActionNames(CANONICAL)
         );
-        assertEquals(
-            Set.of("different:action"),
-            context("different:action", metadata(), ActionPrivileges.EMPTY).getActionNames("different:action")
-        );
+        assertEquals(Set.of("different:action"), context(CANONICAL, metadata(), ActionPrivileges.EMPTY).getActionNames("different:action"));
     }
 
     private ActionRequestMetadata<?, ?> metadata() {
         ActionRequestMetadata<?, ?> metadata = mock(ActionRequestMetadata.class);
-        when(metadata.canonicalActionName()).thenReturn(CANONICAL);
         when(metadata.legacyActionNames()).thenReturn(Set.of(LEGACY));
         return metadata;
     }

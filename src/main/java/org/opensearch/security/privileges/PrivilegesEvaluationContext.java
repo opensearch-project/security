@@ -115,12 +115,7 @@ public class PrivilegesEvaluationContext {
         if (!action.equals(permission) || actionRequestMetadata == null || actionRequestMetadata.legacyActionNames().isEmpty()) {
             return Set.of(permission);
         }
-        String canonical = actionRequestMetadata.canonicalActionName();
-        Set<String> legacy = actionRequestMetadata.legacyActionNames();
-        if (canonical == null || (!permission.equals(canonical) && !legacy.contains(permission))) {
-            return Set.of(permission);
-        }
-        return ImmutableSet.<String>builder().add(canonical).addAll(legacy).build();
+        return ImmutableSet.<String>builder().add(action).addAll(actionRequestMetadata.legacyActionNames()).build();
     }
 
     public User getUser() {
