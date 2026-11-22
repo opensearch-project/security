@@ -429,28 +429,33 @@ public class SecurityFilter implements ActionFilter {
             // rather than the ones the request reports.
             final ResourceAccessEvaluator.ResourceRequest resourceRequest = resourceAccessEvaluator.evaluableResourceRequest(request);
             if (resourceRequest != null) {
-                resourceAccessEvaluator.evaluateAsync(resourceRequest, action, ActionListener.wrap(evaluation -> {
-                    final PrivilegesEvaluatorResponse response = evaluation.response();
-                    final ResourceAccessEvaluator.AuthorizedResource resource = evaluation.resource();
-                    if (handlePermissionCheckRequest(listener, response, action)) {
-                        return;
-                    }
-                    if (response.isAllowed()) {
-                        auditResources(
-                            resource,
-                            id -> auditLog.logResourceAccessGranted(action, id, resource.type(), resource.index(), request, task)
-                        );
-                        auditLog.logIndexEvent(action, request, task);
-                        auditLog.logSettingsChange(action, request, task);
-                        chain.proceed(task, action, request, listener);
-                    } else {
-                        auditResources(
-                            resource,
-                            id -> auditLog.logResourceAccessDenied(action, id, resource.type(), resource.index(), request, task)
-                        );
-                        handleUnauthorized.accept(response);
-                    }
-                }, listener::onFailure));
+                resourceAccessEvaluator.evaluateAsync(
+                    resourceRequest,
+                    action,
+                    context.getActionNames(action),
+                    ActionListener.wrap(evaluation -> {
+                        final PrivilegesEvaluatorResponse response = evaluation.response();
+                        final ResourceAccessEvaluator.AuthorizedResource resource = evaluation.resource();
+                        if (handlePermissionCheckRequest(listener, response, action)) {
+                            return;
+                        }
+                        if (response.isAllowed()) {
+                            auditResources(
+                                resource,
+                                id -> auditLog.logResourceAccessGranted(action, id, resource.type(), resource.index(), request, task)
+                            );
+                            auditLog.logIndexEvent(action, request, task);
+                            auditLog.logSettingsChange(action, request, task);
+                            chain.proceed(task, action, request, listener);
+                        } else {
+                            auditResources(
+                                resource,
+                                id -> auditLog.logResourceAccessDenied(action, id, resource.type(), resource.index(), request, task)
+                            );
+                            handleUnauthorized.accept(response);
+                        }
+                    }, listener::onFailure)
+                );
                 // We early return here to skip calling rest of the evaluation as this is a resource-access request
                 // Chain will proceed inside the async ActionListener above, if allowed, else returns forbidden
                 return;

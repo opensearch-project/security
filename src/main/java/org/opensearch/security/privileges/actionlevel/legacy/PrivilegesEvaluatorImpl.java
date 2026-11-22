@@ -417,7 +417,7 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
         log.trace("dnfof enabled? {}", dnfofEnabled);
 
         final boolean serviceAccountUser = user.isServiceAccount();
-        if (isClusterPerm(action0)) {
+        if (context.getActionNames(action0).stream().anyMatch(PrivilegesEvaluatorImpl::isClusterPerm)) {
             if (serviceAccountUser) {
                 log.info("{} is a service account which doesn't have access to cluster level permission: {}", user, action0);
                 return PrivilegesEvaluatorResponse.insufficient(action0);

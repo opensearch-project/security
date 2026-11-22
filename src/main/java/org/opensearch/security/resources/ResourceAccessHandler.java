@@ -141,10 +141,19 @@ public class ResourceAccessHandler {
      * @param action        The action to check permission for
      * @param listener      Notified with true only if every id grants the action.
      */
-    public void hasPermission(
+    public void hasPermission(Collection<String> resourceIds, String resourceType, String action, ActionListener<Boolean> listener) {
+        hasPermissionForActionNames(resourceIds, resourceType, Set.of(action), listener);
+    }
+
+    public void hasPermission(String resourceId, String resourceType, String action, ActionListener<Boolean> listener) {
+        hasPermissionForActionNames(resourceId, resourceType, Set.of(action), listener);
+    }
+
+    /** Checks each resource against any registered name of the same action, without fetching its sharing record again. */
+    public void hasPermissionForActionNames(
         @NonNull Collection<String> resourceIds,
         @NonNull String resourceType,
-        @NonNull String action,
+        @NonNull Set<String> actionNames,
         ActionListener<Boolean> listener
     ) {
         // Deduplicated here rather than trusting the caller: this is the authorization boundary, and a duplicate would
@@ -152,14 +161,14 @@ public class ResourceAccessHandler {
         final Set<String> distinctIds = new HashSet<>(resourceIds);
 
         if (distinctIds.isEmpty()) {
-            LOGGER.debug("No resource id to authorize for action {}; denying", action);
+            LOGGER.debug("No resource id to authorize for action names {}; denying", actionNames);
             listener.onResponse(false);
             return;
         }
 
         // One id is the common case and the single-id path already owns the whole evaluation, containers included
         if (distinctIds.size() == 1) {
-            hasPermission(distinctIds.iterator().next(), resourceType, action, listener);
+            hasPermissionForActionNames(distinctIds.iterator().next(), resourceType, actionNames, listener);
             return;
         }
 
@@ -178,7 +187,7 @@ public class ResourceAccessHandler {
 
         final String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
-            LOGGER.debug("No resourceIndex mapping found for type '{}'; denying action {}", resourceType, action);
+            LOGGER.debug("No resourceIndex mapping found for type '{}'; denying action names {}", resourceType, actionNames);
             listener.onResponse(false);
             return;
         }
@@ -189,11 +198,11 @@ public class ResourceAccessHandler {
                 ResourceSharing sharingInfo = sharingInfoById.get(resourceId);
                 if (sharingInfo == null) {
                     // No record means nothing grants this id, which is a denial for the request as a whole
-                    LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, action);
+                    LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, actionNames);
                     listener.onResponse(false);
                     return;
                 }
-                if (!recordGrantsAction(sharingInfo, resourceType, user, action)) {
+                if (!recordGrantsAction(sharingInfo, resourceType, user, actionNames)) {
                     needContainerCheck.add(sharingInfo);
                 }
             }
@@ -213,7 +222,7 @@ public class ResourceAccessHandler {
                 // the record it was asked about on entry; this path enters the walk lower down and seeds it here.
                 final Set<String> visitedChain = new HashSet<>();
                 visitedChain.add(chainKey(resourceType, sharingInfo.getResourceId()));
-                checkContainers(sharingInfo, action, visitedChain, groupedListener);
+                checkContainers(sharingInfo, actionNames, visitedChain, groupedListener);
             }
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resources {}: {}", user.getName(), distinctIds, e.getMessage());
@@ -226,16 +235,16 @@ public class ResourceAccessHandler {
      *
      * @param resourceId    The resource ID to check access for.
      * @param resourceType  The resource type.
-     * @param action        The action to check permission for
+     * @param actionNames        Equivalent registered names of the action to authorize
      * @param listener      The listener to be notified with the permission check result.
      */
-    public void hasPermission(
+    public void hasPermissionForActionNames(
         @NonNull String resourceId,
         @NonNull String resourceType,
-        @NonNull String action,
+        @NonNull Set<String> actionNames,
         ActionListener<Boolean> listener
     ) {
-        hasPermission(resourceId, resourceType, action, new HashSet<>(), listener);
+        hasPermission(resourceId, resourceType, actionNames, new HashSet<>(), listener);
     }
 
     /**
@@ -245,7 +254,7 @@ public class ResourceAccessHandler {
     private void hasPermission(
         @NonNull String resourceId,
         @NonNull String resourceType,
-        @NonNull String action,
+        @NonNull Set<String> actionNames,
         Set<String> visitedChain,
         ActionListener<Boolean> listener
     ) {
@@ -270,7 +279,7 @@ public class ResourceAccessHandler {
 
         String resourceIndex = resourcePluginInfo.indexByType(resourceType);
         if (resourceIndex == null) {
-            LOGGER.debug("No resourceIndex mapping found for type '{}'; denying action {}", resourceType, action);
+            LOGGER.debug("No resourceIndex mapping found for type '{}'; denying action names {}", resourceType, actionNames);
             listener.onResponse(false);
             return;
         }
@@ -280,18 +289,18 @@ public class ResourceAccessHandler {
             // records.
             // This also means that for non-existing documents, the evaluator will return 403 instead
             if (sharingInfo == null) {
-                LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, action);
+                LOGGER.warn("No sharing info found for '{}'. Action {} is not allowed.", resourceId, actionNames);
                 listener.onResponse(false);
                 return;
             }
 
-            if (recordGrantsAction(sharingInfo, resourceType, user, action)) {
+            if (recordGrantsAction(sharingInfo, resourceType, user, actionNames)) {
                 listener.onResponse(true);
                 return;
             }
 
             // resource itself does not grant the action: fall back to its containers (parent and/or workspaces)
-            checkContainers(sharingInfo, action, visitedChain, listener);
+            checkContainers(sharingInfo, actionNames, visitedChain, listener);
         }, e -> {
             LOGGER.error("Error while checking permission for user {} on resource {}: {}", user.getName(), resourceId, e.getMessage());
             listener.onFailure(e);
@@ -300,11 +309,11 @@ public class ResourceAccessHandler {
 
     /**
      * Returns whether a single sharing record grants the given user the requested action directly — i.e. the user is
-     * the creator, or is shared with at an access level whose resolved action-group matches {@code action}. This is a
+     * the creator, or is shared with at an access level whose resolved action group matches any of {@code actionNames}. This is a
      * pure, in-memory computation (no I/O), factored out so it can be reused both for the resource itself and for each
      * container record fetched in a batch.
      */
-    private boolean recordGrantsAction(ResourceSharing sharingInfo, String resourceType, User user, String action) {
+    private boolean recordGrantsAction(ResourceSharing sharingInfo, String resourceType, User user, Set<String> actionNames) {
         if (sharingInfo.isCreatedBy(user.getName())) {
             return true;
         }
@@ -314,7 +323,7 @@ public class ResourceAccessHandler {
         }
         final FlattenedActionGroups agForType = resourcePluginInfo.flattenedForType(resourceType);
         final Set<String> allowedActions = agForType.resolve(accessLevels);
-        return WildcardMatcher.from(allowedActions).test(action);
+        return actionNames.stream().anyMatch(WildcardMatcher.from(allowedActions)::test);
     }
 
     /**
@@ -327,11 +336,16 @@ public class ResourceAccessHandler {
      * isn't, {@code indexByType} returns null and the workspace branch denies cleanly.
      *
      * @param sharingInfo  the sharing record of the resource whose containers should be consulted
-     * @param action       the action being authorized
+     * @param actionNames       the action being authorized
      * @param visitedChain the records the chain has already consulted, carried so a cycle terminates
      * @param listener     notified with {@code true} if any container grants access, {@code false} otherwise
      */
-    private void checkContainers(ResourceSharing sharingInfo, String action, Set<String> visitedChain, ActionListener<Boolean> listener) {
+    private void checkContainers(
+        ResourceSharing sharingInfo,
+        Set<String> actionNames,
+        Set<String> visitedChain,
+        ActionListener<Boolean> listener
+    ) {
         final User user = getAuthenticatedUser();
         if (user == null) {
             listener.onResponse(false);
@@ -347,15 +361,15 @@ public class ResourceAccessHandler {
                 for (ResourceSharing wsRecord : records.values()) {
                     // Resolve against the workspace type's action groups: only they map workspace-level access
                     // (workspace_read/write) to the child action being authorized.
-                    if (recordGrantsAction(wsRecord, WORKSPACE_RESOURCE_TYPE, user, action)) {
+                    if (recordGrantsAction(wsRecord, WORKSPACE_RESOURCE_TYPE, user, actionNames)) {
                         listener.onResponse(true);
                         return;
                     }
                 }
-                checkParent(sharingInfo, action, visitedChain, listener);
+                checkParent(sharingInfo, actionNames, visitedChain, listener);
             }, listener::onFailure));
         } else {
-            checkParent(sharingInfo, action, visitedChain, listener);
+            checkParent(sharingInfo, actionNames, visitedChain, listener);
         }
     }
 
@@ -368,7 +382,12 @@ public class ResourceAccessHandler {
      * exhaust the stack. The walk therefore ends at the first record it reaches twice, and denies, since a cycle has no
      * terminating ancestor to grant the action.
      */
-    private void checkParent(ResourceSharing sharingInfo, String action, Set<String> visitedChain, ActionListener<Boolean> listener) {
+    private void checkParent(
+        ResourceSharing sharingInfo,
+        Set<String> actionNames,
+        Set<String> visitedChain,
+        ActionListener<Boolean> listener
+    ) {
         final String parentId = sharingInfo.getParentId();
         if (parentId == null) {
             listener.onResponse(false);
@@ -381,12 +400,12 @@ public class ResourceAccessHandler {
                 sharingInfo.getResourceId(),
                 parentType,
                 parentId,
-                action
+                actionNames
             );
             listener.onResponse(false);
             return;
         }
-        hasPermission(parentId, parentType, action, visitedChain, listener);
+        hasPermission(parentId, parentType, actionNames, visitedChain, listener);
     }
 
     /** Identifies a sharing record within one chain. */

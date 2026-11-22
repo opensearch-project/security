@@ -13,6 +13,7 @@ package org.opensearch.security.privileges;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -104,6 +105,22 @@ public class PrivilegesEvaluationContext {
         this.actionRequestMetadata = actionRequestMetadata;
         this.actionPrivileges = actionPrivileges;
         this.headersForDls = (headersForDls == null) ? List.of() : headersForDls;
+    }
+
+    /**
+     * Names registered by the transport action for this operation. Never expand a different permission checked
+     * as part of the request (for example, a synthetic all-PITs permission) using this request's aliases.
+     */
+    public Set<String> getActionNames(String permission) {
+        if (!action.equals(permission) || actionRequestMetadata == null || actionRequestMetadata.legacyActionNames().isEmpty()) {
+            return Set.of(permission);
+        }
+        String canonical = actionRequestMetadata.canonicalActionName();
+        Set<String> legacy = actionRequestMetadata.legacyActionNames();
+        if (canonical == null || (!permission.equals(canonical) && !legacy.contains(permission))) {
+            return Set.of(permission);
+        }
+        return ImmutableSet.<String>builder().add(canonical).addAll(legacy).build();
     }
 
     public User getUser() {

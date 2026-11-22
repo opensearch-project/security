@@ -268,7 +268,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             action = "cluster:monitor/point_in_time/segments/_all";
         }
 
-        if (this.actionConfiguration.isUniversallyDenied(action)) {
+        if (context.getActionNames(action).stream().anyMatch(this.actionConfiguration::isUniversallyDenied)) {
             return PrivilegesEvaluatorResponse.insufficient(action).reason("The action is universally denied");
         }
 
@@ -290,7 +290,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             return result;
         }
 
-        if (isClusterPermission(action)) {
+        if (context.getActionNames(action).stream().anyMatch(this::isClusterPermission)) {
             PrivilegesEvaluatorResponse result = checkClusterPermission(context, action, request);
             logPrivilegeEvaluationResult(context, result, "cluster");
             return result;

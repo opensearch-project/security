@@ -12,6 +12,7 @@ package org.opensearch.security.privileges;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -87,18 +88,28 @@ public class ResourceAccessEvaluator {
      *
      * @param request                         the index, type and ids the request names, from {@link #resourceRequest}
      * @param action                          the action being requested to be performed on the resource
-     * @param pResponseListener               the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
+     * @param listener                        the response listener which tells whether the action is allowed for user, or should the request be checked with another evaluator
      */
-    public void evaluateAsync(final ResourceRequest request, final String action, final ActionListener<Evaluation> pResponseListener) {
+    public void evaluateAsync(final ResourceRequest request, final String action, final ActionListener<Evaluation> listener) {
+        evaluateAsync(request, action, Set.of(action), listener);
+    }
+
+    /** Uses only equivalent action names supplied by core's registered transport action metadata. */
+    public void evaluateAsync(
+        final ResourceRequest request,
+        final String action,
+        final Set<String> actionNames,
+        final ActionListener<Evaluation> pResponseListener
+    ) {
         log.debug("Evaluating resource access");
 
         final GatingResourceResolver gatingResolver = resourcePluginInfo.gatingResolver(request.type());
         if (gatingResolver != null) {
-            resolveThenCheck(request, action, gatingResolver, pResponseListener);
+            resolveThenCheck(request, action, actionNames, gatingResolver, pResponseListener);
             return;
         }
 
-        checkPermission(request.ids(), request.type(), request.index(), action, pResponseListener);
+        checkPermission(request.ids(), request.type(), request.index(), action, actionNames, pResponseListener);
     }
 
     /**
@@ -119,6 +130,7 @@ public class ResourceAccessEvaluator {
     private void resolveThenCheck(
         final ResourceRequest request,
         final String action,
+        final Set<String> actionNames,
         final GatingResourceResolver gatingResolver,
         final ActionListener<Evaluation> pResponseListener
     ) {
@@ -142,7 +154,7 @@ public class ResourceAccessEvaluator {
                 }
                 final List<String> ids = gatingResourceIds.stream().distinct().toList();
                 final String gatingType = gatingResolver.gatingResourceType();
-                checkPermission(ids, gatingType, resourcePluginInfo.indexByType(gatingType), action, pResponseListener);
+                checkPermission(ids, gatingType, resourcePluginInfo.indexByType(gatingType), action, actionNames, pResponseListener);
             }, e -> {
                 log.debug("Failed to resolve the gating resource for request of type {}: {}", request.type(), e.getMessage());
                 pResponseListener.onResponse(deniedForRequestItself(request, action));
@@ -162,16 +174,22 @@ public class ResourceAccessEvaluator {
         final String resourceType,
         final String resourceIndex,
         final String action,
+        final Set<String> actionNames,
         final ActionListener<Evaluation> pResponseListener
     ) {
         final AuthorizedResource resource = new AuthorizedResource(resourceType, resourceIds, resourceIndex);
-        resourceAccessHandler.hasPermission(resourceIds, resourceType, action, ActionListener.wrap(hasAccess -> {
+        ActionListener<Boolean> permissionListener = ActionListener.wrap(hasAccess -> {
             if (hasAccess) {
                 pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.ok(), resource));
             } else {
                 pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.insufficient(action), resource));
             }
-        }, e -> pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.insufficient(action), resource))));
+        }, e -> pResponseListener.onResponse(new Evaluation(PrivilegesEvaluatorResponse.insufficient(action), resource)));
+        if (actionNames.size() == 1) {
+            resourceAccessHandler.hasPermission(resourceIds, resourceType, action, permissionListener);
+        } else {
+            resourceAccessHandler.hasPermissionForActionNames(resourceIds, resourceType, actionNames, permissionListener);
+        }
     }
 
     /**

@@ -75,7 +75,8 @@ public abstract class RuntimeOptimizedActionPrivileges implements ActionPrivileg
 
     @Override
     public PrivilegesEvaluatorResponse hasClusterPrivilege(PrivilegesEvaluationContext context, String action) {
-        return cluster.providesPrivilege(context, action);
+        Set<String> names = context.getActionNames(action);
+        return names.size() == 1 ? cluster.providesPrivilege(context, action) : cluster.providesAnyPrivilege(context, names);
     }
 
     @Override

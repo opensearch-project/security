@@ -143,6 +143,52 @@ public class ResourceAccessHandlerTests {
     }
 
     @Test
+    public void testRegisteredActionNamesMatchExistingSharingPermissions() {
+        User user = new User("bob");
+        injectUser(user);
+        ResourceSharing doc = mock(ResourceSharing.class);
+        when(doc.getAccessLevelsForUser(user)).thenReturn(Set.of("reader"));
+        FlattenedActionGroups groups = resourcePluginInfo.flattenedForType(TYPE);
+        when(groups.resolve(Set.of("reader"))).thenReturn(ImmutableSet.of("cluster:admin/reports/get"));
+        doAnswer(inv -> {
+            ActionListener<ResourceSharing> callback = inv.getArgument(2);
+            callback.onResponse(doc);
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfo(eq(INDEX), eq(RESOURCE_ID), any());
+        ActionListener<Boolean> granted = mock(ActionListener.class);
+        handler.hasPermissionForActionNames(RESOURCE_ID, TYPE, Set.of("report:get", "cluster:admin/reports/get"), granted);
+        verify(granted).onResponse(true);
+        ActionListener<Boolean> denied = mock(ActionListener.class);
+        handler.hasPermissionForActionNames(RESOURCE_ID, TYPE, Set.of("report:delete", "cluster:admin/reports/delete"), denied);
+        verify(denied).onResponse(false);
+    }
+
+    @Test
+    public void testEveryResourceMustGrantOneOfTheRegisteredNames() {
+        User user = new User("bob");
+        injectUser(user);
+        ResourceSharing oldRecord = mock(ResourceSharing.class);
+        ResourceSharing newRecord = mock(ResourceSharing.class);
+        when(oldRecord.getAccessLevelsForUser(user)).thenReturn(Set.of("old-reader"));
+        when(newRecord.getAccessLevelsForUser(user)).thenReturn(Set.of("new-reader"));
+        FlattenedActionGroups groups = resourcePluginInfo.flattenedForType(TYPE);
+        when(groups.resolve(Set.of("old-reader"))).thenReturn(ImmutableSet.of("cluster:admin/reports/get"));
+        when(groups.resolve(Set.of("new-reader"))).thenReturn(ImmutableSet.of("report:get"));
+        doAnswer(inv -> {
+            ActionListener<java.util.Map<String, ResourceSharing>> callback = inv.getArgument(2);
+            callback.onResponse(java.util.Map.of("old", oldRecord, "new", newRecord));
+            return null;
+        }).when(sharingIndexHandler).fetchSharingInfoForIds(eq(INDEX), eq(Set.of("old", "new")), any());
+        ActionListener<Boolean> granted = mock(ActionListener.class);
+        handler.hasPermissionForActionNames(Set.of("old", "new"), TYPE, Set.of("report:get", "cluster:admin/reports/get"), granted);
+        verify(granted).onResponse(true);
+        when(groups.resolve(Set.of("new-reader"))).thenReturn(ImmutableSet.of("report:delete"));
+        ActionListener<Boolean> denied = mock(ActionListener.class);
+        handler.hasPermissionForActionNames(Set.of("old", "new"), TYPE, Set.of("report:get", "cluster:admin/reports/get"), denied);
+        verify(denied).onResponse(false);
+    }
+
+    @Test
     public void testHasPermission_noAccessLevelsDenied() {
         User user = new User("charlie", ImmutableSet.of("roleA"), ImmutableSet.of("backendA"), null, ImmutableMap.of(), false);
         injectUser(user);
