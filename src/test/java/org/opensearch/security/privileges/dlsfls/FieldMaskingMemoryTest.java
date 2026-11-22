@@ -89,6 +89,23 @@ public class FieldMaskingMemoryTest {
     }
 
     @Test
+    public void applyStringRegexPathShortCircuitsAndMatchesBytePath() throws Exception {
+        FieldMasking.FieldMaskingRule.Field field = new FieldMasking.FieldMaskingRule.Field(
+            new FieldMasking.FieldMaskingExpression("secret::/\\d+/::***"),
+            DEFAULT_CONFIG
+        );
+        String input = "pin 1234 code";
+        // The String path (short-circuited directly on the String) must produce exactly the
+        // same result as the byte-array path round-tripped through UTF-8.
+        assertThat(field.apply(input), equalTo(new String(field.apply(input.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)));
+        assertThat(field.apply(input), equalTo("pin *** code"));
+        // Non-ASCII input still round-trips correctly through the regex path.
+        assertThat(field.apply("code äöü 42"), equalTo("code äöü ***"));
+        // Hash path via apply(String) is pure-ASCII hex and decodes identically.
+        assertThat(blake2bField().apply("foobar"), equalTo(BLAKE2B_FOOBAR));
+    }
+
+    @Test
     public void reusedThreadLocalHashesProduceStableResults() throws Exception {
         FieldMasking.FieldMaskingRule.Field blake2b = blake2bField();
         FieldMasking.FieldMaskingRule.Field sha256 = sha256Field();

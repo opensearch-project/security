@@ -325,8 +325,21 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
             }
 
             public String apply(String value) {
+                final List<FieldMaskingExpression.RegexReplacement> regexReplacements = expression.getRegexReplacements();
+                if (regexReplacements != null) {
+                    // Regex path: apply the replacements directly on the String to avoid a
+                    // redundant UTF-8 encode/decode round-trip through apply(byte[], int, int).
+                    String result = value;
+                    for (FieldMaskingExpression.RegexReplacement rr : regexReplacements) {
+                        result = rr.getRegex().matcher(result).replaceAll(rr.getReplacement());
+                    }
+                    return result;
+                }
                 final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
-                return new String(apply(bytes, 0, bytes.length), StandardCharsets.UTF_8);
+                // The remaining (hash) paths return lowercase hex, which is pure ASCII, so
+                // decoding with US_ASCII avoids the UTF-8 decoder overhead on a known-ASCII
+                // byte array. (The input encoding must remain UTF-8.)
+                return new String(apply(bytes, 0, bytes.length), StandardCharsets.US_ASCII);
             }
 
             public BytesRef apply(BytesRef value) {
@@ -375,7 +388,8 @@ public class FieldMasking extends AbstractRuleBasedPrivileges<FieldMasking.Field
                 // Reset defensively so a previous use that aborted mid-operation (e.g. a DigestException)
                 // cannot leak partial state into this invocation.
                 digest.reset();
-                if (digest.getDigestLength() > 0 && digest.getDigestLength() <= scratch.length) {
+                final int declaredLength = digest.getDigestLength();
+                if (declaredLength > 0 && declaredLength <= scratch.length) {
                     // Hash the input slice in place (no copy of the field value) and digest directly
                     // into the reusable thread-local scratch buffer. The digest is reset automatically
                     // after digest() completes, so the thread-local instance can safely be reused.
