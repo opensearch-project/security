@@ -508,7 +508,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     public void testRequireExpClaimRejectsTokenWithoutExp() {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("require_exp_claim", true)
+            .putList("required_claims", "exp")
             .build();
 
         AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
@@ -523,7 +523,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     public void testRequireNbfClaimRejectsTokenWithoutNbf() {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("require_nbf_claim", true)
+            .putList("required_claims", "nbf")
             .build();
 
         AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
@@ -539,8 +539,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
     public void testRequireExpAndNbfClaimsAcceptsTokenWithBoth() {
         Settings settings = Settings.builder()
             .put("openid_connect_url", mockIdpServer.getDiscoverUri())
-            .put("require_exp_claim", true)
-            .put("require_nbf_claim", true)
+            .putList("required_claims", "exp", "nbf")
             .build();
 
         AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
@@ -551,6 +550,22 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is(TestJwts.MCCOY_SUBJECT));
+    }
+
+    @Test
+    public void testRequiredClaimsRejectsNullValuedExp() {
+        Settings settings = Settings.builder()
+            .put("openid_connect_url", mockIdpServer.getDiscoverUri())
+            .putList("required_claims", "exp")
+            .build();
+        String token = TestJwts.createSignedWithRawPayload("{\"sub\":\"Leonard McCoy\",\"exp\":null}", TestJwk.OCT_1);
+
+        AuthCredentials creds = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null).extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", token), new HashMap<>()).asSecurityRequest(),
+            null
+        );
+
+        Assert.assertNull(creds);
     }
 
 }

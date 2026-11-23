@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -67,10 +68,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String requiredIssuer;
 
     public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 30;
+    private static final String REQUIRED_CLAIMS = "required_claims";
     private final int clockSkewToleranceSeconds;
-
-    private final boolean requireExpClaim;
-    private final boolean requireNbfClaim;
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
@@ -81,8 +80,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
         requiredAudience = settings.getAsList("required_audience");
         requiredIssuer = settings.get("required_issuer");
-        requireExpClaim = settings.getAsBoolean("require_exp_claim", false);
-        requireNbfClaim = settings.getAsBoolean("require_nbf_claim", false);
+        final Set<String> requiredClaims = readRequiredClaims(settings);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -93,19 +91,26 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);
-            jwtVerifier = new JwtVerifier(
-                keyProvider,
-                clockSkewToleranceSeconds,
-                requiredIssuer,
-                requiredAudience,
-                requireExpClaim,
-                requireNbfClaim
-            );
+            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience, requiredClaims);
 
         } catch (Exception e) {
             log.error("Error creating JWT authenticator. JWT authentication will not work", e);
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Reads the claims every token must contain. The setting must be a list of claim names.
+     * An empty or missing setting requires no claims.
+     */
+    static Set<String> readRequiredClaims(Settings settings) {
+        final List<String> claims = settings.getAsList(REQUIRED_CLAIMS);
+        if (!settings.getAsSettings(REQUIRED_CLAIMS).isEmpty() || claims.contains("")) {
+            final String message = "'" + REQUIRED_CLAIMS + "' must be a list of non-empty claim names, for example [exp, nbf]";
+            log.error(message);
+            throw new IllegalArgumentException(message);
+        }
+        return Set.copyOf(claims);
     }
 
     @Override

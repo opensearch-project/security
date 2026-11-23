@@ -214,8 +214,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
             .put("exchange_key", "abc")
             .put("roles_key", "roles")
-            .put("jwt.require_exp_claim", true)
-            .put("jwt.require_nbf_claim", true)
+            .putList("jwt.required_claims", "exp", "nbf")
             .put("path.home", ".")
             .build();
 
@@ -242,6 +241,45 @@ public class HTTPSamlAuthenticatorTest {
         );
         Assert.assertNotNull(creds);
         assertThat(creds.getUsername(), is("horst"));
+    }
+
+    @Test
+    public void sessionJwtIsRejectedWhenRequiredClaimIsNotInSessionJwt() throws Exception {
+        mockSamlIdpServer.setSignResponses(true);
+        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
+        mockSamlIdpServer.setAuthenticateUser("horst");
+        mockSamlIdpServer.setEndpointQueryString(null);
+
+        // The session JWT is issued by OpenSearch itself, so a required claim it never writes (such as iat, jti or a custom claim)
+        // rejects every SAML session
+        Settings settings = Settings.builder()
+            .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+            .put("kibana_url", "http://wherever")
+            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+            .put("exchange_key", "abc")
+            .put("roles_key", "roles")
+            .putList("jwt.required_claims", "exp", "not_in_session_jwt")
+            .put("path.home", ".")
+            .build();
+
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+
+        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper()
+            .readValue(responseJson, new TypeReference<HashMap<String, Object>>() {
+            });
+        String authorization = (String) response.get("authorization");
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+        AuthCredentials creds = samlAuthenticator.extractCredentials(
+            new FakeRestRequest(ImmutableMap.of("Authorization", authorization), new HashMap<>()).asSecurityRequest(),
+            null
+        );
+        Assert.assertNull(creds);
     }
 
     private Optional<SecurityResponse> sendToAuthenticator(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) {

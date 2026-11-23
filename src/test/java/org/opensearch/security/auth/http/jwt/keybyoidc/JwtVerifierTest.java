@@ -12,6 +12,7 @@
 package org.opensearch.security.auth.http.jwt.keybyoidc;
 
 import java.util.Collections;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -66,7 +67,7 @@ public class JwtVerifierTest {
 
     @Test
     public void missingExpIsRejectedWhenRequired() throws Exception {
-        JwtVerifier verifier = verifierRequiring(true, false);
+        JwtVerifier verifier = verifierRequiring("exp");
 
         BadCredentialsException e = Assert.assertThrows(
             BadCredentialsException.class,
@@ -77,7 +78,7 @@ public class JwtVerifierTest {
 
     @Test
     public void missingNbfIsRejectedWhenRequired() throws Exception {
-        JwtVerifier verifier = verifierRequiring(false, true);
+        JwtVerifier verifier = verifierRequiring("nbf");
 
         BadCredentialsException e = Assert.assertThrows(
             BadCredentialsException.class,
@@ -88,7 +89,7 @@ public class JwtVerifierTest {
 
     @Test
     public void presentExpAndNbfAreAcceptedWhenRequired() throws Exception {
-        JwtVerifier verifier = verifierRequiring(true, true);
+        JwtVerifier verifier = verifierRequiring("exp", "nbf");
 
         SignedJWT jwt = verifier.getVerifiedJwtToken(TestJwts.MC_COY_WITH_EXP_AND_NBF_SIGNED_RSA_1);
 
@@ -99,7 +100,7 @@ public class JwtVerifierTest {
     public void signatureIsVerifiedBeforeRequiredClaims() throws Exception {
         KeyProvider keyProvider = mock(KeyProvider.class);
         when(keyProvider.getKey(any())).thenReturn(TestJwk.RSA_2_PUBLIC); // wrong key for an RSA_1-signed token
-        JwtVerifier verifier = new JwtVerifier(keyProvider, 30, null, Collections.emptyList(), true, true);
+        JwtVerifier verifier = new JwtVerifier(keyProvider, 30, null, Collections.emptyList(), Set.of("exp", "nbf"));
 
         BadCredentialsException e = Assert.assertThrows(
             BadCredentialsException.class,
@@ -108,9 +109,47 @@ public class JwtVerifierTest {
         assertThat(e.getMessage(), is("Invalid JWT signature"));
     }
 
-    private static JwtVerifier verifierRequiring(boolean requireExp, boolean requireNbf) throws Exception {
+    @Test
+    public void nullValuedExpIsRejectedWhenRequired() throws Exception {
+        JwtVerifier verifier = verifierRequiring("exp");
+        String token = TestJwts.createSignedWithRawPayload("{\"sub\":\"Leonard McCoy\",\"exp\":null}", TestJwk.RSA_1);
+
+        BadCredentialsException e = Assert.assertThrows(BadCredentialsException.class, () -> verifier.getVerifiedJwtToken(token));
+        assertThat(e.getMessage(), containsString("exp"));
+    }
+
+    @Test
+    public void nullValuedNbfIsRejectedWhenRequired() throws Exception {
+        JwtVerifier verifier = verifierRequiring("nbf");
+        String token = TestJwts.createSignedWithRawPayload("{\"sub\":\"Leonard McCoy\",\"nbf\":null}", TestJwk.RSA_1);
+
+        BadCredentialsException e = Assert.assertThrows(BadCredentialsException.class, () -> verifier.getVerifiedJwtToken(token));
+        assertThat(e.getMessage(), containsString("nbf"));
+    }
+
+    @Test
+    public void missingCustomClaimIsRejectedWhenRequired() throws Exception {
+        JwtVerifier verifier = verifierRequiring("dept");
+
+        BadCredentialsException e = Assert.assertThrows(
+            BadCredentialsException.class,
+            () -> verifier.getVerifiedJwtToken(TestJwts.MC_COY_SIGNED_RSA_1)
+        );
+        assertThat(e.getMessage(), containsString("dept"));
+    }
+
+    @Test
+    public void nothingIsRequiredByDefault() throws Exception {
         KeyProvider keyProvider = mock(KeyProvider.class);
         when(keyProvider.getKey(any())).thenReturn(TestJwk.RSA_1_PUBLIC);
-        return new JwtVerifier(keyProvider, 30, null, Collections.emptyList(), requireExp, requireNbf);
+        JwtVerifier verifier = new JwtVerifier(keyProvider, 30, null, Collections.emptyList());
+
+        Assert.assertNotNull(verifier.getVerifiedJwtToken(TestJwts.MC_COY_SIGNED_RSA_1));
+    }
+
+    private static JwtVerifier verifierRequiring(String... claims) throws Exception {
+        KeyProvider keyProvider = mock(KeyProvider.class);
+        when(keyProvider.getKey(any())).thenReturn(TestJwk.RSA_1_PUBLIC);
+        return new JwtVerifier(keyProvider, 30, null, Collections.emptyList(), Set.of(claims));
     }
 }

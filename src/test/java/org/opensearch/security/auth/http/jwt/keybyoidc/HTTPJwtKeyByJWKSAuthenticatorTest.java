@@ -264,7 +264,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
     public void testRequireExpClaimRejectsTokenWithoutExp() throws Exception {
         MockJwksServer mockJwksServer = new MockJwksServer(TestJwk.Jwks.ALL);
         try {
-            Settings settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).put("require_exp_claim", true).build();
+            Settings settings = Settings.builder().put("jwks_uri", mockJwksServer.getJwksUri()).putList("required_claims", "exp").build();
 
             AuthCredentials creds = extractWithJwksAuthenticator(
                 new HTTPJwtKeyByJWKSAuthenticator(settings, null),
@@ -285,8 +285,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
         try {
             Settings settings = Settings.builder()
                 .put("jwks_uri", mockJwksServer.getJwksUri())
-                .put("require_exp_claim", true)
-                .put("require_nbf_claim", true)
+                .putList("required_claims", "exp", "nbf")
                 .build();
 
             AuthCredentials creds = extractWithJwksAuthenticator(
@@ -310,7 +309,7 @@ public class HTTPJwtKeyByJWKSAuthenticatorTest {
         JWK staticKey = new OctetSequenceKey.Builder(secret).algorithm(JWSAlgorithm.HS256).build();
         Settings settings = Settings.builder()
             .put("signing_key", Base64.getEncoder().encodeToString(secret))
-            .put("require_exp_claim", true)
+            .putList("required_claims", "exp")
             .build();
         HTTPJwtKeyByJWKSAuthenticator jwtAuth = new HTTPJwtKeyByJWKSAuthenticator(settings, null);
 

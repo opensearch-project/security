@@ -69,8 +69,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final List<String> requiredAudience;
     private final String requireIssuer;
     private final int clockSkewToleranceSeconds;
-    private final boolean requireExpClaim;
-    private final boolean requireNbfClaim;
+    private final Set<String> requiredClaims;
     private final Set<String> forbiddenSubjects;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -89,8 +88,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             "jwt_clock_skew_tolerance_seconds",
             AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS
         );
-        requireExpClaim = settings.getAsBoolean("require_exp_claim", false);
-        requireNbfClaim = settings.getAsBoolean("require_nbf_claim", false);
+        requiredClaims = AbstractHTTPJwtAuthenticator.readRequiredClaims(settings);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -168,8 +166,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
                 final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
-                // Verify presence of required 'exp' and 'nbf' claims
-                if (!hasRequiredTimeClaims(claims)) {
+                // Verify that every required claims are present with non-null value
+                if (!hasRequiredClaims(claims)) {
                     return null;
                 }
 
@@ -218,14 +216,12 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         return null;
     }
 
-    private boolean hasRequiredTimeClaims(Claims claims) {
-        if (requireExpClaim && claims.getExpiration() == null) {
-            log.debug("JWT is missing required claim 'exp'");
-            return false;
-        }
-        if (requireNbfClaim && claims.getNotBefore() == null) {
-            log.debug("JWT is missing required claim 'nbf'");
-            return false;
+    private boolean hasRequiredClaims(Claims claims) {
+        for (String requiredClaim : requiredClaims) {
+            if (claims.get(requiredClaim) == null) {
+                log.debug("JWT is missing required claim '{}'", requiredClaim);
+                return false;
+            }
         }
         return true;
     }

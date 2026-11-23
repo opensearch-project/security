@@ -22,7 +22,9 @@ import com.google.common.collect.ImmutableSet;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -227,6 +229,18 @@ class TestJwts {
         }
 
         return signedJWT.serialize();
+    }
+
+    // JWTClaimsSet drops null-valued claims when serialized, so a raw JSON payload is needed to build such a token
+    static String createSignedWithRawPayload(String payloadJson, JWK jwk) {
+        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName())).keyID(jwk.getKeyID()).build();
+        JWSObject jwsObject = new JWSObject(jwsHeader, new Payload(payloadJson));
+        try {
+            jwsObject.sign(new DefaultJWSSignerFactory().createJWSSigner(jwk));
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+        return jwsObject.serialize();
     }
 
     static String createSignedWithoutKeyId(JWTClaimsSet jwtClaimsSet, JWK jwk) {

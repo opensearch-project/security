@@ -31,7 +31,6 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.proc.SimpleSecurityContext;
-import com.nimbusds.jwt.JWTClaimNames;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
@@ -48,7 +47,7 @@ public class JwtVerifier {
     private final Set<String> requiredClaims;
 
     public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, List<String> requiredAudience) {
-        this(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience, false, false);
+        this(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience, Set.of());
     }
 
     public JwtVerifier(
@@ -56,23 +55,13 @@ public class JwtVerifier {
         int clockSkewToleranceSeconds,
         String requiredIssuer,
         List<String> requiredAudience,
-        boolean requireExpClaim,
-        boolean requireNbfClaim
+        Set<String> requiredClaims
     ) {
         this.keyProvider = keyProvider;
         this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
         this.requiredIssuer = requiredIssuer;
         this.requiredAudience = requiredAudience;
-
-        // add required exp and nbf claims to requiredClaims set
-        Set<String> claims = new HashSet<>();
-        if (requireExpClaim) {
-            claims.add(JWTClaimNames.EXPIRATION_TIME);
-        }
-        if (requireNbfClaim) {
-            claims.add(JWTClaimNames.NOT_BEFORE);
-        }
-        this.requiredClaims = Set.copyOf(claims);
+        this.requiredClaims = Set.copyOf(requiredClaims);
     }
 
     public SignedJWT getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
@@ -163,7 +152,17 @@ public class JwtVerifier {
             );
             claimsVerifier.setMaxClockSkew(clockSkewToleranceSeconds);
             claimsVerifier.verify(claims, null);
+            validateRequiredClaims(claims);
             validateRequiredAudienceAndIssuer(claims);
+        }
+    }
+
+    // The claims verifier above only checks that a required claim name appears; a claim set to null counts as missing
+    private void validateRequiredClaims(JWTClaimsSet claims) throws BadJWTException {
+        for (String requiredClaim : requiredClaims) {
+            if (claims.getClaim(requiredClaim) == null) {
+                throw new BadJWTException("JWT is missing required claim '" + requiredClaim + "'");
+            }
         }
     }
 

@@ -45,6 +45,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -617,7 +618,7 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRequireExpClaimRejectsTokenWithoutExp() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-            settingsRequiringClaims(true, false),
+            settingsRequiringClaims("exp"),
             Jwts.builder().setSubject("Leonard McCoy")
         );
 
@@ -627,7 +628,7 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRequireExpClaimAcceptsTokenWithExp() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-            settingsRequiringClaims(true, false),
+            settingsRequiringClaims("exp"),
             Jwts.builder().setSubject("Leonard McCoy").setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
         );
 
@@ -638,7 +639,7 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRequireNbfClaimRejectsTokenWithoutNbf() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-            settingsRequiringClaims(false, true),
+            settingsRequiringClaims("nbf"),
             Jwts.builder().setSubject("Leonard McCoy")
         );
 
@@ -648,7 +649,7 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRequireNbfClaimAcceptsTokenWithNbf() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-            settingsRequiringClaims(false, true),
+            settingsRequiringClaims("nbf"),
             Jwts.builder().setSubject("Leonard McCoy").setNotBefore(new Date())
         );
 
@@ -658,9 +659,9 @@ public class HTTPJwtAuthenticatorTest {
 
     @Test
     public void testRequireNbfClaimStillRejectsFutureNbf() {
-        // require_nbf_claim only adds a presence check; the existing not-before check still rejects a future nbf
+        // requiring nbf only adds a presence check; the existing not-before check still rejects a future nbf
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-            settingsRequiringClaims(false, true),
+            settingsRequiringClaims("nbf"),
             Jwts.builder().setSubject("Leonard McCoy").setNotBefore(new Date(System.currentTimeMillis() + 3_600_000))
         );
 
@@ -670,7 +671,7 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRequireBothClaimsRejectsTokenWithOnlyExp() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-            settingsRequiringClaims(true, true),
+            settingsRequiringClaims("exp", "nbf"),
             Jwts.builder().setSubject("Leonard McCoy").setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
         );
 
@@ -680,7 +681,7 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRequireNbfClaimRejectsMalformedNbf() {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-            settingsRequiringClaims(false, true),
+            settingsRequiringClaims("nbf"),
             Jwts.builder().setPayload("{\"sub\": \"Leonard McCoy\", \"nbf\": \"abc\"}")
         );
 
@@ -694,7 +695,7 @@ public class HTTPJwtAuthenticatorTest {
         // The helper signs with secretKey, which is the second configured key; the first key will not match
         final Settings.Builder settings = Settings.builder()
             .putList("signing_key", Base64.getEncoder().encodeToString(otherKeyBytes), Base64.getEncoder().encodeToString(secretKeyBytes))
-            .put("require_exp_claim", true);
+            .putList("required_claims", "exp");
 
         Assert.assertNotNull(
             extractCredentialsFromJwtHeader(
@@ -705,11 +706,82 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertNull(extractCredentialsFromJwtHeader(settings, Jwts.builder().setSubject("Leonard McCoy")));
     }
 
-    private static Settings.Builder settingsRequiringClaims(final boolean requireExp, final boolean requireNbf) {
-        return Settings.builder()
+    @Test
+    public void testRequiredClaimsRejectsNullValuedClaim() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            settingsRequiringClaims("exp"),
+            Jwts.builder().setPayload("{\"sub\": \"Leonard McCoy\", \"exp\": null}")
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testRequiredClaimsSupportsCustomClaims() {
+        final Settings.Builder settings = settingsRequiringClaims("dept");
+
+        Assert.assertNull(extractCredentialsFromJwtHeader(settings, Jwts.builder().setSubject("Leonard McCoy")));
+        Assert.assertNotNull(extractCredentialsFromJwtHeader(settings, Jwts.builder().setSubject("Leonard McCoy").claim("dept", "eng")));
+    }
+
+    @Test
+    public void testRequiredClaimsAcceptsCommaSeparatedString() {
+        final Settings.Builder settings = Settings.builder()
             .put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes))
-            .put("require_exp_claim", requireExp)
-            .put("require_nbf_claim", requireNbf);
+            .put("required_claims", "exp, nbf");
+        final Date inOneHour = new Date(System.currentTimeMillis() + 3_600_000);
+
+        Assert.assertNull(extractCredentialsFromJwtHeader(settings, Jwts.builder().setSubject("Leonard McCoy").setExpiration(inOneHour)));
+        Assert.assertNotNull(
+            extractCredentialsFromJwtHeader(
+                settings,
+                Jwts.builder().setSubject("Leonard McCoy").setExpiration(inOneHour).setNotBefore(new Date())
+            )
+        );
+    }
+
+    @Test
+    public void testRequiredClaimsDefaultsToNothingRequired() {
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder().put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes)),
+            Jwts.builder().setSubject("Leonard McCoy")
+        );
+
+        Assert.assertNotNull(credentials);
+    }
+
+    @Test
+    public void testRequiredClaimsAsMapIsRejected() {
+        final Settings settings = Settings.builder()
+            .put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes))
+            .put("required_claims.exp", false)
+            .build();
+
+        final IllegalArgumentException e = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> new HTTPJwtAuthenticator(settings, null)
+        );
+        assertThat(e.getMessage(), containsString("must be a list"));
+    }
+
+    @Test
+    public void testRequiredClaimsWithBlankEntryIsRejected() {
+        for (String requiredClaims : new String[] { "exp, ,nbf", "exp,,nbf", ",exp" }) {
+            final Settings settings = Settings.builder()
+                .put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes))
+                .put("required_claims", requiredClaims)
+                .build();
+
+            final IllegalArgumentException e = Assert.assertThrows(
+                IllegalArgumentException.class,
+                () -> new HTTPJwtAuthenticator(settings, null)
+            );
+            assertThat(e.getMessage(), containsString("non-empty"));
+        }
+    }
+
+    private static Settings.Builder settingsRequiringClaims(final String... claims) {
+        return Settings.builder().put("signing_key", Base64.getEncoder().encodeToString(secretKeyBytes)).putList("required_claims", claims);
     }
 
     @Test
