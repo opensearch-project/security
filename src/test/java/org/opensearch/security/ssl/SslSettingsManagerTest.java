@@ -11,6 +11,7 @@
 
 package org.opensearch.security.ssl;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.List;
@@ -18,7 +19,6 @@ import java.util.Locale;
 import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 
@@ -210,7 +210,8 @@ public class SslSettingsManagerTest extends RandomizedTest {
                             socket.setSoTimeout(10000);
                             socket.startHandshake();
                             return socket.getSession().getCipherSuite();
-                        } catch (SSLHandshakeException e) {
+                        } catch (IOException e) {
+                            // The rejected handshake; the exception type depends on the TLS provider.
                             return null;
                         }
                     });
@@ -226,7 +227,10 @@ public class SslSettingsManagerTest extends RandomizedTest {
                             client.startHandshake();
                             assertEquals(cipher, handshake.get(15, TimeUnit.SECONDS));
                         } else {
-                            assertThrows(SSLHandshakeException.class, client::startHandshake);
+                            // The exception type and its message differ between TLS providers (SunJSSE: SSLHandshakeException,
+                            // BCJSSE: TlsFatalAlertReceived), so only IOException is checked. The allowed cipher completes a
+                            // handshake with the same setup, so the failure comes from the cipher.
+                            assertThrows(IOException.class, client::startHandshake);
                             assertNull(handshake.get(15, TimeUnit.SECONDS));
                         }
                     }

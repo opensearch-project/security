@@ -393,7 +393,7 @@ public class SslContextHandlerTest {
         final var sslContextHandler = sslContextHandler();
         assertThat(
             "Loaded certificate",
-            Arrays.equals(serverCertificate(sslContextHandler).getEncoded(), certificatesRule.x509AccessCertificate().getEncoded()),
+            Arrays.equals(loadedCertificate(sslContextHandler).getEncoded(), certificatesRule.x509AccessCertificate().getEncoded()),
             is(true)
         );
 
@@ -415,7 +415,7 @@ public class SslContextHandlerTest {
 
         assertThat(
             "New certificate",
-            Arrays.equals(serverCertificate(sslContextHandler).getEncoded(), newAccessCertificate.v2().getEncoded()),
+            Arrays.equals(loadedCertificate(sslContextHandler).getEncoded(), newAccessCertificate.v2().getEncoded()),
             is(true)
         );
         final var trustManager = (X509TrustManager) sslContextHandler.trustManagerFactory().getTrustManagers()[0];
@@ -428,9 +428,11 @@ public class SslContextHandlerTest {
         }), is(true));
     }
 
-    private static X509Certificate serverCertificate(final SslContextHandler sslContextHandler) {
+    private static X509Certificate loadedCertificate(final SslContextHandler sslContextHandler) {
         final var keyManager = (X509KeyManager) sslContextHandler.keyManagerFactory().getKeyManagers()[0];
-        final var alias = keyManager.getServerAliases("RSA", null)[0];
+        // The access certificate only has the clientAuth extended key usage. SunJSSE's key manager ignores the extended key
+        // usage, BouncyCastle JSSE's only offers certificates with serverAuth as server aliases, so look the key up as client.
+        final var alias = keyManager.getClientAliases("RSA", null)[0];
         assertThat("Private key present", keyManager.getPrivateKey(alias) != null, is(true));
         return keyManager.getCertificateChain(alias)[0];
     }
