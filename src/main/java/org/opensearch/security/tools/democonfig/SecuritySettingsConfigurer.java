@@ -337,7 +337,16 @@ public class SecuritySettingsConfigurer {
         JsonNode internalUsers = yamlMapper().readTree(new FileInputStream(internalUsersFile));
         if (!internalUsers.has("admin")) return false;
         String hash = internalUsers.get("admin").get("hash").asString();
-        return passwordHasher.check(passwordHasher.defaultAdminPassword().toCharArray(), hash);
+        try {
+            return passwordHasher.check(passwordHasher.defaultAdminPassword().toCharArray(), hash);
+        } catch (IllegalArgumentException e) {
+            // The hash library rejects a hash of another algorithm, for example a BCrypt hash in a customized file under FIPS
+            // mode. Its message contains the hash, so it is not printed.
+            System.out.println(
+                "The admin hash in internal_users.yml was not created with the configured password hashing algorithm, so it cannot be the default admin password."
+            );
+            return false;
+        }
     }
 
     /**

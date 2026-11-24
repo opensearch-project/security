@@ -90,6 +90,25 @@ public class SecuritySettingsConfigurerFipsTests extends SecuritySettingsConfigu
     }
 
     /**
+     * A customized file keeps its BCrypt hashes under FIPS. The PBKDF2 hasher rejects such a hash, so the installer leaves the
+     * admin password alone instead of failing.
+     */
+    @Test
+    public void testUpdateAdminPasswordKeepsAdminHashOfAnotherAlgorithm() throws Exception {
+        writeShippedDemoUsers();
+        final String customized = Files.readString(internalUsersFile(), StandardCharsets.UTF_8)
+            + "\noperator:\n  hash: \"custom\"\n  description: \"Added by the operator\"\n";
+        Files.writeString(internalUsersFile(), customized, StandardCharsets.UTF_8);
+        setEnv(adminPasswordKey, STRONG_PASSWORD);
+
+        securitySettingsConfigurer.updateAdminPassword();
+
+        verifyStdOutContainsString("The admin hash in internal_users.yml was not created with the configured password hashing algorithm");
+        verifyStdOutContainsString("Admin password seems to be custom configured. Skipping update to admin password.");
+        assertThat(Files.readString(internalUsersFile(), StandardCharsets.UTF_8), equalTo(customized));
+    }
+
+    /**
      * A second run after an aborted one finds the PBKDF2 demo users already in place and leaves them alone.
      */
     @Test

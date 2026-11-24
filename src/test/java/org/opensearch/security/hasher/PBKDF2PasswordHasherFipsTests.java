@@ -14,6 +14,8 @@ package org.opensearch.security.hasher;
 import org.junit.Test;
 import org.bouncycastle.crypto.fips.FipsUnapprovedOperationError;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 /**
@@ -31,5 +33,15 @@ public class PBKDF2PasswordHasherFipsTests extends PBKDF2PasswordHasherTests {
     public void shouldThrowExceptionForWeakPassword() {
         var hasher = new PBKDF2PasswordHasher("SHA512", 10000, 512);
         assertThrows(FipsUnapprovedOperationError.class, () -> hasher.hash("test".toCharArray()));
+    }
+
+    /**
+     * A login attempt with a password below the FIPS floor fails like a wrong password instead of throwing the BouncyCastle
+     * error into the authentication path.
+     */
+    @Test
+    public void shouldFailCheckForPasswordBelowFipsMinimum() {
+        final String hash = passwordHasher.hash(getPassword().toCharArray());
+        assertThat(passwordHasher.check("short".toCharArray(), hash), is(false));
     }
 }

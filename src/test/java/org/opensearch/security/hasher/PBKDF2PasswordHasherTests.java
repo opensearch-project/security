@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 public class PBKDF2PasswordHasherTests extends AbstractPasswordHasherTests {
 
@@ -55,5 +56,15 @@ public class PBKDF2PasswordHasherTests extends AbstractPasswordHasherTests {
         hash = hasher.hash(getPassword().toCharArray());
         assertThat(hasher.check(getPassword().toCharArray(), hash), is(true));
         assertThat(hasher.check(wrongPassword.toCharArray(), hash), is(false));
+    }
+
+    /**
+     * Only the FIPS rejection of short passwords counts as a failed check; a hash of another algorithm is a configuration
+     * error and stays visible to the caller.
+     */
+    @Test
+    public void shouldRejectHashOfAnotherAlgorithm() {
+        final String bcryptHash = "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG";
+        assertThrows(IllegalArgumentException.class, () -> passwordHasher.check(getPassword().toCharArray(), bcryptHash));
     }
 }

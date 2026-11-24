@@ -13,11 +13,17 @@ package org.opensearch.security.hasher;
 
 import java.nio.CharBuffer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.bouncycastle.crypto.fips.FipsUnapprovedOperationError;
+
 import com.password4j.CompressedPBKDF2Function;
 import com.password4j.HashingFunction;
 import com.password4j.Password;
 
 class PBKDF2PasswordHasher extends AbstractPasswordHasher {
+
+    private static final Logger LOGGER = LogManager.getLogger(PBKDF2PasswordHasher.class);
 
     static final String DEFAULT_ADMIN_PASSWORD = "admin@OpenSearch";
 
@@ -46,7 +52,10 @@ class PBKDF2PasswordHasher extends AbstractPasswordHasher {
         CharBuffer passwordBuffer = CharBuffer.wrap(password);
         try {
             return Password.check(passwordBuffer, hash).with(getPBKDF2FunctionFromHash(hash));
-        } catch (Throwable e) {
+        } catch (FipsUnapprovedOperationError e) {
+            // In FIPS mode BouncyCastle refuses to derive a key from a password shorter than 112 bits (14 characters). Such a
+            // password cannot match a hash created under FIPS, so the check fails like it does for a wrong password.
+            LOGGER.debug("Password check failed because BouncyCastle FIPS rejected the password for key derivation.", e);
             return false;
         } finally {
             cleanup(passwordBuffer);
