@@ -445,6 +445,14 @@ allprojects {
     tasks.withType(Javadoc).all { enabled = false }
 }
 
+// The demo installer compares internal_users.yml against this copy to tell whether the file is still the shipped one.
+processResources {
+    from('config/internal_users.yml') {
+        into 'democonfig'
+        rename { 'internal_users_bcrypt.yml' }
+    }
+}
+
 bundlePlugin {
     from('plugin-security.policy')
     from('config') {

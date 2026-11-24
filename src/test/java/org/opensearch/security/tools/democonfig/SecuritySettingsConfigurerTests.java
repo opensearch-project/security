@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,14 +44,24 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.tools.Hasher;
 
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.opensearch.security.DefaultObjectMapper.yamlMapper;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_INVALID_REGEX;
 import static org.opensearch.security.dlic.rest.validation.RequestContentValidator.ValidationError.INVALID_PASSWORD_TOO_SHORT;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.ADMIN_USERNAME;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.DEFAULT_PASSWORD_MIN_LENGTH;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.PBKDF2_DEMO_PASSWORD_SUFFIX;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.PBKDF2_DEMO_USERS_RESOURCE;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.REST_ENABLED_ROLES;
+import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.SHIPPED_DEMO_USERS_RESOURCE;
 import static org.opensearch.security.tools.democonfig.SecuritySettingsConfigurer.isKeyPresentInYMLFile;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createDirectory;
 import static org.opensearch.security.tools.democonfig.util.DemoConfigHelperUtil.createFile;
@@ -67,13 +78,13 @@ public class SecuritySettingsConfigurerTests {
     private final PrintStream originalErr = System.err;
     private final InputStream originalIn = System.in;
 
-    private final String adminPasswordKey = ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD;
+    final String adminPasswordKey = ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD;
 
     private static final String PASSWORD_VALIDATION_FAILURE_MESSAGE =
         "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn";
 
-    private static SecuritySettingsConfigurer securitySettingsConfigurer;
-    private static Installer installer;
+    static SecuritySettingsConfigurer securitySettingsConfigurer;
+    static Installer installer;
 
     /**
      * Gives every test its own config directory. The test classes in this package run in separate parallel
@@ -98,7 +109,8 @@ public class SecuritySettingsConfigurerTests {
     }
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws IOException, NoSuchFieldException, IllegalAccessException {
+        unsetEnvVariables();
         System.setOut(new PrintStream(outContent));
         System.setErr(new PrintStream(outContent));
         installer = Installer.getInstance();
@@ -148,7 +160,7 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testUpdateAdminPasswordWithWeakPassword() throws NoSuchFieldException, IllegalAccessException {
-        setEnv(adminPasswordKey, "weakpassword");
+        setEnv(adminPasswordKey, "weakpasswordonly");
         installer.setExitHandler(status -> { throw new TestExitException(status); });
         TestExitException ex = assertThrows(TestExitException.class, () -> securitySettingsConfigurer.updateAdminPassword());
         assertThat(ex.getStatus(), equalTo(-1));
@@ -156,9 +168,9 @@ public class SecuritySettingsConfigurerTests {
         verifyStdOutContainsString(
             String.format(
                 PASSWORD_VALIDATION_FAILURE_MESSAGE,
-                "weakpassword",
+                "weakpasswordonly",
                 INVALID_PASSWORD_INVALID_REGEX.message(),
-                DEFAULT_PASSWORD_MIN_LENGTH
+                expectedMinimumPasswordLength()
             )
         );
     }
@@ -170,7 +182,12 @@ public class SecuritySettingsConfigurerTests {
         TestExitException ex = assertThrows(TestExitException.class, () -> securitySettingsConfigurer.updateAdminPassword());
         assertThat(ex.getStatus(), equalTo(-1));
         verifyStdOutContainsString(
-            String.format(PASSWORD_VALIDATION_FAILURE_MESSAGE, "short", INVALID_PASSWORD_TOO_SHORT.message(), DEFAULT_PASSWORD_MIN_LENGTH)
+            String.format(
+                PASSWORD_VALIDATION_FAILURE_MESSAGE,
+                "short",
+                INVALID_PASSWORD_TOO_SHORT.message(),
+                expectedMinimumPasswordLength()
+            )
         );
     }
 
@@ -264,9 +281,11 @@ public class SecuritySettingsConfigurerTests {
 
     @Test
     public void testBuildSecurityConfigMap() {
-        Map<String, Object> actual = securitySettingsConfigurer.buildSecurityConfigMap();
+        final Map<String, Object> actual = securitySettingsConfigurer.buildSecurityConfigMap();
 
-        assertThat(actual.size(), is(17));
+        Map<String, Object> modeSettings = expectedModeSpecificSecuritySettings();
+        assertThat(actual.size(), is(17 + modeSettings.size()));
+        modeSettings.forEach((key, value) -> assertThat(key, actual.get(key), equalTo(value)));
         assertThat(actual.get("plugins.security.ssl.transport.pemcert_filepath"), equalTo(Certificates.NODE_CERT.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemkey_filepath"), equalTo(Certificates.NODE_KEY.getFileName()));
         assertThat(actual.get("plugins.security.ssl.transport.pemtrustedcas_filepath"), equalTo(Certificates.ROOT_CA.getFileName()));
@@ -287,14 +306,67 @@ public class SecuritySettingsConfigurerTests {
         assertThat(actual.get("node.max_local_storage_nodes"), equalTo(3));
 
         installer.initsecurity = true;
-        actual = securitySettingsConfigurer.buildSecurityConfigMap();
-        assertThat(actual.get("plugins.security.allow_default_init_securityindex"), equalTo(true));
+        Map<String, Object> withInitSecurity = securitySettingsConfigurer.buildSecurityConfigMap();
+        assertThat(withInitSecurity.get("plugins.security.allow_default_init_securityindex"), equalTo(true));
 
         installer.cluster_mode = true;
-        actual = securitySettingsConfigurer.buildSecurityConfigMap();
-        assertThat(actual.get("network.host"), equalTo("0.0.0.0"));
-        assertThat(actual.get("node.name"), equalTo("smoketestnode"));
-        assertThat(actual.get("cluster.initial_cluster_manager_nodes"), equalTo("smoketestnode"));
+        Map<String, Object> withClusterMode = securitySettingsConfigurer.buildSecurityConfigMap();
+        assertThat(withClusterMode.get("network.host"), equalTo("0.0.0.0"));
+        assertThat(withClusterMode.get("node.name"), equalTo("smoketestnode"));
+        assertThat(withClusterMode.get("cluster.initial_cluster_manager_nodes"), equalTo("smoketestnode"));
+    }
+
+    /**
+     * The PBKDF2 demo users replace the shipped ones in FIPS mode, so both files must define the same users with the same
+     * roles and attributes. Each PBKDF2 hash must match the documented demo password {@code <username>@OpenSearch}.
+     */
+    @Test
+    public void testPbkdf2DemoUsersMatchTheShippedDemoUsers() throws IOException {
+        final JsonNode shippedUsers = readDemoConfigResource(SHIPPED_DEMO_USERS_RESOURCE);
+        final JsonNode pbkdf2Users = readDemoConfigResource(PBKDF2_DEMO_USERS_RESOURCE);
+        final PasswordHasher pbkdf2Hasher = PasswordHasherFactory.createPasswordHasher(
+            Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.PBKDF2).build()
+        );
+
+        final List<String> shippedNames = new ArrayList<>();
+        shippedUsers.propertyNames().forEach(shippedNames::add);
+        final List<String> pbkdf2Names = new ArrayList<>();
+        pbkdf2Users.propertyNames().forEach(pbkdf2Names::add);
+        assertThat(pbkdf2Names, equalTo(shippedNames));
+
+        for (String name : shippedNames) {
+            if (name.equals("_meta")) {
+                assertThat(pbkdf2Users.get(name), equalTo(shippedUsers.get(name)));
+                continue;
+            }
+            final ObjectNode shippedUser = (ObjectNode) shippedUsers.get(name).deepCopy();
+            shippedUser.remove("hash");
+            final ObjectNode pbkdf2User = (ObjectNode) pbkdf2Users.get(name).deepCopy();
+            final String pbkdf2Hash = pbkdf2User.remove("hash").asString();
+
+            assertThat(name, pbkdf2User, equalTo(shippedUser));
+            final char[] demoPassword = (name + PBKDF2_DEMO_PASSWORD_SUFFIX).toCharArray();
+            assertThat(name, pbkdf2Hasher.check(demoPassword, pbkdf2Hash), is(true));
+        }
+        // The admin check of the installer looks for the hasher's default admin password.
+        assertThat(pbkdf2Hasher.defaultAdminPassword(), equalTo(ADMIN_USERNAME + PBKDF2_DEMO_PASSWORD_SUFFIX));
+    }
+
+    /** Minimum length of the initial admin password in the mode under test. */
+    int expectedMinimumPasswordLength() {
+        return DEFAULT_PASSWORD_MIN_LENGTH;
+    }
+
+    /** opensearch.yml entries the installer writes only in the mode under test. */
+    Map<String, Object> expectedModeSpecificSecuritySettings() {
+        return Map.of();
+    }
+
+    static JsonNode readDemoConfigResource(String name) throws IOException {
+        try (InputStream resource = SecuritySettingsConfigurer.class.getResourceAsStream(name)) {
+            assertThat(name, resource, notNullValue());
+            return yamlMapper().readTree(resource);
+        }
     }
 
     @Test
@@ -376,35 +448,38 @@ public class SecuritySettingsConfigurerTests {
         installer.OPENSEARCH_CONF_FILE = installer.OPENSEARCH_CONF_DIR + "opensearch.yml";
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * The process environment as the test JVM started with it. The helpers below change only the installer's own
+     * variable and restore everything else, so OPENSEARCH_FIPS_MODE survives for later tests in the same JVM.
+     */
+    private static final Map<String, String> ORIGINAL_ENV = Map.copyOf(System.getenv());
+
     public static void setEnv(String key, String value) throws NoSuchFieldException, IllegalAccessException {
-        Class<?>[] classes = Collections.class.getDeclaredClasses();
-        Map<String, String> env = System.getenv();
-        for (Class<?> cl : classes) {
-            if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
-                Field field = cl.getDeclaredField("m");
-                field.setAccessible(true);
-                Object obj = field.get(env);
-                Map<String, String> map = (Map<String, String>) obj;
-                map.clear();
-                map.put(key, value);
-            }
-        }
+        mutableEnv().put(key, value);
+    }
+
+    /**
+     * Restores the original environment without OPENSEARCH_INITIAL_ADMIN_PASSWORD, so a value from the developer's shell
+     * cannot leak into the tests.
+     */
+    public static void unsetEnvVariables() throws NoSuchFieldException, IllegalAccessException {
+        final Map<String, String> env = mutableEnv();
+        env.clear();
+        env.putAll(ORIGINAL_ENV);
+        env.remove(ConfigConstants.OPENSEARCH_INITIAL_ADMIN_PASSWORD);
     }
 
     @SuppressWarnings("unchecked")
-    public static void unsetEnvVariables() throws NoSuchFieldException, IllegalAccessException {
-        Class<?>[] classes = Collections.class.getDeclaredClasses();
-        Map<String, String> env = System.getenv();
-        for (Class<?> cl : classes) {
+    private static Map<String, String> mutableEnv() throws NoSuchFieldException, IllegalAccessException {
+        final Map<String, String> env = System.getenv();
+        for (Class<?> cl : Collections.class.getDeclaredClasses()) {
             if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
-                Field field = cl.getDeclaredField("m");
+                final Field field = cl.getDeclaredField("m");
                 field.setAccessible(true);
-                Object obj = field.get(env);
-                Map<String, String> map = (Map<String, String>) obj;
-                map.clear();
+                return (Map<String, String>) field.get(env);
             }
         }
+        throw new IllegalStateException("The process environment cannot be modified on this JVM.");
     }
 
     void setUpConf() {
@@ -416,8 +491,12 @@ public class SecuritySettingsConfigurerTests {
         createFile(installer.OPENSEARCH_CONF_FILE);
     }
 
-    private void verifyStdOutContainsString(String s) {
+    void verifyStdOutContainsString(String s) {
         assertThat(outContent.toString(), containsString(s));
+    }
+
+    void verifyStdOutDoesNotContainString(String s) {
+        assertThat(outContent.toString(), not(containsString(s)));
     }
 
     private static Settings fixtureHasherSettings() {

@@ -1,0 +1,65 @@
+---
+# This is the internal user database for FIPS mode.
+# With OPENSEARCH_FIPS_MODE=true, the demo installer writes this file over internal_users.yml if that file is still the shipped one.
+# The hash values are PBKDF2 hashes and can be generated with plugin/tools/hash.sh -a pbkdf2.
+# FIPS mode needs passwords of at least 14 characters, so the password of each demo user is "<username>@OpenSearch".
+
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+# Define your internal users here
+
+## Demo users
+
+admin:
+  hash: "$3$2576980377600256$NfdR6dcLbtCLR74+zKBYmHXG5cU595rwzDRMEKe1ILvztgaxsSXpLGmIXX7J7PfWWZgtAwqZEzlxN6UX1h+HXOKFQBGrpMpdxcgzHHLALETBxfiuWbr386n5DnsQcddYr7bPYbtAYaX42bfoV2jQGI313U+r5cOTz/WEmQICGVY=$CxnUIa4fuF+6L/rkj6j1mf5MZtRs0PVpUpe/BS8e3j0="
+  reserved: true
+  backend_roles:
+  - "admin"
+  description: "Demo admin user"
+
+anomalyadmin:
+  hash: "$3$2576980377600256$6I0kn8nkr4lZ7M45JyS2+wBD3fegJ6/ysEpq8K8FR/4HS11z5Xwei0ZBZ54+yzNIsgQ0G/j9innBvoxvB2Xh/Eg9FXz1pYh41G4c0NdRvgV5X/ZmUF7lyY1jcja4FNeuVpyTWOgB0hAzFYfS0aifnEaBwyQJ1oW6MWfpo5E+Q1E=$+kCi0JspLLuW8dB2waL8XWyqOPoyfQ6w6W1Tcx7TYsI="
+  reserved: false
+  opendistro_security_roles:
+  - "anomaly_full_access"
+  description: "Demo anomaly admin user, using internal role"
+
+kibanaserver:
+  hash: "$3$2576980377600256$po8zVfGsQkXxXSmmIxKEVjsYu86bs7RiFhDfGferMOYI7xeE4lSbsQPrY92WE5V4qk+cpmS0zPG0lP0mIACuC1W9xSmr4gxZKsnJVZdB7IfG50Tnw9AGC4e+rf2tPc6nTi9lrG4k+mgHpWjvxs/4mQZwDheApWhQpvXmjiQ2Lg0=$O4QepKmc61Fxti3JcdHGe1fMO68LHZ4D9YISdiOqHgw="
+  reserved: true
+  description: "Demo OpenSearch Dashboards user"
+
+kibanaro:
+  hash: "$3$2576980377600256$HpLiCud6eASsU8a7O2c4pEiH+91sHswfAzarNSmRKxWb9p8PlF9JImgnbuGjuJ2KrzN0lXRb3kGdDbL3psES+fJGpXJG+xyRvwffUTLn+9EAKF9WKkHIhi+faviz8RsEC4TG5RaBCA7Jz7/ryYnNmMoH7XECUu9p50W869KJnHg=$BUVnH4FStx4A7oig7v/KEGQwD6Q+DTSu3DqZBBR2KvM="
+  reserved: false
+  backend_roles:
+  - "kibanauser"
+  - "readall"
+  attributes:
+    attribute1: "value1"
+    attribute2: "value2"
+    attribute3: "value3"
+  description: "Demo OpenSearch Dashboards read only user, using external role mapping"
+
+logstash:
+  hash: "$3$2576980377600256$V2rqbEv6EsAc/f7pE545w3Gy7TypISFAGORjs5wdC9TPSfcTt/HM0MtAUJRZU3bTVxvpQiLPh5N45qZCp1qe5NMrCGQG9qVRC/5KoWzqqm6heurfmE3eStGpMGCJe+Rw32s11sspJFlymXcQg831Y61Sy0bmz6HPi9ZmFBCjEaU=$j89yJu+Rd+DDzOp2JC0cYeqtiYeW6mKY+2hBqi2fO8U="
+  reserved: false
+  backend_roles:
+  - "logstash"
+  description: "Demo logstash user, using external role mapping"
+
+readall:
+  hash: "$3$2576980377600256$uEmlAR/aMbWPk1tgFWmlz0TPXQCVOTPHi4LZb/JKk67WMexvnu7TrFUNxlOyHdktJ+jMcUpxcQLa4itfqpg9A2skewwe8+qQjuvIi7RU/NAg99WkA+0+kz5p+MYDdTuFCRWpQBV4jg2GhbjdWdRxOCBbFEUTs/EC1MkaI25SNxk=$JHU+XWkK10bno/Dl8uOMKtdOsWbM6Py7H/sWAp0ALgo="
+  reserved: false
+  backend_roles:
+  - "readall"
+  description: "Demo readall user, using external role mapping"
+
+snapshotrestore:
+  hash: "$3$2576980377600256$O2q9gvJorijyCJkqfIrSz15Cpzl2mUXmDmK2YKTQMXM2JHw9Zw9SMa0GbKpY2fEpBUuE2ag0vGgmRYWJfBJHdXDA7VUhHnHH5IqRZHU9DL+zPsHIjxqG6MUrl48B4GXUQECvZo1jhysqSsucrt/FBw/UXxvAlfMM2S1G3cG2QuA=$mQZyHKzVtCF15tJ6A5RVffk/Ix1+3CVtf654HwCeOcA="
+  reserved: false
+  backend_roles:
+  - "snapshotrestore"
+  description: "Demo snapshotrestore user, using external role mapping"
