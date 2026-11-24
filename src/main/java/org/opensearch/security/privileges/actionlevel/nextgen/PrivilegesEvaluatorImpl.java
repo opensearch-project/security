@@ -55,6 +55,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.privileges.ActionPrivileges;
 import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.DocumentAllowList;
@@ -139,6 +140,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
     private final IndicesRequestModifier indicesRequestModifier = new IndicesRequestModifier();
     private final RoleMapper roleMapper;
     private final ThreadPool threadPool;
+    private final AuditLog auditLog;
     private final RuntimeOptimizedActionPrivileges.SpecialIndexProtection specialIndexProtection;
     private final SpecialIndices specialIndices;
     private final SystemIndexRestoreEligibilityHelper restoreEligibility;
@@ -150,6 +152,7 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
         this.roleMapper = coreDependencies.roleMapper();
         this.threadContext = coreDependencies.threadContext();
         this.threadPool = coreDependencies.threadPool();
+        this.auditLog = coreDependencies.auditLog();
         this.clusterStateSupplier = coreDependencies.clusterStateSupplier();
         this.settings = coreDependencies.settings();
         this.specialIndices = dynamicDependencies.specialIndices();
@@ -658,11 +661,21 @@ public class PrivilegesEvaluatorImpl implements org.opensearch.security.privileg
             return PrivilegesEvaluatorResponse.deferredToClusterManager();
         }
 
-        OptionallyResolvedIndices optionallyResolvedIndices = SnapshotRestoreHelper.resolveTargetIndices(request);
-        if (!(optionallyResolvedIndices instanceof ResolvedIndices resolvedIndices)) {
+        List<String> originalIndices = SnapshotRestoreHelper.resolveOriginalIndices(request);
+        if (originalIndices == null) {
             return PrivilegesEvaluatorResponse.insufficient(context.getAction())
                 .reason("Could not retrieve information for snapshot " + request.repository() + "/" + request.snapshot());
         }
+
+        List<String> restoredSecurityIndices = originalIndices.stream().filter(specialIndices::isUniversallyDeniedIndex).toList();
+        if (!restoredSecurityIndices.isEmpty()) {
+            auditLog.logSecurityIndexAttempt(request, context.getAction(), context.getTask());
+            log.warn("{} for {} as source index is not allowed", context.getAction(), restoredSecurityIndices);
+            return PrivilegesEvaluatorResponse.insufficient(context.getAction())
+                .reason("Restoring " + restoredSecurityIndices + " from a snapshot is not allowed");
+        }
+
+        ResolvedIndices resolvedIndices = SnapshotRestoreHelper.resolveTargetIndices(request, originalIndices);
 
         PrivilegesEvaluatorResponse presponse = checkIndexPermissionBasic(
             context,
