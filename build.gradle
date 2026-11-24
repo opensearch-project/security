@@ -72,7 +72,7 @@ allprojects {
     version = opensearch_build
 
     ext {
-        isInFipsApprovedOnlyMode = FipsBuildParams::isInFipsApprovedOnlyMode
+        isFipsModeEnabled = FipsBuildParams::isFipsModeEnabled
     }
 }
 

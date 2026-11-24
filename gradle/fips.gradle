@@ -34,7 +34,7 @@
  * FIPS mode is driven by the OPENSEARCH_FIPS_MODE environment variable.
  */
 
-ext.fipsTestsEnabled = ext.isInFipsApprovedOnlyMode()
+ext.fipsTestsEnabled = ext.isFipsModeEnabled()
 
 // Source file patterns identifying a FIPS variant.
 ext.fipsSourcePatterns = ['**/*FipsTests.java', '**/*FipsIT.java']
