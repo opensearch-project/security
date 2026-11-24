@@ -59,6 +59,10 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
     private static final List<String> IDS_BY_DISTANCE = List.of("near", "mid", "far");
 
     private static final TestSecurityConfig.User ADMIN = new TestSecurityConfig.User("admin").roles(TestSecurityConfig.Role.ALL_ACCESS);
+    // all_access role, no DLS, FLS or masking
+    private static final TestSecurityConfig.User ALL_ACCESS = new TestSecurityConfig.User("all_access_user").roles(
+        TestSecurityConfig.Role.ALL_ACCESS
+    );
     // read access only, no DLS, FLS or masking
     private static final TestSecurityConfig.User PLAIN = new TestSecurityConfig.User("plain").roles(
         new TestSecurityConfig.Role("plain").clusterPermissions("cluster_composite_ops_ro").indexPermissions("read").on(INDEX)
@@ -98,13 +102,14 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
         .anonymousAuth(false)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN, PLAIN, MASKED_EXACT, MASKED_WILDCARD, FLS_EXCLUDE_AND_MASKED, FLS_INCLUDE_AND_MASKED)
+        .users(ADMIN, ALL_ACCESS, PLAIN, MASKED_EXACT, MASKED_WILDCARD, FLS_EXCLUDE_AND_MASKED, FLS_INCLUDE_AND_MASKED)
         .nodeSettings(Map.of("plugins.security.compliance.salt", SALT, "plugins.security.masked_fields.algorithm.default", "SHA-256"))
         .build();
 
     @ParametersFactory
     public static Collection<Object[]> parameters() {
         return List.of(
+            new Object[] { ALL_ACCESS },
             new Object[] { PLAIN },
             new Object[] { MASKED_EXACT },
             new Object[] { MASKED_WILDCARD },
@@ -186,7 +191,7 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
         boolean statusVisible = user != FLS_EXCLUDE_AND_MASKED && user != FLS_INCLUDE_AND_MASKED;
         assertEquals(id, statusVisible, source.has("status"));
         String owner = ownerOf(id);
-        if (user == PLAIN) {
+        if (user == ALL_ACCESS || user == PLAIN) {
             assertEquals(id, owner, source.get("owner").asText());
         } else {
             String rule = user == MASKED_WILDCARD ? "own*" : "owner";
