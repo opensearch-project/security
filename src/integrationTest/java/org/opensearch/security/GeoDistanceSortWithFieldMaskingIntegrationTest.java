@@ -50,13 +50,14 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
     private static final double ORIGIN_LAT = 47.6;
     private static final double ORIGIN_LON = -122.3;
 
-    // id, latitude, owner; all documents share the origin's longitude and status "active"
+    // id, latitude, owner, rank; all documents share the origin's longitude and status "active"
     private static final List<Object[]> DOCS = List.of(
-        new Object[] { "far", 48.0, "carol" },
-        new Object[] { "near", 47.6, "alice" },
-        new Object[] { "mid", 47.7, "bob" }
+        new Object[] { "far", 48.0, "carol", 3 },
+        new Object[] { "near", 47.6, "alice", 1 },
+        new Object[] { "mid", 47.7, "bob", 2 }
     );
     private static final List<String> IDS_BY_DISTANCE = List.of("near", "mid", "far");
+    private static final List<String> IDS_BY_DISTANCE_DESC = List.of("far", "mid", "near");
 
     private static final TestSecurityConfig.User ADMIN = new TestSecurityConfig.User("admin").roles(TestSecurityConfig.Role.ALL_ACCESS);
     // all_access role, no DLS, FLS or masking
@@ -131,12 +132,20 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
                 INDEX,
                 "{\"settings\":{\"number_of_shards\":1,\"number_of_replicas\":0},"
                     + "\"mappings\":{\"properties\":{\"location\":{\"type\":\"geo_point\"},"
-                    + "\"status\":{\"type\":\"keyword\"},\"owner\":{\"type\":\"keyword\"}}}}"
+                    + "\"status\":{\"type\":\"keyword\"},\"owner\":{\"type\":\"keyword\"},\"rank\":{\"type\":\"integer\"}}}}"
             ).assertStatusCode(200);
             for (Object[] doc : DOCS) {
                 client.putJson(
                     INDEX + "/_doc/" + doc[0],
-                    "{\"location\":{\"lat\":" + doc[1] + ",\"lon\":" + ORIGIN_LON + "},\"status\":\"active\",\"owner\":\"" + doc[2] + "\"}"
+                    "{\"location\":{\"lat\":"
+                        + doc[1]
+                        + ",\"lon\":"
+                        + ORIGIN_LON
+                        + "},\"status\":\"active\",\"owner\":\""
+                        + doc[2]
+                        + "\",\"rank\":"
+                        + doc[3]
+                        + "}"
                 ).assertStatusCode(201);
             }
             client.post(INDEX + "/_refresh").assertStatusCode(200);
@@ -148,7 +157,7 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
         try (TestRestClient client = cluster.getRestClient(user)) {
             var response = client.postJson(INDEX + "/_search", "{\"sort\":[" + geoSort("\"unit\":\"mi\",") + "]}");
             response.assertStatusCode(200);
-            assertHits(response.bodyAsJsonNode(), 0, METERS_PER_MILE);
+            assertHits(response.bodyAsJsonNode(), 0, METERS_PER_MILE, IDS_BY_DISTANCE);
         }
     }
 
@@ -157,7 +166,7 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
         try (TestRestClient client = cluster.getRestClient(user)) {
             var response = client.postJson(INDEX + "/_search", "{\"sort\":[" + geoSort("") + "]}");
             response.assertStatusCode(200);
-            assertHits(response.bodyAsJsonNode(), 0, 1);
+            assertHits(response.bodyAsJsonNode(), 0, 1, IDS_BY_DISTANCE);
         }
     }
 
@@ -169,11 +178,60 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
                 "{\"sort\":[{\"status\":{\"order\":\"asc\"}}," + geoSort("\"unit\":\"mi\",") + "]}"
             );
             response.assertStatusCode(200);
-            assertHits(response.bodyAsJsonNode(), 1, METERS_PER_MILE);
+            assertHits(response.bodyAsJsonNode(), 1, METERS_PER_MILE, IDS_BY_DISTANCE);
         }
     }
 
-    private void assertHits(JsonNode body, int distanceSortIndex, double metersPerUnit) {
+    @Test
+    public void geoDistanceSortDescendingWithoutUnit() {
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            var response = client.postJson(INDEX + "/_search", "{\"sort\":[" + geoSort(originPoint(), "\"order\":\"desc\"") + "]}");
+            response.assertStatusCode(200);
+            assertHits(response.bodyAsJsonNode(), 0, 1, IDS_BY_DISTANCE_DESC);
+        }
+    }
+
+    @Test
+    public void geoDistanceSortWithTwoOriginPointsWithoutUnit() {
+        // With mode "min" (the default for ascending order), each document's distance is to the nearer origin point.
+        // The second point is far from all documents, so the expected distances are to the first point.
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            var response = client.postJson(
+                INDEX + "/_search",
+                "{\"sort\":[" + geoSort("[" + originPoint() + ",{\"lat\":0,\"lon\":0}]", "\"order\":\"asc\"") + "]}"
+            );
+            response.assertStatusCode(200);
+            assertHits(response.bodyAsJsonNode(), 0, 1, IDS_BY_DISTANCE);
+        }
+    }
+
+    @Test
+    public void termsAggregationWithMissingOnKeyword() {
+        assertTermsAggregationWithMissing("status", "\"__missing__\"");
+    }
+
+    @Test
+    public void termsAggregationWithMissingOnNumber() {
+        assertTermsAggregationWithMissing("rank", "-1");
+    }
+
+    private void assertTermsAggregationWithMissing(String field, String missing) {
+        try (TestRestClient client = cluster.getRestClient(user)) {
+            var response = client.postJson(
+                INDEX + "/_search",
+                "{\"size\":0,\"aggs\":{\"values\":{\"terms\":{\"field\":\"" + field + "\",\"missing\":" + missing + "}}}}"
+            );
+            response.assertStatusCode(200);
+            int docCount = 0;
+            for (JsonNode bucket : response.bodyAsJsonNode().at("/aggregations/values/buckets")) {
+                docCount += bucket.get("doc_count").asInt();
+            }
+            // Every document is counted once, either under its own value or under the missing value.
+            assertEquals(DOCS.size(), docCount);
+        }
+    }
+
+    private void assertHits(JsonNode body, int distanceSortIndex, double metersPerUnit, List<String> expectedIds) {
         assertEquals(DOCS.size(), body.at("/hits/total/value").asInt());
         List<String> ids = new ArrayList<>();
         for (JsonNode hit : body.at("/hits/hits")) {
@@ -183,7 +241,7 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
             assertEquals(id, expectedDistance, hit.at("/sort/" + distanceSortIndex).asDouble(), expectedDistance * 1e-3 + 1e-3);
             assertSource(id, hit.get("_source"));
         }
-        assertEquals(IDS_BY_DISTANCE, ids);
+        assertEquals(expectedIds, ids);
     }
 
     private void assertSource(String id, JsonNode source) {
@@ -206,7 +264,15 @@ public class GeoDistanceSortWithFieldMaskingIntegrationTest {
     }
 
     private static String geoSort(String unit) {
-        return "{\"_geo_distance\":{\"location\":{\"lat\":" + ORIGIN_LAT + ",\"lon\":" + ORIGIN_LON + "}," + unit + "\"order\":\"asc\"}}";
+        return geoSort(originPoint(), unit + "\"order\":\"asc\"");
+    }
+
+    private static String geoSort(String points, String options) {
+        return "{\"_geo_distance\":{\"location\":" + points + "," + options + "}}";
+    }
+
+    private static String originPoint() {
+        return "{\"lat\":" + ORIGIN_LAT + ",\"lon\":" + ORIGIN_LON + "}";
     }
 
     // All documents share the origin's longitude, so the arc distance is the latitude difference along a meridian.
