@@ -47,7 +47,6 @@ import org.opensearch.security.authtoken.jwt.OnBehalfOfKeys;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.security.util.FakeRestRequest;
 import org.opensearch.test.BouncyCastleThreadFilter;
 
@@ -69,7 +68,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(RandomizedRunner.class)
-@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class })
 public class OnBehalfOfAuthenticatorTest {
     final static String clusterName = "cluster_0";
     final static String enableOBO = "true";

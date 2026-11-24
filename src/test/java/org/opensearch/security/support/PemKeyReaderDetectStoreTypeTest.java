@@ -22,13 +22,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.test.BouncyCastleThreadFilter;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 
-@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class })
 public class PemKeyReaderDetectStoreTypeTest extends LuceneTestCase {
 
     @Rule

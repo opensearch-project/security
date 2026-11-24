@@ -26,7 +26,6 @@ import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.test.BouncyCastleThreadFilter;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,7 +39,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RandomizedRunner.class)
-@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class })
 public class OnBehalfOfKeysTest {
 
     private static final String SIGNING_PREFIX = "plugins.security.on_behalf_of.signing_key.";

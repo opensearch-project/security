@@ -22,7 +22,6 @@ import org.junit.ClassRule;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.security.ssl.CertificatesRule;
-import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.test.BouncyCastleThreadFilter;
 
 import static java.util.Objects.nonNull;
@@ -32,7 +31,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 
-@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class })
 public abstract class SslCertificatesLoaderTest extends RandomizedTest {
 
     static final String LOGGER_NAME = SslCertificatesLoader.class.getCanonicalName();

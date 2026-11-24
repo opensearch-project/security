@@ -35,7 +35,6 @@ import org.opensearch.env.Environment;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.test.BouncyCastleThreadFilter;
 
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -81,7 +80,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
-@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class })
 public class SslSettingsManagerTest extends RandomizedTest {
 
     @ClassRule
