@@ -69,6 +69,7 @@ public class UserService {
     User tokenUser;
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
     final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
+    final static String REGEX_USERNAME_MESSAGE = "The account name must not be enclosed in '/', which is regular expression syntax.";
 
     final static String SERVICE_ACCOUNT_PASSWORD_MESSAGE =
         "A password cannot be provided for a service account. Failed to register service account: ";
@@ -85,8 +86,14 @@ public class UserService {
         return CType.INTERNALUSERS;
     }
 
-    static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
-        ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
+    /**
+     * Substrings that may not appear in a username. This, together with {@link #restrictedFromUsername(String)}, is the single
+     * definition of username rules: every path that creates, updates or renames an internal user goes through that method.
+     */
+    public static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
+        ":", // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
+        "*", // Role mapping "users" entries are wildcard patterns, so a name containing these would match other users
+        "?"
     );
 
     @Inject
@@ -118,13 +125,16 @@ public class UserService {
     }
 
     public static Optional<String> restrictedFromUsername(final String accountName) {
-        final var foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
-            .filter(r -> URLDecoder.decode(accountName, StandardCharsets.UTF_8).contains(r))
-            .collect(Collectors.toList());
+        final String decodedName = URLDecoder.decode(accountName, StandardCharsets.UTF_8);
+        final var foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(decodedName::contains).collect(Collectors.toList());
         if (!foundRestrictedContents.isEmpty()) {
             return Optional.of(
                 RESTRICTED_CHARACTER_USE_MESSAGE + foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","))
             );
+        }
+        // A role mapping "users" entry starting and ending with '/' is evaluated as a regular expression (see WildcardMatcher.from).
+        if (decodedName.startsWith("/") && decodedName.endsWith("/")) {
+            return Optional.of(REGEX_USERNAME_MESSAGE);
         }
         return Optional.empty();
     }

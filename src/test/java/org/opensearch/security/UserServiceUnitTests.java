@@ -14,6 +14,7 @@ package org.opensearch.security;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Optional;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -116,6 +117,29 @@ public class UserServiceUnitTests {
             UserService.restrictedFromUsername("aaaa:bbb"),
             is(Optional.of("A restricted character(s) was detected in the account name. Please remove: ':'"))
         );
+        assertThat(
+            UserService.restrictedFromUsername("aaaa*"),
+            is(Optional.of("A restricted character(s) was detected in the account name. Please remove: '*'"))
+        );
+        assertThat(
+            UserService.restrictedFromUsername("aa?aa"),
+            is(Optional.of("A restricted character(s) was detected in the account name. Please remove: '?'"))
+        );
+        // Encoded characters are decoded before checking.
+        assertThat(
+            UserService.restrictedFromUsername("aaaa%2A"),
+            is(Optional.of("A restricted character(s) was detected in the account name. Please remove: '*'"))
+        );
+        for (final String regexForm : List.of("/aaaa/", "/a.b+/", "/")) {
+            assertThat(
+                UserService.restrictedFromUsername(regexForm),
+                is(Optional.of("The account name must not be enclosed in '/', which is regular expression syntax."))
+            );
+        }
+        // Slashes and regex metacharacters are only special when the whole name is enclosed in '/'.
+        for (final String allowed : List.of("a/b", "/aaaa", "aaaa/", "a.b+c")) {
+            assertThat(UserService.restrictedFromUsername(allowed), is(Optional.empty()));
+        }
     }
 
     @Test

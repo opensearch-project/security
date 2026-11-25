@@ -47,7 +47,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.security.api.PatchPayloadHelper.addOp;
 import static org.opensearch.security.api.PatchPayloadHelper.patch;
 import static org.opensearch.security.api.PatchPayloadHelper.replaceOp;
-import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
+import static org.opensearch.security.user.UserService.RESTRICTED_FROM_USERNAME;
 import static org.opensearch.test.framework.matcher.RestMatchers.isBadRequest;
 import static org.opensearch.test.framework.matcher.RestMatchers.isCreated;
 import static org.opensearch.test.framework.matcher.RestMatchers.isForbidden;
@@ -870,19 +870,19 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
             {
                 for (final var restrictedTerm : RESTRICTED_FROM_USERNAME) {
-                    for (final var username : List.of(
-                        randomAsciiAlphanumOfLength(2) + restrictedTerm + randomAsciiAlphanumOfLength(3),
-                        URLEncoder.encode(randomAsciiAlphanumOfLength(4) + ":" + randomAsciiAlphanumOfLength(3), StandardCharsets.UTF_8)
-                    )) {
-                        assertThat(
-                            client.putJson(apiPath(username), internalUserWithPassword(randomAsciiAlphanumOfLength(10))),
-                            isBadRequest("/message", restrictedTerm)
-                        );
-                        assertThat(
-                            client.patch(apiPath(), patch(addOp(username, internalUserWithPassword(randomAsciiAlphanumOfLength(10))))),
-                            isBadRequest("/message", restrictedTerm)
-                        );
-                    }
+                    final var username = randomAsciiAlphanumOfLength(2) + restrictedTerm + randomAsciiAlphanumOfLength(3);
+                    // PUT carries the name in the URL path, so it is encoded ('?' would otherwise start the query string).
+                    assertThat(
+                        client.putJson(
+                            apiPath(URLEncoder.encode(username, StandardCharsets.UTF_8)),
+                            internalUserWithPassword(randomAsciiAlphanumOfLength(10))
+                        ),
+                        isBadRequest("/message", restrictedTerm)
+                    );
+                    assertThat(
+                        client.patch(apiPath(), patch(addOp(username, internalUserWithPassword(randomAsciiAlphanumOfLength(10))))),
+                        isBadRequest("/message", restrictedTerm)
+                    );
                 }
             }
         }

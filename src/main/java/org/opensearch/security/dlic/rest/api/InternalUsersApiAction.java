@@ -63,10 +63,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
         request.param("filterBy");
     }
 
-    public static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
-        ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
-    );
-
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
