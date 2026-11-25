@@ -316,6 +316,14 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 badRequestMessage("'new_username' must differ from the current username.")
             );
         }
+        // The new name is written into role mapping "users" entries, which are compiled as WildcardMatcher patterns.
+        // Reject anything that would not match as a literal, or the rename could grant roles to other users.
+        if (isMatcherPattern(newUsername)) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage("'new_username' must not contain '*' or '?' or be a /regex/.")
+            );
+        }
 
         // Source user must exist and be changeable by the caller (hidden/reserved users need admin rights).
         final var source = endpointValidator.entityExists(SecurityConfiguration.of(oldUsername, internalUsers))
@@ -374,6 +382,10 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 updatedRoleMappings
             )
         );
+    }
+
+    private static boolean isMatcherPattern(final String name) {
+        return name.indexOf('*') >= 0 || name.indexOf('?') >= 0 || (name.length() > 1 && name.startsWith("/") && name.endsWith("/"));
     }
 
     private static <T> void moveEntry(final SecurityDynamicConfiguration<T> configuration, final String from, final String to) {
