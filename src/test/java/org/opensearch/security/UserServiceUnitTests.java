@@ -130,13 +130,15 @@ public class UserServiceUnitTests {
             UserService.restrictedFromUsername("aaaa%2A"),
             is(Optional.of("A restricted character(s) was detected in the account name. Please remove: '*'"))
         );
-        for (final String regexForm : List.of("/aaaa/", "/a.b+/", "/")) {
+        // Names starting and ending with '/' are compiled as regular expressions in role mappings (WildcardMatcher.from), so they
+        // never match a user by name. That includes "/" and "//"; a lone "/" would even fail to compile.
+        for (final String regexForm : List.of("/aaaa/", "/a.b+/", "//", "/")) {
             assertThat(
                 UserService.restrictedFromUsername(regexForm),
                 is(Optional.of("The account name must not be enclosed in '/', which is regular expression syntax."))
             );
         }
-        // Slashes and regex metacharacters are only special when the whole name is enclosed in '/'.
+        // A '/' anywhere else, or regex metacharacters without the enclosing slashes, are matched literally.
         for (final String allowed : List.of("a/b", "/aaaa", "aaaa/", "a.b+c")) {
             assertThat(UserService.restrictedFromUsername(allowed), is(Optional.empty()));
         }
