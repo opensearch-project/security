@@ -619,6 +619,11 @@ allprojects {
                 integrationTestImplementation "org.opensearch:protobufs:${versions.opensearchprotobufs}"
                 integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
                 integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
+                // StreamTransportTests builds its Flight client channel directly, like the arrow-flight-rpc plugin does.
+                integrationTestImplementation("io.grpc:grpc-netty:${versions.grpc}") {
+                    // Netty and the other gRPC modules come with core and arrow-flight-rpc; its own Netty 4.1 dependencies would conflict.
+                    transitive = false
+                }
                 integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
                 integrationTestImplementation 'commons-io:commons-io:2.22.0'
