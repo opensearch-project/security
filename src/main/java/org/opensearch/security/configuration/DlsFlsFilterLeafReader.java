@@ -1216,6 +1216,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     }
 
     private boolean isMasked(String field) {
+        if (field == null) {
+            // Lucene can call LeafReader methods with a null field name (e.g. for a _geo_distance sort).
+            // Treat it as masked, so that the reader reports no values for it, as the FLS check already does.
+            return true;
+        }
         // Doc-value masking also applies a parent field's rule to its keyword subfield.
         return this.maskedFieldsMap.anyMatch(field) || (field.endsWith(KEYWORD) && this.maskedFieldsMap.anyMatch(handleKeyword(field)));
     }
