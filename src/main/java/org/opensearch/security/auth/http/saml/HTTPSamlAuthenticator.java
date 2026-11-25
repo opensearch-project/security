@@ -365,8 +365,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         Settings.Builder settingsBuilder = Settings.builder();
         Settings jwtSettings = settings.getAsSettings("jwt");
 
-        // required_claims is not applied to SAML: the session JWT verified here is issued by this authenticator itself
-        settingsBuilder.put(jwtSettings.filter(key -> !key.equals("required_claims") && !key.startsWith("required_claims.")));
+        settingsBuilder.put(jwtSettings);
 
         if (jwtSettings.get("roles_key") == null && settings.get("roles_key") != null) {
             settingsBuilder.put("roles_key", "roles");

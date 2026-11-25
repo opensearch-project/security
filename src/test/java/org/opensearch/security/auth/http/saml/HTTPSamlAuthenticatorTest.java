@@ -201,46 +201,6 @@ public class HTTPSamlAuthenticatorTest {
         }
     }
 
-    @Test
-    public void requiredClaimsAreNotAppliedToSamlSessionJwt() throws Exception {
-        mockSamlIdpServer.setSignResponses(true);
-        mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
-        mockSamlIdpServer.setAuthenticateUser("horst");
-        mockSamlIdpServer.setEndpointQueryString(null);
-
-        // The session JWT is issued by OpenSearch itself, so required_claims is not applied to it, even for a
-        // claim it never writes
-        Settings settings = Settings.builder()
-            .put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
-            .put("kibana_url", "http://wherever")
-            .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-            .put("exchange_key", "abc")
-            .put("roles_key", "roles")
-            .putList("jwt.required_claims", "exp", "not_in_session_jwt")
-            .put("path.home", ".")
-            .build();
-
-        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
-
-        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
-        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
-        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
-
-        String responseJson = getResponse(samlAuthenticator, tokenRestRequest);
-        HashMap<String, Object> response = DefaultObjectMapper.objectMapper()
-            .readValue(responseJson, new TypeReference<HashMap<String, Object>>() {
-            });
-        String authorization = (String) response.get("authorization");
-        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
-
-        AuthCredentials creds = samlAuthenticator.extractCredentials(
-            new FakeRestRequest(ImmutableMap.of("Authorization", authorization), new HashMap<>()).asSecurityRequest(),
-            null
-        );
-        Assert.assertNotNull(creds);
-        assertThat(creds.getUsername(), is("horst"));
-    }
-
     private Optional<SecurityResponse> sendToAuthenticator(HTTPSamlAuthenticator samlAuthenticator, RestRequest request) {
         final SecurityRequest tokenRestChannel = SecurityRequestFactory.from(request);
 
