@@ -753,10 +753,21 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
     public record ConfigWrite(CType<?> cType, SecurityDynamicConfiguration<?> original, SecurityDynamicConfiguration<?> updated) {
     }
 
-    /** A {@link #saveConfigsInOrderAsync} batch failed and some of its completed writes could not be undone. */
+    /**
+     * A {@link #saveConfigsInOrderAsync} batch failed and the security index or the nodes' loaded configuration may not match
+     * the state before the batch. {@link #notRestored()} lists the config types still holding the batch's update; it is empty
+     * when every write was restored but reloading the restored configuration failed.
+     */
     public static class PartiallyAppliedConfigWriteException extends OpenSearchException {
-        PartiallyAppliedConfigWriteException(final String message, final Throwable cause) {
+        private final List<String> notRestored;
+
+        PartiallyAppliedConfigWriteException(final String message, final Throwable cause, final List<String> notRestored) {
             super(message, cause);
+            this.notRestored = List.copyOf(notRestored);
+        }
+
+        public List<String> notRestored() {
+            return notRestored;
         }
     }
 
@@ -820,7 +831,8 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                             + List.of(restored)
                             + " were restored but reloading them across nodes failed: "
                             + reloadFailure.getMessage(),
-                        failure
+                        failure,
+                        List.of()
                     );
                     partial.addSuppressed(reloadFailure);
                     listener.onFailure(partial);
@@ -840,7 +852,8 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                     final var notRestored = writes.subList(0, index + 1).stream().map(w -> w.cType().toLCString()).toList();
                     final var partial = new PartiallyAppliedConfigWriteException(
                         "Writes to " + notRestored + " could not be undone after a failed write: " + failure.getMessage(),
-                        failure
+                        failure,
+                        notRestored
                     );
                     partial.addSuppressed(undoFailure);
                     listener.onFailure(partial);

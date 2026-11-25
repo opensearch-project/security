@@ -37,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -100,6 +101,10 @@ public class SaveConfigsInOrderTest {
         assertThat(reloads.isEmpty(), is(true));
         assertThat(failure.get(), instanceOf(AbstractApiAction.PartiallyAppliedConfigWriteException.class));
         assertThat(failure.get().getMessage().contains("[internalusers, rolesmapping]"), is(true));
+        assertThat(
+            ((AbstractApiAction.PartiallyAppliedConfigWriteException) failure.get()).notRestored(),
+            contains("internalusers", "rolesmapping")
+        );
     }
 
     @Test
@@ -182,6 +187,8 @@ public class SaveConfigsInOrderTest {
         assertThat(reloads, contains(List.of("internalusers", "rolesmapping")));
         assertThat(success.get(), is(nullValue()));
         assertThat(failure.get(), instanceOf(AbstractApiAction.PartiallyAppliedConfigWriteException.class));
+        // Every write was restored, so no config type is left holding the batch's update.
+        assertThat(((AbstractApiAction.PartiallyAppliedConfigWriteException) failure.get()).notRestored(), is(empty()));
     }
 
     private static Exception conflict() {

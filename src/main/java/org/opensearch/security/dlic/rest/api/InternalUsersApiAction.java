@@ -409,7 +409,21 @@ public class InternalUsersApiAction extends AbstractApiAction {
             final String[] types = writes.stream().map(write -> write.cType().toLCString()).toArray(String[]::new);
             new ConfigUpdatingActionListener<>(types, client, restResponse).onResponse(lastWrite);
         }, failure -> {
-            if (failure instanceof PartiallyAppliedConfigWriteException) {
+            if (failure instanceof PartiallyAppliedConfigWriteException partial && partial.notRestored().isEmpty()) {
+                // Every write was undone, so nothing was renamed; only reloading the restored configuration failed.
+                LOGGER.error(
+                    "Rename of internal user '{}' to '{}' was rolled back, but reloading the restored configuration failed",
+                    plan.oldUsername(),
+                    plan.newUsername(),
+                    failure
+                );
+                internalServerError(
+                    channel,
+                    "Rename of '"
+                        + plan.oldUsername()
+                        + "' failed and was rolled back, but reloading the security configuration on all nodes failed. Retry the request."
+                );
+            } else if (failure instanceof PartiallyAppliedConfigWriteException) {
                 LOGGER.error(
                     "Rename of internal user '{}' to '{}' was partially applied; role mappings {} still reference '{}'",
                     plan.oldUsername(),

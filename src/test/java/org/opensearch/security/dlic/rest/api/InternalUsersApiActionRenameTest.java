@@ -186,6 +186,23 @@ public class InternalUsersApiActionRenameTest {
     }
 
     @Test
+    public void failedReloadAfterRestoreReportsRollbackNotPartialRename() throws Exception {
+        // The rolesmapping write fails and internalusers is restored, but reloading the restored config fails.
+        // Nothing is renamed on disk, so the response must not tell the admin to edit role mappings by hand.
+        writeOutcomes(null, conflict(), null);
+        reloadsFail();
+
+        action.executeRename(channel, client, plan(), "admin");
+
+        assertThat(writtenDocIds(), contains("internalusers", "rolesmapping", "internalusers"));
+        final var response = sentResponse();
+        assertThat(response.status(), is(RestStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.content().utf8ToString(), containsString("rolled back"));
+        assertThat(response.content().utf8ToString().contains("Update them manually"), is(false));
+        verifyNoInteractions(auditLog);
+    }
+
+    @Test
     public void failedUsersWriteStopsBeforeTouchingMappings() throws Exception {
         writeOutcomes(conflict());
 
@@ -249,6 +266,16 @@ public class InternalUsersApiActionRenameTest {
             final ActionListener<ConfigUpdateResponse> listener = invocation.getArgument(2);
             reloads.add(Arrays.asList(request.getConfigTypes()));
             listener.onResponse(new ConfigUpdateResponse(ClusterName.DEFAULT, List.of(), List.of()));
+            return null;
+        }).when(client).execute(eq(ConfigUpdateAction.INSTANCE), any(ConfigUpdateRequest.class), any());
+    }
+
+    private void reloadsFail() {
+        doAnswer(invocation -> {
+            final ConfigUpdateRequest request = invocation.getArgument(1);
+            final ActionListener<ConfigUpdateResponse> listener = invocation.getArgument(2);
+            reloads.add(Arrays.asList(request.getConfigTypes()));
+            listener.onFailure(new IllegalStateException("reload failed"));
             return null;
         }).when(client).execute(eq(ConfigUpdateAction.INSTANCE), any(ConfigUpdateRequest.class), any());
     }
