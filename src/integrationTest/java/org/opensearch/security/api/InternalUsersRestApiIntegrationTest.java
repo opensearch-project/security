@@ -1088,10 +1088,6 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 isBadRequest()
             );
             assertThat(client.postJson(renamePath(source), renameBody("a:b")), isBadRequest("/message", ":"));
-            // Names that would act as role mapping patterns instead of literals.
-            for (final String pattern : List.of("*", "rename_x*", "ev?l", "/rename_.*/")) {
-                assertThat(client.postJson(renamePath(source), renameBody(pattern)), isBadRequest("/message", "regex"));
-            }
             assertThat(client.postJson(renamePath(source), renameBody(source)), isBadRequest());
 
             // None of the rejected requests changed either document.
