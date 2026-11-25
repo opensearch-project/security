@@ -13,8 +13,6 @@ package org.opensearch.security.user;
 
 import java.io.IOException;
 import java.net.URLDecoder;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -306,41 +304,22 @@ public class UserService {
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
             // Generate a new password for the account and store the hash of it
-            char[] plainTextPassword = generatePassword();
-            byte[] credentialBytes = null;
-            try {
-                contentAsNode.put("hash", passwordHasher.hash(plainTextPassword));
-                contentAsNode.put("enabled", "true");
-                contentAsNode.put("service", "true");
+            final String plainTextPassword = new String(generatePassword());
+            contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("enabled", "true");
+            contentAsNode.put("service", "true");
 
-                // Update the internal user associated with the auth token
-                internalUsersConfiguration.remove(accountName);
-                contentAsNode.remove("name");
-                internalUsersConfiguration.putCObject(
-                    accountName,
-                    DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
-                );
-                saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
+            // Update the internal user associated with the auth token
+            internalUsersConfiguration.remove(accountName);
+            contentAsNode.remove("name");
+            internalUsersConfiguration.putCObject(
+                accountName,
+                DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
+            );
+            saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
-                byte[] accountBytes = accountName.getBytes(StandardCharsets.UTF_8);
-                ByteBuffer passwordByteBuffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(plainTextPassword));
-                byte[] passwordBytes = new byte[passwordByteBuffer.remaining()];
-                passwordByteBuffer.get(passwordBytes);
-                Arrays.fill(passwordByteBuffer.array(), (byte) 0);
-                credentialBytes = new byte[accountBytes.length + 1 + passwordBytes.length];
-                System.arraycopy(accountBytes, 0, credentialBytes, 0, accountBytes.length);
-                credentialBytes[accountBytes.length] = ':';
-                System.arraycopy(passwordBytes, 0, credentialBytes, accountBytes.length + 1, passwordBytes.length);
-                Arrays.fill(passwordBytes, (byte) 0);
-
-                authToken = Base64.getUrlEncoder().encodeToString(credentialBytes);
-                return new BasicAuthToken("Basic " + authToken);
-            } finally {
-                Arrays.fill(plainTextPassword, '\0');
-                if (credentialBytes != null) {
-                    Arrays.fill(credentialBytes, (byte) 0);
-                }
-            }
+            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
+            return new BasicAuthToken("Basic " + authToken);
 
         } catch (JacksonException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
