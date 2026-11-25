@@ -173,16 +173,15 @@ public class ReactorHttpClient implements Closeable {
         if (FipsMode.isEnabled()) {
             if (!secure) {
                 throw new IllegalArgumentException(
-                    "Plaintext connections are not permitted in FIPS mode; TLS is required to engage the FIPS security providers"
+                    "Plaintext connections are not permitted in FIPS mode. TLS is required to engage the FIPS security providers."
                 );
             }
             if (protocol == HttpProtocol.HTTP3) {
-                // In FIPS mode, exclude HTTP/3: the bundled BoringSSL (used by QUIC) is not built from the
-                // FIPS-validated branch and bypasses JSSE/BC FIPS entirely. This is a build-level constraint —
-                // a FIPS-certified BoringSSL substituted at the OS level would re-enable HTTP/3 in FIPS mode.
+                // QUIC encrypts with the BoringSSL library that Netty's native codec bundles, not with BC FIPS, so the
+                // client does not speak HTTP/3 in FIPS mode. Whether a node offers HTTP/3 is decided by core's
+                // Http3Utils.isHttp3Available(), which also returns false in FIPS approved-only mode.
                 throw new IllegalArgumentException(
-                    "HTTP/3 requires BoringSSL which is not built from the FIPS-validated branch in this distribution; "
-                        + "substitute a FIPS-certified BoringSSL build to enable HTTP/3 in FIPS mode"
+                    "HTTP/3 is not available in FIPS mode, because QUIC uses the bundled BoringSSL instead of the FIPS provider."
                 );
             }
         }
@@ -246,7 +245,7 @@ public class ReactorHttpClient implements Closeable {
         } else {
             if (FipsMode.isEnabled()) {
                 throw new IllegalStateException(
-                    "Plaintext connections are not permitted in FIPS mode; TLS is required to engage the FIPS security providers"
+                    "Plaintext connections are not permitted in FIPS mode. TLS is required to engage the FIPS security providers."
                 );
             }
             if (protocol == HttpProtocol.HTTP11) {

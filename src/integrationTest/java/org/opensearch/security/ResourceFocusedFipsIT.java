@@ -14,8 +14,8 @@ import reactor.netty.http.HttpProtocol;
 
 /**
  * FIPS variant of {@link ResourceFocusedTests}. The generic-client scenarios run over HTTP/2:
- * HTTP/3 rides on a BoringSSL build that is not from the FIPS-validated branch, so
- * {@code ReactorHttpClient} refuses it in FIPS mode.
+ * QUIC uses the bundled BoringSSL instead of the FIPS provider, so the nodes do not offer HTTP/3
+ * in FIPS mode and {@code ReactorHttpClient} refuses it.
  */
 public class ResourceFocusedFipsIT extends ResourceFocusedTests {
 

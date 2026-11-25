@@ -153,8 +153,8 @@ public class ResourceFocusedTests {
     }
 
     /**
-     * Protocol the generic client runs against. The FIPS variant overrides it: HTTP/3 rides on a
-     * BoringSSL build that is not FIPS-validated, so it is refused in FIPS mode.
+     * Protocol the generic client runs against. The FIPS variant overrides it, because HTTP/3 is not
+     * available in FIPS mode.
      */
     protected HttpProtocol genericClientProtocol() {
         return HttpProtocol.HTTP3;

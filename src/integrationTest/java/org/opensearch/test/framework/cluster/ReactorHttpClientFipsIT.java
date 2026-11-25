@@ -26,7 +26,7 @@ import static org.junit.Assert.assertThrows;
 
 /**
  * FIPS variant of {@link ReactorHttpClientTests}. Two of the baseline expectations do not hold
- * under FIPS: HTTP/3 rides on a BoringSSL build that is not FIPS-validated, and plaintext
+ * under FIPS: QUIC uses the bundled BoringSSL instead of the FIPS provider, and plaintext
  * connections never engage the FIPS providers, so both are refused by
  * {@code ReactorHttpClient#validateProtocol}.
  */
