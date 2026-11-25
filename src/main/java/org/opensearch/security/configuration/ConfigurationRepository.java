@@ -62,6 +62,7 @@ import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.ClusterStateUpdateTask;
+import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
@@ -201,87 +202,104 @@ public class ConfigurationRepository implements ClusterStateListener, IndexEvent
                 TimeUnit.SECONDS.sleep(1);
             }
 
-            if (installDefaultConfig) {
+            boolean attemptDefaultConfig = installDefaultConfig;
+            boolean firstAttempt = true;
+            while (firstAttempt || !dynamicConfigFactory.isInitialized()) {
+                firstAttempt = false;
+                if (attemptDefaultConfig) {
+                    attemptDefaultConfig = false;
+                    try {
+                        final String cd = getConfigDirectory();
+                        File confFile = new File(cd + "config.yml");
+                        if (confFile.exists()) {
+                            final ThreadContext threadContext = threadPool.getThreadContext();
+                            try (StoredContext ctx = threadContext.stashContext()) {
+                                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                try {
-                    final String cd = getConfigDirectory();
-                    File confFile = new File(cd + "config.yml");
-                    if (confFile.exists()) {
-                        final ThreadContext threadContext = threadPool.getThreadContext();
-                        try (StoredContext ctx = threadContext.stashContext()) {
-                            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+                                createSecurityIndexIfAbsent();
+                                waitForSecurityIndexToBeAtLeastYellow();
 
-                            createSecurityIndexIfAbsent();
-                            waitForSecurityIndexToBeAtLeastYellow();
+                                final int initializationDelaySeconds = settings.getAsInt(
+                                    ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
+                                    0
+                                );
+                                if (initializationDelaySeconds > 0) {
+                                    LOGGER.error("Test setting loaded to delay initialization for {} seconds", initializationDelaySeconds);
+                                    TimeUnit.SECONDS.sleep(initializationDelaySeconds);
+                                }
 
-                            final int initializationDelaySeconds = settings.getAsInt(
-                                ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS,
-                                0
-                            );
-                            if (initializationDelaySeconds > 0) {
-                                LOGGER.error("Test setting loaded to delay initialization for {} seconds", initializationDelaySeconds);
-                                TimeUnit.SECONDS.sleep(initializationDelaySeconds);
+                                ConfigHelper.uploadFile(client, cd + "config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd + "roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(
+                                    client,
+                                    cd + "roles_mapping.yml",
+                                    securityIndex,
+                                    CType.ROLESMAPPING,
+                                    DEFAULT_CONFIG_VERSION
+                                );
+                                ConfigHelper.uploadFile(
+                                    client,
+                                    cd + "internal_users.yml",
+                                    securityIndex,
+                                    CType.INTERNALUSERS,
+                                    DEFAULT_CONFIG_VERSION
+                                );
+                                ConfigHelper.uploadFile(
+                                    client,
+                                    cd + "action_groups.yml",
+                                    securityIndex,
+                                    CType.ACTIONGROUPS,
+                                    DEFAULT_CONFIG_VERSION
+                                );
+                                if (DEFAULT_CONFIG_VERSION == 2) {
+                                    ConfigHelper.uploadFile(
+                                        client,
+                                        cd + "tenants.yml",
+                                        securityIndex,
+                                        CType.TENANTS,
+                                        DEFAULT_CONFIG_VERSION
+                                    );
+                                }
+                                final boolean populateEmptyIfFileMissing = true;
+                                ConfigHelper.uploadFile(
+                                    client,
+                                    cd + "nodes_dn.yml",
+                                    securityIndex,
+                                    CType.NODESDN,
+                                    DEFAULT_CONFIG_VERSION,
+                                    populateEmptyIfFileMissing
+                                );
+                                ConfigHelper.uploadFile(
+                                    client,
+                                    cd + "allowlist.yml",
+                                    securityIndex,
+                                    CType.ALLOWLIST,
+                                    DEFAULT_CONFIG_VERSION,
+                                    populateEmptyIfFileMissing
+                                );
+
+                                // audit.yml is not packaged by default
+                                final String auditConfigPath = cd + "audit.yml";
+                                if (new File(auditConfigPath).exists()) {
+                                    ConfigHelper.uploadFile(client, auditConfigPath, securityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
+                                }
                             }
-
-                            ConfigHelper.uploadFile(client, cd + "config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
-                            ConfigHelper.uploadFile(client, cd + "roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
-                            ConfigHelper.uploadFile(
-                                client,
-                                cd + "roles_mapping.yml",
-                                securityIndex,
-                                CType.ROLESMAPPING,
-                                DEFAULT_CONFIG_VERSION
-                            );
-                            ConfigHelper.uploadFile(
-                                client,
-                                cd + "internal_users.yml",
-                                securityIndex,
-                                CType.INTERNALUSERS,
-                                DEFAULT_CONFIG_VERSION
-                            );
-                            ConfigHelper.uploadFile(
-                                client,
-                                cd + "action_groups.yml",
-                                securityIndex,
-                                CType.ACTIONGROUPS,
-                                DEFAULT_CONFIG_VERSION
-                            );
-                            if (DEFAULT_CONFIG_VERSION == 2) {
-                                ConfigHelper.uploadFile(client, cd + "tenants.yml", securityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
-                            }
-                            final boolean populateEmptyIfFileMissing = true;
-                            ConfigHelper.uploadFile(
-                                client,
-                                cd + "nodes_dn.yml",
-                                securityIndex,
-                                CType.NODESDN,
-                                DEFAULT_CONFIG_VERSION,
-                                populateEmptyIfFileMissing
-                            );
-                            ConfigHelper.uploadFile(
-                                client,
-                                cd + "allowlist.yml",
-                                securityIndex,
-                                CType.ALLOWLIST,
-                                DEFAULT_CONFIG_VERSION,
-                                populateEmptyIfFileMissing
-                            );
-
-                            // audit.yml is not packaged by default
-                            final String auditConfigPath = cd + "audit.yml";
-                            if (new File(auditConfigPath).exists()) {
-                                ConfigHelper.uploadFile(client, auditConfigPath, securityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
-                            }
+                        } else {
+                            LOGGER.error("{} does not exist", confFile.getAbsolutePath());
                         }
-                    } else {
-                        LOGGER.error("{} does not exist", confFile.getAbsolutePath());
+                    } catch (Exception e) {
+                        if (ExceptionsHelper.unwrap(e, ClusterBlockException.class) != null) {
+                            attemptDefaultConfig = true;
+                            LOGGER.warn("Cannot apply default config while the Security index is blocked; will retry", e);
+                        } else {
+                            LOGGER.error("Cannot apply default config", e);
+                        }
                     }
-                } catch (Exception e) {
-                    LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
                 }
-            }
 
-            while (!dynamicConfigFactory.isInitialized()) {
+                if (dynamicConfigFactory.isInitialized()) {
+                    break;
+                }
                 try {
                     LOGGER.debug("Try to load config ...");
                     doReload(CType.values());
