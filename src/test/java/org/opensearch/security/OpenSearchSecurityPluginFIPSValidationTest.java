@@ -118,6 +118,62 @@ public class OpenSearchSecurityPluginFIPSValidationTest {
     }
 
     @Test
+    public void testFipsModeWithPbkdf2LengthBelowFloorThrows() {
+        Settings settings = Settings.builder()
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2")
+            .put(PasswordHasherFactory.PBKDF2_LENGTH.getKey(), 64)
+            .build();
+
+        IllegalStateException ex = assertThrows(
+            IllegalStateException.class,
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true)
+        );
+        assertThat(
+            ex.getMessage(),
+            containsString("PBKDF2 key length 'plugins.security.password.hashing.pbkdf2.length' is set to 64 bits")
+        );
+    }
+
+    @Test
+    public void testFipsModeWithPbkdf2IterationsBelowFloorThrows() {
+        Settings settings = Settings.builder()
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2")
+            .put(PasswordHasherFactory.PBKDF2_ITERATIONS.getKey(), 999)
+            .build();
+
+        IllegalStateException ex = assertThrows(
+            IllegalStateException.class,
+            () -> OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true)
+        );
+        assertThat(
+            ex.getMessage(),
+            containsString("PBKDF2 iteration count 'plugins.security.password.hashing.pbkdf2.iterations' is set to 999")
+        );
+    }
+
+    @Test
+    public void testFipsModeWithPbkdf2ParametersAtFloorSucceeds() {
+        Settings settings = Settings.builder()
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2")
+            .put(PasswordHasherFactory.PBKDF2_LENGTH.getKey(), 112)
+            .put(PasswordHasherFactory.PBKDF2_ITERATIONS.getKey(), 1_000)
+            .build();
+
+        OpenSearchSecurityPlugin.validateFipsMode(settings, true, () -> true);
+    }
+
+    @Test
+    public void testFipsModeDisabledAllowsWeakPbkdf2Parameters() {
+        Settings settings = Settings.builder()
+            .put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2")
+            .put(PasswordHasherFactory.PBKDF2_LENGTH.getKey(), 64)
+            .put(PasswordHasherFactory.PBKDF2_ITERATIONS.getKey(), 1)
+            .build();
+
+        OpenSearchSecurityPlugin.validateFipsMode(settings, false, () -> false);
+    }
+
+    @Test
     public void testFipsModeEnabledWithoutApprovedOnlyModeThrows() {
         Settings settings = Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), "pbkdf2").build();
 

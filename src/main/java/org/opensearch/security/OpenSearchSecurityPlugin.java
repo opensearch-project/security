@@ -644,6 +644,29 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 );
             }
 
+            final int pbkdf2Length = PasswordHasherFactory.PBKDF2_LENGTH.get(settings);
+            if (pbkdf2Length < PasswordHasherFactory.FIPS_MIN_PBKDF2_LENGTH) {
+                violations.add(
+                    "PBKDF2 key length '%s' is set to %d bits, but FIPS mode requires at least %d bits (NIST SP 800-132).".formatted(
+                        PasswordHasherFactory.PBKDF2_LENGTH.getKey(),
+                        pbkdf2Length,
+                        PasswordHasherFactory.FIPS_MIN_PBKDF2_LENGTH
+                    )
+                );
+            }
+
+            final int pbkdf2Iterations = PasswordHasherFactory.PBKDF2_ITERATIONS.get(settings);
+            if (pbkdf2Iterations < PasswordHasherFactory.FIPS_MIN_PBKDF2_ITERATIONS) {
+                violations.add(
+                    "PBKDF2 iteration count '%s' is set to %d, but FIPS mode requires at least %d, the minimum that NIST SP 800-132 recommends."
+                        .formatted(
+                            PasswordHasherFactory.PBKDF2_ITERATIONS.getKey(),
+                            pbkdf2Iterations,
+                            PasswordHasherFactory.FIPS_MIN_PBKDF2_ITERATIONS
+                        )
+                );
+            }
+
             if (!violations.isEmpty()) {
                 throw new IllegalStateException(
                     "FIPS mode is enabled (OPENSEARCH_FIPS_MODE=true) but the following configuration issues were found:\n- "
