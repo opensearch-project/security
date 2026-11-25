@@ -57,6 +57,7 @@ import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.crypto.fips.FipsUnapprovedOperationError;
 import org.bouncycastle.openssl.PEMException;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
@@ -115,6 +116,15 @@ public final class PemKeyReader {
                         );
                     } catch (PKCSException | OperatorCreationException e) {
                         throw new KeyException("Failed to decrypt private key", e);
+                    } catch (FipsUnapprovedOperationError e) {
+                        // As an Error this would bypass the callers' exception handling, and core's uncaught exception handler
+                        // treats every Error as fatal, for example during a certificate reload.
+                        throw new KeyException(
+                            "BouncyCastle FIPS refused to decrypt the private key: "
+                                + e.getMessage()
+                                + ". In FIPS mode the password of an encrypted key needs at least 14 characters.",
+                            e
+                        );
                     }
                 }
                 case PrivateKeyInfo privateKeyInfo -> pki = privateKeyInfo;

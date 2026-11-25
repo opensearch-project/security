@@ -37,6 +37,22 @@ public class PemKeyReaderLegacyEncryptedKeyFipsTests extends PemKeyReaderLegacyE
         assertRejected(PBES1_MD5_DES, GENERATED_KEY_PASSWORD, "1.2.840.113549.1.5.3");
     }
 
+    @Override
+    @Test
+    public void decryptsPbes2WithShortPassword() {
+        final KeyException e = expectThrows(
+            KeyException.class,
+            () -> PemKeyReader.toPrivateKey(file(PBES2_SHORT_PASSWORD), FORMER_KIRK_KEY_PASSWORD)
+        );
+        assertThat(
+            e.getMessage(),
+            equalTo(
+                "BouncyCastle FIPS refused to decrypt the private key: password must be at least 112 bits. "
+                    + "In FIPS mode the password of an encrypted key needs at least 14 characters."
+            )
+        );
+    }
+
     private static void assertRejected(String keyFile, String password, String schemeOid) {
         final KeyException e = expectThrows(KeyException.class, () -> PemKeyReader.toPrivateKey(file(keyFile), password));
         assertThat(e.getMessage(), equalTo("Failed to decrypt private key"));

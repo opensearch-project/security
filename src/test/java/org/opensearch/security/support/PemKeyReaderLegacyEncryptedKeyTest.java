@@ -39,6 +39,8 @@ public class PemKeyReaderLegacyEncryptedKeyTest extends LuceneTestCase {
     static final String PBES1_MD5_DES = "sslConfigurator/pem/kirk-pbes1-md5-des.key";
     static final String PBES2_SHA1_3DES = "sslConfigurator/pem/kirk-pbes2-sha1-3des.key";
     static final String PBES2_SHA1_AES256 = "sslConfigurator/pem/kirk-pbes2-sha1-aes256.key";
+    // PBES2 with HMAC-SHA256 and AES-256, encrypted with the 6-character password "secret".
+    static final String PBES2_SHORT_PASSWORD = "sslConfigurator/pem/kirk-pbes2-short-password.key";
     static final String FORMER_KIRK_KEY_PASSWORD = "secret";
     static final String GENERATED_KEY_PASSWORD = "legacy-kirk-secret";
     static final String CERTIFICATE = "sslConfigurator/pem/kirk.pem";
@@ -61,6 +63,11 @@ public class PemKeyReaderLegacyEncryptedKeyTest extends LuceneTestCase {
     @Test
     public void decryptsPbes2WithSha1AndAes256() throws Exception {
         assertDecryptsToCertificateKey(PBES2_SHA1_AES256, GENERATED_KEY_PASSWORD);
+    }
+
+    @Test
+    public void decryptsPbes2WithShortPassword() throws Exception {
+        assertDecryptsToCertificateKey(PBES2_SHORT_PASSWORD, FORMER_KIRK_KEY_PASSWORD);
     }
 
     static void assertDecryptsToCertificateKey(String keyFile, String password) throws Exception {
