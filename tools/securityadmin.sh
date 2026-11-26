@@ -41,7 +41,21 @@ unset JAVA_OPTS
 source "$OPENSEARCH_HOME/bin/opensearch-env"
 cd "$CALLER_DIR"
 
-exec "$JAVA" "$XSHARE" -Xms4m -Xmx64m -XX:+UseSerialGC $OPENSEARCH_JAVA_OPTS \
+# In FIPS mode core requires a JVM-wide BCFKS or PKCS11 trust store, which opensearch-fips-demo-installer writes into
+# jvm.options. The OpenSearch client asks for the default SSL context and fails without it, so take the
+# -Djavax.net.ssl.* options from jvm.options as the node does. OPENSEARCH_JAVA_OPTS comes later and overrides them.
+TRUST_STORE_OPTS=""
+if [ "$OPENSEARCH_FIPS_MODE" = "true" ]; then
+  NODE_JVM_OPTIONS=$(OPENSEARCH_TMPDIR="${OPENSEARCH_TMPDIR:-${TMPDIR:-/tmp}}" OPENSEARCH_JAVA_OPTS="" \
+    "$JAVA" "$XSHARE" -cp "$OPENSEARCH_CLASSPATH" org.opensearch.tools.launchers.JvmOptionsParser "$OPENSEARCH_PATH_CONF")
+  for option in $NODE_JVM_OPTIONS; do
+    case "$option" in
+      -Djavax.net.ssl.*) TRUST_STORE_OPTS="$TRUST_STORE_OPTS $option" ;;
+    esac
+  done
+fi
+
+exec "$JAVA" "$XSHARE" -Xms4m -Xmx64m -XX:+UseSerialGC $TRUST_STORE_OPTS $OPENSEARCH_JAVA_OPTS \
   -Dopensearch.path.home="$OPENSEARCH_HOME" \
   -Dopensearch.path.conf="$OPENSEARCH_PATH_CONF" \
   -Dopensearch.distribution.type="$OPENSEARCH_DISTRIBUTION_TYPE" \
