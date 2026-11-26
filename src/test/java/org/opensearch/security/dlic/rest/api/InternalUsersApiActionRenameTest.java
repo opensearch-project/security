@@ -65,7 +65,8 @@ import static org.mockito.Mockito.when;
 /**
  * Covers the write path of the internal-user rename: write ordering, the undo of the internalusers
  * write when the rolesmapping write fails, and reporting when the undo itself fails. These failures
- * can't be triggered on demand against a real cluster, so the client is faked.
+ * can't be triggered on demand against a real cluster, so the client is faked. Also covers the static-user
+ * check, since no test cluster has static internal users.
  */
 @RunWith(MockitoJUnitRunner.class)
 public class InternalUsersApiActionRenameTest {
@@ -214,6 +215,31 @@ public class InternalUsersApiActionRenameTest {
         assertThat(reloads, is(empty()));
         assertThat(sentResponse().status(), is(RestStatus.CONFLICT));
         verifyNoInteractions(auditLog);
+    }
+
+    @Test
+    public void staticUserCannotBeRenamedEvenByAdmin() throws Exception {
+        // The generic immutable-entity check lets REST admins past "static", so the rename must block it explicitly.
+        when(restApiAuthorizationEvaluator.isCurrentUserAdminFor(any())).thenReturn(true);
+        final var users = SecurityDynamicConfiguration.fromJson(
+            "{\"_meta\":{\"type\":\"internalusers\",\"config_version\":2},\"alice\":{\"hash\":\"" + HASH + "\",\"static\":true}}",
+            CType.INTERNALUSERS,
+            2,
+            10,
+            1
+        );
+        final var mappings = SecurityDynamicConfiguration.fromJson(
+            "{\"_meta\":{\"type\":\"rolesmapping\",\"config_version\":2}}",
+            CType.ROLESMAPPING,
+            2,
+            20,
+            1
+        );
+
+        final var result = action.planRename("alice", "alice2", users, mappings);
+
+        assertThat(result.isValid(), is(false));
+        assertThat(result.status(), is(RestStatus.FORBIDDEN));
     }
 
     /** alice -> alice2; the "readall" mapping lists alice and bob. Documents read at _seq_no 10 and 20. */
