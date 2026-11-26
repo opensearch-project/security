@@ -1078,9 +1078,14 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
                 isBadRequest()
             );
             assertThat(client.postJson(renamePath(source), renameBody("")), isBadRequest());
+            // The shared request validator rejects a value that is not a string.
             assertThat(
                 client.postJson(renamePath(source), (builder, params) -> builder.startObject().nullField("new_username").endObject()),
-                isBadRequest()
+                isBadRequest("/reason", "Wrong datatype")
+            );
+            assertThat(
+                client.postJson(renamePath(source), (builder, params) -> builder.startObject().field("new_username", 123).endObject()),
+                isBadRequest("/reason", "Wrong datatype")
             );
             assertThat(client.postJson(renamePath(source), renameBody("a:b")), isBadRequest("/message", ":"));
             assertThat(client.postJson(renamePath(source), renameBody(source)), isBadRequest());
