@@ -1145,6 +1145,25 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
     }
 
     @Test
+    public void renameMergesExistingReferenceToNewName() throws Exception {
+        // A role mapping can already list the new name, for example left over from a deleted user. The renamed user
+        // inherits that mapping, and the mapping ends up with a single entry for the new name.
+        final var oldName = "rename_src_" + randomAsciiAlphanumOfLength(8);
+        final var newName = "rename_dst_" + randomAsciiAlphanumOfLength(8);
+        final var otherUser = "rename_other_" + randomAsciiAlphanumOfLength(8);
+        final var role = "rename_role_" + randomAsciiAlphanumOfLength(8);
+        try (TestRestClient client = localCluster.getRestClient(ADMIN_USER)) {
+            assertThat(client.putJson(apiPath(oldName), internalUserWithPassword(randomAsciiAlphanumOfLength(12))), isCreated());
+            createRoleMappedToUsers(client, role, oldName, otherUser, newName);
+
+            final var response = client.postJson(renamePath(oldName), renameBody(newName));
+            assertThat(response, isOk());
+            assertThat(response.getTextFromJsonBody("/updated_roles_mapping/0"), is(role));
+            assertThat(mappedUsers(client, role), is(List.of(newName, otherUser)));
+        }
+    }
+
+    @Test
     public void parallelRenamesOfSameUserLeaveConsistentState() throws Exception {
         final var source = "rename_src_" + randomAsciiAlphanumOfLength(8);
         final var role = "rename_role_" + randomAsciiAlphanumOfLength(8);
