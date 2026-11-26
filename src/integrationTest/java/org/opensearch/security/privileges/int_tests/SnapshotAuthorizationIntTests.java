@@ -25,6 +25,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -283,6 +284,79 @@ public class SnapshotAuthorizationIntTests {
         } finally {
             delete("_snapshot/test_repository/single_index_snapshot");
             delete(index_awx1, system_index_plugin_not_existing);
+        }
+    }
+
+    /**
+     * Restoring the security index is not supported for regular users. This also applies if the request renames the
+     * restored indices.
+     */
+    @Test
+    public void restore_securityIndex_renamed() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestSnapshot(
+                "_snapshot/test_repository/security_index_snapshot",
+                json("indices", ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX, "include_global_state", false)
+            );
+
+            TestRestClient.HttpResponse httpResponse = restClient.post(
+                "_snapshot/test_repository/security_index_snapshot/_restore?wait_for_completion=true",
+                json(
+                    "indices",
+                    ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX,
+                    "include_global_state",
+                    false,
+                    "rename_pattern",
+                    "^\\.opendistro_security$",
+                    "rename_replacement",
+                    index_awx1.name()
+                )
+            );
+
+            if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete("_snapshot/test_repository/security_index_snapshot");
+            delete(index_awx1);
+        }
+    }
+
+    /**
+     * Same as {@link #restore_securityIndex_renamed()}, but the indices are selected by a pattern.
+     */
+    @Test
+    public void restore_securityIndex_byPattern_renamed() throws Exception {
+        try (TestRestClient restClient = cluster.getRestClient(user)) {
+            createInitialTestSnapshot(
+                "_snapshot/test_repository/security_index_snapshot",
+                json("indices", ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX, "include_global_state", false)
+            );
+
+            TestRestClient.HttpResponse httpResponse = restClient.post(
+                "_snapshot/test_repository/security_index_snapshot/_restore?wait_for_completion=true",
+                json(
+                    "indices",
+                    "*",
+                    "include_global_state",
+                    false,
+                    "rename_pattern",
+                    "^\\.opendistro_security$",
+                    "rename_replacement",
+                    index_awx1.name()
+                )
+            );
+
+            if (user == SUPER_UNLIMITED_USER) {
+                assertThat(httpResponse, isOk());
+            } else {
+                assertThat(httpResponse, isForbidden());
+            }
+        } finally {
+            delete("_snapshot/test_repository/security_index_snapshot");
+            delete(index_awx1);
         }
     }
 

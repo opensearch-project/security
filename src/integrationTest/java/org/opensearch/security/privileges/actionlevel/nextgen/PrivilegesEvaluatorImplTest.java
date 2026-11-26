@@ -31,7 +31,6 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -41,6 +40,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.privileges.CompiledRoles;
 import org.opensearch.security.privileges.PrivilegesEvaluationContext;
@@ -70,6 +70,10 @@ import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatch
 import static org.opensearch.security.privileges.PrivilegeEvaluatorResponseMatcher.reason;
 import static org.opensearch.security.util.MockIndexMetadataBuilder.indices;
 import static org.opensearch.security.util.MockPrivilegeEvaluationContextBuilder.ctx;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PrivilegesEvaluatorImplTest {
@@ -243,26 +247,91 @@ public class PrivilegesEvaluatorImplTest {
 
     @Test
     public void handleRestoreSnapshot_clusterManager_notDeferred() throws Exception {
-        DiscoveryNode localNode = new DiscoveryNode("local", new TransportAddress(TransportAddress.META_ADDRESS, 9300), Version.CURRENT);
-        DiscoveryNodes nodes = DiscoveryNodes.builder().add(localNode).localNodeId("local").clusterManagerNodeId("local").build();
-        PrivilegesEvaluatorImpl subject = createSubject(Settings.EMPTY, PrivilegesEvaluator.DynamicDependencies.EMPTY, nodes);
+        PrivilegesEvaluatorImpl subject = createClusterManagerSubject();
         RestoreSnapshotRequest request = new RestoreSnapshotRequest("repository", "snapshot");
 
-        // The snapshot is read from the repository only on the cluster manager, so the restored indices are given here
-        try (MockedStatic<SnapshotRestoreHelper> helper = Mockito.mockStatic(SnapshotRestoreHelper.class)) {
-            helper.when(() -> SnapshotRestoreHelper.resolveTargetIndices(request)).thenReturn(ResolvedIndices.of("index_a1"));
+        // The snapshot is read from the repository only on the cluster manager, so its indices are given here
+        try (MockedStatic<SnapshotRestoreHelper> helper = Mockito.mockStatic(SnapshotRestoreHelper.class, Mockito.CALLS_REAL_METHODS)) {
+            helper.when(() -> SnapshotRestoreHelper.resolveOriginalIndices(request)).thenReturn(List.of("index_a1"));
 
-            PrivilegesEvaluatorResponse response = subject.handleRestoreSnapshot(
-                ctx().actionPrivileges(subject.getActionPrivileges())
-                    .roles("restore_role")
-                    .action(RestoreSnapshotAction.NAME)
-                    .indexMetadata(indices("index_a1").build())
-                    .get(),
-                request
-            );
+            PrivilegesEvaluatorResponse response = subject.handleRestoreSnapshot(restoreContext(subject), request);
             assertThat(response, isAllowed());
             assertThat(response.isDeferredToClusterManager(), equalTo(false));
         }
+    }
+
+    @Test
+    public void handleRestoreSnapshot_securityIndex_forbidden() throws Exception {
+        AuditLog auditLog = mock(AuditLog.class);
+        PrivilegesEvaluatorImpl subject = createClusterManagerSubject(auditLog);
+        RestoreSnapshotRequest request = new RestoreSnapshotRequest("repository", "snapshot");
+
+        try (MockedStatic<SnapshotRestoreHelper> helper = Mockito.mockStatic(SnapshotRestoreHelper.class, Mockito.CALLS_REAL_METHODS)) {
+            helper.when(() -> SnapshotRestoreHelper.resolveOriginalIndices(request)).thenReturn(List.of(".opendistro_security"));
+
+            assertThat(subject.handleRestoreSnapshot(restoreContext(subject), request), isForbidden());
+            verify(auditLog).logSecurityIndexAttempt(request, RestoreSnapshotAction.NAME, null);
+        }
+    }
+
+    @Test
+    public void handleRestoreSnapshot_securityIndex_renamed_forbidden() throws Exception {
+        AuditLog auditLog = mock(AuditLog.class);
+        PrivilegesEvaluatorImpl subject = createClusterManagerSubject(auditLog);
+        RestoreSnapshotRequest request = new RestoreSnapshotRequest("repository", "snapshot").renamePattern("^\\.opendistro_security$")
+            .renameReplacement("index_a1");
+
+        try (MockedStatic<SnapshotRestoreHelper> helper = Mockito.mockStatic(SnapshotRestoreHelper.class, Mockito.CALLS_REAL_METHODS)) {
+            helper.when(() -> SnapshotRestoreHelper.resolveOriginalIndices(request)).thenReturn(List.of(".opendistro_security"));
+
+            assertThat(subject.handleRestoreSnapshot(restoreContext(subject), request), isForbidden());
+            verify(auditLog).logSecurityIndexAttempt(request, RestoreSnapshotAction.NAME, null);
+        }
+    }
+
+    @Test
+    public void handleRestoreSnapshot_regularIndex_renamed_allowed() throws Exception {
+        AuditLog auditLog = mock(AuditLog.class);
+        PrivilegesEvaluatorImpl subject = createClusterManagerSubject(auditLog);
+        RestoreSnapshotRequest request = new RestoreSnapshotRequest("repository", "snapshot").renamePattern("^index_b1$")
+            .renameReplacement("index_a1");
+
+        try (MockedStatic<SnapshotRestoreHelper> helper = Mockito.mockStatic(SnapshotRestoreHelper.class, Mockito.CALLS_REAL_METHODS)) {
+            helper.when(() -> SnapshotRestoreHelper.resolveOriginalIndices(request)).thenReturn(List.of("index_b1"));
+
+            assertThat(subject.handleRestoreSnapshot(restoreContext(subject), request), isAllowed());
+            verify(auditLog, never()).logSecurityIndexAttempt(any(), any(), any());
+        }
+    }
+
+    @Test
+    public void handleRestoreSnapshot_snapshotNotFound_forbidden() throws Exception {
+        PrivilegesEvaluatorImpl subject = createClusterManagerSubject();
+        RestoreSnapshotRequest request = new RestoreSnapshotRequest("repository", "snapshot");
+
+        try (MockedStatic<SnapshotRestoreHelper> helper = Mockito.mockStatic(SnapshotRestoreHelper.class, Mockito.CALLS_REAL_METHODS)) {
+            helper.when(() -> SnapshotRestoreHelper.resolveOriginalIndices(request)).thenReturn(null);
+
+            assertThat(subject.handleRestoreSnapshot(restoreContext(subject), request), isForbidden());
+        }
+    }
+
+    private static PrivilegesEvaluatorImpl createClusterManagerSubject() throws Exception {
+        return createClusterManagerSubject(new NullAuditLog());
+    }
+
+    private static PrivilegesEvaluatorImpl createClusterManagerSubject(AuditLog auditLog) throws Exception {
+        DiscoveryNode localNode = new DiscoveryNode("local", new TransportAddress(TransportAddress.META_ADDRESS, 9300), Version.CURRENT);
+        DiscoveryNodes nodes = DiscoveryNodes.builder().add(localNode).localNodeId("local").clusterManagerNodeId("local").build();
+        return createSubject(Settings.EMPTY, PrivilegesEvaluator.DynamicDependencies.EMPTY, nodes, auditLog);
+    }
+
+    private static PrivilegesEvaluationContext restoreContext(PrivilegesEvaluatorImpl subject) {
+        return ctx().actionPrivileges(subject.getActionPrivileges())
+            .roles("restore_role")
+            .action(RestoreSnapshotAction.NAME)
+            .indexMetadata(indices("index_a1").build())
+            .get();
     }
 
     @Test
@@ -304,6 +373,15 @@ public class PrivilegesEvaluatorImplTest {
         PrivilegesEvaluator.DynamicDependencies dynamicDependencies,
         DiscoveryNodes nodes
     ) throws Exception {
+        return createSubject(settings, dynamicDependencies, nodes, new NullAuditLog());
+    }
+
+    static PrivilegesEvaluatorImpl createSubject(
+        Settings settings,
+        PrivilegesEvaluator.DynamicDependencies dynamicDependencies,
+        DiscoveryNodes nodes,
+        AuditLog auditLog
+    ) throws Exception {
         Metadata metadata = indices("index_a1", "index_a2", "index_b1", "index_b2").build();
         ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).metadata(metadata).nodes(nodes).build();
         RoleMapper roleMapper = (user, caller) -> user.getRoles();
@@ -335,7 +413,7 @@ public class PrivilegesEvaluatorImplTest {
                 roleMapper,
                 null,
                 threadContext,
-                new NullAuditLog(),
+                auditLog,
                 settings,
                 indexNameExpressionResolver,
                 () -> "unavailable",

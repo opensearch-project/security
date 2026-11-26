@@ -37,7 +37,6 @@ import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequ
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.RestoreInProgress;
-import org.opensearch.cluster.metadata.OptionallyResolvedIndices;
 import org.opensearch.cluster.metadata.ResolvedIndices;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.IndexUtils;
@@ -65,20 +64,21 @@ public class SnapshotRestoreHelper {
         }
     }
 
-    public static OptionallyResolvedIndices resolveTargetIndices(RestoreSnapshotRequest request) {
-        List<String> indices = resolveOriginalIndices(request);
-        if (indices == null) {
-            return ResolvedIndices.unknown();
-        }
-
+    /**
+     * Applies the rename of the restore request to the given index names from the snapshot. Returns the names the
+     * indices will have in the cluster after the restore; without a rename, these are the given names.
+     *
+     * @param originalIndices the names of the restored indices in the snapshot, see {@link #resolveOriginalIndices}
+     */
+    public static ResolvedIndices resolveTargetIndices(RestoreSnapshotRequest request, List<String> originalIndices) {
         if (request.renameReplacement() != null && request.renamePattern() != null) {
             return ResolvedIndices.of(
-                indices.stream()
+                originalIndices.stream()
                     .map(index -> index.replaceAll(request.renamePattern(), request.renameReplacement()))
                     .collect(Collectors.toSet())
             );
         } else {
-            return ResolvedIndices.of(indices);
+            return ResolvedIndices.of(originalIndices);
         }
     }
 
