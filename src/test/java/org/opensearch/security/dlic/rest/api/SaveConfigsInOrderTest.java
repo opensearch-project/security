@@ -118,8 +118,6 @@ public class SaveConfigsInOrderTest {
         assertThat(failure.get(), instanceOf(VersionConflictEngineException.class));
     }
 
-    // ---------------------------------------------------------------------------------------------
-
     private List<AbstractApiAction.ConfigWrite> threeWrites() throws Exception {
         return List.of(write(CType.INTERNALUSERS, 1), write(CType.ROLESMAPPING, 2), write(CType.ROLES, 3));
     }

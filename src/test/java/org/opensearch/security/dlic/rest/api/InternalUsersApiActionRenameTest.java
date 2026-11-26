@@ -214,8 +214,6 @@ public class InternalUsersApiActionRenameTest {
         verifyNoInteractions(auditLog);
     }
 
-    // ---------------------------------------------------------------------------------------------
-
     /** alice -> alice2; the "readall" mapping lists alice and bob. Documents read at _seq_no 10 and 20. */
     private InternalUsersApiAction.RenamePlan plan() throws Exception {
         final var users = SecurityDynamicConfiguration.fromJson(

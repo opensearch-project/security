@@ -972,12 +972,7 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
         }
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Rename: POST /_plugins/_security/api/internalusers/{name}/_rename {"new_username": "..."}
-    // The route is only registered under the current /_plugins prefix, not the deprecated
-    // /_opendistro prefix, so these tests build paths with a fixed prefix instead of apiPath().
-    // ---------------------------------------------------------------------------------------------
-
+    // The rename route is only registered under /_plugins, so these tests use a fixed prefix instead of apiPath().
     private static String securityApi(final String... path) {
         final var fullPath = new StringJoiner("/").add(PLUGINS_PREFIX).add("api");
         for (final var p : path) {

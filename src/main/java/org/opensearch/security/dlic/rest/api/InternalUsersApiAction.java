@@ -294,7 +294,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
         });
     }
 
-    /** Step 1: validate and compute the new documents. Pure in-memory work; any error here means nothing was written. */
+    /** Validates the rename and builds the updated documents. Nothing is written here, so any error leaves the configuration unchanged. */
     ValidationResult<RenamePlan> planRename(
         final String oldUsername,
         final String newUsername,
@@ -406,7 +406,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
         };
         saveConfigsInOrderAsync(securityApiDependencies, client, writes, ActionListener.wrap(lastWrite -> {
             auditRename(plan, true, requestedBy);
-            final String[] types = writes.stream().map(write -> write.cType().toLCString()).toArray(String[]::new);
+            final String[] types = configTypeNames(writes).toArray(new String[0]);
             new ConfigUpdatingActionListener<>(types, client, restResponse).onResponse(lastWrite);
         }, failure -> {
             if (failure instanceof PartiallyAppliedConfigWriteException partial && partial.notRestored().isEmpty()) {

@@ -786,6 +786,15 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         writeNext(dependencies, client, writes, new ArrayList<>(), listener);
     }
 
+    /** The config type names of {@code writes}, in order. */
+    static List<String> configTypeNames(final List<ConfigWrite> writes) {
+        final List<String> names = new ArrayList<>();
+        for (final ConfigWrite write : writes) {
+            names.add(write.cType().toLCString());
+        }
+        return names;
+    }
+
     private static void writeNext(
         final SecurityApiDependencies dependencies,
         final Client client,
@@ -821,7 +830,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             // The index is restored; now reload the restored types so no node keeps the intermediate state in memory.
             // If that reload fails, some nodes may still serve the stale state, so surface it rather than hide it behind
             // the original failure.
-            final String[] restored = writes.subList(0, completed.size()).stream().map(w -> w.cType().toLCString()).toArray(String[]::new);
+            final String[] restored = configTypeNames(writes.subList(0, completed.size())).toArray(new String[0]);
             new ConfigUpdatingActionListener<>(
                 restored,
                 client,
@@ -849,7 +858,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             ActionListener.wrap(
                 ignored -> undoCompleted(dependencies, client, writes, completed, index - 1, failure, listener),
                 undoFailure -> {
-                    final var notRestored = writes.subList(0, index + 1).stream().map(w -> w.cType().toLCString()).toList();
+                    final var notRestored = configTypeNames(writes.subList(0, index + 1));
                     final var partial = new PartiallyAppliedConfigWriteException(
                         "Writes to " + notRestored + " could not be undone after a failed write: " + failure.getMessage(),
                         failure,
