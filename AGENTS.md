@@ -186,6 +186,9 @@ SpotBugs runs on main sources (not tests). Include-filter: `spotbugs-include.xml
 - **Resource sharing** changes should be validated against the sample plugin in `sample-resource-plugin/`.
 - Types registered on the same resource index must be added to or removed from `protected_types` together; partial protection is rejected.
 - **FIPS compliance** — the build supports FIPS-140-3 mode (`gradle.properties`). Avoid cryptographic primitives that are not FIPS-approved.
+- **PKCS#11 keys in FIPS mode** — TLS with a token key runs on SunJSSE, because BouncyCastle JSSE cannot sign with a key that stays
+  on the token. Without SunJCE, SunJSSE cannot derive TLS 1.2 keys, so `KeyStoreConfiguration.negotiableProtocols` narrows such
+  contexts to TLSv1.3. Read the protocols of a context from `SslConfiguration.allowedProtocols()`, not from `SslParameters`.
 - **FLS and masking readers** — keep field metadata consistent with exposed accessors. Masked string doc values retain field presence;
   excluded fields and masked vectors follow missing-field semantics. Recognize binary-backed k-NN fields by their existing
   `knn_field` metadata attribute, as well as Lucene vector metadata.

@@ -48,6 +48,8 @@ public class SslConfiguration {
 
     private final KeyStoreConfiguration keyStoreConfiguration;
 
+    private final List<String> allowedProtocols;
+
     public SslConfiguration(
         final SslParameters sslParameters,
         final TrustStoreConfiguration trustStoreConfiguration,
@@ -56,6 +58,14 @@ public class SslConfiguration {
         this.sslParameters = sslParameters;
         this.trustStoreConfiguration = trustStoreConfiguration;
         this.keyStoreConfiguration = keyStoreConfiguration;
+        this.allowedProtocols = keyStoreConfiguration.negotiableProtocols(sslParameters.allowedProtocols());
+    }
+
+    /**
+     * The protocols the settings allow, narrowed to those the key store can negotiate.
+     */
+    public List<String> allowedProtocols() {
+        return allowedProtocols;
     }
 
     public List<Path> dependentFiles() {
@@ -98,7 +108,7 @@ public class SslConfiguration {
                 final SslContextBuilder builder = SslContextBuilder.forServer(kmFactory)
                     .sslProvider(sslParameters.provider())
                     .clientAuth(sslParameters.clientAuth())
-                    .protocols(sslParameters.allowedProtocols().toArray(new String[0]))
+                    .protocols(allowedProtocols.toArray(new String[0]))
                     .ciphers(sslParameters.allowedCiphers(), SupportedCipherSuiteFilter.INSTANCE)
                     .sessionCacheSize(0)
                     .sessionTimeout(0)
@@ -130,7 +140,7 @@ public class SslConfiguration {
                 TrustManagerFactory tmFactory = trustStoreConfiguration.createTrustManagerFactory(validateCertificates, issuerDns);
                 final SslContextBuilder builder = SslContextBuilder.forClient()
                     .sslProvider(sslParameters.provider())
-                    .protocols(sslParameters.allowedProtocols())
+                    .protocols(allowedProtocols)
                     .ciphers(sslParameters.allowedCiphers())
                     .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
                     .sessionCacheSize(0)

@@ -123,9 +123,11 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.ssl.config.KeyStoreConfiguration.Pkcs11KeyStoreConfiguration;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.transport.client.transport.NoNodeAvailableException;
@@ -542,7 +544,14 @@ public class SecurityAdmin {
         }
 
         final SSLContext sslContext = sslContext(ts, tspass, tst, ks, kspass, kst, ksAlias, cacert, cert, key, keypass);
-        final OpenSearchClient client = getOpenSearchClient(sslContext, nhnv, enabledProtocols, enabledCiphers, hostname, port);
+        final OpenSearchClient client = getOpenSearchClient(
+            sslContext,
+            nhnv,
+            clientProtocols(enabledProtocols, kst),
+            enabledCiphers,
+            hostname,
+            port
+        );
         final String indexName = index;
 
         try {
@@ -1559,6 +1568,23 @@ public class SecurityAdmin {
                 return builder;
             });
         return new OpenSearchClient(clientBuilder.setMapper(new JacksonJsonpMapper()).build());
+    }
+
+    /**
+     * The TLS protocols the client offers: those given with {@code -ep}, or none for the JDK defaults. With a PKCS#11 key
+     * in FIPS mode the default is TLS 1.3, and protocols given with {@code -ep} must include it, see
+     * {@link Pkcs11KeyStoreConfiguration#protocolsInFipsMode(List)}.
+     */
+    static String[] clientProtocols(final String[] enabledProtocols, final String keyStoreType) {
+        final boolean pkcs11Key = Pkcs11KeyStoreConfiguration.TYPE.equalsIgnoreCase(keyStoreType);
+        if (!pkcs11Key || !FipsMode.isEnabled()) {
+            return enabledProtocols;
+        }
+        if (enabledProtocols.length == 0) {
+            return new String[] { Pkcs11KeyStoreConfiguration.TLS_1_3 };
+        }
+        Pkcs11KeyStoreConfiguration.validateProtocolsInFipsMode(List.of(enabledProtocols));
+        return enabledProtocols;
     }
 
     private static SSLContext sslContext(

@@ -189,12 +189,10 @@ public class SslSettingsManager {
                 final Tuple<TrustStoreConfiguration, KeyStoreConfiguration> auxTrustAndKeyStore = new SslCertificatesLoader(
                     auxCert.sslSettingPrefix()
                 ).loadConfiguration(environment);
-                configurationBuilder.put(
-                    auxCert,
-                    new SslConfiguration(auxSslParameters, auxTrustAndKeyStore.v1(), auxTrustAndKeyStore.v2())
-                );
+                final var auxSslConfiguration = new SslConfiguration(auxSslParameters, auxTrustAndKeyStore.v1(), auxTrustAndKeyStore.v2());
+                configurationBuilder.put(auxCert, auxSslConfiguration);
                 LOGGER.info("TLS {} Provider                    : {}", auxCert.id(), auxSslParameters.provider());
-                LOGGER.info("Enabled TLS protocols for {} layer : {}", auxCert.id(), auxSslParameters.allowedProtocols());
+                LOGGER.info("Enabled TLS protocols for {} layer : {}", auxCert.id(), auxSslConfiguration.allowedProtocols());
             }
         }
 
@@ -206,12 +204,10 @@ public class SslSettingsManager {
             validateSettings(CertType.HTTP, settings, SECURITY_SSL_HTTP_ENABLED_DEFAULT);
             final var httpSslParameters = SslParameters.loader(CertType.HTTP, settings).load();
             final var httpTrustAndKeyStore = new SslCertificatesLoader(CertType.HTTP.sslSettingPrefix()).loadConfiguration(environment);
-            configurationBuilder.put(
-                CertType.HTTP,
-                new SslConfiguration(httpSslParameters, httpTrustAndKeyStore.v1(), httpTrustAndKeyStore.v2())
-            );
+            final var httpSslConfiguration = new SslConfiguration(httpSslParameters, httpTrustAndKeyStore.v1(), httpTrustAndKeyStore.v2());
+            configurationBuilder.put(CertType.HTTP, httpSslConfiguration);
             LOGGER.info("TLS HTTP Provider                    : {}", httpSslParameters.provider());
-            LOGGER.info("Enabled TLS protocols for HTTP layer : {}", httpSslParameters.allowedProtocols());
+            LOGGER.info("Enabled TLS protocols for HTTP layer : {}", httpSslConfiguration.allowedProtocols());
         }
 
         /*
@@ -220,16 +216,19 @@ public class SslSettingsManager {
         final Settings transportSettings = settings.getByPrefix(CertType.TRANSPORT.sslSettingPrefix());
         final SslParameters transportSslParameters = SslParameters.loader(CertType.TRANSPORT, settings).load();
         if (transportSettings.getAsBoolean(ENABLED, SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT)) {
+            final SslConfiguration transportSslConfiguration;
             if (hasExtendedKeyUsageEnabled(transportSettings)) {
                 validateTransportSettings(transportSettings);
                 final var transportServerTrustAndKeyStore = new SslCertificatesLoader(
                     CertType.TRANSPORT.sslSettingPrefix(),
                     SSL_TRANSPORT_SERVER_EXTENDED_PREFIX
                 ).loadConfiguration(environment);
-                configurationBuilder.put(
-                    CertType.TRANSPORT,
-                    new SslConfiguration(transportSslParameters, transportServerTrustAndKeyStore.v1(), transportServerTrustAndKeyStore.v2())
+                transportSslConfiguration = new SslConfiguration(
+                    transportSslParameters,
+                    transportServerTrustAndKeyStore.v1(),
+                    transportServerTrustAndKeyStore.v2()
                 );
+                configurationBuilder.put(CertType.TRANSPORT, transportSslConfiguration);
                 final var transportClientTrustAndKeyStore = new SslCertificatesLoader(
                     CertType.TRANSPORT.sslSettingPrefix(),
                     SSL_TRANSPORT_CLIENT_EXTENDED_PREFIX
@@ -243,14 +242,16 @@ public class SslSettingsManager {
                 final var transportTrustAndKeyStore = new SslCertificatesLoader(CertType.TRANSPORT.sslSettingPrefix()).loadConfiguration(
                     environment
                 );
-                configurationBuilder.put(
-                    CertType.TRANSPORT,
-                    new SslConfiguration(transportSslParameters, transportTrustAndKeyStore.v1(), transportTrustAndKeyStore.v2())
+                transportSslConfiguration = new SslConfiguration(
+                    transportSslParameters,
+                    transportTrustAndKeyStore.v1(),
+                    transportTrustAndKeyStore.v2()
                 );
+                configurationBuilder.put(CertType.TRANSPORT, transportSslConfiguration);
             }
             LOGGER.info("TLS Transport Client Provider             : {}", transportSslParameters.provider());
             LOGGER.info("TLS Transport Server Provider             : {}", transportSslParameters.provider());
-            LOGGER.info("Enabled TLS protocols for Transport layer : {}", transportSslParameters.allowedProtocols());
+            LOGGER.info("Enabled TLS protocols for Transport layer : {}", transportSslConfiguration.allowedProtocols());
         }
         return configurationBuilder.build();
     }
