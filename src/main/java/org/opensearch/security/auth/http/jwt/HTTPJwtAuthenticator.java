@@ -38,6 +38,7 @@ import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.AuthenticationFailureReason;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.auth.http.jwt.keybyoidc.JwtVerifier;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
@@ -88,7 +89,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             "jwt_clock_skew_tolerance_seconds",
             AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS
         );
-        requiredClaims = AbstractHTTPJwtAuthenticator.readRequiredClaims(settings);
+        requiredClaims = JwtVerifier.readRequiredClaims(settings);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -166,8 +167,10 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
                 final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
-                // Verify that every required claims are present with non-null value
-                if (!hasRequiredClaims(claims)) {
+                // Verify that every required claim is present with non-null value
+                final List<String> missingClaims = JwtVerifier.findMissingClaims(requiredClaims, claims);
+                if (!missingClaims.isEmpty()) {
+                    log.debug("JWT is missing required claims: {}", missingClaims);
                     return null;
                 }
 
@@ -214,16 +217,6 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         }
         log.debug("Unable to authenticate JWT Token with any configured signing key");
         return null;
-    }
-
-    private boolean hasRequiredClaims(Claims claims) {
-        for (String requiredClaim : requiredClaims) {
-            if (claims.get(requiredClaim) == null) {
-                log.debug("JWT is missing required claim '{}'", requiredClaim);
-                return false;
-            }
-        }
-        return true;
     }
 
     private void assertValidAudienceClaim(Claims claims) throws BadJWTException {

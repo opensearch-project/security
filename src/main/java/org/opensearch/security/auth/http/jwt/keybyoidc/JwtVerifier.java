@@ -12,15 +12,19 @@
 package org.opensearch.security.auth.http.jwt.keybyoidc;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.opensearch.common.settings.Settings;
 
 import com.nimbusds.jose.Algorithm;
 import com.nimbusds.jose.JOSEException;
@@ -39,6 +43,8 @@ import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 public class JwtVerifier {
 
     private final static Logger log = LogManager.getLogger(JwtVerifier.class);
+
+    private static final String REQUIRED_CLAIMS = "required_claims";
 
     private final KeyProvider keyProvider;
     private final int clockSkewToleranceSeconds;
@@ -61,7 +67,7 @@ public class JwtVerifier {
         this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
         this.requiredIssuer = requiredIssuer;
         this.requiredAudience = requiredAudience;
-        this.requiredClaims = Set.copyOf(requiredClaims);
+        this.requiredClaims = requiredClaims;
     }
 
     public SignedJWT getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
@@ -157,13 +163,42 @@ public class JwtVerifier {
         }
     }
 
-    // The claims verifier above only checks that a required claim name appears; a claim set to null counts as missing
     private void validateRequiredClaims(JWTClaimsSet claims) throws BadJWTException {
+        final List<String> missingClaims = findMissingClaims(requiredClaims, claims.getClaims());
+        if (!missingClaims.isEmpty()) {
+            throw new BadJWTException("JWT is missing required claims: " + missingClaims);
+        }
+    }
+
+    /**
+     * Reads the claims every token must contain. The setting must be a list of claim names.
+     * An empty or missing setting requires no claims.
+     */
+    public static Set<String> readRequiredClaims(Settings settings) {
+        final List<String> claims = settings.getAsList(REQUIRED_CLAIMS);
+        if (!settings.getAsSettings(REQUIRED_CLAIMS).isEmpty() || claims.contains("")) {
+            final String message = "'" + REQUIRED_CLAIMS + "' must be a list of non-empty claim names, for example [exp, nbf]";
+            log.error(message);
+            throw new IllegalArgumentException(message);
+        }
+        return Set.copyOf(claims);
+    }
+
+    /**
+     * Finds the required claims that a token does not have. A claim whose value is {@code null} counts as missing.
+     *
+     * @param requiredClaims the names of the claims every token must contain
+     * @param tokenClaims the claims of a verified token
+     * @return the names of the missing claims, empty if the token has all required claims
+     */
+    public static List<String> findMissingClaims(Set<String> requiredClaims, Map<String, Object> tokenClaims) {
+        final List<String> missingClaims = new ArrayList<>();
         for (String requiredClaim : requiredClaims) {
-            if (claims.getClaim(requiredClaim) == null) {
-                throw new BadJWTException("JWT is missing required claim '" + requiredClaim + "'");
+            if (tokenClaims.get(requiredClaim) == null) {
+                missingClaims.add(requiredClaim);
             }
         }
+        return missingClaims;
     }
 
     private void validateRequiredAudienceAndIssuer(JWTClaimsSet claims) throws BadJWTException {

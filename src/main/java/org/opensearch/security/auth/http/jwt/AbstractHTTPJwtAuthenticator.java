@@ -68,7 +68,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String requiredIssuer;
 
     public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 30;
-    private static final String REQUIRED_CLAIMS = "required_claims";
     private final int clockSkewToleranceSeconds;
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
@@ -80,7 +79,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
         requiredAudience = settings.getAsList("required_audience");
         requiredIssuer = settings.get("required_issuer");
-        final Set<String> requiredClaims = readRequiredClaims(settings);
+        final Set<String> requiredClaims = JwtVerifier.readRequiredClaims(settings);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -97,20 +96,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             log.error("Error creating JWT authenticator. JWT authentication will not work", e);
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Reads the claims every token must contain. The setting must be a list of claim names.
-     * An empty or missing setting requires no claims.
-     */
-    static Set<String> readRequiredClaims(Settings settings) {
-        final List<String> claims = settings.getAsList(REQUIRED_CLAIMS);
-        if (!settings.getAsSettings(REQUIRED_CLAIMS).isEmpty() || claims.contains("")) {
-            final String message = "'" + REQUIRED_CLAIMS + "' must be a list of non-empty claim names, for example [exp, nbf]";
-            log.error(message);
-            throw new IllegalArgumentException(message);
-        }
-        return Set.copyOf(claims);
     }
 
     @Override
