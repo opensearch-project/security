@@ -1064,8 +1064,12 @@ public class InternalUsersRestApiIntegrationTest extends AbstractConfigEntityApi
             assertThat(client.putJson(apiPath(taken), internalUserWithPassword(randomAsciiAlphanumOfLength(12))), isCreated());
             createRoleMappedToUsers(client, role, source);
 
-            // Source must exist.
+            // Source must exist. A trailing slash still routes to the rename.
             assertThat(client.postJson(renamePath("rename_missing_" + randomAsciiAlphanumOfLength(8)), renameBody("x")), isNotFound());
+            assertThat(
+                client.postJson(renamePath("rename_missing_" + randomAsciiAlphanumOfLength(8)) + "/", renameBody("x")),
+                isNotFound()
+            );
             // Destination must be free.
             assertThat(client.postJson(renamePath(source), renameBody(taken)).getStatusCode(), is(HttpStatus.SC_CONFLICT));
             // Body must be exactly {"new_username": <valid name>}.

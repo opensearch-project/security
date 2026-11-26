@@ -242,7 +242,8 @@ public class InternalUsersApiAction extends AbstractApiAction {
     }
 
     boolean isRenameRequest(final RestRequest request) {
-        return request.path().endsWith("/_rename");
+        final String path = request.path();
+        return path.endsWith("/_rename") || path.endsWith("/_rename/");
     }
 
     void handleRenameRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {

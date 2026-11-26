@@ -820,7 +820,14 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         client.index(createIndexRequestForConfig(dependencies, write.cType(), write.updated()), ActionListener.wrap(response -> {
             completed.add(response);
             writeNext(dependencies, client, writes, completed, listener);
-        }, failure -> undoCompleted(dependencies, client, writes, completed, completed.size() - 1, failure, listener)));
+        }, failure -> {
+            if (completed.isEmpty()) {
+                // Nothing was written, so there is nothing to undo or reload.
+                listener.onFailure(failure);
+            } else {
+                undoCompleted(dependencies, client, writes, completed, completed.size() - 1, failure, listener);
+            }
+        }));
     }
 
     private static void undoCompleted(
@@ -833,10 +840,6 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         final ActionListener<IndexResponse> listener
     ) {
         if (index < 0) {
-            if (completed.isEmpty()) {
-                listener.onFailure(failure);
-                return;
-            }
             reloadAfterFailure(client, writes, completed, failure, listener);
             return;
         }
