@@ -34,6 +34,7 @@ import tools.jackson.databind.JsonNode;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
@@ -81,6 +82,9 @@ public class InternalUserRenameAuditTest {
             assertThat(diff.get("username").asText(), is("audit_dst"));
             assertThat(diff.get("updated_roles_mapping").get(0).asText(), is("audit_role"));
             assertThat(msg.getEffectiveUser(), is(ADMIN_USER.getName()));
+            // The event is written from an async callback; it must still carry the originating request's context.
+            assertThat(msg.getAsMap().get(AuditMessage.REMOTE_ADDRESS), notNullValue());
+            assertThat(String.valueOf(msg.getAsMap().get(AuditMessage.ORIGIN)), is("REST"));
             return true;
         });
     }
