@@ -775,7 +775,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
      * Writes several config documents one at a time, in order. The security index has no multi-document transaction, so
      * when a write fails the completed ones are restored in reverse order (and reloaded) before the failure is reported; if
      * a restore fails too, the listener gets a {@link PartiallyAppliedConfigWriteException}. On success the caller is
-     * responsible for reloading, e.g. with {@link ConfigUpdatingActionListener}.
+     * responsible for reloading, e.g. with {@link #reloadConfigs}. {@code writes} must not be empty.
      */
     public static void saveConfigsInOrderAsync(
         final SecurityApiDependencies dependencies,
@@ -783,7 +783,16 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
         final List<ConfigWrite> writes,
         final ActionListener<IndexResponse> listener
     ) {
+        if (writes.isEmpty()) {
+            listener.onFailure(new IllegalArgumentException("No config documents to write"));
+            return;
+        }
         writeNext(dependencies, client, writes, new ArrayList<>(), listener);
+    }
+
+    /** Reloads the given config types on every node, using the same reload and failure handling as {@link ConfigUpdatingActionListener}. */
+    public static void reloadConfigs(final Client client, final String[] cTypes, final ActionListener<Void> listener) {
+        new ConfigUpdatingActionListener<Void>(cTypes, client, listener).onResponse(null);
     }
 
     /** The config type names of {@code writes}, in order. */
@@ -831,22 +840,18 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             // If that reload fails, some nodes may still serve the stale state, so surface it rather than hide it behind
             // the original failure.
             final String[] restored = configTypeNames(writes.subList(0, completed.size())).toArray(new String[0]);
-            new ConfigUpdatingActionListener<>(
-                restored,
-                client,
-                ActionListener.<IndexResponse>wrap(ignored -> listener.onFailure(failure), reloadFailure -> {
-                    final var partial = new PartiallyAppliedConfigWriteException(
-                        "Writes to "
-                            + List.of(restored)
-                            + " were restored but reloading them across nodes failed: "
-                            + reloadFailure.getMessage(),
-                        failure,
-                        List.of()
-                    );
-                    partial.addSuppressed(reloadFailure);
-                    listener.onFailure(partial);
-                })
-            ).onResponse(completed.get(0));
+            reloadConfigs(client, restored, ActionListener.wrap(ignored -> listener.onFailure(failure), reloadFailure -> {
+                final var partial = new PartiallyAppliedConfigWriteException(
+                    "Writes to "
+                        + List.of(restored)
+                        + " were restored but reloading them across nodes failed: "
+                        + reloadFailure.getMessage(),
+                    failure,
+                    List.of()
+                );
+                partial.addSuppressed(reloadFailure);
+                listener.onFailure(partial);
+            }));
             return;
         }
         // Guarded by the _seq_no of our own write, so a change someone else made since then is never overwritten.

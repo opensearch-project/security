@@ -108,6 +108,14 @@ public class SaveConfigsInOrderTest {
     }
 
     @Test
+    public void emptyBatchFailsWithoutWriting() {
+        AbstractApiAction.saveConfigsInOrderAsync(dependencies, client, List.of(), listener());
+
+        assertThat(writes.isEmpty(), is(true));
+        assertThat(failure.get(), instanceOf(IllegalArgumentException.class));
+    }
+
+    @Test
     public void failedFirstWriteReportsFailureWithoutUndo() throws Exception {
         writeOutcomes(conflict());
 

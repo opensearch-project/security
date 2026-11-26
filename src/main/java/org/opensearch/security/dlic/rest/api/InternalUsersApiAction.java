@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
@@ -381,9 +380,9 @@ public class InternalUsersApiAction extends AbstractApiAction {
         if (!plan.updatedRoleMappings().isEmpty()) {
             writes.add(new ConfigWrite(CType.ROLESMAPPING, plan.originalRolesMapping(), plan.updatedRolesMapping()));
         }
-        final var restResponse = new OnSucessActionListener<IndexResponse>(channel) {
+        final var restResponse = new OnSucessActionListener<Void>(channel) {
             @Override
-            public void onResponse(final IndexResponse ignored) {
+            public void onResponse(final Void ignored) {
                 ok(
                     channel,
                     (builder, params) -> builder.startObject()
@@ -396,10 +395,9 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 );
             }
         };
-        saveConfigsInOrderAsync(securityApiDependencies, client, writes, ActionListener.wrap(lastWrite -> {
+        saveConfigsInOrderAsync(securityApiDependencies, client, writes, ActionListener.wrap(ignored -> {
             auditRename(plan, true, requestedBy);
-            final String[] types = configTypeNames(writes).toArray(new String[0]);
-            new ConfigUpdatingActionListener<>(types, client, restResponse).onResponse(lastWrite);
+            reloadConfigs(client, configTypeNames(writes).toArray(new String[0]), restResponse);
         }, failure -> {
             if (failure instanceof PartiallyAppliedConfigWriteException partial && partial.notRestored().isEmpty()) {
                 // Every write was undone, so nothing was renamed; only reloading the restored configuration failed.
