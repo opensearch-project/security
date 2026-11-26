@@ -93,14 +93,29 @@ public class SaveConfigsInOrderTest {
     @Test
     public void failedUndoReportsPartiallyAppliedAndStops() throws Exception {
         writeOutcomes(null, null, conflict(), conflict());
+        reloadsSucceed();
 
         AbstractApiAction.saveConfigsInOrderAsync(dependencies, client, threeWrites(), listener());
 
-        // The rolesmapping undo fails, so internalusers is not touched again and nothing is reloaded.
+        // The rolesmapping undo fails, so internalusers is not touched again. Every written type is reloaded so nodes
+        // serve what the index now holds.
         assertThat(writes, contains("internalusers:1", "rolesmapping:2", "roles:3", "rolesmapping:101"));
-        assertThat(reloads.isEmpty(), is(true));
+        assertThat(reloads, contains(List.of("internalusers", "rolesmapping")));
         assertThat(failure.get(), instanceOf(AbstractApiAction.PartiallyAppliedConfigWriteException.class));
         assertThat(failure.get().getMessage().contains("[internalusers, rolesmapping]"), is(true));
+        assertThat(
+            ((AbstractApiAction.PartiallyAppliedConfigWriteException) failure.get()).notRestored(),
+            contains("internalusers", "rolesmapping")
+        );
+    }
+
+    @Test
+    public void failedUndoStillReportsPartialWhenReloadFails() throws Exception {
+        writeOutcomes(null, null, conflict(), conflict());
+        reloadsFail();
+
+        AbstractApiAction.saveConfigsInOrderAsync(dependencies, client, threeWrites(), listener());
+
         assertThat(
             ((AbstractApiAction.PartiallyAppliedConfigWriteException) failure.get()).notRestored(),
             contains("internalusers", "rolesmapping")

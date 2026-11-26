@@ -773,9 +773,10 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
 
     /**
      * Writes several config documents one at a time, in order. The security index has no multi-document transaction, so
-     * when a write fails the completed ones are restored in reverse order (and reloaded) before the failure is reported; if
-     * a restore fails too, the listener gets a {@link PartiallyAppliedConfigWriteException}. On success the caller is
-     * responsible for reloading, e.g. with {@link #reloadConfigs}. {@code writes} must not be empty.
+     * when a write fails the completed ones are restored in reverse order before the failure is reported; if a restore fails
+     * too, the listener gets a {@link PartiallyAppliedConfigWriteException}. After a failure this method reloads every type it
+     * wrote. After success it reloads nothing: the caller must call {@link #reloadConfigs} for the written types, which lets it
+     * act on the completed write first, for example to audit it. {@code writes} must not be empty.
      */
     public static void saveConfigsInOrderAsync(
         final SecurityApiDependencies dependencies,
@@ -836,22 +837,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                 listener.onFailure(failure);
                 return;
             }
-            // The index is restored; now reload the restored types so no node keeps the intermediate state in memory.
-            // If that reload fails, some nodes may still serve the stale state, so surface it rather than hide it behind
-            // the original failure.
-            final String[] restored = configTypeNames(writes.subList(0, completed.size())).toArray(new String[0]);
-            reloadConfigs(client, restored, ActionListener.wrap(ignored -> listener.onFailure(failure), reloadFailure -> {
-                final var partial = new PartiallyAppliedConfigWriteException(
-                    "Writes to "
-                        + List.of(restored)
-                        + " were restored but reloading them across nodes failed: "
-                        + reloadFailure.getMessage(),
-                    failure,
-                    List.of()
-                );
-                partial.addSuppressed(reloadFailure);
-                listener.onFailure(partial);
-            }));
+            reloadAfterFailure(client, writes, completed, failure, listener);
             return;
         }
         // Guarded by the _seq_no of our own write, so a change someone else made since then is never overwritten.
@@ -870,10 +856,39 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
                         notRestored
                     );
                     partial.addSuppressed(undoFailure);
-                    listener.onFailure(partial);
+                    reloadAfterFailure(client, writes, completed, partial, listener);
                 }
             )
         );
+    }
+
+    /**
+     * Reloads every type the batch wrote, whether or not it was restored, so all nodes serve what the index now holds, then
+     * reports {@code failure}. A failed reload after a full restore is reported as a {@link PartiallyAppliedConfigWriteException}
+     * with nothing left unrestored, since some nodes may still serve the intermediate state.
+     */
+    private static void reloadAfterFailure(
+        final Client client,
+        final List<ConfigWrite> writes,
+        final List<IndexResponse> completed,
+        final Exception failure,
+        final ActionListener<IndexResponse> listener
+    ) {
+        final String[] written = configTypeNames(writes.subList(0, completed.size())).toArray(new String[0]);
+        reloadConfigs(client, written, ActionListener.wrap(ignored -> listener.onFailure(failure), reloadFailure -> {
+            if (failure instanceof PartiallyAppliedConfigWriteException) {
+                failure.addSuppressed(reloadFailure);
+                listener.onFailure(failure);
+                return;
+            }
+            final var partial = new PartiallyAppliedConfigWriteException(
+                "Writes to " + List.of(written) + " were restored but reloading them across nodes failed: " + reloadFailure.getMessage(),
+                failure,
+                List.of()
+            );
+            partial.addSuppressed(reloadFailure);
+            listener.onFailure(partial);
+        }));
     }
 
     /**

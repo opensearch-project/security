@@ -172,11 +172,13 @@ public class InternalUsersApiActionRenameTest {
     @Test
     public void failedUndoReportsPartialRename() throws Exception {
         writeOutcomes(null, conflict(), conflict());
+        reloadsSucceed();
 
         action.executeRename(channel, client, plan(), "admin");
 
         assertThat(writtenDocIds(), contains("internalusers", "rolesmapping", "internalusers"));
-        assertThat(reloads, is(empty()));
+        // internalusers stays renamed on disk, so it is reloaded and the cluster serves the state the response describes.
+        assertThat(reloads, contains(List.of("internalusers")));
         final var response = sentResponse();
         assertThat(response.status(), is(RestStatus.INTERNAL_SERVER_ERROR));
         assertThat(response.content().utf8ToString(), containsString("partially applied"));
