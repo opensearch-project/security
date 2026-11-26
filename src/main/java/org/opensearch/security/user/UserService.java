@@ -70,6 +70,7 @@ public class UserService {
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
     final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
     final static String REGEX_USERNAME_MESSAGE = "The account name must not be enclosed in '/', which is regular expression syntax.";
+    final static String INVALID_ENCODING_MESSAGE = "The account name contains an invalid '%' escape sequence.";
 
     final static String SERVICE_ACCOUNT_PASSWORD_MESSAGE =
         "A password cannot be provided for a service account. Failed to register service account: ";
@@ -125,18 +126,30 @@ public class UserService {
     }
 
     public static Optional<String> restrictedFromUsername(final String accountName) {
-        final String decodedName = URLDecoder.decode(accountName, StandardCharsets.UTF_8);
-        final var foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(decodedName::contains).collect(Collectors.toList());
+        // The rules apply to the name as stored, and also to its URL-decoded form so encoded characters are caught.
+        final String decodedName;
+        try {
+            decodedName = URLDecoder.decode(accountName, StandardCharsets.UTF_8);
+        } catch (final IllegalArgumentException e) {
+            return Optional.of(INVALID_ENCODING_MESSAGE);
+        }
+        final var foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
+            .filter(r -> accountName.contains(r) || decodedName.contains(r))
+            .collect(Collectors.toList());
         if (!foundRestrictedContents.isEmpty()) {
             return Optional.of(
                 RESTRICTED_CHARACTER_USE_MESSAGE + foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","))
             );
         }
-        // A role mapping "users" entry starting and ending with '/' is evaluated as a regular expression (see WildcardMatcher.from).
-        if (decodedName.startsWith("/") && decodedName.endsWith("/")) {
+        if (isRegexForm(accountName) || isRegexForm(decodedName)) {
             return Optional.of(REGEX_USERNAME_MESSAGE);
         }
         return Optional.empty();
+    }
+
+    // A role mapping "users" entry starting and ending with '/' is evaluated as a regular expression (see WildcardMatcher.from).
+    private static boolean isRegexForm(final String name) {
+        return name.startsWith("/") && name.endsWith("/");
     }
 
     /**

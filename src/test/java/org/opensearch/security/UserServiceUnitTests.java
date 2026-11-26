@@ -130,6 +130,10 @@ public class UserServiceUnitTests {
             UserService.restrictedFromUsername("aaaa%2A"),
             is(Optional.of("A restricted character(s) was detected in the account name. Please remove: '*'"))
         );
+        assertThat(
+            UserService.restrictedFromUsername("aa%zz"),
+            is(Optional.of("The account name contains an invalid '%' escape sequence."))
+        );
         // Names starting and ending with '/' are compiled as regular expressions in role mappings (WildcardMatcher.from), so they
         // never match a user by name. That includes "/" and "//"; a lone "/" would even fail to compile.
         for (final String regexForm : List.of("/aaaa/", "/a.b+/", "//", "/")) {
