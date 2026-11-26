@@ -841,7 +841,7 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
             return;
         }
         // Guarded by the _seq_no of our own write, so a change someone else made since then is never overwritten.
-        final var original = writes.get(index).original();
+        final var original = writes.get(index).original().deepClone();
         original.setSeqNo(completed.get(index).getSeqNo());
         original.setPrimaryTerm(completed.get(index).getPrimaryTerm());
         client.index(

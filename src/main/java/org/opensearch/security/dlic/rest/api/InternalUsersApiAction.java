@@ -399,6 +399,7 @@ public class InternalUsersApiAction extends AbstractApiAction {
             auditRename(plan, true, requestedBy);
             reloadConfigs(client, configTypeNames(writes).toArray(new String[0]), restResponse);
         }, failure -> {
+            // saveConfigsInOrderAsync has already reloaded the written types, so nodes serve what the index now holds.
             if (failure instanceof PartiallyAppliedConfigWriteException partial && partial.notRestored().isEmpty()) {
                 // Every write was undone, so nothing was renamed; only reloading the restored configuration failed.
                 LOGGER.error(
