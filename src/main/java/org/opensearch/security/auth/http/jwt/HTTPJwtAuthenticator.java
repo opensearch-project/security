@@ -38,6 +38,7 @@ import org.opensearch.secure_sm.AccessController;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.AuthenticationFailureReason;
 import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.auth.http.jwt.keybyoidc.JwtVerifier;
 import org.opensearch.security.filter.SecurityRequest;
 import org.opensearch.security.filter.SecurityResponse;
 import org.opensearch.security.user.AuthCredentials;
@@ -69,6 +70,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final List<String> requiredAudience;
     private final String requireIssuer;
     private final int clockSkewToleranceSeconds;
+    private final Set<String> requiredClaims;
     private final Set<String> forbiddenSubjects;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -87,6 +89,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             "jwt_clock_skew_tolerance_seconds",
             AbstractHTTPJwtAuthenticator.DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS
         );
+        requiredClaims = JwtVerifier.readRequiredClaims(settings);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -163,6 +166,13 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             try {
 
                 final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
+
+                // Verify that every required claim is present with non-null value
+                final List<String> missingClaims = JwtVerifier.findMissingClaims(requiredClaims, claims);
+                if (!missingClaims.isEmpty()) {
+                    log.debug("JWT is missing required claims: {}", missingClaims);
+                    return null;
+                }
 
                 if (!requiredAudience.isEmpty()) {
                     assertValidAudienceClaim(claims);

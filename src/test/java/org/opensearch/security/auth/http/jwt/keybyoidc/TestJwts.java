@@ -22,7 +22,9 @@ import com.google.common.collect.ImmutableSet;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.factories.DefaultJWSSignerFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -44,6 +46,8 @@ class TestJwts {
     static final List<String> NESTED_MCCOY_SUBJECT = List.of("attributes_sub", "sub");
 
     static final String TEST_ISSUER = "TestIssuer";
+    static final long NOW_EPOCH_SECONDS = System.currentTimeMillis() / 1000;
+    static final long ONE_HOUR_SECONDS = 3600;
 
     static final JWTClaimsSet MC_COY = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
@@ -57,6 +61,28 @@ class TestJwts {
         MCCOY_SUBJECT,
         ROLES_CLAIM,
         TEST_ROLES_STRING
+    );
+
+    static final JWTClaimsSet MC_COY_WITH_EXP_AND_NBF = create(
+        MCCOY_SUBJECT,
+        TEST_AUDIENCE,
+        TEST_ISSUER,
+        ROLES_CLAIM,
+        TEST_ROLES_STRING,
+        EXPIRATION_TIME,
+        NOW_EPOCH_SECONDS + ONE_HOUR_SECONDS,
+        NOT_BEFORE,
+        NOW_EPOCH_SECONDS
+    );
+
+    static final JWTClaimsSet MC_COY_WITH_EXP_ONLY = create(
+        MCCOY_SUBJECT,
+        TEST_AUDIENCE,
+        TEST_ISSUER,
+        ROLES_CLAIM,
+        TEST_ROLES_STRING,
+        EXPIRATION_TIME,
+        NOW_EPOCH_SECONDS + ONE_HOUR_SECONDS
     );
 
     static final JWTClaimsSet MC_COY_NESTED_ROLES = create(
@@ -92,6 +118,10 @@ class TestJwts {
     );
 
     static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
+    static final String MC_COY_WITH_EXP_AND_NBF_SIGNED_OCT_1 = createSigned(MC_COY_WITH_EXP_AND_NBF, TestJwk.OCT_1);
+    static final String MC_COY_WITH_EXP_AND_NBF_SIGNED_RSA_1 = createSigned(MC_COY_WITH_EXP_AND_NBF, TestJwk.RSA_1);
+    static final String MC_COY_WITH_EXP_ONLY_SIGNED_OCT_1 = createSigned(MC_COY_WITH_EXP_ONLY, TestJwk.OCT_1);
+    static final String MC_COY_WITH_EXP_ONLY_SIGNED_RSA_1 = createSigned(MC_COY_WITH_EXP_ONLY, TestJwk.RSA_1);
 
     static final String MC_COY_SIGNED_OCT_2 = createSigned(MC_COY_2, TestJwk.OCT_2);
     static final String MC_COY_SIGNED_NESTED_SUBJECT_OCT_1 = createSigned(MC_COY_NESTED_SUBJECT, TestJwk.OCT_1);
@@ -199,6 +229,18 @@ class TestJwts {
         }
 
         return signedJWT.serialize();
+    }
+
+    // JWTClaimsSet drops null-valued claims when serialized, so a raw JSON payload is needed to build such a token
+    static String createSignedWithRawPayload(String payloadJson, JWK jwk) {
+        JWSHeader jwsHeader = new JWSHeader.Builder(new JWSAlgorithm(jwk.getAlgorithm().getName())).keyID(jwk.getKeyID()).build();
+        JWSObject jwsObject = new JWSObject(jwsHeader, new Payload(payloadJson));
+        try {
+            jwsObject.sign(new DefaultJWSSignerFactory().createJWSSigner(jwk));
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+        return jwsObject.serialize();
     }
 
     static String createSignedWithoutKeyId(JWTClaimsSet jwtClaimsSet, JWK jwk) {

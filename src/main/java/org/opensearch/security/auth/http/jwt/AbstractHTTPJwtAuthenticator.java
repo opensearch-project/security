@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -78,6 +79,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
         requiredAudience = settings.getAsList("required_audience");
         requiredIssuer = settings.get("required_issuer");
+        final Set<String> requiredClaims = JwtVerifier.readRequiredClaims(settings);
 
         if (!jwtHeaderName.equals(AUTHORIZATION)) {
             deprecationLog.deprecate(
@@ -88,7 +90,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);
-            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience);
+            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience, requiredClaims);
 
         } catch (Exception e) {
             log.error("Error creating JWT authenticator. JWT authentication will not work", e);
