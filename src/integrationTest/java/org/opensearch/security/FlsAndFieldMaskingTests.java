@@ -71,7 +71,6 @@ import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
@@ -81,7 +80,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.security.Song.ARTIST_FIRST;
 import static org.opensearch.security.Song.ARTIST_STRING;
 import static org.opensearch.security.Song.ARTIST_TWINS;
@@ -99,7 +97,6 @@ import static org.opensearch.test.framework.client.SearchRequestFactory.averageA
 import static org.opensearch.test.framework.client.SearchRequestFactory.getSearchScrollRequest;
 import static org.opensearch.test.framework.client.SearchRequestFactory.queryByIdsRequest;
 import static org.opensearch.test.framework.client.SearchRequestFactory.searchRequestWithScroll;
-import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
 import static org.opensearch.test.framework.matcher.client.FieldCapsResponseMatchers.containsExactlyIndices;
 import static org.opensearch.test.framework.matcher.client.FieldCapsResponseMatchers.containsFieldWithNameAndType;
 import static org.opensearch.test.framework.matcher.client.FieldCapsResponseMatchers.numberOfFieldsIsEqualTo;
@@ -118,7 +115,6 @@ import static org.opensearch.test.framework.matcher.client.SearchResponseMatcher
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitDoesContainField;
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitDoesNotContainField;
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentWithId;
-import static org.opensearch.test.framework.matcher.client.TransportExceptionMatchers.statusException;
 
 @RunWith(Parameterized.class)
 public class FlsAndFieldMaskingTests {
@@ -161,7 +157,7 @@ public class FlsAndFieldMaskingTests {
         );
 
     /**
-    * User who is allowed to see all fields on indices {@link #FIRST_INDEX_NAME} and {@link #SECOND_INDEX_NAME}.
+    * User who is allowed to see all fields on indices {@link #FIRST_INDEX_NAME} and {@link #SECOND_INDEX_NAME} and their aliases.
     * <ul>
     *     <li>values of the artist and lyrics fields should be masked on index {@link #FIRST_INDEX_NAME}</li>
     *     <li>values of the lyrics field should be masked on index {@link #SECOND_INDEX_NAME}</li>
@@ -175,11 +171,11 @@ public class FlsAndFieldMaskingTests {
                     FIELD_ARTIST.concat("::/(?<=.{1})./::").concat(MASK_VALUE),
                     FIELD_LYRICS.concat("::/(?<=.{1})./::").concat(MASK_VALUE)
                 )
-                .on(FIRST_INDEX_NAME),
+                .on(FIRST_INDEX_NAME, FIRST_INDEX_ALIAS, FIRST_INDEX_ALIAS_FILTERED_BY_NEXT_SONG_TITLE),
             new TestSecurityConfig.Role("masked_lyrics_reader").clusterPermissions("cluster_composite_ops_ro")
                 .indexPermissions("read")
                 .maskedFields(FIELD_LYRICS.concat("::/(?<=.{1})./::").concat(MASK_VALUE))
-                .on(SECOND_INDEX_NAME)
+                .on(SECOND_INDEX_NAME, SECOND_INDEX_ALIAS)
         );
 
     /**
@@ -390,11 +386,9 @@ public class FlsAndFieldMaskingTests {
     }
 
     final LocalCluster cluster;
-    final ClusterConfig clusterConfig;
 
     public FlsAndFieldMaskingTests(ClusterConfig clusterConfig) {
         this.cluster = clusterInstances.get(clusterConfig);
-        this.clusterConfig = clusterConfig;
     }
 
     @Before
@@ -692,26 +686,21 @@ public class FlsAndFieldMaskingTests {
             Song song = FIRST_INDEX_SONGS_BY_ID.get(songId);
 
             SearchRequest searchRequest = queryByIdsRequest(FIRST_INDEX_ALIAS, songId);
-            if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION) {
-                SearchRequest aliasSearchRequest = searchRequest;
-                assertThatThrownBy(() -> client.search(aliasSearchRequest, Map.class), statusException(FORBIDDEN));
-            } else {
-                SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
-                assertThat(searchResponse, isSuccessfulSearchResponse());
-                assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
-                assertThat(searchResponse, searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, songId));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, song.getTitle()));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(song.getLyrics())));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(song.getArtist())));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_STARS, song.getStars()));
-            }
+            assertThat(searchResponse, isSuccessfulSearchResponse());
+            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
+            assertThat(searchResponse, searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, songId));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, song.getTitle()));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(song.getLyrics())));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(song.getArtist())));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_STARS, song.getStars()));
 
             songId = SECOND_INDEX_ID_SONG_4;
             song = SECOND_INDEX_SONGS_BY_ID.get(songId);
 
             searchRequest = queryByIdsRequest("*".concat(SECOND_INDEX_ALIAS), songId);
-            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
+            searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
@@ -731,19 +720,15 @@ public class FlsAndFieldMaskingTests {
             Song song = FIRST_INDEX_SONGS_BY_ID.get(songId);
 
             SearchRequest searchRequest = SearchRequest.of(r -> r.index(FIRST_INDEX_ALIAS_FILTERED_BY_NEXT_SONG_TITLE));
-            if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION) {
-                assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
-            } else {
-                SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
-                assertThat(searchResponse, isSuccessfulSearchResponse());
-                assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
-                assertThat(searchResponse, searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, songId));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, song.getTitle()));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(song.getLyrics())));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(song.getArtist())));
-                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_STARS, song.getStars()));
-            }
+            assertThat(searchResponse, isSuccessfulSearchResponse());
+            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
+            assertThat(searchResponse, searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, songId));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, song.getTitle()));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(song.getLyrics())));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(song.getArtist())));
+            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_STARS, song.getStars()));
         }
     }
 
@@ -878,12 +863,6 @@ public class FlsAndFieldMaskingTests {
                 );
                 MgetResponse<?> response = client.mget(request, Map.class);
 
-                if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION && indices.get(0).equals(FIRST_INDEX_ALIAS)) {
-                    assertThat(response, not(isSuccessfulMultiGetResponse()));
-                    assertThat(response.docs().get(0).isFailure(), equalTo(true));
-                    assertThat(response.docs().get(1).isFailure(), equalTo(true));
-                    continue;
-                }
                 assertThat(response, isSuccessfulMultiGetResponse());
                 assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
 
@@ -956,12 +935,6 @@ public class FlsAndFieldMaskingTests {
 
                 MsearchResponse<?> response = client.msearch(request, Map.class);
 
-                if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION && indices.get(0).equals(FIRST_INDEX_ALIAS)) {
-                    assertThat(response, not(isSuccessfulMultiSearchResponse()));
-                    assertThat(response.responses().get(0).isFailure(), equalTo(true));
-                    assertThat(response.responses().get(1).isFailure(), equalTo(true));
-                    continue;
-                }
                 assertThat(response, isSuccessfulMultiSearchResponse());
                 assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
 
