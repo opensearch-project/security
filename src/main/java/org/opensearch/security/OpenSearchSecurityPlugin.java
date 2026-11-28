@@ -2093,6 +2093,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
                 Property.Filtered
             )
         );
+        // TODO: default to true in 4.0
+        settings.add(
+            Setting.boolSetting(
+                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX_TEMPLATE_ENABLED,
+                false,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
 
         // Internal OpenSearch DataStream
         settings.add(
