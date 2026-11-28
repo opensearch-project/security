@@ -14,6 +14,11 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
@@ -21,7 +26,18 @@ import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.Test;
 
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.ActionFilter;
+import org.opensearch.cluster.block.ClusterBlockException;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.plugins.ActionPlugin;
+import org.opensearch.plugins.Plugin;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
@@ -42,6 +58,8 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUN
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_DELAY_INITIALIZATION_SECONDS;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class SecurityConfigurationBootstrapTests {
 
@@ -49,7 +67,13 @@ public class SecurityConfigurationBootstrapTests {
     private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
 
     private static LocalCluster createCluster(final Map<String, Object> nodeSettings) {
-        var cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+        return createCluster(nodeSettings, false);
+    }
+
+    private static LocalCluster createCluster(final Map<String, Object> nodeSettings, boolean injectWriteFailure) {
+        var cluster = new LocalCluster.Builder().clusterManager(
+            injectWriteFailure ? ClusterManager.SINGLENODE : ClusterManager.THREE_CLUSTER_MANAGERS
+        )
             .loadConfigurationIntoIndex(false)
             .defaultConfigurationInitDirectory(configurationFolder.toString())
             .nodeSettings(
@@ -57,11 +81,59 @@ public class SecurityConfigurationBootstrapTests {
                     .put(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()))
                     .putAll(nodeSettings)
                     .build()
-            )
-            .build();
+            );
+        if (injectWriteFailure) {
+            cluster.plugin(RejectSecurityWritesPlugin.class);
+        }
 
-        cluster.before(); // normally invoked by JUnit rules when run as a class rule - this starts the cluster
-        return cluster;
+        var result = cluster.build();
+        result.before(); // normally invoked by JUnit rules when run as a class rule - this starts the cluster
+        return result;
+    }
+
+    public static class RejectSecurityWritesPlugin extends Plugin implements ActionPlugin {
+        private static final AtomicBoolean rejectWrites = new AtomicBoolean();
+        private static volatile CountDownLatch rejectedWrite = new CountDownLatch(1);
+        private static volatile String rejectedDocument;
+        private static volatile boolean rejectIndexCreation;
+
+        @Override
+        public List<ActionFilter> getActionFilters() {
+            return List.of(new ActionFilter.Simple() {
+                @Override
+                public int order() {
+                    return Integer.MIN_VALUE;
+                }
+
+                @Override
+                protected boolean apply(String action, ActionRequest request, ActionListener<?> listener) {
+                    boolean securityWrite = request instanceof CreateIndexRequest createRequest
+                        && rejectIndexCreation
+                        && OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX.equals(createRequest.index());
+                    securityWrite |= request instanceof IndexRequest indexRequest
+                        && OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX.equals(indexRequest.index())
+                        && Objects.equals(indexRequest.id(), rejectedDocument);
+                    if (request instanceof BulkRequest bulkRequest) {
+                        securityWrite = bulkRequest.requests()
+                            .stream()
+                            .anyMatch(
+                                item -> OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX.equals(item.index())
+                                    && Objects.equals(item.id(), rejectedDocument)
+                            );
+                    }
+                    if (rejectWrites.get() && securityWrite) {
+                        rejectedWrite.countDown();
+                        listener.onFailure(
+                            new ClusterBlockException(
+                                Map.of(OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX, Set.of(IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
+                            )
+                        );
+                        return false;
+                    }
+                    return true;
+                }
+            });
+        }
     }
 
     @AfterClass
@@ -95,6 +167,71 @@ public class SecurityConfigurationBootstrapTests {
                     .alias("Waiting for rolemapping 'readall' availability.")
                     .until(() -> client.get("_plugins/_security/api/rolesmapping/readall").getStatusCode(), equalTo(200));
             }
+        }
+    }
+
+    @Test
+    public void shouldRecoverAfterTransientSecurityIndexWriteFailure() throws Exception {
+        assertRecoversAfterWriteFailure(CType.CONFIG.toLCString(), false);
+    }
+
+    @Test
+    public void shouldRecoverAfterPartialConfigurationUpload() throws Exception {
+        assertRecoversAfterWriteFailure(CType.ROLES.toLCString(), true);
+    }
+
+    @Test
+    public void shouldRecoverAfterSecurityIndexCreationIsBlocked() throws Exception {
+        RejectSecurityWritesPlugin.rejectedWrite = new CountDownLatch(1);
+        RejectSecurityWritesPlugin.rejectedDocument = null;
+        RejectSecurityWritesPlugin.rejectIndexCreation = true;
+        RejectSecurityWritesPlugin.rejectWrites.set(true);
+        try (final LocalCluster cluster = createCluster(Map.of(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true), true)) {
+            assertTrue("Expected Security index creation to fail", RejectSecurityWritesPlugin.rejectedWrite.await(30, TimeUnit.SECONDS));
+            try (final TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+                client.getAuthInfo().assertStatusCode(SC_SERVICE_UNAVAILABLE);
+                RejectSecurityWritesPlugin.rejectWrites.set(false);
+                Awaitility.await()
+                    .alias("Security initializes after the index creation block clears")
+                    .atMost(Duration.ofSeconds(30))
+                    .until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+            }
+        } finally {
+            RejectSecurityWritesPlugin.rejectWrites.set(false);
+            RejectSecurityWritesPlugin.rejectIndexCreation = false;
+        }
+    }
+
+    private void assertRecoversAfterWriteFailure(String rejectedDocument, boolean expectPartialUpload) throws Exception {
+        RejectSecurityWritesPlugin.rejectedWrite = new CountDownLatch(1);
+        RejectSecurityWritesPlugin.rejectedDocument = rejectedDocument;
+        RejectSecurityWritesPlugin.rejectWrites.set(true);
+        try (final LocalCluster cluster = createCluster(Map.of(SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true), true)) {
+            assertTrue("Expected a Security index write to fail", RejectSecurityWritesPlugin.rejectedWrite.await(30, TimeUnit.SECONDS));
+            try (final TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+                client.getAuthInfo().assertStatusCode(SC_SERVICE_UNAVAILABLE);
+                final var internalClient = new ContextHeaderDecoratorClient(
+                    cluster.getInternalNodeClient(),
+                    Map.of(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true")
+                );
+                final var configBeforeRetry = internalClient.get(
+                    new GetRequest(OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX, CType.CONFIG.toLCString())
+                ).actionGet();
+                assertEquals(expectPartialUpload, configBeforeRetry.isExists());
+                RejectSecurityWritesPlugin.rejectWrites.set(false);
+                Awaitility.await()
+                    .alias("Security initializes after the write block clears")
+                    .atMost(Duration.ofSeconds(30))
+                    .until(() -> client.getAuthInfo().getStatusCode(), equalTo(200));
+                if (expectPartialUpload) {
+                    final var configAfterRetry = internalClient.get(
+                        new GetRequest(OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX, CType.CONFIG.toLCString())
+                    ).actionGet();
+                    assertEquals(configBeforeRetry.getSeqNo(), configAfterRetry.getSeqNo());
+                }
+            }
+        } finally {
+            RejectSecurityWritesPlugin.rejectWrites.set(false);
         }
     }
 
