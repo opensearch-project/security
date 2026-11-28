@@ -54,6 +54,7 @@ import org.opensearch.action.admin.indices.create.AutoCreateAction;
 import org.opensearch.action.admin.indices.create.CreateIndexAction;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.delete.DeleteIndexAction;
+import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.put.AutoPutMappingAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
@@ -123,7 +124,8 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
             "indices:admin/resolve/index",
             "indices:monitor/settings/get",
             "indices:monitor/stats",
-            "indices:admin/aliases/get"
+            "indices:admin/aliases/get",
+            "indices:admin/get"
         )
     );
 
@@ -523,6 +525,9 @@ public class PrivilegesEvaluatorImpl implements PrivilegesEvaluator {
                     ((ClusterSearchShardsRequest) request).indicesOptions(ALLOW_EMPTY);
                 } else if (request instanceof GetFieldMappingsRequest) {
                     ((GetFieldMappingsRequest) request).indicesOptions(ALLOW_EMPTY);
+                } else if (request instanceof GetIndexRequest) {
+                    // Without this, an empty index list resolves to all indices
+                    ((GetIndexRequest) request).indicesOptions(ALLOW_EMPTY);
                 }
 
                 return PrivilegesEvaluatorResponse.ok();
