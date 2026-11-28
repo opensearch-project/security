@@ -27,6 +27,7 @@
 package org.opensearch.security.auditlog;
 
 import java.io.Closeable;
+import java.util.List;
 import java.util.Map;
 
 import org.opensearch.core.index.shard.ShardId;
@@ -120,6 +121,19 @@ public interface AuditLog extends Closeable {
     void logApiTokenCreated(String tokenName, String createdBy);
 
     void logApiTokenRevoked(String tokenId, String revokedBy);
+
+    // Internal user events
+    /**
+     * Logs an internal-user rename as a COMPLIANCE_INTERNAL_CONFIG_WRITE event. When {@code completed} is false the
+     * rename was only partially applied and {@code rolesMapping} lists the mappings that still reference the old name.
+     */
+    void logInternalUserRenamed(
+        String previousUsername,
+        String newUsername,
+        List<String> rolesMapping,
+        boolean completed,
+        String effectiveUser
+    );
 
     // Resource Sharing events
     void logResourceAccessGranted(

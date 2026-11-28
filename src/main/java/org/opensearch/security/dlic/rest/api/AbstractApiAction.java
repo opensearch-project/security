@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchException;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -743,6 +744,154 @@ public abstract class AbstractApiAction extends BaseRestHandler implements RestR
     ) {
         final var ir = createIndexRequestForConfig(dependencies, cType, configuration);
         client.index(ir, new ConfigUpdatingActionListener<>(new String[] { cType.toLCString() }, client, actionListener));
+    }
+
+    /**
+     * One config document in a {@link #saveConfigsInOrderAsync} batch. {@code original} is written back if a later write in
+     * the batch fails.
+     */
+    public record ConfigWrite(CType<?> cType, SecurityDynamicConfiguration<?> original, SecurityDynamicConfiguration<?> updated) {
+    }
+
+    /**
+     * A {@link #saveConfigsInOrderAsync} batch failed and the security index or the nodes' loaded configuration may not match
+     * the state before the batch. {@link #notRestored()} lists the config types still holding the batch's update; it is empty
+     * when every write was restored but reloading the restored configuration failed.
+     */
+    public static class PartiallyAppliedConfigWriteException extends OpenSearchException {
+        private final List<String> notRestored;
+
+        PartiallyAppliedConfigWriteException(final String message, final Throwable cause, final List<String> notRestored) {
+            super(message, cause);
+            this.notRestored = List.copyOf(notRestored);
+        }
+
+        public List<String> notRestored() {
+            return notRestored;
+        }
+    }
+
+    /**
+     * Writes several config documents one at a time, in order. The security index has no multi-document transaction, so
+     * when a write fails the completed ones are restored in reverse order before the failure is reported; if a restore fails
+     * too, the listener gets a {@link PartiallyAppliedConfigWriteException}. After a failure this method reloads every type it
+     * wrote. After success it reloads nothing: the caller must call {@link #reloadConfigs} for the written types, which lets it
+     * act on the completed write first, for example to audit it. {@code writes} must not be empty.
+     */
+    public static void saveConfigsInOrderAsync(
+        final SecurityApiDependencies dependencies,
+        final Client client,
+        final List<ConfigWrite> writes,
+        final ActionListener<IndexResponse> listener
+    ) {
+        if (writes.isEmpty()) {
+            listener.onFailure(new IllegalArgumentException("No config documents to write"));
+            return;
+        }
+        writeNext(dependencies, client, writes, new ArrayList<>(), listener);
+    }
+
+    /** Reloads the given config types on every node, using the same reload and failure handling as {@link ConfigUpdatingActionListener}. */
+    public static void reloadConfigs(final Client client, final String[] cTypes, final ActionListener<Void> listener) {
+        new ConfigUpdatingActionListener<Void>(cTypes, client, listener).onResponse(null);
+    }
+
+    /** The config type names of {@code writes}, in order. */
+    static List<String> configTypeNames(final List<ConfigWrite> writes) {
+        final List<String> names = new ArrayList<>();
+        for (final ConfigWrite write : writes) {
+            names.add(write.cType().toLCString());
+        }
+        return names;
+    }
+
+    private static void writeNext(
+        final SecurityApiDependencies dependencies,
+        final Client client,
+        final List<ConfigWrite> writes,
+        final List<IndexResponse> completed,
+        final ActionListener<IndexResponse> listener
+    ) {
+        if (completed.size() == writes.size()) {
+            listener.onResponse(completed.get(completed.size() - 1));
+            return;
+        }
+        final var write = writes.get(completed.size());
+        client.index(createIndexRequestForConfig(dependencies, write.cType(), write.updated()), ActionListener.wrap(response -> {
+            completed.add(response);
+            writeNext(dependencies, client, writes, completed, listener);
+        }, failure -> {
+            if (completed.isEmpty()) {
+                // Nothing was written, so there is nothing to undo or reload.
+                listener.onFailure(failure);
+            } else {
+                undoCompleted(dependencies, client, writes, completed, completed.size() - 1, failure, listener);
+            }
+        }));
+    }
+
+    private static void undoCompleted(
+        final SecurityApiDependencies dependencies,
+        final Client client,
+        final List<ConfigWrite> writes,
+        final List<IndexResponse> completed,
+        final int index,
+        final Exception failure,
+        final ActionListener<IndexResponse> listener
+    ) {
+        if (index < 0) {
+            reloadAfterFailure(client, writes, completed, failure, listener);
+            return;
+        }
+        // Guarded by the _seq_no of our own write, so a change someone else made since then is never overwritten.
+        final var original = writes.get(index).original().deepClone();
+        original.setSeqNo(completed.get(index).getSeqNo());
+        original.setPrimaryTerm(completed.get(index).getPrimaryTerm());
+        client.index(
+            createIndexRequestForConfig(dependencies, writes.get(index).cType(), original),
+            ActionListener.wrap(
+                ignored -> undoCompleted(dependencies, client, writes, completed, index - 1, failure, listener),
+                undoFailure -> {
+                    final var notRestored = configTypeNames(writes.subList(0, index + 1));
+                    final var partial = new PartiallyAppliedConfigWriteException(
+                        "Writes to " + notRestored + " could not be undone after a failed write: " + failure.getMessage(),
+                        failure,
+                        notRestored
+                    );
+                    partial.addSuppressed(undoFailure);
+                    reloadAfterFailure(client, writes, completed, partial, listener);
+                }
+            )
+        );
+    }
+
+    /**
+     * Reloads every type the batch wrote, whether or not it was restored, so all nodes serve what the index now holds, then
+     * reports {@code failure}. A failed reload after a full restore is reported as a {@link PartiallyAppliedConfigWriteException}
+     * with nothing left unrestored, since some nodes may still serve the intermediate state.
+     */
+    private static void reloadAfterFailure(
+        final Client client,
+        final List<ConfigWrite> writes,
+        final List<IndexResponse> completed,
+        final Exception failure,
+        final ActionListener<IndexResponse> listener
+    ) {
+        final String[] written = configTypeNames(writes.subList(0, completed.size())).toArray(new String[0]);
+        reloadConfigs(client, written, ActionListener.wrap(ignored -> listener.onFailure(failure), reloadFailure -> {
+            if (failure instanceof PartiallyAppliedConfigWriteException) {
+                failure.addSuppressed(reloadFailure);
+                listener.onFailure(failure);
+                return;
+            }
+            final var partial = new PartiallyAppliedConfigWriteException(
+                "Writes to " + List.of(written) + " were restored but reloading them across nodes failed: " + reloadFailure.getMessage(),
+                failure,
+                List.of()
+            );
+            partial.addSuppressed(reloadFailure);
+            listener.onFailure(partial);
+        }));
     }
 
     /**
