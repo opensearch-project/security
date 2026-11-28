@@ -10,6 +10,8 @@
 package org.opensearch.security;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -20,10 +22,13 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.hamcrest.Matcher;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -50,6 +55,7 @@ import org.opensearch.index.mapper.size.SizeFieldMapper;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugin.mapper.MapperSizePlugin;
+import org.opensearch.security.privileges.int_tests.ClusterConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -65,6 +71,7 @@ import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
@@ -74,6 +81,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.security.Song.ARTIST_FIRST;
 import static org.opensearch.security.Song.ARTIST_STRING;
 import static org.opensearch.security.Song.ARTIST_TWINS;
@@ -91,6 +99,7 @@ import static org.opensearch.test.framework.client.SearchRequestFactory.averageA
 import static org.opensearch.test.framework.client.SearchRequestFactory.getSearchScrollRequest;
 import static org.opensearch.test.framework.client.SearchRequestFactory.queryByIdsRequest;
 import static org.opensearch.test.framework.client.SearchRequestFactory.searchRequestWithScroll;
+import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
 import static org.opensearch.test.framework.matcher.client.FieldCapsResponseMatchers.containsExactlyIndices;
 import static org.opensearch.test.framework.matcher.client.FieldCapsResponseMatchers.containsFieldWithNameAndType;
 import static org.opensearch.test.framework.matcher.client.FieldCapsResponseMatchers.numberOfFieldsIsEqualTo;
@@ -109,7 +118,9 @@ import static org.opensearch.test.framework.matcher.client.SearchResponseMatcher
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitDoesContainField;
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitDoesNotContainField;
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.client.TransportExceptionMatchers.statusException;
 
+@RunWith(Parameterized.class)
 public class FlsAndFieldMaskingTests {
 
     static final String FIRST_INDEX_ID_SONG_1 = "INDEX_1_S1";
@@ -299,31 +310,32 @@ public class FlsAndFieldMaskingTests {
     );
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-        .anonymousAuth(false)
-        .nodeSettings(
-            Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
-        )
-        .plugin(MapperSizePlugin.class)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(
-            ADMIN_USER,
-            ALL_INDICES_MASKED_TITLE_ARTIST_READER,
-            MASKED_ARTIST_LYRICS_READER,
-            ALL_INDICES_STRING_ARTIST_READER,
-            ALL_INDICES_STARS_LESS_THAN_ZERO_READER,
-            TWINS_FIRST_ARTIST_READER,
-            USER_ONLY_FIELD_TITLE_FLS,
-            USER_NO_FIELD_TITLE_WILDCARD_INDEX_FLS,
-            USER_NO_FIELD_TITLE_FLS,
-            USER_ONLY_FIELD_TITLE_MASKED,
-            USER_BOTH_ONLY_AND_NO_FIELD_TITLE_FLS,
-            USER_BOTH_ONLY_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
-            USER_BOTH_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
-            USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
-            USER_FLS_INCLUDE_STARS
-        )
-        .build();
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        () -> new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+            .anonymousAuth(false)
+            .nodeSettings(
+                Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
+            )
+            .plugin(MapperSizePlugin.class)
+            .authc(AUTHC_HTTPBASIC_INTERNAL)
+            .users(
+                ADMIN_USER,
+                ALL_INDICES_MASKED_TITLE_ARTIST_READER,
+                MASKED_ARTIST_LYRICS_READER,
+                ALL_INDICES_STRING_ARTIST_READER,
+                ALL_INDICES_STARS_LESS_THAN_ZERO_READER,
+                TWINS_FIRST_ARTIST_READER,
+                USER_ONLY_FIELD_TITLE_FLS,
+                USER_NO_FIELD_TITLE_WILDCARD_INDEX_FLS,
+                USER_NO_FIELD_TITLE_FLS,
+                USER_ONLY_FIELD_TITLE_MASKED,
+                USER_BOTH_ONLY_AND_NO_FIELD_TITLE_FLS,
+                USER_BOTH_ONLY_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
+                USER_BOTH_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
+                USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
+                USER_FLS_INCLUDE_STARS
+            )
+    );
 
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper");
@@ -368,8 +380,25 @@ public class FlsAndFieldMaskingTests {
         }
     };
 
-    @BeforeClass
-    public static void createTestData() {
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> params() {
+        List<Object[]> result = new ArrayList<>();
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            result.add(new Object[] { clusterConfig });
+        }
+        return result;
+    }
+
+    final LocalCluster cluster;
+    final ClusterConfig clusterConfig;
+
+    public FlsAndFieldMaskingTests(ClusterConfig clusterConfig) {
+        this.cluster = clusterInstances.get(clusterConfig);
+        this.clusterConfig = clusterConfig;
+    }
+
+    @Before
+    public void createTestData() {
         try (Client client = cluster.getInternalNodeClient()) {
             FIRST_INDEX_SONGS_BY_ID.forEach((id, song) -> {
                 client.prepareIndex(FIRST_INDEX_NAME).setId(id).setRefreshPolicy(IMMEDIATE).setSource(song.asMap()).get();
@@ -532,7 +561,7 @@ public class FlsAndFieldMaskingTests {
         }
     }
 
-    private static List<String> createIndexWithDocs(String indexName, Song... songs) {
+    private List<String> createIndexWithDocs(String indexName, Song... songs) {
         try (Client client = cluster.getInternalNodeClient()) {
             client.admin()
                 .indices()
@@ -546,11 +575,11 @@ public class FlsAndFieldMaskingTests {
         }
     }
 
-    private static void addAliasToIndex(String indexName, String alias) {
+    private void addAliasToIndex(String indexName, String alias) {
         addAliasToIndex(indexName, alias, QueryBuilders.matchAllQuery());
     }
 
-    private static void addAliasToIndex(String indexName, String alias, QueryBuilder filterQuery) {
+    private void addAliasToIndex(String indexName, String alias, QueryBuilder filterQuery) {
         try (Client client = cluster.getInternalNodeClient()) {
             client.admin()
                 .indices()
@@ -563,7 +592,7 @@ public class FlsAndFieldMaskingTests {
         }
     }
 
-    private static TestSecurityConfig.User createUserWithRole(String userName, TestSecurityConfig.Role role) {
+    private TestSecurityConfig.User createUserWithRole(String userName, TestSecurityConfig.Role role) {
         TestSecurityConfig.User user = new TestSecurityConfig.User(userName);
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             client.createRole(role.getName(), role).assertStatusCode(201);
@@ -663,21 +692,26 @@ public class FlsAndFieldMaskingTests {
             Song song = FIRST_INDEX_SONGS_BY_ID.get(songId);
 
             SearchRequest searchRequest = queryByIdsRequest(FIRST_INDEX_ALIAS, songId);
-            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
+            if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION) {
+                SearchRequest aliasSearchRequest = searchRequest;
+                assertThatThrownBy(() -> client.search(aliasSearchRequest, Map.class), statusException(FORBIDDEN));
+            } else {
+                SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
-            assertThat(searchResponse, searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, songId));
-            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, song.getTitle()));
-            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(song.getLyrics())));
-            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(song.getArtist())));
-            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_STARS, song.getStars()));
+                assertThat(searchResponse, isSuccessfulSearchResponse());
+                assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
+                assertThat(searchResponse, searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, songId));
+                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, song.getTitle()));
+                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(song.getLyrics())));
+                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(song.getArtist())));
+                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_STARS, song.getStars()));
+            }
 
             songId = SECOND_INDEX_ID_SONG_4;
             song = SECOND_INDEX_SONGS_BY_ID.get(songId);
 
             searchRequest = queryByIdsRequest("*".concat(SECOND_INDEX_ALIAS), songId);
-            searchResponse = client.search(searchRequest, Map.class);
+            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
             assertThat(searchResponse, isSuccessfulSearchResponse());
             assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
@@ -697,15 +731,19 @@ public class FlsAndFieldMaskingTests {
             Song song = FIRST_INDEX_SONGS_BY_ID.get(songId);
 
             SearchRequest searchRequest = SearchRequest.of(r -> r.index(FIRST_INDEX_ALIAS_FILTERED_BY_NEXT_SONG_TITLE));
-            SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
+            if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION) {
+                assertThatThrownBy(() -> client.search(searchRequest, Map.class), statusException(FORBIDDEN));
+            } else {
+                SearchResponse<?> searchResponse = client.search(searchRequest, Map.class);
 
-            assertThat(searchResponse, isSuccessfulSearchResponse());
-            assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
-            assertThat(searchResponse, searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, songId));
-            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, song.getTitle()));
-            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(song.getLyrics())));
-            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(song.getArtist())));
-            assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_STARS, song.getStars()));
+                assertThat(searchResponse, isSuccessfulSearchResponse());
+                assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
+                assertThat(searchResponse, searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, songId));
+                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, song.getTitle()));
+                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(song.getLyrics())));
+                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(song.getArtist())));
+                assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_STARS, song.getStars()));
+            }
         }
     }
 
@@ -840,6 +878,12 @@ public class FlsAndFieldMaskingTests {
                 );
                 MgetResponse<?> response = client.mget(request, Map.class);
 
+                if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION && indices.get(0).equals(FIRST_INDEX_ALIAS)) {
+                    assertThat(response, not(isSuccessfulMultiGetResponse()));
+                    assertThat(response.docs().get(0).isFailure(), equalTo(true));
+                    assertThat(response.docs().get(1).isFailure(), equalTo(true));
+                    continue;
+                }
                 assertThat(response, isSuccessfulMultiGetResponse());
                 assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
 
@@ -912,6 +956,12 @@ public class FlsAndFieldMaskingTests {
 
                 MsearchResponse<?> response = client.msearch(request, Map.class);
 
+                if (clusterConfig == ClusterConfig.V4_PRIVILEGES_EVALUATION && indices.get(0).equals(FIRST_INDEX_ALIAS)) {
+                    assertThat(response, not(isSuccessfulMultiSearchResponse()));
+                    assertThat(response.responses().get(0).isFailure(), equalTo(true));
+                    assertThat(response.responses().get(1).isFailure(), equalTo(true));
+                    continue;
+                }
                 assertThat(response, isSuccessfulMultiSearchResponse());
                 assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
 
