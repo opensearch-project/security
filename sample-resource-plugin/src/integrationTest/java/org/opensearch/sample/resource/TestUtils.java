@@ -380,12 +380,16 @@ public final class TestUtils {
                 }
                 exists.assertStatusCode(HttpStatus.SC_OK); // fail fast on anything unexpected
 
-                // 2) Delete-by-query but ignore version conflicts
+                // Delete-by-query skips a document it conflicts with, such as one an in-flight all_shared_principals write
+                // is updating, so repeat until a pass has no conflicts; refresh first, since it deletes only what it can find.
                 String endpoint = RESOURCE_INDEX_NAME + "/_delete_by_query?conflicts=proceed&refresh=true&wait_for_completion=true";
-
                 String jsonBody = "{ \"query\": { \"match_all\": {} } }";
-                TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
-                resp.assertStatusCode(HttpStatus.SC_OK);
+                Awaitility.await("resource index emptied").pollInterval(Duration.ofMillis(200)).untilAsserted(() -> {
+                    client.post(RESOURCE_INDEX_NAME + "/_refresh").assertStatusCode(HttpStatus.SC_OK);
+                    TestRestClient.HttpResponse resp = client.postJson(endpoint, jsonBody);
+                    resp.assertStatusCode(HttpStatus.SC_OK);
+                    assertThat(resp.getBody(), resp.bodyAsJsonNode().get("version_conflicts").asInt(), equalTo(0));
+                });
             }
         }
 
