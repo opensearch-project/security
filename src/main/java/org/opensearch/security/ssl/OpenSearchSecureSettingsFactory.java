@@ -108,7 +108,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                     @Override
                     public Collection<String> protocols() {
                         return sslSettingsManager.sslConfiguration(CertType.TRANSPORT)
-                            .map(config -> config.sslParameters().allowedProtocols())
+                            .map(SslConfiguration::allowedProtocols)
                             .orElse(Collections.emptyList());
                     }
 
@@ -209,7 +209,7 @@ public class OpenSearchSecureSettingsFactory implements SecureSettingsFactory {
                     @Override
                     public Collection<String> protocols() {
                         return sslSettingsManager.sslConfiguration(CertType.HTTP)
-                            .map(config -> config.sslParameters().allowedProtocols())
+                            .map(SslConfiguration::allowedProtocols)
                             .orElse(Collections.emptyList());
                     }
 

@@ -63,6 +63,12 @@ public class PasswordHasherFactory {
         Property.Final
     );
 
+    /** Smallest PBKDF2 key length in bits allowed in FIPS mode: NIST SP 800-132, Section 5, requires at least 112 bits. */
+    public static final int FIPS_MIN_PBKDF2_LENGTH = 112;
+
+    /** Smallest PBKDF2 iteration count allowed in FIPS mode: the minimum that NIST SP 800-132, Section 5.2, recommends. */
+    public static final int FIPS_MIN_PBKDF2_ITERATIONS = 1_000;
+
     /** PBKDF2 HMAC function. */
     public static final Setting<String> PBKDF2_FUNCTION = Setting.simpleString(
         "plugins.security.password.hashing.pbkdf2.function",

@@ -11,14 +11,15 @@
 
 package org.opensearch.security.ssl;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.TreeSet;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 
@@ -35,7 +36,6 @@ import org.opensearch.env.Environment;
 import org.opensearch.env.TestEnvironment;
 import org.opensearch.security.ssl.config.CertType;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.test.BouncyCastleThreadFilter;
 
 import io.netty.buffer.UnpooledByteBufAllocator;
@@ -81,7 +81,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
-@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class })
 public class SslSettingsManagerTest extends RandomizedTest {
 
     @ClassRule
@@ -197,7 +197,6 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 }
                 boolean allowed = cipher.equals("TLS_AES_128_GCM_SHA256");
                 try (
-                    var executor = Executors.newSingleThreadExecutor();
                     var server = (SSLServerSocket) serverContext.context()
                         .getServerSocketFactory()
                         .createServerSocket(0, 1, InetAddress.getLoopbackAddress())
@@ -206,16 +205,16 @@ public class SslSettingsManagerTest extends RandomizedTest {
                     server.setEnabledProtocols(new String[] { "TLSv1.3" });
                     server.setEnabledCipherSuites(serverContext.cipherSuites().toArray(String[]::new));
                     server.setNeedClientAuth(certType == CertType.TRANSPORT);
-                    final var handshake = executor.submit(() -> {
+                    try (var handshake = new ServerHandshake(() -> {
                         try (var socket = (SSLSocket) server.accept()) {
                             socket.setSoTimeout(10000);
                             socket.startHandshake();
                             return socket.getSession().getCipherSuite();
-                        } catch (SSLHandshakeException e) {
+                        } catch (IOException e) {
+                            // The rejected handshake; the exception type depends on the TLS provider.
                             return null;
                         }
                     });
-                    try (
                         var client = (SSLSocket) clientContext.context()
                             .getSocketFactory()
                             .createSocket(InetAddress.getLoopbackAddress(), server.getLocalPort())
@@ -225,10 +224,13 @@ public class SslSettingsManagerTest extends RandomizedTest {
                         client.setEnabledCipherSuites(new String[] { cipher });
                         if (allowed) {
                             client.startHandshake();
-                            assertEquals(cipher, handshake.get(15, TimeUnit.SECONDS));
+                            assertEquals(cipher, handshake.cipherSuite());
                         } else {
-                            assertThrows(SSLHandshakeException.class, client::startHandshake);
-                            assertNull(handshake.get(15, TimeUnit.SECONDS));
+                            // The exception type and its message differ between TLS providers (SunJSSE: SSLHandshakeException,
+                            // BCJSSE: TlsFatalAlertReceived), so only IOException is checked. The allowed cipher completes a
+                            // handshake with the same setup, so the failure comes from the cipher.
+                            assertThrows(IOException.class, client::startHandshake);
+                            assertNull(handshake.cipherSuite());
                         }
                     }
                 }
@@ -250,7 +252,6 @@ public class SslSettingsManagerTest extends RandomizedTest {
             final var serverContext = (JdkSslContext) configuration.buildServerSslContext(true).sslContext();
             final var clientContext = (JdkSslContext) configuration.buildClientSslContext(true).sslContext();
             try (
-                var executor = Executors.newSingleThreadExecutor();
                 var server = (SSLServerSocket) serverContext.context()
                     .getServerSocketFactory()
                     .createServerSocket(0, 1, InetAddress.getLoopbackAddress())
@@ -258,14 +259,13 @@ public class SslSettingsManagerTest extends RandomizedTest {
                 server.setSoTimeout(10000);
                 server.setEnabledCipherSuites(serverContext.cipherSuites().toArray(String[]::new));
                 server.setNeedClientAuth(certType == CertType.TRANSPORT);
-                final var handshake = executor.submit(() -> {
+                try (var handshake = new ServerHandshake(() -> {
                     try (var socket = (SSLSocket) server.accept()) {
                         socket.setSoTimeout(10000);
                         socket.startHandshake();
                         return socket.getSession().getCipherSuite();
                     }
                 });
-                try (
                     var client = (SSLSocket) clientContext.context()
                         .getSocketFactory()
                         .createSocket(InetAddress.getLoopbackAddress(), server.getLocalPort())
@@ -275,9 +275,38 @@ public class SslSettingsManagerTest extends RandomizedTest {
                     // Leave the client's default cipher list intact to exercise server preference.
                     client.startHandshake();
                     assertEquals("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", client.getSession().getCipherSuite());
-                    assertEquals(client.getSession().getCipherSuite(), handshake.get(15, TimeUnit.SECONDS));
+                    assertEquals(client.getSession().getCipherSuite(), handshake.cipherSuite());
                 }
             }
+        }
+    }
+
+    /**
+     * Runs the server side of a handshake on a thread of its own. {@link #close()} returns only after that thread has ended,
+     * unlike {@code ExecutorService.close()}, whose worker can still be exiting when the thread leak check runs after the test.
+     */
+    private static final class ServerHandshake implements AutoCloseable {
+
+        private final FutureTask<String> task;
+
+        private final Thread thread;
+
+        ServerHandshake(final Callable<String> handshake) {
+            this.task = new FutureTask<>(handshake);
+            this.thread = new Thread(task, "server-handshake");
+            thread.start();
+        }
+
+        /**
+         * The cipher suite the server negotiated, or {@code null} if it rejected the handshake.
+         */
+        String cipherSuite() throws Exception {
+            return task.get(15, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public void close() throws InterruptedException {
+            thread.join(TimeUnit.SECONDS.toMillis(15));
         }
     }
 

@@ -133,7 +133,11 @@ public class CertificateValidator {
         if (_enableOCSP) {
             Security.setProperty("ocsp.enable", "true");
         }
-        // Enable Certificate Revocation List Distribution Points (CRLDP) support
+        // Enable Certificate Revocation List Distribution Points (CRLDP) support. This only switches on a feature of the JDK's
+        // SUN provider, and through System.setProperty, which changes every PKIX validation in the JVM and is never undone.
+        // In FIPS mode BouncyCastle FIPS is the PKIX provider and reads org.bouncycastle.x509.enableCRLDP instead. The plugin
+        // deliberately does not set that one at runtime: a JVM-wide switch like this belongs in the java.security file, where
+        // operators can see it, so a FIPS node that needs CRLDP sets org.bouncycastle.x509.enableCRLDP=true there.
         if (_enableCRLDP) {
             System.setProperty("com.sun.security.enableCRLDP", "true");
         }

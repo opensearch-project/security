@@ -77,7 +77,7 @@ class AlgorithmKit {
     */
     public static AlgorithmKit ecdsaSha256withEcdsa(Provider securityProvider, String ellipticCurve) {
         notEmptyAlgorithmName(ellipticCurve);
-        Supplier<KeyPair> supplier = ecdsaKeyPairSupplier(requireNonNull(securityProvider, "Security provider is required"), ellipticCurve);
+        Supplier<KeyPair> supplier = ecdsaKeyPairSupplier(securityProvider, ellipticCurve);
         return new AlgorithmKit(SIGNATURE_ALGORITHM_SHA_256_WITH_ECDSA, supplier);
     }
 
@@ -119,7 +119,12 @@ class AlgorithmKit {
 
     private static Supplier<KeyPair> rsaKeyPairSupplier(Provider securityProvider, int keySize) {
         try {
-            KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", securityProvider);
+            KeyPairGenerator generator;
+            if (securityProvider == null) {
+                generator = KeyPairGenerator.getInstance("RSA");
+            } else {
+                generator = KeyPairGenerator.getInstance("RSA", securityProvider);
+            }
             log.info("Initialize key pair generator with keySize: {}", keySize);
             generator.initialize(keySize);
             return generator::generateKeyPair;
@@ -132,7 +137,12 @@ class AlgorithmKit {
 
     private static Supplier<KeyPair> ecdsaKeyPairSupplier(Provider securityProvider, String ellipticCurve) {
         try {
-            KeyPairGenerator generator = KeyPairGenerator.getInstance("EC", securityProvider);
+            KeyPairGenerator generator;
+            if (securityProvider == null) {
+                generator = KeyPairGenerator.getInstance("EC");
+            } else {
+                generator = KeyPairGenerator.getInstance("EC", securityProvider);
+            }
             log.info("Initialize key pair generator with elliptic curve: {}", ellipticCurve);
             ECGenParameterSpec ecsp = new ECGenParameterSpec(ellipticCurve);
             generator.initialize(ecsp);

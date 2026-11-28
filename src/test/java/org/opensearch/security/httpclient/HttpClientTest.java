@@ -19,8 +19,11 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.file.FipsHashAdapter;
 
 public class HttpClientTest extends SingleClusterTest {
+
+    private static final String ADMIN_PASSWORD = FipsHashAdapter.adaptPassword("admin");
 
     @Override
     protected String getResourceFolder() {
@@ -41,7 +44,7 @@ public class HttpClientTest extends SingleClusterTest {
 
         try (
             final HttpClient httpClient = HttpClient.builder(clusterInfo.httpHost + ":" + clusterInfo.httpPort)
-                .setBasicCredentials("admin", "admin")
+                .setBasicCredentials("admin", ADMIN_PASSWORD)
                 .build()
         ) {
             Assert.assertTrue(httpClient.index("{\"a\":5}", "index", "type", false));
@@ -49,7 +52,7 @@ public class HttpClientTest extends SingleClusterTest {
             Assert.assertTrue(httpClient.index("{\"a\":5}", "index", "type", true));
         }
 
-        try (final HttpClient httpClient = HttpClient.builder("unknownhost:6654").setBasicCredentials("admin", "admin").build()) {
+        try (final HttpClient httpClient = HttpClient.builder("unknownhost:6654").setBasicCredentials("admin", ADMIN_PASSWORD).build()) {
             Assert.assertFalse(httpClient.index("{\"a\":5}", "index", "type", false));
             Assert.assertFalse(httpClient.index("{\"a\":5}", "index", "type", true));
             Assert.assertFalse(httpClient.index("{\"a\":5}", "index", "type", true));
@@ -58,7 +61,7 @@ public class HttpClientTest extends SingleClusterTest {
         try (
             final HttpClient httpClient = HttpClient.builder("unknownhost:6654", clusterInfo.httpHost + ":" + clusterInfo.httpPort)
                 .enableSsl(FileHelper.getKeystoreFromClassPath("auditlog/truststore", "changeit"), false)
-                .setBasicCredentials("admin", "admin")
+                .setBasicCredentials("admin", ADMIN_PASSWORD)
                 .build()
         ) {
             Assert.assertFalse(httpClient.index("{\"a\":5}", "index", "type", false));
@@ -68,7 +71,7 @@ public class HttpClientTest extends SingleClusterTest {
 
         try (
             final HttpClient httpClient = HttpClient.builder("unknownhost:6654", clusterInfo.httpHost + ":" + clusterInfo.httpPort)
-                .setBasicCredentials("admin", "admin")
+                .setBasicCredentials("admin", ADMIN_PASSWORD)
                 .build()
         ) {
             Assert.assertTrue(httpClient.index("{\"a\":5}", "index", "type", false));
@@ -96,7 +99,7 @@ public class HttpClientTest extends SingleClusterTest {
         try (
             final HttpClient httpClient = HttpClient.builder(clusterInfo.httpHost + ":" + clusterInfo.httpPort)
                 .enableSsl(FileHelper.getKeystoreFromClassPath("auditlog/truststore", "changeit"), false)
-                .setBasicCredentials("admin", "admin")
+                .setBasicCredentials("admin", ADMIN_PASSWORD)
                 .build()
         ) {
             Assert.assertTrue(httpClient.index("{\"a\":5}", "index", "type", false));
@@ -106,7 +109,7 @@ public class HttpClientTest extends SingleClusterTest {
 
         try (
             final HttpClient httpClient = HttpClient.builder(clusterInfo.httpHost + ":" + clusterInfo.httpPort)
-                .setBasicCredentials("admin", "admin")
+                .setBasicCredentials("admin", ADMIN_PASSWORD)
                 .build()
         ) {
             Assert.assertFalse(httpClient.index("{\"a\":5}", "index", "type", false));

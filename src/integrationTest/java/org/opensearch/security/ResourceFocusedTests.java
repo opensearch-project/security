@@ -152,6 +152,14 @@ public class ResourceFocusedTests {
         }
     }
 
+    /**
+     * Protocol the generic client runs against. The FIPS variant overrides it, because HTTP/3 is not
+     * available in FIPS mode.
+     */
+    protected HttpProtocol genericClientProtocol() {
+        return HttpProtocol.HTTP3;
+    }
+
     private void runResourceTestWithGenericClient(
         final RequestBodySize size,
         final String requestPath,
@@ -161,7 +169,7 @@ public class ResourceFocusedTests {
         final byte[] compressedRequestBody = createCompressedRequestBody(size);
         try (
             final ReactorHttpClient client = cluster.getGenericClient(
-                HttpProtocol.HTTP3,
+                genericClientProtocol(),
                 true,
                 Settings.builder().loadFromMap(NODE_SETTINGS).build()
             )

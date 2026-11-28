@@ -14,13 +14,14 @@ package org.opensearch.security.user;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -46,6 +47,7 @@ import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.transport.client.Client;
@@ -153,9 +155,13 @@ public class UserService {
         if (!attributeNode.get("service").isNull() && attributeNode.get("service").asString().equalsIgnoreCase("true")) { // If this is a
                                                                                                                           // service account
             verifyServiceAccount(securityJsonNode, accountName);
-            String password = generatePassword();
-            contentAsNode.put("hash", passwordHasher.hash(password.toCharArray()));
-            contentAsNode.put("service", "true");
+            char[] password = generatePassword();
+            try {
+                contentAsNode.put("hash", passwordHasher.hash(password));
+                contentAsNode.put("service", "true");
+            } finally {
+                Arrays.fill(password, '\0');
+            }
         } else {
             contentAsNode.put("service", "false");
         }
@@ -231,13 +237,17 @@ public class UserService {
     private static final String ALL_CHARS = LOWERCASE + UPPERCASE + DIGITS;
 
     /**
-     * Generate an 8 - 16 character password with 1+ lowercase, 1+ uppercase, 1+ digit.
+     * Generate a random password with 1+ lowercase, 1+ uppercase, 1+ digit. Under FIPS the length is 20-27
+     * characters (≥119 bits over the 62-char alphabet, exceeding the FIPS 112-bit requirement); otherwise 8-15.
+     * Uses {@link Randomness#createSecure()}, which resolves to the FIPS-approved SP 800-90A DRBG when FIPS is
+     * enabled. The returned {@code char[]} must be zeroed by the caller after use.
      *
-     * @return A password for a service account.
+     * @return A generated service-account password.
      */
-    public static String generatePassword() {
-        Random random = Randomness.get();
-        int length = random.nextInt(8) + 8;
+    public static char[] generatePassword() {
+        final SecureRandom random = Randomness.createSecure();
+        final int base = FipsMode.isEnabled() ? 20 : 8;
+        int length = random.nextInt(8) + base; // FIPS: 20-27 chars (≥119 bits); otherwise: 8-15 chars
         char[] password = new char[length];
 
         // Guarantee at least one of each required type
@@ -258,7 +268,7 @@ public class UserService {
             password[j] = tmp;
         }
 
-        return new String(password);
+        return password;
     }
 
     /**
@@ -294,7 +304,7 @@ public class UserService {
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
             // Generate a new password for the account and store the hash of it
-            String plainTextPassword = generatePassword();
+            final String plainTextPassword = new String(generatePassword());
             contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
             contentAsNode.put("enabled", "true");
             contentAsNode.put("service", "true");

@@ -24,6 +24,8 @@ import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.http.io.SocketConfig;
 
+import static org.opensearch.security.ssl.util.SSLConfigConstants.ALLOWED_SSL_PROTOCOLS;
+
 class CloseableHttpClientFactory {
 
     private final SSLContext sslContext;
@@ -52,7 +54,7 @@ class CloseableHttpClientFactory {
 
         final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
             this.sslContext,
-            null,
+            ALLOWED_SSL_PROTOCOLS,
             supportedCipherSuites,
             NoopHostnameVerifier.INSTANCE
         );

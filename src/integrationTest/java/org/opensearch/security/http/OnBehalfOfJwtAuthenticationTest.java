@@ -84,7 +84,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     public static final String ADMIN_USER_NAME = "admin";
     public static final String OBO_USER_NAME_WITH_PERM = "obo_user";
     public static final String OBO_USER_NAME_NO_PERM = "obo_user_no_perm";
-    public static final String DEFAULT_PASSWORD = "secret";
+    public static final String DEFAULT_PASSWORD = TestSecurityConfig.DEFAULT_TEST_PASSWORD;
     public static final String NEW_PASSWORD = "testPassword123!!";
     public static final String OBO_TOKEN_REASON = "{\"description\":\"Test generation\"}";
     public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/obo/token";

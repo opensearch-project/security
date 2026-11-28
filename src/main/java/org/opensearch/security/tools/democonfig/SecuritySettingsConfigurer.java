@@ -17,7 +17,11 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,6 +34,7 @@ import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.hasher.PasswordHasher;
 import org.opensearch.security.hasher.PasswordHasherFactory;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.FipsMode;
 
 import org.snakeyaml.engine.v2.api.Dump;
 import org.snakeyaml.engine.v2.api.DumpSettings;
@@ -56,12 +61,25 @@ public class SecuritySettingsConfigurer {
 
     private final Installer installer;
     private final PasswordHasher passwordHasher;
-    static final String DEFAULT_ADMIN_PASSWORD = "admin";
+    /**
+     * Classpath copy of {@code config/internal_users.yml}, the BCrypt demo users the plugin ships. It has no source file
+     * under {@code src/main/resources}: {@code processResources} in build.gradle copies and renames the config file into
+     * {@code build/resources/main/democonfig}, and from there into the plugin jar, so there is only one file to maintain.
+     */
+    static final String SHIPPED_DEMO_USERS_RESOURCE = "/democonfig/internal_users_bcrypt.yml";
+    /**
+     * The same demo users with PBKDF2 hashes, kept in {@code src/main/resources/democonfig}. The hashes are generated once
+     * and checked in rather than at build time, which would need hashing code and a fixed salt in the build script.
+     * testPbkdf2DemoUsersMatchTheShippedDemoUsers keeps the users in line with config/internal_users.yml.
+     */
+    static final String PBKDF2_DEMO_USERS_RESOURCE = "/democonfig/internal_users_pbkdf2.yml";
+    static final String PBKDF2_DEMO_PASSWORD_SUFFIX = "@OpenSearch";
 
     public SecuritySettingsConfigurer(Installer installer) {
         this.installer = installer;
+        String hashingAlgorithm = FipsMode.isEnabled() ? PasswordHasherFactory.PBKDF2 : PasswordHasherFactory.BCRYPT;
         this.passwordHasher = PasswordHasherFactory.createPasswordHasher(
-            Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.BCRYPT).build()
+            Settings.builder().put(PasswordHasherFactory.ALGORITHM.getKey(), hashingAlgorithm).build()
         );
     }
 
@@ -73,8 +91,70 @@ public class SecuritySettingsConfigurer {
      */
     public void configureSecuritySettings() throws IOException {
         checkIfSecurityPluginIsAlreadyConfigured();
+        if (FipsMode.isEnabled()) {
+            replaceShippedDemoUsersWithPbkdf2();
+        }
         updateAdminPassword();
         writeSecurityConfigToOpenSearchYML();
+    }
+
+    /**
+     * The shipped internal_users.yml holds BCrypt hashes, which a FIPS node can neither verify nor compute. If the file is
+     * still the shipped one, it is replaced with the same demo users hashed with PBKDF2. A file that already holds those
+     * PBKDF2 users, from an earlier run that stopped before the end, is left alone without a message. Any other file
+     * belongs to the operator and is kept.
+     */
+    void replaceShippedDemoUsersWithPbkdf2() throws IOException {
+        final Path internalUsersFile = Path.of(internalUsersFilePath());
+        final JsonNode currentUsers = yamlMapper().readTree(internalUsersFile.toFile());
+        final JsonNode shippedUsers;
+        try (InputStream shipped = demoConfigResource(SHIPPED_DEMO_USERS_RESOURCE)) {
+            shippedUsers = yamlMapper().readTree(shipped);
+        }
+        final JsonNode pbkdf2DemoUsers;
+        try (InputStream pbkdf2Users = demoConfigResource(PBKDF2_DEMO_USERS_RESOURCE)) {
+            pbkdf2DemoUsers = yamlMapper().readTree(pbkdf2Users);
+        }
+        if (pbkdf2DemoUsers.equals(currentUsers)) {
+            return;
+        }
+        if (!shippedUsers.equals(currentUsers)) {
+            System.out.println("FIPS mode: internal_users.yml differs from the shipped demo users, so it is kept as it is.");
+            return;
+        }
+        try (InputStream pbkdf2Users = demoConfigResource(PBKDF2_DEMO_USERS_RESOURCE)) {
+            Files.copy(pbkdf2Users, internalUsersFile, StandardCopyOption.REPLACE_EXISTING);
+        }
+        System.out.println(
+            "FIPS mode: replaced the BCrypt demo users in internal_users.yml with PBKDF2 hashes. "
+                + "The password of each demo user except admin is its user name followed by \""
+                + PBKDF2_DEMO_PASSWORD_SUFFIX
+                + "\", for example \"kibanaserver"
+                + PBKDF2_DEMO_PASSWORD_SUFFIX
+                + "\"."
+        );
+    }
+
+    private static InputStream demoConfigResource(String name) throws IOException {
+        final InputStream resource = SecuritySettingsConfigurer.class.getResourceAsStream(name);
+        if (resource == null) {
+            throw new IOException("Resource " + name + " is missing from the security plugin jar.");
+        }
+        return resource;
+    }
+
+    /**
+     * FIPS-approved PBKDF2 needs at least 112 bits of key material, so FIPS mode raises the demo minimum.
+     */
+    static int minimumPasswordLength() {
+        if (FipsMode.isEnabled()) {
+            return PasswordValidator.FIPS_MIN_PASSWORD_LENGTH;
+        }
+        return DEFAULT_PASSWORD_MIN_LENGTH;
+    }
+
+    private String internalUsersFilePath() {
+        return installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
     }
 
     boolean isSecurityPluginIsConfiguredWithDemoCerts() {
@@ -181,7 +261,7 @@ public class SecuritySettingsConfigurer {
      * Replaces the admin password in internal_users.yml with the custom or generated password
      */
     void updateAdminPassword() throws IOException {
-        String INTERNAL_USERS_FILE_PATH = installer.OPENSEARCH_CONF_DIR + "opensearch-security" + File.separator + "internal_users.yml";
+        String INTERNAL_USERS_FILE_PATH = internalUsersFilePath();
         boolean shouldValidatePassword = installer.environment.equals(ExecutionEnvironment.DEMO);
 
         // check if the password `admin` is present, if not skip updating admin password
@@ -199,7 +279,7 @@ public class SecuritySettingsConfigurer {
                         ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
                         "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}"
                     )
-                    .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, DEFAULT_PASSWORD_MIN_LENGTH)
+                    .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, minimumPasswordLength())
                     .build()
             );
 
@@ -218,7 +298,7 @@ public class SecuritySettingsConfigurer {
                             "Password %s failed validation: \"%s\". Please re-try with a minimum %d character password and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character that is strong. Password strength can be tested here: https://lowe.github.io/tryzxcvbn",
                             ADMIN_PASSWORD,
                             response.message(),
-                            DEFAULT_PASSWORD_MIN_LENGTH
+                            minimumPasswordLength()
                         )
                     );
                     installer.getExitHandler().exit(-1);
@@ -255,8 +335,18 @@ public class SecuritySettingsConfigurer {
      */
     private boolean isAdminPasswordSetToAdmin(String internalUsersFile) throws IOException {
         JsonNode internalUsers = yamlMapper().readTree(new FileInputStream(internalUsersFile));
-        return internalUsers.has("admin")
-            && passwordHasher.check(DEFAULT_ADMIN_PASSWORD.toCharArray(), internalUsers.get("admin").get("hash").asString());
+        if (!internalUsers.has("admin")) return false;
+        String hash = internalUsers.get("admin").get("hash").asString();
+        try {
+            return passwordHasher.check(passwordHasher.defaultAdminPassword().toCharArray(), hash);
+        } catch (IllegalArgumentException e) {
+            // The hash library rejects a hash of another algorithm, for example a BCrypt hash in a customized file under FIPS
+            // mode. Its message contains the hash, so it is not printed.
+            System.out.println(
+                "The admin hash in internal_users.yml was not created with the configured password hashing algorithm, so it cannot be the default admin password."
+            );
+            return false;
+        }
     }
 
     /**
@@ -332,6 +422,11 @@ public class SecuritySettingsConfigurer {
         configMap.put("plugins.security.ssl.http.pemtrustedcas_filepath", Certificates.ROOT_CA.getFileName());
         configMap.put("plugins.security.allow_unsafe_democertificates", true);
         configMap.put(ConfigConstants.SECURITY_COMPLIANCE_SALT, generateRandomSalt());
+
+        // validateFipsMode refuses to start a FIPS node that hashes passwords with anything but PBKDF2.
+        if (FipsMode.isEnabled()) {
+            configMap.put(PasswordHasherFactory.ALGORITHM.getKey(), PasswordHasherFactory.PBKDF2);
+        }
 
         if (installer.initsecurity) {
             configMap.put("plugins.security.allow_default_init_securityindex", true);

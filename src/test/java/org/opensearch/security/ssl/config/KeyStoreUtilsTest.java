@@ -27,7 +27,6 @@ import org.junit.runner.RunWith;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.util.BCFipsEntropyDaemonFilter;
 import org.opensearch.test.BouncyCastleThreadFilter;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,7 +35,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 
 @RunWith(RandomizedRunner.class)
-@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class, BCFipsEntropyDaemonFilter.class })
+@ThreadLeakFilters(filters = { BouncyCastleThreadFilter.class })
 public class KeyStoreUtilsTest {
 
     private static final char[] STORE_PASSWORD = "kspass-for-keystore-utils".toCharArray();

@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.security.support.PemKeyReader;
 
 import io.netty.handler.ssl.SslContextBuilder;
@@ -94,6 +95,14 @@ public sealed interface KeyStoreConfiguration {
     default void configure(final SslContextBuilder builder) {}
 
     /**
+     * The TLS protocols that a context with the key of this store can negotiate, out of the {@code enabledProtocols}
+     * that the settings allow.
+     */
+    default List<String> negotiableProtocols(final List<String> enabledProtocols) {
+        return enabledProtocols;
+    }
+
+    /**
      * A file-based key store in any type a registered provider offers, e.g. JKS, JCEKS, PKCS12 or BCFKS.
      *
      * @param path location of the key store file
@@ -134,9 +143,11 @@ public sealed interface KeyStoreConfiguration {
      */
     record Pkcs11KeyStoreConfiguration(String alias, StorePassword pin, StorePassword keyPassword) implements KeyStoreConfiguration {
 
-        static final String TYPE = PemKeyReader.PKCS11;
+        public static final String TYPE = PemKeyReader.PKCS11;
 
         private static final String SOURCE = "PKCS#11 token";
+
+        public static final String TLS_1_3 = "TLSv1.3";
 
         @Override
         public List<Certificate> loadCertificates() {
@@ -173,6 +184,50 @@ public sealed interface KeyStoreConfiguration {
                 throw new OpenSearchException("SunJSSE provider not available; required for PKCS#11 key store support");
             }
             builder.sslContextProvider(sunJSSE);
+        }
+
+        /**
+         * In FIPS mode only TLS 1.3, see {@link #protocolsInFipsMode(List)}.
+         */
+        @Override
+        public List<String> negotiableProtocols(final List<String> enabledProtocols) {
+            if (FipsMode.isEnabled()) {
+                return protocolsInFipsMode(enabledProtocols);
+            }
+            return enabledProtocols;
+        }
+
+        /**
+         * SunJSSE, which signs the handshake with the token key, takes its TLS 1.2 key derivation from the SunJCE
+         * provider ({@code SunTls12MasterSecret} and related key generators). FIPS mode does not load SunJCE, so every
+         * TLS 1.2 handshake would fail. TLS 1.3 derives its keys with HMAC, which BouncyCastle FIPS provides.
+         *
+         * @return TLS 1.3 only, so that a TLS 1.2 client gets a protocol_version alert instead of a failed key derivation
+         * @throws OpenSearchException if {@code enabledProtocols} does not contain TLS 1.3
+         */
+        public static List<String> protocolsInFipsMode(final List<String> enabledProtocols) {
+            validateProtocolsInFipsMode(enabledProtocols);
+            return List.of(TLS_1_3);
+        }
+
+        /**
+         * Checks that {@code enabledProtocols} can work with a PKCS#11 key in FIPS mode, see
+         * {@link #protocolsInFipsMode(List)}.
+         *
+         * @throws OpenSearchException if {@code enabledProtocols} does not contain TLS 1.3
+         */
+        public static void validateProtocolsInFipsMode(final List<String> enabledProtocols) {
+            if (!enabledProtocols.contains(TLS_1_3)) {
+                throw new OpenSearchException(
+                    "A PKCS#11 key store supports only "
+                        + TLS_1_3
+                        + " in FIPS mode, but the enabled protocols are "
+                        + enabledProtocols
+                        + ". Add "
+                        + TLS_1_3
+                        + " to the enabled protocols."
+                );
+            }
         }
 
         private KeyStore loadToken() {

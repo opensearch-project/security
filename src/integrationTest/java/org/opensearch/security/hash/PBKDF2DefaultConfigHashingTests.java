@@ -33,12 +33,13 @@ public class PBKDF2DefaultConfigHashingTests extends HashingTests {
     private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS)
         .hash(
             generatePBKDF2Hash(
-                "secret",
+                TestSecurityConfig.DEFAULT_TEST_PASSWORD,
                 PasswordHasherFactory.PBKDF2_FUNCTION.getDefault(Settings.EMPTY),
                 PasswordHasherFactory.PBKDF2_ITERATIONS.getDefault(Settings.EMPTY),
                 PasswordHasherFactory.PBKDF2_LENGTH.getDefault(Settings.EMPTY)
             )
-        );
+        )
+        .password(TestSecurityConfig.DEFAULT_TEST_PASSWORD);
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)

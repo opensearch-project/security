@@ -72,7 +72,7 @@ allprojects {
     version = opensearch_build
 
     ext {
-        isInFipsApprovedOnlyMode = FipsBuildParams::isInFipsApprovedOnlyMode
+        isFipsModeEnabled = FipsBuildParams::isFipsModeEnabled
     }
 }
 
@@ -445,6 +445,14 @@ allprojects {
     tasks.withType(Javadoc).all { enabled = false }
 }
 
+// The demo installer compares internal_users.yml against this copy to tell whether the file is still the shipped one.
+processResources {
+    from('config/internal_users.yml') {
+        into 'democonfig'
+        rename { 'internal_users_bcrypt.yml' }
+    }
+}
+
 bundlePlugin {
     from('plugin-security.policy')
     from('config') {
@@ -611,6 +619,11 @@ allprojects {
                 integrationTestImplementation "org.opensearch:protobufs:${versions.opensearchprotobufs}"
                 integrationTestImplementation "io.grpc:grpc-stub:${versions.grpc}"
                 integrationTestImplementation "io.grpc:grpc-netty-shaded:${versions.grpc}"
+                // StreamTransportTests builds its Flight client channel directly, like the arrow-flight-rpc plugin does.
+                integrationTestImplementation("io.grpc:grpc-netty:${versions.grpc}") {
+                    // Netty and the other gRPC modules come with core and arrow-flight-rpc; its own Netty 4.1 dependencies would conflict.
+                    transitive = false
+                }
                 integrationTestImplementation "org.opensearch.plugin:transport-grpc:${opensearch_version}"
                 integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
                 integrationTestImplementation 'commons-io:commons-io:2.22.0'
@@ -667,7 +680,7 @@ tasks.register("integrationTest", Test) {
     doFirst {
         // Only run resources tests on resource-test CI environments or locally
         if (System.getenv('CI_ENVIRONMENT') != 'resource-test' && System.getenv('CI_ENVIRONMENT') != null) {
-            exclude '**/ResourceFocusedTests.class'
+            exclude '**/ResourceFocused*.class'
         }
         if (System.getenv('DISABLE_RETRY') != 'true') {
             retry {

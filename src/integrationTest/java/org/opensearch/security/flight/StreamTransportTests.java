@@ -8,21 +8,24 @@
 
 package org.opensearch.security.flight;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.arrow.flight.CallHeaders;
 import org.apache.arrow.flight.FlightCallHeaders;
 import org.apache.arrow.flight.FlightClient;
+import org.apache.arrow.flight.FlightGrpcUtils;
 import org.apache.arrow.flight.FlightRuntimeException;
 import org.apache.arrow.flight.FlightStream;
 import org.apache.arrow.flight.HeaderCallOption;
-import org.apache.arrow.flight.Location;
 import org.apache.arrow.flight.Ticket;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
@@ -47,6 +50,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.internal.AliasFilter;
 import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.support.FipsMode;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.certificate.CertificateData;
@@ -57,8 +61,17 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.nativeprotocol.RawTransportRequestSerializer;
 
+import io.grpc.ManagedChannel;
+import io.grpc.netty.NettyChannelBuilder;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.DEFAULT_STORE_TYPE;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.junit.Assert.assertThrows;
@@ -180,13 +193,7 @@ public class StreamTransportTests {
         StringBuilder response = new StringBuilder();
         try (
             BufferAllocator allocator = new RootAllocator();
-            FlightClient client = FlightClient.builder()
-                .allocator(allocator)
-                .location(Location.forGrpcTls(InetAddress.getLoopbackAddress().getHostAddress(), FLIGHT_PORT))
-                .useTls()
-                .trustedCertificates(pem(TEST_CERTIFICATES.getRootCertificateData().certificateInPemFormat()))
-                .clientCertificate(pem(clientCertificate.certificateInPemFormat()), pem(clientCertificate.privateKeyInPemFormat(null)))
-                .build();
+            FlightClient client = flightClient(allocator, clientCertificate);
             FlightStream stream = client.getStream(ticket, new HeaderCallOption(headers))
         ) {
             while (stream.next()) {
@@ -202,8 +209,42 @@ public class StreamTransportTests {
         return response.toString();
     }
 
-    private static ByteArrayInputStream pem(String pem) {
-        return new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII));
+    /**
+     * A Flight client with TLS and client certificate, built like {@code FlightTransport} builds its node client: with an explicit
+     * {@link SslContext} that negotiates HTTP/2 through ALPN. Arrow's {@code FlightClient.builder().useTls()} instead lets gRPC pick a
+     * TLS provider, and gRPC only accepts SunJSSE, IBMJSSE2, OpenJSSE or Conscrypt by name, so it fails in FIPS mode, where BCJSSE is the
+     * only provider.
+     */
+    private static FlightClient flightClient(BufferAllocator allocator, CertificateData clientCertificate) throws Exception {
+        final KeyStore keyStore = KeyStore.getInstance(DEFAULT_STORE_TYPE);
+        keyStore.load(null);
+        keyStore.setCertificateEntry("root-ca", TEST_CERTIFICATES.getRootCertificateData().certificate());
+        keyStore.setKeyEntry("client", clientCertificate.getKey(), null, new Certificate[] { clientCertificate.certificate() });
+
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(keyStore);
+        final KeyManagerFactory keyManagerFactory = FipsMode.isEnabled()
+            ? KeyManagerFactory.getInstance("PKIX", "BCJSSE")
+            : KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, null);
+
+        final SslContext sslContext = SslContextBuilder.forClient()
+            .sslProvider(SslProvider.JDK)
+            .trustManager(trustManagerFactory)
+            .keyManager(keyManagerFactory)
+            .applicationProtocolConfig(
+                new ApplicationProtocolConfig(
+                    ApplicationProtocolConfig.Protocol.ALPN,
+                    ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                    ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                    ApplicationProtocolNames.HTTP_2
+                )
+            )
+            .build();
+        final ManagedChannel channel = NettyChannelBuilder.forAddress(InetAddress.getLoopbackAddress().getHostAddress(), FLIGHT_PORT)
+            .sslContext(sslContext)
+            .build();
+        return FlightGrpcUtils.createFlightClient(allocator, channel);
     }
 
     private static PluginInfo classpathPlugin(String className, List<String> extendedPlugins) {
