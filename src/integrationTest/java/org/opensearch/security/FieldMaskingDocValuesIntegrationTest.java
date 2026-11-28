@@ -8,6 +8,7 @@
 
 package org.opensearch.security;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -15,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,6 +24,7 @@ import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.privileges.dlsfls.FieldMasking;
+import org.opensearch.security.privileges.int_tests.ClusterConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -61,40 +63,43 @@ public class FieldMaskingDocValuesIntegrationTest {
     );
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(false)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN, FULL, MASKED, INCLUDED, HIDDEN)
-        .nodeSettings(Map.of("plugins.security.compliance.salt", SALT, "plugins.security.masked_fields.algorithm.default", "SHA-256"))
-        .build();
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        () -> new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+            .anonymousAuth(false)
+            .authc(AUTHC_HTTPBASIC_INTERNAL)
+            .users(ADMIN, FULL, MASKED, INCLUDED, HIDDEN)
+            .nodeSettings(Map.of("plugins.security.compliance.salt", SALT, "plugins.security.masked_fields.algorithm.default", "SHA-256"))
+    );
 
-    @Parameterized.Parameters(name = "{0}, deleted={1}")
+    @Parameterized.Parameters(name = "{0}, {1}, deleted={2}")
     public static Collection<Object[]> parameters() {
-        return List.of(
-            new Object[] { FULL, false },
-            new Object[] { FULL, true },
-            new Object[] { MASKED, false },
-            new Object[] { MASKED, true },
-            new Object[] { INCLUDED, false },
-            new Object[] { INCLUDED, true },
-            new Object[] { HIDDEN, false },
-            new Object[] { HIDDEN, true }
-        );
+        List<Object[]> result = new ArrayList<>();
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            for (TestSecurityConfig.User user : List.of(FULL, MASKED, INCLUDED, HIDDEN)) {
+                for (boolean deleted : List.of(false, true)) {
+                    result.add(new Object[] { clusterConfig, user, deleted });
+                }
+            }
+        }
+        return result;
     }
 
+    private final LocalCluster cluster;
     private final TestSecurityConfig.User user;
     private final boolean deleted;
 
-    public FieldMaskingDocValuesIntegrationTest(TestSecurityConfig.User user, boolean deleted) {
+    public FieldMaskingDocValuesIntegrationTest(ClusterConfig clusterConfig, TestSecurityConfig.User user, boolean deleted) {
+        this.cluster = clusterInstances.get(clusterConfig);
         this.user = user;
         this.deleted = deleted;
     }
 
-    @BeforeClass
-    public static void createIndices() {
+    @Before
+    public void createIndices() {
         try (TestRestClient client = cluster.getRestClient(ADMIN)) {
             for (boolean deleted : List.of(false, true)) {
                 String index = indexName(deleted);
+                client.delete(index);
                 client.putJson(index, """
                     {"settings":{"number_of_shards":1,"number_of_replicas":0},
                      "mappings":{"properties":{"secret":{"type":"keyword"},
