@@ -148,6 +148,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final Client client;
     private final ApiTokenRepository apiTokenRepository;
     private final OnBehalfOfKeys oboKeystoreKeys;
+    private final DynamicConfigSecrets dynamicConfigSecrets;
 
     SecurityDynamicConfiguration<?> config;
 
@@ -160,7 +161,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         ClusterInfoHolder cih,
         PasswordHasher passwordHasher,
         ApiTokenRepository apiTokenRepository,
-        OnBehalfOfKeys oboKeystoreKeys
+        OnBehalfOfKeys oboKeystoreKeys,
+        DynamicConfigSecrets dynamicConfigSecrets
     ) {
         super();
         this.cr = cr;
@@ -172,6 +174,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.client = client;
         this.apiTokenRepository = apiTokenRepository;
         this.oboKeystoreKeys = oboKeystoreKeys;
+        this.dynamicConfigSecrets = dynamicConfigSecrets;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -286,7 +289,8 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             iab,
             this.cih,
             apiTokenRepository,
-            oboKeystoreKeys
+            oboKeystoreKeys,
+            dynamicConfigSecrets
         );
         ium = new InternalUsersModelV7(internalusers, roles, rolesmapping);
 
@@ -351,6 +355,10 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     @Override
     public boolean isInitialized() {
         return initialized.get();
+    }
+
+    public void reloadFromCurrentConfiguration() {
+        onChange(ConfigurationMap.EMPTY);
     }
 
     public void registerDCFListener(Object listener) {
