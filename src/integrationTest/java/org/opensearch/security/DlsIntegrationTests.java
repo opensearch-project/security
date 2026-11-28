@@ -11,6 +11,8 @@ package org.opensearch.security;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -18,9 +20,12 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -35,6 +40,7 @@ import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.get.GetResult;
 import org.opensearch.client.opensearch.core.mget.MultiGetResponseItem;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.security.privileges.int_tests.ClusterConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -70,6 +76,7 @@ import static org.opensearch.test.framework.matcher.client.SearchResponseMatcher
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitContainsFieldWithValue;
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentsInAnyOrder;
 
+@RunWith(Parameterized.class)
 public class DlsIntegrationTests {
 
     static final String FIRST_INDEX_ID_SONG_1 = "INDEX_1_S1";
@@ -256,30 +263,31 @@ public class DlsIntegrationTests {
         );
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-        .anonymousAuth(false)
-        .nodeSettings(
-            Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
-        )
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(
-            ADMIN_USER,
-            READ_ALL_USER,
-            READ_FIRST_AND_SECOND_USER,
-            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING,
-            READ_WHERE_STARS_LESS_THAN_THREE,
-            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
-            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST,
-            USER_MATCH_ARTIST_BOOL_QUERY,
-            USER_MATCH_STARS_TERM_QUERY,
-            USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY,
-            USER_NON_SENSITIVE_ONLY,
-            USER_ALLOW_ALL,
-            USER_MATCH_HISTORY_GENRE_ONLY,
-            USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL,
-            USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY
-        )
-        .build();
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        () -> new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+            .anonymousAuth(false)
+            .nodeSettings(
+                Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
+            )
+            .authc(AUTHC_HTTPBASIC_INTERNAL)
+            .users(
+                ADMIN_USER,
+                READ_ALL_USER,
+                READ_FIRST_AND_SECOND_USER,
+                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING,
+                READ_WHERE_STARS_LESS_THAN_THREE,
+                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
+                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST,
+                USER_MATCH_ARTIST_BOOL_QUERY,
+                USER_MATCH_STARS_TERM_QUERY,
+                USER_BOTH_MATCH_ARTIST_BOOL_QUERY_MATCH_STARS_TERM_QUERY,
+                USER_NON_SENSITIVE_ONLY,
+                USER_ALLOW_ALL,
+                USER_MATCH_HISTORY_GENRE_ONLY,
+                USER_UNION_OF_OVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_ALLOW_ALL,
+                USER_UNION_OF_NONOVERLAPPING_ROLES_NON_SENSITIVE_ONLY_AND_HISTORY_GENRE_ONLY
+            )
+    );
 
     /**
     * Function that returns id assigned to song with title equal to given title or throws {@link RuntimeException}
@@ -338,8 +346,23 @@ public class DlsIntegrationTests {
         }
     };
 
-    @BeforeClass
-    public static void createTestData() {
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> params() {
+        List<Object[]> result = new ArrayList<>();
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            result.add(new Object[] { clusterConfig });
+        }
+        return result;
+    }
+
+    final LocalCluster cluster;
+
+    public DlsIntegrationTests(ClusterConfig clusterConfig) {
+        this.cluster = clusterInstances.get(clusterConfig);
+    }
+
+    @Before
+    public void createTestData() {
         try (Client client = cluster.getInternalNodeClient()) {
             FIRST_INDEX_SONGS_BY_ID.forEach((id, song) -> {
                 client.prepareIndex(FIRST_INDEX_NAME).setId(id).setRefreshPolicy(IMMEDIATE).setSource(song.asMap()).get();
@@ -725,6 +748,7 @@ public class DlsIntegrationTests {
         }
     }
 
+    @Test
     public void testOverlappingRoleUnionSearchFiltering() throws Exception {
         try (CloseableOpenSearchClient client = cluster.getClient(USER_NON_SENSITIVE_ONLY)) {
             SearchRequest searchRequest = SearchRequest.of(r -> r.index(UNION_TEST_INDEX_NAME));
