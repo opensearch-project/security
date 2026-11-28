@@ -10,6 +10,8 @@
 package org.opensearch.security;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -20,10 +22,13 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.hamcrest.Matcher;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -50,6 +55,7 @@ import org.opensearch.index.mapper.size.SizeFieldMapper;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugin.mapper.MapperSizePlugin;
+import org.opensearch.security.privileges.int_tests.ClusterConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -110,6 +116,7 @@ import static org.opensearch.test.framework.matcher.client.SearchResponseMatcher
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitDoesNotContainField;
 import static org.opensearch.test.framework.matcher.client.SearchResponseMatchers.searchHitsContainDocumentWithId;
 
+@RunWith(Parameterized.class)
 public class FlsAndFieldMaskingTests {
 
     static final String FIRST_INDEX_ID_SONG_1 = "INDEX_1_S1";
@@ -150,7 +157,7 @@ public class FlsAndFieldMaskingTests {
         );
 
     /**
-    * User who is allowed to see all fields on indices {@link #FIRST_INDEX_NAME} and {@link #SECOND_INDEX_NAME}.
+    * User who is allowed to see all fields on indices {@link #FIRST_INDEX_NAME} and {@link #SECOND_INDEX_NAME} and their aliases.
     * <ul>
     *     <li>values of the artist and lyrics fields should be masked on index {@link #FIRST_INDEX_NAME}</li>
     *     <li>values of the lyrics field should be masked on index {@link #SECOND_INDEX_NAME}</li>
@@ -164,11 +171,11 @@ public class FlsAndFieldMaskingTests {
                     FIELD_ARTIST.concat("::/(?<=.{1})./::").concat(MASK_VALUE),
                     FIELD_LYRICS.concat("::/(?<=.{1})./::").concat(MASK_VALUE)
                 )
-                .on(FIRST_INDEX_NAME),
+                .on(FIRST_INDEX_NAME, FIRST_INDEX_ALIAS, FIRST_INDEX_ALIAS_FILTERED_BY_NEXT_SONG_TITLE),
             new TestSecurityConfig.Role("masked_lyrics_reader").clusterPermissions("cluster_composite_ops_ro")
                 .indexPermissions("read")
                 .maskedFields(FIELD_LYRICS.concat("::/(?<=.{1})./::").concat(MASK_VALUE))
-                .on(SECOND_INDEX_NAME)
+                .on(SECOND_INDEX_NAME, SECOND_INDEX_ALIAS)
         );
 
     /**
@@ -299,31 +306,32 @@ public class FlsAndFieldMaskingTests {
     );
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-        .anonymousAuth(false)
-        .nodeSettings(
-            Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
-        )
-        .plugin(MapperSizePlugin.class)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(
-            ADMIN_USER,
-            ALL_INDICES_MASKED_TITLE_ARTIST_READER,
-            MASKED_ARTIST_LYRICS_READER,
-            ALL_INDICES_STRING_ARTIST_READER,
-            ALL_INDICES_STARS_LESS_THAN_ZERO_READER,
-            TWINS_FIRST_ARTIST_READER,
-            USER_ONLY_FIELD_TITLE_FLS,
-            USER_NO_FIELD_TITLE_WILDCARD_INDEX_FLS,
-            USER_NO_FIELD_TITLE_FLS,
-            USER_ONLY_FIELD_TITLE_MASKED,
-            USER_BOTH_ONLY_AND_NO_FIELD_TITLE_FLS,
-            USER_BOTH_ONLY_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
-            USER_BOTH_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
-            USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
-            USER_FLS_INCLUDE_STARS
-        )
-        .build();
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        () -> new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+            .anonymousAuth(false)
+            .nodeSettings(
+                Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
+            )
+            .plugin(MapperSizePlugin.class)
+            .authc(AUTHC_HTTPBASIC_INTERNAL)
+            .users(
+                ADMIN_USER,
+                ALL_INDICES_MASKED_TITLE_ARTIST_READER,
+                MASKED_ARTIST_LYRICS_READER,
+                ALL_INDICES_STRING_ARTIST_READER,
+                ALL_INDICES_STARS_LESS_THAN_ZERO_READER,
+                TWINS_FIRST_ARTIST_READER,
+                USER_ONLY_FIELD_TITLE_FLS,
+                USER_NO_FIELD_TITLE_WILDCARD_INDEX_FLS,
+                USER_NO_FIELD_TITLE_FLS,
+                USER_ONLY_FIELD_TITLE_MASKED,
+                USER_BOTH_ONLY_AND_NO_FIELD_TITLE_FLS,
+                USER_BOTH_ONLY_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
+                USER_BOTH_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
+                USER_ALL_ONLY_AND_NO_FIELD_TITLE_FLS_ONLY_FIELD_TITLE_MASKED,
+                USER_FLS_INCLUDE_STARS
+            )
+    );
 
     @Rule
     public LogsRule logsRule = new LogsRule("org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper");
@@ -368,8 +376,23 @@ public class FlsAndFieldMaskingTests {
         }
     };
 
-    @BeforeClass
-    public static void createTestData() {
+    @Parameters(name = "{0}")
+    public static Collection<Object[]> params() {
+        List<Object[]> result = new ArrayList<>();
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            result.add(new Object[] { clusterConfig });
+        }
+        return result;
+    }
+
+    final LocalCluster cluster;
+
+    public FlsAndFieldMaskingTests(ClusterConfig clusterConfig) {
+        this.cluster = clusterInstances.get(clusterConfig);
+    }
+
+    @Before
+    public void createTestData() {
         try (Client client = cluster.getInternalNodeClient()) {
             FIRST_INDEX_SONGS_BY_ID.forEach((id, song) -> {
                 client.prepareIndex(FIRST_INDEX_NAME).setId(id).setRefreshPolicy(IMMEDIATE).setSource(song.asMap()).get();
@@ -532,7 +555,7 @@ public class FlsAndFieldMaskingTests {
         }
     }
 
-    private static List<String> createIndexWithDocs(String indexName, Song... songs) {
+    private List<String> createIndexWithDocs(String indexName, Song... songs) {
         try (Client client = cluster.getInternalNodeClient()) {
             client.admin()
                 .indices()
@@ -546,11 +569,11 @@ public class FlsAndFieldMaskingTests {
         }
     }
 
-    private static void addAliasToIndex(String indexName, String alias) {
+    private void addAliasToIndex(String indexName, String alias) {
         addAliasToIndex(indexName, alias, QueryBuilders.matchAllQuery());
     }
 
-    private static void addAliasToIndex(String indexName, String alias, QueryBuilder filterQuery) {
+    private void addAliasToIndex(String indexName, String alias, QueryBuilder filterQuery) {
         try (Client client = cluster.getInternalNodeClient()) {
             client.admin()
                 .indices()
@@ -563,7 +586,7 @@ public class FlsAndFieldMaskingTests {
         }
     }
 
-    private static TestSecurityConfig.User createUserWithRole(String userName, TestSecurityConfig.Role role) {
+    private TestSecurityConfig.User createUserWithRole(String userName, TestSecurityConfig.Role role) {
         TestSecurityConfig.User user = new TestSecurityConfig.User(userName);
         try (TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
             client.createRole(role.getName(), role).assertStatusCode(201);

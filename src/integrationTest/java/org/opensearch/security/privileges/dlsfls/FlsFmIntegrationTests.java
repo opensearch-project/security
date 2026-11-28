@@ -28,6 +28,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.bouncycastle.util.encoders.Hex;
 
 import org.opensearch.plugin.mapper.MapperSizePlugin;
+import org.opensearch.security.privileges.int_tests.ClusterConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -305,14 +306,15 @@ public class FlsFmIntegrationTests {
     }
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-        .anonymousAuth(false)
-        .plugin(MapperSizePlugin.class)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(Users.ALL)
-        .indices(TEST_INDEX)
-        .nodeSettings(ImmutableMap.of("plugins.security.compliance.salt", FIELD_MASKING_SALT))
-        .build();
+    public static final ClusterConfig.ClusterInstances clusterInstances = new ClusterConfig.ClusterInstances(
+        () -> new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+            .anonymousAuth(false)
+            .plugin(MapperSizePlugin.class)
+            .authc(AUTHC_HTTPBASIC_INTERNAL)
+            .users(Users.ALL)
+            .indices(TEST_INDEX)
+            .nodeSettings(ImmutableMap.of("plugins.security.compliance.salt", FIELD_MASKING_SALT))
+    );
 
     /**
      * This test has two main objectives. It ensures:
@@ -925,17 +927,21 @@ public class FlsFmIntegrationTests {
     }
 
     TestSecurityConfig.User user;
+    final LocalCluster cluster;
 
-    public FlsFmIntegrationTests(TestSecurityConfig.User user) {
+    public FlsFmIntegrationTests(ClusterConfig clusterConfig, TestSecurityConfig.User user) {
         this.user = user;
+        this.cluster = clusterInstances.get(clusterConfig);
     }
 
-    @Parameters(name = "user={0}")
+    @Parameters(name = "{0}, user={1}")
     public static Collection<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
 
-        for (TestSecurityConfig.User user : Users.ALL) {
-            result.add(new Object[] { user });
+        for (ClusterConfig clusterConfig : ClusterConfig.values()) {
+            for (TestSecurityConfig.User user : Users.ALL) {
+                result.add(new Object[] { clusterConfig, user });
+            }
         }
 
         return result;
