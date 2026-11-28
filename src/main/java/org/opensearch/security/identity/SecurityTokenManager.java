@@ -39,21 +39,19 @@ import org.opensearch.security.privileges.RoleMapper;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.greenrobot.eventbus.Subscribe;
 
 /**
  * This class is the Security Plugin's implementation of the TokenManager used by all Identity Plugins.
- * It handles the issuance of both Service Account Tokens and On Behalf Of tokens.
+ * It handles the issuance of On Behalf Of tokens. Service account tokens are no longer issued.
  */
 public class SecurityTokenManager implements TokenManager {
     private static final Logger logger = LogManager.getLogger(SecurityTokenManager.class);
 
     private final ClusterService cs;
     private final ThreadPool threadPool;
-    private final UserService userService;
     private final RoleMapper roleMapper;
     private final OnBehalfOfKeys keystoreKeys;
 
@@ -64,13 +62,11 @@ public class SecurityTokenManager implements TokenManager {
     public SecurityTokenManager(
         final ClusterService cs,
         final ThreadPool threadPool,
-        final UserService userService,
         final RoleMapper roleMapper,
         final OnBehalfOfKeys keystoreKeys
     ) {
         this.cs = cs;
         this.threadPool = threadPool;
-        this.userService = userService;
         this.roleMapper = roleMapper;
         this.keystoreKeys = keystoreKeys;
     }
@@ -163,13 +159,12 @@ public class SecurityTokenManager implements TokenManager {
         }
     }
 
+    /**
+     * Service account tokens are no longer issued. This method remains only because it is part of the core
+     * {@link TokenManager} interface, and can be removed once the interface drops it.
+     */
     @Override
     public AuthToken issueServiceAccountToken(final String serviceId) {
-        try {
-            return userService.generateAuthToken(serviceId);
-        } catch (final Exception e) {
-            logger.error("Error creating sevice final account auth token, service " + serviceId, e);
-            throw new OpenSearchSecurityException("Unable to issue service account token");
-        }
+        throw new UnsupportedOperationException("Service account tokens are not supported by the Security plugin");
     }
 }

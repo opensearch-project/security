@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +35,6 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.identity.tokens.AuthToken;
-import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.hasher.PasswordHasher;
@@ -50,8 +47,6 @@ import org.opensearch.security.support.SecurityIndexIdentity;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.transport.client.Client;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -79,7 +74,6 @@ public class UserService {
     final static String NO_ACCOUNT_NAME_MESSAGE = "No account name was specified in the request.";
 
     final static String FAILED_ACCOUNT_RETRIEVAL_MESSAGE = "The account specified could not be accessed at this time.";
-    final static String AUTH_TOKEN_GENERATION_MESSAGE = "An auth token could not be generated for the specified account.";
 
     private static CType<?> getUserConfigName() {
         return CType.INTERNALUSERS;
@@ -259,63 +253,6 @@ public class UserService {
         }
 
         return new String(password);
-    }
-
-    /**
-     * This function retrieves the auth token associated with a service account.
-     * Fails if the provided account is not a service account or account is not enabled.
-     *
-     * @param accountName A string representing the name of the account
-     * @return A string auth token
-     */
-    public AuthToken generateAuthToken(String accountName) throws IOException {
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
-
-        if (!internalUsersConfiguration.exists(accountName)) {
-            throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
-        }
-
-        String authToken = null;
-        try {
-            final var accountEntry = DefaultObjectMapper.writeValueAsString(internalUsersConfiguration.getCEntry(accountName), false);
-            JsonNode accountDetails = DefaultObjectMapper.readTree(accountEntry);
-            final ObjectNode contentAsNode = (ObjectNode) accountDetails;
-            SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
-
-            Optional.ofNullable(securityJsonNode.get("attributes").get("service"))
-                .map(SecurityJsonNode::asString)
-                .filter("true"::equalsIgnoreCase)
-                .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
-
-            Optional.ofNullable(securityJsonNode.get("attributes").get("enabled"))
-                .map(SecurityJsonNode::asString)
-                .filter("true"::equalsIgnoreCase)
-                .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
-
-            // Generate a new password for the account and store the hash of it
-            String plainTextPassword = generatePassword();
-            contentAsNode.put("hash", passwordHasher.hash(plainTextPassword.toCharArray()));
-            contentAsNode.put("enabled", "true");
-            contentAsNode.put("service", "true");
-
-            // Update the internal user associated with the auth token
-            internalUsersConfiguration.remove(accountName);
-            contentAsNode.remove("name");
-            internalUsersConfiguration.putCObject(
-                accountName,
-                DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
-            );
-            saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
-
-            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
-            return new BasicAuthToken("Basic " + authToken);
-
-        } catch (JacksonException ex) {
-            throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
-        } catch (Exception e) {
-            throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
-        }
     }
 
     public static void saveAndUpdateConfigs(

@@ -23,7 +23,6 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.dlic.rest.validation.EndpointValidator;
@@ -43,12 +42,8 @@ import org.opensearch.threadpool.ThreadPool;
 
 import tools.jackson.databind.node.ObjectNode;
 
-import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
-import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
-import static org.opensearch.security.dlic.rest.api.Responses.response;
 import static org.opensearch.security.dlic.rest.support.Utils.OPENDISTRO_API_DEPRECATION_MESSAGE;
 import static org.opensearch.security.dlic.rest.support.Utils.addLegacyRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -71,14 +66,12 @@ public class InternalUsersApiAction extends AbstractApiAction {
         ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user"),
-            new Route(Method.POST, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
             new Route(Method.PUT, "/user/{name}"),
 
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/internalusers/{name}"),
             new Route(Method.GET, "/internalusers"),
-            new Route(Method.POST, "/internalusers/{name}/authtoken"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
             new Route(Method.PATCH, "/internalusers"),
@@ -90,14 +83,12 @@ public class InternalUsersApiAction extends AbstractApiAction {
         ImmutableList.of(
             new DeprecatedRoute(Method.GET, "/user/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.GET, "/user", OPENDISTRO_API_DEPRECATION_MESSAGE),
-            new DeprecatedRoute(Method.POST, "/user/{name}/authtoken", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.DELETE, "/user/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PUT, "/user/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
 
             // corrected mapping, introduced in OpenSearch Security
             new DeprecatedRoute(Method.GET, "/internalusers/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.GET, "/internalusers", OPENDISTRO_API_DEPRECATION_MESSAGE),
-            new DeprecatedRoute(Method.POST, "/internalusers/{name}/authtoken", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.DELETE, "/internalusers/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PUT, "/internalusers/{name}", OPENDISTRO_API_DEPRECATION_MESSAGE),
             new DeprecatedRoute(Method.PATCH, "/internalusers", OPENDISTRO_API_DEPRECATION_MESSAGE),
@@ -149,19 +140,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
                 return ValidationResult.success(securityConfiguration);
             })
         )
-            // Overrides the GET request functionality to allow for the special case of requesting an auth token.
-            .override(
-                Method.POST,
-                (channel, request, client) -> withAuthTokenPath(request).map(
-                    username -> loadConfiguration(getConfigType(), true, false).map(
-                        configuration -> ValidationResult.success(SecurityConfiguration.of(username, configuration))
-                    )
-                )
-                    .map(endpointValidator::entityExists)
-                    .map(endpointValidator::isAllowedToLoadOrChangeHiddenEntity)
-                    .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
-                    .error((status, toXContent) -> response(channel, status, toXContent))
-            )
             .onChangeRequest(Method.PATCH, this::processPatchRequest)
             .onChangeRequest(
                 Method.PUT,
@@ -194,26 +172,6 @@ public class InternalUsersApiAction extends AbstractApiAction {
             return UserFilterType.ANY;
         }
         return UserFilterType.fromString(filter);
-    }
-
-    ValidationResult<String> withAuthTokenPath(final RestRequest request) throws IOException {
-        return endpointValidator.withRequiredEntityName(nameParam(request)).map(username -> {
-            // Handle auth token fetching
-            if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {
-                return ValidationResult.success(username);
-            }
-            return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
-        });
-    }
-
-    void generateAuthToken(final RestChannel channel, final SecurityConfiguration securityConfiguration) throws IOException {
-        try {
-            final var username = securityConfiguration.entityName();
-            final var authToken = userService.generateAuthToken(username);
-            ok(channel, "'" + username + "' authtoken generated " + authToken);
-        } catch (final UserServiceException e) {
-            badRequest(channel, e.getMessage());
-        }
     }
 
     ValidationResult<SecurityConfiguration> validateSecurityRoles(final SecurityConfiguration securityConfiguration) throws IOException {
