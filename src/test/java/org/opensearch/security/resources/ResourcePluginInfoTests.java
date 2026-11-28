@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -150,6 +151,32 @@ public class ResourcePluginInfoTests {
             new StringField("workflow.type", "workflow", Field.Store.NO)
         );
         assertNull(typeOf(".alerting-config", both));
+    }
+
+    /** A new registration replaces the providers that type resolution reads. */
+    @Test
+    public void testResolutionFollowsTheLatestRegistration() {
+        registerExtension(provider("old-type", ".shared-index", "kind"));
+        assertEquals("old-type", typeOf(".shared-index", mockIndexOp(new StringField("kind", "old-type", Field.Store.NO))));
+
+        registerExtension(provider("new-type", ".shared-index", "kind"));
+        assertNull(typeOf(".shared-index", mockIndexOp(new StringField("kind", "old-type", Field.Store.NO))));
+        assertEquals("new-type", typeOf(".shared-index", mockIndexOp(new StringField("kind", "new-type", Field.Store.NO))));
+    }
+
+    /** Providers that share a type field read it from the document once. */
+    @Test
+    public void testSharedTypeFieldIsReadOnce() {
+        registerProviders(List.of("a", "b", "c"), ".sample-index", "resource_type");
+        AtomicInteger reads = new AtomicInteger();
+
+        ResourceProvider resolved = resourcePluginInfo.resolveResourceProvider(".sample-index", field -> {
+            reads.incrementAndGet();
+            return "b";
+        });
+
+        assertEquals("b", resolved.resourceType());
+        assertEquals(1, reads.get());
     }
 
     @Test

@@ -81,7 +81,11 @@ public class ResourceSharingDlsUtils {
         try {
             XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.startObject().startObject("bool").startArray("should");
-            builder.startObject().startObject("terms").array("all_shared_principals", principals.toArray()).endObject().endObject();
+            builder.startObject()
+                .startObject("terms")
+                .array(ResourceSharingIndexHandler.ALL_SHARED_PRINCIPALS_FIELD, principals.toArray())
+                .endObject()
+                .endObject();
             if (workspacesField != null && !userWorkspaces.isEmpty()) {
                 builder.startObject().startObject("terms").array(workspacesField, userWorkspaces.toArray()).endObject().endObject();
             }
