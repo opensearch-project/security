@@ -14,6 +14,7 @@ package org.opensearch.security;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Optional;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -116,6 +117,35 @@ public class UserServiceUnitTests {
             UserService.restrictedFromUsername("aaaa:bbb"),
             is(Optional.of("A restricted character(s) was detected in the account name. Please remove: ':'"))
         );
+        assertThat(
+            UserService.restrictedFromUsername("aaaa*"),
+            is(Optional.of("A restricted character(s) was detected in the account name. Please remove: '*'"))
+        );
+        assertThat(
+            UserService.restrictedFromUsername("aa?aa"),
+            is(Optional.of("A restricted character(s) was detected in the account name. Please remove: '?'"))
+        );
+        // Encoded characters are decoded before checking.
+        assertThat(
+            UserService.restrictedFromUsername("aaaa%2A"),
+            is(Optional.of("A restricted character(s) was detected in the account name. Please remove: '*'"))
+        );
+        assertThat(
+            UserService.restrictedFromUsername("aa%zz"),
+            is(Optional.of("The account name contains an invalid '%' escape sequence."))
+        );
+        // Names starting and ending with '/' are compiled as regular expressions in role mappings (WildcardMatcher.from), so they
+        // never match a user by name. That includes "/" and "//"; a lone "/" would even fail to compile.
+        for (final String regexForm : List.of("/aaaa/", "/a.b+/", "//", "/")) {
+            assertThat(
+                UserService.restrictedFromUsername(regexForm),
+                is(Optional.of("The account name must not be enclosed in '/', which is regular expression syntax."))
+            );
+        }
+        // A '/' anywhere else, or regex metacharacters without the enclosing slashes, are matched literally.
+        for (final String allowed : List.of("a/b", "/aaaa", "aaaa/", "a.b+c")) {
+            assertThat(UserService.restrictedFromUsername(allowed), is(Optional.empty()));
+        }
     }
 
     @Test
